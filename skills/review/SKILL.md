@@ -71,7 +71,7 @@ Spawn a verifier Task() to run three-layer checks:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-verifier",
   prompt: <verifier prompt>
 })
 ```
@@ -304,7 +304,7 @@ Spawn a debugger Task() to analyze each failure:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-debugger",
   prompt: <debugger prompt>
 })
 ```
@@ -362,7 +362,7 @@ After receiving the root cause analysis, spawn the planner in gap-closure mode:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-planner",
   prompt: <gap planner prompt>
 })
 ```
@@ -371,10 +371,6 @@ Task({
 
 ```
 You are the towline-planner agent operating in Gap Closure mode.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-planner.md]
-</agent_definition>
 
 <verification_report>
 [Inline VERIFICATION.md]

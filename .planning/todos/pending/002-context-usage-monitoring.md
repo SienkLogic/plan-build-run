@@ -8,7 +8,7 @@ created: 2026-02-07
 
 ## Problem
 
-During `/dev:begin` with comprehensive research (4 parallel researchers + synthesis), the main session hit 888% context usage. The orchestrator has no awareness of its own context budget — it can't warn the user or adapt behavior (e.g., switching to `depth: quick` mid-operation).
+During `/dev:begin` with comprehensive research (4 parallel researchers + synthesis), the main session hit 88% context usage. The orchestrator has no awareness of its own context budget — it can't warn the user or adapt behavior (e.g., switching to `depth: quick` mid-operation).
 
 ## Observed During
 

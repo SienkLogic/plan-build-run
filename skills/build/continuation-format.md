@@ -49,10 +49,6 @@ The user's response to the checkpoint:
 ```
 You are the towline-executor agent. Continue executing a plan from a checkpoint.
 
-<agent_definition>
-[Inline the FULL content of agents/towline-executor.md]
-</agent_definition>
-
 <plan>
 [Inline the FULL PLAN.md content — all tasks, not just remaining ones]
 </plan>

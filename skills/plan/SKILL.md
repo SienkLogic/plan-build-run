@@ -134,19 +134,17 @@ Spawn a researcher Task():
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-researcher",
   prompt: <phase research prompt>
 })
+
+NOTE: The dev:towline-researcher subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 #### Phase Research Prompt Template
 
 ```
 You are the towline-researcher agent operating in Phase Research mode.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-researcher.md]
-</agent_definition>
 
 <phase_context>
 Phase: {NN} - {phase name}
@@ -183,19 +181,17 @@ Spawn the planner Task() with all context inlined:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-planner",
   prompt: <planning prompt>
 })
+
+NOTE: The dev:towline-planner subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 #### Planning Prompt Template
 
 ```
 You are the towline-planner agent operating in Standard Planning mode.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-planner.md]
-</agent_definition>
 
 <phase_context>
 Phase: {NN} - {phase name}
@@ -272,19 +268,17 @@ Spawn the plan checker Task():
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-plan-checker",
   prompt: <checker prompt>
 })
+
+NOTE: The dev:towline-plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 #### Checker Prompt Template
 
 ```
 You are the towline-plan-checker agent.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-plan-checker.md]
-</agent_definition>
 
 <plans_to_check>
 {For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
@@ -325,10 +319,6 @@ If the plan checker found issues:
 
 ```
 You are the towline-planner agent operating in Revision Mode.
-
-<agent_definition>
-[Inline agents/towline-planner.md]
-</agent_definition>
 
 <original_plans>
 [Inline the current plan files]
@@ -457,10 +447,6 @@ When invoked with `--gaps`:
 
 ```
 You are the towline-planner agent operating in Gap Closure mode.
-
-<agent_definition>
-[Inline agents/towline-planner.md]
-</agent_definition>
 
 <verification_report>
 [Inline the FULL VERIFICATION.md content]

@@ -142,10 +142,6 @@ Construct the executor prompt:
 ```
 You are the towline-executor agent. Execute the following plan.
 
-<agent_definition>
-[Inline the FULL content of agents/towline-executor.md]
-</agent_definition>
-
 <plan>
 [Inline the FULL PLAN.md content — frontmatter and all tasks]
 </plan>
@@ -196,9 +192,11 @@ If you hit a checkpoint task, STOP and return the checkpoint response format imm
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-executor",
   prompt: <executor prompt constructed above>
 })
+
+NOTE: The dev:towline-executor subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 #### 6b. Wait for Wave Completion
@@ -282,10 +280,6 @@ Reference: `skills/build/continuation-format.md` for the continuation protocol.
 ```
 You are the towline-executor agent. Continue executing a plan from a checkpoint.
 
-<agent_definition>
-[Inline agents/towline-executor.md]
-</agent_definition>
-
 <plan>
 [Inline the FULL PLAN.md content]
 </plan>
@@ -334,9 +328,11 @@ Spawn a verifier Task():
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-verifier",
   prompt: <verifier prompt>
 })
+
+NOTE: The dev:towline-verifier subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 #### Verifier Prompt Template

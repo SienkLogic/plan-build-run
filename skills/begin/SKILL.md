@@ -159,22 +159,18 @@ Spawn parallel Task() subagents for research. Each researcher writes to `.planni
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-researcher",
   prompt: <see researcher prompt template below>
 })
 ```
+
+**NOTE**: The `dev:towline-researcher` subagent type auto-loads the agent definition from `agents/towline-researcher.md`. Do NOT inline the agent definition — it wastes main context.
 
 #### Researcher Prompt Template
 
 For each researcher, construct the prompt as follows:
 
 ```
-You are the towline-researcher agent. Your task is to research a specific topic for a new project.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-researcher.md here]
-</agent_definition>
-
 <project_context>
 Project: {project name from questioning}
 Description: {2-3 sentence description from questioning}
@@ -222,6 +218,12 @@ Write your findings to the output file using the Project Research output format 
 
 **Parallelization:**
 - Spawn ALL researchers in parallel (multiple Task() calls in one response)
+- Use `run_in_background: true` for each researcher
+- While waiting, display progress to the user:
+  - After spawning: "Launched {N} researchers in parallel: {list of topics}"
+  - Periodically (every ~30s): check `TaskOutput` with `block: false` for each agent and report status
+  - When each completes: "✓ {topic} researcher complete ({duration})"
+  - When all complete: "All {N} researchers finished. Proceeding to synthesis."
 - Wait for all to complete before proceeding
 
 ---
@@ -232,20 +234,17 @@ After all researchers complete, spawn a synthesis agent:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-synthesizer",
+  model: "haiku",
   prompt: <synthesis prompt>
 })
 ```
 
+**NOTE**: The `dev:towline-synthesizer` subagent type auto-loads the agent definition. Do NOT inline it. Use `model: "haiku"` — synthesis is fast summarization work that doesn't need a large model.
+
 #### Synthesis Prompt Template
 
 ```
-You are the towline-researcher agent operating in Synthesis Mode.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-researcher.md here]
-</agent_definition>
-
 <research_documents>
 Read the following research documents and synthesize them:
 {List all .planning/research/*.md files that were created}
@@ -312,37 +311,28 @@ Spawn the towline-planner in roadmap mode:
 
 ```
 Task({
-  subagent_type: "general-purpose",
+  subagent_type: "dev:towline-planner",
   prompt: <roadmap prompt>
 })
 ```
 
+**NOTE**: The `dev:towline-planner` subagent type auto-loads the agent definition. Do NOT inline it. The planner agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
+
 #### Roadmap Prompt Template
 
 ```
-You are the towline-planner agent operating in Roadmap Mode.
-
-<agent_definition>
-[Inline the FULL content of agents/towline-planner.md here]
-</agent_definition>
-
 <project_context>
 Project: {project name}
 Description: {description}
 Depth: {quick|standard|comprehensive}
 </project_context>
 
-<requirements>
-[Inline the FULL content of .planning/REQUIREMENTS.md]
-</requirements>
-
-<research_summary>
-[If research was done: inline .planning/research/SUMMARY.md]
-[If no research: "No research conducted (depth: quick)"]
-</research_summary>
-
 <roadmap_instructions>
 Create a project roadmap following the Roadmap Mode instructions in your agent definition.
+
+Read these files for context:
+- .planning/REQUIREMENTS.md — committed requirements
+- .planning/research/SUMMARY.md — research synthesis (if it exists)
 
 Phase count guidelines based on depth:
 - quick: 3-5 phases
