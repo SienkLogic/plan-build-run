@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('./hook-logger');
 
 function main() {
   const cwd = process.cwd();
@@ -41,8 +42,9 @@ function main() {
     }
 
     fs.writeFileSync(stateFile, content, 'utf8');
+    logHook('context-budget-check', 'PreCompact', 'saved', { stateFile: 'STATE.md' });
   } catch (e) {
-    // Don't fail on errors - this is best-effort
+    logHook('context-budget-check', 'PreCompact', 'error', { error: e.message });
   }
 
   process.exit(0);

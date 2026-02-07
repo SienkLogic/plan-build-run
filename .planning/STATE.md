@@ -21,10 +21,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 - Test project lives in separate directory from Towline source
 
 ### Pending Todos
-- 001: Agent progress monitoring for orchestrator
-- 002: Main session context usage monitoring
-- 003: Hook execution audit logging
-- 004: Create lightweight towline-general agent
+None — all 4 dogfood todos (001-004) completed
 
 ### Blockers/Concerns
 - Context usage during /dev:begin was high (88%) — need better context isolation

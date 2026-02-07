@@ -3,3 +3,4 @@ node_modules/
 *.log
 nul
 .planning/research/
+.planning/.hook-log

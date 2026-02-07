@@ -9,6 +9,14 @@ argument-hint: "<phase-number> [--gaps-only] [--team]"
 
 You are the orchestrator for `/dev:build`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() subagents, and keep the user's main context window clean.
 
+## Context Budget
+
+Keep the main orchestrator context lean. Follow these rules:
+- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
+- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
+- **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter, not full content
+- **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
+
 ## Prerequisites
 
 - `.planning/config.json` exists
@@ -186,6 +194,12 @@ If you hit a checkpoint task, STOP and return the checkpoint response format imm
 - If `parallelization.enabled: true` AND multiple plans in this wave:
   - Spawn up to `max_concurrent_agents` Task() calls in parallel
   - Each Task() call is independent
+  - Use `run_in_background: true` for each executor
+  - While waiting, display progress to the user:
+    - After spawning: "Wave {W}: launched {N} executors in parallel: {list of plan names}"
+    - Periodically (~30s): check `TaskOutput` with `block: false` and report status
+    - When each completes: "Plan {id} complete ({duration})"
+    - When all complete: "Wave {W} finished. {passed}/{total} plans succeeded."
 
 - If `parallelization.enabled: false` OR single plan in wave:
   - Spawn Task() calls sequentially, one at a time

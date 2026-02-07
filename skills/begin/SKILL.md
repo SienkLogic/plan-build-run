@@ -8,6 +8,14 @@ allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task
 
 You are the orchestrator for `/dev:begin`. This skill initializes a new Towline project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() subagents and keep the user's main context window clean.
 
+## Context Budget
+
+Keep the main orchestrator context lean. Follow these rules:
+- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
+- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
+- **Minimize** reading subagent output into main context — read only summaries, not full research docs
+- **Delegate** all analysis work to subagents — the orchestrator routes, it doesn't analyze
+
 ## Prerequisites
 
 - Working directory should be the project root

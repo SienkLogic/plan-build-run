@@ -9,6 +9,14 @@ argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] | add 
 
 You are the orchestrator for `/dev:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() subagents, and keep the user's main context window clean.
 
+## Context Budget
+
+Keep the main orchestrator context lean. Follow these rules:
+- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
+- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
+- **Minimize** reading subagent output into main context — read only plan frontmatter for summaries
+- **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
+
 ## Prerequisites
 
 - `.planning/config.json` exists (run `/dev:begin` first)

@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('./hook-logger');
 
 function main() {
   let input = '';
@@ -39,10 +40,13 @@ function main() {
       const issues = validatePlan(content, filePath);
 
       if (issues.length > 0) {
+        logHook('check-plan-format', 'PostToolUse', 'warn', { file: path.basename(filePath), issues });
         const output = {
           message: `Plan format issues in ${path.basename(filePath)}:\n${issues.map(i => `  - ${i}`).join('\n')}`
         };
         process.stdout.write(JSON.stringify(output));
+      } else {
+        logHook('check-plan-format', 'PostToolUse', 'pass', { file: path.basename(filePath) });
       }
 
       process.exit(0);

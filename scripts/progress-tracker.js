@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('./hook-logger');
 
 function main() {
   const cwd = process.cwd();
@@ -28,6 +29,9 @@ function main() {
       additionalContext: context
     };
     process.stdout.write(JSON.stringify(output));
+    logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });
+  } else {
+    logHook('progress-tracker', 'SessionStart', 'skipped', { hasState: false });
   }
 
   process.exit(0);
