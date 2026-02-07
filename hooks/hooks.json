@@ -1,0 +1,30 @@
+[
+  {
+    "event": "SessionStart",
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/progress-tracker.js",
+    "description": "Auto-detect Towline project and inject state context"
+  },
+  {
+    "event": "PostToolUse",
+    "matcher": {
+      "tool_name": "Write|Edit",
+      "file_path": ".*PLAN\\.md$"
+    },
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-plan-format.js",
+    "description": "Validate plan XML structure after writing/editing PLAN.md files"
+  },
+  {
+    "event": "PreToolUse",
+    "matcher": {
+      "tool_name": "Bash",
+      "command": "^git\\s+commit"
+    },
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js",
+    "description": "Enforce atomic commit message format for Towline projects"
+  },
+  {
+    "event": "PreCompact",
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/context-budget-check.js",
+    "description": "Preserve state to STATE.md before lossy context compaction"
+  }
+]

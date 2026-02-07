@@ -1,0 +1,141 @@
+#!/usr/bin/env node
+
+/**
+ * Validates the Towline plugin structure:
+ * - Every skill directory has SKILL.md
+ * - Every agent file has valid YAML frontmatter (name, description)
+ * - hooks.json references existing scripts
+ * - No broken relative links in markdown files
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.resolve(__dirname, '..');
+let errors = 0;
+let warnings = 0;
+
+function error(msg) {
+  console.error(`ERROR: ${msg}`);
+  errors++;
+}
+
+function warn(msg) {
+  console.warn(`WARN: ${msg}`);
+  warnings++;
+}
+
+function info(msg) {
+  console.log(`OK: ${msg}`);
+}
+
+// 1. Check plugin.json exists
+const pluginJsonPath = path.join(ROOT, '.claude-plugin', 'plugin.json');
+if (!fs.existsSync(pluginJsonPath)) {
+  error('.claude-plugin/plugin.json missing');
+} else {
+  try {
+    const plugin = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+    if (!plugin.name) error('plugin.json missing "name" field');
+    if (!plugin.version) error('plugin.json missing "version" field');
+    if (!plugin.description) error('plugin.json missing "description" field');
+    info(`Plugin: ${plugin.name} v${plugin.version}`);
+  } catch (e) {
+    error(`plugin.json is not valid JSON: ${e.message}`);
+  }
+}
+
+// 2. Check every skill directory has SKILL.md
+const skillsDir = path.join(ROOT, 'skills');
+if (fs.existsSync(skillsDir)) {
+  const skillDirs = fs.readdirSync(skillsDir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && d.name !== 'shared');
+
+  for (const dir of skillDirs) {
+    const skillMd = path.join(skillsDir, dir.name, 'SKILL.md');
+    if (!fs.existsSync(skillMd)) {
+      error(`skills/${dir.name}/ missing SKILL.md`);
+    } else {
+      const content = fs.readFileSync(skillMd, 'utf8');
+      if (!content.startsWith('---')) {
+        error(`skills/${dir.name}/SKILL.md missing YAML frontmatter`);
+      } else {
+        const frontmatter = content.split('---')[1];
+        if (!frontmatter.includes('name:')) {
+          error(`skills/${dir.name}/SKILL.md frontmatter missing "name" field`);
+        }
+        if (!frontmatter.includes('description:')) {
+          error(`skills/${dir.name}/SKILL.md frontmatter missing "description" field`);
+        }
+      }
+      info(`Skill: /dev:${dir.name}`);
+    }
+  }
+} else {
+  error('skills/ directory missing');
+}
+
+// 3. Check every agent file has valid frontmatter
+const agentsDir = path.join(ROOT, 'agents');
+if (fs.existsSync(agentsDir)) {
+  const agentFiles = fs.readdirSync(agentsDir)
+    .filter(f => f.endsWith('.md'));
+
+  for (const file of agentFiles) {
+    const content = fs.readFileSync(path.join(agentsDir, file), 'utf8');
+    if (!content.startsWith('---')) {
+      error(`agents/${file} missing YAML frontmatter`);
+    } else {
+      const frontmatter = content.split('---')[1];
+      if (!frontmatter.includes('name:')) {
+        error(`agents/${file} frontmatter missing "name" field`);
+      }
+      if (!frontmatter.includes('description:')) {
+        error(`agents/${file} frontmatter missing "description" field`);
+      }
+      const nameMatch = frontmatter.match(/name:\s*(.+)/);
+      info(`Agent: ${nameMatch ? nameMatch[1].trim() : file}`);
+    }
+  }
+} else {
+  error('agents/ directory missing');
+}
+
+// 4. Check hooks.json references existing scripts
+const hooksJsonPath = path.join(ROOT, 'hooks', 'hooks.json');
+if (fs.existsSync(hooksJsonPath)) {
+  try {
+    const hooks = JSON.parse(fs.readFileSync(hooksJsonPath, 'utf8'));
+    const hookEntries = Array.isArray(hooks) ? hooks : (hooks.hooks || []);
+
+    for (const hook of hookEntries) {
+      if (hook.command) {
+        // Extract script path from command, replacing ${CLAUDE_PLUGIN_ROOT}
+        const cmd = hook.command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
+        const parts = cmd.split(' ');
+        // Find the .js file in the command
+        const scriptPart = parts.find(p => p.endsWith('.js'));
+        if (scriptPart) {
+          const scriptPath = scriptPart.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
+          const resolvedPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(ROOT, scriptPath);
+          if (!fs.existsSync(resolvedPath)) {
+            error(`hooks.json references missing script: ${scriptPart}`);
+          }
+        }
+      }
+    }
+    info('hooks.json validated');
+  } catch (e) {
+    error(`hooks.json is not valid JSON: ${e.message}`);
+  }
+} else {
+  warn('hooks/hooks.json not found (hooks are optional)');
+}
+
+// 5. Summary
+console.log('\n---');
+console.log(`Validation complete: ${errors} errors, ${warnings} warnings`);
+
+if (errors > 0) {
+  process.exit(1);
+}

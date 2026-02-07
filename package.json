@@ -1,0 +1,30 @@
+{
+  "name": "towline",
+  "version": "1.0.0",
+  "description": "Context-engineered development workflow for Claude Code",
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "development-workflow",
+    "context-engineering",
+    "ai-development"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SienkLogic/towline"
+  },
+  "homepage": "https://github.com/SienkLogic/towline",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint scripts/ tests/",
+    "validate": "node scripts/validate-plugin-structure.js"
+  },
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,429 @@
+---
+name: debug
+description: "Systematic debugging with hypothesis testing. Persistent across sessions."
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task
+argument-hint: "[issue description]"
+---
+
+# /dev:debug — Systematic Debugging
+
+You are running the **debug** skill. Your job is to run a structured, hypothesis-driven debugging session that persists across conversations. You track every hypothesis, test, and finding in a debug file so work is never lost.
+
+This skill **spawns Task(towline-debugger)** for investigation work.
+
+---
+
+## Core Principle
+
+**Debug systematically, not randomly.** Every investigation step must have a hypothesis, a test, and a recorded result. No "let me just try this" — every action has a reason and is documented.
+
+---
+
+## Flow
+
+### Step 1: Check for Active Debug Sessions
+
+Scan `.planning/debug/` for existing debug files:
+
+```
+.planning/debug/
+  {NNN}-{slug}.md     # Each debug session is a file
+```
+
+Read each file's frontmatter to check status:
+- `status: active` — session is in progress
+- `status: resolved` — session is complete
+- `status: stale` — session was abandoned
+
+**If active sessions found:**
+
+Present to user via AskUserQuestion:
+```
+Found active debug session(s):
+
+1. #{NNN}: {title} (started {date})
+   Last hypothesis: {last hypothesis}
+
+2. Start a new debug session
+
+Which would you like?
+```
+
+- If user selects an existing session: go to **Resume Flow**
+- If user selects "new": go to **New Session Flow**
+
+**If no active sessions found:**
+- Go to **New Session Flow**
+
+### Step 2a: New Session Flow
+
+#### Gather Symptoms
+
+If `$ARGUMENTS` is provided and descriptive:
+- Use it as the initial issue description
+- Still ask targeted follow-up questions
+
+If `$ARGUMENTS` is empty or minimal:
+- Ask the user for symptoms
+
+**Symptom gathering questions** (use AskUserQuestion for each):
+
+1. **Expected behavior**: "What should happen?"
+2. **Actual behavior**: "What actually happens? Include error messages if any."
+3. **Reproduction**: "How do you trigger this? Steps to reproduce?"
+4. **Onset**: "When did this start? Did anything change recently (new code, dependency update, config change)?"
+5. **Scope**: "Does this affect everything or just specific cases? Any patterns?"
+
+**Optional follow-ups** (ask if relevant):
+- "What have you already tried?"
+- "Does this happen in all environments (dev, prod, test)?"
+- "Any relevant log output?"
+
+#### Generate Session ID
+
+1. Scan `.planning/debug/` for existing files
+2. Extract NNN prefixes
+3. Next number = highest + 1 (start at 001)
+4. Generate slug from issue title (same rules as quick task slugs)
+
+#### Create Debug File
+
+Create `.planning/debug/{NNN}-{slug}.md`:
+
+```markdown
+---
+id: "{NNN}"
+title: "{issue title}"
+status: active
+created: "{ISO date}"
+updated: "{ISO date}"
+severity: "{critical|high|medium|low}"
+category: "{runtime|build|test|config|integration|unknown}"
+---
+
+# Debug Session: {title}
+
+## Symptoms
+
+**Expected:** {expected behavior}
+**Actual:** {actual behavior}
+**Reproduction:** {steps}
+**Onset:** {when it started}
+**Scope:** {affected areas}
+
+## Environment
+
+- OS: {detected or reported}
+- Runtime: {node version, python version, etc.}
+- Relevant config: {any config that matters}
+
+## Investigation Log
+
+### Round 1 (automated)
+
+{This section is filled by towline-debugger}
+
+## Hypotheses
+
+| # | Hypothesis | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | {hypothesis} | {testing/confirmed/rejected} | {evidence} |
+
+## Root Cause
+
+{Filled when found}
+
+## Fix Applied
+
+{Filled when fixed}
+
+## Timeline
+
+- {ISO date}: Session created
+```
+
+#### Spawn Debugger
+
+Spawn `Task(towline-debugger)` with the following prompt:
+
+```
+You are towline-debugger. Investigate the following issue systematically.
+
+Debug file: .planning/debug/{NNN}-{slug}.md
+Mode: initial_investigation
+
+Symptoms:
+- Expected: {expected}
+- Actual: {actual}
+- Reproduction: {steps}
+- Onset: {onset}
+- Scope: {scope}
+
+Instructions:
+1. Read the debug file for full context
+2. Formulate 2-3 initial hypotheses based on symptoms
+3. For each hypothesis:
+   a. State what you're testing and why
+   b. Design a specific test (command, code inspection, log check)
+   c. Execute the test
+   d. Record the result (confirmed, rejected, inconclusive)
+4. Update the debug file with findings
+5. Return one of:
+   - ROOT_CAUSE_FOUND: {cause} + FIX: {what to change}
+   - ROOT_CAUSE_FOUND: {cause} (if find_root_cause_only mode)
+   - CHECKPOINT: {what was found, what to investigate next}
+   - INCONCLUSIVE: {findings so far, suggested next approaches}
+```
+
+### Step 2b: Resume Flow
+
+1. Read the debug file content
+2. Parse the investigation log and hypotheses table
+3. Display to user:
+
+```
+Resuming debug session #{NNN}: {title}
+
+Last state:
+- Hypotheses tested: {N}
+- Confirmed: {list or "none yet"}
+- Rejected: {list}
+- Current lead: {most promising hypothesis}
+
+Continuing investigation...
+```
+
+4. Spawn `Task(towline-debugger)` with continuation context:
+
+```
+You are towline-debugger. Continue investigating the following issue.
+
+Debug file: .planning/debug/{NNN}-{slug}.md
+Mode: continuation
+
+Previous findings:
+{paste investigation log and hypotheses from the debug file}
+
+Instructions:
+1. Read the debug file for full context
+2. Review what's already been tested
+3. Formulate NEW hypotheses based on prior findings
+4. Continue systematic investigation
+5. Update the debug file
+6. Return: ROOT_CAUSE_FOUND, CHECKPOINT, or INCONCLUSIVE
+```
+
+### Step 3: Handle Debugger Results
+
+The debugger returns one of four outcomes:
+
+#### ROOT CAUSE FOUND + FIX
+
+```
+Root cause identified: {cause}
+Fix applied: {description}
+Commit: {hash}
+```
+
+Actions:
+1. Update debug file:
+   - Set `status: resolved`
+   - Fill "Root Cause" section
+   - Fill "Fix Applied" section
+   - Add timeline entry
+2. Update STATE.md if it has a Debug Sessions section
+3. Report to user with full details
+
+#### ROOT CAUSE FOUND (no fix)
+
+Used when the debugger was invoked with `find_root_cause_only` or when the fix is too complex for auto-application.
+
+```
+Root cause identified: {cause}
+Suggested fix: {approach}
+```
+
+Actions:
+1. Update debug file:
+   - Set `status: resolved`
+   - Fill "Root Cause" section
+   - Add suggested fix to notes
+2. Suggest next steps to user:
+   - `/dev:quick {fix description}` for simple fixes
+   - `/dev:plan` for complex fixes
+
+#### CHECKPOINT
+
+The debugger found something but needs user input or more investigation.
+
+```
+Investigation progress:
+- Tested: {hypotheses tested}
+- Found: {key finding}
+- Need: {what's needed to continue}
+```
+
+Actions:
+1. Update debug file with findings so far
+2. Present checkpoint to user
+3. Ask user via AskUserQuestion:
+   - "Continue investigating?"
+   - "Provide additional information?"
+   - "Try a different approach?"
+4. If user wants to continue: spawn another `Task(towline-debugger)` with updated context
+5. If user wants to pause: save state, suggest `/dev:debug` to resume later
+
+#### INCONCLUSIVE
+
+The debugger exhausted its hypotheses without finding the root cause.
+
+```
+Investigation exhausted:
+- Tested: {all hypotheses}
+- Rejected: {list}
+- Remaining unknowns: {list}
+```
+
+Actions:
+1. Update debug file with all findings
+2. Report to user:
+   - What was tested and eliminated
+   - What remains unknown
+   - Suggested next investigation approaches:
+     - Different reproduction steps
+     - Log-level debugging
+     - Environment comparison
+     - Bisect (git bisect to find the breaking commit)
+     - External help (stack overflow, docs)
+3. Keep session active for future resumption
+
+---
+
+## Debugger Investigation Protocol
+
+The towline-debugger agent follows this protocol internally:
+
+### Hypothesis-Driven Investigation
+
+```
+1. OBSERVE: Read error messages, logs, code around the failure point
+2. HYPOTHESIZE: "The most likely cause is X because Y"
+3. PREDICT: "If X is the cause, then test Z should show W"
+4. TEST: Execute test Z
+5. EVALUATE:
+   - Result matches prediction → hypothesis supported → investigate deeper
+   - Result contradicts → hypothesis rejected → try next hypothesis
+   - Result is unexpected → new information → form new hypothesis
+```
+
+### Investigation Techniques
+
+| Technique | When to Use |
+|-----------|------------|
+| **Stack trace analysis** | Error with stack trace available |
+| **Code path tracing** | Logic error, wrong behavior |
+| **Log injection** | Need to see runtime values |
+| **Binary search** | Know it worked before, need to find when it broke |
+| **Isolation** | Complex system, need to narrow scope |
+| **Comparison** | Works in one case, fails in another |
+| **Dependency audit** | Recent dependency changes |
+| **Config diff** | Works in one environment, not another |
+
+### Evidence Quality
+
+| Quality | Description | Action |
+|---------|-------------|--------|
+| **Strong** | Directly proves/disproves hypothesis | Record and move on |
+| **Moderate** | Suggests but doesn't prove | Record, seek corroboration |
+| **Weak** | Tangentially related | Note but don't base decisions on it |
+| **Misleading** | Red herring | Record as eliminated, explain why |
+
+---
+
+## Debug File Management
+
+### Lifecycle
+
+```
+active → resolved     (root cause found and fixed)
+active → stale        (abandoned — no updates for 7+ days)
+active → active       (resumed after pause)
+```
+
+### Staleness Detection
+
+When scanning for active sessions, check the `updated` date. If more than 7 days old:
+- Mark as `stale` in status
+- Still offer to resume, but warn: "This session is {N} days old. Context may have changed."
+
+### Cleanup
+
+Old resolved debug files can accumulate. They serve as a knowledge base for similar issues. Do NOT auto-delete them.
+
+---
+
+## State Integration
+
+Update STATE.md Debug Sessions section (create if needed):
+
+```markdown
+### Debug Sessions
+
+| # | Issue | Status | Root Cause |
+|---|-------|--------|------------|
+| 001 | Login timeout | resolved | DB connection pool exhausted |
+| 002 | CSS not loading | active | investigating |
+```
+
+---
+
+## Git Integration
+
+If `planning.commit_docs: true` in config.json:
+- New session: `docs(planning): open debug session {NNN} - {slug}`
+- Resolution: `docs(planning): resolve debug session {NNN} - {root cause summary}`
+- Fix commits use standard format: `fix({scope}): {description}`
+
+---
+
+## Edge Cases
+
+### User provides a stack trace or error in arguments
+- Parse it as the "Actual behavior" symptom
+- Extract key information: error type, file, line number
+- Use this to form initial hypotheses immediately
+
+### Issue is in a dependency (not user code)
+- Document which dependency and version
+- Check if there's a known issue (search patterns in node_modules, site-packages, etc.)
+- Suggest: update dependency, pin version, or work around
+
+### Issue is intermittent
+- Note intermittency in symptoms
+- Suggest: run multiple times, add timing/logging, check for race conditions
+- Investigation must account for non-deterministic reproduction
+
+### Multiple issues interacting
+- If investigation reveals multiple separate issues, split into separate debug sessions
+- Create additional debug files
+- Track each independently
+
+### Fix would be a breaking change
+- Report the root cause but DO NOT auto-apply the fix
+- Present the trade-offs to the user
+- Let the user decide how to proceed
+
+---
+
+## Anti-Patterns
+
+1. **DO NOT** skip hypothesis formation — every test must have a reason
+2. **DO NOT** make random changes hoping something works
+3. **DO NOT** ignore failed hypotheses — record why they failed
+4. **DO NOT** investigate more than 5 hypotheses without checkpointing
+5. **DO NOT** fix the symptom instead of the root cause
+6. **DO NOT** auto-apply fixes for breaking changes
+7. **DO NOT** delete debug files — they're a knowledge base
+8. **DO NOT** combine multiple bugs into one debug session
+9. **DO NOT** skip updating the debug file after each investigation round
+10. **DO NOT** start a new session when an active one covers the same issue
