@@ -28,20 +28,43 @@ Current mitigations (added in this session):
 
 ## Possible Approaches
 
-### Near-term (feasible now)
-- Add a `Notification` hook event (if Claude Code supports it) to inject context warnings
-- Use the `PreCompact` hook to do a more aggressive state save (already partially done)
-- Add skill-level heuristics: "if more than 20 tool calls have been made, suggest pause"
+### Near-term: Task() continuation handoff (RECOMMENDED — feasible now)
 
-### Medium-term (needs Claude Code changes)
-- Request a `context_usage_percent` field in hook input data
-- Request a `SessionBudgetLow` event type for hooks
-- Build a `/dev:handoff` skill that creates a continuation prompt and suggests `/dev:resume`
+**Key insight**: Each Task() agent gets a fresh context window. This is effectively a new session with disk as shared memory. Instead of telling the user to restart, the orchestrator can spawn a continuation agent to finish remaining work.
 
-### Long-term (aspirational)
-- Multi-session orchestration: Towline manages a queue of work across sessions
-- Automatic session rotation: finish current task, pause, new session, resume
-- Context budget allocation: "Phase 3 planning needs ~40% context, you have 55% left — proceed"
+**Pattern**:
+1. Orchestrator detects context is getting heavy (long conversation, many tool calls)
+2. Orchestrator writes current progress to STATE.md (what's done, what remains)
+3. Orchestrator spawns: `Task({ subagent_type: "dev:towline-general", prompt: "Continue the workflow. Read STATE.md for current position. Remaining steps: ..." })`
+4. Continuation agent gets FRESH context, reads everything from disk
+5. Continuation agent finishes the work, writes results to disk
+6. Orchestrator receives brief summary, reports to user
+
+**Where to add this**:
+- All orchestrator skills (begin, build, plan, review) should have a "context escape hatch"
+- Workflow rule already tells orchestrator to be proactive — add the Task() handoff as the specific mechanism
+- Could formalize as a `/dev:handoff` pattern in the skill instructions
+
+**Why this works**:
+- No Claude Code API changes needed
+- No new session needed — user stays in same conversation
+- Fresh context for the heavy work
+- Disk (STATE.md, PLAN.md, SUMMARY.md) is already the shared state protocol
+- This is what `/dev:build` already does for executors — just extend the pattern to orchestration itself
+
+### Other approaches (complementary)
+
+**Heuristic detection**:
+- Skill instructions: "if more than 20 tool calls or conversation is very long, consider handoff"
+- PreCompact hook: aggressive state save (already done)
+
+**Medium-term (needs Claude Code changes)**:
+- `context_usage_percent` field in hook input data
+- `SessionBudgetLow` event type for hooks
+
+**Long-term (aspirational)**:
+- Multi-session orchestration with work queues
+- Context budget allocation per skill
 
 ## Impact
 
