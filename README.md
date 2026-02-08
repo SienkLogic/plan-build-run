@@ -4,6 +4,80 @@
 
 Towline solves **context rot** — the quality degradation that occurs as Claude's 200k token context window fills up during complex, multi-phase projects. It does this through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification. The result: you can build ambitious software without quality dropping off a cliff halfway through.
 
+## Getting Started
+
+### Prerequisites
+
+- [Claude Code](https://code.claude.com) 1.0.33 or later (`claude --version` to check)
+- Node.js 18+
+
+### Install
+
+From your terminal:
+
+```bash
+claude plugin marketplace add SienkLogic/towline
+claude plugin install dev@towline
+```
+
+Or from inside a Claude Code session:
+
+```
+/plugin marketplace add SienkLogic/towline
+/plugin install dev@towline
+```
+
+That's it. All `/dev:*` commands are now available. By default, the plugin is installed globally so it works in every project.
+
+### Install Scopes
+
+| Scope | Command | Effect |
+|-------|---------|--------|
+| **Global** (default) | `claude plugin install dev@towline` | Available in all projects |
+| **This project only** | `claude plugin install dev@towline --scope local` | Only this project, gitignored |
+| **Team project** | `claude plugin install dev@towline --scope project` | Shared via git, teammates get prompted to install |
+
+### Update
+
+```
+/plugin update dev@towline
+```
+
+### Your First Project
+
+Navigate to your project directory and start Claude Code, then:
+
+```
+/dev:begin
+```
+
+Towline will ask you questions about your project, optionally research the domain, scope requirements, and generate a phased roadmap. Everything lands in a `.planning/` directory.
+
+From there, the cycle is:
+
+```
+/dev:plan 1       ← Plan the first phase
+/dev:build 1      ← Build it
+/dev:review 1     ← Verify it works
+/dev:plan 2       ← Next phase
+...
+```
+
+### Quick Reference
+
+| When you want to... | Run |
+|---------------------|-----|
+| Start a new project | `/dev:begin` |
+| Plan a phase | `/dev:plan 1` |
+| Build a phase | `/dev:build 1` |
+| Verify a phase | `/dev:review 1` |
+| Do something quick without the full workflow | `/dev:quick` |
+| See where you are | `/dev:status` |
+| Resume after closing Claude Code | `/dev:resume` |
+| Auto-advance to the next step | `/dev:continue` |
+
+---
+
 ## The Problem
 
 Claude Code is remarkably capable — until your context window fills up. As tokens accumulate across a long session, reasoning quality degrades, hallucinations increase, and the model starts losing track of earlier decisions. This is **context rot**, and it's the primary failure mode when building anything beyond a single-session project. Standard usage hits a wall: the more complex your project, the worse the output gets over time.
@@ -18,40 +92,19 @@ Towline is built on five principles:
 - **Trust but Verify** — A dedicated read-only verifier agent checks what was actually built against requirements. It reads the codebase, not Claude's claims about the codebase.
 - **Build Houses, Don't Swat Flies** — Towline's structured workflow pays off for complex multi-phase work. For simple tasks, use `/dev:quick` and skip the ceremony.
 
-## Quick Start
-
-```bash
-# Install the plugin
-claude plugin add towline
-
-# Start a new project — deep questioning, research, requirements, roadmap
-/dev:begin
-
-# Plan the first phase — research, create plans, verify before building
-/dev:plan 1
-
-# Build it — execute plans in parallel waves with atomic commits
-/dev:build 1
-
-# Verify it works — automated checks + conversational walkthrough
-/dev:review 1
-```
-
-Then repeat `plan → build → review` for each phase until you're done.
-
 ## Typical Workflow
 
 A realistic day-to-day session looks like this:
 
 ```
-/dev:begin              ← Start project, define requirements, create roadmap
-/dev:discuss 1          ← (optional) Talk through phase details
-/dev:plan 1             ← Plan the first phase
-/dev:build 1            ← Build it
-/dev:review 1           ← Verify it works
-/dev:plan 2             ← Plan the next phase
-...                     ← Repeat plan → build → review
-/dev:milestone complete ← Archive when done
+/dev:begin              <- Start project, define requirements, create roadmap
+/dev:discuss 1          <- (optional) Talk through phase details
+/dev:plan 1             <- Plan the first phase
+/dev:build 1            <- Build it
+/dev:review 1           <- Verify it works
+/dev:plan 2             <- Plan the next phase
+...                     <- Repeat plan -> build -> review
+/dev:milestone complete <- Archive when done
 ```
 
 **Other entry points:**
@@ -230,21 +283,13 @@ Settings live in `.planning/config.json`. Key options:
 
 Run `/dev:config` to change settings interactively. There are 16 feature toggles covering depth, models, quality gates, parallelization, and git workflow.
 
-## Installation
+## Local Development
 
-```bash
-claude plugin add towline
-```
-
-Or load locally during development:
+To work on Towline itself, load it directly from your clone:
 
 ```bash
 claude --plugin-dir /path/to/towline
 ```
-
-Requires Claude Code CLI and Node.js 18+.
-
-## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 

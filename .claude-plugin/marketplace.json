@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "towline",
+  "metadata": {
+    "description": "Context-engineered development workflow plugin for Claude Code"
+  },
+  "owner": {
+    "name": "SienkLogic",
+    "email": "dave@sienklogic.com"
+  },
+  "plugins": [
+    {
+      "name": "dev",
+      "source": "./",
+      "description": "Towline — Context-engineered development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
+      "version": "2.0.0",
+      "category": "development",
+      "homepage": "https://github.com/SienkLogic/towline"
+    }
+  ]
+}

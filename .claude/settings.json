@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "towline": {
+      "source": {
+        "source": "github",
+        "repo": "SienkLogic/towline"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "dev@towline": true
+  }
+}
