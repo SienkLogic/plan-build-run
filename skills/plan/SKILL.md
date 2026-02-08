@@ -421,7 +421,7 @@ Approve these plans?
 **If user approves:**
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - Update STATE.md: set current phase plan status to "planned"
-- **Update ROADMAP.md**: In the Phase Overview table, set this phase's Status column from `pending` to `planned`
+- **Update ROADMAP.md**: Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `planned`
 - Suggest next action: `/dev:build {N}`
 
 ---

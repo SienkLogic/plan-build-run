@@ -277,7 +277,7 @@ If all automated checks and UAT items passed:
    - Phase status: "verified"
    - Progress updated
    - Last activity timestamp
-2. **Update `.planning/ROADMAP.md`**: In the Phase Overview table, set this phase's Status column to `verified`
+2. **Update `.planning/ROADMAP.md`**: Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `verified`
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 

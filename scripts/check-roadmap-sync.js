@@ -166,10 +166,16 @@ function splitTableRow(line) {
   return line.split('|').map(c => c.trim()).filter(Boolean);
 }
 
-/** Normalize "03" → "3", "3.1" → "3.1" */
+/**
+ * Extract and normalize a phase number from various formats:
+ *   "03"                    → "3"
+ *   "3.1"                   → "3.1"
+ *   "01. Project Scaffolding" → "1"
+ *   "Phase 02"              → "2"
+ */
 function normalizePhaseNum(raw) {
-  const s = raw.replace(/^0+/, '');
-  return s || '0';
+  const match = raw.match(/(?:Phase\s+)?0*(\d+(?:\.\d+)?)/i);
+  return match ? match[1] : raw.trim();
 }
 
 module.exports = { parseState, getRoadmapPhaseStatus };

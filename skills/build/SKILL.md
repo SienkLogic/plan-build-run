@@ -475,7 +475,7 @@ After all waves complete and optional verification runs:
 - Progress bar
 
 **8a-ii. Update ROADMAP.md:**
-- In the Phase Overview table, set this phase's Status column to `built` (or `partial` if some plans failed/skipped)
+- Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `built` (or `partial` if some plans failed/skipped)
 
 **8b. Commit planning docs (if configured):**
 If `planning.commit_docs` is `true`:
