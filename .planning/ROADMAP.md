@@ -6,18 +6,18 @@ The Towline Dashboard is a Node.js web application that serves as a session view
 
 ## Phases
 
-- [ ] Phase 01: Project Scaffolding -- Node.js project structure, Express 5.x server, CLI entry point, three-layer skeleton
-- [ ] Phase 02: Core Parsing Layer -- Markdown/YAML repository and service using gray-matter + marked, cross-platform path handling
-- [ ] Phase 03: UI Shell -- EJS layout system with Pico.css, header, sidebar navigation, content area, static assets
-- [ ] Phase 04: Dashboard Landing Page -- Project overview page displaying phase list, current state, overall progress percentage
-- [ ] Phase 05: Phase Detail View -- Phase detail page showing plans, SUMMARY.md content, verification status
-- [ ] Phase 06: Roadmap Visualization -- Color-coded roadmap view with status indicators per phase
-- [ ] Phase 07: Commit History -- Commit history per phase parsed from SUMMARY.md frontmatter
-- [ ] Phase 08: Todo List and Detail -- List pending todos with priority badges and phase tags, todo detail view
-- [ ] Phase 09: Todo Write Operations -- Create new todo via form, mark todo as done via UI
-- [ ] Phase 10: File Watching and SSE -- Chokidar file watcher with Server-Sent Events for live browser updates
-- [ ] Phase 11: HTMX Dynamic Loading -- Replace full page reloads with HTMX partial content loading
-- [ ] Phase 12: Polish and Hardening -- Error handling, security hardening, edge cases, cross-platform testing
+- [x] Phase 01: Project Scaffolding -- Node.js project structure, Express 5.x server, CLI entry point, three-layer skeleton
+- [x] Phase 02: Core Parsing Layer -- Markdown/YAML repository and service using gray-matter + marked, cross-platform path handling
+- [x] Phase 03: UI Shell -- EJS layout system with Pico.css, header, sidebar navigation, content area, static assets
+- [x] Phase 04: Dashboard Landing Page -- Project overview page displaying phase list, current state, overall progress percentage
+- [x] Phase 05: Phase Detail View -- Phase detail page showing plans, SUMMARY.md content, verification status
+- [x] Phase 06: Roadmap Visualization -- Color-coded roadmap view with status indicators per phase
+- [x] Phase 07: Commit History -- Commit history per phase parsed from SUMMARY.md frontmatter
+- [x] Phase 08: Todo List and Detail -- List pending todos with priority badges and phase tags, todo detail view
+- [x] Phase 09: Todo Write Operations -- Create new todo via form, mark todo as done via UI
+- [x] Phase 10: File Watching and SSE -- Chokidar file watcher with Server-Sent Events for live browser updates
+- [x] Phase 11: HTMX Dynamic Loading -- Replace full page reloads with HTMX partial content loading
+- [x] Phase 12: Polish and Hardening -- Error handling, security hardening, edge cases, cross-platform testing
 
 ## Phase Details
 
