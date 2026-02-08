@@ -474,6 +474,9 @@ After all waves complete and optional verification runs:
 - Last activity timestamp
 - Progress bar
 
+**8a-ii. Update ROADMAP.md:**
+- In the Phase Overview table, set this phase's Status column to `built` (or `partial` if some plans failed/skipped)
+
 **8b. Commit planning docs (if configured):**
 If `planning.commit_docs` is `true`:
 - Stage SUMMARY.md files and VERIFICATION.md
@@ -557,6 +560,7 @@ If `git.branching_strategy` is `phase` but we're not on the phase branch:
 | `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json` | Execution progress for crash recovery | Step 5b, updated each wave |
 | `.planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md` | Per-plan build summary | Step 6 (each executor) |
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Phase verification report | Step 7 |
+| `.planning/ROADMAP.md` | Phase status → `built` or `partial` | Step 8a-ii |
 | `.planning/STATE.md` | Updated progress | Steps 6f, 8a |
 | `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8d |
 | Project source files | Actual code | Step 6 (executors) |

@@ -277,7 +277,8 @@ If all automated checks and UAT items passed:
    - Phase status: "verified"
    - Progress updated
    - Last activity timestamp
-2. Update VERIFICATION.md with UAT results (append UAT section)
+2. **Update `.planning/ROADMAP.md`**: In the Phase Overview table, set this phase's Status column to `verified`
+3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
 ```
@@ -524,6 +525,7 @@ If the debugger Task() fails:
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report | Step 3 (created or updated with UAT) |
 | `.planning/phases/{NN}-{slug}/*-PLAN.md` | Gap-closure plans | Step 6b (--auto-fix only) |
+| `.planning/ROADMAP.md` | Phase status → `verified` | Step 6 |
 | `.planning/STATE.md` | Updated with review status | Step 6 |
 
 ---

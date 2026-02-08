@@ -421,6 +421,7 @@ Approve these plans?
 **If user approves:**
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - Update STATE.md: set current phase plan status to "planned"
+- **Update ROADMAP.md**: In the Phase Overview table, set this phase's Status column from `pending` to `planned`
 - Suggest next action: `/dev:build {N}`
 
 ---
@@ -540,7 +541,7 @@ After 3 revision iterations without passing:
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
 | `.planning/phases/{NN}-{slug}/{phase}-{NN}-PLAN.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
-| `.planning/ROADMAP.md` | Updated for add/insert/remove | Subcommands |
+| `.planning/ROADMAP.md` | Phase status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |
 
 ---
