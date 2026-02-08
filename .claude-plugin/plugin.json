@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Towline — Context-engineered development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
   "homepage": "https://github.com/SienkLogic/towline",
   "license": "MIT"
