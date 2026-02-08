@@ -14,6 +14,15 @@
     "description": "Validate plan/summary structure after writing/editing PLAN.md or SUMMARY.md files"
   },
   {
+    "event": "PostToolUse",
+    "matcher": {
+      "tool_name": "Write|Edit",
+      "file_path": ".*STATE\\.md$"
+    },
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-roadmap-sync.js",
+    "description": "Verify ROADMAP.md phase status stays in sync with STATE.md after state updates"
+  },
+  {
     "event": "PreToolUse",
     "matcher": {
       "tool_name": "Bash",
