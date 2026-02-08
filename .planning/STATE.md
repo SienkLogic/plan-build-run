@@ -3,14 +3,14 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-02-07)
 **Core value:** Visual insight into Towline project progress
-**Current focus:** Phase 1 - Project Scaffolding
+**Current focus:** Phase 2 - Core Parsing Layer
 
 ## Current Position
-Phase: 1 of 12 (Project Scaffolding)
+Phase: 2 of 12 (Core Parsing Layer)
 Plan: 2 of 2 complete
 Status: Built and verified
-Last activity: 2026-02-08 -- Phase 1 built (2 plans, 4 tasks, 3 commits, verification PASSED)
-Progress: [██░░░░░░░░░░░░░░░░░░] 8%
+Last activity: 2026-02-08 -- Phase 2 built (2 plans, 5 tasks, 4 commits, verification PASSED 22/22)
+Progress: [████░░░░░░░░░░░░░░░░] 17%
 
 ## Accumulated Context
 
@@ -19,6 +19,8 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 8%
 - Three-layer architecture (routes → services → repositories)
 - 12 phases, 22 plans total
 - Test project lives at D:\Repos\towline-test-project (created 2026-02-08)
+- Module-based exports (not classes) for repository and service layers
+- memfs for in-memory filesystem testing with Vitest
 
 ### Pending Todos
 None — all 5 dogfood todos completed
@@ -37,5 +39,5 @@ None
 
 ## Session Continuity
 Last session: 2026-02-08
-Stopped at: v2 review committed and pushed, ready to plan Phase 1
-Resume file: .planning/phases/01-project-scaffolding/.continue-here.md
+Stopped at: Phase 2 built and verified, ready to plan Phase 3
+Resume file: .planning/phases/02-core-parsing-layer/VERIFICATION.md
