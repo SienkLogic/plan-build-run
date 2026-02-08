@@ -208,11 +208,11 @@ Express 5.x, EJS templates, Pico.css v2, HTMX 2.0.8, gray-matter + marked, choki
 # Start the dashboard pointing at any Towline project
 node /path/to/towline-dashboard/bin/cli.js --dir /path/to/your/project
 
-# Custom port (default: 3456)
+# Custom port (default: 3000)
 node /path/to/towline-dashboard/bin/cli.js --dir /path/to/your/project --port 8080
 ```
 
-Opens at `http://127.0.0.1:3456`. The dashboard auto-refreshes when planning files change on disk.
+Opens at `http://127.0.0.1:3000`. The dashboard auto-refreshes when planning files change on disk.
 
 **Requirements:** Node.js 18+ and a project with a `.planning/` directory (created by `/dev:begin`).
 
