@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * PostToolUse hook (async): Validates PLAN.md XML structure.
+ * PostToolUse hook (async): Validates PLAN.md and SUMMARY.md structure.
  *
- * Checks:
+ * PLAN.md checks:
  * - Each task has <name>, <files>, <action>, <verify>, <done> elements
  * - Max 3 tasks per plan
- * - Has YAML frontmatter with required fields
+ * - Has YAML frontmatter with required fields (phase, plan, wave, must_haves)
+ *
+ * SUMMARY.md checks:
+ * - Has YAML frontmatter with required fields (phase, plan, status, provides, requires, key_files)
+ * - key_files paths exist on disk
+ * - Warns if no deferred field in frontmatter
  *
  * Runs asynchronously (non-blocking). Issues are reported but don't prevent saving.
  */
@@ -27,8 +32,12 @@ function main() {
       // Get the file path that was written/edited
       const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
 
-      // Only check PLAN.md files
-      if (!filePath.endsWith('-PLAN.md') && !filePath.endsWith('PLAN.md')) {
+      // Determine file type
+      const basename = path.basename(filePath);
+      const isPlan = basename.endsWith('PLAN.md');
+      const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
+
+      if (!isPlan && !isSummary) {
         process.exit(0);
       }
 
@@ -37,7 +46,9 @@ function main() {
       }
 
       const content = fs.readFileSync(filePath, 'utf8');
-      const issues = validatePlan(content, filePath);
+      const issues = isPlan
+        ? validatePlan(content, filePath)
+        : validateSummary(content, filePath);
 
       if (issues.length > 0) {
         logHook('check-plan-format', 'PostToolUse', 'warn', { file: path.basename(filePath), issues });
@@ -74,6 +85,9 @@ function validatePlan(content, _filePath) {
         if (!frontmatter.includes(`${field}:`)) {
           issues.push(`Frontmatter missing "${field}" field`);
         }
+      }
+      if (!frontmatter.includes('must_haves:')) {
+        issues.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       }
     }
   }
@@ -113,5 +127,52 @@ function validatePlan(content, _filePath) {
   return issues;
 }
 
-module.exports = { validatePlan };
+function validateSummary(content, _filePath) {
+  const issues = [];
+
+  // Check frontmatter
+  if (!content.startsWith('---')) {
+    issues.push('Missing YAML frontmatter');
+  } else {
+    const frontmatterEnd = content.indexOf('---', 3);
+    if (frontmatterEnd === -1) {
+      issues.push('Unclosed YAML frontmatter');
+    } else {
+      const frontmatter = content.substring(3, frontmatterEnd);
+
+      // Required fields
+      const requiredFields = ['phase', 'plan', 'status', 'provides', 'requires', 'key_files'];
+      for (const field of requiredFields) {
+        if (!frontmatter.includes(`${field}:`)) {
+          issues.push(`Frontmatter missing "${field}" field`);
+        }
+      }
+
+      // Warn if no deferred field
+      if (!frontmatter.includes('deferred:')) {
+        issues.push('Frontmatter missing "deferred" field (forces executor to consciously record scope creep)');
+      }
+
+      // Validate key_files paths exist on disk
+      const keyFilesMatch = frontmatter.match(/key_files:\s*\n((?:\s+-\s+.*\n?)*)/);
+      if (keyFilesMatch) {
+        const lines = keyFilesMatch[1].split('\n').filter(l => l.trim().startsWith('-'));
+        for (const line of lines) {
+          // Parse "- path: description" or "- path" format
+          const entryMatch = line.match(/^\s*-\s+"?([^":]+?)(?::.*)?"?\s*$/);
+          if (entryMatch) {
+            const filePortion = entryMatch[1].trim();
+            if (filePortion && !fs.existsSync(filePortion)) {
+              issues.push(`key_files path not found on disk: ${filePortion}`);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+module.exports = { validatePlan, validateSummary };
 main();

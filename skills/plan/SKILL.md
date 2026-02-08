@@ -68,6 +68,7 @@ Execute these steps in order for standard `/dev:plan <N>` invocations.
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
 4. If no phase number given, read current phase from `.planning/STATE.md`
+5. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether `.planning/CONTEXT.md` exists. If missing, warn: "Phase {N} has no CONTEXT.md. Consider running `/dev:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue.
 
 **If phase already has plans:**
 - Tell user: "Phase {N} already has plans. Re-plan from scratch? This will replace existing plans."
@@ -180,6 +181,31 @@ Write your findings to .planning/phases/{NN}-{slug}/RESEARCH.md using the Phase 
 ```
 
 Wait for the researcher to complete before proceeding.
+
+---
+
+### Step 4.5: Seed Scanning (inline, before planning)
+
+Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger matches the current phase:
+
+1. Glob for `.planning/seeds/*.md`
+2. For each seed file, read its frontmatter and check the `trigger` field
+3. A seed matches if:
+   - `trigger` equals the current phase number (e.g., `trigger: 3`)
+   - `trigger` equals the phase slug (e.g., `trigger: authentication`)
+   - `trigger` equals `*` (always matches)
+4. If matching seeds are found, present them to the user:
+   ```
+   Found {N} seeds related to Phase {NN}:
+     - {seed_name}: {seed description}
+     - {seed_name}: {seed description}
+
+   Include them in planning? [yes/no/pick]
+   ```
+5. If user says `yes`: include all matching seed content in the planner's context
+6. If user says `pick`: let user select which seeds to include
+7. If user says `no`: proceed without seeds
+8. If no matching seeds found: proceed silently
 
 ---
 
@@ -393,6 +419,7 @@ Approve these plans?
 - Or make small inline edits to plan files directly
 
 **If user approves:**
+- **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - Update STATE.md: set current phase plan status to "planned"
 - Suggest next action: `/dev:build {N}`
 

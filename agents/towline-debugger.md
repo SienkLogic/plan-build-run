@@ -138,6 +138,27 @@ mode: "find_and_fix"
 **Regression risk**: {what might break from this fix}
 ```
 
+### Update Semantics
+
+**Rule: Update BEFORE action, not after.**
+
+Write what you're about to test to the debug file BEFORE running the test. Then update with the result AFTER. If context dies between test and result, at least the file shows what was being tested.
+
+| Field | Update Rule | Rationale |
+|-------|------------|-----------|
+| Symptoms | IMMUTABLE after gathering | Prevents mutation bias |
+| Eliminated hypotheses | APPEND-ONLY | Prevents re-investigation |
+| Evidence log | APPEND-ONLY | Forensic trail |
+| Current Focus | OVERWRITE | Write hypothesis+test BEFORE running test. Update with result AFTER. |
+| Resolution | OVERWRITE | Only when root cause confirmed with evidence |
+
+**Workflow**:
+1. Write to "Current Focus": hypothesis, test plan, expected result
+2. Save the debug file
+3. Execute the test
+4. Update "Current Focus" with actual result
+5. Move to Evidence Log
+
 ### Status Transitions
 
 ```
@@ -153,6 +174,18 @@ gathering → investigating → fixing → verifying → resolved
 | `fixing` | Root cause found, implementing fix |
 | `verifying` | Fix implemented, verifying it resolves the issue |
 | `resolved` | Fix verified, investigation complete |
+
+---
+
+### Pre-Investigation Reproduction Check
+
+Before starting a new investigation or resuming an existing one:
+1. Attempt to reproduce the original symptom
+2. If the symptom NO LONGER reproduces:
+   - Ask: "The original symptom no longer reproduces. Has this been fixed outside of /dev:debug? Close this debug session?"
+   - If yes: set status to `resolved`, note "Resolved externally" in Resolution
+   - If no: continue investigation (the bug may be intermittent)
+3. If the symptom still reproduces: proceed with investigation normally
 
 ---
 

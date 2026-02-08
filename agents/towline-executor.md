@@ -468,6 +468,15 @@ If any self-check fails:
    ```
 3. Do NOT try to fix the issues — the verifier will catch them
 
+### Enhanced Self-Check Protocol
+
+After writing SUMMARY.md, perform these checks BEFORE returning to the orchestrator:
+
+1. **File existence**: For each file in `key_files` frontmatter, run `ls -la {path}` — verify it exists on disk
+2. **Commit existence**: Run `git log --oneline -n {expected_commit_count}` — verify the expected number of commits exist
+3. **Verify replay**: Re-run the LAST task's `<verify>` command — confirm it still passes
+4. **If ANY check fails**: Update SUMMARY.md status to `partial`, add `self_check_failures` to frontmatter with specific failures. Do NOT try to fix — the verifier will catch it.
+
 ---
 
 ## Time Tracking
@@ -570,6 +579,15 @@ If a verify command runs longer than 60 seconds:
 2. Check if it's waiting for user input (common mistake in verify commands)
 3. Check if it's trying to start a server (should be a background process)
 4. Report the timeout in SUMMARY.md
+
+---
+
+## State Management Rules
+
+**CRITICAL: Do NOT modify `.planning/STATE.md` directly.** All state changes go through SUMMARY.md frontmatter:
+- Your `status`, `commits`, `key_files`, `deferred` fields in SUMMARY.md are the source of truth
+- The build skill (orchestrator) is the SOLE writer of STATE.md during execution
+- This prevents race conditions when multiple executors run in parallel
 
 ---
 

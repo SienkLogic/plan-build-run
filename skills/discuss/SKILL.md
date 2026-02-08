@@ -21,6 +21,17 @@ This skill runs **inline** (no Task delegation).
 
 ## Flow
 
+### Step 0: Check for Existing Plans
+
+Before starting the discussion, check whether the phase already has plan artifacts:
+
+1. Resolve the phase directory (see Step 1 for resolution logic)
+2. Check for `PLAN.md` or `PLAN-*.md` files in the phase directory
+3. If plan files exist:
+   - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/dev:plan {N}` after."
+   - This is a **warning only** — do not block the discussion
+   - Proceed to Step 1
+
 ### Step 1: Parse Phase Number
 
 Parse `$ARGUMENTS` to get the phase number.
@@ -58,6 +69,25 @@ Read the following files to understand what this phase needs to accomplish:
 4. **CONTEXT.md** (if exists in the phase directory) — Check if a prior discussion already happened
    - If CONTEXT.md exists, inform the user: "Phase {N} already has a CONTEXT.md from a prior discussion. Continue and overwrite, or append new decisions?"
    - Use AskUserQuestion to let the user choose
+
+### Step 2.5: Open Exploration Phase
+
+Before jumping into specific gray areas, give the user space to share their mental model unprompted.
+
+1. **Present the phase goal** (from ROADMAP.md) and ask an open question:
+   - "Before we get into specifics — what's your mental model of how this phase should work? What excites you about it? What concerns you?"
+
+2. **Follow the user's response with 2-3 domain-aware follow-ups** from `skills/shared/domain-probes.md`:
+   - Match what the user mentioned to the relevant domain tables
+   - Pick the 2-3 most insightful probes based on what they said, not a generic checklist
+   - Ask them conversationally, not as a numbered list
+
+3. **Surface implications** from what the user shared:
+   - "You mentioned X — that usually means we'd need Y. Is that part of your vision?"
+   - Connect their ideas to concrete technical or design consequences
+   - Flag anything that would affect scope, complexity, or dependencies
+
+4. **Let the conversation reveal gray areas naturally.** The user's responses here often surface the real gray areas better than top-down analysis. Carry any themes, concerns, or preferences forward into Step 3.
 
 ### Step 3: Identify Gray Areas
 
@@ -178,6 +208,12 @@ The planner has freedom here but should document their choices.
 {2-3 sentences capturing how the user imagines this phase. This should reflect
 the user's mental model, not a technical specification. Write in the user's voice
 where possible, quoting key phrases they used.}
+
+## User's Concerns
+
+Things the user raised during discussion that should inform planning:
+
+- **{Concern}** — {Context from the conversation}
 ```
 
 ### Step 8: Confirm and Route
@@ -241,8 +277,8 @@ These come from:
 - If append: add new decisions below existing ones, marking them as "Amendment"
 
 ### Phase already has plans
-- Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change existing plans. Consider re-planning with `/dev:plan {N}`."
-- Still allow the discussion to proceed
+- Handled by Step 0 — warn but do not block
+- See Step 0 for the exact warning message
 
 ### User wants to discuss multiple phases
 - Handle one at a time

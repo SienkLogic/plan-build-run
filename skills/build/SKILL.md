@@ -54,6 +54,7 @@ Execute these steps in order.
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
 4. If no phase number given, read current phase from `.planning/STATE.md`
 5. If `gates.confirm_execute` is true: ask user to confirm before proceeding
+6. If `git.branching_strategy` is `phase`: create and switch to branch `towline/phase-{NN}-{name}` before any build work begins
 
 **Validation errors:**
 - No plans found: "Phase {N} has no plans. Run `/dev:plan {N}` first."
@@ -71,9 +72,10 @@ parallelization.plan_level  — parallel at plan level (within a wave)
 parallelization.max_concurrent_agents — max simultaneous executors
 features.goal_verification  — run verifier after build
 features.atomic_commits     — require atomic commits per task
+features.auto_continue      — write .auto-next signal on phase completion
 planning.commit_docs        — commit planning docs after build
 git.commit_format           — commit message format
-git.branching               — branching strategy
+git.branching_strategy      — branching strategy ("phase" = branch per phase)
 ```
 
 ---
@@ -131,6 +133,29 @@ Validate wave consistency:
 
 ---
 
+### Step 5b: Write Checkpoint Manifest (inline)
+
+Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json`:
+
+```json
+{
+  "plans": ["02-01", "02-02", "02-03"],
+  "checkpoints_resolved": [],
+  "checkpoints_pending": [],
+  "wave": 1,
+  "deferred": []
+}
+```
+
+This file tracks execution progress for crash recovery. On resume after compaction, read this manifest to determine where execution left off and which plans still need work.
+
+Update the manifest after each wave completes:
+- Move completed plan IDs into `checkpoints_resolved`
+- Advance the `wave` counter
+- Append any deferred items collected from executor SUMMARYs
+
+---
+
 ### Step 6: Wave Loop (core execution)
 
 For each wave, in order (Wave 1, then Wave 2, etc.):
@@ -138,6 +163,8 @@ For each wave, in order (Wave 1, then Wave 2, etc.):
 #### 6a. Spawn Executors
 
 For each plan in the current wave (excluding skipped plans):
+
+**State fragment rule:** Executors MUST NOT modify STATE.md directly. The build skill orchestrator is the sole STATE.md writer during execution. Executors report results via SUMMARY.md only; the orchestrator reads those summaries and updates STATE.md itself.
 
 1. Read the full PLAN.md content
 2. Read `.planning/CONTEXT.md` (if exists)
@@ -222,9 +249,25 @@ Block until all executor Task() calls for this wave complete.
 For each completed executor:
 
 1. Check if SUMMARY.md was written to the expected location
-2. Read the SUMMARY.md
+2. Read the SUMMARY.md frontmatter (not the full body — keep context lean)
 3. Extract status: `completed` | `partial` | `checkpoint` | `failed`
 4. Record commit hashes, files created, deviations
+
+**Spot-check executor claims:**
+
+After reading each SUMMARY, perform a lightweight verification:
+- Pick 2-3 files from the SUMMARY's `key_files` list and verify they exist (`ls`)
+- Run `git log --oneline -n {commit_count}` and confirm the count matches the claimed commits
+- If ANY spot-check fails, warn the user before proceeding to the next wave:
+  "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
+
+**Read executor deviations:**
+
+After all executors in the wave complete, read all SUMMARY frontmatter and:
+- Collect `deferred` items into a running list (append to `.checkpoint-manifest.json` deferred array)
+- Flag any deviation-rule-4 (architectural) stops — these require user attention
+- Present a brief wave summary to the user:
+  "Wave {W} complete. {N} plans done. {D} deferred ideas logged. {A} architectural issues."
 
 Build a wave results table:
 
@@ -322,7 +365,18 @@ Continue execution from the checkpoint. Skip completed tasks. Process the checkp
 
 After each wave completes (all plans in the wave are done, skipped, or aborted):
 
-Update `.planning/STATE.md`:
+**SUMMARY gate — verify before updating STATE.md:**
+
+Before writing any STATE.md update, verify these three gates for every plan in the wave:
+1. SUMMARY file exists at the expected path
+2. SUMMARY file is not empty (file size > 0)
+3. SUMMARY file has a valid title and YAML frontmatter (contains `---` delimiters and a `status:` field)
+
+Block the STATE.md update until ALL gates pass. If any gate fails:
+- Warn user: "SUMMARY gate failed for plan {id}: {which gate}. Cannot update STATE.md."
+- Ask user to retry the executor or manually inspect the SUMMARY file
+
+Once gates pass, update `.planning/STATE.md`:
 - Current plan progress: "{completed}/{total} in current phase"
 - Last activity timestamp
 - Progress bar percentage
@@ -426,11 +480,19 @@ If `planning.commit_docs` is `true`:
 - Commit: `docs({phase}): add build summaries and verification`
 
 **8c. Handle git branching:**
-If `git.branching` is `phase`:
-- All work was done on the phase branch
-- Suggest merging: "Phase {N} complete on branch `{branch_name}`. Merge to main?"
+If `git.branching_strategy` is `phase`:
+- All work was done on the phase branch (created in Step 1)
+- Squash merge to main: `git checkout main && git merge --squash towline/phase-{NN}-{name}`
+- Ask user to confirm: "Phase {N} complete on branch `towline/phase-{NN}-{name}`. Squash merge to main?"
+- If confirmed: complete the merge and delete the phase branch
+- If declined: leave the branch as-is and inform the user
 
-**8d. Present completion summary:**
+**8d. Write auto-continue signal (conditional):**
+If `features.auto_continue` is `true` in config:
+- Write `.planning/.auto-next` containing the next logical command (e.g., `/dev:plan {N+1}` or `/dev:build {N+1}`)
+- This file signals to the user or to wrapper scripts that the next step is ready
+
+**8e. Present completion summary:**
 
 ```
 Phase {N}: {name} — Build Complete
@@ -482,8 +544,8 @@ If SUMMARY.md shows files not listed in the plan's `files_modified`:
 - Flag for review: "Plan {id} modified files not in the plan: {list}"
 
 ### Build on wrong branch
-If `git.branching` is `phase` but we're not on the phase branch:
-- Create the phase branch: `git checkout -b {phase_branch_template}`
+If `git.branching_strategy` is `phase` but we're not on the phase branch:
+- Create the phase branch: `git checkout -b towline/phase-{NN}-{name}`
 - Proceed with build on the new branch
 
 ---
@@ -492,7 +554,9 @@ If `git.branching` is `phase` but we're not on the phase branch:
 
 | File | Purpose | When |
 |------|---------|------|
+| `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json` | Execution progress for crash recovery | Step 5b, updated each wave |
 | `.planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md` | Per-plan build summary | Step 6 (each executor) |
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Phase verification report | Step 7 |
 | `.planning/STATE.md` | Updated progress | Steps 6f, 8a |
+| `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8d |
 | Project source files | Actual code | Step 6 (executors) |

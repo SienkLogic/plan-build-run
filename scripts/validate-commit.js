@@ -17,9 +17,29 @@
  *   2 = invalid commit message format (blocks the tool)
  */
 
+const path = require('path');
+const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 
 const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip'];
+
+const SENSITIVE_PATTERNS = [
+  /^\.env$/,                          // .env exactly (not .env.example)
+  /\.env\.[^.]*$/,                    // .env.production, .env.local etc (but not .env.example)
+  /\.key$/i,
+  /\.pem$/i,
+  /\.pfx$/i,
+  /\.p12$/i,
+  /credential/i,
+  /secret/i,
+];
+
+const SAFE_PATTERNS = [
+  /\.example$/i,
+  /\.template$/i,
+  /\.sample$/i,
+  /^tests?[\\/]/i,
+];
 
 // Pattern: type(scope): description
 // Scope can be: NN-MM (phase-plan), quick-NNN, planning, or any word
@@ -27,6 +47,31 @@ const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip)(\([a-zA-Z0-9._-
 
 // Merge commits are always allowed
 const MERGE_PATTERN = /^Merge\s/;
+
+function checkSensitiveFiles() {
+  try {
+    const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    const files = output.trim().split('\n').filter(Boolean);
+
+    const matched = files.filter((file) => {
+      // Skip files matching safe patterns
+      if (SAFE_PATTERNS.some((pattern) => pattern.test(file))) return false;
+      // Check against sensitive patterns (test basename and full path)
+      const basename = path.basename(file);
+      return SENSITIVE_PATTERNS.some((pattern) => pattern.test(basename) || pattern.test(file));
+    });
+
+    if (matched.length > 0) {
+      logHook('validate-commit', 'PreToolUse', 'warn-sensitive', { files: matched });
+      const warning = {
+        message: `Warning: staged files may contain sensitive data: ${matched.join(', ')}`
+      };
+      process.stdout.write(JSON.stringify(warning));
+    }
+  } catch (_e) {
+    // Not in a git repo or git not available - silently continue
+  }
+}
 
 function main() {
   let input = '';
@@ -69,6 +114,7 @@ function main() {
 
       // Valid format
       logHook('validate-commit', 'PreToolUse', 'allow', { message });
+      checkSensitiveFiles();
       process.exit(0);
     } catch (_e) {
       // Parse error - don't block

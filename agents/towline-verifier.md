@@ -77,6 +77,13 @@ Read these files to understand what should have been delivered:
 
 ### Step 3: Establish Must-Haves
 
+**Must-haves are the PRIMARY verification input.** Read must_haves from PLAN.md frontmatter FIRST, then check each one:
+- `truths`: Can this behavior actually be observed? (May require running the app)
+- `artifacts`: Does this file exist? Is it >min_lines? Is it substantive (not stubs)?
+- `key_links`: Does the connection actually exist in the codebase?
+
+This creates a direct line from plan intent → verification, bypassing task completion as a proxy.
+
 Compile a master must-haves list for the phase by collecting from ALL plan files:
 
 **From each plan's frontmatter**:
@@ -468,6 +475,48 @@ The output format is the same as standard verification, with these additions:
 - `is_re_verification: true` in frontmatter
 - Regressions section in the report body
 - Gap status annotated with `[PREVIOUSLY KNOWN]` or `[NEW]` or `[REGRESSION]`
+
+---
+
+## Technology-Aware Stub Detection
+
+Read the project's stack from `.planning/codebase/STACK.md` or `.planning/research/STACK.md` to determine which technology-specific stub patterns to apply. If no stack file exists, use universal patterns only.
+
+### Universal Patterns (always check)
+- TODO, FIXME, HACK, PLACEHOLDER, "not implemented"
+- `return null`, `return {}`, `return []`, `return undefined`
+- Empty function bodies, functions that only console.log
+- `throw new Error('Not implemented')` or similar
+- Placeholder strings ("lorem ipsum", "sample data", "example")
+
+### React/Next.js Patterns (when stack includes React/Next)
+- `<div>ComponentName</div>` — component returning only its name
+- `onClick={() => {}}` — empty event handlers
+- `fetch()` without error handling or response processing
+- `useState` with no state updates
+- Components returning `null`, `<></>`, or single placeholder div
+
+### API/Express Patterns (when stack includes Express/Fastify/Koa)
+- `res.json({ message: "Not implemented" })`
+- Empty middleware: `(req, res, next) => next()`
+- Routes returning hardcoded test data
+- `res.status(501)` responses
+
+### Database Patterns (when stack includes any ORM/database)
+- Empty migration files
+- Models/schemas with no fields beyond id
+- Repository methods that return empty arrays
+
+### Python Patterns (when stack includes Python)
+- `pass` in function bodies
+- `raise NotImplementedError`
+- Functions returning `None` without logic
+- `# TODO` in function bodies
+
+### Go Patterns (when stack includes Go)
+- Functions returning zero values without logic
+- `panic("not implemented")`
+- Empty interface implementations
 
 ---
 

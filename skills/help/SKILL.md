@@ -25,6 +25,7 @@ Display the following reference to the user:
 
 | Command | Description |
 |---------|-------------|
+| `/dev:explore [topic]` | Explore ideas, think through approaches. No phase number needed. |
 | `/dev:discuss <N>` | Talk through a phase before planning. Captures decisions. |
 | `/dev:plan <N> --assumptions` | Surface Claude's assumptions before planning. Zero cost. |
 | `/dev:plan <N> --skip-research` | Plan without research phase. Faster. |
@@ -41,6 +42,7 @@ Display the following reference to the user:
 | `/dev:build <N> --gaps-only` | Execute only gap-closure plans. |
 | `/dev:build <N> --team` | Use Agent Teams for complex inter-agent coordination. |
 | `/dev:quick` | Quick ad-hoc task with atomic commit. Low cost. |
+| `/dev:continue` | Execute the next logical step automatically. No prompts. |
 
 ### Verification & Debugging
 
@@ -56,6 +58,7 @@ Display the following reference to the user:
 | Command | Description |
 |---------|-------------|
 | `/dev:status` | Where am I? Shows progress and suggests next action. |
+| `/dev:health` | Check planning directory integrity. Find and fix corrupted state. |
 | `/dev:pause` | Save session state for later. |
 | `/dev:resume` | Pick up where you left off. |
 
@@ -89,6 +92,8 @@ Display the following reference to the user:
 - **Depth**: `quick` (skip research, ~50% cheaper) | `standard` | `comprehensive` (~2x cost)
 - **State files**: `.planning/STATE.md` (position), `.planning/ROADMAP.md` (phases), `.planning/config.json` (settings)
 - **Configure**: `/dev:config` to change depth, models, gates, parallelization
+- **Tip**: Use `/dev:quick` for creative/visual work where structured planning adds overhead without benefit.
+- **PR hygiene**: When creating PRs from a Towline project, `.planning/` commits can be filtered using phase branching (`git.branching_strategy: phase`) which squash-merges code-only changes to main.
 
 ## Getting Help
 

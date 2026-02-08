@@ -1,6 +1,6 @@
 ---
 name: towline-plan-checker
-description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 7 dimensions."
+description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 10 dimensions."
 model: sonnet
 memory: none
 tools:
@@ -153,6 +153,45 @@ You check each plan and return a structured report.
 - Task contradicts a locked decision: **BLOCKER**
 - Task implements a deferred idea: **BLOCKER**
 - Task may conflict with a user constraint: **WARNING**
+
+### Dimension 8: Verification Derivation (Enhanced)
+
+**Question**: Can each must-have actually be verified by the verifier agent?
+
+**Checks**:
+1. For each `must_haves.truths`: Can the verifier verify this programmatically, or does it require human interaction (e.g., "User can log in" requires a running app with credentials)?
+2. For each `must_haves.artifacts`: Is the file path specific enough to verify? (Not just "authentication module" but "src/auth/discord.ts")
+3. For each `must_haves.key_links`: Can the connection be verified with grep/import analysis?
+4. Flag truths that require running the full application as `HUMAN_NEEDED` — the verifier can check code structure but not runtime behavior
+
+**Severity**:
+- All must-haves require human verification (nothing automated): **WARNING**
+- Artifact path is vague: **WARNING**
+- Key link is too abstract to grep for: **INFO**
+
+### Dimension 9: Scope Sanity (Enhanced)
+
+In addition to existing checks in Dimension 5, add:
+
+**Additional Checks**:
+1. Any single task touching >5 files: **WARNING** — "Task {id} modifies {N} files. Consider splitting."
+2. Tasks spanning unrelated subsystems (e.g., auth + UI + database in one task): **WARNING**
+3. Discovery research combined with implementation in the same plan: **WARNING** — "Separate research from implementation into different plans"
+4. Checkpoint task combined with non-checkpoint tasks where the checkpoint is not the last task: **WARNING** — "Checkpoint should be the last task, or in a separate plan"
+
+### Dimension 10: Dependency Coverage (Provides/Consumes)
+
+**Question**: Do plans declare what they provide and consume, and do all consumed items have providers?
+
+**Checks**:
+1. If plan has `provides` in frontmatter: note what it exports
+2. If plan has `consumes` in frontmatter: verify each consumed item has a matching `provides` in a prior or same-wave plan
+3. If plan's `<action>` references imports from another plan's files but no `depends_on` is declared: flag
+
+**Severity**:
+- Consumed item with no provider in any plan: **BLOCKER**
+- Missing provides/consumes when plan creates exports used by later plans: **INFO**
+- Action references files from another plan without dependency: **WARNING**
 
 ---
 

@@ -58,6 +58,7 @@ All claims must be attributed to a source level. Higher levels override lower le
 
 | Level | Source Type | Confidence | Description |
 |-------|-----------|------------|-------------|
+| S0 | Local Prior Research | **HIGHEST** | Existing findings in `.planning/research/` and `.planning/codebase/`. Already researched and synthesized for this project. |
 | S1 | Context7 / MCP docs | **HIGHEST** | Live documentation served through MCP tooling. Most current, most reliable. |
 | S2 | Official Documentation | **HIGH** | Docs from the framework/library maintainers (e.g., nextjs.org/docs, react.dev). Fetched via WebFetch. |
 | S3 | Official GitHub Repos | **HIGH** | Source code, READMEs, changelogs, and issue discussions from official repos. |
@@ -71,6 +72,21 @@ All claims must be attributed to a source level. Higher levels override lower le
 2. **Contradictions between levels** must be explicitly noted and resolved in favor of the higher source.
 3. **Version-sensitive information** (API signatures, configuration syntax, default values) MUST come from S1-S3. Never rely on S5-S6 for version-sensitive details.
 4. **If you cannot verify a claim above S5**, flag it clearly: `[S6-UNVERIFIED] This may be outdated.`
+5. **Version-specific source tracking**: When citing S2 (Official docs), note the version: `[S2-v14.2]`. The synthesizer should flag if different documents reference different versions.
+
+---
+
+### S0: Local-First Priority
+
+Before any external search, check local project research:
+
+1. Search `.planning/research/` for existing findings on the topic
+2. Search `.planning/codebase/` (STACK.md, ARCHITECTURE.md, etc.) for relevant information
+3. If found, treat as highest-confidence source — it was already researched and synthesized
+4. Compare new external findings against S0 and note contradictions
+5. Check `research_date` in found documents — if older than 30 days, flag as stale and re-research
+
+This prevents redundant external searches when the answer is already in the project.
 
 ---
 
@@ -166,6 +182,7 @@ Before writing output:
 # Research: {Topic Title}
 
 > Research conducted: {date}
+> Research date: {ISO date}
 > Mode: project-research
 > Confidence: {overall HIGH/MEDIUM/LOW}
 > Sources consulted: {count}
@@ -256,6 +273,7 @@ project/
 # Phase Research: {Phase Name}
 
 > Research conducted: {date}
+> Research date: {ISO date}
 > Mode: phase-research
 > Phase: {NN}-{phase-name}
 > Confidence: {overall HIGH/MEDIUM/LOW}

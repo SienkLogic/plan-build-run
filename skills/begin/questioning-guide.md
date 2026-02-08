@@ -64,6 +64,31 @@ Force ranking and trade-off decisions.
 - "What's the minimum that would make this useful?"
 - "What would you cut if you had to ship in half the time?"
 
+### Surface Implications
+
+When the user states a preference or makes a choice, surface what it implies before moving on. This avoids surprises later and reveals whether the user has thought through the consequences.
+
+- "You want real-time updates. That typically means WebSockets, which adds deployment complexity. Are you prepared for that, or would polling work?"
+- "Card-based layout with sort/filter usually means client-side state management. How complex are your filtering needs?"
+- "You mentioned multi-tenant. That affects database design, auth, billing — have you thought through isolation boundaries?"
+- "Self-hosted deployment means you own uptime. Do you have monitoring and on-call plans?"
+
+The pattern: **[stated preference] implies [consequence]. Is that acceptable, or should we reconsider?**
+
+### Frame Trade-offs, Not Menus
+
+Replace "Do you want A or B?" with trade-off framing that shows real consequences.
+
+| Instead of | Ask |
+|------------|-----|
+| "SQL or NoSQL?" | "SQL gives you strong consistency and relationships but needs schema migrations. NoSQL gives you flexible documents but makes joins painful. What matters more for your data?" |
+| "SSR or SPA?" | "SSR gives you better SEO and initial load, but adds server cost. SPA gives you snappier interactions but hurts discoverability. What's the priority?" |
+| "Monolith or microservices?" | "A monolith ships faster and is simpler to debug, but gets harder to scale independently. Microservices scale cleanly but add deployment and coordination overhead. Where are you on that spectrum?" |
+
+The pattern: **A gives you X but costs Y. B gives you Z but costs W. What matters more to you?**
+
+This produces better answers than binary choices because users reveal their actual priorities.
+
 ---
 
 ## Required Context Checklist
@@ -104,6 +129,36 @@ By the end of questioning, you should have clear answers for ALL of these:
 
 ---
 
+## Progressive Depth Layers
+
+Structure the conversation as deepening layers. Each layer builds on the previous one. You do not need to complete every layer in every project, but the order matters — do not jump to Layer 3 before Layer 1 is solid.
+
+### Layer 1: Shape — "What are you building?"
+Establish the broad outline. What is it, who is it for, what does it do?
+- Core purpose and user personas
+- Primary features and workflows
+- Technology preferences or constraints
+
+### Layer 2: Feel — "How should users experience this?"
+Move from structure to experience. How does it feel to use?
+- UI expectations, interaction patterns, responsiveness
+- Tone, branding, visual direction
+- Performance expectations from the user's perspective
+
+### Layer 3: Edges — "What happens when things go wrong?"
+Probe failure modes, edge cases, and the unexpected.
+- Error handling, empty states, data conflicts
+- Permission boundaries, rate limits, abuse scenarios
+- What the user has NOT thought about yet
+
+### Layer 4: System — "How does this fit into the bigger picture?"
+Zoom out to the surrounding ecosystem.
+- Integrations, data flows, deployment environment
+- Operational concerns — monitoring, backups, migrations
+- Future evolution and extensibility
+
+---
+
 ## Conversation Flow
 
 The conversation should feel natural, not like an interrogation. Follow this general arc:
@@ -136,6 +191,14 @@ Summarize back what you heard and confirm:
 
 ---
 
+## Domain-Aware Probing
+
+When the user mentions a specific technology area (e.g., "React app", "REST API", "real-time chat"), use domain-specific follow-up questions to go deeper. General questions miss critical details that only matter in that domain.
+
+See **[skills/shared/domain-probes.md](../shared/domain-probes.md)** for technology-specific probing patterns organized by domain (frontend frameworks, databases, APIs, auth, deployment, etc.). Reference those patterns when the conversation enters a technology-specific area rather than relying on generic follow-ups.
+
+---
+
 ## Anti-Patterns
 
 1. **DO NOT** present a form and ask users to fill it in
@@ -148,3 +211,4 @@ Summarize back what you heard and confirm:
 8. **DO NOT** ignore concerns or hand-wave them away
 9. **DO NOT** lead the user toward a particular solution
 10. **DO NOT** forget to summarize and confirm understanding
+11. **DO NOT** ask what you already know — track what the user has stated and never re-ask it. If they said "I'm using React", do not later ask "Are you using a frontend framework?" If they said "PostgreSQL", do not ask "What database are you using?" Redundant questions waste exchanges and erode trust. Instead, build on what you know: "You mentioned React — are you using Next.js or plain CRA?"

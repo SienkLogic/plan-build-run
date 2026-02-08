@@ -22,6 +22,14 @@ This skill runs **inline** (no Task delegation).
 
 ### Step 1: Read Current State
 
+**Flag: `--checkpoint`**
+
+If `$ARGUMENTS` contains `--checkpoint`:
+- Perform a lightweight state dump without full session analysis
+- Write a minimal .continue-here.md with just: Position, git status, and suggested next action
+- Skip the detailed "Completed This Session" analysis (saves time)
+- Useful for quick manual checkpoints at any point
+
 Read the following files to understand where things stand:
 
 1. **`.planning/STATE.md`** — Current position
@@ -244,10 +252,10 @@ Run `/dev:resume` in your next session to continue.
 - Check git log to see if any partial commits exist
 
 ### .continue-here.md already exists
-- Read the existing one
-- Ask user via AskUserQuestion: "A previous pause point exists (from {date}). Overwrite with current state?"
-- If yes: overwrite
-- If no: append as "Amendment" section
+- **Always REPLACE** the existing file entirely — never append
+- Appending causes stale data from previous sessions to persist, which confuses resume
+- The old .continue-here.md content is superseded by the current state
+- No need to ask the user — the current session state is always more accurate
 
 ### STATE.md doesn't exist
 - Warn: "No STATE.md found. Creating a minimal pause file."
@@ -268,6 +276,5 @@ Run `/dev:resume` in your next session to continue.
 3. **DO NOT** skip the commit — the WIP commit is how `/dev:resume` finds the pause point
 4. **DO NOT** write multiple .continue-here.md files — one per pause
 5. **DO NOT** include sensitive information (API keys, passwords) in the handoff
-6. **DO NOT** overwrite .continue-here.md without asking
-7. **DO NOT** modify any code files — this skill only writes planning docs
-8. **DO NOT** skip the "Next Steps" section — it's the most important part for resumption
+6. **DO NOT** modify any code files — this skill only writes planning docs
+7. **DO NOT** skip the "Next Steps" section — it's the most important part for resumption

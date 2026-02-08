@@ -8,10 +8,10 @@
     "event": "PostToolUse",
     "matcher": {
       "tool_name": "Write|Edit",
-      "file_path": ".*PLAN\\.md$"
+      "file_path": ".*(?:PLAN|SUMMARY.*)\\.md$"
     },
     "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-plan-format.js",
-    "description": "Validate plan XML structure after writing/editing PLAN.md files"
+    "description": "Validate plan/summary structure after writing/editing PLAN.md or SUMMARY.md files"
   },
   {
     "event": "PreToolUse",
@@ -26,5 +26,10 @@
     "event": "PreCompact",
     "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/context-budget-check.js",
     "description": "Preserve state to STATE.md before lossy context compaction"
+  },
+  {
+    "event": "Stop",
+    "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/auto-continue.js",
+    "description": "Auto-continue workflow via signal files when enabled"
   }
 ]

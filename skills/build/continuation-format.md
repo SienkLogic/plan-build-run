@@ -13,6 +13,69 @@ When an executor hits a checkpoint, it STOPS and returns. A new, fresh agent mus
 
 ---
 
+## Lean Continuation State File
+
+Instead of inlining all prior context into the continuation prompt, the build skill writes a compact state file to disk. The continuation executor reads this file + the original PLAN.md, keeping the prompt lean.
+
+### File Location
+
+```
+.planning/phases/{NN}-{slug}/.continuation-state.json
+```
+
+### Schema
+
+```json
+{
+  "plan_id": "02-01",
+  "completed_tasks": [
+    {
+      "id": "02-01-T1",
+      "commit": "abc1234",
+      "files": ["src/auth/discord.ts", "src/auth/types.ts"]
+    },
+    {
+      "id": "02-01-T2",
+      "commit": "def5678",
+      "files": ["src/middleware/auth.ts"]
+    }
+  ],
+  "checkpoint": {
+    "task": "02-01-T3",
+    "type": "human-verify",
+    "resolution": "passed"
+  },
+  "resume_at": "02-01-T3"
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `plan_id` | string | The plan being executed |
+| `completed_tasks` | array | Tasks completed before checkpoint. Each has `id`, `commit` hash, and `files` changed. |
+| `checkpoint` | object | The checkpoint that triggered continuation. `task` = task ID, `type` = checkpoint type, `resolution` = user's response. |
+| `resume_at` | string | Task ID to resume execution from |
+
+### How the Build Skill Uses It
+
+**Writing** (when executor hits a checkpoint):
+1. Executor returns checkpoint info to the build orchestrator
+2. Build orchestrator writes `.continuation-state.json` with completed tasks, checkpoint details, and resume point
+3. Build orchestrator prompts user for checkpoint resolution
+4. Build orchestrator updates `checkpoint.resolution` with user's response
+
+**Reading** (when spawning continuation executor):
+1. Build orchestrator reads `.continuation-state.json` from disk
+2. Build orchestrator reads the original PLAN.md from disk
+3. Build orchestrator constructs a lean continuation prompt referencing both files
+4. Continuation executor reads `.continuation-state.json` itself to verify prior commits
+
+This approach replaces inlining the full completed-tasks table into the prompt, saving significant context budget on plans with many tasks or multiple checkpoints.
+
+---
+
 ## Continuation Context Structure
 
 The continuation prompt must include:

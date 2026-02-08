@@ -230,6 +230,18 @@ If a plan exceeds limits:
 - Tasks in different functional areas? Split.
 - Some tasks need human checkpoints, others don't? Split into autonomous and checkpoint plans.
 
+### Split Signals
+
+When creating plans, watch for these signals that a plan should be split:
+
+| Signal | Action |
+|--------|--------|
+| >3 tasks needed | Split by subsystem — one plan per subsystem |
+| Multiple unrelated subsystems | One plan per subsystem |
+| >5 files per task | Task is too big — break it down |
+| Checkpoint + implementation in same plan | Separate the checkpoint into its own plan |
+| Discovery research + implementation | Separate plans — research plan first |
+
 ---
 
 ## Discovery Levels
@@ -494,6 +506,26 @@ Check that authentication works.
 4. **Include existence checks** — `ls` for created files
 5. **Include build checks** — `npx tsc --noEmit` for TypeScript
 6. **Avoid interactive commands** — no commands requiring user input
+
+---
+
+### Context Fidelity Self-Check
+
+Before writing plan files, verify context compliance:
+
+1. **Locked decision coverage**: For each locked decision in CONTEXT.md, identify the task that implements it. If any locked decision has no corresponding task, add one.
+2. **Deferred idea exclusion**: Scan all tasks — no task should implement a deferred idea from CONTEXT.md.
+3. **Discretion area handling**: Each "Claude's Discretion" item from CONTEXT.md should be addressed in at least one task (the planner makes the choice and documents it).
+
+Report compliance: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks."
+
+### Frontmatter-First Context Assembly
+
+When prior plans exist in the phase, read SUMMARY.md frontmatter ONLY (not full body) to build context. This is a token optimization:
+
+- 10 frontmatters ≈ 500 tokens vs. 10 full SUMMARYs ≈ 5000 tokens
+- Extract: `provides`, `requires`, `key_files`, `key_decisions`, `patterns`
+- Only read full SUMMARY body if a specific detail is needed for the current plan
 
 ---
 

@@ -18,6 +18,40 @@ This skill runs **inline** (no Task delegation).
 
 ---
 
+## Resumption Priority Hierarchy
+
+When resuming, scan for conditions in this priority order. Handle the HIGHEST priority item first:
+
+```
+1. 🔴 UAT-BLOCKER (diagnosed) → Fix must come first
+2. 🟡 Interrupted agent → Resume agent from checkpoint
+3. 🟡 .continue-here checkpoint → Resume from checkpoint
+4. 🟡 Incomplete plan → Complete plan execution
+5. 🟢 Phase complete → Transition to next phase
+6. 🟢 Ready to plan/execute → Normal workflow
+```
+
+### Scanning for Priority Items
+
+Before presenting the standard resume view, check:
+
+1. **UAT Blockers**: Search for VERIFICATION.md files with `status: gaps_found` in any phase. If found and gaps are marked as blocking, surface them first: "Phase {N} has {count} blocking verification gaps. These should be fixed before continuing."
+
+2. **Interrupted Agents**: Check for `.checkpoint-manifest.json` files in phase directories with `checkpoints_pending` entries. These indicate a build was interrupted mid-checkpoint.
+
+3. **Stale .continue-here.md**: If the file references commits that don't exist in git log, warn about state corruption.
+
+### Auto-Repair for Corrupted STATE.md
+
+When STATE.md appears corrupted (duplicate headers, stale data, inconsistent phase references):
+
+1. Detect: multiple `## Current Position` headers, phase number not matching any directory, progress percentage impossible (>100% or negative)
+2. Rebuild: Scan `.planning/phases/` directory structure and SUMMARY.md files to determine actual state
+3. Present repair: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
+4. Only repair with user confirmation
+
+---
+
 ## Flow
 
 ### Step 1: Read STATE.md

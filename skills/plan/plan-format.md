@@ -32,11 +32,17 @@ must_haves:
     - "User can authenticate via Discord OAuth"
     - "JWT token is set in httpOnly cookie"
   artifacts:
-    - "src/auth/discord.ts"
-    - "src/middleware/auth.ts"
+    - "src/auth/discord.ts: >50 lines"
+    - "src/middleware/auth.ts: >30 lines"
   key_links:
     - "Auth middleware applied to protected routes"
     - "Login button calls authenticateWithDiscord()"
+provides:
+  - "AuthService class"
+  - "POST /api/auth/login endpoint"
+  - "requireAuth() middleware"
+consumes:
+  - "Database connection (from plan 01-01)"
 ---
 ```
 
@@ -55,8 +61,10 @@ must_haves:
 | `gap_closure` | NO | bool | `true` if this is a gap-closure plan. Default: false |
 | `must_haves` | YES | object | Goal-backward derivation |
 | `must_haves.truths` | YES | array | Observable truths that must be true when done |
-| `must_haves.artifacts` | YES | array | Files/modules that must exist |
-| `must_haves.key_links` | YES | array | Connections between components |
+| `must_haves.artifacts` | YES | array | Files/modules that must exist. Append `: >N lines` for size hints. |
+| `must_haves.key_links` | YES | array | Connections between components. Append `: grep command` for verification. |
+| `provides` | NO | array | What this plan exports for other plans to consume (classes, endpoints, modules) |
+| `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
 
 ---
 
