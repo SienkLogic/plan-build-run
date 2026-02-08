@@ -468,21 +468,26 @@ Use the Write tool to create VERIFICATION.md. Use Bash to run verification comma
 
 After all waves complete and optional verification runs:
 
-**8a. Update STATE.md:**
+**8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+1. Open `.planning/ROADMAP.md`
+2. Find the `## Progress` table
+3. Locate the row matching this phase number
+4. Update the `Plans Complete` column to `{completed}/{total}` (e.g., `2/2` if all plans built successfully)
+5. Update the `Status` column to `built` (or `partial` if some plans failed/skipped)
+6. Save the file — do NOT skip this step
+
+**8b. Update STATE.md:**
 - Phase status: "built" (or "partial" if some plans failed)
 - Plan completion count
 - Last activity timestamp
 - Progress bar
 
-**8a-ii. Update ROADMAP.md:**
-- Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `built` (or `partial` if some plans failed/skipped)
-
-**8b. Commit planning docs (if configured):**
+**8c. Commit planning docs (if configured):**
 If `planning.commit_docs` is `true`:
 - Stage SUMMARY.md files and VERIFICATION.md
 - Commit: `docs({phase}): add build summaries and verification`
 
-**8c. Handle git branching:**
+**8d. Handle git branching:**
 If `git.branching_strategy` is `phase`:
 - All work was done on the phase branch (created in Step 1)
 - Squash merge to main: `git checkout main && git merge --squash towline/phase-{NN}-{name}`
@@ -490,12 +495,12 @@ If `git.branching_strategy` is `phase`:
 - If confirmed: complete the merge and delete the phase branch
 - If declined: leave the branch as-is and inform the user
 
-**8d. Write auto-continue signal (conditional):**
+**8e. Write auto-continue signal (conditional):**
 If `features.auto_continue` is `true` in config:
 - Write `.planning/.auto-next` containing the next logical command (e.g., `/dev:plan {N+1}` or `/dev:build {N+1}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
 
-**8e. Present completion summary:**
+**8f. Present completion summary:**
 
 ```
 Phase {N}: {name} — Build Complete
@@ -560,7 +565,7 @@ If `git.branching_strategy` is `phase` but we're not on the phase branch:
 | `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json` | Execution progress for crash recovery | Step 5b, updated each wave |
 | `.planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md` | Per-plan build summary | Step 6 (each executor) |
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Phase verification report | Step 7 |
-| `.planning/ROADMAP.md` | Phase status → `built` or `partial` | Step 8a-ii |
+| `.planning/ROADMAP.md` | Plans Complete + Status → `built` or `partial` | Step 8a |
 | `.planning/STATE.md` | Updated progress | Steps 6f, 8a |
 | `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8d |
 | Project source files | Actual code | Step 6 (executors) |

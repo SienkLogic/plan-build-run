@@ -273,11 +273,17 @@ Compile the UAT results and determine next steps.
 
 If all automated checks and UAT items passed:
 
-1. Update `.planning/STATE.md`:
+1. **Update `.planning/ROADMAP.md` Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+   1. Open `.planning/ROADMAP.md`
+   2. Find the `## Progress` table
+   3. Locate the row matching this phase number
+   4. Update the `Status` column to `verified`
+   5. Update the `Completed` column to the current date (YYYY-MM-DD)
+   6. Save the file — do NOT skip this step
+2. Update `.planning/STATE.md`:
    - Phase status: "verified"
    - Progress updated
    - Last activity timestamp
-2. **Update `.planning/ROADMAP.md`**: Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `verified`
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
@@ -525,7 +531,7 @@ If the debugger Task() fails:
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report | Step 3 (created or updated with UAT) |
 | `.planning/phases/{NN}-{slug}/*-PLAN.md` | Gap-closure plans | Step 6b (--auto-fix only) |
-| `.planning/ROADMAP.md` | Phase status → `verified` | Step 6 |
+| `.planning/ROADMAP.md` | Status → `verified` + Completed date | Step 6 |
 | `.planning/STATE.md` | Updated with review status | Step 6 |
 
 ---

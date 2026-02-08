@@ -420,8 +420,14 @@ Approve these plans?
 
 **If user approves:**
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
+- **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+  1. Open `.planning/ROADMAP.md`
+  2. Find the `## Progress` table
+  3. Locate the row matching this phase number
+  4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
+  5. Update the `Status` column to `planned`
+  6. Save the file — do NOT skip this step
 - Update STATE.md: set current phase plan status to "planned"
-- **Update ROADMAP.md**: Find the table containing a `Status` column (Phase Overview or Progress table) and set this phase's Status to `planned`
 - Suggest next action: `/dev:build {N}`
 
 ---
@@ -541,7 +547,7 @@ After 3 revision iterations without passing:
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
 | `.planning/phases/{NN}-{slug}/{phase}-{NN}-PLAN.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
-| `.planning/ROADMAP.md` | Phase status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
+| `.planning/ROADMAP.md` | Plans Complete + Status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |
 
 ---
