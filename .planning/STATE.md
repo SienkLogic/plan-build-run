@@ -3,14 +3,14 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-02-07)
 **Core value:** Visual insight into Towline project progress
-**Current focus:** Phase 7 - Commit History
+**Current focus:** Phase 8 - Todo List and Detail
 
 ## Current Position
-Phase: 7 of 12 (Commit History)
-Plan: 1 of 1 complete
+Phase: 8 of 12 (Todo List and Detail)
+Plan: 2 of 2 complete
 Status: Built and verified
-Last activity: 2026-02-08 -- Phase 7 built (1 plan, 2 tasks, 2 commits, verification PASSED 13/13)
-Progress: [████████████░░░░░░░░] 58%
+Last activity: 2026-02-08 -- Phase 8 built (2 plans, 4 tasks, 4 commits, verification PASSED 34/34)
+Progress: [█████████████░░░░░░░] 67%
 
 ## Accumulated Context
 
@@ -39,5 +39,5 @@ None
 
 ## Session Continuity
 Last session: 2026-02-08
-Stopped at: Phase 7 built and verified, ready to plan Phase 8
-Resume file: .planning/phases/07-commit-history/VERIFICATION.md
+Stopped at: Phase 8 built and verified, ready to plan Phase 9
+Resume file: .planning/phases/08-todo-list-and-detail/VERIFICATION.md
