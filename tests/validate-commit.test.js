@@ -3,7 +3,7 @@ const path = require('path');
 
 const SCRIPT = path.join(__dirname, '..', 'scripts', 'validate-commit.js');
 
-function runValidator(toolInput) {
+function runValidator(toolInput) { // eslint-disable-line no-unused-vars
   const input = JSON.stringify({ tool_input: toolInput });
   try {
     const result = execSync(`echo '${input.replace(/'/g, "\\'")}' | node "${SCRIPT}"`, {
@@ -18,7 +18,7 @@ function runValidator(toolInput) {
 }
 
 // On Windows, use a different approach for piping
-function runValidatorCrossPlatform(toolInput) {
+function runValidatorCrossPlatform(toolInput) { // eslint-disable-line no-unused-vars
   const input = JSON.stringify({ tool_input: toolInput });
   try {
     const result = execSync(`node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{const s=require('child_process').execSync('node ${SCRIPT.replace(/\\/g, '/')}',{input:d,encoding:'utf8',timeout:5000}); process.stdout.write(s);})" `, {
@@ -116,7 +116,7 @@ describe('validate-commit.js', () => {
     });
 
     test('empty description', () => {
-      const result = runScript({ command: 'git commit -m "feat(03-01): "' });
+      runScript({ command: 'git commit -m "feat(03-01): "' });
       // The regex requires at least one char after ": "
       // "feat(03-01): " has a trailing space but empty desc
       // This depends on exact regex - trailing space makes it match .+

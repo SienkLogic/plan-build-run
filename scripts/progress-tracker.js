@@ -81,7 +81,7 @@ function buildContext(planningDir, stateFile) {
     try {
       const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
       parts.push(`\nConfig: depth=${config.depth || 'standard'}, mode=${config.mode || 'interactive'}`);
-    } catch (e) {
+    } catch (_e) {
       // Ignore parse errors
     }
   }
@@ -116,7 +116,7 @@ function findContinueFiles(dir) {
         results.push(path.relative(dir, fullPath));
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore permission errors
   }
   return results;

@@ -70,7 +70,7 @@ function main() {
       // Valid format
       logHook('validate-commit', 'PreToolUse', 'allow', { message });
       process.exit(0);
-    } catch (e) {
+    } catch (_e) {
       // Parse error - don't block
       process.exit(0);
     }

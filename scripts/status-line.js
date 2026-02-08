@@ -26,7 +26,7 @@ function main() {
       const output = { statusLine: status };
       process.stdout.write(JSON.stringify(output));
     }
-  } catch (e) {
+  } catch (_e) {
     // Silent failure
   }
 

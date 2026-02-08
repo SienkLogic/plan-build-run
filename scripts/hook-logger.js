@@ -53,7 +53,7 @@ function logHook(hookName, eventType, decision, details = {}) {
     }
 
     fs.writeFileSync(logPath, lines.join('\n') + '\n', 'utf8');
-  } catch (e) {
+  } catch (_e) {
     // Best-effort logging — never fail the hook
   }
 }

@@ -50,14 +50,14 @@ function main() {
       }
 
       process.exit(0);
-    } catch (e) {
+    } catch (_e) {
       // Don't block on parse errors
       process.exit(0);
     }
   });
 }
 
-function validatePlan(content, filePath) {
+function validatePlan(content, _filePath) {
   const issues = [];
 
   // Check frontmatter
