@@ -183,6 +183,39 @@ Towline creates a `.planning/` directory in your project:
       VERIFICATION.md   # Verification report
 ```
 
+## Towline Dashboard
+
+The Towline Dashboard is a companion web application that provides a visual interface for browsing your project's `.planning/` state. It reads planning files from disk and renders them as an interactive dashboard with live updates.
+
+### Features
+
+- **Dashboard** — Project overview with current phase, overall progress bar, and all-phases table
+- **Phase Detail** — Plans with status badges, key decisions, key files, duration metrics, and commit history
+- **Roadmap** — Full phase list with descriptions, plan counts, dependencies, and color-coded status
+- **Todos** — Pending todo list with priority badges, create form, mark-as-done, and detail view
+- **Live Updates** — chokidar watches `.planning/**/*.md`; SSE broadcasts changes; HTMX refreshes content in-place
+- **HTMX Navigation** — SPA-like sidebar navigation without full page reloads
+- **Error Handling** — Global error handler, 404 pages, HTMX fragment support, dev-only stack traces
+- **Security** — Helmet headers, CSP, path traversal protection, 127.0.0.1-only binding
+
+### Tech Stack
+
+Express 5.x, EJS templates, Pico.css v2, HTMX 2.0.8, gray-matter + marked, chokidar 5.x, Helmet, Vitest (154 tests).
+
+### Usage
+
+```bash
+# Start the dashboard pointing at any Towline project
+node /path/to/towline-dashboard/bin/cli.js --dir /path/to/your/project
+
+# Custom port (default: 3456)
+node /path/to/towline-dashboard/bin/cli.js --dir /path/to/your/project --port 8080
+```
+
+Opens at `http://127.0.0.1:3456`. The dashboard auto-refreshes when planning files change on disk.
+
+**Requirements:** Node.js 18+ and a project with a `.planning/` directory (created by `/dev:begin`).
+
 ## Configuration
 
 Settings live in `.planning/config.json`. Key options:
