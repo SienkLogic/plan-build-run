@@ -291,7 +291,7 @@ function parseYamlFrontmatter(content) {
   for (const line of lines) {
     // Array item
     if (/^\s+-\s+/.test(line) && currentKey) {
-      const val = line.replace(/^\s+-\s+/, '').replace(/^["']|["']$/g, '');
+      const val = line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, '');
       if (!result[currentKey]) result[currentKey] = [];
       if (Array.isArray(result[currentKey])) {
         result[currentKey].push(val);
