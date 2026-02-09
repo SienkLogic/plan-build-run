@@ -101,46 +101,78 @@ Collect all of this into a context bundle for use in Steps 4 and 5.
 
 ### Step 4: Conflict Detection (inline — CRITICAL)
 
-Compare the imported plan against ALL loaded context from Step 2. Organize findings by severity.
+Compare the imported plan against ALL loaded context from Step 2.
 
-**BLOCKERS (must resolve before continuing):**
-- Imported plan contradicts a locked decision in CONTEXT.md or phase CONTEXT.md
-- Imported plan implements an idea explicitly listed in CONTEXT.md's "Deferred Ideas" section
-- Imported plan depends on a phase that does not exist in ROADMAP.md or is not complete (no SUMMARY.md)
-- Files referenced in the plan already exist with different architecture than the plan assumes
-- Tech stack mismatch: plan assumes a library or framework not used by the project (check config.json, prior SUMMARYs, and codebase)
+**IMPORTANT: You MUST check every category below. Do NOT stop after finding blockers. Run ALL checks first, collect ALL findings across all three severity levels, then present them together in a single report.**
 
-**WARNINGS (user should review):**
-- Imported plan does not cover all phase requirements from REQUIREMENTS.md (list missing REQ-IDs)
-- Stale dependencies: plan assumes prior phase output that has changed since the plan was written
-- Plan scope overlaps with a pending todo in `.planning/todos/pending/`
-- Plan creates files in unexpected locations (does not follow naming conventions from prior phases)
-- Plan's task ordering conflicts with the dependency graph implied by file dependencies
+**IMPORTANT: Use ONLY the three severity labels below — `[BLOCKER]`, `[WARNING]`, `[INFO]`. Do NOT substitute other labels like CRITICAL, HIGH, MEDIUM, LOW, or any other classification. The severity labels are part of the Towline protocol and must be exact.**
 
-**INFO:**
-- Related notes found in NOTES.md
-- Matching seeds found that could enhance the plan (list seed names and descriptions)
-- Patterns established in prior phases that the imported plan should follow (from SUMMARY.md `patterns` fields)
+#### BLOCKER checks (must resolve before continuing):
+Run each of these checks. If any matches, record a `[BLOCKER]`:
 
-**Format each finding:**
+1. **Locked decision conflict**: Does the plan contradict ANY locked decision in CONTEXT.md or phase CONTEXT.md? Check every locked decision row against the plan's tech choices, libraries, frameworks, and architecture.
+2. **Deferred idea implementation**: Does the plan implement something explicitly listed in CONTEXT.md's "Deferred Ideas" section?
+3. **Missing dependency phase**: Does the plan depend on a phase that does not exist in ROADMAP.md?
+4. **Incomplete dependency phase**: Does the plan depend on a phase that is not complete (no SUMMARY.md with status: complete)?
+5. **Architecture mismatch**: Do files referenced in the plan already exist with different architecture than the plan assumes?
+6. **Tech stack mismatch**: Does the plan assume a library or framework not used by the project? Cross-check against config.json, prior SUMMARYs, RESEARCH.md files, and the codebase.
+
+#### WARNING checks (user should review):
+Run each of these checks. If any matches, record a `[WARNING]`:
+
+1. **Requirement coverage gap**: Does the plan fail to cover all phase requirements from REQUIREMENTS.md? List each missing REQ-ID explicitly. This is mandatory — you must cross-reference every REQ-ID assigned to this phase against the plan's tasks.
+2. **Task count exceeds limit**: Does any logical grouping in the plan contain more than 3 tasks? Towline plans are limited to 2-3 tasks each. Count the tasks in the imported document and flag if over 3.
+3. **Scope exceeds file limit**: Does any logical grouping reference more than 8 files? Towline plans are limited to 5-8 files each.
+4. **Stale dependencies**: Does the plan assume prior phase output that has changed since the plan was written?
+5. **Todo overlap**: Does the plan scope overlap with a pending todo in `.planning/todos/pending/`?
+6. **Naming convention mismatch**: Does the plan create files in unexpected locations that don't follow conventions from prior phases? Check directory structure patterns (e.g., routes/, services/, repositories/ vs components/, controllers/).
+7. **Dependency ordering conflict**: Does the plan's task ordering conflict with the dependency graph implied by file dependencies?
+
+#### INFO checks (supplementary context):
+Run each of these checks. If any matches, record an `[INFO]`:
+
+1. **Related notes**: Are there related notes in NOTES.md?
+2. **Matching seeds**: Are there matching seeds in `.planning/seeds/` that could enhance the plan?
+3. **Prior phase patterns**: What patterns from prior phases (from SUMMARY.md `patterns` fields) should the imported plan follow?
+
+#### Output format
+
+Present ALL findings in a single report using this EXACT format. Do not use tables, do not change the labels, do not add severity sub-levels:
+
 ```
-[BLOCKER] {Title}
-  Found: {what was detected}
+## Conflict Detection Report
+
+### BLOCKERS ({count})
+
+[BLOCKER] {Short title}
+  Found: {what the imported plan says or does}
   Expected: {what the project context requires}
-  Recommendation: {how to resolve}
+  → {Specific action to resolve}
 
-[WARNING] {Title}
+[BLOCKER] {Short title}
+  Found: ...
+  Expected: ...
+  → ...
+
+### WARNINGS ({count})
+
+[WARNING] {Short title}
   Found: {what was detected}
-  Impact: {what could go wrong}
-  Recommendation: {suggested action}
+  Impact: {what could go wrong if not addressed}
+  → {Suggested action}
 
-[INFO] {Title}
-  Note: {relevant information}
+### INFO ({count})
+
+[INFO] {Short title}
+  Note: {relevant information or suggestion}
 ```
 
-**After presenting findings:**
-- If any BLOCKERS exist: present them all, ask user to resolve each one, STOP until all blockers are resolved. For each blocker, ask: "How should this be resolved?" via AskUserQuestion.
-- If only WARNINGS and INFO: present them all, ask user: "Acknowledge these findings and continue?" If yes, continue. If no, discuss adjustments.
+#### After presenting the report
+
+**IMPORTANT: Always present ALL findings (blockers + warnings + info) together in one report before taking any action.**
+
+- If any BLOCKERS exist: after the report, ask user to resolve EACH blocker via AskUserQuestion. Do not proceed to Step 5 until all blockers are resolved or the user explicitly chooses to override.
+- If only WARNINGS and INFO: after the report, ask user: "Acknowledge these findings and continue with conversion?" via AskUserQuestion. If yes, continue. If no, discuss adjustments.
 - If no findings: "No conflicts detected. Proceeding with conversion."
 
 ---
