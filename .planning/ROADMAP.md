@@ -198,15 +198,51 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|---------------|--------|-----------|
-| 01. Project Scaffolding | 0/2 | Not started | -- |
-| 02. Core Parsing Layer | 0/2 | Not started | -- |
-| 03. UI Shell | 0/2 | Not started | -- |
-| 04. Dashboard Landing Page | 0/2 | Not started | -- |
-| 05. Phase Detail View | 0/2 | Not started | -- |
-| 06. Roadmap Visualization | 0/1 | Not started | -- |
-| 07. Commit History | 0/1 | Not started | -- |
-| 08. Todo List and Detail | 0/2 | Not started | -- |
-| 09. Todo Write Operations | 0/2 | Not started | -- |
-| 10. File Watching and SSE | 0/2 | Not started | -- |
-| 11. HTMX Dynamic Loading | 0/2 | Not started | -- |
-| 12. Polish and Hardening | 0/2 | Not started | -- |
+| 01. Project Scaffolding | 2/2 | Complete | 2026-02-08 |
+| 02. Core Parsing Layer | 2/2 | Complete | 2026-02-08 |
+| 03. UI Shell | 2/2 | Complete | 2026-02-08 |
+| 04. Dashboard Landing Page | 2/2 | Complete | 2026-02-08 |
+| 05. Phase Detail View | 2/2 | Complete | 2026-02-08 |
+| 06. Roadmap Visualization | 1/1 | Complete | 2026-02-08 |
+| 07. Commit History | 1/1 | Complete | 2026-02-08 |
+| 08. Todo List and Detail | 2/2 | Complete | 2026-02-08 |
+| 09. Todo Write Operations | 2/2 | Complete | 2026-02-08 |
+| 10. File Watching and SSE | 2/2 | Complete | 2026-02-08 |
+| 11. HTMX Dynamic Loading | 2/2 | Complete | 2026-02-08 |
+| 12. Polish and Hardening | 2/2 | Complete | 2026-02-08 |
+| 13. Extract & Deduplicate | 0/0 | Not started | -- |
+| 14. Reference Architecture & GSD Parity | 0/0 | Not started | -- |
+
+---
+
+## Milestone: Plugin Context Optimization
+
+**Goal:** Reduce context pressure in Towline's plugin by extracting ~2,400 lines of inline content from SKILL.md files and agent definitions into external template/reference files, then consolidate scattered cross-cutting docs and achieve structural parity with GSD's reference architecture.
+**Phases:** 13 - 14
+**Source:** Todo 006 (context optimization audit, 2026-02-09)
+
+### Phase 13: Extract & Deduplicate
+**Goal**: Mechanically extract ~1,900 lines of inline templates and prompt templates from SKILL.md files and agent definitions into external files, updating all references to lazy-load via Read
+**Depends on**: None (standalone — operates on plugin source, not dashboard)
+**Requirements**: Context budget reduction, no functional changes
+**Success Criteria**:
+  1. No SKILL.md file contains inline templates >20 lines
+  2. No agent definition contains document format templates (use shared templates/)
+  3. Skill-local `templates/` directories created for plan, review, begin, debug, discuss, pause, milestone
+  4. Shared `templates/codebase/` created with 8 output templates (deduplicated between scan skill and codebase-mapper agent)
+  5. All SKILL.md files use explicit `Read` calls for templates instead of inline content
+  6. All existing tests pass after extraction
+  7. Net reduction of ~1,900 lines from SKILL.md + agent definitions
+
+### Phase 14: Reference Architecture & GSD Parity
+**Goal**: Consolidate 7 scattered reference docs into a `references/` directory, create new templates and reference docs for GSD structural parity
+**Depends on**: Phase 13 (references may point to extracted templates)
+**Requirements**: Structural parity with GSD references/templates architecture
+**Success Criteria**:
+  1. `references/` directory exists with consolidated cross-cutting docs (continuation-format, verification-patterns, ui-formatting, questioning, commit-conventions, deviation-rules, plan-format)
+  2. All SKILL.md and agent cross-references updated to point to `references/`
+  3. `templates/research/` created with 5 research project output templates
+  4. New top-level templates created: DEBUG.md.tmpl, UAT.md.tmpl, discovery.md.tmpl, milestone-archive.md.tmpl, milestone.md.tmpl, continue-here.md.tmpl
+  5. New reference docs written: checkpoints.md, git-integration.md, model-profiles.md, planning-config.md
+  6. No orphaned files remain in skill subdirectories
+  7. All existing tests pass
