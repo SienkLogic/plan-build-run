@@ -177,33 +177,13 @@ NOTE: The dev:towline-researcher subagent type auto-loads the agent definition. 
 
 #### Phase Research Prompt Template
 
-```
-You are the towline-researcher agent operating in Phase Research mode.
-
-<phase_context>
-Phase: {NN} - {phase name}
-Phase goal: {goal from roadmap}
-Phase requirements: {REQ-IDs mapped to this phase}
-Phase depends on: {dependencies from roadmap}
-</phase_context>
-
-<project_context>
-[Inline relevant sections of CONTEXT.md — locked decisions, constraints]
-[Inline relevant prior SUMMARY.md content — what's already built]
-[Inline research SUMMARY.md if it exists — prior research findings]
-</project_context>
-
-<research_questions>
-Research these specific questions for this phase:
-1. What is the best implementation approach for {phase goal}?
-2. What libraries/packages are needed?
-3. What are the common pitfalls for this type of work?
-4. What configuration is needed?
-5. How does this integrate with what's already been built?
-</research_questions>
-
-Write your findings to .planning/phases/{NN}-{slug}/RESEARCH.md using the Phase Research output format. Use the Write tool.
-```
+Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt template for spawning the researcher agent. Fill in the placeholders with phase-specific context:
+- `{NN}` - phase number (zero-padded)
+- `{phase name}` - phase name from roadmap
+- `{goal from roadmap}` - phase goal statement
+- `{REQ-IDs mapped to this phase}` - requirement IDs
+- `{dependencies from roadmap}` - dependency list
+- Inline relevant CONTEXT.md sections and prior SUMMARY.md content into the `<project_context>` block
 
 Wait for the researcher to complete before proceeding.
 
@@ -250,73 +230,13 @@ NOTE: The dev:towline-planner subagent type auto-loads the agent definition. Do 
 
 #### Planning Prompt Template
 
-```
-You are the towline-planner agent operating in Standard Planning mode.
-
-<phase_context>
-Phase: {NN} - {phase name}
-Phase directory: .planning/phases/{NN}-{slug}/
-Phase goal: {goal from roadmap}
-Phase requirements:
-{For each REQ-ID mapped to this phase:}
-- {REQ-ID}: {requirement text}
-Phase depends on: {dependencies}
-Success criteria from roadmap:
-{Success criteria for this phase}
-</phase_context>
-
-<project_context>
-Locked decisions:
-{All locked decisions from CONTEXT.md}
-
-User constraints:
-{All constraints from CONTEXT.md}
-
-Deferred ideas (DO NOT plan for these):
-{All deferred ideas from CONTEXT.md}
-
-Phase-specific decisions (from /dev:discuss, if available):
-{All locked decisions, deferred ideas, and discretion areas from .planning/phases/{NN}-{slug}/CONTEXT.md}
-{If no phase-level CONTEXT.md exists: "No phase-specific discussion captured."}
-</project_context>
-
-<prior_work>
-{For each preceding phase that has SUMMARY.md files:}
-Phase {M}: {name}
-- Status: {complete/partial}
-- Key files created: {list}
-- Exports available: {provides from SUMMARY.md}
-- Patterns established: {patterns from SUMMARY.md}
-</prior_work>
-
-<research>
-{If RESEARCH.md exists for this phase: inline the full content}
-{If not: "No phase-specific research conducted."}
-{If research SUMMARY.md exists: inline relevant sections}
-</research>
-
-<config>
-Max tasks per plan: {from config.json}
-Parallelization enabled: {from config.json}
-TDD mode: {from config.json}
-</config>
-
-<planning_instructions>
-Create executable plans for this phase following your Standard Planning mode instructions.
-
-Key rules:
-1. Apply goal-backward methodology — derive must-haves first
-2. 2-3 tasks per plan, 5-8 files per plan maximum
-3. Assign wave numbers for parallel execution
-4. Every task needs all 5 elements: name, files, action, verify, done
-5. Honor all locked decisions from CONTEXT.md
-6. Do NOT include deferred ideas
-7. Write plan files to: .planning/phases/{NN}-{slug}/{phase}-{plan_num}-PLAN.md
-8. If any task requires env vars, API keys, or external service setup, note it in the task's <action> — the executor will generate USER-SETUP.md automatically
-
-Use the Write tool to create each plan file.
-</planning_instructions>
-```
+Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
+- `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
+- `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
+- `<prior_work>` - preceding phase SUMMARY.md data (status, key files, exports, patterns)
+- `<research>` - RESEARCH.md content if it exists
+- `<config>` - max tasks, parallelization, TDD mode from config.json
+- `<planning_instructions>` - phase-specific planning rules and output path
 
 Wait for the planner to complete.
 
@@ -342,29 +262,10 @@ NOTE: The dev:towline-plan-checker subagent type auto-loads the agent definition
 
 #### Checker Prompt Template
 
-```
-You are the towline-plan-checker agent.
-
-<plans_to_check>
-{For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
---- Plan File: {filename} ---
-[Inline the FULL content of each plan file]
---- End Plan File ---
-</plans_to_check>
-
-<phase_context>
-Phase goal: {goal from roadmap}
-Phase requirements: {REQ-IDs}
-</phase_context>
-
-<context>
-{Inline .planning/CONTEXT.md if it exists — project-level locked decisions}
-{Inline .planning/phases/{NN}-{slug}/CONTEXT.md if it exists — phase-level locked decisions from /dev:discuss}
-</context>
-
-Run all 7 verification dimensions on these plans. Return your structured report.
-Do NOT write any files. Return your findings as your response text.
-```
+Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
+- `<plans_to_check>` - inline the FULL content of each PLAN.md file in the phase directory
+- `<phase_context>` - phase goal and requirement IDs
+- `<context>` - inline project-level and phase-level CONTEXT.md files
 
 **Process checker results:**
 - If `VERIFICATION PASSED`: proceed to Step 8
@@ -383,22 +284,10 @@ If the plan checker found issues:
 3. If BLOCKER or WARNING issues:
    a. Re-spawn the planner Task() with the checker feedback appended:
 
-```
-You are the towline-planner agent operating in Revision Mode.
-
-<original_plans>
-[Inline the current plan files]
-</original_plans>
-
-<checker_feedback>
-[Inline the checker's issue report]
-</checker_feedback>
-
-<revision_instructions>
-Revise the plans to address all BLOCKER and WARNING issues. Follow your Revision Mode instructions.
-Preserve task IDs that don't need changes. Write updated plan files to the same paths.
-</revision_instructions>
-```
+Read `skills/plan/templates/revision-prompt.md.tmpl` and use it as the prompt template for the revision planner. Fill in the placeholders:
+- `<original_plans>` - inline the current plan files
+- `<checker_feedback>` - inline the checker's issue report
+- `<revision_instructions>` - specific revision guidance
 
    b. After revision, re-run the checker (back to Step 6)
 
@@ -529,25 +418,10 @@ When invoked with `--gaps`:
 2. Extract all gaps from the verification report
 3. Spawn planner Task() in Gap Closure mode:
 
-```
-You are the towline-planner agent operating in Gap Closure mode.
-
-<verification_report>
-[Inline the FULL VERIFICATION.md content]
-</verification_report>
-
-<existing_plans>
-[Inline all existing PLAN.md files for this phase]
-</existing_plans>
-
-<gap_closure_instructions>
-Read the verification report and create targeted plans to close each gap.
-Follow your Gap Closure Mode instructions.
-Number new plans starting after the last existing plan number.
-Set gap_closure: true in the frontmatter of each new plan.
-Write gap-closure plan files to: .planning/phases/{NN}-{slug}/
-</gap_closure_instructions>
-```
+Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt template for the gap closure planner. Fill in the placeholders:
+- `<verification_report>` - inline the FULL VERIFICATION.md content
+- `<existing_plans>` - inline all existing PLAN.md files for the phase
+- `<gap_closure_instructions>` - specify output path and gap_closure frontmatter flag
 
 4. After gap-closure plans are created:
    - Run plan checker (if enabled)
