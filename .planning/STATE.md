@@ -3,13 +3,13 @@
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-02-09)
 **Core value:** Visual insight into Towline project progress
-**Current focus:** Plugin Context Optimization — Extract inline content and establish reference architecture
+**Current focus:** Plugin Context Optimization — Reference architecture and GSD parity
 
 ## Current Position
-Phase: 13 of 14 (Extract & Deduplicate)
-Plan: 8 of 8 complete (13-01 through 13-08 all done)
-Status: Phase 13 complete — all 8 plans executed
-Last activity: 2026-02-09 -- Plan 13-08 executed (verification audit: 167 tests pass, 1,645 lines reduced)
+Phase: 13 of 14 (Extract & Deduplicate) — COMPLETE
+Plan: 8 of 8 complete
+Status: Phase 13 verified ✓ — proceeding to Phase 14
+Last activity: 2026-02-09 -- Phase 13 complete (1,645 lines extracted, 37 templates created, 167 tests pass)
 Progress: [████████████████████] 100%
 
 ## Milestone History
@@ -26,6 +26,8 @@ Progress: [████████████████████] 100%
 - Module-based exports (not classes) for repository and service layers
 - memfs for in-memory filesystem testing with Vitest
 - Context optimization: two-phase approach (extract first, then consolidate/add)
+- Phase 13: 1,645 lines extracted from 12 files into 37 template files (25.5% reduction)
+- Phase 13: Some >20-line blocks remain in build, health, import, config, status SKILLs — these are orchestration logic, not templates
 
 ### Pending Todos
 - Todo 006: Promoted to phases 13-14 (marked done)
@@ -41,5 +43,5 @@ None
 
 ## Session Continuity
 Last session: 2026-02-09
-Stopped at: Milestone created. Phase 13 needs planning.
+Stopped at: Phase 13 complete. Phase 14 next.
 Resume file: .planning/ROADMAP.md
