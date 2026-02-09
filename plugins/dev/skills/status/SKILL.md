@@ -185,7 +185,7 @@ Use the Unicode block characters from the UI formatting reference:
 
 ### Status Indicators
 
-Use indicators from `skills/shared/ui-formatting.md`:
+Use indicators from `references/ui-formatting.md`:
 
 | Status | Indicator |
 |--------|-----------|
