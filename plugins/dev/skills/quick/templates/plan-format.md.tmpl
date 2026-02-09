@@ -1,0 +1,32 @@
+# Template: Quick Task Plan Format
+# Used by: quick/SKILL.md (Step 6)
+# Output path: .planning/quick/{NNN}-{slug}/PLAN.md
+# Variables: {NNN}, {count}, {description}, {task name}, {files}, {steps}, {verify}, {done criteria}
+
+---
+phase: quick
+plan: "{NNN}"
+wave: 1
+autonomous: true
+task_count: {count}
+---
+
+# Quick Task: {description}
+
+<task name="{task name}" type="auto">
+<files>
+{list of files that will be created or modified -- infer from description}
+</files>
+<action>
+{step-by-step instructions for what to do -- generated from the description}
+1. {Step 1}
+2. {Step 2}
+3. {Step 3}
+</action>
+<verify>
+{verification command -- test, lint, type-check, or manual check}
+</verify>
+<done>
+{completion criteria -- what must be true when the task is done}
+</done>
+</task>
