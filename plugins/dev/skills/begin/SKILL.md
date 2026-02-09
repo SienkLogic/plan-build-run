@@ -176,27 +176,18 @@ Task({
 
 #### Researcher Prompt Template
 
-For each researcher, construct the prompt as follows:
+For each researcher, construct the prompt by reading the template and filling in placeholders:
 
-```
-<project_context>
-Project: {project name from questioning}
-Description: {2-3 sentence description from questioning}
-Technology constraints: {any locked technology choices}
-User constraints: {budget, timeline, skill level, etc.}
-</project_context>
+Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure.
 
-<research_assignment>
-Topic: {topic - e.g., "Technology Stack Analysis"}
-Output file: .planning/research/{TOPIC}.md
-Mode: project-research
-
-Research these specific questions:
-{topic-specific questions - see below}
-</research_assignment>
-
-Write your findings to the output file using the Project Research output format from your agent definition. Use the Write tool to create the file.
-```
+**Placeholders to fill:**
+- `{project name from questioning}` — project name gathered in Step 2
+- `{2-3 sentence description from questioning}` — project description from Step 2
+- `{any locked technology choices}` — technology constraints from Step 2
+- `{budget, timeline, skill level, etc.}` — user constraints from Step 2
+- `{topic}` — the research topic being assigned (e.g., "Technology Stack Analysis")
+- `{TOPIC}` — the output filename (e.g., STACK, FEATURES, ARCHITECTURE, PITFALLS)
+- `{topic-specific questions}` — see topic-specific questions below
 
 **Topic-specific questions:**
 
@@ -252,22 +243,10 @@ Task({
 
 #### Synthesis Prompt Template
 
-```
-<research_documents>
-Read the following research documents and synthesize them:
-{List all .planning/research/*.md files that were created}
-</research_documents>
+Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 
-<synthesis_instructions>
-1. Read all research documents
-2. Identify consensus findings
-3. Resolve contradictions (higher source level wins)
-4. Produce a unified summary with clear recommendations
-5. Write the synthesis to .planning/research/SUMMARY.md using the Synthesis output format
-</synthesis_instructions>
-
-Write the synthesis to .planning/research/SUMMARY.md using the Write tool.
-```
+**Placeholders to fill:**
+- `{List all .planning/research/*.md files that were created}` — list the research files produced in Step 5
 
 ---
 
@@ -328,36 +307,12 @@ Task({
 
 #### Roadmap Prompt Template
 
-```
-<project_context>
-Project: {project name}
-Description: {description}
-Depth: {quick|standard|comprehensive}
-</project_context>
+Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
-<roadmap_instructions>
-Create a project roadmap following the Roadmap Mode instructions in your agent definition.
-
-Read these files for context:
-- .planning/REQUIREMENTS.md — committed requirements
-- .planning/research/SUMMARY.md — research synthesis (if it exists)
-
-Phase count guidelines based on depth:
-- quick: 3-5 phases
-- standard: 5-8 phases
-- comprehensive: 8-12 phases
-
-Each phase should:
-1. Have a clear, achievable goal
-2. Map to specific REQ-IDs
-3. Build on prior phases logically
-4. Be independently verifiable
-
-Write the roadmap to .planning/ROADMAP.md using the roadmap format from your agent definition.
-</roadmap_instructions>
-
-Write the roadmap to .planning/ROADMAP.md using the Write tool.
-```
+**Placeholders to fill:**
+- `{project name}` — project name from Step 2
+- `{description}` — project description from Step 2
+- `{quick|standard|comprehensive}` — depth setting from Step 3
 
 **After the planner completes:**
 - Read `.planning/ROADMAP.md`
