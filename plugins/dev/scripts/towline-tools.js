@@ -35,8 +35,21 @@ function main() {
         error('Usage: towline-tools.js plan-index <phase-number>');
       }
       output(planIndex(phase));
+    } else if (command === 'event') {
+      const category = args[1];
+      const event = args[2];
+      let details = {};
+      if (args[3]) {
+        try { details = JSON.parse(args[3]); } catch (_e) { details = { raw: args[3] }; }
+      }
+      if (!category || !event) {
+        error('Usage: towline-tools.js event <category> <event> [JSON-details]');
+      }
+      const { logEvent } = require('./event-logger');
+      logEvent(category, event, details);
+      output({ logged: true, category, event });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load, state check-progress, plan-index <phase>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load, state check-progress, plan-index <phase>, event <category> <event>`);
     }
   } catch (e) {
     error(e.message);
@@ -430,4 +443,5 @@ function error(msg) {
   process.exit(1);
 }
 
-main();
+if (require.main === module) { main(); }
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, planIndex, determinePhaseStatus, findFiles };

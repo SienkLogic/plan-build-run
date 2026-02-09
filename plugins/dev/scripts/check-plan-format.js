@@ -175,4 +175,4 @@ function validateSummary(content, _filePath) {
 }
 
 module.exports = { validatePlan, validateSummary };
-main();
+if (require.main === module) { main(); }
