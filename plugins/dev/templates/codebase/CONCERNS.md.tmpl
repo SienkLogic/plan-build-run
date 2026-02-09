@@ -1,0 +1,93 @@
+<!-- Source: agents/towline-codebase-mapper.md | Purpose: Output format for CONCERNS.md codebase analysis -->
+# Concerns & Technical Debt
+
+> Analyzed: {date}
+> Severity summary: {n critical, n high, n medium, n low}
+
+## Technical Debt
+
+| # | Area | Issue | Severity | Files | Evidence |
+|---|------|-------|----------|-------|----------|
+| 1 | {area} | {what's wrong} | critical/high/medium/low | {file paths} | {what you saw} |
+| 2 | {area} | {what's wrong} | {severity} | {file paths} | {what you saw} |
+
+### Debt Details
+
+#### TD-1: {Issue Title}
+
+**Severity**: {critical / high / medium / low}
+**Files**: {list of affected files}
+**Description**: {detailed description of the issue}
+**Evidence**: {specific code examples, line numbers}
+**Impact**: {what problems this causes or could cause}
+**Recommendation**: {specific action to fix}
+
+## Known Bugs
+
+| # | Description | Severity | Location | Reproduction |
+|---|-------------|----------|----------|--------------|
+| 1 | {bug description} | {severity} | {file:line} | {how to trigger} |
+
+## Security Considerations
+
+| # | Issue | Severity | Location | Recommendation |
+|---|-------|----------|----------|----------------|
+| 1 | {Missing input validation on API} | high | {src/routes/users.ts} | {Add zod schema validation} |
+| 2 | {Hardcoded secret in source} | critical | {src/config.ts:42} | {Move to environment variable} |
+| 3 | {SQL injection risk} | critical | {src/db/queries.ts:15} | {Use parameterized queries} |
+| 4 | {No rate limiting} | medium | {src/server.ts} | {Add express-rate-limit} |
+| 5 | {No CSRF protection} | medium | {src/routes/} | {Add csrf tokens} |
+
+## Performance Risks
+
+| # | Issue | Location | Impact | Recommendation |
+|---|-------|----------|--------|----------------|
+| 1 | {N+1 query in user list} | {src/routes/users.ts:30} | {Slow page load} | {Use eager loading} |
+| 2 | {No pagination on large queries} | {src/routes/posts.ts:15} | {Memory exhaustion} | {Add cursor pagination} |
+| 3 | {Synchronous file operations} | {src/utils/file.ts} | {Blocks event loop} | {Use async fs methods} |
+
+## Fragile Areas
+
+| # | Area | Why Fragile | Impact of Breaking | Files |
+|---|------|-------------|-------------------|-------|
+| 1 | {Auth middleware} | {Tightly coupled to 5 services} | {All protected routes fail} | {files} |
+| 2 | {Data migration} | {No rollback mechanism} | {Data loss on failure} | {files} |
+
+## Dependency Risks
+
+| Package | Version | Issue | Recommendation |
+|---------|---------|-------|----------------|
+| {package} | {version} | {Deprecated / EOL / Known vulnerability} | {Update to X / Replace with Y} |
+
+## Scaling Limitations
+
+| # | Limitation | When It Breaks | Current State | Fix Approach |
+|---|-----------|---------------|---------------|-------------|
+| 1 | {Single database instance} | {>1000 concurrent users} | {adequate for current load} | {Read replicas} |
+| 2 | {In-memory session store} | {Multiple server instances} | {single instance} | {Redis session store} |
+
+## Missing Infrastructure
+
+| Category | Status | Impact | Priority |
+|----------|--------|--------|----------|
+| Error monitoring | {absent/partial/present} | {bugs go unnoticed} | {high} |
+| Logging | {absent/partial/present} | {hard to debug production} | {high} |
+| CI/CD | {absent/partial/present} | {manual deployments} | {medium} |
+| Automated tests | {absent/partial/present} | {regressions not caught} | {high} |
+| Documentation | {absent/partial/present} | {onboarding difficulty} | {low} |
+| Backup/Recovery | {absent/partial/present} | {data loss risk} | {critical} |
+| Health checks | {absent/partial/present} | {outages not detected} | {medium} |
+
+## Recommendations (Prioritized)
+
+### Critical (Fix Immediately)
+1. {Recommendation with specific action}
+
+### High (Fix Soon)
+1. {Recommendation with specific action}
+
+### Medium (Plan to Fix)
+1. {Recommendation with specific action}
+
+### Low (When Convenient)
+1. {Recommendation with specific action}
