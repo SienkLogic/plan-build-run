@@ -85,116 +85,14 @@ Task({
 
 #### Verifier Prompt Template
 
-```
-You are a verification agent. Your job is to verify that a phase build matches its plans.
+Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
 
-<verification_methodology>
-For each must-have, perform a three-layer check:
-
-Layer 1 — Existence: Does the artifact exist?
-  - Use `ls` to check file existence
-  - Use `grep` to check for exported functions/classes
-  - Use `Bash` to check database tables, routes, etc.
-
-Layer 2 — Substantiveness: Is it more than a stub?
-  - Check file has meaningful content (not just empty exports)
-  - Check functions have implementations (not just signatures)
-  - Check tests have actual test cases
-
-Layer 3 — Wiring: Is it connected to the rest of the system?
-  - Check imports: is the module imported where needed?
-  - Check usage: is the function called where expected?
-  - Check configuration: is the component configured in app initialization?
-</verification_methodology>
-
-<phase_plans>
-These are the plans that were executed. Extract must-haves from each plan's frontmatter.
-
-{For each PLAN.md file in the phase directory:}
---- Plan: {filename} ---
-{Inline the YAML frontmatter section only — specifically the must_haves block}
---- End Plan ---
-</phase_plans>
-
-<build_results>
-These are the build results. Check what was actually built.
-
-{For each SUMMARY.md file in the phase directory:}
---- Summary: {filename} ---
-{Inline the full SUMMARY.md content}
---- End Summary ---
-</build_results>
-
-<instructions>
-1. Extract ALL must-haves across all plans:
-   - Collect all truths
-   - Collect all artifacts
-   - Collect all key_links
-
-2. For each must-have, run the three-layer check:
-   - Use Bash tool to execute verification commands
-   - Use Grep to search for patterns in files
-   - Use Glob to find files
-   - Record PASS or FAIL for each layer
-
-3. Write your verification report to:
-   .planning/phases/{NN}-{slug}/VERIFICATION.md
-
-Report format:
----
-status: "passed" | "gaps_found" | "human_needed"
-phase: "{NN}-{slug}"
-checked_at: "{date}"
-must_haves_total: {count}
-must_haves_passed: {count}
-must_haves_failed: {count}
-must_haves_human: {count}
----
-
-# Phase {N} Verification: {phase name}
-
-## Summary
-{One paragraph: overall assessment}
-
-## Results
-
-### Must-Have Truths
-
-| # | Truth | Layer 1 | Layer 2 | Layer 3 | Status |
-|---|-------|---------|---------|---------|--------|
-| 1 | {truth text} | PASS | PASS | PASS | PASSED |
-| 2 | {truth text} | PASS | FAIL | -- | GAP |
-
-### Must-Have Artifacts
-
-| # | Artifact | Exists | Substantive | Wired | Status |
-|---|----------|--------|-------------|-------|--------|
-| 1 | {file path} | YES | YES | YES | PASSED |
-| 2 | {file path} | YES | NO | -- | GAP |
-
-### Must-Have Key Links
-
-| # | Key Link | Connected | Status |
-|---|----------|-----------|--------|
-| 1 | {link description} | YES | PASSED |
-| 2 | {link description} | NO | GAP |
-
-## Gaps Found
-{For each gap:}
-
-### Gap {N}: {short description}
-- **Must-have**: {the must-have that failed}
-- **Failed layer**: {1-Existence | 2-Substantiveness | 3-Wiring}
-- **Details**: {what the check found}
-- **Evidence**: {command output or grep results}
-- **Suggested fix**: {what needs to be done}
-
-## Verification Commands Run
-{List of all commands executed with their results — for auditability}
-</instructions>
-
-Use the Write tool to create the verification report. Use Bash, Grep, and Glob for checks.
-```
+**Placeholders to fill before sending:**
+- `{For each PLAN.md file in the phase directory:}` — inline each plan's must_haves frontmatter block
+- `{For each SUMMARY.md file in the phase directory:}` — inline each full SUMMARY.md
+- `{NN}-{slug}` — the phase directory name
+- `{N}` — the phase number
+- `{date}`, `{count}`, `{phase name}` — fill from context
 
 Wait for the verifier to complete.
 
@@ -326,50 +224,12 @@ Task({
 
 ##### Debugger Prompt Template
 
-```
-You are a debugging agent. Analyze these verification failures and determine root causes.
+Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
 
-<verification_report>
-[Inline the VERIFICATION.md content — specifically the Gaps Found section]
-</verification_report>
-
-<build_summaries>
-[Inline all SUMMARY.md files for the phase — check deviations, known issues]
-</build_summaries>
-
-<plans>
-[Inline all PLAN.md files for the phase — check what was supposed to be built]
-</plans>
-
-<instructions>
-For each gap:
-1. Read the gap details
-2. Check the relevant source files (use Read, Grep tools)
-3. Determine root cause:
-   - Was the code not written?
-   - Was the code written incorrectly?
-   - Was the wiring missed?
-   - Was there a dependency issue?
-4. Classify the fix difficulty:
-   - TRIVIAL: < 5 lines of code change
-   - MODERATE: New function or file needed
-   - SIGNIFICANT: Architecture-level change needed
-
-Return your analysis as text (do not write files). Format:
-
-# Root Cause Analysis
-
-## Gap 1: {description}
-- **Root cause**: {what went wrong}
-- **Evidence**: {file/line references}
-- **Fix difficulty**: {TRIVIAL | MODERATE | SIGNIFICANT}
-- **Suggested approach**: {how to fix it}
-
-## Gap 2: ...
-</instructions>
-
-Use Read, Grep, Glob, and Bash tools to investigate. Return your analysis as text.
-```
+**Placeholders to fill before sending:**
+- `[Inline the VERIFICATION.md content — specifically the Gaps Found section]` — paste from VERIFICATION.md
+- `[Inline all SUMMARY.md files for the phase]` — paste all phase SUMMARY.md files
+- `[Inline all PLAN.md files for the phase]` — paste all phase PLAN.md files
 
 **Step 6b: Create Gap-Closure Plans**
 
@@ -384,40 +244,14 @@ Task({
 
 ##### Gap Planner Prompt Template
 
-```
-You are the towline-planner agent operating in Gap Closure mode.
+Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
 
-<verification_report>
-[Inline VERIFICATION.md]
-</verification_report>
-
-<root_cause_analysis>
-[Inline the debugger's root cause analysis]
-</root_cause_analysis>
-
-<existing_plans>
-[Inline all existing PLAN.md files for this phase]
-</existing_plans>
-
-<project_context>
-[Inline CONTEXT.md if it exists]
-</project_context>
-
-<gap_closure_instructions>
-Create targeted gap-closure plans to fix each verified gap.
-
-Rules:
-1. Number new plans starting after the last existing plan number
-2. Set gap_closure: true in frontmatter
-3. Keep plans small — one gap per plan if possible
-4. Set wave: 1 for all gap-closure plans (they should be independent)
-5. Include specific fix instructions in <action> — not vague descriptions
-6. Reference the root cause analysis for each fix
-
-Write gap-closure plan files to: .planning/phases/{NN}-{slug}/
-Use the Write tool.
-</gap_closure_instructions>
-```
+**Placeholders to fill before sending:**
+- `[Inline VERIFICATION.md]` — paste full VERIFICATION.md content
+- `[Inline the debugger's root cause analysis]` — paste the debugger agent's output
+- `[Inline all existing PLAN.md files for this phase]` — paste all phase PLAN.md files
+- `[Inline CONTEXT.md if it exists]` — paste CONTEXT.md if present
+- `{NN}-{slug}` — the phase directory name
 
 **Step 6c: Validate gap-closure plans (conditional)**
 
