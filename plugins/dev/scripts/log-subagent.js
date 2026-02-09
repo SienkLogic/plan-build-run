@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const { logHook } = require('./hook-logger');
+const { logEvent } = require('./event-logger');
 
 function readStdin() {
   try {
@@ -34,8 +35,18 @@ function main() {
       agent_type: data.agent_type || data.subagent_type || null,
       description: data.description || null
     });
+    logEvent('agent', 'spawn', {
+      agent_id: data.agent_id || null,
+      agent_type: data.agent_type || data.subagent_type || null,
+      description: data.description || null
+    });
   } else if (action === 'stop') {
     logHook('log-subagent', 'SubagentStop', 'completed', {
+      agent_id: data.agent_id || null,
+      agent_type: data.agent_type || data.subagent_type || null,
+      duration_ms: data.duration_ms || null
+    });
+    logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: data.agent_type || data.subagent_type || null,
       duration_ms: data.duration_ms || null
