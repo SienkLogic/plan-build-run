@@ -1,0 +1,175 @@
+<!-- Source: skills/debug/SKILL.md | Purpose: Debug session tracking file for systematic hypothesis-driven debugging -->
+
+```markdown
+---
+id: "{NNN}"
+title: "{issue title}"
+status: active
+created: "{ISO date}"
+updated: "{ISO date}"
+severity: "{critical|high|medium|low}"
+category: "{runtime|build|test|config|integration|unknown}"
+---
+
+# Debug Session: {title}
+
+## Current Focus
+<!-- OVERWRITE on each update — always reflects the current investigation state -->
+
+hypothesis: {current theory being tested}
+test: {how testing it}
+expecting: {what result means if true/false}
+next_action: {immediate next step}
+
+## Symptoms
+<!-- Written during gathering, then immutable -->
+
+**Expected:** {expected behavior}
+**Actual:** {actual behavior}
+**Errors:** {error messages if any}
+**Reproduction:** {steps to trigger}
+**Onset:** {when it started / what changed}
+**Scope:** {affected areas}
+
+## Environment
+
+- OS: {detected or reported}
+- Runtime: {node version, python version, etc.}
+- Relevant config: {any config that matters}
+
+## Eliminated
+<!-- APPEND only — prevents re-investigating dead ends after context reset -->
+
+- hypothesis: {theory that was wrong}
+  evidence: {what disproved it}
+  timestamp: {when eliminated}
+
+## Evidence
+<!-- APPEND only — facts discovered during investigation -->
+
+- timestamp: {when found}
+  checked: {what was examined}
+  found: {what was observed}
+  implication: {what this means}
+
+## Hypotheses
+
+| # | Hypothesis | Status | Evidence |
+|---|-----------|--------|----------|
+| 1 | {hypothesis} | {testing/confirmed/rejected} | {evidence} |
+
+## Investigation Log
+
+### Round 1 (automated)
+
+{Filled by towline-debugger agent}
+
+## Root Cause
+
+{Filled when found}
+
+## Fix Applied
+
+{Filled when fixed}
+
+## Timeline
+
+- {ISO date}: Session created
+```
+
+---
+
+<section_rules>
+
+**Frontmatter (status, id, timestamps):**
+- `status`: OVERWRITE — reflects current phase (active/resolved/stale)
+- `id`: IMMUTABLE — session number, never changes
+- `title`: IMMUTABLE — issue title, set on creation
+- `created`: IMMUTABLE — set once
+- `updated`: OVERWRITE — update on every change
+
+**Current Focus:**
+- OVERWRITE entirely on each update
+- Always reflects what is happening RIGHT NOW
+- After a context reset, reading this section shows exactly where to resume
+- Fields: hypothesis, test, expecting, next_action
+
+**Symptoms:**
+- Written during initial gathering phase
+- IMMUTABLE after gathering complete
+- Reference point for what we are trying to fix
+- Fields: expected, actual, errors, reproduction, onset, scope
+
+**Eliminated:**
+- APPEND only — never remove entries
+- Prevents re-investigating dead ends after context reset
+- Each entry: hypothesis, evidence that disproved it, timestamp
+- Critical for efficiency across session boundaries
+
+**Evidence:**
+- APPEND only — never remove entries
+- Facts discovered during investigation
+- Each entry: timestamp, what checked, what found, implication
+- Builds the case for root cause
+
+**Root Cause / Fix Applied:**
+- OVERWRITE as understanding evolves
+- May update multiple times as fixes are tried
+- Final state shows confirmed root cause and verified fix
+
+</section_rules>
+
+<lifecycle>
+
+**Creation:** When /dev:debug starts a new session
+- Create file with symptoms from user input
+- Set status to "active"
+- Current Focus: next_action = "gather symptoms"
+
+**During symptom gathering:**
+- Update Symptoms section as user answers questions
+- Update Current Focus with each question
+- When complete: begin investigation
+
+**During investigation:**
+- OVERWRITE Current Focus with each hypothesis
+- APPEND to Evidence with each finding
+- APPEND to Eliminated when hypothesis disproved
+- Update timestamp in frontmatter
+
+**During fixing:**
+- Update Root Cause when confirmed
+- Update Fix Applied when applied
+- Record files changed
+
+**On resolution:**
+- status -> "resolved"
+- All sections filled with final data
+- Timeline updated
+
+</lifecycle>
+
+<resume_behavior>
+
+When reading this file after a context reset:
+
+1. Parse frontmatter -> know status and severity
+2. Read Current Focus -> know exactly what was happening
+3. Read Eliminated -> know what NOT to retry
+4. Read Evidence -> know what has been learned
+5. Continue from next_action
+
+The file IS the debugging brain. Investigation can resume perfectly from any interruption point.
+
+</resume_behavior>
+
+<size_constraint>
+
+Keep debug files focused:
+- Evidence entries: 1-2 lines each, just the facts
+- Eliminated: brief — hypothesis + why it failed
+- No narrative prose — structured data only
+
+If evidence grows very large (10+ entries), check Eliminated to ensure you are not re-treading the same ground.
+
+</size_constraint>
