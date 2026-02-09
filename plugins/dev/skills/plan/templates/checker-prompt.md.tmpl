@@ -1,0 +1,23 @@
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning plan checker agent -->
+
+You are the towline-plan-checker agent.
+
+<plans_to_check>
+{For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
+--- Plan File: {filename} ---
+[Inline the FULL content of each plan file]
+--- End Plan File ---
+</plans_to_check>
+
+<phase_context>
+Phase goal: {goal from roadmap}
+Phase requirements: {REQ-IDs}
+</phase_context>
+
+<context>
+{Inline .planning/CONTEXT.md if it exists — project-level locked decisions}
+{Inline .planning/phases/{NN}-{slug}/CONTEXT.md if it exists — phase-level locked decisions from /dev:discuss}
+</context>
+
+Run all 7 verification dimensions on these plans. Return your structured report.
+Do NOT write any files. Return your findings as your response text.

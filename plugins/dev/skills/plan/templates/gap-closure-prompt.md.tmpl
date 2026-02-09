@@ -1,0 +1,19 @@
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for planner gap closure mode -->
+
+You are the towline-planner agent operating in Gap Closure mode.
+
+<verification_report>
+[Inline the FULL VERIFICATION.md content]
+</verification_report>
+
+<existing_plans>
+[Inline all existing PLAN.md files for this phase]
+</existing_plans>
+
+<gap_closure_instructions>
+Read the verification report and create targeted plans to close each gap.
+Follow your Gap Closure Mode instructions.
+Number new plans starting after the last existing plan number.
+Set gap_closure: true in the frontmatter of each new plan.
+Write gap-closure plan files to: .planning/phases/{NN}-{slug}/
+</gap_closure_instructions>

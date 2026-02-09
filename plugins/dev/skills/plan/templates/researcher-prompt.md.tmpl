@@ -1,0 +1,27 @@
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning researcher agent during phase planning -->
+
+You are the towline-researcher agent operating in Phase Research mode.
+
+<phase_context>
+Phase: {NN} - {phase name}
+Phase goal: {goal from roadmap}
+Phase requirements: {REQ-IDs mapped to this phase}
+Phase depends on: {dependencies from roadmap}
+</phase_context>
+
+<project_context>
+[Inline relevant sections of CONTEXT.md — locked decisions, constraints]
+[Inline relevant prior SUMMARY.md content — what's already built]
+[Inline research SUMMARY.md if it exists — prior research findings]
+</project_context>
+
+<research_questions>
+Research these specific questions for this phase:
+1. What is the best implementation approach for {phase goal}?
+2. What libraries/packages are needed?
+3. What are the common pitfalls for this type of work?
+4. What configuration is needed?
+5. How does this integrate with what's already been built?
+</research_questions>
+
+Write your findings to .planning/phases/{NN}-{slug}/RESEARCH.md using the Phase Research output format. Use the Write tool.
