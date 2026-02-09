@@ -179,4 +179,4 @@ function normalizePhaseNum(raw) {
 }
 
 module.exports = { parseState, getRoadmapPhaseStatus };
-main();
+if (require.main === module) { main(); }

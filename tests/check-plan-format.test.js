@@ -1,4 +1,4 @@
-const { validatePlan } = require('../plugins/dev/scripts/check-plan-format');
+const { validatePlan, validateSummary } = require('../plugins/dev/scripts/check-plan-format');
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
@@ -201,6 +201,70 @@ ${tasks}
 </tasks>`;
       const issues = validatePlan(content, 'test-PLAN.md');
       expect(issues.filter(i => i.includes('Too many'))).toEqual([]);
+    });
+  });
+
+  describe('validateSummary', () => {
+    test('valid summary with all fields', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+status: complete
+provides: [auth-middleware]
+requires: [database]
+key_files:
+  - package.json
+deferred:
+  - OAuth support
+---
+
+## Outcome
+Everything worked.`;
+      const issues = validateSummary(content, 'SUMMARY-01.md');
+      // key_files path 'package.json' won't exist in test, so filter that out
+      const nonPathIssues = issues.filter(i => !i.includes('not found on disk'));
+      expect(nonPathIssues).toEqual([]);
+    });
+
+    test('missing frontmatter', () => {
+      const content = '# Summary\nNo frontmatter here';
+      const issues = validateSummary(content, 'SUMMARY-01.md');
+      expect(issues).toContain('Missing YAML frontmatter');
+    });
+
+    test('missing required fields', () => {
+      const content = `---
+phase: 03-auth
+---
+Body`;
+      const issues = validateSummary(content, 'SUMMARY-01.md');
+      expect(issues).toContain('Frontmatter missing "plan" field');
+      expect(issues).toContain('Frontmatter missing "status" field');
+      expect(issues).toContain('Frontmatter missing "provides" field');
+      expect(issues).toContain('Frontmatter missing "requires" field');
+      expect(issues).toContain('Frontmatter missing "key_files" field');
+    });
+
+    test('warns about missing deferred field', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+status: complete
+provides: [auth]
+requires: []
+key_files:
+  - package.json
+---
+Body`;
+      const issues = validateSummary(content, 'SUMMARY-01.md');
+      const deferredIssue = issues.find(i => i.includes('deferred'));
+      expect(deferredIssue).toBeDefined();
+    });
+
+    test('unclosed frontmatter', () => {
+      const content = '---\nphase: 03-auth\nplan: 01\n';
+      const issues = validateSummary(content, 'SUMMARY-01.md');
+      expect(issues).toContain('Unclosed YAML frontmatter');
     });
   });
 });

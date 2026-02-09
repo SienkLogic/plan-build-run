@@ -96,4 +96,5 @@ function buildStatusLine(content, ctxPercent) {
   return `Towline: ${parts.join(' | ')}`;
 }
 
-main();
+if (require.main === module) { main(); }
+module.exports = { buildStatusLine, getContextPercent };
