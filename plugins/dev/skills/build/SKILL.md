@@ -16,6 +16,7 @@ Keep the main orchestrator context lean. Follow these rules:
 - **Never** inline large files into Task() prompts — tell agents to read files from disk instead
 - **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter, not full content
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
+- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` after this wave to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Prerequisites
 
@@ -46,6 +47,12 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
+**Tooling shortcut**: Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, you can run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
+```
+This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. Falls back gracefully if the script is missing — parse files manually in that case.
+
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for parallelization, model, and gate settings
 3. Validate:
@@ -55,6 +62,17 @@ Execute these steps in order.
 4. If no phase number given, read current phase from `.planning/STATE.md`
 5. If `gates.confirm_execute` is true: ask user to confirm before proceeding
 6. If `git.branching_strategy` is `phase`: create and switch to branch `towline/phase-{NN}-{name}` before any build work begins
+7. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
+
+**Staleness check (dependency fingerprints):**
+After validating prerequisites, check plan staleness:
+1. Read each PLAN.md file's `dependency_fingerprints` field (if present)
+2. For each fingerprinted dependency, check the current SUMMARY.md file (length + modification time)
+3. If any fingerprint doesn't match: the dependency phase was re-built after this plan was created
+4. Warn user: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created. Re-plan with `/dev:plan {N}` or continue with existing plans?"
+5. If user chooses to continue: proceed (the plans may still be valid)
+6. If user chooses to re-plan: stop and suggest `/dev:plan {N}`
+7. If plans have no `dependency_fingerprints` field: skip this check (backward compatible)
 
 **Validation errors:**
 - No plans found: "Phase {N} has no plans. Run `/dev:plan {N}` first."
@@ -71,6 +89,7 @@ parallelization.enabled     — whether to run plans in parallel
 parallelization.plan_level  — parallel at plan level (within a wave)
 parallelization.max_concurrent_agents — max simultaneous executors
 features.goal_verification  — run verifier after build
+features.inline_verify      — run per-task verification after each executor commit (opt-in)
 features.atomic_commits     — require atomic commits per task
 features.auto_continue      — write .auto-next signal on phase completion
 planning.commit_docs        — commit planning docs after build
@@ -143,15 +162,19 @@ Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-m
   "checkpoints_resolved": [],
   "checkpoints_pending": [],
   "wave": 1,
-  "deferred": []
+  "deferred": [],
+  "commit_log": [],
+  "last_good_commit": null
 }
 ```
 
-This file tracks execution progress for crash recovery. On resume after compaction, read this manifest to determine where execution left off and which plans still need work.
+This file tracks execution progress for crash recovery and rollback. On resume after compaction, read this manifest to determine where execution left off and which plans still need work.
 
 Update the manifest after each wave completes:
 - Move completed plan IDs into `checkpoints_resolved`
 - Advance the `wave` counter
+- Record commit SHAs in `commit_log` (array of `{ plan, sha, timestamp }` objects)
+- Update `last_good_commit` to the SHA of the last successfully verified commit
 - Append any deferred items collected from executor SUMMARYs
 
 ---
@@ -165,6 +188,23 @@ For each wave, in order (Wave 1, then Wave 2, etc.):
 #### 6a. Spawn Executors
 
 For each plan in the current wave (excluding skipped plans):
+
+**Present plan narrative before spawning:**
+
+Before spawning executors for this wave, present a brief narrative for each plan to give the user context on what's about to happen:
+
+```
+Wave {W} — {N} plan(s):
+
+Plan {id}: {plan name}
+  {2-3 sentence description: what this plan builds, the technical approach, and why it matters.
+   Derive this from the plan's must_haves and first task's <action> summary.}
+
+Plan {id}: {plan name}
+  {2-3 sentence description}
+```
+
+This is a read-only presentation step — extract descriptions from plan frontmatter `must_haves.truths` and the plan's task names. Do not read full task bodies for this; keep it lightweight.
 
 **State fragment rule:** Executors MUST NOT modify STATE.md directly. The build skill orchestrator is the sole STATE.md writer during execution. Executors report results via SUMMARY.md only; the orchestrator reads those summaries and updates STATE.md itself.
 
@@ -254,6 +294,7 @@ For each completed executor:
 2. Read the SUMMARY.md frontmatter (not the full body — keep context lean)
 3. Extract status: `completed` | `partial` | `checkpoint` | `failed`
 4. Record commit hashes, files created, deviations
+5. **Update checkpoint manifest `commit_log`**: For each completed plan, append `{ plan: "{plan_id}", sha: "{commit_hash}", timestamp: "{ISO date}" }` to the `commit_log` array. Update `last_good_commit` to the last commit SHA from this wave.
 
 **Spot-check executor claims:**
 
@@ -262,6 +303,8 @@ After reading each SUMMARY, perform a lightweight verification:
 - Run `git log --oneline -n {commit_count}` and confirm the count matches the claimed commits
 - For each spot-checked file, verify it has >10 lines (`wc -l`): warn if trivially small
 - For each spot-checked file, search for TODO/FIXME/placeholder/stub markers: warn if found
+- Check SUMMARY.md frontmatter for `self_check_failures`: if present, warn the user:
+  "Plan {id} reported self-check failures: {list failures}. Inspect before continuing?"
 - If ANY spot-check fails, warn the user before proceeding to the next wave:
   "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
 
@@ -283,9 +326,62 @@ Wave {W} Results:
 | {id} | complete | 2/2 | jkl, mno | 1 |
 ```
 
+#### 6c-ii. Inline Per-Task Verification (conditional)
+
+**Skip if** `features.inline_verify` is not `true` in config.
+
+When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave. This catches issues early — before dependent plans build on a broken foundation.
+
+For each plan that completed successfully in this wave:
+
+1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
+2. Spawn a lightweight verifier:
+
+```
+Task({
+  subagent_type: "dev:towline-verifier",
+  model: "haiku",
+  prompt: "Targeted inline verification for plan {plan_id}.
+
+Verify ONLY these files: {comma-separated key_files list}
+
+For each file, check three layers:
+1. Existence — does the file exist?
+2. Substantiveness — is it more than a stub? (>10 lines, no TODO/FIXME placeholders)
+3. Wiring — is it imported/used by at least one other file?
+
+Report PASS or FAIL with a one-line reason per file.
+Write nothing to disk — just return your results as text."
+})
+```
+
+3. If verifier reports FAIL for any file:
+   - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
+   - Re-spawn the executor for just the failed items: include only the failing file context in the prompt
+   - If the retry also fails: proceed but flag in the wave results table (don't block indefinitely)
+4. If verifier reports all PASS: continue to next wave
+
+**Note:** This adds latency (~10-20s per plan for the haiku verifier). It's opt-in via `features.inline_verify: true` for projects where early detection outweighs speed.
+
+---
+
 #### 6d. Handle Failures
 
 If any executor returned `failed` or `partial`:
+
+**Handoff bug check (false-failure detection):**
+
+Before presenting failure options, check whether the executor actually completed its work despite reporting failure (known Claude Code platform bug where handoff reports failure but work is done):
+
+1. Check if SUMMARY.md exists at the expected path for this plan
+2. If SUMMARY.md exists:
+   a. Read its frontmatter `status` field
+   b. If `status: complete` AND frontmatter has `commits` entries:
+      - Run the same spot-checks from Step 6c (file existence, commit count)
+      - If spot-checks pass: treat this plan as **success**, not failure
+      - Tell user: "Plan {id} reported failure but SUMMARY.md shows completed work. Spot-checks passed — treating as success."
+      - Skip the failure flow for this plan
+   c. If `status: partial` or spot-checks fail: proceed with normal failure handling below
 
 Present failure details to the user:
 ```
@@ -300,6 +396,7 @@ Plan {id} {status}:
 Ask user:
 - **retry** — re-spawn the executor for the failed plan
 - **skip** — mark plan as skipped, continue to next wave
+- **rollback** — undo commits from the failed plan, revert to last-good state
 - **abort** — stop the entire build
 
 **If retry:**
@@ -310,6 +407,16 @@ Ask user:
 - Note the skip in results
 - Check if any plans in later waves depend on the skipped plan
 - If yes: warn user that those plans will also need to be skipped or adjusted
+
+**If rollback:**
+- Read `last_good_commit` from `.checkpoint-manifest.json`
+- If `last_good_commit` exists:
+  - Show the user: "Rolling back to commit {sha} (last verified good state). This will soft-reset {N} commits."
+  - Run: `git reset --soft {last_good_commit}`
+  - Delete the failed plan's SUMMARY.md file if it was created
+  - Update the checkpoint manifest: remove the failed plan from `checkpoints_resolved`
+  - Continue to next wave or stop based on user preference
+- If no `last_good_commit`: warn "No rollback point available (this was the first plan). Use abort instead."
 
 **If abort:**
 - Update STATE.md with current progress
@@ -385,6 +492,12 @@ Once gates pass, update `.planning/STATE.md`:
 - Last activity timestamp
 - Progress bar percentage
 - Any new decisions from executor deviations
+
+**STATE.md size limit (150 lines):** After writing the update, check the file line count. If STATE.md exceeds 150 lines:
+1. Collapse completed phase entries to one-liners (e.g., "Phase 1: verified 2025-02-08")
+2. Remove decisions already captured in CONTEXT.md (avoid duplication)
+3. Remove session entries older than the current session
+4. Keep: current phase detail, active blockers, core value, milestone info
 
 ---
 
@@ -475,11 +588,41 @@ Use the Write tool to create VERIFICATION.md. Use Bash to run verification comma
 
 After all waves complete and optional verification runs:
 
-**8-pre. Determine final status based on verification:**
+**8-pre. Re-verify after gap closure (conditional):**
+
+If `--gaps-only` flag was used AND `features.goal_verification` is `true`:
+
+1. Delete the existing `VERIFICATION.md` (it reflects pre-gap-closure state)
+2. Re-run the verifier using the same Step 7 process — this produces a fresh `VERIFICATION.md` that accounts for the gap-closure work
+3. Read the new verification status for use in determining `final_status` below
+
+This ensures that `/dev:review` after a `--gaps-only` build sees the updated verification state, not stale gaps from before the fix.
+
+**8-pre-b. Determine final status based on verification:**
 - If verification ran and status is `passed`: final_status = "built"
 - If verification ran and status is `gaps_found`: final_status = "built*" (built with unverified gaps)
 - If verification was skipped: final_status = "built (unverified)"
 - If build was partial: final_status = "partial"
+
+**8-pre-c. Codebase map incremental update (conditional):**
+
+Only run if ALL of these are true:
+- `.planning/codebase/` directory exists (project was previously scanned with `/dev:scan`)
+- Build was not aborted
+- `git diff --name-only {pre_build_commit}..HEAD` shows >5 files changed OR `package.json`/`requirements.txt`/`go.mod`/`Cargo.toml` was modified
+
+If triggered:
+1. Record the pre-build commit SHA at the start of Step 1 (before any executors run) for comparison
+2. Run `git diff --name-only {pre_build_commit}..HEAD` to get the list of changed files
+3. Spawn a lightweight mapper Task():
+   ```
+   Task({
+     subagent_type: "dev:towline-codebase-mapper",
+     model: "haiku",
+     prompt: "Incremental codebase map update. These files changed during the Phase {N} build:\n{diff file list}\n\nRead the existing .planning/codebase/ documents. Update ONLY the sections affected by these changes. Do NOT rewrite entire documents — make targeted updates. If a new dependency was added, update STACK.md. If new directories/modules were created, update STRUCTURE.md. If new patterns were introduced, update CONVENTIONS.md. Write updated files to .planning/codebase/."
+   })
+   ```
+4. Do NOT block on this — use `run_in_background: true` and continue to Step 8a. Report completion in Step 8f if it finishes in time.
 
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 1. Open `.planning/ROADMAP.md`
@@ -542,6 +685,20 @@ What's next?
 -> /dev:build {N} --gaps-only — fix verification gaps (if any)
 ```
 
+**8g. Display USER-SETUP.md (conditional):**
+
+Check if `.planning/phases/{NN}-{slug}/USER-SETUP.md` exists. If it does:
+
+```
+Setup Required:
+This phase introduced external setup requirements. See the details below
+or read .planning/phases/{NN}-{slug}/USER-SETUP.md directly.
+
+{Read and display the USER-SETUP.md content — it's typically short}
+```
+
+This ensures the user sees setup requirements prominently instead of buried in SUMMARY files.
+
 ---
 
 ## Error Handling
@@ -577,8 +734,10 @@ If `git.branching_strategy` is `phase` but we're not on the phase branch:
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json` | Execution progress for crash recovery | Step 5b, updated each wave |
 | `.planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md` | Per-plan build summary | Step 6 (each executor) |
+| `.planning/phases/{NN}-{slug}/USER-SETUP.md` | External setup requirements | Step 6 (executor, if needed) |
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Phase verification report | Step 7 |
+| `.planning/codebase/*.md` | Incremental codebase map updates | Step 8-pre-c (if codebase/ exists) |
 | `.planning/ROADMAP.md` | Plans Complete + Status → `built` or `partial` | Step 8a |
-| `.planning/STATE.md` | Updated progress | Steps 6f, 8a |
-| `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8d |
+| `.planning/STATE.md` | Updated progress | Steps 6f, 8b |
+| `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8e |
 | Project source files | Actual code | Step 6 (executors) |
