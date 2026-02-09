@@ -328,122 +328,19 @@ If ANY must-have fails, status is `gaps_found` even if some items need human ver
 
 ## Output Format
 
-Write to `.planning/phases/{phase_dir}/VERIFICATION.md`:
+Write to `.planning/phases/{phase_dir}/VERIFICATION.md`.
 
-```yaml
----
-phase: "{phase_id}"
-verified: "{ISO timestamp}"
-status: "passed"           # passed | gaps_found | human_needed
-is_re_verification: false  # true if re-verifying after gap closure
-score:
-  total_must_haves: {n}
-  verified: {n}
-  failed: {n}
-  partial: {n}
-  human_needed: {n}
-gaps:
-  - must_have: "{description of the failed must-have}"
-    level: "{existence | substantive | wired}"
-    evidence: "{what you found}"
-    recommendation: "{specific action to fix}"
-anti_patterns:
-  todos: {count}
-  stubs: {count}
-  console_logs: {count}
-  skipped_tests: {count}
-  hardcoded_secrets: {count}
----
+Read the output format template from `templates/VERIFICATION-DETAIL.md.tmpl` (relative to the plugin `plugins/dev/` directory). The template contains:
 
-# Phase Verification: {phase_name}
-
-> Verified: {date}
-> Status: **{STATUS}**
-> Score: {verified}/{total} must-haves verified
-> Re-verification: {yes/no}
-
-## Observable Truths
-
-| # | Truth | Status | Evidence |
-|---|-------|--------|----------|
-| 1 | {truth statement} | VERIFIED | {evidence summary with file paths and line numbers} |
-| 2 | {truth statement} | FAILED | {what's wrong, what was expected, what was found} |
-| 3 | {truth statement} | HUMAN_NEEDED | {why it can't be verified programmatically} |
-
-## Artifact Verification
-
-| # | Artifact | L1: Exists | L2: Substantive | L3: Wired | Status |
-|---|----------|-----------|-----------------|-----------|--------|
-| 1 | `{file/export}` | YES | YES (142 lines, real logic) | WIRED (imported by 3 files) | PASS |
-| 2 | `{file/export}` | YES | STUB (TODO at L42, empty handler L67) | N/A | FAIL |
-| 3 | `{file/export}` | YES | YES | ORPHANED (not imported anywhere) | FAIL |
-| 4 | `{file/export}` | NO | N/A | N/A | FAIL |
-
-## Key Link Verification
-
-| # | Link Description | Source | Target | Status | Evidence |
-|---|-----------------|--------|--------|--------|----------|
-| 1 | {what connects to what} | `{source_file}` | `{target_file}` | WIRED | Import at L12, called at L45 |
-| 2 | {what connects to what} | `{source_file}` | `{target_file}` | BROKEN | Imported but never called |
-
-## Gaps Found
-
-{Only present if status is gaps_found}
-
-### Gap 1: {Short description}
-
-- **Must-Have**: {which must-have this gap blocks}
-- **Level Failed**: {existence / substantive / wired}
-- **Evidence**: {specific evidence — file paths, line numbers, command output}
-- **Impact**: {what doesn't work because of this gap}
-- **Recommendation**: {specific action to close this gap}
-
-### Gap 2: {Short description}
-...
-
-## Human Verification Items
-
-{Only present if there are items requiring human verification}
-
-### Item 1: {What needs checking}
-
-- **Must-Have**: {which must-have this relates to}
-- **Why Manual**: {why it can't be verified automatically}
-- **How to Test**: {step-by-step instructions}
-- **Expected Result**: {what success looks like}
-
-## Anti-Pattern Scan
-
-| Pattern | Count | Severity | Files |
-|---------|-------|----------|-------|
-| TODO/FIXME comments | {n} | {low/medium/high} | {file list} |
-| Stub implementations | {n} | {high} | {file list} |
-| Console.log in production | {n} | {low} | {file list} |
-| Skipped tests | {n} | {medium} | {file list} |
-| Hardcoded secrets | {n} | {critical} | {file list} |
-| Empty catch blocks | {n} | {medium} | {file list} |
-
-## Regressions
-
-{Only present in re-verification mode}
-
-| # | Must-Have | Previous Status | Current Status | Evidence |
-|---|----------|----------------|----------------|----------|
-| 1 | {must-have} | VERIFIED | FAILED | {what changed} |
-
-## Summary
-
-### Phase Health
-- **Must-haves**: {n}/{total} verified ({percentage}%)
-- **Gaps**: {n} blocking, {n} non-blocking
-- **Anti-patterns**: {n} total ({n} critical)
-- **Human items**: {n} pending
-
-### Recommendations
-1. {Most important action to take}
-2. {Second most important}
-3. ...
-```
+- **YAML frontmatter**: phase, verified timestamp, status, re-verification flag, score breakdown, gaps list, anti-pattern counts
+- **Observable Truths table**: Each truth with status (VERIFIED/FAILED/HUMAN_NEEDED) and evidence
+- **Artifact Verification table**: 3-level check (Exists, Substantive, Wired) per artifact
+- **Key Link Verification table**: Source-to-target wiring status with evidence
+- **Gaps Found**: Per-gap details with must-have, level, evidence, impact, recommendation
+- **Human Verification Items**: Items requiring manual checks with test instructions
+- **Anti-Pattern Scan table**: Pattern counts by severity with affected files
+- **Regressions table**: (re-verification only) Must-haves that changed status
+- **Summary**: Phase health metrics and prioritized recommendations
 
 ---
 
