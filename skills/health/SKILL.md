@@ -20,7 +20,7 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 
 ## Checks
 
-Run all 6 checks in order. Collect results and present them together at the end.
+Run all 9 checks in order. Collect results and present them together at the end.
 
 ### Check 1: Structure
 
@@ -133,6 +133,53 @@ Validate that PLAN and SUMMARY files have valid YAML frontmatter.
 - FAIL (malformed): "`{path}` has malformed frontmatter: {error}. Fix: Correct the YAML syntax between the `---` delimiters."
 - FAIL (missing field): "`{path}` frontmatter is missing required field `{field}`. Fix: Add `{field}: {suggested value}` to the frontmatter."
 
+### Check 7: ROADMAP/STATE Sync
+
+Validate that ROADMAP.md phase statuses are consistent with STATE.md's current position.
+
+**Steps:**
+1. Read ROADMAP.md Progress table and extract each phase's status
+2. Read STATE.md and extract the current phase number and status
+3. Compare: if ROADMAP says phase N is "verified" but STATE says the current phase is N with status "building", flag a mismatch
+4. Check that no phase after the current phase is marked as "built" or "verified" in ROADMAP (would indicate out-of-order completion)
+
+**Result:**
+- PASS: ROADMAP and STATE are consistent
+- FAIL (mismatch): "ROADMAP.md shows phase {N} as `{status}` but STATE.md says `{status}`. Fix: Update STATE.md to match ROADMAP.md, or vice versa."
+- WARN (drift): "STATE.md current phase is {N} but ROADMAP.md shows later phases as complete."
+
+### Check 8: Hook Execution Log
+
+Check for hook execution audit trail.
+
+**Steps:**
+1. Check if `.planning/.hook-log` exists
+2. If exists: scan the last 20 entries for any with `result: "error"` or `result: "unlink-failed"`
+3. Count recent errors (last 24 hours if timestamps are available)
+
+**Result:**
+- PASS: Hook log exists with no recent errors
+- WARN (errors found): "Hook log shows {count} recent errors. Most recent: {error description}. This may indicate hooks are not firing correctly."
+- INFO (no log): "No hook execution log found at `.planning/.hook-log`. Hook failures would be invisible. This is normal if no hooks have fired yet."
+
+### Check 9: Config Completeness
+
+Validate that config.json has all fields that skills reference.
+
+**Steps:**
+1. Read `.planning/config.json`
+2. Check for these commonly-referenced fields:
+   - `features.auto_continue` (used by build skill and auto-continue.js hook)
+   - `features.team_discussions` (used by config skill)
+   - `features.goal_verification` (used by build and review skills)
+   - `features.integration_verification` (used by review skill)
+   - `git.mode` (used by config skill)
+3. Flag any missing fields
+
+**Result:**
+- PASS: All expected config fields present
+- WARN (missing fields): "config.json is missing field `{field}` (used by {skill}). Default behavior will apply, but explicit configuration is recommended. Fix: Run `/dev:config` to set all options."
+
 ---
 
 ## Bonus: Recent Decisions
@@ -168,6 +215,9 @@ Planning Health Check
 [PASS]  Plan/Summary      All pairings valid
 [FAIL]  STATE.md accuracy Phase reference is stale (points to phase 3, but phase 3 has no directory)
 [PASS]  Frontmatter       All PLAN/SUMMARY files have valid frontmatter
+[PASS]  ROADMAP/STATE sync  ROADMAP and STATE phase statuses are consistent
+[PASS]  Hook log            No recent hook errors
+[PASS]  Config completeness All expected fields present
 
 Issues Found: 2
 ---------------
@@ -199,6 +249,9 @@ Planning Health Check
 [PASS]  Plan/Summary      All pairings valid
 [PASS]  STATE.md accuracy Current position matches file system
 [PASS]  Frontmatter       All PLAN/SUMMARY files have valid frontmatter
+[PASS]  ROADMAP/STATE sync  ROADMAP and STATE phase statuses are consistent
+[PASS]  Hook log            No recent hook errors
+[PASS]  Config completeness All expected fields present
 
 {If decisions.jsonl exists:}
 Recent Decisions:

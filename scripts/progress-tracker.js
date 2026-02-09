@@ -86,6 +86,54 @@ function buildContext(planningDir, stateFile) {
     }
   }
 
+  // Check ROADMAP/STATE sync (S>M-2)
+  const roadmapFile = path.join(planningDir, 'ROADMAP.md');
+  if (fs.existsSync(stateFile) && fs.existsSync(roadmapFile)) {
+    try {
+      const roadmap = fs.readFileSync(roadmapFile, 'utf8');
+      const state = fs.readFileSync(stateFile, 'utf8');
+
+      // Extract current phase from STATE.md
+      const phaseMatch = state.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+      if (phaseMatch) {
+        const currentPhase = parseInt(phaseMatch[1], 10);
+        // Check if ROADMAP shows this phase as already verified/complete
+        const progressTable = roadmap.match(/## Progress[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
+        if (progressTable) {
+          const rows = progressTable[0].split('\n').filter(r => r.includes('|'));
+          for (const row of rows) {
+            const cols = row.split('|').map(c => c.trim()).filter(Boolean);
+            if (cols.length >= 4) {
+              const phaseNum = parseInt(cols[0], 10);
+              const status = cols[3] ? cols[3].toLowerCase() : '';
+              if (phaseNum === currentPhase && (status === 'verified' || status === 'complete')) {
+                parts.push(`\nWarning: STATE.md may be outdated — ROADMAP.md shows phase ${currentPhase} as ${status}.`);
+              }
+            }
+          }
+        }
+      }
+    } catch (_e) {
+      // Ignore parse errors
+    }
+  }
+
+  // Check for stale .auto-next signal (S>M-9)
+  const autoNextFile = path.join(planningDir, '.auto-next');
+  if (fs.existsSync(autoNextFile)) {
+    try {
+      const stats = fs.statSync(autoNextFile);
+      const ageMs = Date.now() - stats.mtimeMs;
+      const ageMinutes = Math.floor(ageMs / 60000);
+      if (ageMinutes > 10) {
+        parts.push(`\nWarning: Stale .auto-next signal found (${ageMinutes} minutes old). This may trigger an unexpected command. Consider deleting .planning/.auto-next.`);
+        logHook('progress-tracker', 'SessionStart', 'stale-auto-next', { ageMinutes });
+      }
+    } catch (_e) {
+      // Ignore errors
+    }
+  }
+
   parts.push('\nAvailable commands: /dev:status, /dev:plan, /dev:build, /dev:review, /dev:help');
 
   return parts.join('\n');

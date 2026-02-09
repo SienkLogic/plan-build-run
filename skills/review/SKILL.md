@@ -556,9 +556,13 @@ Phase {N} has {count} gaps.
 
 **If final phase:**
 ```
-All phases complete and verified.
--> /dev:milestone complete — archive this milestone
--> /dev:status — see final project status
+All phases complete and verified!
+
+Your milestone is ready for wrap-up:
+-> /dev:milestone audit   — verify cross-phase integration (recommended first)
+-> /dev:milestone complete — archive this milestone and tag it
+-> /dev:milestone new      — start planning the next set of features
+-> /dev:status             — see final project status
 ```
 
 ---

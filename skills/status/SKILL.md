@@ -192,7 +192,7 @@ Based on the project state, suggest the single most logical next action:
          YES → "Re-plan with updated context: `/dev:plan {N+1}`"
          NO → "Build the next phase: `/dev:build {N+1}`"
        NO → "Plan the next phase: `/dev:plan {N+1}`"
-     NO → "All phases complete! Run `/dev:milestone complete` to wrap up."
+     NO → "All phases complete! Your next steps:\n       -> /dev:milestone audit — verify cross-phase integration (recommended)\n       -> /dev:milestone complete — archive this milestone and create a git tag\n       -> /dev:milestone new — start planning the next set of features"
 
 6. Is the current phase not started?
    YES → Has it been discussed?
@@ -237,8 +237,9 @@ Suggested next steps:
 
 ### All phases complete
 - Celebrate briefly: "All phases complete!"
-- Suggest: `/dev:milestone complete` to archive the milestone
-- Or: `/dev:milestone audit` to verify everything
+- Suggest: `/dev:milestone audit` to verify cross-phase integration (recommended first)
+- Then: `/dev:milestone complete` to archive the milestone and tag it
+- Or: `/dev:milestone new` to start the next set of features
 
 ### ROADMAP.md has phases but no phase directories
 - This is normal for future phases

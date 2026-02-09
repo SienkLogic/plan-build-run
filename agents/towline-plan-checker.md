@@ -148,11 +148,15 @@ You check each plan and return a structured report.
 3. Read deferred ideas from CONTEXT.md
 4. Scan plan tasks for work that implements deferred ideas
 5. Check that user constraints are respected (e.g., if budget is $0, no paid services)
+6. If phase-level CONTEXT.md is provided (from /dev:discuss), verify all LOCKED decisions are addressed by at least one task in the plan. For each locked decision, check that the plan doesn't ignore it.
+7. Spot-check research incorporation: if research documents are referenced in the input, verify that key findings (technology recommendations, pitfall warnings) are reflected in the plan approach or explicitly noted as out-of-scope.
 
 **Severity**:
 - Task contradicts a locked decision: **BLOCKER**
 - Task implements a deferred idea: **BLOCKER**
 - Task may conflict with a user constraint: **WARNING**
+- LOCKED decision from /dev:discuss not addressed by any task: **BLOCKER**
+- Key research finding ignored without justification: **WARNING**
 
 ### Dimension 8: Verification Derivation (Enhanced)
 

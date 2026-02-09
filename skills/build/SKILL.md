@@ -158,6 +158,8 @@ Update the manifest after each wave completes:
 
 ### Step 6: Wave Loop (core execution)
 
+**Crash recovery check:** Before entering the wave loop, check if `.checkpoint-manifest.json` already exists with completed plans from a prior run. If it does, reconstruct the skip list from its `checkpoints_resolved` array. This handles the case where the orchestrator's context was compacted or the session was interrupted mid-build.
+
 For each wave, in order (Wave 1, then Wave 2, etc.):
 
 #### 6a. Spawn Executors
@@ -258,6 +260,8 @@ For each completed executor:
 After reading each SUMMARY, perform a lightweight verification:
 - Pick 2-3 files from the SUMMARY's `key_files` list and verify they exist (`ls`)
 - Run `git log --oneline -n {commit_count}` and confirm the count matches the claimed commits
+- For each spot-checked file, verify it has >10 lines (`wc -l`): warn if trivially small
+- For each spot-checked file, search for TODO/FIXME/placeholder/stub markers: warn if found
 - If ANY spot-check fails, warn the user before proceeding to the next wave:
   "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
 
@@ -390,6 +394,9 @@ Once gates pass, update `.planning/STATE.md`:
 - `features.goal_verification` is `false` in config
 - Build was aborted
 
+**If skipping because `features.goal_verification` is `false`:**
+Note for Step 8f completion summary: append "Note: Automatic verification was skipped (goal_verification: false). Run `/dev:review {N}` to verify what was built."
+
 **If verification is enabled:**
 
 Spawn a verifier Task():
@@ -468,16 +475,22 @@ Use the Write tool to create VERIFICATION.md. Use Bash to run verification comma
 
 After all waves complete and optional verification runs:
 
+**8-pre. Determine final status based on verification:**
+- If verification ran and status is `passed`: final_status = "built"
+- If verification ran and status is `gaps_found`: final_status = "built*" (built with unverified gaps)
+- If verification was skipped: final_status = "built (unverified)"
+- If build was partial: final_status = "partial"
+
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 1. Open `.planning/ROADMAP.md`
 2. Find the `## Progress` table
 3. Locate the row matching this phase number
 4. Update the `Plans Complete` column to `{completed}/{total}` (e.g., `2/2` if all plans built successfully)
-5. Update the `Status` column to `built` (or `partial` if some plans failed/skipped)
+5. Update the `Status` column to the final_status determined in Step 8-pre
 6. Save the file — do NOT skip this step
 
 **8b. Update STATE.md:**
-- Phase status: "built" (or "partial" if some plans failed)
+- Phase status: {final_status from Step 8-pre}
 - Plan completion count
 - Last activity timestamp
 - Progress bar

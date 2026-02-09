@@ -179,6 +179,8 @@ The user confirms, modifies, removes, or adds outputs. Do NOT create any artifac
 
 ### Step 4: Create Artifacts
 
+**Directory creation:** Before writing any artifact, ensure the target directory exists. Create `.planning/notes/`, `.planning/seeds/`, `.planning/research/`, or `.planning/todos/pending/` as needed if they don't already exist.
+
 Create only the approved artifacts. A single explore session can produce multiple outputs across different types.
 
 ---

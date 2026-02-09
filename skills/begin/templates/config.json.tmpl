@@ -13,7 +13,9 @@
     "research_phase": true,
     "plan_checking": true,
     "tdd_mode": false,
-    "status_line": true
+    "status_line": true,
+    "auto_continue": false,
+    "team_discussions": false
   },
   "models": {
     "researcher": "sonnet",
@@ -42,7 +44,8 @@
     "branching": "none",
     "commit_format": "{type}({phase}-{plan}): {description}",
     "phase_branch_template": "towline/phase-{phase}-{slug}",
-    "milestone_branch_template": "towline/{milestone}-{slug}"
+    "milestone_branch_template": "towline/{milestone}-{slug}",
+    "mode": "enabled"
   },
   "gates": {
     "confirm_project": true,

@@ -94,6 +94,7 @@ Display the following reference to the user:
 - **Configure**: `/dev:config` to change depth, models, gates, parallelization
 - **Tip**: Use `/dev:quick` for creative/visual work where structured planning adds overhead without benefit.
 - **PR hygiene**: When creating PRs from a Towline project, `.planning/` commits can be filtered using phase branching (`git.branching_strategy: phase`) which squash-merges code-only changes to main.
+- **Seeds**: `/dev:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
 
 ## Getting Help
 

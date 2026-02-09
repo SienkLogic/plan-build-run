@@ -216,6 +216,17 @@ Things the user raised during discussion that should inform planning:
 - **{Concern}** — {Context from the conversation}
 ```
 
+### Step 7.5: Update STATE.md Pointer
+
+Update `.planning/STATE.md`'s `## Accumulated Context` section to add a reference to the new CONTEXT.md:
+
+Add under the `### Decisions` subsection:
+```
+Phase {N} discussion: .planning/phases/{NN}-{slug}/CONTEXT.md ({count} locked, {count} deferred, {count} discretion)
+```
+
+This creates a pointer so `/dev:resume` and `progress-tracker.js` know that phase-specific decisions exist and where to find them.
+
 ### Step 8: Confirm and Route
 
 After writing CONTEXT.md:
@@ -298,7 +309,7 @@ These come from:
 
 ## State Integration
 
-This skill does NOT update STATE.md. The discuss step is optional and doesn't change project position. STATE.md is updated when `/dev:plan` runs.
+This skill updates STATE.md's Accumulated Context section with a pointer to the phase CONTEXT.md file. It does NOT change the project position (current phase/plan). STATE.md position is updated when `/dev:plan` runs.
 
 ---
 

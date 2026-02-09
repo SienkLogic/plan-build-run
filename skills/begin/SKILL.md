@@ -381,6 +381,7 @@ Write the project state files from templates:
    - Technical context and constraints
    - Initial key decisions from the questioning conversation
 3. Write to `.planning/PROJECT.md`
+4. Ensure the `## Milestones` section is filled in with the project name and phase count from the roadmap
 
 **9b. Write STATE.md:**
 1. Read `skills/begin/templates/STATE.md.tmpl`
@@ -391,6 +392,7 @@ Write the project state files from templates:
    - Core value one-liner
    - Decisions from initialization
 3. Write to `.planning/STATE.md`
+4. Fill in the `## Milestone` section with the project name and total phase count
 
 **9c. Write CONTEXT.md:**
 Create `.planning/CONTEXT.md` from information gathered during questioning:
@@ -470,6 +472,7 @@ Roadmap: {N} phases
 Requirements: {N} committed, {M} deferred, {K} out-of-scope
 
 What's next?
+-> /dev:explore — think through ideas and approaches before committing
 -> /dev:discuss 1 — talk through Phase 1 details before planning
 -> /dev:plan 1 — jump straight to planning Phase 1
 -> /dev:config — adjust workflow settings

@@ -75,6 +75,7 @@ From there, the cycle is:
 | See where you are | `/dev:status` |
 | Resume after closing Claude Code | `/dev:resume` |
 | Auto-advance to the next step | `/dev:continue` |
+| Plant ideas for future phases | `/dev:explore` → seeds |
 
 ---
 
@@ -200,6 +201,7 @@ Each subagent gets a fresh 200k context window. Data flows through files on disk
 - **Wave-based parallelism** — Plans in the same wave execute in parallel
 - **Persistent state** — All project state lives in `.planning/` and survives context resets
 - **Auto-continue** — `/dev:continue` determines and executes the next step without prompting
+- **Seeds** — `/dev:explore` can create seed files (`.planning/seeds/`) with trigger conditions that automatically inject into planning when the relevant phase is reached
 
 ## Agents
 

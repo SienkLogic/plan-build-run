@@ -174,6 +174,15 @@ Archive a completed milestone and prepare for the next one.
    - If user says no: stop and suggest the review commands
    - If user says yes: proceed with warning noted
 
+   **Timestamp freshness check:**
+   For each phase that has a VERIFICATION.md, compare its `checked_at` frontmatter timestamp against the most recent SUMMARY.md file modification date in that phase directory (use `ls -t` or file stats).
+   If any SUMMARY.md is newer than its VERIFICATION.md `checked_at`:
+   - Warn: "Phase {N} ({name}) was modified after verification. The VERIFICATION.md may not reflect the current code state."
+   - List affected phases
+   - Use AskUserQuestion: "Re-run `/dev:review` for affected phases, or proceed anyway?"
+   - If user chooses to re-run: suggest the review commands and stop
+   - If user chooses to proceed: continue with warning noted
+
 3. **Gather milestone stats:**
 
    ```bash

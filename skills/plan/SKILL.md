@@ -85,9 +85,10 @@ Read all relevant context files. This context will be inlined into subagent prom
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
 3. Read .planning/CONTEXT.md (if exists) — extract locked decisions, constraints, deferred ideas
-4. Read .planning/config.json — extract feature flags, depth, model settings
-5. Read prior SUMMARY.md files from preceding phases — extract what's already been built
-6. Read .planning/research/SUMMARY.md (if exists) — extract research findings
+4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract phase-specific locked decisions, deferred ideas, and discretion areas captured by /dev:discuss
+5. Read .planning/config.json — extract feature flags, depth, model settings
+6. Read prior SUMMARY.md files from preceding phases — extract what's already been built
+7. Read .planning/research/SUMMARY.md (if exists) — extract research findings
 ```
 
 Collect all of this into a context bundle that will be passed to subagents.
@@ -248,6 +249,10 @@ User constraints:
 
 Deferred ideas (DO NOT plan for these):
 {All deferred ideas from CONTEXT.md}
+
+Phase-specific decisions (from /dev:discuss, if available):
+{All locked decisions, deferred ideas, and discretion areas from .planning/phases/{NN}-{slug}/CONTEXT.md}
+{If no phase-level CONTEXT.md exists: "No phase-specific discussion captured."}
 </project_context>
 
 <prior_work>
@@ -327,7 +332,8 @@ Phase requirements: {REQ-IDs}
 </phase_context>
 
 <context>
-{Inline CONTEXT.md if it exists, for Dimension 7 checking}
+{Inline .planning/CONTEXT.md if it exists — project-level locked decisions}
+{Inline .planning/phases/{NN}-{slug}/CONTEXT.md if it exists — phase-level locked decisions from /dev:discuss}
 </context>
 
 Run all 7 verification dimensions on these plans. Return your structured report.

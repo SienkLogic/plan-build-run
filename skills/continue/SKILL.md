@@ -38,7 +38,8 @@ Check the resumption priority hierarchy (same as /dev:resume):
 3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
 4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/dev:build {N}`
 5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/dev:review {N}`
-6. **Phase complete**: Verification passed → Execute `/dev:plan {N+1}`
+6. **Phase complete, more phases exist**: Verification passed → Execute `/dev:plan {N+1}`
+7. **All phases complete**: Verification passed on final phase, no more phases in ROADMAP.md → Stop. Display: "All phases are complete. Run `/dev:milestone audit` to verify cross-phase integration, or `/dev:milestone complete` to archive this milestone."
 
 ### Step 3: Execute
 

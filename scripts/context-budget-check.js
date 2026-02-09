@@ -26,9 +26,20 @@ function main() {
     let content = fs.readFileSync(stateFile, 'utf8');
     const timestamp = new Date().toISOString();
 
+    // Check for active operation context (S>M-3)
+    let activeOp = '';
+    const activeOpFile = path.join(cwd, '.planning', '.active-operation');
+    if (fs.existsSync(activeOpFile)) {
+      try {
+        activeOp = fs.readFileSync(activeOpFile, 'utf8').trim();
+      } catch (_e) {
+        // Ignore read errors
+      }
+    }
+
     // Update or add Session Continuity section
     const continuityHeader = '## Session Continuity';
-    const continuityContent = `Last session: ${timestamp}\nCompaction occurred: context was auto-compacted at this point\nNote: Some conversation context may have been lost. Check STATE.md and SUMMARY.md files for ground truth.`;
+    const continuityContent = `Last session: ${timestamp}\nCompaction occurred: context was auto-compacted at this point${activeOp ? `\nActive operation at compaction: ${activeOp}` : ''}\nNote: Some conversation context may have been lost. Check STATE.md and SUMMARY.md files for ground truth.`;
 
     if (content.includes(continuityHeader)) {
       // Replace existing section
