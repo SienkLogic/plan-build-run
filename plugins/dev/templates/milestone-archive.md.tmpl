@@ -1,0 +1,113 @@
+<!-- Source: skills/milestone/SKILL.md | Purpose: Milestone archive file structure for completed milestone snapshots -->
+
+This template is used by the milestone complete workflow to create archive files in `.planning/milestones/`.
+
+---
+
+## File Template
+
+```markdown
+# Milestone v{VERSION}: {MILESTONE_NAME}
+
+**Status:** SHIPPED {DATE}
+**Phases:** {PHASE_START}-{PHASE_END}
+**Total Plans:** {TOTAL_PLANS}
+
+## Overview
+
+{MILESTONE_DESCRIPTION}
+
+## Phases
+
+### Phase {PHASE_NUM}: {PHASE_NAME}
+
+**Goal**: {PHASE_GOAL}
+**Depends on**: {DEPENDS_ON}
+**Plans**: {PLAN_COUNT} plans
+
+Plans:
+
+- [x] {PHASE}-01: {PLAN_DESCRIPTION}
+- [x] {PHASE}-02: {PLAN_DESCRIPTION}
+      [... all plans ...]
+
+**Details:**
+{PHASE_DETAILS_FROM_ROADMAP}
+
+**For decimal phases, include (INSERTED) marker:**
+
+### Phase 2.1: Critical Security Patch (INSERTED)
+
+**Goal**: Fix authentication bypass vulnerability
+**Depends on**: Phase 2
+**Plans**: 1 plan
+
+Plans:
+
+- [x] 02.1-01: Patch auth vulnerability
+
+**Details:**
+{PHASE_DETAILS_FROM_ROADMAP}
+
+---
+
+## Milestone Summary
+
+**Decimal Phases:**
+
+- Phase 2.1: Critical Security Patch (inserted after Phase 2 for urgent fix)
+- Phase 5.1: Performance Hotfix (inserted after Phase 5 for production issue)
+
+**Key Decisions:**
+{DECISIONS_FROM_CONTEXT_MD}
+
+- Decision: {choice} (Rationale: {reason})
+- Decision: {choice} (Rationale: {reason})
+
+**Issues Resolved:**
+{ISSUES_RESOLVED_DURING_MILESTONE}
+
+- {Issue description}
+
+**Issues Deferred:**
+{ISSUES_DEFERRED_TO_LATER}
+
+- {Issue}: deferred until {reason}
+
+**Technical Debt Incurred:**
+{SHORTCUTS_NEEDING_FUTURE_WORK}
+
+- {Debt description} (fix in Phase {N})
+
+---
+
+_For current project status, see .planning/ROADMAP.md_
+```
+
+---
+
+<guidelines>
+
+**When to create milestone archives:**
+- After completing all phases in a milestone (v1.0, v1.1, v2.0, etc.)
+- Triggered by /dev:milestone complete workflow
+- Before planning next milestone work
+
+**How to fill template:**
+- Replace {PLACEHOLDERS} with actual values
+- Extract phase details from ROADMAP.md
+- Document decimal phases with (INSERTED) marker
+- Include key decisions from CONTEXT.md or SUMMARY files
+- List issues resolved vs deferred
+- Capture technical debt for future reference
+
+**Archive location:**
+- Save to `.planning/milestones/v{VERSION}-{NAME}.md`
+- Example: `.planning/milestones/v1.0-mvp.md`
+
+**After archiving:**
+- Update ROADMAP.md to collapse completed milestone in `<details>` tag
+- Update PROJECT.md to brownfield format with Current State section
+- Continue phase numbering in next milestone (never restart at 01)
+
+</guidelines>
