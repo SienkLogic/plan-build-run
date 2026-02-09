@@ -218,34 +218,7 @@ Archive a completed milestone and prepare for the next one.
 
    **Stats file content:**
 
-   ```markdown
-   # Milestone {version} Stats
-
-   **Name:** {milestone name}
-   **Completed:** {ISO date}
-   **Duration:** {days}
-
-   ## Metrics
-   - Phases: {count}
-   - Plans executed: {count}
-   - Quick tasks: {count}
-   - Total commits: {count}
-   - Files changed: {count}
-   - Lines added: {count}
-   - Lines removed: {count}
-
-   ## Accomplishments
-   {bulleted list of key features/capabilities built}
-
-   ## Key Decisions
-   {bulleted list of important decisions made}
-
-   ## Technology Stack
-   {list of technologies used}
-
-   ## Patterns Established
-   {list of patterns applied}
-   ```
+   Read `skills/milestone/templates/stats-file.md.tmpl` for the stats file format. Fill in all `{variable}` placeholders with actual data gathered in Steps 3-4.
 
 6. **Update PROJECT.md:**
    - Move milestone from "Active" to "Completed"
@@ -354,54 +327,9 @@ Verify milestone completion with cross-phase integration checks.
 
 5. **Write audit report:**
 
-   Create `.planning/{version}-MILESTONE-AUDIT.md`:
+   Create `.planning/{version}-MILESTONE-AUDIT.md` using the template:
 
-   ```markdown
-   ---
-   milestone: "{version}"
-   status: "{passed | gaps_found | tech_debt}"
-   date: "{ISO date}"
-   ---
-
-   # Milestone Audit: {version}
-
-   ## Overall Status: {PASSED / GAPS FOUND / TECH DEBT}
-
-   ## Phase Verification Summary
-
-   | Phase | Verified | Gaps | Integration |
-   |-------|----------|------|-------------|
-   | {N}. {name} | {yes/no} | {count} | {ok/issues} |
-
-   ## Integration Check Results
-
-   ### Dependency Graph
-   {Mermaid or ASCII representation of phase dependencies}
-
-   ### Integration Issues
-   {List of integration problems found, or "None"}
-
-   - **{Issue}**: {description}
-     - Affected phases: {list}
-     - Severity: {critical/high/medium/low}
-     - Suggested fix: {brief suggestion}
-
-   ## Requirements Coverage
-
-   | Requirement | Status | Verified By |
-   |-------------|--------|-------------|
-   | {req} | {covered/uncovered} | {phase/plan or "N/A"} |
-
-   ## Tech Debt Identified
-
-   {Issues that don't block the milestone but should be addressed}
-
-   - {debt item}: {description}
-
-   ## Recommendations
-
-   {Summary of what needs to be done, if anything}
-   ```
+   Read `skills/milestone/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
 
 6. **Report to user:**
 
