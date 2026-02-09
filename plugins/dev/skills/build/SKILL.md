@@ -443,7 +443,7 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 3. Wait for user response
 4. Spawn a FRESH continuation executor:
 
-Reference: `skills/build/continuation-format.md` for the continuation protocol.
+Reference: `references/continuation-format.md` for the continuation protocol.
 
 ```
 You are the towline-executor agent. Continue executing a plan from a checkpoint.
@@ -535,7 +535,7 @@ Layer 1 — Existence: Does the artifact exist? (ls, grep for exports)
 Layer 2 — Substantiveness: Is it more than a stub? (wc -l, grep for implementation)
 Layer 3 — Wiring: Is it connected to the rest of the system? (grep for imports/usage)
 
-See skills/plan/verification-patterns.md for detailed patterns.
+See references/verification-patterns.md for detailed patterns.
 </verification_approach>
 
 <phase_plans>
