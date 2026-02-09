@@ -214,7 +214,7 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 11. HTMX Dynamic Loading | 2/2 | Complete | 2026-02-08 |
 | 12. Polish and Hardening | 2/2 | Complete | 2026-02-08 |
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
-| 14. Reference Architecture & GSD Parity | 0/0 | Not started | -- |
+| 14. Reference Architecture & GSD Parity | 0/6 | Planned | -- |
 
 ---
 
