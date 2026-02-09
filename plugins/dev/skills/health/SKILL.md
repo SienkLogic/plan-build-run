@@ -153,14 +153,14 @@ Validate that ROADMAP.md phase statuses are consistent with STATE.md's current p
 Check for hook execution audit trail.
 
 **Steps:**
-1. Check if `.planning/.hook-log` exists
+1. Check if `.planning/logs/hooks.jsonl` exists
 2. If exists: scan the last 20 entries for any with `result: "error"` or `result: "unlink-failed"`
 3. Count recent errors (last 24 hours if timestamps are available)
 
 **Result:**
 - PASS: Hook log exists with no recent errors
 - WARN (errors found): "Hook log shows {count} recent errors. Most recent: {error description}. This may indicate hooks are not firing correctly."
-- INFO (no log): "No hook execution log found at `.planning/.hook-log`. Hook failures would be invisible. This is normal if no hooks have fired yet."
+- INFO (no log): "No hook execution log found at `.planning/logs/hooks.jsonl`. Hook failures would be invisible. This is normal if no hooks have fired yet."
 
 ### Check 9: Config Completeness
 
