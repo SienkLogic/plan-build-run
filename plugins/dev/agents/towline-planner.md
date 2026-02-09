@@ -246,7 +246,7 @@ When creating plans, watch for these signals that a plan should be split:
 
 ## Discovery Levels
 
-When a plan requires research before execution:
+When a plan requires research before execution, set the `discovery` field in plan frontmatter. Default is 1 for most plans.
 
 | Level | Name | Description | Executor Behavior |
 |-------|------|-------------|-------------------|
@@ -255,7 +255,21 @@ When a plan requires research before execution:
 | 2 | Standard | Normal research | Spawn towline-researcher for phase research |
 | 3 | Deep | Extensive investigation | Full research cycle before execution |
 
-Set `discovery` in plan frontmatter. Default is 1 for most plans, 0 for simple refactors/docs.
+### Level 0 — Skip
+**When to use**: Simple refactors, documentation updates, file renames, configuration tweaks, or any task where the implementation approach is unambiguous from the plan's `<action>` steps alone.
+**Executor behavior**: Proceed directly to executing `<action>` steps. No research, no doc lookups.
+
+### Level 1 — Quick (default)
+**When to use**: Standard feature work where the technology is known but specific API signatures, config options, or version-specific behavior need a quick check. Examples: adding a new route with an established pattern, using a library that's already in the project.
+**Executor behavior**: Before starting `<action>`, spend 1-2 minutes checking official docs or existing project code for the 1-2 specific questions called out in the plan. Do not do broad research — answer only the targeted questions.
+
+### Level 2 — Standard
+**When to use**: Work involving unfamiliar libraries, new integration patterns, or approaches the executor hasn't seen in this codebase before. Examples: first use of a new ORM, setting up a third-party webhook, implementing an auth flow for the first time.
+**Executor behavior**: The build skill spawns a `towline-researcher` agent before this plan executes. The researcher writes a RESEARCH.md to the phase directory. The executor reads this research before starting `<action>` steps.
+
+### Level 3 — Deep
+**When to use**: High-risk or architecturally significant work where getting the approach wrong would require substantial rework. Examples: database schema design, choosing between competing architectural patterns, implementing security-critical features.
+**Executor behavior**: Full research cycle — the build skill spawns a researcher with broad scope, waits for findings, and the executor must read and reference the research throughout execution. The executor should validate research findings against the actual codebase before proceeding.
 
 ---
 
@@ -526,6 +540,18 @@ When prior plans exist in the phase, read SUMMARY.md frontmatter ONLY (not full 
 - 10 frontmatters ≈ 500 tokens vs. 10 full SUMMARYs ≈ 5000 tokens
 - Extract: `provides`, `requires`, `key_files`, `key_decisions`, `patterns`
 - Only read full SUMMARY body if a specific detail is needed for the current plan
+
+### Digest-Select Depth for Cross-Phase SUMMARYs
+
+When reading SUMMARYs from prior phases, use selective depth:
+
+| Relationship | Read depth |
+|-------------|------------|
+| Direct dependency | Full SUMMARY body |
+| 1 phase back from dependency | Frontmatter only |
+| 2+ phases back | Skip entirely |
+
+This prevents token growth as projects get larger. A 12-phase project at Phase 10 reads ~2 full SUMMARYs instead of 9.
 
 ---
 

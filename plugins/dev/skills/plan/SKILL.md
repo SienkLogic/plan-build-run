@@ -16,6 +16,7 @@ Keep the main orchestrator context lean. Follow these rules:
 - **Never** inline large files into Task() prompts — tell agents to read files from disk instead
 - **Minimize** reading subagent output into main context — read only plan frontmatter for summaries
 - **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
+- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` after this step to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Prerequisites
 
@@ -61,6 +62,12 @@ Execute these steps in order for standard `/dev:plan <N>` invocations.
 
 ### Step 1: Parse and Validate (inline)
 
+**Tooling shortcut**: Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, you can run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
+```
+This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. For plan inventory, use `plan-index <phase>`. Falls back gracefully if the script is missing — parse files manually in that case.
+
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for settings
 3. Validate:
@@ -87,9 +94,26 @@ Read all relevant context files. This context will be inlined into subagent prom
 3. Read .planning/CONTEXT.md (if exists) — extract locked decisions, constraints, deferred ideas
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract phase-specific locked decisions, deferred ideas, and discretion areas captured by /dev:discuss
 5. Read .planning/config.json — extract feature flags, depth, model settings
-6. Read prior SUMMARY.md files from preceding phases — extract what's already been built
+6. Read prior SUMMARY.md files using digest-select depth (see below)
 7. Read .planning/research/SUMMARY.md (if exists) — extract research findings
 ```
+
+**Digest-select depth for prior SUMMARYs (Step 6):**
+
+Not all prior phase SUMMARYs need the same level of detail. Use selective depth to save tokens:
+
+| Relationship to current phase | Read depth |
+|-------------------------------|------------|
+| Direct dependency (listed in `depends_on` in ROADMAP.md) | Full SUMMARY body |
+| 1 phase back from a dependency (transitive) | Frontmatter only (`provides`, `key_files`, `key_decisions`, `patterns`) |
+| 2+ phases back | Skip entirely |
+
+Example: If planning Phase 5 which depends on Phase 4, and Phase 4 depends on Phase 3:
+- Phase 4 SUMMARYs: read full body
+- Phase 3 SUMMARYs: frontmatter only
+- Phases 1-2 SUMMARYs: skip
+
+This saves ~500 tokens per skipped SUMMARY for large projects.
 
 Collect all of this into a context bundle that will be passed to subagents.
 
@@ -191,9 +215,10 @@ Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger mat
 
 1. Glob for `.planning/seeds/*.md`
 2. For each seed file, read its frontmatter and check the `trigger` field
-3. A seed matches if:
-   - `trigger` equals the current phase number (e.g., `trigger: 3`)
-   - `trigger` equals the phase slug (e.g., `trigger: authentication`)
+3. A seed matches if ANY of these are true:
+   - `trigger` equals the phase slug (e.g., `trigger: authentication`) — **preferred**
+   - `trigger` is a substring of the phase directory name (e.g., `trigger: auth` matches `03-authentication`)
+   - `trigger` equals the current phase number as integer (e.g., `trigger: 3`) — backward compatible but NOT recommended for new seeds (breaks with decimal phases like 3.1)
    - `trigger` equals `*` (always matches)
 4. If matching seeds are found, present them to the user:
    ```
@@ -287,6 +312,7 @@ Key rules:
 5. Honor all locked decisions from CONTEXT.md
 6. Do NOT include deferred ideas
 7. Write plan files to: .planning/phases/{NN}-{slug}/{phase}-{plan_num}-PLAN.md
+8. If any task requires env vars, API keys, or external service setup, note it in the task's <action> — the executor will generate USER-SETUP.md automatically
 
 Use the Write tool to create each plan file.
 </planning_instructions>
@@ -426,6 +452,16 @@ Approve these plans?
 
 **If user approves:**
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
+- **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
+  1. Find all SUMMARY.md files in the dependency phase directory
+  2. Compute a simple hash of each SUMMARY.md file (e.g., first 8 chars of a SHA-256 of the file content, or a simpler approach: use the file's byte length + last-modified timestamp as a fingerprint string)
+  3. Add a `dependency_fingerprints` field to each plan's YAML frontmatter:
+     ```yaml
+     dependency_fingerprints:
+       "01-01": "len:4856-mod:2025-02-08T09:40"
+       "01-02": "len:4375-mod:2025-02-08T09:43"
+     ```
+  4. This allows the build skill to detect if dependency phases were re-built after this plan was created
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
   1. Open `.planning/ROADMAP.md`
   2. Find the `## Progress` table

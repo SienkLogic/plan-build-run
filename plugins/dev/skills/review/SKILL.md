@@ -9,6 +9,13 @@ argument-hint: "<phase-number> [--auto-fix]"
 
 You are the orchestrator for `/dev:review`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
 
+## Context Budget
+
+Keep the main orchestrator context lean. Follow these rules:
+- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
+- **Minimize** reading subagent output into main context — read only VERIFICATION.md frontmatter for summaries
+- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
+
 ## Prerequisites
 
 - `.planning/config.json` exists
@@ -284,6 +291,7 @@ If all automated checks and UAT items passed:
    - Phase status: "verified"
    - Progress updated
    - Last activity timestamp
+   - **STATE.md size limit (150 lines):** After writing, if over 150 lines: collapse completed phase entries to one-liners, remove decisions already in CONTEXT.md, remove old session entries. Keep: current phase detail, active blockers, core value, milestone info.
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
@@ -443,7 +451,8 @@ If user approves:
 
 If gaps were found and `--auto-fix` was NOT specified:
 
-1. List all gaps clearly:
+1. List all gaps clearly
+2. **Proactively offer to run auto-fix inline** — don't make the user re-invoke the command
 
 ```
 Phase {N}: {name} — Gaps Found
@@ -457,11 +466,17 @@ Phase {N}: {name} — Gaps Found
 2. {gap description}
    ...
 
-Options:
--> /dev:review {N} --auto-fix — auto-diagnose and create fix plans
--> /dev:plan {N} --gaps — manually create gap-closure plans
--> Fix manually and run /dev:review {N} again
+I can auto-diagnose these gaps and create fix plans now. What would you like to do?
+-> auto-fix — I'll diagnose root causes and create gap-closure plans right now
+-> manual — I'll fix these myself
+-> later — just save the results, I'll handle it with `/dev:review {N} --auto-fix`
 ```
+
+**If user chooses "auto-fix":** proceed with the same Steps 6a-6d as the `--auto-fix` flow above (diagnose, create gap-closure plans, validate, present).
+
+**If user chooses "manual":** suggest relevant files to inspect based on the gap details.
+
+**If user chooses "later":** save results and exit.
 
 ---
 

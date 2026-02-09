@@ -247,7 +247,7 @@ Write to `.planning/seeds/SEED-{NNN}-{slug}.md`:
 id: SEED-{NNN}
 status: dormant
 planted: {ISO date}
-trigger: "when planning {phase/context}"
+trigger: "{phase-slug}"
 scope_estimate: "small|medium|large"
 source: "/dev:explore session"
 ---
