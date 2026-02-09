@@ -93,13 +93,7 @@ Before jumping into specific gray areas, give the user space to share their ment
 
 Analyze the phase goal, requirements, and what's already built. Identify **3-4 gray areas** where the user's preference matters. Gray areas fall into these categories:
 
-| Category | Example Gray Areas |
-|----------|-------------------|
-| **UI/UX choices** | Layout approach, component library, responsive strategy, accessibility level |
-| **Architecture decisions** | State management approach, API design style, database schema trade-offs |
-| **Edge case behavior** | What happens on failure, empty states, concurrent access, rate limiting |
-| **Technology selections** | Which library for X, build tool choice, testing framework preference |
-| **Feature scope boundaries** | MVP vs full feature, what to include vs defer, depth of implementation |
+Read `skills/discuss/templates/decision-categories.md` for the category reference table.
 
 **How to identify gray areas:**
 1. Look at the phase requirements — where are there multiple valid approaches?
@@ -167,54 +161,16 @@ Write the CONTEXT.md file to the phase directory:
 
 **Content:**
 
-```markdown
-# Phase {N} Context
+Read `skills/discuss/templates/CONTEXT.md.tmpl` for the template structure.
 
-**Created by:** /dev:discuss {N}
-**Date:** {ISO date}
-
-## Decisions (LOCKED -- must implement exactly as specified)
-
-These decisions are NON-NEGOTIABLE during planning. If research suggests a different approach,
-the planner must use the locked decision and note the discrepancy in the plan.
-
-- [ ] **{Decision title}** -- {User's exact choice and reasoning}
-  - Scope: {Any scope boundaries from follow-ups}
-  - Quality: {Quality level from follow-ups}
-  - Integration: {Integration notes from follow-ups}
-  - Notes: {Any additional context}
-
-- [ ] **{Decision title}** -- {User's exact choice and reasoning}
-  ...
-
-## Deferred Ideas (EXCLUDED -- do not plan these)
-
-These ideas were discussed but explicitly excluded from this phase.
-They may be addressed in future phases or milestones.
-
-- **{Idea}** -- {Why deferred}
-- **{Idea}** -- {Why deferred}
-
-## Claude's Discretion (OPEN -- Claude decides during planning)
-
-These areas were identified as gray areas but the user chose to let Claude decide.
-The planner has freedom here but should document their choices.
-
-- **{Area}** -- {What Claude can choose, any constraints mentioned}
-- **{Area}** -- {What Claude can choose, any constraints mentioned}
-
-## User's Vision Summary
-
-{2-3 sentences capturing how the user imagines this phase. This should reflect
-the user's mental model, not a technical specification. Write in the user's voice
-where possible, quoting key phrases they used.}
-
-## User's Concerns
-
-Things the user raised during discussion that should inform planning:
-
-- **{Concern}** — {Context from the conversation}
-```
+**Placeholders to fill:**
+- `{N}` -- the phase number
+- `{ISO date}` -- today's date in ISO format
+- `{Decision title}` / `{User's exact choice and reasoning}` -- from Step 4-5 decisions
+- `{Idea}` / `{Why deferred}` -- from Step 6 deferred ideas
+- `{Area}` / `{What Claude can choose}` -- items marked "Let Claude decide"
+- `{2-3 sentences}` -- user's vision summary from the conversation
+- `{Concern}` / `{Context}` -- concerns raised during discussion
 
 ### Step 7.5: Update STATE.md Pointer
 
