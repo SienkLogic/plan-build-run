@@ -38,3 +38,18 @@ See: .planning/REQUIREMENTS.md (16 committed requirements across Session Viewer,
 | Pico.css over Tailwind | Semantic styling, no build step | Adopted |
 | gray-matter + marked | Industry standard, battle-tested | Adopted |
 | Three-layer architecture | Clean separation for testability | Adopted |
+
+## Completed Milestones
+
+### Towline Dashboard (v1.0)
+- **Completed:** 2026-02-08
+- **Phases:** 1 - 12
+- **Key deliverables:** Full-featured dashboard with session viewer, todo manager, real-time updates, HTMX dynamic loading
+
+## Active Milestones
+
+### Plugin Context Optimization
+- **Phases:** 13 - 14
+- **Created:** 2026-02-09
+- **Status:** In progress
+- **Source:** Todo 006 (GSD comparison audit)
