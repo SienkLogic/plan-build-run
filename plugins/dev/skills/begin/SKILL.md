@@ -393,6 +393,7 @@ Write the project state files from templates:
    - Decisions from initialization
 3. Write to `.planning/STATE.md`
 4. Fill in the `## Milestone` section with the project name and total phase count
+5. **STATE.md size limit**: STATE.md must stay under 150 lines. Any skill that updates STATE.md must enforce this: collapse completed phase entries to one-liners, remove decisions already in CONTEXT.md, remove old session entries. Keep: current phase detail, active blockers, core value, milestone info.
 
 **9c. Write CONTEXT.md:**
 Create `.planning/CONTEXT.md` from information gathered during questioning:

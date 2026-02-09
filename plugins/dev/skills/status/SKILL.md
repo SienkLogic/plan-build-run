@@ -22,6 +22,16 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 
 ### Step 1: Read Project State
 
+**Tooling shortcut**: Instead of parsing multiple files manually, you can run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
+```
+and
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state check-progress
+```
+These return structured JSON with config, state, roadmap, and filesystem-verified progress. Falls back gracefully if the script is missing — parse files manually in that case.
+
 Read the following files (skip any that don't exist):
 
 1. **`.planning/config.json`** — Project settings
@@ -69,6 +79,13 @@ For each phase listed in ROADMAP.md:
    - Count plans with SUMMARY.md (status=completed)
    - Progress = completed / total * 100
 
+### Step 2b: Check STATE.md Size
+
+Count lines in `.planning/STATE.md`. If over 150 lines, add a warning to the dashboard:
+```
+Warning: STATE.md is {N} lines (limit: 150). Run any build/review command to auto-compact it.
+```
+
 ### Step 3: Check for Special Conditions
 
 #### Paused Work
@@ -86,6 +103,10 @@ For each phase listed in ROADMAP.md:
   2. If Phase N has plans but Phase N-1 doesn't have summaries (wasn't built yet):
      - This means Phase N was planned without knowledge of what Phase N-1 actually produced
      - Flag for re-planning
+- **Dependency fingerprint check**: For each planned phase with `dependency_fingerprints` in plan frontmatter:
+  1. Compare the fingerprints against current dependency SUMMARY.md files
+  2. If any fingerprint is stale (dependency was re-built after the plan was created):
+     - Flag: "WARN: Phase {N} plans may be stale — dependency phase {M} was re-built since planning. Consider re-planning with `/dev:plan {N}`."
 
 #### Active Debug Sessions
 - Check `.planning/debug/` for files with `status: active`

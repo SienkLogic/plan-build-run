@@ -43,15 +43,17 @@ Check the resumption priority hierarchy (same as /dev:resume):
 
 ### Step 3: Execute
 
-Based on the determined action:
+Based on the determined action, invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, use the Skill tool which runs the skill in a clean invocation:
 
 | Situation | Action | How |
 |-----------|--------|-----|
-| Gaps need closure | Plan gap closure | Read the plan skill instructions from `skills/plan/SKILL.md` and execute the `--gaps` flow |
-| Build incomplete | Continue build | Read the build skill instructions from `skills/build/SKILL.md` and execute |
-| Review needed | Run review | Read the review skill instructions from `skills/review/SKILL.md` and execute |
-| Next phase needed | Plan next phase | Read the plan skill instructions from `skills/plan/SKILL.md` and execute |
-| Project not started | Plan phase 1 | Read the plan skill instructions and execute for phase 1 |
+| Gaps need closure | Plan gap closure | `Skill({ skill: "dev:plan", args: "{N} --gaps" })` |
+| Build incomplete | Continue build | `Skill({ skill: "dev:build", args: "{N}" })` |
+| Review needed | Run review | `Skill({ skill: "dev:review", args: "{N}" })` |
+| Next phase needed | Plan next phase | `Skill({ skill: "dev:plan", args: "{N+1}" })` |
+| Project not started | Plan phase 1 | `Skill({ skill: "dev:plan", args: "1" })` |
+
+Where `{N}` is the current phase number determined from STATE.md in Step 1.
 
 ### Step 4: Report
 

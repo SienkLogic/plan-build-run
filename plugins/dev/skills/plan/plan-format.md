@@ -65,6 +65,7 @@ consumes:
 | `must_haves.key_links` | YES | array | Connections between components. Append `: grep command` for verification. |
 | `provides` | NO | array | What this plan exports for other plans to consume (classes, endpoints, modules) |
 | `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
+| `dependency_fingerprints` | NO | object | Hashes of dependency phase SUMMARY.md files at plan-creation time. Used to detect stale plans. |
 
 ---
 
