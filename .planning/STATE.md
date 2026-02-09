@@ -7,10 +7,10 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 
 ## Current Position
 Phase: 14 of 14 (Reference Architecture & GSD Parity)
-Plan: 2 of 6 complete (14-01, 14-03)
-Status: Executing Wave 1
-Last activity: 2026-02-09 -- Plan 14-01 complete (move 7 reference docs to references/, 2 tasks, 2 commits)
-Progress: [██████░░░░░░░░░░░░░░] 33%
+Plan: 4 of 6 complete (14-01, 14-02, 14-03, 14-04)
+Status: Wave 1 complete. Wave 2 remaining (14-05, 14-06).
+Last activity: 2026-02-09 -- Plan 14-04 complete (6 new top-level templates, 2 tasks, 2 commits)
+Progress: [█████████████░░░░░░░] 67%
 
 ## Milestone History
 - **v1.0 Towline Dashboard** (phases 1-12): Completed 2026-02-08, all phases built and verified
@@ -43,5 +43,5 @@ None
 
 ## Session Continuity
 Last session: 2026-02-09
-Stopped at: Plan 14-01 complete. Continuing Wave 1 (14-02, 14-04 remaining).
+Stopped at: Plan 14-04 complete. Wave 1 done. Wave 2 remaining (14-05, 14-06).
 Resume file: .planning/ROADMAP.md
