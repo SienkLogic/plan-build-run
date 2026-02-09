@@ -1,0 +1,80 @@
+<!-- Source: agents/towline-codebase-mapper.md | Purpose: Output format for STRUCTURE.md codebase analysis -->
+# Project Structure
+
+> Analyzed: {date}
+
+## Directory Layout
+
+```
+{project_root}/
+├── src/                          # Source code
+│   ├── app/                      # {Purpose: Next.js App Router pages}
+│   │   ├── api/                  # {API route handlers}
+│   │   ├── (auth)/               # {Auth-related pages}
+│   │   └── layout.tsx            # {Root layout}
+│   ├── components/               # {Shared UI components}
+│   │   ├── ui/                   # {Primitive UI components}
+│   │   └── features/             # {Feature-specific components}
+│   ├── lib/                      # {Shared utilities and configurations}
+│   ├── services/                 # {Business logic}
+│   ├── models/                   # {Data models / types}
+│   ├── hooks/                    # {Custom React hooks}
+│   └── styles/                   # {Global styles}
+├── prisma/                       # {Database schema and migrations}
+├── public/                       # {Static assets}
+├── tests/                        # {Test files}
+├── docs/                         # {Documentation}
+└── scripts/                      # {Build/deploy scripts}
+```
+
+## File Naming Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| React components | {PascalCase.tsx} | `UserProfile.tsx` |
+| Hooks | {camelCase.ts, use* prefix} | `useAuth.ts` |
+| Utilities | {camelCase.ts} | `formatDate.ts` |
+| Types | {PascalCase.ts or types.ts} | `User.ts`, `types.ts` |
+| Tests | {*.test.ts or *.spec.ts} | `UserProfile.test.tsx` |
+| API routes | {route.ts in directory} | `app/api/users/route.ts` |
+| Config | {lowercase with dots} | `jest.config.ts` |
+| Constants | {UPPER_CASE or camelCase} | `constants.ts` |
+
+## Module Boundaries
+
+{How the code is organized into modules/features and what the boundaries are}
+
+| Module | Directory | Responsibility | Dependencies |
+|--------|-----------|---------------|-------------|
+| {Auth} | {src/auth/} | {Authentication & session} | {Database, Config} |
+| {Users} | {src/users/} | {User CRUD} | {Auth, Database} |
+
+## Import Patterns
+
+{How imports are organized in this codebase}
+
+```{language}
+// Standard import order observed in this project:
+// {example from actual codebase}
+```
+
+### Path Aliases
+
+| Alias | Maps To | Config |
+|-------|---------|--------|
+| `@/` | `src/` | `tsconfig.json paths` |
+| `@components/` | `src/components/` | `tsconfig.json paths` |
+
+## Where to Add Code
+
+| Type of Code | Location | Convention | Example |
+|-------------|----------|------------|---------|
+| New API route | `src/app/api/{resource}/route.ts` | {pattern} | {example} |
+| New component | `src/components/{feature}/` | {pattern} | {example} |
+| New service | `src/services/` | {pattern} | {example} |
+| New model | `src/models/` | {pattern} | {example} |
+| New test | `{co-located or tests/}` | {pattern} | {example} |
+| New utility | `src/lib/` or `src/utils/` | {pattern} | {example} |
+| New hook | `src/hooks/` | {pattern} | {example} |
+| New migration | `prisma/migrations/` | `npx prisma migrate dev` | - |
+| New env var | `.env` + `.env.example` | {pattern} | {example} |
