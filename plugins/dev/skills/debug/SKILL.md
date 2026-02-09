@@ -144,36 +144,9 @@ category: "{runtime|build|test|config|integration|unknown}"
 
 #### Spawn Debugger
 
-Spawn `Task(towline-debugger)` with the following prompt:
+Spawn `Task(towline-debugger)` with the prompt template.
 
-```
-You are towline-debugger. Investigate the following issue systematically.
-
-Debug file: .planning/debug/{NNN}-{slug}.md
-Mode: initial_investigation
-
-Symptoms:
-- Expected: {expected}
-- Actual: {actual}
-- Reproduction: {steps}
-- Onset: {onset}
-- Scope: {scope}
-
-Instructions:
-1. Read the debug file for full context
-2. Formulate 2-3 initial hypotheses based on symptoms
-3. For each hypothesis:
-   a. State what you're testing and why
-   b. Design a specific test (command, code inspection, log check)
-   c. Execute the test
-   d. Record the result (confirmed, rejected, inconclusive)
-4. Update the debug file with findings
-5. Return one of:
-   - ROOT_CAUSE_FOUND: {cause} + FIX: {what to change}
-   - ROOT_CAUSE_FOUND: {cause} (if find_root_cause_only mode)
-   - CHECKPOINT: {what was found, what to investigate next}
-   - INCONCLUSIVE: {findings so far, suggested next approaches}
-```
+Read `skills/debug/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
 
 ### Step 2b: Resume Flow
 
@@ -193,25 +166,9 @@ Last state:
 Continuing investigation...
 ```
 
-4. Spawn `Task(towline-debugger)` with continuation context:
+4. Spawn `Task(towline-debugger)` with the continuation prompt template.
 
-```
-You are towline-debugger. Continue investigating the following issue.
-
-Debug file: .planning/debug/{NNN}-{slug}.md
-Mode: continuation
-
-Previous findings:
-{paste investigation log and hypotheses from the debug file}
-
-Instructions:
-1. Read the debug file for full context
-2. Review what's already been tested
-3. Formulate NEW hypotheses based on prior findings
-4. Continue systematic investigation
-5. Update the debug file
-6. Return: ROOT_CAUSE_FOUND, CHECKPOINT, or INCONCLUSIVE
-```
+   Read `skills/debug/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
 
 ### Step 3: Handle Debugger Results
 
