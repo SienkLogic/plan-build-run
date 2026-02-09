@@ -103,9 +103,26 @@ Collect all of this into a context bundle for use in Steps 4 and 5.
 
 Compare the imported plan against ALL loaded context from Step 2.
 
-**IMPORTANT: You MUST check every category below. Do NOT stop after finding blockers. Run ALL checks first, collect ALL findings across all three severity levels, then present them together in a single report.**
+<format_rules>
+HARD REQUIREMENTS FOR THIS STEP — violations are bugs:
 
-**IMPORTANT: Use ONLY the three severity labels below — `[BLOCKER]`, `[WARNING]`, `[INFO]`. Do NOT substitute other labels like CRITICAL, HIGH, MEDIUM, LOW, or any other classification. The severity labels are part of the Towline protocol and must be exact.**
+1. Run ALL checks below (BLOCKER + WARNING + INFO) before presenting anything.
+2. Use ONLY these three labels: `[BLOCKER]`, `[WARNING]`, `[INFO]`. Never CRITICAL, HIGH, MEDIUM, LOW, or any other label.
+3. DO NOT use markdown tables for findings. Use the plain-text format shown below.
+4. Present one consolidated "Conflict Detection Report" with three sections.
+5. After the report, use AskUserQuestion if blockers exist.
+
+WRONG (never do this):
+| Area | Import | Project | Severity |
+|------|--------|---------|----------|
+| Framework | Fastify | Express | CRITICAL |
+
+RIGHT (always do this):
+[BLOCKER] Framework mismatch
+  Found: Plan uses Fastify with @fastify/view
+  Expected: Express 5.x (locked decision in CONTEXT.md)
+  → Replace Fastify with Express 5.x
+</format_rules>
 
 #### BLOCKER checks (must resolve before continuing):
 Run each of these checks. If any matches, record a `[BLOCKER]`:
@@ -135,9 +152,9 @@ Run each of these checks. If any matches, record an `[INFO]`:
 2. **Matching seeds**: Are there matching seeds in `.planning/seeds/` that could enhance the plan?
 3. **Prior phase patterns**: What patterns from prior phases (from SUMMARY.md `patterns` fields) should the imported plan follow?
 
-#### Output format
+#### Output format (MANDATORY — do not deviate)
 
-Present ALL findings in a single report using this EXACT format. Do not use tables, do not change the labels, do not add severity sub-levels:
+Present ALL findings in a single report using this EXACT plain-text format. NEVER use markdown tables. NEVER change the labels. NEVER skip a section even if it has 0 findings:
 
 ```
 ## Conflict Detection Report
