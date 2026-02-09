@@ -1,0 +1,127 @@
+<!-- Source: skills/plan/SKILL.md | Purpose: Discovery report template for library/option decisions during planning -->
+
+```markdown
+---
+phase: "{NN}-{slug}"
+type: discovery
+topic: "{discovery-topic}"
+discovery_level: {0-3}
+created: "{ISO date}"
+---
+
+# {Topic} Discovery
+
+## Summary
+
+{2-3 paragraph executive summary — what was researched, what was found, what is recommended}
+
+## Primary Recommendation
+
+{What to do and why — be specific and actionable}
+
+## Alternatives Considered
+
+| Option | Pros | Cons | Verdict |
+|--------|------|------|---------|
+| {option 1} | {pros} | {cons} | Recommended |
+| {option 2} | {pros} | {cons} | Rejected — {reason} |
+| {option 3} | {pros} | {cons} | Rejected — {reason} |
+
+## Key Findings
+
+### {Category 1}
+- {Finding with source and relevance to our case}
+
+### {Category 2}
+- {Finding with source and relevance}
+
+## Code Examples
+
+{Relevant implementation patterns, if applicable}
+
+## Metadata
+
+<confidence level="{high|medium|low}">
+{Why this confidence level — based on source quality and verification}
+</confidence>
+
+<sources>
+- {Primary authoritative sources used}
+</sources>
+
+<open_questions>
+{What could not be determined or needs validation during implementation}
+</open_questions>
+
+<validation_checkpoints>
+{If confidence is LOW or MEDIUM, list specific things to verify during implementation}
+</validation_checkpoints>
+```
+
+---
+
+<discovery_levels>
+
+Towline uses discovery levels (0-3) to indicate how much research a plan needs:
+
+| Level | Name | Meaning | Action |
+|-------|------|---------|--------|
+| 0 | None | Well-understood, no research needed | Skip discovery |
+| 1 | Light | Quick check, library comparison | Produce brief DISCOVERY.md |
+| 2 | Moderate | Multiple options, need evaluation | Full DISCOVERY.md with alternatives |
+| 3 | Deep | Complex domain, unfamiliar territory | DISCOVERY.md + possibly RESEARCH.md |
+
+The `discovery_level` in frontmatter reflects which level triggered this report.
+
+</discovery_levels>
+
+<discovery_protocol>
+
+**Source Priority:**
+1. **Official documentation** — For library/framework docs (current, authoritative)
+2. **Project context** — Existing code, decisions in CONTEXT.md, locked choices
+3. **Web search** — For comparisons, trends, community patterns (verify all findings)
+
+**Quality Checklist:**
+Before completing discovery, verify:
+- [ ] All claims have authoritative sources (official docs or verified community consensus)
+- [ ] Negative claims ("X is not possible") verified with official documentation
+- [ ] API syntax/configuration from official docs (never web search alone)
+- [ ] Web search findings cross-checked with authoritative sources
+- [ ] Recent updates/changelogs checked for breaking changes
+- [ ] Alternative approaches considered (not just first solution found)
+
+**Confidence Levels:**
+- HIGH: Official docs confirm, tested in similar context
+- MEDIUM: Official docs + web search confirm, not yet tested
+- LOW: Web search only or training knowledge only (mark for validation)
+
+</discovery_protocol>
+
+<scope_guidance>
+
+**When to produce a discovery report:**
+- Technology choice unclear (library A vs B)
+- Best practices needed for unfamiliar integration
+- API/library investigation required
+- Single decision pending
+
+**When NOT to produce one:**
+- Established patterns (CRUD, auth with known library)
+- Implementation details (defer to execution)
+- Questions answerable from existing project context or CONTEXT.md
+
+**When to escalate to RESEARCH.md:**
+- Complex domains (3D, games, audio, shaders)
+- Need ecosystem knowledge, not just library choice
+- "How do experts build this" questions
+
+</scope_guidance>
+
+<success_criteria>
+- All scope questions answered with authoritative sources
+- Quality checklist items completed
+- Clear primary recommendation
+- Low-confidence findings marked with validation checkpoints
+- Ready to inform plan creation
+</success_criteria>
