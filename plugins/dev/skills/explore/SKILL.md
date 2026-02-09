@@ -50,6 +50,7 @@ Task({
     - .planning/STATE.md
     - Any .planning/phases/*/CONTEXT.md files
     - .planning/research/SUMMARY.md (if exists)
+    - .planning/NOTES.md (if exists)
 
   Return ONLY the briefing text. No preamble, no suggestions."
 })
@@ -159,6 +160,7 @@ Suggest specific outputs with reasoning. Present no more than 4 suggestions — 
 | Research question | Needs deeper investigation | `.planning/research/questions.md` |
 | New phase | Big enough for its own phase | Append to `ROADMAP.md` |
 | Note | Not actionable yet, worth remembering | `.planning/notes/{slug}.md` |
+| Quick capture | One-liner idea, no context needed | Suggest `/dev:note <text>` to the user |
 | Seed | Idea with trigger conditions | `.planning/seeds/SEED-{NNN}-{slug}.md` |
 
 **Format for proposals:**

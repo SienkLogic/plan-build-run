@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-const SCRIPT = path.join(__dirname, '..', 'scripts', 'validate-commit.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'validate-commit.js');
 
 function runValidator(toolInput) { // eslint-disable-line no-unused-vars
   const input = JSON.stringify({ tool_input: toolInput });

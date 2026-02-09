@@ -95,6 +95,11 @@ For each phase listed in ROADMAP.md:
 - Check `.planning/todos/pending/` for pending todo files
 - Count and summarize if any exist
 
+#### Quick Notes
+- Check `.planning/NOTES.md` for active note entries
+- Count active notes (lines matching `^- \[` that don't contain `[promoted]`)
+- Also check `~/.claude/notes.md` for global notes
+
 #### Quick Tasks
 - Check `.planning/quick/` for recent quick tasks
 - Note any failed or partial quick tasks
@@ -137,6 +142,9 @@ Debug: {count} active session(s). Run `/dev:debug` to continue.
 
 {If pending todos:}
 Todos: {count} pending. Run `/dev:todo list` to see them.
+
+{If notes exist:}
+Notes: {count} quick capture(s). `/dev:note list` to review.
 ```
 
 ### Progress Bar

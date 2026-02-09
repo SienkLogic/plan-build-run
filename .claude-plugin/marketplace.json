@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "dev",
-      "source": "./",
+      "source": "./plugins/dev",
       "description": "Towline — Context-engineered development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
       "version": "2.0.0",
       "category": "development",

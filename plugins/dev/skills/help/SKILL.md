@@ -71,6 +71,7 @@ Display the following reference to the user:
 | `/dev:milestone audit` | Verify milestone completion. |
 | `/dev:milestone gaps` | Create phases to close audit gaps. |
 | `/dev:todo add\|list\|done` | Persistent file-based todos. |
+| `/dev:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
 | `/dev:config` | Configure workflow settings. |
 
 ## Typical Workflow

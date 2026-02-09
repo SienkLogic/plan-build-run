@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { logHook } = require('./hook-logger');
 
 function main() {
@@ -84,6 +85,18 @@ function buildContext(planningDir, stateFile) {
     } catch (_e) {
       // Ignore parse errors
     }
+  }
+
+  // Check for quick notes
+  const projectNotesFile = path.join(planningDir, 'NOTES.md');
+  const globalNotesFile = path.join(os.homedir(), '.claude', 'notes.md');
+  const projectNoteCount = countNotes(projectNotesFile);
+  const globalNoteCount = countNotes(globalNotesFile);
+  if (projectNoteCount > 0 || globalNoteCount > 0) {
+    const noteParts = [];
+    if (projectNoteCount > 0) noteParts.push(`${projectNoteCount} project`);
+    if (globalNoteCount > 0) noteParts.push(`${globalNoteCount} global`);
+    parts.push(`\nNotes: ${noteParts.join(', ')}. \`/dev:note list\` to review.`);
   }
 
   // Check ROADMAP/STATE sync (S>M-2)
@@ -168,6 +181,17 @@ function findContinueFiles(dir) {
     // Ignore permission errors
   }
   return results;
+}
+
+function countNotes(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return 0;
+    const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.split('\n');
+    return lines.filter(l => /^- \[/.test(l) && !l.includes('[promoted]')).length;
+  } catch (_e) {
+    return 0;
+  }
 }
 
 main();

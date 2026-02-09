@@ -17,8 +17,8 @@
   "homepage": "https://github.com/SienkLogic/towline",
   "scripts": {
     "test": "jest",
-    "lint": "eslint scripts/ tests/",
-    "validate": "node scripts/validate-plugin-structure.js"
+    "lint": "eslint plugins/dev/scripts/ tests/",
+    "validate": "node plugins/dev/scripts/validate-plugin-structure.js"
   },
   "devDependencies": {
     "jest": "^29.0.0",
