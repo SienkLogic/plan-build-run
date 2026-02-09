@@ -83,35 +83,7 @@ Create: `.planning/quick/{NNN}-{slug}/`
 
 Write `.planning/quick/{NNN}-{slug}/PLAN.md`:
 
-```markdown
----
-phase: quick
-plan: "{NNN}"
-wave: 1
-autonomous: true
-task_count: {count}
----
-
-# Quick Task: {description}
-
-<task name="{task name}" type="auto">
-<files>
-{list of files that will be created or modified — infer from description}
-</files>
-<action>
-{step-by-step instructions for what to do — generated from the description}
-1. {Step 1}
-2. {Step 2}
-3. {Step 3}
-</action>
-<verify>
-{verification command — test, lint, type-check, or manual check}
-</verify>
-<done>
-{completion criteria — what must be true when the task is done}
-</done>
-</task>
-```
+Read `skills/quick/templates/plan-format.md.tmpl` for the plan file format. Fill in all `{variable}` placeholders with actual task data from the user's description and project context.
 
 **Plan generation rules:**
 - Break the task into 1-3 tasks maximum (prefer fewer)
