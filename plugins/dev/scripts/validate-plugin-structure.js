@@ -105,21 +105,27 @@ if (fs.existsSync(agentsDir)) {
 const hooksJsonPath = path.join(ROOT, 'hooks', 'hooks.json');
 if (fs.existsSync(hooksJsonPath)) {
   try {
-    const hooks = JSON.parse(fs.readFileSync(hooksJsonPath, 'utf8'));
-    const hookEntries = Array.isArray(hooks) ? hooks : (hooks.hooks || []);
+    const hooksFile = JSON.parse(fs.readFileSync(hooksJsonPath, 'utf8'));
 
-    for (const hook of hookEntries) {
-      if (hook.command) {
-        // Extract script path from command, replacing ${CLAUDE_PLUGIN_ROOT}
-        const cmd = hook.command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
-        const parts = cmd.split(' ');
-        // Find the .js file in the command
-        const scriptPart = parts.find(p => p.endsWith('.js'));
-        if (scriptPart) {
-          const scriptPath = scriptPart.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
-          const resolvedPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(ROOT, scriptPath);
-          if (!fs.existsSync(resolvedPath)) {
-            error(`hooks.json references missing script: ${scriptPart}`);
+    // Plugin hooks format: { hooks: { EventName: [ { matcher?, hooks: [ { type, command } ] } ] } }
+    const hooksObj = hooksFile.hooks || {};
+    for (const eventName of Object.keys(hooksObj)) {
+      const matcherGroups = hooksObj[eventName];
+      if (!Array.isArray(matcherGroups)) continue;
+      for (const group of matcherGroups) {
+        const handlers = group.hooks || [];
+        for (const handler of handlers) {
+          if (handler.command) {
+            const cmd = handler.command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
+            const parts = cmd.split(' ');
+            const scriptPart = parts.find(p => p.endsWith('.js'));
+            if (scriptPart) {
+              const scriptPath = scriptPart.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
+              const resolvedPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(ROOT, scriptPath);
+              if (!fs.existsSync(resolvedPath)) {
+                error(`hooks.json references missing script: ${scriptPart}`);
+              }
+            }
           }
         }
       }
