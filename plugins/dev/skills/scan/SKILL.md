@@ -146,53 +146,9 @@ Instructions:
 
 Write both files to .planning/codebase/
 
-STACK.md format:
-
-# Technology Stack
-
-## Languages
-| Language | Version | Usage |
-|----------|---------|-------|
-
-## Frameworks
-| Framework | Version | Purpose |
-|-----------|---------|---------|
-
-## Build & Tooling
-- Build: {tool}
-- Package manager: {tool}
-- Linter: {tool}
-- Formatter: {tool}
-- Type checker: {tool}
-
-## Dependencies
-- Production: {count}
-- Development: {count}
-- Key dependencies: {list of critical ones}
-
-## Runtime Requirements
-- {requirement}
-
-INTEGRATIONS.md format:
-
-# External Integrations
-
-## APIs
-| API | Purpose | Auth Method | Config Location |
-|-----|---------|-------------|-----------------|
-
-## Databases
-| Database | Type | Connection | Migrations |
-|----------|------|------------|------------|
-
-## Services
-| Service | Purpose | Config |
-|---------|---------|--------|
-
-## Infrastructure
-- CI/CD: {description}
-- Deployment: {description}
-- Containers: {yes/no, details}
+Read `templates/codebase/STACK.md.tmpl` for the STACK.md output format.
+Read `templates/codebase/INTEGRATIONS.md.tmpl` for the INTEGRATIONS.md output format.
+Fill in all placeholder fields with data from your codebase analysis.
 ```
 
 #### Agent 2: Architecture (`focus="arch"`)
@@ -227,53 +183,9 @@ Instructions:
 
 Write both files to .planning/codebase/
 
-ARCHITECTURE.md format:
-
-# Architecture
-
-## Style
-{Description of the architectural style}
-
-## Layers
-{ASCII diagram of layers}
-
-## Key Modules
-| Module | Purpose | Dependencies |
-|--------|---------|-------------|
-
-## Data Flow
-{Description or diagram of how data moves through the system}
-
-## State Management
-{How application state is managed}
-
-## Error Handling
-{How errors are handled, propagated, and reported}
-
-## Security Model
-{Authentication, authorization, data protection approach}
-
-STRUCTURE.md format:
-
-# Project Structure
-
-## Directory Layout
-{annotated directory tree, depth 3-4}
-
-## Key Files
-| File | Purpose |
-|------|---------|
-
-## Module Organization
-{Description of how modules/components are organized}
-
-## Entry Points
-| Entry Point | Type | Purpose |
-|-------------|------|---------|
-
-## Configuration
-| Config File | Purpose | Environment |
-|-------------|---------|-------------|
+Read `templates/codebase/ARCHITECTURE.md.tmpl` for the ARCHITECTURE.md output format.
+Read `templates/codebase/STRUCTURE.md.tmpl` for the STRUCTURE.md output format.
+Fill in all placeholder fields with data from your codebase analysis.
 ```
 
 #### Agent 3: Code Quality (`focus="quality"`)
@@ -312,67 +224,9 @@ Instructions:
 
 Write both files to .planning/codebase/
 
-CONVENTIONS.md format:
-
-# Coding Conventions
-
-## Naming
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Files | {convention} | {example} |
-| Functions | {convention} | {example} |
-| Variables | {convention} | {example} |
-| Classes | {convention} | {example} |
-| Constants | {convention} | {example} |
-
-## Code Style
-- Indentation: {tabs/spaces, count}
-- Quotes: {single/double}
-- Semicolons: {yes/no}
-- Trailing commas: {yes/no}
-- Line length: ~{number}
-
-## Patterns
-### Import Organization
-{How imports are grouped and ordered}
-
-### Error Handling
-{How errors are typically handled}
-
-### Logging
-{Logging library and patterns}
-
-### Configuration Access
-{How config values are accessed in code}
-
-TESTING.md format:
-
-# Testing
-
-## Framework
-- Framework: {name}
-- Runner: {name}
-- Coverage tool: {name}
-
-## Organization
-- Test location: {alongside source / separate directory}
-- Naming: {pattern}
-- Structure: {describe/it, test(), etc.}
-
-## Coverage
-- Estimated coverage: {rough percentage or "unknown"}
-- Well-tested areas: {list}
-- Under-tested areas: {list}
-
-## Types
-| Type | Present | Location | Count |
-|------|---------|----------|-------|
-| Unit | {yes/no} | {dir} | ~{count} |
-| Integration | {yes/no} | {dir} | ~{count} |
-| E2E | {yes/no} | {dir} | ~{count} |
-
-## Gaps
-{Notable areas lacking test coverage}
+Read `templates/codebase/CONVENTIONS.md.tmpl` for the CONVENTIONS.md output format.
+Read `templates/codebase/TESTING.md.tmpl` for the TESTING.md output format.
+Fill in all placeholder fields with data from your codebase analysis.
 ```
 
 #### Agent 4: Concerns (`focus="concerns"`)
@@ -426,36 +280,8 @@ Analyze the codebase for:
    - No monitoring hooks
    - Unclear deployment process
 
-CONCERNS.md format:
-
-# Codebase Concerns
-
-## Summary
-- Critical: {count}
-- High: {count}
-- Medium: {count}
-- Low: {count}
-
-## Critical Concerns
-
-### {Concern title}
-- **Category:** {security/debt/scalability/maintainability/operations}
-- **Location:** {file(s)}
-- **Description:** {what the issue is}
-- **Impact:** {what could go wrong}
-- **Suggested fix:** {brief suggestion}
-
-## High Priority
-...
-
-## Medium Priority
-...
-
-## Low Priority
-...
-
-## Positive Observations
-{Things the codebase does well}
+Read `templates/codebase/CONCERNS.md.tmpl` for the CONCERNS.md output format.
+Fill in all placeholder fields with data from your codebase analysis.
 ```
 
 ### Step 4: Wait for Agents
