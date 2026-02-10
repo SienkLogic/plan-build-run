@@ -283,9 +283,9 @@ describe('CLI commands', () => {
       `node "${path.join(SCRIPTS_DIR, 'status-line.js')}"`,
       { cwd: FIXTURE_DIR, encoding: 'utf8', input: stdinData }
     );
-    // Status line outputs plain text, not JSON
-    expect(result).toContain('Towline:');
-    expect(result).toContain('ctx:45%');
+    // Status line outputs plain text with ANSI color codes
+    expect(result).toContain('Towline');
+    expect(result).toContain('45%');
   });
 
   test('log-subagent.js with piped JSON', () => {
