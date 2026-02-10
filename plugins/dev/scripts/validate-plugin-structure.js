@@ -108,7 +108,25 @@ if (fs.existsSync(agentsDir)) {
   error('agents/ directory missing');
 }
 
-// 4. Check hooks.json references existing scripts
+// 4. Check context files have valid structure
+const contextsDir = path.join(ROOT, 'contexts');
+if (fs.existsSync(contextsDir)) {
+  const contextFiles = fs.readdirSync(contextsDir)
+    .filter(f => f.endsWith('.md'));
+
+  for (const file of contextFiles) {
+    const content = fs.readFileSync(path.join(contextsDir, file), 'utf8');
+    if (!content.startsWith('#')) {
+      warn(`contexts/${file} should start with a heading`);
+    }
+    const name = file.replace('.md', '');
+    info(`Context: ${name}`);
+  }
+} else {
+  warn('contexts/ directory not found (contexts are optional)');
+}
+
+// 5. Check hooks.json references existing scripts
 const hooksJsonPath = path.join(ROOT, 'hooks', 'hooks.json');
 if (fs.existsSync(hooksJsonPath)) {
   try {
@@ -145,7 +163,7 @@ if (fs.existsSync(hooksJsonPath)) {
   warn('hooks/hooks.json not found (hooks are optional)');
 }
 
-// 5. Summary
+// 6. Summary
 console.log('\n---');
 console.log(`Validation complete: ${errors} errors, ${warnings} warnings`);
 
