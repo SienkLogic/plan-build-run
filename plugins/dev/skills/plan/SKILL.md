@@ -1,7 +1,7 @@
 ---
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
-allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task
+allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion
 argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] | add | insert <N> | remove <N>"
 ---
 
@@ -78,9 +78,14 @@ This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, a
 5. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether `.planning/CONTEXT.md` exists. If missing, warn: "Phase {N} has no CONTEXT.md. Consider running `/dev:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue.
 
 **If phase already has plans:**
-- Tell user: "Phase {N} already has plans. Re-plan from scratch? This will replace existing plans."
-- If yes: delete existing PLAN.md files in the phase directory
-- If no: stop
+- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  question: "Phase {N} already has plans. Re-plan from scratch?"
+  header: "Re-plan?"
+  options:
+    - label: "Yes"  description: "Delete existing plans and create new ones"
+    - label: "No"   description: "Keep existing plans unchanged"
+- If "Yes": delete existing PLAN.md files in the phase directory
+- If "No" or "Other": stop
 
 ---
 
@@ -205,12 +210,18 @@ Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger mat
    Found {N} seeds related to Phase {NN}:
      - {seed_name}: {seed description}
      - {seed_name}: {seed description}
-
-   Include them in planning? [yes/no/pick]
    ```
-5. If user says `yes`: include all matching seed content in the planner's context
-6. If user says `pick`: let user select which seeds to include
-7. If user says `no`: proceed without seeds
+
+   Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
+     question: "Include these {N} seeds in planning?"
+     header: "Seeds?"
+     options:
+       - label: "Yes, all"     description: "Include all {N} matching seeds"
+       - label: "Let me pick"  description: "Choose which seeds to include"
+       - label: "No"           description: "Proceed without seeds"
+5. If "Yes, all": include all matching seed content in the planner's context
+6. If "Let me pick": present individual seeds for selection
+7. If "No" or "Other": proceed without seeds
 8. If no matching seeds found: proceed silently
 
 ---
@@ -328,18 +339,21 @@ Wave execution order:
   Wave 1: Plan 01, Plan 02 (parallel)
   Wave 2: Plan 03 (depends on 01, 02)
 
-Approve these plans?
--> yes — proceed to build
--> changes — request adjustments
--> abort — cancel planning
+Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
+  question: "Approve these {count} plans for Phase {N}?"
+  header: "Approve?"
+  options:
+    - label: "Approve"          description: "Proceed to build phase"
+    - label: "Request changes"  description: "Discuss adjustments before proceeding"
+    - label: "Abort"            description: "Cancel planning for this phase"
 ```
 
-**If user requests changes:**
+**If user selects 'Request changes' or 'Other':**
 - Discuss what needs to change
 - Re-enter Step 5 with updated context/constraints
 - Or make small inline edits to plan files directly
 
-**If user approves:**
+**If user selects 'Approve':**
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
   1. Find all SUMMARY.md files in the dependency phase directory
