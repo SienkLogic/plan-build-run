@@ -1,0 +1,13 @@
+{
+  "plans": ["16-01", "16-02", "16-03"],
+  "checkpoints_resolved": ["16-01", "16-02", "16-03"],
+  "checkpoints_pending": [],
+  "wave": 1,
+  "deferred": [],
+  "commit_log": [
+    {"plan": "16-01", "commits": ["89d9243", "bec1499"]},
+    {"plan": "16-02", "commits": ["2028ba5", "8695533"]},
+    {"plan": "16-03", "commits": ["bfdc49e"]}
+  ],
+  "last_good_commit": "8695533"
+}

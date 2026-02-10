@@ -216,7 +216,7 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
 | 14. Reference Architecture & GSD Parity | 6/6 | Complete | 2026-02-09 |
 | 15. Gate Check Upgrades | 2/2 | Built | 2026-02-10 |
-| 16. Config & Routing Upgrades | 0/3 | Planned | — |
+| 16. Config & Routing Upgrades | 3/3 | Built | 2026-02-10 |
 | 17. Discussion & Discovery Upgrades | 0/? | Not Started | — |
 | 18. Reference Docs & Testing | 0/? | Not Started | — |
 | 19. Rich Hook Matchers | 0/? | Not Started | — |
