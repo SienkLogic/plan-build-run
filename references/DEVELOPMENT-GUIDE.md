@@ -2131,43 +2131,32 @@ You are towline-executor. Your job is to execute tasks. When done, you write SUM
 
 ## Template Conventions
 
-Templates use EJS-style syntax with `<%=`, `<%-`, and `<% %>` blocks.
+### Variable Syntax
 
-### Variable Naming
+Templates use **simple `{variable}` placeholders** (Mustache-style) for string substitution. These are NOT rendered by a template engine — the orchestrator or agent replaces variables manually.
 
 ```
-<%= phase %>          Phase number (e.g., "03")
-<%= slug %>           Phase slug (e.g., "authentication")
-<%= plan %>           Plan ID (e.g., "03-01")
-<%= goal %>           Phase goal
-<%= score %>          Verification score (e.g., "8/10")
-<%= status %>         Status string
-<%= timestamp %>      ISO timestamp
+{phase}              Phase number (e.g., "03")
+{slug}               Phase slug (e.g., "authentication")
+{plan_id}            Plan ID (e.g., "03-01")
+{goal}               Phase goal
+{score}              Verification score (e.g., "8/10")
+{status}             Status string
+{timestamp}          ISO timestamp
+{date}               Date (YYYY-MM-DD)
 ```
 
-### Conditional Blocks
+**Exception**: `templates/PLAN.md.tmpl` uses EJS syntax (`<%= %>`, `<% for %>`) because it requires loops for dynamic arrays (must-haves, tasks). This is the only template that uses EJS.
 
-```markdown
-<% if (gaps.length > 0) { %>
-### Gaps Found
-<% gaps.forEach(gap => { %>
-- <%= gap.description %>
-<% }) %>
-<% } else { %>
-All must-haves verified ✓
-<% } %>
-```
+### When to Use Each Syntax
 
-### Iteration
+| Syntax | When | Example |
+|--------|------|---------|
+| `{var}` | Simple substitution (default) | `{phase}`, `{status}`, `{date}` |
+| `<%= var %>` | Only in PLAN.md.tmpl (EJS) | `<%= phase %>` |
+| `<% code %>` | Only when loops/conditionals are needed (EJS) | `<% for (const t of tasks) { %>` |
 
-```markdown
-<% tasks.forEach(task => { %>
-### Task <%= task.id %>: <%= task.name %>
-
-**Status**: <%= task.status %>
-**Files**: <%= task.files.join(', ') %>
-<% }) %>
-```
+**Rule**: When creating a new template, always use `{var}` syntax unless you genuinely need loops or conditionals.
 
 ### Template Location
 
@@ -2175,6 +2164,7 @@ All must-haves verified ✓
 plugins/dev/templates/SUMMARY.md.tmpl           ← Top-level templates
 plugins/dev/templates/codebase/stack.md.tmpl    ← Organized in subdirs
 plugins/dev/templates/research/features.md.tmpl
+plugins/dev/skills/{name}/templates/            ← Skill-specific templates
 ```
 
 ### Template Usage in Skills
@@ -2191,8 +2181,8 @@ Write SUMMARY.md using the template at `templates/SUMMARY.md.tmpl`.
 Write SUMMARY.md in this exact format:
 
 ---
-plan: <%= plan %>
-status: <%= status %>
+plan: {plan_id}
+status: {status}
 ---
 
 # Summary

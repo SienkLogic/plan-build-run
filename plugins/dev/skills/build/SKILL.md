@@ -139,13 +139,7 @@ Check for existing SUMMARY.md files from previous runs (crash recovery):
 
 ### Step 5: Extract Waves (inline)
 
-Group plans by wave number:
-
-```
-Wave 1: [plan-01, plan-02]      (no dependencies, can run in parallel)
-Wave 2: [plan-03]               (depends on wave 1 plans)
-Wave 3: [plan-04, plan-05]      (depends on wave 2)
-```
+Group plans by wave number from their frontmatter. See `references/wave-execution.md` for the full wave execution model (parallelization, git lock handling, checkpoint manifests).
 
 Validate wave consistency:
 - Wave 1 plans must have `depends_on: []`

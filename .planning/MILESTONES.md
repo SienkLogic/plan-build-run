@@ -61,16 +61,16 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 | 036 | Session history log in SessionEnd hook | Done |
 | 055 | Document hook statusMessage field and Windows retry patterns | Done |
 
-## Milestone F: Documentation & Polish
+## Milestone F: Documentation & Polish — COMPLETE
 
-| Todo | Description | Priority |
-|------|-------------|----------|
-| 032 | Extract stub patterns to reference doc | P3 |
-| 033 | Improve general agent (towline-general) | P3 |
-| 047 | Create wave execution reference | P3 |
-| 048 | Standardize template variable syntax (EJS vs Mustache) | P3 |
-| 049 | User-facing verification guide | P3 |
-| 050 | Progress display and error reporting shared fragments | P3 |
+| Todo | Description | Status |
+|------|-------------|--------|
+| 032 | Extract stub patterns to reference doc | Done |
+| 033 | Improve general agent (towline-general) | Done |
+| 047 | Create wave execution reference | Done |
+| 048 | Standardize template variable syntax (EJS vs Mustache) | Done |
+| 049 | User-facing verification guide | Done |
+| 050 | Progress display and error reporting shared fragments | Done |
 
 ## Backlog (separate effort)
 
@@ -79,7 +79,7 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 ## Stats
 
 - Total todos created: 40 (016-055)
-- Completed: 34 (016-031, 034-046, 051-055)
-- Remaining: 6
-- Milestones complete: A, B, C, D, E
-- Milestones remaining: F (6 todos)
+- Completed: 40 (016-055)
+- Remaining: 0
+- Milestones complete: A, B, C, D, E, F
+- Milestones remaining: none — all complete
