@@ -40,3 +40,11 @@ jobs:
           cache: 'npm'
       - run: npm install
       - run: npm run lint
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            plugins/dev/agents/*.md
+            plugins/dev/skills/**/SKILL.md
+            plugins/dev/references/*.md
+            plugins/dev/commands/*.md
