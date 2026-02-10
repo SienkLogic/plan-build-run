@@ -56,7 +56,7 @@ Check if the current directory has existing code:
 
 ### Step 2: Deep Questioning (inline)
 
-**Reference**: Read `skills/begin/questioning-guide.md` for technique details.
+**Reference**: Read `references/questioning.md` for technique details.
 
 Have a natural conversation to understand the user's vision. Do NOT present a form or checklist. Instead, have a flowing conversation that covers these areas organically:
 

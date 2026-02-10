@@ -83,7 +83,7 @@ Create: `.planning/quick/{NNN}-{slug}/`
 
 Write `.planning/quick/{NNN}-{slug}/PLAN.md`:
 
-Read `skills/quick/templates/plan-format.md.tmpl` for the plan file format. Fill in all `{variable}` placeholders with actual task data from the user's description and project context.
+Read `references/plan-format.md` for the plan file format. Fill in all `{variable}` placeholders with actual task data from the user's description and project context.
 
 **Plan generation rules:**
 - Break the task into 1-3 tasks maximum (prefer fewer)
