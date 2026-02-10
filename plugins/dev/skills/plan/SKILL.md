@@ -472,8 +472,14 @@ After 3 revision iterations without passing:
 
 After planning completes, present:
 
+Use the branded stage banner from `references/ui-formatting.md`:
+
 ```
-Phase {N}: {name} — {plan_count} plans created
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PLANNING PHASE {N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {name}** — {plan_count} plans created
 
 Plans:
   {phase}-01: {name} (Wave 1, {task_count} tasks)
@@ -483,9 +489,25 @@ Plans:
 Wave execution:
   Wave 1: Plans 01, 02 (parallel)
   Wave 2: Plan 03
+```
 
-What's next?
--> /dev:build {N} — execute these plans
--> /dev:plan {N} --assumptions — review assumptions first
--> /dev:discuss {N} — talk through details before building
+Then use the "Next Up" routing block:
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Build Phase {N}** — execute these plans
+
+/dev:build {N}
+
+<sub>/clear first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- /dev:plan {N} --assumptions — review assumptions first
+- /dev:discuss {N} — talk through details before building
+
+───────────────────────────────────────────────────────────────
 ```
