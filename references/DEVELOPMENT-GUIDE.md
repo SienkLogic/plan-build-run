@@ -640,10 +640,12 @@ SESSION START
   │
   ├─ PreToolUse hooks fire (before each tool call)
   │    ├─ For Bash tool:
-  │    │    └─ validate-commit.js
-  │    │         ├─ Checks commit message format
-  │    │         ├─ Blocks sensitive files
-  │    │         └─ Exit 0 = allow, Exit 2 = block
+  │    │    ├─ validate-commit.js
+  │    │    │    ├─ Checks commit message format
+  │    │    │    ├─ Blocks sensitive files
+  │    │    │    └─ Exit 0 = allow, Exit 2 = block
+  │    │    └─ check-dangerous-commands.js
+  │    │         └─ Blocks destructive commands (rm -rf, force push, etc.)
   │    └─ For Write/Edit tools:
   │         ├─ check-skill-workflow.js (verify workflow rules)
   │         └─ check-phase-boundary.js (verify not editing future phases)
@@ -651,11 +653,17 @@ SESSION START
   ├─ Tool executes (Read, Write, Edit, Bash, Task, etc.)
   │
   ├─ PostToolUse hooks fire (after each tool call)
-  │    └─ For Write/Edit tools:
-  │         ├─ check-plan-format.js
-  │         │    └─ Validates PLAN.md XML structure
-  │         └─ check-roadmap-sync.js
-  │              └─ Checks ROADMAP.md consistency
+  │    ├─ For Write/Edit tools:
+  │    │    ├─ check-plan-format.js
+  │    │    │    └─ Validates PLAN.md XML structure
+  │    │    └─ check-roadmap-sync.js
+  │    │         └─ Checks ROADMAP.md consistency
+  │    ├─ For Read tool:
+  │    │    └─ track-context-budget.js
+  │    │         └─ Tracks context budget usage from file reads
+  │    └─ For Task tool:
+  │         └─ check-subagent-output.js
+  │              └─ Validates agent output files exist and are non-empty
   │
   ├─ PostToolUseFailure hook fires (if tool errors)
   │    └─ log-tool-failure.js
@@ -1234,15 +1242,16 @@ towline/
 │   │   ├── validate-commit.js
 │   │   ├── progress-tracker.js
 │   │   ├── towline-tools.js        ← Shared utilities
-│   │   └── ... (17 scripts total)
+│   │   └── ... (20 scripts total)
 │   ├── hooks/hooks.json            ← Hook configuration
 │   ├── references/                 ← Shared reference docs
 │   │   ├── plan-format.md
 │   │   ├── commit-conventions.md
 │   │   ├── ui-formatting.md
-│   │   └── ... (11 references total)
+│   │   └── ... (16 references total)
 │   ├── templates/                  ← EJS-style templates
 │   │   ├── SUMMARY.md.tmpl
+│   │   ├── PLAN.md.tmpl
 │   │   ├── VERIFICATION.md.tmpl
 │   │   ├── VERIFICATION-DETAIL.md.tmpl
 │   │   ├── INTEGRATION-REPORT.md.tmpl
@@ -1273,14 +1282,18 @@ towline/
 │   │   ├── plan.md
 │   │   └── ... (20 commands)
 │   └── skills/shared/              ← Shared skill fragments
+│       ├── domain-probes.md
+│       ├── error-reporting.md
 │       ├── phase-argument-parsing.md
-│       └── domain-probes.md
+│       ├── progress-display.md
+│       ├── state-loading.md
+│       └── state-update.md
 ├── tests/                          ← Jest test suite
 │   ├── fixtures/fake-project/      ← Test fixture (.planning/ structure)
 │   ├── validate-commit.test.js
 │   ├── towline-tools.test.js
 │   ├── integration.test.js
-│   └── ... (15 test files total)
+│   └── ... (24 test files total)
 ├── references/                     ← Repo-level reference docs
 │   └── DEVELOPMENT-GUIDE.md        ← This file
 ├── .planning/                      ← Towline's own planning state
@@ -2162,8 +2175,8 @@ Templates use **simple `{variable}` placeholders** (Mustache-style) for string s
 
 ```
 plugins/dev/templates/SUMMARY.md.tmpl           ← Top-level templates
-plugins/dev/templates/codebase/stack.md.tmpl    ← Organized in subdirs
-plugins/dev/templates/research/features.md.tmpl
+plugins/dev/templates/codebase/STACK.md.tmpl    ← Organized in subdirs
+plugins/dev/templates/research/FEATURES.md.tmpl
 plugins/dev/skills/{name}/templates/            ← Skill-specific templates
 ```
 
