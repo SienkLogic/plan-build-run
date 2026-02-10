@@ -41,14 +41,29 @@ Before presenting the standard resume view, check:
 
 3. **Stale .continue-here.md**: If the file references commits that don't exist in git log, warn about state corruption.
 
-### Auto-Repair for Corrupted STATE.md
+### Auto-Reconcile STATE.md Against Filesystem
 
-When STATE.md appears corrupted (duplicate headers, stale data, inconsistent phase references):
+On every resume, reconcile STATE.md claims against filesystem reality. This catches both corruption and drift from interrupted operations.
 
-1. Detect: multiple `## Current Position` headers, phase number not matching any directory, progress percentage impossible (>100% or negative)
-2. Rebuild: Scan `.planning/phases/` directory structure and SUMMARY.md files to determine actual state
-3. Present repair: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
-4. Only repair with user confirmation
+**Step 1: Detect discrepancies** — Compare STATE.md values against the filesystem:
+
+| STATE.md Claim | Filesystem Check |
+|----------------|------------------|
+| Phase number | Does `.planning/phases/{NN}-*/` exist? |
+| Plan count | Count `*-PLAN.md` files in the phase directory |
+| Completed plans | Count `SUMMARY.md` files in the phase directory |
+| Status "verified" | Does `VERIFICATION.md` with `status: passed` exist? |
+| Status "building" | Are there PLAN.md files without SUMMARY.md? |
+| Progress percentage | Recalculate from completed phases / total phases |
+
+**Step 2: Classify** — If any discrepancy found:
+- **Obvious corruption** (duplicate headers, impossible percentages, phase directory missing): flag as corruption
+- **Stale data** (plan count wrong, status outdated): flag as drift
+
+**Step 3: Repair** —
+- For **corruption**: Present repair and ask for confirmation: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
+- For **drift**: Auto-repair silently and note: "Updated STATE.md to match filesystem (plan count {old}→{new}, status {old}→{new})."
+- Log all repairs to `.planning/logs/events.jsonl` with category `state-reconcile`
 
 ---
 

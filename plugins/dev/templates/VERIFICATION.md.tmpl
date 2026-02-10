@@ -14,6 +14,12 @@ must_haves_total: {count}
 must_haves_passed: {count}
 must_haves_failed: {count}
 must_haves_human: {count}
+attempt: 1                   # Verification attempt counter (incremented each re-verification)
+overrides: []                # Must-haves accepted despite failure. Each entry:
+  # - must_have: "{text of the must-have}"
+  #   reason: "{why this is acceptable — e.g., false positive, deferred, not applicable}"
+  #   accepted_by: "user"
+  #   accepted_at: "{ISO date}"
 ---
 ```
 

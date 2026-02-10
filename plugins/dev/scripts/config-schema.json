@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Towline Config",
+  "description": "Configuration schema for .planning/config.json",
+  "type": "object",
+  "properties": {
+    "version": { "type": "integer", "enum": [1, 2] },
+    "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
+    "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
+    "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"] },
+    "features": {
+      "type": "object",
+      "properties": {
+        "structured_planning": { "type": "boolean" },
+        "goal_verification": { "type": "boolean" },
+        "integration_verification": { "type": "boolean" },
+        "context_isolation": { "type": "boolean" },
+        "atomic_commits": { "type": "boolean" },
+        "session_persistence": { "type": "boolean" },
+        "research_phase": { "type": "boolean" },
+        "plan_checking": { "type": "boolean" },
+        "tdd_mode": { "type": "boolean" },
+        "status_line": { "type": "boolean" },
+        "auto_continue": { "type": "boolean" },
+        "auto_advance": { "type": "boolean" },
+        "team_discussions": { "type": "boolean" },
+        "inline_verify": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "researcher": { "type": "string" },
+        "planner": { "type": "string" },
+        "executor": { "type": "string" },
+        "verifier": { "type": "string" },
+        "integration_checker": { "type": "string" },
+        "debugger": { "type": "string" },
+        "mapper": { "type": "string" },
+        "synthesizer": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "parallelization": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "plan_level": { "type": "boolean" },
+        "task_level": { "type": "boolean" },
+        "max_concurrent_agents": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "min_plans_for_parallel": { "type": "integer", "minimum": 1 },
+        "use_teams": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "planning": {
+      "type": "object",
+      "properties": {
+        "commit_docs": { "type": "boolean" },
+        "max_tasks_per_plan": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "search_gitignored": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "branching": { "type": "string", "enum": ["none", "phase", "milestone", "disabled"] },
+        "commit_format": { "type": "string" },
+        "phase_branch_template": { "type": "string" },
+        "milestone_branch_template": { "type": "string" },
+        "mode": { "type": "string", "enum": ["enabled", "disabled"] }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "confirm_project": { "type": "boolean" },
+        "confirm_roadmap": { "type": "boolean" },
+        "confirm_plan": { "type": "boolean" },
+        "confirm_execute": { "type": "boolean" },
+        "confirm_transition": { "type": "boolean" },
+        "issues_review": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "always_confirm_destructive": { "type": "boolean" },
+        "always_confirm_external_services": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

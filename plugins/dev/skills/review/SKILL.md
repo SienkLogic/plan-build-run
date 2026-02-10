@@ -100,12 +100,37 @@ Wait for the verifier to complete.
 
 ### Step 4: Present Verification Results (inline)
 
-Read the VERIFICATION.md and present results to the user:
+Read the VERIFICATION.md frontmatter. Check the `attempt` counter.
+
+**If `attempt >= 3` AND `status: gaps_found`:** This phase has failed verification multiple times. Present escalation options instead of the normal flow:
+
+```
+Phase {N}: {name} — Verification Failed ({attempt} attempts)
+
+The same gaps have persisted across {attempt} verification attempts.
+Remaining gaps: {count}
+
+This suggests the gaps may need a different approach. Options:
+-> accept-with-gaps — mark phase as "complete-with-gaps" and move on
+-> re-plan — go back to /dev:plan {N} with gap context
+-> debug — spawn /dev:debug to investigate root causes
+-> override — mark specific gaps as false positives
+-> retry — try one more verification cycle
+```
+
+- **accept-with-gaps:** Update STATE.md status to `complete-with-gaps`, update ROADMAP.md to `verified*`, add a note in VERIFICATION.md about accepted gaps. Proceed to next phase.
+- **re-plan:** Suggest `/dev:plan {N} --gaps` to create targeted fix plans.
+- **debug:** Suggest `/dev:debug` with the gap details as starting context.
+- **override:** Use the override flow from Step 6 "Gaps Found" section.
+- **retry:** Continue with normal Step 5 flow.
+
+**Otherwise**, present results normally:
 
 ```
 Phase {N}: {name} — Verification Results
 
 Status: {PASSED | GAPS FOUND | HUMAN NEEDED}
+Attempt: {attempt}
 
 Must-have truths:  {passed}/{total}
 Must-have artifacts: {passed}/{total}
@@ -189,7 +214,7 @@ If all automated checks and UAT items passed:
    - Phase status: "verified"
    - Progress updated
    - Last activity timestamp
-   - **STATE.md size limit (150 lines):** After writing, if over 150 lines: collapse completed phase entries to one-liners, remove decisions already in CONTEXT.md, remove old session entries. Keep: current phase detail, active blockers, core value, milestone info.
+   - **STATE.md size limit:** Follow size limit enforcement rules in `skills/shared/state-update.md` (150 lines max).
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
@@ -198,8 +223,13 @@ Use the branded output from `references/ui-formatting.md`:
 - If this was the last phase: use the "Milestone Complete" banner template
 - Always include the "Next Up" routing block
 
-4. If `gates.confirm_transition` is true in config:
+4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
    - Ask: "Ready to move to Phase {N+1}?"
+
+5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
+   - Chain directly to plan: `Skill({ skill: "dev:plan", args: "{N+1}" })`
+   - This continues the build→review→plan cycle automatically
+   - **If this is the last phase:** HARD STOP — do NOT auto-advance past milestone boundaries
 
 #### Gaps Found WITH `--auto-fix`
 
@@ -280,7 +310,7 @@ If user approves:
 If gaps were found and `--auto-fix` was NOT specified:
 
 1. List all gaps clearly
-2. **Proactively offer to run auto-fix inline** — don't make the user re-invoke the command
+2. **Default to auto-fix** — offer it as the recommended action, not a hidden flag
 
 ```
 Phase {N}: {name} — Gaps Found
@@ -294,17 +324,28 @@ Phase {N}: {name} — Gaps Found
 2. {gap description}
    ...
 
-I can auto-diagnose these gaps and create fix plans now. What would you like to do?
--> auto-fix — I'll diagnose root causes and create gap-closure plans right now
+I'll diagnose these gaps and create fix plans now. Proceed?
+-> yes (recommended) — diagnose root causes and create gap-closure plans
+-> override — accept specific gaps as false positives (won't block verification)
 -> manual — I'll fix these myself
--> later — just save the results, I'll handle it with `/dev:review {N} --auto-fix`
+-> skip — just save the results for later
 ```
 
-**If user chooses "auto-fix":** proceed with the same Steps 6a-6d as the `--auto-fix` flow above (diagnose, create gap-closure plans, validate, present).
+**If user says "yes" or provides no objection:** proceed with the same Steps 6a-6d as the `--auto-fix` flow above (diagnose, create gap-closure plans, validate, present). This is the default path.
+
+**If user chooses "override":** present each gap and ask which ones to accept. For each accepted gap, collect a reason. Add to VERIFICATION.md frontmatter `overrides` list:
+```yaml
+overrides:
+  - must_have: "{text}"
+    reason: "{user's reason}"
+    accepted_by: "user"
+    accepted_at: "{ISO date}"
+```
+After adding overrides, re-evaluate: if all remaining gaps are now overridden, mark status as `passed`. Otherwise, offer auto-fix for the remaining non-overridden gaps.
 
 **If user chooses "manual":** suggest relevant files to inspect based on the gap details.
 
-**If user chooses "later":** save results and exit.
+**If user chooses "skip":** save results and exit.
 
 ---
 

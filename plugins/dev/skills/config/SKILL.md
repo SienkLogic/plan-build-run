@@ -47,7 +47,7 @@ Features:
   ✓ Session persistence     ✓ Research phase
   ✓ Plan checking           ✗ TDD mode
   ✓ Status line             ✗ Auto-continue
-  ✗ Team discussions
+  ✗ Auto-advance           ✗ Team discussions
 
 Models:
   Researcher: sonnet    Planner: inherit     Executor: inherit
@@ -114,6 +114,7 @@ The `model-profile` command sets all agent models at once:
 | Feature | Key | Default | Description |
 |---------|-----|---------|-------------|
 | Auto-continue | `features.auto_continue` | `false` | Automatically spawn continuation agents without user prompt |
+| Auto-advance | `features.auto_advance` | `false` | Chain build→review→plan automatically in autonomous mode |
 | Team discussions | `features.team_discussions` | `false` | Enable team-based discussion workflows |
 
 **Team boundaries**: Teams are NEVER used for execution, planning, or verification. Teams are only for discussion and brainstorming workflows. All execution, planning, and verification use single-agent Task() spawns with proper subagent types.

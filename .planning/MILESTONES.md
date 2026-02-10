@@ -35,19 +35,19 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 | 053 | Standardize agent spawning syntax across all skills | Done |
 | 054 | Add Context Budget section validation to plugin validator | Done |
 
-## Milestone D: State & Workflow Reliability
+## Milestone D: State & Workflow Reliability — COMPLETE
 
-| Todo | Description | Priority |
-|------|-------------|----------|
-| 017 | YAML frontmatter for STATE.md (structured parsing) | P1 |
-| 018 | Auto-advance autonomous mode (build→review→plan chaining) | P1 |
-| 023 | Config JSON schema validation | P2 |
-| 022 | Inline auto-fix as default in review skill | P2 |
-| 025 | Verification escalation after repeated failures | P2 |
-| 029 | File locking for concurrent STATE.md/ROADMAP.md writes | P2 |
-| 046 | STATE.md update shared pattern (5 skills duplicate logic) | P2 |
-| 037 | Auto-reconcile STATE.md against filesystem on resume | P3 |
-| 031 | Verification override mechanism for false positives | P3 |
+| Todo | Description | Status |
+|------|-------------|--------|
+| 017 | YAML frontmatter for STATE.md (structured parsing) | Done |
+| 018 | Auto-advance autonomous mode (build→review→plan chaining) | Done |
+| 023 | Config JSON schema validation | Done |
+| 022 | Inline auto-fix as default in review skill | Done |
+| 025 | Verification escalation after repeated failures | Done |
+| 029 | File locking for concurrent STATE.md/ROADMAP.md writes | Done |
+| 046 | STATE.md update shared pattern (5 skills duplicate logic) | Done |
+| 037 | Auto-reconcile STATE.md against filesystem on resume | Done |
+| 031 | Verification override mechanism for false positives | Done |
 
 ## Milestone E: Hook Hardening & Session Continuity
 
@@ -79,6 +79,7 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 ## Stats
 
 - Total todos created: 40 (016-055)
-- Completed: 18 (016, 019-021, 024, 034, 038-045, 051-054)
-- Remaining: 22
-- P1: 8 | P2: 15 | P3: 13
+- Completed: 27 (016-025, 029, 031, 034, 037-046, 051-054)
+- Remaining: 13
+- Milestones complete: A, B, C, D
+- Milestones remaining: E (7 todos), F (6 todos)

@@ -51,9 +51,13 @@ ls .planning/phases/{phase_dir}/VERIFICATION.md
 - If it exists with `status: gaps_found` → You are in **RE-VERIFICATION** mode
   - Read the previous report
   - Extract the gap list
-  - Focus verification on those gaps
+  - Extract the `overrides` list from frontmatter — these are must-haves the user has accepted despite failure
+  - Focus verification on gaps that are NOT overridden
   - Also run a full scan to catch regressions
-- If it doesn't exist → Full verification mode
+  - Preserve the `attempt` counter — increment it by 1
+- If it doesn't exist → Full verification mode (attempt: 1)
+
+**Override handling:** When a must-have appears in the `overrides` list, mark it as `PASSED (override)` in the results table. Do not re-verify it. Count it toward `must_haves_passed`, not `must_haves_failed`. Preserve the overrides list in the new VERIFICATION.md frontmatter.
 
 ### Step 2: Load Context
 
