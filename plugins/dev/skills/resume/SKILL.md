@@ -1,7 +1,7 @@
 ---
 name: resume
 description: "Pick up where you left off. Restores context and suggests next action."
-allowed-tools: Read, Write, Glob, Grep
+allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
 ---
 
 # /dev:resume — Resume Previous Session
@@ -95,15 +95,24 @@ Search for `.continue-here.md` files across all phase directories:
 - This is the resume point. Go to **Normal Resume** (Step 3a).
 
 **If multiple found:**
-- Present to user via AskUserQuestion:
-  ```
-  Found multiple pause points:
-  1. Phase {A} -- paused {date}
-  2. Phase {B} -- paused {date}
+Use the **pause-point-select** pattern (see `skills/shared/gate-prompts.md`):
 
-  Which would you like to resume?
-  ```
-- Use the selected one.
+Use AskUserQuestion:
+  question: "Found multiple pause points. Which would you like to resume?"
+  header: "Resume"
+  options:
+    - label: "Phase {A}"  description: "Paused {date}, {brief context}"
+    - label: "Phase {B}"  description: "Paused {date}, {brief context}"
+    - label: "Phase {C}"  description: "Paused {date}, {brief context}"
+    - label: "Phase {D}"  description: "Paused {date}, {brief context}"
+  multiSelect: false
+
+Build options dynamically from discovered `.continue-here.md` files. Include phase name and pause date in each option. If more than 4 pause points exist, show the 4 most recent and replace the last option with:
+  - label: "Show earlier"  description: "See older pause points"
+
+When "Show earlier" is selected, re-prompt with the next batch of 4.
+
+Use the selected pause point for the rest of the resume flow.
 
 **If none found:**
 - Check STATE.md for position info
@@ -151,12 +160,29 @@ Blockers:
    - Check git log to verify commits mentioned in completed work
    - If anything is inconsistent, warn: "Some state has changed since the pause. {details}"
 
-5. Present the next action from the continue-here file:
+5. Present the next action from the continue-here file.
 
+**If only one clear next action exists**, present it directly:
 ```
 Next step:
 --> {suggested command} -- {explanation from continue-here}
 ```
+
+**If multiple reasonable actions exist** (e.g., the continue-here suggests one thing but the filesystem state suggests another), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
+
+Use AskUserQuestion:
+  question: "How would you like to proceed?"
+  header: "Next Step"
+  options:
+    - label: "{continue-here suggestion}"   description: "Resume from pause point"
+    - label: "{filesystem-inferred action}"  description: "Based on current state"
+    - label: "Show status"                   description: "Run /dev:status for full overview"
+    - label: "Something else"                description: "Enter a different command"
+  multiSelect: false
+
+**After user selects an option:**
+- Display "Run: `/dev:{action} {args}`" so the user can execute it
+- This skill does not auto-execute — it suggests and the user acts
 
 6. Clean up:
    - **DO NOT** delete the .continue-here.md file yet
@@ -184,11 +210,19 @@ Progress: {completed}/{total} plans complete
 Note: No detailed pause context available. Run `/dev:status` for a full overview.
 ```
 
-5. Suggest the next action based on phase state:
-   - Incomplete plans exist: `/dev:build {N}`
-   - All plans complete, no verification: `/dev:review {N}`
-   - Verification exists with gaps: `/dev:plan {N} --gaps`
-   - Phase complete: `/dev:plan {N+1}`
+5. Suggest the next action based on phase state using the **action-routing** pattern:
+
+Use AskUserQuestion:
+  question: "What would you like to do next?"
+  header: "Next Step"
+  options: (build dynamically from phase state)
+    - label: "/dev:build {N}"       description: "Continue building (plans remaining)"
+    - label: "/dev:review {N}"      description: "Review completed phase"
+    - label: "/dev:plan {N} --gaps" description: "Fix verification gaps"
+    - label: "/dev:plan {N+1}"      description: "Plan the next phase"
+  multiSelect: false
+
+Show only the options that apply to the current state (1-3 real options + "Something else").
 
 ### Step 4: Recovery Flow
 
