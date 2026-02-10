@@ -73,6 +73,7 @@ Display the following reference to the user:
 | `/dev:todo add\|list\|done` | Persistent file-based todos. |
 | `/dev:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
 | `/dev:config` | Configure workflow settings. |
+| `/dev:setup` | Interactive onboarding wizard for new projects. |
 
 ## Typical Workflow
 
