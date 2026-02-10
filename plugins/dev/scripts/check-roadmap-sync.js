@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { logEvent } = require('./event-logger');
 
 const LIFECYCLE_STATUSES = ['planned', 'built', 'partial', 'verified'];
 
@@ -71,6 +72,12 @@ function main() {
           stateStatus: stateInfo.status,
           roadmapStatus: roadmapStatus
         });
+        logEvent('workflow', 'roadmap-sync', {
+          phase: stateInfo.phase,
+          stateStatus: stateInfo.status,
+          roadmapStatus: roadmapStatus,
+          status: 'out-of-sync'
+        });
 
         const output = {
           message: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
@@ -80,6 +87,10 @@ function main() {
         logHook('check-roadmap-sync', 'PostToolUse', 'pass', {
           phase: stateInfo.phase,
           status: stateInfo.status
+        });
+        logEvent('workflow', 'roadmap-sync', {
+          phase: stateInfo.phase,
+          status: 'in-sync'
         });
       }
 

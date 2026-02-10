@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * PostToolUse hook (async): Validates PLAN.md and SUMMARY.md structure.
+ * PostToolUse hook: Validates PLAN.md and SUMMARY.md structure.
  *
  * PLAN.md checks:
  * - Each task has <name>, <files>, <action>, <verify>, <done> elements
@@ -13,12 +13,17 @@
  * - key_files paths exist on disk
  * - Warns if no deferred field in frontmatter
  *
- * Runs asynchronously (non-blocking). Issues are reported but don't prevent saving.
+ * Returns decision: "block" for structural errors (forces Claude to fix and retry).
+ * Returns message for non-blocking warnings.
+ *
+ * Exit codes:
+ *   0 = always (PostToolUse hook, never blocks via exit code)
  */
 
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { logEvent } = require('./event-logger');
 
 function main() {
   let input = '';
@@ -46,18 +51,58 @@ function main() {
       }
 
       const content = fs.readFileSync(filePath, 'utf8');
-      const issues = isPlan
+      const result = isPlan
         ? validatePlan(content, filePath)
         : validateSummary(content, filePath);
 
-      if (issues.length > 0) {
-        logHook('check-plan-format', 'PostToolUse', 'warn', { file: path.basename(filePath), issues });
+      const eventType = isPlan ? 'plan-validated' : 'summary-validated';
+
+      if (result.errors.length > 0) {
+        // Structural errors — block and force correction
+        logHook('check-plan-format', 'PostToolUse', 'block', {
+          file: basename,
+          errors: result.errors
+        });
+        logEvent('workflow', eventType, {
+          file: basename,
+          status: 'block',
+          errorCount: result.errors.length
+        });
+
+        const parts = [`${basename} has structural errors that must be fixed:`];
+        parts.push(...result.errors.map(i => `  - ${i}`));
+
+        if (result.warnings.length > 0) {
+          parts.push('');
+          parts.push('Warnings (non-blocking):');
+          parts.push(...result.warnings.map(i => `  - ${i}`));
+        }
+
         const output = {
-          message: `Plan format issues in ${path.basename(filePath)}:\n${issues.map(i => `  - ${i}`).join('\n')}`
+          decision: 'block',
+          reason: parts.join('\n')
+        };
+        process.stdout.write(JSON.stringify(output));
+      } else if (result.warnings.length > 0) {
+        // Warnings only — non-blocking feedback
+        logHook('check-plan-format', 'PostToolUse', 'warn', {
+          file: basename,
+          warnings: result.warnings
+        });
+        logEvent('workflow', eventType, {
+          file: basename,
+          status: 'warn',
+          warningCount: result.warnings.length
+        });
+
+        const output = {
+          message: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}`
         };
         process.stdout.write(JSON.stringify(output));
       } else {
-        logHook('check-plan-format', 'PostToolUse', 'pass', { file: path.basename(filePath) });
+        // Clean pass
+        logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
+        logEvent('workflow', eventType, { file: basename, status: 'pass' });
       }
 
       process.exit(0);
@@ -69,25 +114,26 @@ function main() {
 }
 
 function validatePlan(content, _filePath) {
-  const issues = [];
+  const errors = [];
+  const warnings = [];
 
   // Check frontmatter
   if (!content.startsWith('---')) {
-    issues.push('Missing YAML frontmatter');
+    errors.push('Missing YAML frontmatter');
   } else {
     const frontmatterEnd = content.indexOf('---', 3);
     if (frontmatterEnd === -1) {
-      issues.push('Unclosed YAML frontmatter');
+      errors.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
       const requiredFields = ['phase', 'plan', 'wave'];
       for (const field of requiredFields) {
         if (!frontmatter.includes(`${field}:`)) {
-          issues.push(`Frontmatter missing "${field}" field`);
+          errors.push(`Frontmatter missing "${field}" field`);
         }
       }
       if (!frontmatter.includes('must_haves:')) {
-        issues.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
+        errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       }
     }
   }
@@ -97,9 +143,9 @@ function validatePlan(content, _filePath) {
   const taskCount = taskMatches.length;
 
   if (taskCount === 0) {
-    issues.push('No <task> elements found');
+    errors.push('No <task> elements found');
   } else if (taskCount > 3) {
-    issues.push(`Too many tasks: ${taskCount} (max 3 per plan)`);
+    errors.push(`Too many tasks: ${taskCount} (max 3 per plan)`);
   }
 
   // Check each task has required elements
@@ -119,41 +165,42 @@ function validatePlan(content, _filePath) {
 
     for (const elem of requiredElements) {
       if (!taskContent.includes(`<${elem}>`) && !taskContent.includes(`<${elem} `)) {
-        issues.push(`Task ${index + 1}: missing <${elem}> element`);
+        errors.push(`Task ${index + 1}: missing <${elem}> element`);
       }
     }
   });
 
-  return issues;
+  return { errors, warnings };
 }
 
 function validateSummary(content, _filePath) {
-  const issues = [];
+  const errors = [];
+  const warnings = [];
 
   // Check frontmatter
   if (!content.startsWith('---')) {
-    issues.push('Missing YAML frontmatter');
+    errors.push('Missing YAML frontmatter');
   } else {
     const frontmatterEnd = content.indexOf('---', 3);
     if (frontmatterEnd === -1) {
-      issues.push('Unclosed YAML frontmatter');
+      errors.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
 
-      // Required fields
+      // Required fields — structural errors
       const requiredFields = ['phase', 'plan', 'status', 'provides', 'requires', 'key_files'];
       for (const field of requiredFields) {
         if (!frontmatter.includes(`${field}:`)) {
-          issues.push(`Frontmatter missing "${field}" field`);
+          errors.push(`Frontmatter missing "${field}" field`);
         }
       }
 
-      // Warn if no deferred field
+      // Optional but encouraged — warnings
       if (!frontmatter.includes('deferred:')) {
-        issues.push('Frontmatter missing "deferred" field (forces executor to consciously record scope creep)');
+        warnings.push('Frontmatter missing "deferred" field (forces executor to consciously record scope creep)');
       }
 
-      // Validate key_files paths exist on disk
+      // Validate key_files paths exist on disk — warning only (files may not exist yet during planning)
       const keyFilesMatch = frontmatter.match(/key_files:\s*\n((?:\s+-\s+.*\n?)*)/);
       if (keyFilesMatch) {
         const lines = keyFilesMatch[1].split('\n').filter(l => l.trim().startsWith('-'));
@@ -163,7 +210,7 @@ function validateSummary(content, _filePath) {
           if (entryMatch) {
             const filePortion = entryMatch[1].trim();
             if (filePortion && !fs.existsSync(filePortion)) {
-              issues.push(`key_files path not found on disk: ${filePortion}`);
+              warnings.push(`key_files path not found on disk: ${filePortion}`);
             }
           }
         }
@@ -171,7 +218,7 @@ function validateSummary(content, _filePath) {
     }
   }
 
-  return issues;
+  return { errors, warnings };
 }
 
 module.exports = { validatePlan, validateSummary };
