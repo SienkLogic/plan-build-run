@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Towline Hooks",
+  "description": "Schema for Claude Code hooks.json configuration",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "description": { "type": "string" },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "SessionStart": { "$ref": "#/definitions/hookEntryList" },
+        "PreToolUse": { "$ref": "#/definitions/hookEntryList" },
+        "PostToolUse": { "$ref": "#/definitions/hookEntryList" },
+        "PostToolUseFailure": { "$ref": "#/definitions/hookEntryList" },
+        "PreCompact": { "$ref": "#/definitions/hookEntryList" },
+        "Stop": { "$ref": "#/definitions/hookEntryList" },
+        "SubagentStart": { "$ref": "#/definitions/hookEntryList" },
+        "SubagentStop": { "$ref": "#/definitions/hookEntryList" },
+        "SessionEnd": { "$ref": "#/definitions/hookEntryList" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["hooks"],
+  "additionalProperties": true,
+  "definitions": {
+    "hookEntryList": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/hookEntry" }
+    },
+    "hookEntry": {
+      "type": "object",
+      "properties": {
+        "matcher": {
+          "type": "string",
+          "description": "Regex tested against the tool name (e.g. 'Write|Edit', 'Bash', 'Task')"
+        },
+        "hooks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hookCommand" }
+        }
+      },
+      "required": ["hooks"],
+      "additionalProperties": false
+    },
+    "hookCommand": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["command"],
+          "description": "Hook type — currently only 'command' is supported"
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command to execute (use ${CLAUDE_PLUGIN_ROOT} for script paths)"
+        },
+        "statusMessage": {
+          "type": "string",
+          "description": "Status message shown in Claude Code UI while hook runs"
+        },
+        "async": {
+          "type": "boolean",
+          "description": "Run in background without blocking (stdout not captured)",
+          "default": false
+        },
+        "timeout": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Maximum seconds before hook is killed (required when async: true)"
+        }
+      },
+      "required": ["type", "command"],
+      "additionalProperties": false
+    }
+  }
+}
