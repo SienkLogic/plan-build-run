@@ -1,7 +1,7 @@
 ---
 name: milestone
 description: "Manage milestones: new, complete, audit, gaps."
-allowed-tools: Read, Write, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "new|complete|audit|gaps [version]"
 ---
 
@@ -170,28 +170,35 @@ Archive a completed milestone and prepare for the next one.
    - Read ROADMAP.md to find milestone phases
    - For each phase, check for VERIFICATION.md
    - If any phase lacks VERIFICATION.md:
-     ```
-     Warning: Phase {N} ({name}) hasn't been verified.
-     Run `/dev:review {N}` first.
 
-     Unverified phases:
-     - Phase {N}: {name}
-     - Phase {M}: {name}
+     Present the warning context:
+       Unverified phases:
+       - Phase {N}: {name}
+       - Phase {M}: {name}
 
-     Continue anyway? (not recommended)
-     ```
-   - Use AskUserQuestion to let user decide
-   - If user says no: stop and suggest the review commands
-   - If user says yes: proceed with warning noted
+     Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+       question: "{count} phases haven't been verified. Continue with milestone completion?"
+       header: "Unverified"
+       options:
+         - label: "Continue anyway"  description: "Proceed despite unverified phases (not recommended)"
+         - label: "Stop and review"  description: "Run /dev:review for unverified phases first"
+     - If "Stop and review" or "Other": stop and suggest the review commands for each unverified phase
+     - If "Continue anyway": proceed with warning noted
 
    **Timestamp freshness check:**
    For each phase that has a VERIFICATION.md, compare its `checked_at` frontmatter timestamp against the most recent SUMMARY.md file modification date in that phase directory (use `ls -t` or file stats).
    If any SUMMARY.md is newer than its VERIFICATION.md `checked_at`:
    - Warn: "Phase {N} ({name}) was modified after verification. The VERIFICATION.md may not reflect the current code state."
-   - List affected phases
-   - Use AskUserQuestion: "Re-run `/dev:review` for affected phases, or proceed anyway?"
-   - If user chooses to re-run: suggest the review commands and stop
-   - If user chooses to proceed: continue with warning noted
+   - List affected phases with their freshness details
+
+   Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
+     question: "{count} phases were modified after verification. Re-verify or continue?"
+     header: "Stale"
+     options:
+       - label: "Re-verify"        description: "Run /dev:review for affected phases (recommended)"
+       - label: "Continue anyway"   description: "Proceed with potentially outdated verification"
+   - If "Re-verify" or "Other": suggest the review commands for affected phases and stop
+   - If "Continue anyway": proceed with warning noted
 
 3. **Gather milestone stats:**
 
@@ -400,14 +407,18 @@ Create phases to close gaps found during an audit.
    Nice to fix ({count}):
    - {gap}: {description}
 
-   Which gaps should we address?
-   1. All must-fix gaps
-   2. Must-fix + should-fix
-   3. Everything
-   4. Let me pick specific ones
-   ```
-
-   Use AskUserQuestion for selection.
+   Use AskUserQuestion (pattern: multi-option-priority from `skills/shared/gate-prompts.md`):
+     question: "Which gaps should we address? ({must_count} must-fix, {should_count} should-fix, {nice_count} nice-to-fix)"
+     header: "Priority"
+     options:
+       - label: "Must-fix only"    description: "Address {must_count} critical/high gaps"
+       - label: "Must + should"    description: "Address {must_count + should_count} critical through medium gaps"
+       - label: "Everything"       description: "Address all {total_count} gaps including low priority"
+       - label: "Let me pick"      description: "Choose specific gaps to address"
+   - If "Must-fix only": filter to must-fix gaps for phase creation
+   - If "Must + should": filter to must-fix + should-fix gaps
+   - If "Everything": include all gaps
+   - If "Let me pick" or "Other": present individual gaps for selection
 
 5. **Group into logical phases:**
    - Group related gaps together (same subsystem, same files)
