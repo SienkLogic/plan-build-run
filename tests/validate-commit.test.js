@@ -1,5 +1,6 @@
 const { execSync } = require('child_process');
 const path = require('path');
+const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'validate-commit.js');
 
@@ -10,6 +11,7 @@ function runValidator(toolInput) { // eslint-disable-line no-unused-vars
       encoding: 'utf8',
       timeout: 5000,
       shell: true,
+      cwd: os.tmpdir(),
     });
     return { exitCode: 0, output: result };
   } catch (e) {
@@ -25,6 +27,7 @@ function runValidatorCrossPlatform(toolInput) { // eslint-disable-line no-unused
       input: input,
       encoding: 'utf8',
       timeout: 10000,
+      cwd: os.tmpdir(),
     });
     return { exitCode: 0, output: result };
   } catch (e) {
@@ -39,6 +42,7 @@ function runScript(toolInput) {
       input: input,
       encoding: 'utf8',
       timeout: 5000,
+      cwd: os.tmpdir(),
     });
     return { exitCode: 0, output: result };
   } catch (e) {
