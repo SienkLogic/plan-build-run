@@ -213,6 +213,87 @@ describe('Reference Integrity', () => {
   });
 });
 
+describe('hooks.json Structure', () => {
+  const hooksPath = path.join(PLUGIN_ROOT, 'hooks', 'hooks.json');
+  const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+
+  test('hooks.json is valid JSON with hooks property', () => {
+    expect(hooksConfig).toHaveProperty('hooks');
+    expect(typeof hooksConfig.hooks).toBe('object');
+  });
+
+  test('all hook script paths reference existing files', () => {
+    const missing = [];
+    const scriptsDir = path.join(PLUGIN_ROOT, 'scripts');
+
+    for (const [eventType, entries] of Object.entries(hooksConfig.hooks)) {
+      for (const entry of entries) {
+        for (const hook of entry.hooks || []) {
+          if (hook.command) {
+            // Extract script name from "node ${CLAUDE_PLUGIN_ROOT}/scripts/foo.js [args]"
+            const match = hook.command.match(/scripts\/([^\s"]+)/);
+            if (match) {
+              const scriptFile = match[1];
+              const scriptPath = path.join(scriptsDir, scriptFile);
+              if (!fs.existsSync(scriptPath)) {
+                missing.push({ event: eventType, script: scriptFile });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    expect(missing).toEqual([]);
+  });
+
+  test('async hooks do not output stdout (no additionalContext needed)', () => {
+    // Async hooks cannot have their stdout captured by Claude Code.
+    // Only pure-logging hooks should be async.
+    const asyncHooks = [];
+
+    for (const [eventType, entries] of Object.entries(hooksConfig.hooks)) {
+      for (const entry of entries) {
+        for (const hook of entry.hooks || []) {
+          if (hook.async === true) {
+            asyncHooks.push({ event: eventType, command: hook.command });
+          }
+        }
+      }
+    }
+
+    // Verify only expected hooks are async
+    const asyncEvents = asyncHooks.map(h => h.event);
+    // SubagentStop and SessionEnd are the only safe candidates
+    for (const event of asyncEvents) {
+      expect(['SubagentStop', 'SessionEnd']).toContain(event);
+    }
+  });
+
+  test('async hooks have a timeout', () => {
+    for (const [eventType, entries] of Object.entries(hooksConfig.hooks)) {
+      for (const entry of entries) {
+        for (const hook of entry.hooks || []) {
+          if (hook.async === true) {
+            expect(hook.timeout).toBeDefined();
+            expect(typeof hook.timeout).toBe('number');
+            expect(hook.timeout).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  });
+
+  test('blocking hooks (PreToolUse) are not async', () => {
+    const preToolUseEntries = hooksConfig.hooks.PreToolUse || [];
+    for (const entry of preToolUseEntries) {
+      for (const hook of entry.hooks || []) {
+        expect(hook.async).not.toBe(true);
+      }
+    }
+  });
+});
+
 describe('Anti-Pattern Checks', () => {
   test('synthesizer agent uses sonnet model', () => {
     const synthPath = path.join(AGENTS_DIR, 'towline-synthesizer.md');

@@ -141,7 +141,9 @@
           {
             "type": "command",
             "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js stop",
-            "statusMessage": "Logging agent completion..."
+            "statusMessage": "Logging agent completion...",
+            "async": true,
+            "timeout": 30
           }
         ]
       }
@@ -152,7 +154,9 @@
           {
             "type": "command",
             "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/session-cleanup.js",
-            "statusMessage": "Cleaning up session..."
+            "statusMessage": "Cleaning up session...",
+            "async": true,
+            "timeout": 30
           }
         ]
       }
