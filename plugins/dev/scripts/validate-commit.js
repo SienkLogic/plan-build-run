@@ -129,9 +129,10 @@ function main() {
 }
 
 function isGitCommit(command) {
-  // Match: git commit ... (but not git commit --amend with no message change)
+  // Match: git commit anywhere in the command string
+  // Handles chained commands like "cd /dir && git commit ..." or "git add . && git commit ..."
   const trimmed = command.trim();
-  return /^git\s+commit\b/.test(trimmed) && !trimmed.includes('--amend --no-edit');
+  return /\bgit\s+commit\b/.test(trimmed) && !trimmed.includes('--amend --no-edit');
 }
 
 function extractCommitMessage(command) {
