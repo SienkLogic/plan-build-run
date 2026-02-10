@@ -417,19 +417,20 @@ Skill              → Agents Spawned                      → Output Files
 
 /dev:build         → Nx towline-executor (sequential     → .planning/phases/{NN}/SUMMARY-{MM}.md
                       or parallel, per wave)             → Git commits (atomic, per task)
-                   → towline-integration-checker         → .planning/phases/{NN}/INTEGRATION-REPORT.md
-                      (optional)
 
 /dev:review        → towline-verifier                    → .planning/phases/{NN}/VERIFICATION.md
 
 /dev:milestone     → towline-verifier (for audit)        → .planning/MILESTONE.md
                                                           → .planning/archive/{milestone}/SUMMARY.md
+                   → towline-integration-checker         → .planning/phases/{NN}/INTEGRATION-REPORT.md
+                      (optional, during audit)
 
-/dev:scan          → 4x towline-codebase-mapper          → .planning/codebase/*.md (8 files)
+/dev:scan          → 4x towline-codebase-mapper          → .planning/codebase/*.md (7 files)
+                      (RECON.md written inline first)      → .planning/codebase/RECON.md
 
-/dev:debug         → towline-debugger                    → .planning/DEBUG.md
+/dev:debug         → towline-debugger                    → .planning/debug/{NNN}-{slug}.md
 
-/dev:quick         → towline-general                     → (varies, inline)
+/dev:quick         → towline-executor                    → .planning/quick/{NNN}-{slug}/SUMMARY.md
 
 /dev:import        → towline-planner                     → .planning/ROADMAP.md or PLAN.md
                    → towline-synthesizer (optional)      → .planning/REQUIREMENTS.md
@@ -2210,7 +2211,7 @@ function runScript(toolInput) {
 
 ### Test Coverage
 
-Minimum coverage targets (enforced by CI):
+Minimum coverage targets (not yet enforced in CI — see todo 040):
 
 ```
 Branches:   70%
@@ -2921,7 +2922,7 @@ Add new hook script, don't create test file, push to CI.
 Add new hook script, create corresponding test file, run `npm test`, verify coverage >=70%, push to CI.
 ```
 
-**Why**: Untested code breaks in production. CI enforces 70% coverage.
+**Why**: Untested code breaks in production. Target is 70% coverage.
 
 #### 15. Inconsistent Frontmatter
 
@@ -2972,7 +2973,7 @@ must_haves:
 
 6. **Cross-platform always**. Use `path.join()`, CommonJS, and test on all platforms.
 
-7. **Test everything**. 70% coverage minimum, all platforms must pass CI.
+7. **Test everything**. Target 70% coverage minimum, all platforms must pass CI.
 
 8. **UI is branded**. Always use `TOWLINE ►` banners, never `GSD ►` or other brands.
 
