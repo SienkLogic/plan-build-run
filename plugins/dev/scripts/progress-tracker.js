@@ -13,6 +13,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
+const { logEvent } = require('./event-logger');
 
 function main() {
   const cwd = process.cwd();
@@ -32,8 +33,10 @@ function main() {
     };
     process.stdout.write(JSON.stringify(output));
     logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });
+    logEvent('workflow', 'session-start', { hasState: true });
   } else {
     logHook('progress-tracker', 'SessionStart', 'skipped', { hasState: false });
+    logEvent('workflow', 'session-start', { hasState: false });
   }
 
   process.exit(0);

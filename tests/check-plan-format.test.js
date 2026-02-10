@@ -2,7 +2,7 @@ const { validatePlan, validateSummary } = require('../plugins/dev/scripts/check-
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
-    test('valid plan with all elements', () => {
+    test('valid plan with all elements returns no errors or warnings', () => {
       const content = `---
 phase: 03-auth
 plan: 01
@@ -39,11 +39,12 @@ Create authentication middleware
 </task>
 
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues).toEqual([]);
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toEqual([]);
+      expect(result.warnings).toEqual([]);
     });
 
-    test('missing frontmatter', () => {
+    test('missing frontmatter is an error', () => {
       const content = `# Plan without frontmatter
 
 <tasks>
@@ -55,11 +56,11 @@ Create authentication middleware
   <done>Done</done>
 </task>
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues).toContain('Missing YAML frontmatter');
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Missing YAML frontmatter');
     });
 
-    test('missing required frontmatter fields', () => {
+    test('missing required frontmatter fields are errors', () => {
       const content = `---
 phase: 03-auth
 ---
@@ -73,12 +74,12 @@ phase: 03-auth
   <done>Done</done>
 </task>
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues).toContain('Frontmatter missing "plan" field');
-      expect(issues).toContain('Frontmatter missing "wave" field');
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "plan" field');
+      expect(result.errors).toContain('Frontmatter missing "wave" field');
     });
 
-    test('too many tasks', () => {
+    test('too many tasks is an error', () => {
       const tasks = Array(4).fill(`
 <task type="auto">
   <name>Task N</name>
@@ -97,11 +98,11 @@ wave: 1
 <tasks>
 ${tasks}
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues.some(i => i.includes('Too many tasks'))).toBe(true);
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors.some(i => i.includes('Too many tasks'))).toBe(true);
     });
 
-    test('task missing verify element', () => {
+    test('task missing verify element is an error', () => {
       const content = `---
 phase: 03-auth
 plan: 01
@@ -116,11 +117,11 @@ wave: 1
   <done>Done</done>
 </task>
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues.some(i => i.includes('missing <verify>'))).toBe(true);
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors.some(i => i.includes('missing <verify>'))).toBe(true);
     });
 
-    test('task missing name element', () => {
+    test('task missing name element is an error', () => {
       const content = `---
 phase: 03-auth
 plan: 01
@@ -135,8 +136,8 @@ wave: 1
   <done>Done</done>
 </task>
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues.some(i => i.includes('missing <name>'))).toBe(true);
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors.some(i => i.includes('missing <name>'))).toBe(true);
     });
 
     test('checkpoint tasks skip standard validation', () => {
@@ -161,12 +162,12 @@ wave: 1
   <resume-signal>Type approved</resume-signal>
 </task>
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
+      const result = validatePlan(content, 'test-PLAN.md');
       // Should not report missing elements for checkpoint task
-      expect(issues.filter(i => i.includes('Task 2'))).toEqual([]);
+      expect(result.errors.filter(i => i.includes('Task 2'))).toEqual([]);
     });
 
-    test('no tasks at all', () => {
+    test('no tasks at all is an error', () => {
       const content = `---
 phase: 03-auth
 plan: 01
@@ -176,8 +177,8 @@ wave: 1
 <objective>
 Something with no tasks
 </objective>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues).toContain('No <task> elements found');
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('No <task> elements found');
     });
 
     test('exactly 3 tasks is valid', () => {
@@ -199,8 +200,28 @@ wave: 1
 <tasks>
 ${tasks}
 </tasks>`;
-      const issues = validatePlan(content, 'test-PLAN.md');
-      expect(issues.filter(i => i.includes('Too many'))).toEqual([]);
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors.filter(i => i.includes('Too many'))).toEqual([]);
+    });
+
+    test('plan validation returns warnings array (currently empty for plans)', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+---
+
+<tasks>
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <verify>test</verify>
+  <done>Done</done>
+</task>
+</tasks>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(Array.isArray(result.warnings)).toBe(true);
     });
   });
 
@@ -220,32 +241,32 @@ deferred:
 
 ## Outcome
 Everything worked.`;
-      const issues = validateSummary(content, 'SUMMARY-01.md');
+      const result = validateSummary(content, 'SUMMARY-01.md');
       // key_files path 'package.json' won't exist in test, so filter that out
-      const nonPathIssues = issues.filter(i => !i.includes('not found on disk'));
-      expect(nonPathIssues).toEqual([]);
+      expect(result.errors).toEqual([]);
+      // May have key_files warning — that's expected
     });
 
-    test('missing frontmatter', () => {
+    test('missing frontmatter is an error', () => {
       const content = '# Summary\nNo frontmatter here';
-      const issues = validateSummary(content, 'SUMMARY-01.md');
-      expect(issues).toContain('Missing YAML frontmatter');
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      expect(result.errors).toContain('Missing YAML frontmatter');
     });
 
-    test('missing required fields', () => {
+    test('missing required fields are errors', () => {
       const content = `---
 phase: 03-auth
 ---
 Body`;
-      const issues = validateSummary(content, 'SUMMARY-01.md');
-      expect(issues).toContain('Frontmatter missing "plan" field');
-      expect(issues).toContain('Frontmatter missing "status" field');
-      expect(issues).toContain('Frontmatter missing "provides" field');
-      expect(issues).toContain('Frontmatter missing "requires" field');
-      expect(issues).toContain('Frontmatter missing "key_files" field');
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      expect(result.errors).toContain('Frontmatter missing "plan" field');
+      expect(result.errors).toContain('Frontmatter missing "status" field');
+      expect(result.errors).toContain('Frontmatter missing "provides" field');
+      expect(result.errors).toContain('Frontmatter missing "requires" field');
+      expect(result.errors).toContain('Frontmatter missing "key_files" field');
     });
 
-    test('warns about missing deferred field', () => {
+    test('missing deferred field is a warning, not an error', () => {
       const content = `---
 phase: 03-auth
 plan: 01
@@ -256,15 +277,38 @@ key_files:
   - package.json
 ---
 Body`;
-      const issues = validateSummary(content, 'SUMMARY-01.md');
-      const deferredIssue = issues.find(i => i.includes('deferred'));
-      expect(deferredIssue).toBeDefined();
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      const deferredWarning = result.warnings.find(i => i.includes('deferred'));
+      expect(deferredWarning).toBeDefined();
+      // Should NOT be in errors
+      const deferredError = result.errors.find(i => i.includes('deferred'));
+      expect(deferredError).toBeUndefined();
     });
 
-    test('unclosed frontmatter', () => {
+    test('unclosed frontmatter is an error', () => {
       const content = '---\nphase: 03-auth\nplan: 01\n';
-      const issues = validateSummary(content, 'SUMMARY-01.md');
-      expect(issues).toContain('Unclosed YAML frontmatter');
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      expect(result.errors).toContain('Unclosed YAML frontmatter');
+    });
+
+    test('key_files not on disk is a warning, not an error', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+status: complete
+provides: [auth]
+requires: []
+key_files:
+  - /nonexistent/path/file.ts
+deferred: []
+---
+Body`;
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      const pathWarning = result.warnings.find(i => i.includes('not found on disk'));
+      expect(pathWarning).toBeDefined();
+      // Should NOT be in errors
+      const pathError = result.errors.find(i => i.includes('not found on disk'));
+      expect(pathError).toBeUndefined();
     });
   });
 });

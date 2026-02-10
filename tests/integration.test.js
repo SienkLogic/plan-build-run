@@ -239,8 +239,9 @@ describe('plan format validation', () => {
       FIXTURE_DIR, '.planning', 'phases', '01-setup', 'setup-01-PLAN.md'
     );
     const content = fs.readFileSync(planPath, 'utf8');
-    const issues = validatePlan(content, planPath);
-    expect(issues).toHaveLength(0);
+    const result = validatePlan(content, planPath);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
   });
 
   test('valid summary passes (except key_files not found on disk)', () => {
@@ -248,10 +249,9 @@ describe('plan format validation', () => {
       FIXTURE_DIR, '.planning', 'phases', '01-setup', 'SUMMARY-setup-01.md'
     );
     const content = fs.readFileSync(summaryPath, 'utf8');
-    const issues = validateSummary(content, summaryPath);
-    // key_files paths won't exist on disk, so that issue is expected
-    const nonPathIssues = issues.filter(i => !i.includes('key_files path not found'));
-    expect(nonPathIssues).toHaveLength(0);
+    const result = validateSummary(content, summaryPath);
+    expect(result.errors).toHaveLength(0);
+    // key_files paths won't exist on disk, so warnings are expected
   });
 });
 

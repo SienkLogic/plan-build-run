@@ -20,6 +20,7 @@
 const path = require('path');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
+const { logEvent } = require('./event-logger');
 
 const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip'];
 
@@ -106,6 +107,7 @@ function main() {
 
       if (!COMMIT_PATTERN.test(message)) {
         logHook('validate-commit', 'PreToolUse', 'block', { message });
+        logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block' });
         const output = {
           decision: 'block',
           reason: `Invalid commit message format.\n\nExpected: {type}({scope}): {description}\nTypes: ${VALID_TYPES.join(', ')}\nExamples:\n  feat(03-01): add user authentication\n  fix(02-02): resolve database connection timeout\n  docs(planning): update roadmap with phase 4\n  wip: save progress on auth middleware\n\nGot: "${message}"`
@@ -116,6 +118,7 @@ function main() {
 
       // Valid format
       logHook('validate-commit', 'PreToolUse', 'allow', { message });
+      logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
       checkSensitiveFiles();
       process.exit(0);
     } catch (_e) {
