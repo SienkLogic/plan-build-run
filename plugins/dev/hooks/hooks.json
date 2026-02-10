@@ -1,4 +1,5 @@
 {
+  "$schema": "../scripts/hooks-schema.json",
   "description": "Towline workflow hooks for state tracking, validation, and auto-continuation",
   "hooks": {
     "SessionStart": [
