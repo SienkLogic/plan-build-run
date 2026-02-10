@@ -62,11 +62,13 @@ function checkSensitiveFiles() {
     });
 
     if (matched.length > 0) {
-      logHook('validate-commit', 'PreToolUse', 'warn-sensitive', { files: matched });
-      const warning = {
-        message: `Warning: staged files may contain sensitive data: ${matched.join(', ')}`
+      logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched });
+      const output = {
+        decision: 'block',
+        reason: `Commit blocked: staged files may contain sensitive data.\n\nFiles: ${matched.join(', ')}\n\nRemove these files from staging with:\n  git reset HEAD ${matched.join(' ')}\n\nIf these files are intentionally safe (e.g., test fixtures), rename them to include .example, .template, or .sample.`
       };
-      process.stdout.write(JSON.stringify(warning));
+      process.stdout.write(JSON.stringify(output));
+      process.exit(2);
     }
   } catch (_e) {
     // Not in a git repo or git not available - silently continue

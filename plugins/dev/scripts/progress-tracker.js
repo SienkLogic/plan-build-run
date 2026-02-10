@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 
 function main() {
@@ -42,6 +43,20 @@ function buildContext(planningDir, stateFile) {
   const parts = [];
 
   parts.push('[Towline Project Detected]');
+
+  // Git context
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+    const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+    parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
+    if (recentCommits) {
+      parts.push(`Recent commits:\n${recentCommits}`);
+    }
+  } catch (_e) {
+    // Not a git repo or git not available — skip
+  }
 
   // Read STATE.md if it exists
   if (fs.existsSync(stateFile)) {
