@@ -359,7 +359,8 @@ Approve these plans?
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
 - Update STATE.md: set current phase plan status to "planned"
-- Suggest next action: `/dev:build {N}`
+- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "dev:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
+- **Otherwise:** Suggest next action: `/dev:build {N}`
 
 ---
 

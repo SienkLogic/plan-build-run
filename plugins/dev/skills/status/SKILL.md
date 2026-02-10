@@ -79,12 +79,19 @@ For each phase listed in ROADMAP.md:
    - Count plans with SUMMARY.md (status=completed)
    - Progress = completed / total * 100
 
-### Step 2b: Check STATE.md Size
+### Step 2b: Check STATE.md Size and Consistency
 
 Count lines in `.planning/STATE.md`. If over 150 lines, add a warning to the dashboard:
 ```
 Warning: STATE.md is {N} lines (limit: 150). Run any build/review command to auto-compact it.
 ```
+
+**Discrepancy check:** Compare STATE.md phase/plan/status claims against the filesystem:
+- Does the phase directory exist? If not: `Warning: STATE.md references Phase {N} but no directory exists.`
+- Does the plan count match? If not: `Warning: STATE.md says {X} plans but filesystem has {Y}.`
+- Does the status match? If STATE.md says "verified" but no `VERIFICATION.md` exists: `Warning: STATE.md says "verified" but no VERIFICATION.md found.`
+
+If any discrepancy found, add: `Run /dev:resume to auto-reconcile STATE.md.`
 
 ### Step 3: Check for Special Conditions
 

@@ -68,6 +68,7 @@ Boolean toggles that enable or disable specific workflow capabilities.
 | `tdd_mode` | `false` | Enable Test-Driven Development for all tasks (Red-Green-Refactor) |
 | `status_line` | `true` | Show status line in session UI |
 | `auto_continue` | `false` | Write `.auto-next` signal on phase completion for automatic continuation |
+| `auto_advance` | `false` | Chain build→review→plan automatically in autonomous mode (requires `mode: autonomous`) |
 | `team_discussions` | `false` | Enable team-based discussion workflows (never used for execution) |
 | `inline_verify` | `false` | Run per-task verification after each executor commit (opt-in, adds latency) |
 
@@ -76,6 +77,7 @@ Boolean toggles that enable or disable specific workflow capabilities.
 - `goal_verification: false` skips the post-build verification step. The build skill appends a note suggesting `/dev:review` manually.
 - `tdd_mode: true` causes all task types to follow Red-Green-Refactor, producing 3 commits per task instead of 1.
 - `auto_continue: true` writes a `.planning/.auto-next` file containing the next command (e.g., `/dev:plan 4`), allowing wrapper scripts to chain phases.
+- `auto_advance: true` + `mode: autonomous` enables full phase cycling: build completes → auto-invoke review → if verification passes → auto-invoke plan for next phase. Hard stops at: checkpoints, verification gaps, errors, milestone boundaries.
 - `inline_verify: true` spawns a haiku-model verifier after each plan completes within a wave. Adds ~10-20s latency per plan but catches issues before dependent plans run.
 
 ---

@@ -57,6 +57,76 @@ describe('towline-tools.js', () => {
       const result = parseStateMd(content);
       expect(result.line_count).toBe(3);
     });
+
+    test('legacy format sets format to "legacy"', () => {
+      const content = 'Phase: 1 of 5\nStatus: building\nProgress: 20%';
+      const result = parseStateMd(content);
+      expect(result.format).toBe('legacy');
+    });
+
+    test('parses YAML frontmatter format (version 2)', () => {
+      const content = `---
+version: 2
+current_phase: 3
+total_phases: 10
+phase_slug: "auth-system"
+status: "building"
+progress_percent: 30
+plans_total: 4
+plans_complete: 1
+last_activity: "2026-02-10"
+last_command: "/dev:build 3"
+blockers: []
+---
+# Project State
+
+## Current Position
+Phase: 3 of 10 (Auth System)
+Status: building`;
+      const result = parseStateMd(content);
+      expect(result.format).toBe('frontmatter');
+      expect(result.current_phase).toBe(3);
+      expect(result.total_phases).toBe(10);
+      expect(result.phase_name).toBe('auth-system');
+      expect(result.status).toBe('building');
+      expect(result.progress).toBe(30);
+      expect(result.plans_total).toBe(4);
+      expect(result.plans_complete).toBe(1);
+      expect(result.last_command).toBe('/dev:build 3');
+      expect(result.blockers).toEqual([]);
+    });
+
+    test('frontmatter with blockers', () => {
+      const content = `---
+version: 2
+current_phase: 5
+status: "blocked"
+blockers:
+  - Missing API key
+  - Database migration pending
+---
+# Project State`;
+      const result = parseStateMd(content);
+      expect(result.format).toBe('frontmatter');
+      expect(result.blockers).toEqual(['Missing API key', 'Database migration pending']);
+    });
+
+    test('backward compatible — old format without frontmatter still works', () => {
+      const content = `# Project State
+Version: 1
+
+## Current Position
+Phase: 7 of 12 (Dashboard)
+Plan: 2 of 3 in current phase
+Status: Building
+Progress: [██████████████░░░░░░] 58%`;
+      const result = parseStateMd(content);
+      expect(result.format).toBe('legacy');
+      expect(result.current_phase).toBe(7);
+      expect(result.total_phases).toBe(12);
+      expect(result.status).toBe('Building');
+      expect(result.progress).toBe(58);
+    });
   });
 
   describe('parseRoadmapMd', () => {

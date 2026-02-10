@@ -10,6 +10,7 @@
  * Commands:
  *   state load              — Full project state as JSON
  *   state check-progress    — Recalculate progress from filesystem
+ *   config validate          — Validate config.json against schema
  *   plan-index <phase>      — Plan inventory for a phase, grouped by wave
  */
 
@@ -29,6 +30,8 @@ function main() {
       output(stateLoad());
     } else if (command === 'state' && subcommand === 'check-progress') {
       output(stateCheckProgress());
+    } else if (command === 'config' && subcommand === 'validate') {
+      output(configValidate());
     } else if (command === 'plan-index') {
       const phase = args[1];
       if (!phase) {
@@ -49,7 +52,7 @@ function main() {
       logEvent(category, event, details);
       output({ logged: true, category, event });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load, state check-progress, plan-index <phase>, event <category> <event>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load, state check-progress, config validate, plan-index <phase>, event <category> <event>`);
     }
   } catch (e) {
     error(e.message);
@@ -209,6 +212,165 @@ function planIndex(phaseNum) {
   };
 }
 
+function configValidate() {
+  const configPath = path.join(planningDir, 'config.json');
+  if (!fs.existsSync(configPath)) {
+    return { valid: false, errors: ['config.json not found'], warnings: [] };
+  }
+
+  let config;
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (e) {
+    return { valid: false, errors: [`config.json is not valid JSON: ${e.message}`], warnings: [] };
+  }
+
+  const schema = JSON.parse(fs.readFileSync(path.join(__dirname, 'config-schema.json'), 'utf8'));
+  const warnings = [];
+  const errors = [];
+
+  validateObject(config, schema, '', errors, warnings);
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+/**
+ * Lightweight JSON Schema validator — supports type, enum, properties,
+ * additionalProperties, minimum, maximum for the config schema.
+ */
+function validateObject(value, schema, prefix, errors, warnings) {
+  if (schema.type && typeof value !== schema.type) {
+    if (!(schema.type === 'integer' && typeof value === 'number' && Number.isInteger(value))) {
+      errors.push(`${prefix || 'root'}: expected ${schema.type}, got ${typeof value}`);
+      return;
+    }
+  }
+
+  if (schema.enum && !schema.enum.includes(value)) {
+    errors.push(`${prefix || 'root'}: value "${value}" not in allowed values [${schema.enum.join(', ')}]`);
+    return;
+  }
+
+  if (schema.minimum !== undefined && value < schema.minimum) {
+    errors.push(`${prefix || 'root'}: value ${value} is below minimum ${schema.minimum}`);
+  }
+  if (schema.maximum !== undefined && value > schema.maximum) {
+    errors.push(`${prefix || 'root'}: value ${value} is above maximum ${schema.maximum}`);
+  }
+
+  if (schema.type === 'object' && schema.properties) {
+    const knownKeys = new Set(Object.keys(schema.properties));
+
+    for (const key of Object.keys(value)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      if (!knownKeys.has(key)) {
+        if (schema.additionalProperties === false) {
+          warnings.push(`${fullKey}: unrecognized key (possible typo?)`);
+        }
+        continue;
+      }
+      validateObject(value[key], schema.properties[key], fullKey, errors, warnings);
+    }
+  }
+}
+
+/**
+ * Locked file update: read-modify-write with exclusive lockfile.
+ * Prevents concurrent writes to STATE.md and ROADMAP.md.
+ *
+ * @param {string} filePath - Absolute path to the file to update
+ * @param {function} updateFn - Receives current content, returns new content
+ * @param {object} opts - Options: { retries: 3, retryDelayMs: 100, timeoutMs: 5000 }
+ * @returns {object} { success, content?, error? }
+ */
+function lockedFileUpdate(filePath, updateFn, opts = {}) {
+  const retries = opts.retries || 3;
+  const retryDelayMs = opts.retryDelayMs || 100;
+  const timeoutMs = opts.timeoutMs || 5000;
+  const lockPath = filePath + '.lock';
+
+  let lockFd = null;
+  let lockAcquired = false;
+
+  try {
+    // Acquire lock with retries
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        lockFd = fs.openSync(lockPath, 'wx');
+        lockAcquired = true;
+        break;
+      } catch (e) {
+        if (e.code === 'EEXIST') {
+          // Lock exists — check if stale (older than timeoutMs)
+          try {
+            const stats = fs.statSync(lockPath);
+            if (Date.now() - stats.mtimeMs > timeoutMs) {
+              // Stale lock — remove and retry
+              fs.unlinkSync(lockPath);
+              continue;
+            }
+          } catch (_statErr) {
+            // Lock disappeared between check — retry
+            continue;
+          }
+
+          if (attempt < retries - 1) {
+            // Wait and retry
+            const waitMs = retryDelayMs * (attempt + 1);
+            const start = Date.now();
+            while (Date.now() - start < waitMs) {
+              // Busy wait (synchronous context)
+            }
+            continue;
+          }
+          return { success: false, error: `Could not acquire lock for ${path.basename(filePath)} after ${retries} attempts` };
+        }
+        throw e;
+      }
+    }
+
+    if (!lockAcquired) {
+      return { success: false, error: `Could not acquire lock for ${path.basename(filePath)}` };
+    }
+
+    // Write PID to lock file for debugging
+    fs.writeSync(lockFd, `${process.pid}`);
+    fs.closeSync(lockFd);
+    lockFd = null;
+
+    // Read current content
+    let content = '';
+    if (fs.existsSync(filePath)) {
+      content = fs.readFileSync(filePath, 'utf8');
+    }
+
+    // Apply update
+    const newContent = updateFn(content);
+
+    // Write back
+    fs.writeFileSync(filePath, newContent, 'utf8');
+
+    return { success: true, content: newContent };
+  } catch (e) {
+    return { success: false, error: e.message };
+  } finally {
+    // Close fd if still open
+    try {
+      if (lockFd !== null) fs.closeSync(lockFd);
+    } catch (_e) { /* ignore */ }
+    // Only release lock if we acquired it
+    if (lockAcquired) {
+      try {
+        fs.unlinkSync(lockPath);
+      } catch (_e) { /* ignore — may already be cleaned up */ }
+    }
+  }
+}
+
 // --- Parsers ---
 
 function parseStateMd(content) {
@@ -217,9 +379,28 @@ function parseStateMd(content) {
     phase_name: null,
     progress: null,
     status: null,
-    line_count: content.split('\n').length
+    line_count: content.split('\n').length,
+    format: 'legacy' // 'legacy' or 'frontmatter'
   };
 
+  // Check for YAML frontmatter (version 2 format)
+  const frontmatter = parseYamlFrontmatter(content);
+  if (frontmatter.version === 2 || frontmatter.current_phase !== undefined) {
+    result.format = 'frontmatter';
+    result.current_phase = frontmatter.current_phase || null;
+    result.total_phases = frontmatter.total_phases || null;
+    result.phase_name = frontmatter.phase_slug || frontmatter.phase_name || null;
+    result.status = frontmatter.status || null;
+    result.progress = frontmatter.progress_percent !== undefined ? frontmatter.progress_percent : null;
+    result.plans_total = frontmatter.plans_total || null;
+    result.plans_complete = frontmatter.plans_complete || null;
+    result.last_activity = frontmatter.last_activity || null;
+    result.last_command = frontmatter.last_command || null;
+    result.blockers = frontmatter.blockers || [];
+    return result;
+  }
+
+  // Legacy regex-based parsing (version 1 format, no frontmatter)
   // Extract "Phase: N of M"
   const phaseMatch = content.match(/Phase:\s*(\d+)\s+of\s+(\d+)/);
   if (phaseMatch) {
@@ -444,4 +625,4 @@ function error(msg) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, planIndex, determinePhaseStatus, findFiles };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles };

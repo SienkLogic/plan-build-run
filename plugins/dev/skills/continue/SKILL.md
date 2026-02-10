@@ -64,13 +64,16 @@ Based on the determined action, invoke the appropriate skill via the Skill tool.
 
 Where `{N}` is the current phase number determined from STATE.md in Step 1.
 
-### Step 4: Report
+### Step 4: Report and Chain
 
 After execution completes, display a brief summary:
 ```
 ✓ Completed: {what was done}
   Next: {suggested next action or "Run /dev:continue again"}
 ```
+
+**If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
+After the delegated skill completes, immediately re-run Step 1-3 to determine and execute the NEXT action. Continue chaining until a hard stop is reached. This enables hands-free phase cycling: build→review→plan→build→...
 
 ---
 
@@ -81,6 +84,7 @@ Do NOT auto-continue when:
 - A checkpoint requires human input (decision, verify, action)
 - An error occurred during execution
 - The milestone is complete
+- Verification found gaps (need user review before advancing)
 
 In these cases, explain why auto-continue stopped and what the user needs to do.
 

@@ -93,6 +93,7 @@ features.goal_verification  — run verifier after build
 features.inline_verify      — run per-task verification after each executor commit (opt-in)
 features.atomic_commits     — require atomic commits per task
 features.auto_continue      — write .auto-next signal on phase completion
+features.auto_advance       — chain build→review→plan in autonomous mode
 planning.commit_docs        — commit planning docs after build
 git.commit_format           — commit message format
 git.branching_strategy      — branching strategy ("phase" = branch per phase)
@@ -494,11 +495,7 @@ Once gates pass, update `.planning/STATE.md`:
 - Progress bar percentage
 - Any new decisions from executor deviations
 
-**STATE.md size limit (150 lines):** After writing the update, check the file line count. If STATE.md exceeds 150 lines:
-1. Collapse completed phase entries to one-liners (e.g., "Phase 1: verified 2025-02-08")
-2. Remove decisions already captured in CONTEXT.md (avoid duplication)
-3. Remove session entries older than the current session
-4. Keep: current phase detail, active blockers, core value, milestone info
+**STATE.md size limit:** Follow the size limit enforcement rules in `skills/shared/state-update.md` (150 lines max — collapse completed phases, remove duplicated decisions, trim old sessions).
 
 ---
 
@@ -654,9 +651,23 @@ If `git.branching_strategy` is `phase`:
 - If confirmed: complete the merge and delete the phase branch
 - If declined: leave the branch as-is and inform the user
 
-**8e. Write auto-continue signal (conditional):**
-If `features.auto_continue` is `true` in config:
-- Write `.planning/.auto-next` containing the next logical command (e.g., `/dev:plan {N+1}` or `/dev:build {N+1}`)
+**8e. Auto-advance / auto-continue (conditional):**
+
+**If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
+Chain to the next skill directly within this session. This eliminates manual phase cycling.
+
+| Build Result | Next Action | How |
+|-------------|-------------|-----|
+| Verification passed, more phases | Plan next phase | `Skill({ skill: "dev:plan", args: "{N+1}" })` |
+| Verification skipped | Run review | `Skill({ skill: "dev:review", args: "{N}" })` |
+| Verification gaps found | **HARD STOP** — present gaps to user | Do NOT auto-advance past failures |
+| Last phase complete | **HARD STOP** — milestone boundary | Suggest `/dev:milestone audit` |
+| Build errors occurred | **HARD STOP** — errors need human review | Do NOT auto-advance past errors |
+
+After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review→plan, plan→build) if auto_advance remains true. This creates the full cycle: build→review→plan→build→...
+
+**Else if `features.auto_continue` is `true`:**
+Write `.planning/.auto-next` containing the next logical command (e.g., `/dev:plan {N+1}` or `/dev:review {N}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
 
 **8f. Present completion summary:**
