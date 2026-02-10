@@ -307,7 +307,14 @@ Do NOT write any files. Return your findings as your response text.
 2. If BLOCKER or WARNING issues found:
    - Revise the plans inline to address the issues
    - Re-run the checker with the revised plans
-   - After 3 iterations without resolution: present remaining issues to user and ask: "These issues remain after 3 revision attempts. Proceed anyway, or adjust the approach?"
+   - After 3 iterations without resolution: present remaining issues to user. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+     question: "Plan checker issues remain after 3 revision attempts. Proceed with current plans?"
+     header: "Proceed?"
+     options:
+       - label: "Proceed anyway"  description: "Accept plans with remaining issues"
+       - label: "Adjust approach"  description: "Discuss a different approach"
+   - If "Proceed anyway": go to Step 7
+   - If "Adjust approach" or "Other": discuss with user and re-enter Step 5 with updated context
 
 ---
 
