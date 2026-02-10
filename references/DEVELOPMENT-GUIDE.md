@@ -1248,7 +1248,7 @@ towline/
 │   │   ├── plan-format.md
 │   │   ├── commit-conventions.md
 │   │   ├── ui-formatting.md
-│   │   └── ... (16 references total)
+│   │   └── ... (17 references total)
 │   ├── templates/                  ← EJS-style templates
 │   │   ├── SUMMARY.md.tmpl
 │   │   ├── PLAN.md.tmpl
