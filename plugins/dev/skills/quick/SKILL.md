@@ -1,7 +1,7 @@
 ---
 name: quick
 description: "Execute a quick ad-hoc task. Atomic commits + state tracking, skips full plan/review cycle."
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 ---
 
 # /dev:quick — Quick Ad-Hoc Task Execution
@@ -47,7 +47,8 @@ If `$ARGUMENTS` is provided and non-empty:
 - Use `$ARGUMENTS` as the task description
 
 If `$ARGUMENTS` is empty:
-- Ask user via AskUserQuestion: "What do you need done? Describe the task in a sentence or two."
+- Ask the user: "What do you need done? Describe the task in a sentence or two."
+  This is a freeform text prompt — do NOT use AskUserQuestion here. Task descriptions require arbitrary text input, not option selection.
 
 ### Step 3: Validate Scope
 
@@ -57,19 +58,21 @@ Analyze the task description. If it appears to involve:
 - Significant architectural decisions
 - Complex multi-step workflows
 
-Then warn the user:
-```
-This looks like it might be bigger than a quick task. Quick tasks work best for:
-- Bug fixes
-- Small feature additions
-- Configuration changes
-- Refactoring a single module
-- Adding a test
+Then use the **scope-confirm** pattern (see `skills/shared/gate-prompts.md`):
 
-Would you like to proceed as a quick task, or use `/dev:plan` for a full planning cycle?
-```
+Use AskUserQuestion:
+  question: "This task looks complex. Quick tasks work best for bug fixes, small features, config changes, and single-module refactors. How would you like to proceed?"
+  header: "Scope"
+  options:
+    - label: "Quick task"  description: "Execute as lightweight task"
+    - label: "Full plan"   description: "Switch to /dev:plan for proper planning"
+    - label: "Revise"      description: "Let me rewrite the task description"
+  multiSelect: false
 
-Use AskUserQuestion to let the user decide. If they want to proceed, continue.
+If user selects "Quick task": continue to Step 4.
+If user selects "Full plan": respond "Use `/dev:plan` to create a full planning cycle for this task." and stop.
+If user selects "Revise": go back to Step 2 to get a new task description.
+If user types something else (freeform): interpret their response and proceed accordingly.
 
 ### Step 4: Generate Slug and Task Number
 
@@ -266,7 +269,7 @@ Choose verification based on context:
 - Do NOT auto-retry — let the user decide
 
 ### Task description is too vague
-- Ask clarifying questions via AskUserQuestion:
+- Ask clarifying questions as plain text prompts (do NOT use AskUserQuestion — these require freeform text answers):
   - "Which file(s) need to change?"
   - "What should the end result look like?"
   - "Is there a specific error to fix?"
