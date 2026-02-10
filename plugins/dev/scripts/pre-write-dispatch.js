@@ -3,13 +3,14 @@
 /**
  * PreToolUse dispatcher for Write|Edit hooks.
  *
- * Consolidates check-skill-workflow.js and check-phase-boundary.js
- * into a single process, reading stdin once and running both checks
- * sequentially. This halves the process spawns per Write/Edit call.
+ * Consolidates check-skill-workflow.js, check-phase-boundary.js,
+ * and check-doc-sprawl.js into a single process, reading stdin once
+ * and running all checks sequentially.
  *
  * Check order matters: skill workflow runs first (can block writes
  * that violate planning rules), then phase boundary (can block or
- * warn about cross-phase writes).
+ * warn about cross-phase writes), then doc sprawl (blocks new .md/.txt
+ * files outside the allowlist when enabled).
  *
  * Exit codes:
  *   0 = allowed or warning only
@@ -18,6 +19,7 @@
 
 const { checkWorkflow } = require('./check-skill-workflow');
 const { checkBoundary } = require('./check-phase-boundary');
+const { checkDocSprawl } = require('./check-doc-sprawl');
 
 function main() {
   let input = '';
@@ -40,6 +42,13 @@ function main() {
       if (boundaryResult) {
         process.stdout.write(JSON.stringify(boundaryResult.output));
         process.exit(boundaryResult.exitCode || 0);
+      }
+
+      // Doc sprawl check — blocks new .md/.txt outside allowlist
+      const sprawlResult = checkDocSprawl(data);
+      if (sprawlResult) {
+        process.stdout.write(JSON.stringify(sprawlResult.output));
+        process.exit(sprawlResult.exitCode || 0);
       }
 
       process.exit(0);
