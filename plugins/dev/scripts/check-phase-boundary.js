@@ -40,20 +40,21 @@ function main() {
 
       const cwd = process.cwd();
       const planningDir = path.join(cwd, '.planning');
-      const phasesDir = path.join(planningDir, 'phases');
 
-      // Only check files under .planning/phases/
+      // Check if the file is under .planning/phases/ using marker matching
+      // instead of absolute path comparison (avoids macOS /var -> /private/var symlink issues)
       const normalizedPath = filePath.replace(/\\/g, '/');
-      const normalizedPhasesDir = phasesDir.replace(/\\/g, '/');
+      const phasesMarker = '.planning/phases/';
+      const markerIdx = normalizedPath.indexOf(phasesMarker);
 
-      if (!normalizedPath.startsWith(normalizedPhasesDir)) {
+      if (markerIdx === -1) {
         process.exit(0);
       }
 
-      // Extract phase number from file path
+      // Extract phase number from path after the marker
       // Path pattern: .planning/phases/NN-slug/...
-      const relativePath = normalizedPath.substring(normalizedPhasesDir.length + 1);
-      const phaseMatch = relativePath.match(/^(\d+)-/);
+      const afterMarker = normalizedPath.substring(markerIdx + phasesMarker.length);
+      const phaseMatch = afterMarker.match(/^(\d+)-/);
       if (!phaseMatch) {
         process.exit(0);
       }
