@@ -98,6 +98,10 @@ function checkSkillRules(skill, filePath, planningDir) {
   const normalizedPlanning = planningDir.replace(/\\/g, '/');
   const isInPlanning = normalizedPath.startsWith(normalizedPlanning);
 
+  // Check for orchestrator writing agent artifacts (any skill)
+  const artifactViolation = checkArtifactRules(filePath, planningDir);
+  if (artifactViolation) return artifactViolation;
+
   switch (skill) {
   case 'quick':
     return checkQuickRules(filePath, isInPlanning, planningDir);
@@ -106,6 +110,31 @@ function checkSkillRules(skill, filePath, planningDir) {
   default:
     return null;
   }
+}
+
+/**
+ * Artifact rules (all skills):
+ * - SUMMARY.md and VERIFICATION.md should only be written by subagents
+ * - If .active-agent exists, a subagent is running (allow writes)
+ * - If .active-agent does NOT exist, the orchestrator is writing (block)
+ */
+function checkArtifactRules(filePath, planningDir) {
+  const basename = path.basename(filePath);
+
+  // Only check SUMMARY and VERIFICATION files in phase directories
+  const isSummary = /^SUMMARY.*\.md$/i.test(basename);
+  const isVerification = /^VERIFICATION.*\.md$/i.test(basename);
+  if (!isSummary && !isVerification) return null;
+
+  // If .active-agent exists, a subagent is running — allow
+  const activeAgentFile = path.join(planningDir, '.active-agent');
+  if (fs.existsSync(activeAgentFile)) return null;
+
+  const artifactType = isSummary ? 'SUMMARY.md' : 'VERIFICATION.md';
+  return {
+    rule: 'orchestrator-artifact-write',
+    message: `Workflow violation: ${artifactType} should be written by a subagent, not the orchestrator.\n\nBlocked: ${filePath}\n\nDelegate this write to a Task(subagent_type: "dev:towline-executor") or Task(subagent_type: "dev:towline-verifier") agent.`
+  };
 }
 
 /**

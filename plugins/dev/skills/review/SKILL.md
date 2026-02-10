@@ -89,7 +89,7 @@ Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as th
 
 **Placeholders to fill before sending:**
 - `{For each PLAN.md file in the phase directory:}` — inline each plan's must_haves frontmatter block
-- `{For each SUMMARY.md file in the phase directory:}` — inline each full SUMMARY.md
+- `{For each SUMMARY.md file in the phase directory:}` — inline YAML frontmatter only (status, key_files, commits). The verifier reads full bodies from disk in its own context.
 - `{NN}-{slug}` — the phase directory name
 - `{N}` — the phase number
 - `{date}`, `{count}`, `{phase name}` — fill from context

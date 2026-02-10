@@ -20,20 +20,20 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 | 041 | Extract shared test helpers + complex fixture | Done |
 | 021 | Block AI co-author lines in commit hook | Done |
 
-## Milestone C: Context Optimization
+## Milestone C: Context Optimization — COMPLETE
 
-| Todo | Description | Priority |
-|------|-------------|----------|
-| 042 | Create PLAN.md template (extract ~100 lines from planner agent) | P1 |
-| 043 | Create plan authoring reference (extract ~150 lines from planner) | P1 |
-| 016 | Verifier reads SUMMARY frontmatter only | P1 |
-| 020 | Context budget tracking PostToolUse hook on Read | P1 |
-| 044 | Create subagent coordination reference (8 skills benefit) | P2 |
-| 045 | Create state-loading shared fragment (17 skills benefit) | P2 |
-| 024 | Block orchestrator from writing artifacts directly | P2 |
-| 038 | Plan skill reads dependency SUMMARYs as frontmatter only | P3 |
-| 053 | Standardize agent spawning syntax across all skills | P2 |
-| 054 | Add Context Budget section validation to plugin validator | P2 |
+| Todo | Description | Status |
+|------|-------------|--------|
+| 042 | Create PLAN.md template (extract ~100 lines from planner agent) | Done |
+| 043 | Create plan authoring reference (extract ~150 lines from planner) | Done |
+| 016 | Verifier reads SUMMARY frontmatter only | Done |
+| 020 | Context budget tracking PostToolUse hook on Read | Done |
+| 044 | Create subagent coordination reference (8 skills benefit) | Done |
+| 045 | Create state-loading shared fragment (17 skills benefit) | Done |
+| 024 | Block orchestrator from writing artifacts directly | Done |
+| 038 | Plan skill reads dependency SUMMARYs as frontmatter only | Done |
+| 053 | Standardize agent spawning syntax across all skills | Done |
+| 054 | Add Context Budget section validation to plugin validator | Done |
 
 ## Milestone D: State & Workflow Reliability
 
@@ -79,6 +79,6 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 ## Stats
 
 - Total todos created: 40 (016-055)
-- Completed: 8 (019, 021, 034, 039, 040, 041, 051, 052)
-- Remaining: 32
+- Completed: 18 (016, 019-021, 024, 034, 038-045, 051-054)
+- Remaining: 22
 - P1: 8 | P2: 15 | P3: 13

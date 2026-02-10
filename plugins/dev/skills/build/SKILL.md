@@ -544,7 +544,9 @@ See references/verification-patterns.md for detailed patterns.
 </phase_plans>
 
 <build_results>
-[For each SUMMARY.md in the phase: inline the full content]
+[For each SUMMARY.md in the phase: inline only the YAML frontmatter (status, key_files, commits).
+The verifier agent has its own 200k context window and will read full SUMMARY bodies from disk when needed.
+Do NOT inline full SUMMARY content here — it wastes orchestrator context.]
 </build_results>
 
 <instructions>

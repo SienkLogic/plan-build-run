@@ -13,6 +13,16 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 
 ---
 
+## Context Budget
+
+Keep the orchestrator lean. Follow these rules:
+- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+- **Never** perform integration checks yourself — delegate to the integration-checker subagent
+- **Minimize** reading audit and verification outputs — read only frontmatter and status fields
+- **Delegate** all cross-phase integration analysis to the integration-checker subagent
+
+---
+
 ## Core Principle
 
 **Milestones are the rhythm of the project.** They force you to step back, verify everything works together, and create a clean snapshot before moving on. Never skip the audit — integration issues hide at milestone boundaries.
@@ -294,7 +304,7 @@ Verify milestone completion with cross-phase integration checks.
 
 3. **Spawn integration checker:**
 
-   Spawn `Task(towline-integration-checker)` with:
+   Spawn `Task(subagent_type: "dev:towline-integration-checker")` with:
 
    ```
    You are towline-integration-checker. Perform cross-phase integration verification.

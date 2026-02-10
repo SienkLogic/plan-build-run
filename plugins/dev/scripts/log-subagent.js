@@ -44,6 +44,9 @@ function main() {
       description: data.description || null
     });
 
+    // Write .active-agent signal so other hooks know a subagent is running
+    writeActiveAgent(data.agent_type || data.subagent_type || 'unknown');
+
     // Inject project context into subagent
     const context = buildAgentContext();
     if (context) {
@@ -56,6 +59,8 @@ function main() {
       process.stdout.write(JSON.stringify(output));
     }
   } else if (action === 'stop') {
+    // Remove .active-agent signal
+    removeActiveAgent();
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: data.agent_type || data.subagent_type || null,
@@ -69,6 +74,30 @@ function main() {
   }
 
   process.exit(0);
+}
+
+function writeActiveAgent(agentType) {
+  try {
+    const cwd = process.cwd();
+    const filePath = path.join(cwd, '.planning', '.active-agent');
+    if (fs.existsSync(path.join(cwd, '.planning'))) {
+      fs.writeFileSync(filePath, agentType, 'utf8');
+    }
+  } catch (_e) {
+    // Best-effort
+  }
+}
+
+function removeActiveAgent() {
+  try {
+    const cwd = process.cwd();
+    const filePath = path.join(cwd, '.planning', '.active-agent');
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (_e) {
+    // Best-effort
+  }
 }
 
 function buildAgentContext() {

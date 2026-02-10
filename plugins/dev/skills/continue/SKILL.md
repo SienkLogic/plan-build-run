@@ -12,6 +12,15 @@ This skill runs **inline** and may delegate to other skills via Task().
 
 ---
 
+## Context Budget
+
+This skill routes to other skills, so keep reads minimal:
+- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+- **Minimize** state reads — read only STATE.md lines 1-20 to determine next action
+- **Delegate** execution to the appropriate skill via Skill() or Task()
+
+---
+
 ## Core Principle
 
 **Do, don't ask.** Read STATE.md, determine the next action, and execute it. The user wants hands-off forward progress.
