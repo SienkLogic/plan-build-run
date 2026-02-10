@@ -1,7 +1,7 @@
 ---
 name: scan
 description: "Analyze an existing codebase. Maps structure, architecture, conventions, and concerns."
-allowed-tools: Read, Write, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 ---
 
 # /dev:scan — Codebase Analysis
@@ -383,8 +383,14 @@ git add .planning/codebase/
 git commit -m "docs(planning): map existing codebase"
 ```
 
-If no config exists yet (scan before begin), ask user:
-"Commit the codebase analysis? (y/n)"
+If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  question: "Commit the codebase analysis to git?"
+  header: "Commit?"
+  options:
+    - label: "Yes"  description: "Stage and commit .planning/codebase/ files"
+    - label: "No"   description: "Skip commit — files are saved but not committed"
+- If "Yes": run `git add .planning/codebase/ && git commit -m "docs(planning): map existing codebase"`
+- If "No" or "Other": skip commit
 
 ---
 
