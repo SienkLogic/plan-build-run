@@ -215,6 +215,10 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 12. Polish and Hardening | 2/2 | Complete | 2026-02-08 |
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
 | 14. Reference Architecture & GSD Parity | 6/6 | Complete | 2026-02-09 |
+| 15. Gate Check Upgrades | 0/? | Not Started | — |
+| 16. Config & Routing Upgrades | 0/? | Not Started | — |
+| 17. Discussion & Discovery Upgrades | 0/? | Not Started | — |
+| 18. Reference Docs & Testing | 0/? | Not Started | — |
 
 ---
 
@@ -249,3 +253,61 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
   5. New reference docs written: checkpoints.md, git-integration.md, model-profiles.md, planning-config.md
   6. No orphaned files remain in skill subdirectories
   7. All existing tests pass
+
+---
+
+## Milestone: AskUserQuestion UI Upgrade
+
+**Goal:** Replace plain-text gate checks and interactive prompts across all skills with Claude Code's AskUserQuestion tool. Currently skills output text like "Type approved" and wait for freeform input. AskUserQuestion provides structured UI with labeled options, multi-select, and descriptions — dramatically better UX.
+**Phases:** 15 - 18
+**Source:** Todo 057 (AskUserQuestion UI upgrade, 2026-02-10)
+
+### Phase 15: Gate Check Upgrades
+**Goal**: Replace approve/revise/abort gate checks in 6 skills (plan, build, review, import, milestone, scan) with AskUserQuestion structured prompts
+**Depends on**: None (standalone — operates on plugin source)
+**Skills affected**: plan, build, review, import, milestone, scan
+**Success Criteria**:
+  1. All `confirm_plan`, `confirm_execute`, `confirm_transition` gate checks use AskUserQuestion with Approve/Revise/Abort options
+  2. Plan approval in `/dev:plan` uses AskUserQuestion instead of freeform text
+  3. Build confirmation in `/dev:build` uses AskUserQuestion instead of freeform text
+  4. Review walkthrough decisions use AskUserQuestion for pass/fail/revise
+  5. Import conflict resolution uses AskUserQuestion for resolution choices
+  6. Milestone transitions (complete, archive) use AskUserQuestion
+  7. All existing tests pass after changes
+
+### Phase 16: Config & Routing Upgrades
+**Goal**: Replace settings menus and "what next" routing decisions in 5 skills (config, status, continue, resume, quick) with AskUserQuestion
+**Depends on**: Phase 15 (establishes the pattern)
+**Skills affected**: config, status, continue, resume, quick
+**Success Criteria**:
+  1. `/dev:config` settings selection uses AskUserQuestion with category options
+  2. `/dev:config` toggle and model changes use AskUserQuestion
+  3. `/dev:status` "what to do next" routing uses AskUserQuestion with suggested actions
+  4. `/dev:continue` auto-routing confirmation uses AskUserQuestion when ambiguous
+  5. `/dev:resume` session selection uses AskUserQuestion when multiple pause points exist
+  6. `/dev:quick` scope confirmation uses AskUserQuestion
+  7. All existing tests pass after changes
+
+### Phase 17: Discussion & Discovery Upgrades
+**Goal**: Replace multi-option questioning in 4 skills (begin, discuss, explore, debug) with AskUserQuestion for structured decision capture
+**Depends on**: Phase 16 (pattern fully established)
+**Skills affected**: begin, discuss, explore, debug
+**Success Criteria**:
+  1. `/dev:begin` depth selection uses AskUserQuestion (quick/standard/comprehensive)
+  2. `/dev:begin` project type and technology choices use AskUserQuestion where applicable
+  3. `/dev:discuss` topic routing uses AskUserQuestion for multi-option decisions
+  4. `/dev:explore` routing decisions (note/todo/plan) use AskUserQuestion
+  5. `/dev:debug` hypothesis selection and retry/skip/abort use AskUserQuestion
+  6. Freeform inputs remain as plain text (not forced into AskUserQuestion)
+  7. All existing tests pass after changes
+
+### Phase 18: Reference Docs & Testing
+**Goal**: Update reference docs, add tests for AskUserQuestion patterns, ensure cross-cutting consistency
+**Depends on**: Phase 17 (all skill changes complete)
+**Success Criteria**:
+  1. `references/towline-rules.md` updated with AskUserQuestion usage rules
+  2. `references/ui-formatting.md` updated with AskUserQuestion patterns and examples
+  3. DEVELOPMENT-GUIDE.md updated to document AskUserQuestion conventions
+  4. Test coverage added for AskUserQuestion pattern validation (no freeform gate checks remain)
+  5. All 20 skills audited for consistency — no missed opportunities
+  6. All existing tests pass
