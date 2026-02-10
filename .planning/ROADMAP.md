@@ -19,7 +19,7 @@ The Towline Dashboard is a Node.js web application that serves as a session view
 - [x] Phase 11: HTMX Dynamic Loading -- Replace full page reloads with HTMX partial content loading
 - [x] Phase 12: Polish and Hardening -- Error handling, security hardening, edge cases, cross-platform testing
 - [x] Phase 13: Extract & Deduplicate -- Mechanically extract ~1,900 lines of inline templates and prompt templates from SKILL.md files and agent definitions into external files, updating all references to lazy-load via Read
-- [] Phase 14: Reference Architecture & GSD Parity -- Consolidate 7 scattered reference docs into a `references/` directory, create new templates and reference docs for GSD structural parity
+- [x] Phase 14: Reference Architecture & GSD Parity -- Consolidate 7 scattered reference docs into a `references/` directory, create new templates and reference docs for GSD structural parity
 
 
 ## Phase Details
@@ -214,7 +214,7 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 11. HTMX Dynamic Loading | 2/2 | Complete | 2026-02-08 |
 | 12. Polish and Hardening | 2/2 | Complete | 2026-02-08 |
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
-| 14. Reference Architecture & GSD Parity | 0/6 | Planned | -- |
+| 14. Reference Architecture & GSD Parity | 6/6 | Complete | 2026-02-09 |
 
 ---
 
