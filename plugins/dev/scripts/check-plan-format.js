@@ -221,5 +221,50 @@ function validateSummary(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary };
+/**
+ * Core plan/summary check logic for use by dispatchers.
+ * @param {Object} data - Parsed hook input (tool_input, etc.)
+ * @returns {null|{output: Object}} null if pass or not applicable, result otherwise
+ */
+function checkPlanWrite(data) {
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  const basename = path.basename(filePath);
+  const isPlan = basename.endsWith('PLAN.md');
+  const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
+
+  if (!isPlan && !isSummary) return null;
+  if (!fs.existsSync(filePath)) return null;
+
+  const content = fs.readFileSync(filePath, 'utf8');
+  const result = isPlan
+    ? validatePlan(content, filePath)
+    : validateSummary(content, filePath);
+
+  const eventType = isPlan ? 'plan-validated' : 'summary-validated';
+
+  if (result.errors.length > 0) {
+    logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
+    logEvent('workflow', eventType, { file: basename, status: 'block', errorCount: result.errors.length });
+
+    const parts = [`${basename} has structural errors that must be fixed:`];
+    parts.push(...result.errors.map(i => `  - ${i}`));
+    if (result.warnings.length > 0) {
+      parts.push('', 'Warnings (non-blocking):');
+      parts.push(...result.warnings.map(i => `  - ${i}`));
+    }
+    return { output: { decision: 'block', reason: parts.join('\n') } };
+  }
+
+  if (result.warnings.length > 0) {
+    logHook('check-plan-format', 'PostToolUse', 'warn', { file: basename, warnings: result.warnings });
+    logEvent('workflow', eventType, { file: basename, status: 'warn', warningCount: result.warnings.length });
+    return { output: { message: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}` } };
+  }
+
+  logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
+  logEvent('workflow', eventType, { file: basename, status: 'pass' });
+  return null;
+}
+
+module.exports = { validatePlan, validateSummary, checkPlanWrite };
 if (require.main === module) { main(); }

@@ -18,13 +18,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-plan-format.js",
-            "statusMessage": "Validating plan format..."
-          },
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/post-write-dispatch.js",
+            "statusMessage": "Validating write output..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-roadmap-sync.js",
-            "statusMessage": "Checking roadmap sync..."
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/post-write-quality.js",
+            "statusMessage": "Running quality checks..."
           }
         ]
       },
@@ -81,13 +86,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-skill-workflow.js",
-            "statusMessage": "Checking workflow rules..."
-          },
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-phase-boundary.js",
-            "statusMessage": "Checking phase boundary..."
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/pre-write-dispatch.js",
+            "statusMessage": "Checking write rules..."
           }
         ]
       }

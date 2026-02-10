@@ -189,5 +189,64 @@ function normalizePhaseNum(raw) {
   return match ? match[1] : raw.trim();
 }
 
-module.exports = { parseState, getRoadmapPhaseStatus };
+/**
+ * Core roadmap sync check logic for use by dispatchers.
+ * @param {Object} data - Parsed hook input (tool_input, etc.)
+ * @returns {null|{output: Object}} null if pass or not applicable, result otherwise
+ */
+function checkSync(data) {
+  const filePath = data.tool_input?.file_path || '';
+
+  if (!filePath.endsWith('STATE.md')) return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+
+  if (!fs.existsSync(filePath) || !fs.existsSync(roadmapPath)) return null;
+
+  const stateContent = fs.readFileSync(filePath, 'utf8');
+  const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+
+  const stateInfo = parseState(stateContent);
+  if (!stateInfo || !stateInfo.phase || !stateInfo.status) {
+    logHook('check-roadmap-sync', 'PostToolUse', 'skip', { reason: 'could not parse STATE.md' });
+    return null;
+  }
+
+  if (!LIFECYCLE_STATUSES.includes(stateInfo.status)) {
+    logHook('check-roadmap-sync', 'PostToolUse', 'skip', {
+      reason: `status "${stateInfo.status}" not a lifecycle status`
+    });
+    return null;
+  }
+
+  const roadmapStatus = getRoadmapPhaseStatus(roadmapContent, stateInfo.phase);
+  if (!roadmapStatus) {
+    logHook('check-roadmap-sync', 'PostToolUse', 'skip', {
+      reason: `phase ${stateInfo.phase} not found in ROADMAP.md table`
+    });
+    return null;
+  }
+
+  if (roadmapStatus.toLowerCase() !== stateInfo.status) {
+    logHook('check-roadmap-sync', 'PostToolUse', 'warn', {
+      phase: stateInfo.phase, stateStatus: stateInfo.status, roadmapStatus
+    });
+    logEvent('workflow', 'roadmap-sync', {
+      phase: stateInfo.phase, stateStatus: stateInfo.status, roadmapStatus, status: 'out-of-sync'
+    });
+    return {
+      output: {
+        message: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
+      }
+    };
+  }
+
+  logHook('check-roadmap-sync', 'PostToolUse', 'pass', { phase: stateInfo.phase, status: stateInfo.status });
+  logEvent('workflow', 'roadmap-sync', { phase: stateInfo.phase, status: 'in-sync' });
+  return null;
+}
+
+module.exports = { parseState, getRoadmapPhaseStatus, checkSync };
 if (require.main === module) { main(); }

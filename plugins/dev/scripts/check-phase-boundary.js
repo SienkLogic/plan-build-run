@@ -130,5 +130,67 @@ function getEnforceSetting(planningDir) {
   }
 }
 
-module.exports = { getEnforceSetting };
+/**
+ * Core boundary check logic for use by dispatchers.
+ * @param {Object} data - Parsed hook input (tool_input, etc.)
+ * @returns {null|{exitCode: number, output: Object}} null if pass, result otherwise
+ */
+function checkBoundary(data) {
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  if (!filePath) return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const phasesMarker = '.planning/phases/';
+  const markerIdx = normalizedPath.indexOf(phasesMarker);
+  if (markerIdx === -1) return null;
+
+  const afterMarker = normalizedPath.substring(markerIdx + phasesMarker.length);
+  const phaseMatch = afterMarker.match(/^(\d+)-/);
+  if (!phaseMatch) return null;
+  const filePhase = parseInt(phaseMatch[1], 10);
+
+  const stateFile = path.join(planningDir, 'STATE.md');
+  if (!fs.existsSync(stateFile)) return null;
+
+  const state = fs.readFileSync(stateFile, 'utf8');
+  const currentPhaseMatch = state.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+  if (!currentPhaseMatch) return null;
+  const currentPhase = parseInt(currentPhaseMatch[1], 10);
+
+  if (filePhase === currentPhase) return null;
+
+  const enforce = getEnforceSetting(planningDir);
+
+  logHook('check-phase-boundary', 'PreToolUse', enforce ? 'block' : 'warn', {
+    filePhase, currentPhase, file: path.basename(filePath)
+  });
+  logEvent('workflow', 'phase-boundary', {
+    filePhase, currentPhase, file: path.basename(filePath), action: enforce ? 'block' : 'warn'
+  });
+
+  if (enforce) {
+    return {
+      exitCode: 2,
+      output: {
+        decision: 'block',
+        reason: `Cross-phase write blocked: editing phase ${filePhase} file but current phase is ${currentPhase}.\n\nFile: ${filePath}\n\nIf this is intentional, either:\n  1. Update STATE.md to reflect the correct phase\n  2. Set safety.enforce_phase_boundaries: false in config.json`
+      }
+    };
+  }
+
+  return {
+    exitCode: 0,
+    output: {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
+      }
+    }
+  };
+}
+
+module.exports = { getEnforceSetting, checkBoundary };
 if (require.main === module) { main(); }
