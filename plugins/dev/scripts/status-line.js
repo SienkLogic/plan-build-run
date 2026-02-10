@@ -23,14 +23,13 @@ function readStdin() {
 }
 
 function getContextPercent(stdinData) {
+  // Claude Code statusLine sends context_window.used_percentage (0-100)
+  if (stdinData.context_window && stdinData.context_window.used_percentage != null) {
+    return Math.round(stdinData.context_window.used_percentage);
+  }
+  // Legacy field name
   if (stdinData.context_usage_fraction != null) {
     return Math.round(stdinData.context_usage_fraction * 100);
-  }
-  // Fallback: check env vars
-  const used = process.env.CLAUDE_CONTEXT_TOKENS_USED;
-  const total = process.env.CLAUDE_CONTEXT_TOKENS_TOTAL;
-  if (used && total && Number(total) > 0) {
-    return Math.round((Number(used) / Number(total)) * 100);
   }
   return null;
 }
@@ -50,8 +49,7 @@ function main() {
     const status = buildStatusLine(content, ctxPercent);
 
     if (status) {
-      const output = { statusLine: status };
-      process.stdout.write(JSON.stringify(output));
+      process.stdout.write(status);
       logHook('status-line', 'StatusLine', 'updated', { status, ctxPercent });
     }
   } catch (_e) {
