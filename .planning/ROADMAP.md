@@ -216,9 +216,25 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
 | 14. Reference Architecture & GSD Parity | 6/6 | Complete | 2026-02-09 |
 | 15. Gate Check Upgrades | 2/2 | Built | 2026-02-10 |
-| 16. Config & Routing Upgrades | 0/? | Not Started | — |
+| 16. Config & Routing Upgrades | 0/3 | Planned | — |
 | 17. Discussion & Discovery Upgrades | 0/? | Not Started | — |
 | 18. Reference Docs & Testing | 0/? | Not Started | — |
+| 19. Rich Hook Matchers | 0/? | Not Started | — |
+| 20. Auto-Format Hooks | 0/? | Not Started | — |
+| 21. Proactive Compaction Hook | 0/? | Not Started | — |
+| 22. Doc File Creation Blocker | 0/? | Not Started | — |
+| 23. Async Hooks | 0/? | Not Started | — |
+| 24. JSON Schemas | 0/? | Not Started | — |
+| 25. Atomic File Writes | 0/? | Not Started | — |
+| 26. CI Improvements | 0/? | Not Started | — |
+| 27. Hook Spawn Testing | 0/? | Not Started | — |
+| 28. Iterative Retrieval Pattern | 0/? | Not Started | — |
+| 29. Contexts & Mode Switching | 0/? | Not Started | — |
+| 30. Eval-Driven Development | 0/? | Not Started | — |
+| 31. Plugin Manifest Knowledge | 0/? | Not Started | — |
+| 32. Installation Wizard | 0/? | Not Started | — |
+| 33. Instinct Learning Research | 0/? | Not Started | — |
+| 34. Multi-Model Orchestration Research | 0/? | Not Started | — |
 
 ---
 
@@ -311,3 +327,212 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
   4. Test coverage added for AskUserQuestion pattern validation (no freeform gate checks remain)
   5. All 20 skills audited for consistency — no missed opportunities
   6. All existing tests pass
+
+---
+
+## Milestone: Hook System Modernization
+
+**Goal:** Make Towline's hook system smarter, more efficient, and non-blocking. Replace wildcard matchers with expression-based filtering, add code-quality hooks, proactive compaction, doc-sprawl prevention, and async execution for non-critical hooks.
+**Phases:** 19 - 23
+**Source:** ECC review (todos 058, 059, 060, 069, 070), 2026-02-10
+
+### Phase 19: Rich Hook Matchers
+**Goal**: Refactor hooks.json from wildcard `*` matchers to expression-based matchers (`tool == "Bash" && tool_input.command matches "(pattern)"`) so hooks only fire when relevant
+**Depends on**: None (standalone)
+**Source Todo**: 058-rich-hook-matchers
+**Success Criteria**:
+  1. All PreToolUse hooks in hooks.json use expression-based `tool_name` matchers instead of `*`
+  2. All PostToolUse hooks use expression-based matchers targeting specific tools (Write, Edit)
+  3. Hook scripts no longer need internal tool-name filtering logic (removed)
+  4. All existing tests pass — no behavioral changes
+  5. Measured reduction in unnecessary hook script invocations
+
+### Phase 20: Auto-Format Hooks
+**Goal**: Add opt-in PostToolUse hooks that run Prettier, tsc type-check, and console.log detection on modified files
+**Depends on**: Phase 19 (rich matchers needed for efficient triggering)
+**Source Todo**: 059-postuse-autoformat-hooks
+**Success Criteria**:
+  1. New PostToolUse hook runs Prettier on written/edited files when `hooks.autoFormat` is enabled
+  2. New PostToolUse hook runs tsc type-check when `hooks.typeCheck` is enabled and tsconfig.json exists
+  3. New PostToolUse hook detects leftover console.log statements when `hooks.detectConsoleLogs` is enabled
+  4. All three hooks are opt-in via config.json toggles (default: off)
+  5. Hooks use rich matchers to target only Write/Edit on .ts/.tsx/.js/.jsx files
+
+### Phase 21: Proactive Compaction Hook
+**Goal**: New PreToolUse hook that counts tool calls per session and suggests `/compact` when approaching configurable threshold
+**Depends on**: Phase 19 (rich matchers for efficient triggering)
+**Source Todo**: 060-proactive-compaction-hook
+**Success Criteria**:
+  1. New `suggest-compact.js` script tracks tool call count per session
+  2. Threshold is configurable via `hooks.compactThreshold` in config.json (default: 50)
+  3. At threshold, hook outputs a non-blocking suggestion (does not block the tool call)
+  4. Counter resets on session start
+  5. Works alongside existing context-budget-check.js without conflict
+
+### Phase 22: Doc File Creation Blocker
+**Goal**: PreToolUse hook that blocks creation of random .md/.txt files outside an allowlist, preventing doc sprawl during builds
+**Depends on**: Phase 19 (rich matchers)
+**Source Todo**: 069-doc-file-creation-blocker
+**Success Criteria**:
+  1. New PreToolUse hook blocks Write tool on `.md`/`.txt` files outside allowlist
+  2. Allowlist includes: README.md, CLAUDE.md, CONTRIBUTING.md, CHANGELOG.md, .planning/**
+  3. Block returns exit code 2 with helpful error message
+  4. Controlled by `hooks.blockDocSprawl` config toggle (default: off)
+
+### Phase 23: Async Hooks
+**Goal**: Research and apply async execution for non-blocking hooks (log-subagent.js, session-cleanup.js)
+**Depends on**: None (independent research)
+**Source Todo**: 070-async-hooks
+**Success Criteria**:
+  1. Research complete on which hooks benefit from `"async": true, "timeout": 30`
+  2. hooks.json updated with async flag where appropriate
+  3. Verified no race conditions with async execution
+  4. Tested on Windows, macOS, and Linux
+
+---
+
+## Milestone: Reliability & Quality Infrastructure
+
+**Goal:** Add formal contracts, crash safety, better CI, and more realistic test coverage. No user-facing features — pure engineering quality.
+**Phases:** 24 - 27
+**Source:** ECC review (todos 063, 064, 067, 068), 2026-02-10
+
+### Phase 24: JSON Schemas
+**Goal**: Create formal JSON schemas for config.json and hooks.json with `$schema` references enabling IDE autocompletion and CI validation
+**Depends on**: None (standalone)
+**Source Todo**: 063-json-schemas
+**Success Criteria**:
+  1. `schemas/config.schema.json` validates all config.json fields, types, and defaults
+  2. `schemas/hooks.schema.json` validates hooks.json structure and matcher expressions
+  3. config.json and hooks.json include `$schema` references
+  4. CI step validates both files against schemas
+  5. IDE autocompletion works in VS Code when editing config.json
+
+### Phase 25: Atomic File Writes
+**Goal**: Add `atomicWrite()` utility to towline-tools.js that uses write-to-temp + rename + backup/restore for crash-safe file operations
+**Depends on**: None (standalone)
+**Source Todo**: 064-atomic-file-writes
+**Success Criteria**:
+  1. New `atomicWrite(filePath, content)` function in towline-tools.js
+  2. Writes to temp file first, then renames to target (atomic on most filesystems)
+  3. Creates `.bak` backup before overwrite, restores on failure
+  4. All STATE.md, config.json, and ROADMAP.md writes in hook scripts use atomicWrite()
+  5. Cross-platform tests pass (Windows and POSIX rename semantics differ)
+
+### Phase 26: CI Improvements
+**Goal**: Add markdownlint, release workflow, maintenance automation, and CLAUDE_PLUGIN_ROOT path verification test
+**Depends on**: None (standalone)
+**Source Todo**: 067-ci-improvements
+**Success Criteria**:
+  1. Markdownlint added to CI pipeline for .planning/ and references/ markdown files
+  2. Release workflow automates version tagging and changelog generation
+  3. Test added that verifies all hooks.json script paths resolve with ${CLAUDE_PLUGIN_ROOT}
+  4. All existing CI checks continue to pass
+
+### Phase 27: Hook Spawn Testing
+**Goal**: Add integration tests that spawn hook scripts as real child processes with simulated stdin, complementing existing mock-based tests
+**Depends on**: None (standalone)
+**Source Todo**: 068-hook-spawn-testing
+**Success Criteria**:
+  1. Test helper spawns hook scripts via `child_process.spawn()` with JSON stdin
+  2. Tests validate actual stdout/stderr output and exit codes
+  3. At least validate-commit.js and check-plan-format.js have spawn-based tests
+  4. Tests work cross-platform (Windows and POSIX)
+  5. Spawn tests run alongside existing mock tests in CI
+
+---
+
+## Milestone: Agent Intelligence Upgrade
+
+**Goal:** Make Towline's agents smarter and more adaptive. Upgrade the researcher with iterative retrieval, add lightweight behavioral profiles, and explore formal metrics for verification.
+**Phases:** 28 - 30
+**Source:** ECC review (todos 061, 065, 066), 2026-02-10
+
+### Phase 28: Iterative Retrieval Pattern
+**Goal**: Upgrade towline-researcher agent prompt with a 4-phase DISPATCH/EVALUATE/REFINE/LOOP protocol (max 3 cycles) for more thorough context gathering
+**Depends on**: None (standalone)
+**Source Todo**: 061-iterative-retrieval-pattern
+**Success Criteria**:
+  1. towline-researcher.md agent prompt includes DISPATCH → EVALUATE → REFINE → LOOP protocol
+  2. Max 3 refinement cycles before finalizing results
+  3. Each cycle evaluates coverage gaps and adjusts search strategy
+  4. Researcher outputs include confidence indicators for coverage completeness
+  5. No regression in existing research workflows
+
+### Phase 29: Contexts & Mode Switching
+**Goal**: Create lightweight dev/research/review context files that change Claude's behavioral approach without full skill invocation
+**Depends on**: None (standalone)
+**Source Todo**: 065-contexts-mode-switching
+**Success Criteria**:
+  1. Context files created: `contexts/dev.md`, `contexts/research.md`, `contexts/review.md`
+  2. Each context defines behavioral profile (verbosity, risk tolerance, tool preferences)
+  3. Skills can reference context files to set agent behavioral tone
+  4. Documentation explains when to use each context
+
+### Phase 30: Eval-Driven Development
+**Goal**: Research pass@k (at least 1 of k succeeds) and pass^k (all k must succeed) metrics for strengthening Towline's verification system
+**Depends on**: None (standalone, research phase)
+**Source Todo**: 066-eval-driven-development
+**Success Criteria**:
+  1. Research document explaining pass@k and pass^k metrics
+  2. Assessment of how metrics could improve towline-verifier's assessment methodology
+  3. Recommendation on whether to adopt, defer, or reject
+  4. If adopted: design doc for integration into verification workflow
+
+---
+
+## Milestone: Developer Experience
+
+**Goal:** Make Towline easier for new users and ready for the plugin marketplace. Guided onboarding and publishing documentation.
+**Phases:** 31 - 32
+**Source:** ECC review (todos 062, 071), 2026-02-10
+
+### Phase 31: Plugin Manifest Knowledge
+**Goal**: Document undocumented plugin validator constraints discovered from ECC review for marketplace publishing readiness
+**Depends on**: None (standalone)
+**Source Todo**: 062-plugin-manifest-knowledge
+**Success Criteria**:
+  1. DEVELOPMENT-GUIDE.md updated with plugin validator constraints
+  2. Documented: agents need explicit file paths (not directories)
+  3. Documented: hooks must NOT be in plugin.json (auto-loaded from hooks/)
+  4. Documented: all fields must be arrays, version is mandatory
+  5. CI test validates plugin.json against documented constraints
+
+### Phase 32: Installation Wizard
+**Goal**: Interactive onboarding skill (`/dev:setup` or enhanced `/dev:config`) using AskUserQuestion for step-by-step first-run configuration
+**Depends on**: Phase 18 (AskUserQuestion patterns established)
+**Source Todo**: 071-installation-wizard
+**Success Criteria**:
+  1. New skill guides users through Towline setup step-by-step
+  2. Step 1: Detect .planning/ existence, offer to initialize
+  3. Step 2: Configure model preferences (quality/balanced/budget)
+  4. Step 3: Configure workflow toggles (gates, auto-continue, etc.)
+  5. Step 4: Verify hook installation
+  6. Step 5: Run `/dev:health` to confirm everything works
+  7. Works for both fresh installs and existing projects
+
+---
+
+## Milestone: Future Research
+
+**Goal:** Exploratory research into advanced capabilities. Deliverable is a recommendation document, not code. No implementation commitment.
+**Phases:** 33 - 34
+**Source:** ECC review (todos 072, 073), 2026-02-10
+
+### Phase 33: Instinct Learning Research
+**Goal**: Research whether an instinct-based continuous learning system (inspired by ECC's continuous-learning-v2) would add value to Towline
+**Depends on**: None (standalone research)
+**Source Todo**: 072-instinct-learning-system
+**Success Criteria**:
+  1. Research document covering: minimal instinct system design, learnable patterns (commit conventions, file organization, test patterns), cost/benefit analysis
+  2. Assessment of whether instincts could piggyback on existing hooks
+  3. Clear recommendation: adopt, defer, or reject
+
+### Phase 34: Multi-Model Orchestration Research
+**Goal**: Research multi-model orchestration patterns (Codex for backend, Gemini for frontend, Claude as orchestrator) for potential future Towline capabilities
+**Depends on**: None (standalone research)
+**Source Todo**: 073-multi-model-orchestration
+**Success Criteria**:
+  1. Research document covering: which Towline workflows would benefit, trust-routing in Towline's phase system, cost/latency impact
+  2. Assessment of "dirty prototype refactoring" pattern applicability
+  3. Clear recommendation on if/when to pursue
