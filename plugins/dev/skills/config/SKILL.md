@@ -1,7 +1,7 @@
 ---
 name: config
 description: "Configure Towline settings. Model selection, workflow toggles, depth, gates, and parallelization."
-allowed-tools: Read, Write, Bash, Glob
+allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
 # /dev:config — Configure Towline
@@ -69,14 +69,70 @@ Gates:
   ✗ Confirm execute    ✓ Confirm transition ✓ Issues review
 ```
 
-Then ask: "What would you like to change?" with options:
-- Depth (quick/standard/comprehensive)
-- Models (per-agent model selection)
-- Model profile (quality/balanced/budget/adaptive — sets all models at once)
-- Features (toggle individual features)
-- Gates (toggle confirmation gates)
-- Parallelization settings
-- Git settings (branching strategy, mode)
+Then present the configuration menu using the **settings-category-select** pattern (see `skills/shared/gate-prompts.md`):
+
+Use AskUserQuestion:
+  question: "What would you like to configure?"
+  header: "Configure"
+  options:
+    - label: "Depth"          description: "quick/standard/comprehensive"
+    - label: "Model profile"  description: "quality/balanced/budget/adaptive"
+    - label: "Features"       description: "Toggle workflow features and gates"
+    - label: "Git settings"   description: "branching strategy, commit mode"
+  multiSelect: false
+
+Note: The original 7 categories are condensed to 4. "Models" (per-agent) is accessible through "Model profile" with a follow-up option. "Gates" and "Parallelization" are grouped under "Features".
+
+**Follow-up based on selection:**
+
+If user selects "Depth":
+Use AskUserQuestion:
+  question: "Select workflow depth"
+  header: "Depth"
+  options:
+    - label: "Quick"           description: "Minimal research, fast execution"
+    - label: "Standard"        description: "Balanced research and execution (default)"
+    - label: "Comprehensive"   description: "Full research, thorough verification"
+  multiSelect: false
+
+If user selects "Model profile":
+Use the **model-profile-select** pattern:
+Use AskUserQuestion:
+  question: "Select model profile"
+  header: "Profile"
+  options:
+    - label: "Quality"    description: "opus for all agents (highest cost)"
+    - label: "Balanced"   description: "sonnet/inherit mix (default)"
+    - label: "Budget"     description: "haiku for all agents (lowest cost)"
+    - label: "Adaptive"   description: "sonnet planning, haiku execution"
+  multiSelect: false
+
+If user asks for per-agent model selection (typed "models" or "per-agent"), present individual agent selection as plain text: list the agents and ask which one to change, then ask for the model. This is a freeform flow because agent names are dynamic.
+
+If user selects "Features":
+List all features and gates with current status, then use the **toggle-confirm** pattern for each change:
+Use AskUserQuestion:
+  question: "Enable {feature_name}?"
+  header: "Toggle"
+  options:
+    - label: "Enable"   description: "Turn this feature on"
+    - label: "Disable"  description: "Turn this feature off"
+  multiSelect: false
+
+Repeat for each feature the user wants to change. Show updated status after each toggle.
+
+If user selects "Git settings":
+Use AskUserQuestion:
+  question: "Select branching strategy"
+  header: "Branching"
+  options:
+    - label: "None"        description: "All work on current branch"
+    - label: "Phase"       description: "New branch per phase"
+    - label: "Milestone"   description: "New branch per milestone"
+    - label: "Disabled"    description: "No git integration"
+  multiSelect: false
+
+If user types something else (freeform): interpret as a direct setting command and handle via Step 2 argument parsing logic.
 
 ### 4. Apply Changes
 
