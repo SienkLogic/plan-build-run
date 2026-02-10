@@ -1,7 +1,7 @@
 ---
 name: status
 description: "Show current project status and suggest what to do next."
-allowed-tools: Read, Glob, Grep
+allowed-tools: Read, Glob, Grep, AskUserQuestion
 ---
 
 # /dev:status — Project Status Dashboard
@@ -242,19 +242,31 @@ Based on the project state, suggest the single most logical next action:
    → "Start your project: `/dev:begin`"
 ```
 
-Present the suggestion:
+**If only one reasonable next action exists**, present it directly:
+
 ```
 Next step:
 --> {suggested command} -- {brief explanation}
 ```
 
-If multiple reasonable next actions exist, show up to 3:
-```
-Suggested next steps:
---> {primary suggestion} -- {explanation}
---> {alternative 1} -- {explanation}
---> {alternative 2} -- {explanation}
-```
+**If multiple reasonable next actions exist** (2-3 alternatives), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
+
+Use AskUserQuestion:
+  question: "What would you like to do next?"
+  header: "Next Step"
+  options:
+    - label: "{primary action}"    description: "{brief explanation}"
+    - label: "{alternative 1}"     description: "{brief explanation}"
+    - label: "{alternative 2}"     description: "{brief explanation}"
+    - label: "Something else"      description: "Enter a different command"
+  multiSelect: false
+
+Build options dynamically from the decision tree results. Always include "Something else" as the last option. Generate 1-3 real options based on the state analysis.
+
+**After user selects an option:**
+- If they selected a real action: display "Run: `/dev:{action} {args}`" so they can execute it
+- If they selected "Something else": ask what they'd like to do (freeform text)
+- This skill remains read-only — display the command, do not execute it
 
 ---
 
@@ -320,3 +332,4 @@ This skill should be fast. It's a status check, not an analysis.
 5. **DO NOT** suggest multiple actions without prioritizing — the primary suggestion should be clear
 6. **DO NOT** re-read full file contents when frontmatter is sufficient
 7. **DO NOT** show completed phases in full detail unless specifically relevant
+8. **DO NOT** execute the suggested action — present it for the user to run manually. Use /dev:continue for auto-execution.
