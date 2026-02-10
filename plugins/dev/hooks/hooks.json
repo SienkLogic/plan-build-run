@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/progress-tracker.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/progress-tracker.js",
+            "statusMessage": "Loading project state..."
           }
         ]
       }
@@ -17,11 +18,24 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-plan-format.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-plan-format.js",
+            "statusMessage": "Validating plan format..."
           },
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-roadmap-sync.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-roadmap-sync.js",
+            "statusMessage": "Checking roadmap sync..."
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-tool-failure.js",
+            "statusMessage": "Logging tool failure..."
           }
         ]
       }
@@ -32,7 +46,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js",
+            "statusMessage": "Validating commit..."
           }
         ]
       }
@@ -42,7 +57,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/context-budget-check.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/context-budget-check.js",
+            "statusMessage": "Preserving state before compaction..."
           }
         ]
       }
@@ -52,7 +68,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/auto-continue.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/auto-continue.js",
+            "statusMessage": "Checking for next command..."
           }
         ]
       }
@@ -62,7 +79,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js start"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js start",
+            "statusMessage": "Logging agent spawn..."
           }
         ]
       }
@@ -72,7 +90,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js stop"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js stop",
+            "statusMessage": "Logging agent completion..."
           }
         ]
       }
@@ -82,7 +101,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/session-cleanup.js"
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/session-cleanup.js",
+            "statusMessage": "Cleaning up session..."
           }
         ]
       }
