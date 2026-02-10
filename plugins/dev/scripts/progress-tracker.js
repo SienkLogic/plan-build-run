@@ -25,6 +25,10 @@ function main() {
     process.exit(0);
   }
 
+  // Reset compaction counter for new session
+  const { resetCounter } = require('./suggest-compact');
+  resetCounter(planningDir);
+
   const context = buildContext(planningDir, stateFile);
 
   if (context) {
