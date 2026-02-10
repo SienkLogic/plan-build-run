@@ -97,6 +97,16 @@ Display the following reference to the user:
 - **PR hygiene**: When creating PRs from a Towline project, `.planning/` commits can be filtered using phase branching (`git.branching_strategy: phase`) which squash-merges code-only changes to main.
 - **Seeds**: `/dev:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
 
+## Behavioral Contexts
+
+Towline includes three behavioral contexts in `contexts/` that adjust how Claude operates:
+
+- **dev** — Active development: write code first, low verbosity, medium risk tolerance
+- **research** — Exploration mode: read widely, no code writing, high verbosity, evidence-based
+- **review** — Code review: read thoroughly, prioritize by severity, report don't fix
+
+Skills automatically activate the appropriate context: `/dev:build` uses dev context, `/dev:discuss` uses research context, `/dev:review` uses review context.
+
 ## Getting Help
 
 - GitHub Issues: https://github.com/SienkLogic/towline/issues
