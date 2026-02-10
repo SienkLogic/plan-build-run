@@ -1,0 +1,179 @@
+# Towline Rules
+
+Authoritative rules for all Towline skills, agents, hooks, and workflows.
+Condensed from the 3,100-line DEVELOPMENT-GUIDE.md. When in doubt, these rules govern.
+
+---
+
+## Philosophy
+
+1. **Context is precious.** The orchestrator stays lean (~15% usage). Delegate heavy work to subagents.
+2. **State lives on disk.** Skills and agents communicate through `.planning/` files, not messages.
+3. **Agents are black boxes.** Clear input/output contracts. Agents never read other agent definitions.
+4. **Gates provide safety.** Users control pace via config toggles. Never skip a gate.
+5. **One task, one commit.** Atomic commits for clean history and easy rollback.
+6. **Cross-platform always.** `path.join()`, CommonJS, test on Windows/macOS/Linux.
+7. **Test everything.** 70% coverage minimum. All 9 CI matrix combinations must pass.
+8. **TOWLINE branding only.** Always `TOWLINE ►`, never `GSD ►`.
+
+---
+
+## Context Budget
+
+9. Target 15% orchestrator context usage. Warn user at 30%.
+10. **Never** read agent definitions (`agents/*.md`) in the orchestrator — `subagent_type` auto-loads them.
+11. **Never** inline large files into `Task()` prompts — tell agents to read files from disk.
+12. **Never** read full subagent output — read frontmatter only (first 10-20 lines).
+13. Read STATE.md and config.json fully. Read ROADMAP.md by section. Read PLAN.md/SUMMARY.md/VERIFICATION.md frontmatter only.
+14. Use the `limit` parameter on Read to restrict line counts.
+15. Proactively suggest `/dev:pause` when context gets heavy — before compaction, not after.
+
+---
+
+## State Management
+
+16. STATE.md is the **single source of truth** for current position.
+17. **Never** infer current phase from directory listings, git log, or conversation history.
+18. Always read STATE.md before making state-dependent decisions.
+19. Update STATE.md at: begin, plan, build, review, pause, continue, milestone.
+20. **Never** commit STATE.md mid-skill — hooks handle session persistence.
+21. Agents write artifacts (SUMMARY.md, VERIFICATION.md). Only the orchestrator writes STATE.md.
+22. Every ROADMAP.md phase must have a matching `.planning/phases/` directory, and vice versa.
+23. config.json is validated against `scripts/config-schema.json` on load.
+
+---
+
+## Agent Spawning
+
+24. Always use `subagent_type: "dev:towline-{name}"` to spawn agents.
+25. Pass file paths to agents, not file contents.
+26. Agents never read other agent definition files.
+27. Each agent gets a fresh 200k token context window — let them do the heavy reading.
+
+---
+
+## Skill Authoring
+
+28. Every SKILL.md starts with YAML frontmatter: `name`, `description`, `allowed-tools`, `argument-hint`.
+29. Skills that spawn agents **must** have a `## Context Budget` section.
+30. Mark each step as `(inline)` or `(delegate)` — inline for light work, delegate for analysis.
+31. Reference templates and references by filename — never inline them.
+32. Gate checks: read config toggle → display summary → ask user → proceed/abort/revise.
+33. Use branded UI elements from `references/ui-formatting.md`.
+
+---
+
+## Agent Authoring
+
+34. Every agent file starts with YAML frontmatter: `name`, `description`, `model`, `memory`, `tools`.
+35. Agent name must use `towline-` prefix. Never `gsd-`.
+36. `tools` array: only include tools the agent actually uses.
+37. Agents write artifacts to disk. They never modify STATE.md or ROADMAP.md.
+38. Agent definitions are self-contained — no cross-agent references.
+
+---
+
+## Hook Development
+
+39. All hooks use **CommonJS** (`require`), never ES modules (`import`).
+40. All hooks call `logHook()` from `hook-logger.js`. No silent exits.
+41. Exit codes: `0` = allow/success, `2` = block (PreToolUse only), other = error (logged, non-blocking).
+42. Hooks receive JSON on stdin, write JSON to stdout.
+43. Fail gracefully: wrap in try/catch, exit 0 on parse errors.
+44. Every hook in `hooks.json` must have a `statusMessage` field (gerund form: "Validating...", keep short).
+45. Windows file deletion: use 3-attempt retry loop to handle AV/indexer locks.
+46. Every hook script must have a corresponding `tests/{name}.test.js`.
+
+---
+
+## Commits
+
+47. Format: `{type}({scope}): {description}`.
+48. Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `wip`.
+49. Valid scopes: `{NN}-{MM}` (phase-plan), `quick-{NNN}`, `planning`, or any lowercase word.
+50. **Never** use `git add .` or `git add -A` — stage specific files only.
+51. Blocked files: `.env` (not `.env.example`), `*.key`, `*.pem`, `*.pfx`, `*.p12`, `*credential*`, `*secret*` (unless in `tests/` or `*.example`).
+52. TDD tasks: exactly 3 commits — RED (test), GREEN (feat), REFACTOR.
+53. Executors: one atomic commit per task.
+
+---
+
+## Templates
+
+54. Default syntax: `{variable}` placeholders for string substitution.
+55. Only use EJS (`<%= %>`, `<% %>`) when loops or conditionals are genuinely needed.
+56. Template files use `.tmpl` extension. Name matches the output file (e.g., `SUMMARY.md.tmpl` → `SUMMARY.md`).
+57. Templates live in `templates/` (global), `templates/codebase/` (scan), `templates/research/` (research), or `skills/{name}/templates/` (skill-specific).
+
+---
+
+## File Naming
+
+58. Skills: `plugins/dev/skills/{skill-name}/SKILL.md` — lowercase hyphenated dir, uppercase `SKILL.md`.
+59. Agents: `plugins/dev/agents/towline-{name}.md` — must start with `towline-` prefix.
+60. Scripts: `plugins/dev/scripts/{name}.js` — lowercase, hyphenated, CommonJS.
+61. References: `plugins/dev/references/{name}.md` — lowercase, hyphenated.
+62. Tests: `tests/{script-name}.test.js` — mirrors the script name.
+
+---
+
+## Testing
+
+63. Test files mirror script names: `scripts/foo.js` → `tests/foo.test.js`.
+64. Use the fixture project at `tests/fixtures/fake-project/` for integration tests.
+65. Hook tests: use stdin/stdout protocol with `execSync()`, timeout 5000ms, run in temp dir.
+66. Coverage target: 70% branches/functions/lines/statements.
+67. CI matrix: Node 18/20/22 × ubuntu/macos/windows. All 9 must pass.
+68. Local pre-push: `npm run lint && npm test && npm run validate`.
+
+---
+
+## Cross-Platform
+
+69. **Never** hardcode `/` or `\` — always `path.join()`.
+70. Use `\n` in string literals — Node.js and Git normalize line endings.
+71. In `hooks.json`, use `${CLAUDE_PLUGIN_ROOT}` — Claude Code expands this internally on all platforms.
+72. **Never** use `$CLAUDE_PLUGIN_ROOT` (shell expansion is platform-dependent).
+73. **Never** rely on execute bits — always invoke via `node script.js`.
+
+---
+
+## Dependencies & Gates
+
+74. Check all `depends_on` plans have SUMMARY.md files before executing.
+75. Checkpoint tasks (`checkpoint:human-verify`) require STOP — write partial SUMMARY.md, return metadata.
+76. Respect all `gates.confirm_*` config toggles. Never auto-proceed when a gate is enabled.
+
+---
+
+## Logging
+
+77. Hook scripts → `logHook()` (writes to `logs/hooks.jsonl`, max 200 entries).
+78. Workflow milestones → `logEvent()` (writes to `logs/events.jsonl`, max 1,000 entries).
+79. Rule of thumb: inside a hook? `logHook()`. Tracking a high-level event? `logEvent()`.
+
+---
+
+## Gotchas
+
+80. JSDoc `*/` in glob patterns closes Babel comments early — use `//` line comments instead.
+81. Regex anchors: use `\b` word boundaries, not `^` anchors (misses chained commands like `cd && git commit`).
+82. Windows cwd locking in tests: use `cwd` option in `execSync()` instead of `process.chdir()`.
+83. PLAN.md frontmatter must include all required fields: `phase`, `plan`, `type`, `wave`, `depends_on`, `files_modified`, `autonomous`, `must_haves`.
+
+---
+
+## Quick Reference: Never Do This
+
+| # | Anti-Pattern | Impact |
+|---|-------------|--------|
+| 1 | Read agent definitions in orchestrator | Context balloons 15% → 88% |
+| 2 | Inline large files into Task() prompts | Wasted orchestrator context |
+| 3 | Read full subagent output | Context bloat |
+| 4 | Use GSD branding | User confusion |
+| 5 | Hardcode path separators | Cross-platform breakage |
+| 6 | Use ES modules in hooks | Hook fails to load |
+| 7 | Skip hook logging | Silent failures |
+| 8 | Modify STATE.md in agents | Race conditions, corruption |
+| 9 | Use `git add .` | Sensitive data leaks |
+| 10 | Skip tests for new scripts | CI failures, regressions |
