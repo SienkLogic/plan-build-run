@@ -29,6 +29,16 @@
         ]
       },
       {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-subagent-output.js",
+            "statusMessage": "Validating agent output..."
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -58,6 +68,11 @@
             "type": "command",
             "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js",
             "statusMessage": "Validating commit..."
+          },
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-dangerous-commands.js",
+            "statusMessage": "Checking for dangerous commands..."
           }
         ]
       },

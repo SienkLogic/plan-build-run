@@ -49,17 +49,17 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 | 037 | Auto-reconcile STATE.md against filesystem on resume | Done |
 | 031 | Verification override mechanism for false positives | Done |
 
-## Milestone E: Hook Hardening & Session Continuity
+## Milestone E: Hook Hardening & Session Continuity — COMPLETE
 
-| Todo | Description | Priority |
-|------|-------------|----------|
-| 026 | Subagent output validation PostToolUse hook | P2 |
-| 027 | Better PreCompact state preservation | P2 |
-| 028 | Executor partial task recovery | P2 |
-| 030 | Dangerous command protection PreToolUse hook | P2 |
-| 035 | Session cleanup improvements (stale checkpoints, log rotation) | P3 |
-| 036 | Session history log in SessionEnd hook | P3 |
-| 055 | Document hook statusMessage field and Windows retry patterns | P3 |
+| Todo | Description | Status |
+|------|-------------|--------|
+| 026 | Subagent output validation PostToolUse hook | Done |
+| 027 | Better PreCompact state preservation | Done |
+| 028 | Executor partial task recovery | Done |
+| 030 | Dangerous command protection PreToolUse hook | Done |
+| 035 | Session cleanup improvements (stale checkpoints, log rotation) | Done |
+| 036 | Session history log in SessionEnd hook | Done |
+| 055 | Document hook statusMessage field and Windows retry patterns | Done |
 
 ## Milestone F: Documentation & Polish
 
@@ -79,7 +79,7 @@ Grouped from 40 todos (016-055) produced by two-pass development guide review (2
 ## Stats
 
 - Total todos created: 40 (016-055)
-- Completed: 27 (016-025, 029, 031, 034, 037-046, 051-054)
-- Remaining: 13
-- Milestones complete: A, B, C, D
-- Milestones remaining: E (7 todos), F (6 todos)
+- Completed: 34 (016-031, 034-046, 051-055)
+- Remaining: 6
+- Milestones complete: A, B, C, D, E
+- Milestones remaining: F (6 todos)

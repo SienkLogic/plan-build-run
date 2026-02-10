@@ -537,6 +537,18 @@ towline-debugger reads:
   └─ REPLACE: Overwrite ROADMAP.md with imported structure
 ```
 
+### Checkpoint Manifest Lifecycle
+
+```
+/dev:build <N>
+  ├─ CREATE: .checkpoint-manifest.json (per phase directory)
+  ├─ UPDATE: after each wave (resolved plans, commits, wave counter)
+  └─ READ: on resume to skip completed plans
+
+/dev:session-cleanup (SessionEnd hook)
+  └─ WARN: about stale checkpoint manifests (>24h old)
+```
+
 ### PLAN.md Lifecycle
 
 ```
@@ -1735,6 +1747,76 @@ describe('my-hook.js', () => {
   });
 });
 ```
+
+### statusMessage Field
+
+Every hook entry in `hooks.json` has a `statusMessage` field. This text is displayed in Claude Code's status bar while the hook is running, giving users visual feedback that background processing is happening.
+
+**Best practices for statusMessage**:
+- Use present participle (gerund) form: "Validating commit...", "Checking phase boundary..."
+- Keep it short — it appears in a narrow status bar
+- End with ellipsis (`...`) to indicate ongoing work
+- Use action-specific language, not generic "Running hook..."
+
+**Example in hooks.json**:
+```json
+{
+  "matcher": "Bash",
+  "hooks": [
+    {
+      "type": "command",
+      "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js",
+      "statusMessage": "Validating commit..."
+    }
+  ]
+}
+```
+
+### Windows File Deletion Retry Pattern
+
+On Windows, file deletion can fail transiently because antivirus scanners and file indexer services (Windows Defender, Windows Search) hold brief locks on recently accessed files. Any hook that deletes files should implement a retry loop.
+
+**Pattern** (from `auto-continue.js`):
+```javascript
+// Retry unlink to handle Windows file locking (e.g. antivirus/indexer)
+for (let attempt = 0; attempt < 3; attempt++) {
+  try {
+    fs.unlinkSync(filePath);
+    break;
+  } catch (unlinkErr) {
+    if (attempt === 2) {
+      logHook('my-hook', 'EventType', 'unlink-failed', { error: unlinkErr.message });
+    }
+    // Brief pause before retry (optional — often not needed since the retry itself provides enough delay)
+  }
+}
+```
+
+**When to use**: Any hook that removes signal files (`.auto-next`, `.active-operation`, `.active-skill`, `.active-agent`, lock files). The `session-cleanup.js` helper `tryRemove()` and `auto-continue.js` both implement this pattern.
+
+### Checkpoint Manifest Lifecycle
+
+The `.checkpoint-manifest.json` file tracks build execution progress for crash recovery. It is created and managed by the `/dev:build` skill.
+
+```
+/dev:build <N>
+  ├─ CREATE: .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
+  │    ├─ plans: list of all plan IDs in the phase
+  │    ├─ checkpoints_resolved: plans completed in this run
+  │    ├─ wave: current wave number
+  │    ├─ commit_log: array of {plan, sha, timestamp}
+  │    └─ last_good_commit: SHA for rollback target
+  │
+  ├─ UPDATE: after each wave completes
+  │    ├─ Move completed plans to checkpoints_resolved
+  │    ├─ Advance wave counter
+  │    └─ Record new commits in commit_log
+  │
+  └─ READ: on resume after crash/compaction
+       └─ Reconstruct skip list from checkpoints_resolved
+```
+
+The manifest persists across sessions. If the orchestrator's context is compacted or the session is interrupted mid-build, the next `/dev:build` invocation reads it to skip already-completed plans.
 
 ---
 

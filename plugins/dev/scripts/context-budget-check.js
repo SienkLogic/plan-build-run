@@ -41,6 +41,8 @@ function main() {
     const roadmapSummary = readRoadmapSummary(planningDir);
     const currentPlan = readCurrentPlan(planningDir, content);
     const configHighlights = readConfigHighlights(planningDir);
+    const recentErrors = readRecentErrors(planningDir, 3);
+    const recentAgents = readRecentAgents(planningDir, 5);
 
     // Build continuity section
     const continuityParts = [
@@ -59,6 +61,12 @@ function main() {
     }
     if (configHighlights) {
       continuityParts.push(`Config: ${configHighlights}`);
+    }
+    if (recentErrors.length > 0) {
+      continuityParts.push(`Recent errors:\n${recentErrors.map(e => '  - ' + e).join('\n')}`);
+    }
+    if (recentAgents.length > 0) {
+      continuityParts.push(`Recent agents: ${recentAgents.join(', ')}`);
     }
 
     continuityParts.push('Note: Some conversation context may have been lost. Check STATE.md and SUMMARY.md files for ground truth.');
@@ -81,7 +89,7 @@ function main() {
     fs.writeFileSync(stateFile, content, 'utf8');
 
     // Output additionalContext for post-compaction recovery
-    const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights);
+    const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents);
     if (recoveryContext) {
       const output = {
         additionalContext: recoveryContext
@@ -151,7 +159,16 @@ function readRoadmapSummary(planningDir) {
 }
 
 function readCurrentPlan(planningDir, stateContent) {
-  // Extract current phase from STATE.md
+  // Prefer .active-plan signal file (definitive) over directory listing (guesswork)
+  const activePlanFile = path.join(planningDir, '.active-plan');
+  if (fs.existsSync(activePlanFile)) {
+    try {
+      const activePlan = fs.readFileSync(activePlanFile, 'utf8').trim();
+      if (activePlan) return activePlan;
+    } catch (_e) { /* fall through */ }
+  }
+
+  // Fallback: Extract current phase from STATE.md and find latest plan
   const phaseMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
   if (!phaseMatch) return '';
 
@@ -184,6 +201,54 @@ function readCurrentPlan(planningDir, stateContent) {
   }
 }
 
+function readRecentErrors(planningDir, maxErrors) {
+  const count = maxErrors || 3;
+  try {
+    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+    if (!fs.existsSync(eventsLog)) return [];
+
+    const lines = fs.readFileSync(eventsLog, 'utf8').trim().split('\n').filter(Boolean);
+    const errors = [];
+    // Read backwards for most recent
+    for (let i = lines.length - 1; i >= 0 && errors.length < count; i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        if (entry.cat === 'error' || entry.event === 'tool-failure' || (entry.cat === 'workflow' && entry.status === 'block')) {
+          errors.push(`${entry.event || entry.cat}: ${entry.error || entry.reason || entry.message || 'unknown'}`.substring(0, 120));
+        }
+      } catch (_e) { /* skip */ }
+    }
+    return errors;
+  } catch (_e) {
+    return [];
+  }
+}
+
+function readRecentAgents(planningDir, maxAgents) {
+  const count = maxAgents || 5;
+  try {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    if (!fs.existsSync(hooksLog)) return [];
+
+    const lines = fs.readFileSync(hooksLog, 'utf8').trim().split('\n').filter(Boolean);
+    const agents = [];
+    // Read backwards for most recent
+    for (let i = lines.length - 1; i >= 0 && agents.length < count; i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        if (entry.event === 'SubagentStart' && entry.decision === 'spawned') {
+          const type = entry.agent_type || 'unknown';
+          const desc = entry.description ? ` (${entry.description.substring(0, 60)})` : '';
+          agents.push(`${type}${desc}`);
+        }
+      } catch (_e) { /* skip */ }
+    }
+    return agents.reverse(); // Chronological order
+  } catch (_e) {
+    return [];
+  }
+}
+
 function readConfigHighlights(planningDir) {
   const configFile = path.join(planningDir, 'config.json');
   if (!fs.existsSync(configFile)) return '';
@@ -202,12 +267,14 @@ function readConfigHighlights(planningDir) {
   }
 }
 
-function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights) {
+function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents) {
   const parts = ['[Post-Compaction Recovery] Context was auto-compacted. Key state preserved:'];
 
   if (activeOp) parts.push(`Active operation: ${activeOp}`);
   if (currentPlan) parts.push(`Current plan: ${currentPlan}`);
   if (configHighlights) parts.push(`Config: ${configHighlights}`);
+  if (recentErrors && recentErrors.length > 0) parts.push(`Recent errors: ${recentErrors.join('; ')}`);
+  if (recentAgents && recentAgents.length > 0) parts.push(`Recent agents: ${recentAgents.join(', ')}`);
   if (roadmapSummary) parts.push(`Progress:\n${roadmapSummary}`);
 
   parts.push('Read .planning/STATE.md for full context.');
@@ -216,5 +283,5 @@ function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighl
   return parts.length > 2 ? parts.join('\n') : '';
 }
 
-module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext };
+module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents };
 if (require.main === module) { main(); }
