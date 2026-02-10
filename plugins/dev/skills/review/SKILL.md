@@ -1,7 +1,7 @@
 ---
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
-allowed-tools: Read, Write, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--auto-fix]"
 ---
 
@@ -104,25 +104,33 @@ Read the VERIFICATION.md frontmatter. Check the `attempt` counter.
 
 **If `attempt >= 3` AND `status: gaps_found`:** This phase has failed verification multiple times. Present escalation options instead of the normal flow:
 
+Present the escalation context:
 ```
 Phase {N}: {name} — Verification Failed ({attempt} attempts)
-
 The same gaps have persisted across {attempt} verification attempts.
 Remaining gaps: {count}
-
-This suggests the gaps may need a different approach. Options:
--> accept-with-gaps — mark phase as "complete-with-gaps" and move on
--> re-plan — go back to /dev:plan {N} with gap context
--> debug — spawn /dev:debug to investigate root causes
--> override — mark specific gaps as false positives
--> retry — try one more verification cycle
 ```
 
-- **accept-with-gaps:** Update STATE.md status to `complete-with-gaps`, update ROADMAP.md to `verified*`, add a note in VERIFICATION.md about accepted gaps. Proceed to next phase.
-- **re-plan:** Suggest `/dev:plan {N} --gaps` to create targeted fix plans.
-- **debug:** Suggest `/dev:debug` with the gap details as starting context.
-- **override:** Use the override flow from Step 6 "Gaps Found" section.
-- **retry:** Continue with normal Step 5 flow.
+Use AskUserQuestion (pattern: multi-option-escalation from `skills/shared/gate-prompts.md`):
+  question: "Phase {N} has failed verification {attempt} times with {count} persistent gaps. How should we proceed?"
+  header: "Escalate"
+  options:
+    - label: "Accept gaps"   description: "Mark as complete-with-gaps and move on"
+    - label: "Re-plan"       description: "Go back to /dev:plan {N} with gap context"
+    - label: "Debug"         description: "Spawn /dev:debug to investigate root causes"
+    - label: "Retry"         description: "Try one more verification cycle"
+
+- **If user selects "Accept gaps":** Follow up with a second AskUserQuestion:
+    question: "Accept all gaps or pick specific ones to override?"
+    header: "Override?"
+    options:
+      - label: "Accept all"    description: "Mark phase as complete-with-gaps, accept everything"
+      - label: "Pick specific"  description: "Choose which gaps to mark as false positives"
+  - If "Accept all": Update STATE.md status to `complete-with-gaps`, update ROADMAP.md to `verified*`, add a note in VERIFICATION.md about accepted gaps. Proceed to next phase.
+  - If "Pick specific": Use the override flow from Step 6 "Gaps Found" section (present each gap for selection).
+- **If user selects "Re-plan":** Suggest `/dev:plan {N} --gaps` to create targeted fix plans.
+- **If user selects "Debug":** Suggest `/dev:debug` with the gap details as starting context.
+- **If user selects "Retry":** Continue with normal Step 5 flow.
 
 **Otherwise**, present results normally:
 
@@ -224,7 +232,14 @@ Use the branded output from `references/ui-formatting.md`:
 - Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
-   - Ask: "Ready to move to Phase {N+1}?"
+   - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+     question: "Phase {N} verified. Ready to move to Phase {N+1}?"
+     header: "Continue?"
+     options:
+       - label: "Yes"  description: "Proceed to plan Phase {N+1}"
+       - label: "No"   description: "Stay on Phase {N} for now"
+   - If "Yes": suggest `/dev:plan {N+1}`
+   - If "No" or "Other": stop
 
 5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
    - Chain directly to plan: `Skill({ skill: "dev:plan", args: "{N+1}" })`
@@ -296,14 +311,17 @@ Plans:
   {plan_id}: {name} — fixes: {gap description} ({difficulty})
   {plan_id}: {name} — fixes: {gap description} ({difficulty})
 
-Approve these gap-closure plans?
--> yes — I'll suggest the build command
--> no — let me review the plans first
--> manual — I'll fix these myself
-```
+Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
+  question: "Approve these {count} gap-closure plans?"
+  header: "Approve?"
+  options:
+    - label: "Approve"          description: "Proceed — I'll suggest the build command"
+    - label: "Review first"     description: "Let me review the plans before approving"
+    - label: "Fix manually"     description: "I'll fix these gaps myself"
 
-If user approves:
-- Suggest: `/dev:build {N} --gaps-only`
+- If "Approve": suggest `/dev:build {N} --gaps-only`
+- If "Review first" or "Other": present the full plan files for inspection
+- If "Fix manually": suggest relevant files to inspect based on gap details
 
 #### Gaps Found WITHOUT `--auto-fix`
 
@@ -324,16 +342,18 @@ Phase {N}: {name} — Gaps Found
 2. {gap description}
    ...
 
-I'll diagnose these gaps and create fix plans now. Proceed?
--> yes (recommended) — diagnose root causes and create gap-closure plans
--> override — accept specific gaps as false positives (won't block verification)
--> manual — I'll fix these myself
--> skip — just save the results for later
-```
+Use AskUserQuestion (pattern: multi-option-gaps from `skills/shared/gate-prompts.md`):
+  question: "{count} verification gaps need attention. How should we proceed?"
+  header: "Gaps"
+  options:
+    - label: "Auto-fix"  description: "Diagnose root causes and create fix plans (recommended)"
+    - label: "Override"   description: "Accept specific gaps as false positives"
+    - label: "Manual"     description: "I'll fix these myself"
+    - label: "Skip"       description: "Save results for later"
 
-**If user says "yes" or provides no objection:** proceed with the same Steps 6a-6d as the `--auto-fix` flow above (diagnose, create gap-closure plans, validate, present). This is the default path.
+**If user selects "Auto-fix":** proceed with the same Steps 6a-6d as the `--auto-fix` flow above (diagnose, create gap-closure plans, validate, present). This is the default path.
 
-**If user chooses "override":** present each gap and ask which ones to accept. For each accepted gap, collect a reason. Add to VERIFICATION.md frontmatter `overrides` list:
+**If user selects "Override":** present each gap and ask which ones to accept. For each accepted gap, collect a reason. Add to VERIFICATION.md frontmatter `overrides` list:
 ```yaml
 overrides:
   - must_have: "{text}"
@@ -343,9 +363,9 @@ overrides:
 ```
 After adding overrides, re-evaluate: if all remaining gaps are now overridden, mark status as `passed`. Otherwise, offer auto-fix for the remaining non-overridden gaps.
 
-**If user chooses "manual":** suggest relevant files to inspect based on the gap details.
+**If user selects "Manual":** suggest relevant files to inspect based on the gap details.
 
-**If user chooses "skip":** save results and exit.
+**If user selects "Skip":** save results and exit.
 
 ---
 
