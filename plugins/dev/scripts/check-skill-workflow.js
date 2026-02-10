@@ -219,5 +219,37 @@ function hasPlanFile(dir) {
   return false;
 }
 
-module.exports = { readActiveSkill, checkSkillRules, hasPlanFile };
+/**
+ * Core workflow check logic for use by dispatchers.
+ * @param {Object} data - Parsed hook input (tool_input, etc.)
+ * @returns {null|{exitCode: number, output: Object}} null if pass, result otherwise
+ */
+function checkWorkflow(data) {
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  if (!filePath) return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  const activeSkill = readActiveSkill(planningDir);
+  if (!activeSkill) return null;
+
+  const violation = checkSkillRules(activeSkill, filePath, planningDir);
+  if (violation) {
+    logHook('check-skill-workflow', 'PreToolUse', 'block', {
+      skill: activeSkill, file: path.basename(filePath), rule: violation.rule
+    });
+    logEvent('workflow', 'skill-workflow-block', {
+      skill: activeSkill, file: path.basename(filePath), rule: violation.rule
+    });
+    return {
+      exitCode: 2,
+      output: { decision: 'block', reason: violation.message }
+    };
+  }
+
+  return null;
+}
+
+module.exports = { readActiveSkill, checkSkillRules, hasPlanFile, checkWorkflow };
 if (require.main === module) { main(); }
