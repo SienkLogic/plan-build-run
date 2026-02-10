@@ -55,7 +55,8 @@ This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, a
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for parallelization, model, and gate settings
-3. Validate:
+3. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
+4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - PLAN.md files exist in the directory
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
