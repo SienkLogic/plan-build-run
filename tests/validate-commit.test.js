@@ -167,6 +167,51 @@ describe('validate-commit.js', () => {
     });
   });
 
+  describe('AI co-author blocking', () => {
+    test('blocks Co-Authored-By with Claude', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'
+      });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('co-author');
+    });
+
+    test('blocks Co-Authored-By with Anthropic email', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Bot <noreply@anthropic.com>"'
+      });
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('blocks Co-Authored-By with Copilot', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: GitHub Copilot <copilot@github.com>"'
+      });
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('blocks Co-Authored-By with GPT', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: ChatGPT <noreply@openai.com>"'
+      });
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('allows Co-Authored-By with human name', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Jane Doe <jane@example.com>"'
+      });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('blocks case-insensitive co-author match', () => {
+      const result = runScript({
+        command: 'git commit -m "feat(01-01): add feature" -m "co-authored-by: claude opus <noreply@anthropic.com>"'
+      });
+      expect(result.exitCode).toBe(2);
+    });
+  });
+
   describe('special cases', () => {
     test('merge commit passes through', () => {
       const result = runScript({ command: "git commit -m \"Merge branch 'feature' into main\"" });

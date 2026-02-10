@@ -49,6 +49,21 @@ const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip)(\([a-zA-Z0-9._-
 // Merge commits are always allowed
 const MERGE_PATTERN = /^Merge\s/;
 
+// AI co-author patterns to block
+const AI_COAUTHOR_PATTERN = /Co-Authored-By:.*(?:Claude|Anthropic|noreply@anthropic\.com|OpenAI|Copilot|GPT|AI Assistant)/i;
+
+function checkAiCoAuthor(command) {
+  if (AI_COAUTHOR_PATTERN.test(command)) {
+    logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200) });
+    const output = {
+      decision: 'block',
+      reason: 'Commit blocked: contains AI co-author attribution.\n\nTowline commits must not include Co-Authored-By lines referencing AI tools (Claude, Copilot, GPT, etc.).\n\nRemove the Co-Authored-By line and try again.'
+    };
+    process.stdout.write(JSON.stringify(output));
+    process.exit(2);
+  }
+}
+
 function checkSensitiveFiles() {
   try {
     const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
@@ -119,6 +134,7 @@ function main() {
       // Valid format
       logHook('validate-commit', 'PreToolUse', 'allow', { message });
       logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
+      checkAiCoAuthor(command);
       checkSensitiveFiles();
       process.exit(0);
     } catch (_e) {
