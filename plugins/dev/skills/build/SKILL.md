@@ -185,6 +185,15 @@ Update the manifest after each wave completes:
 
 **Crash recovery check:** Before entering the wave loop, check if `.checkpoint-manifest.json` already exists with completed plans from a prior run. If it does, reconstruct the skip list from its `checkpoints_resolved` array. This handles the case where the orchestrator's context was compacted or the session was interrupted mid-build.
 
+**Orphaned progress file check:** Also scan the phase directory for `.PROGRESS-*` files. These indicate an executor that crashed mid-task. For each orphaned progress file:
+1. Read it to find the `plan_id`, `last_completed_task`, and `total_tasks`
+2. If the plan is NOT in `checkpoints_resolved` (not yet complete), inform the user:
+   ```
+   Detected interrupted execution for plan {plan_id}: {last_completed_task}/{total_tasks} tasks completed.
+   ```
+3. The executor will automatically resume from the progress file when spawned — no special action needed from the orchestrator.
+4. If the plan IS in `checkpoints_resolved`, the progress file is stale — delete it.
+
 For each wave, in order (Wave 1, then Wave 2, etc.):
 
 #### 6a. Spawn Executors
