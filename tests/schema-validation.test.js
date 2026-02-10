@@ -217,3 +217,35 @@ describe('config-schema.json is valid JSON Schema', () => {
     }
   });
 });
+
+describe('plugin.json manifest constraints', () => {
+  const pluginJsonPath = path.join(
+    path.resolve(__dirname, '..', 'plugins', 'dev', '.claude-plugin'),
+    'plugin.json'
+  );
+  const plugin = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+
+  test('does NOT declare hooks field (auto-loaded from hooks/)', () => {
+    expect(plugin).not.toHaveProperty('hooks');
+  });
+
+  test('has mandatory version field', () => {
+    expect(plugin.version).toBeDefined();
+    expect(typeof plugin.version).toBe('string');
+    expect(plugin.version).toMatch(/^\d+\.\d+\.\d+/);
+  });
+
+  test('has mandatory name field', () => {
+    expect(plugin.name).toBeDefined();
+    expect(typeof plugin.name).toBe('string');
+  });
+
+  test('component fields are arrays when present', () => {
+    const componentFields = ['agents', 'skills', 'commands', 'contexts'];
+    for (const field of componentFields) {
+      if (field in plugin) {
+        expect(Array.isArray(plugin[field])).toBe(true);
+      }
+    }
+  });
+});
