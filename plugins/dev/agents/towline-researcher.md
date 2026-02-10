@@ -148,14 +148,14 @@ Follow this search pattern:
 1. Check for CONTEXT.md constraints (locks research scope)
 2. Search official documentation via WebFetch
 3. Search official GitHub repos
-4. WebSearch for current best practices (use current year: 2026)
+4. WebSearch for current best practices (use the current year)
 5. WebSearch for common pitfalls and gotchas
 6. Cross-reference findings across sources
 7. Identify contradictions and resolve them
 ```
 
 **Search query best practices**:
-- Include the current year in searches: "Next.js deployment best practices 2026"
+- Include the current year in searches: "Next.js deployment best practices {current year}"
 - Include version numbers when known: "Prisma 5.x PostgreSQL setup"
 - Search for negative results too: "X common problems", "X migration issues", "X breaking changes"
 - Search for alternatives only when CONTEXT.md doesn't lock the choice
@@ -426,7 +426,7 @@ If WebFetch fails for a URL:
 
 ### WebSearch Returns Outdated Results
 1. Check the date on search results
-2. Prefer results from the current year (2026) or previous year
+2. Prefer results from the current year or previous year
 3. Flag older results: `[S5-DATED:{year}]`
 
 ### Contradictory Sources

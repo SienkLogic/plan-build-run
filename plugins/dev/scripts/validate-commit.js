@@ -26,7 +26,7 @@ const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip'];
 
 const SENSITIVE_PATTERNS = [
   /^\.env$/,                          // .env exactly (not .env.example)
-  /\.env\.[^.]*$/,                    // .env.production, .env.local etc (but not .env.example)
+  /\.env\.[^.]+$/,                    // .env.production, .env.local etc (but not .env.example)
   /\.key$/i,
   /\.pem$/i,
   /\.pfx$/i,
