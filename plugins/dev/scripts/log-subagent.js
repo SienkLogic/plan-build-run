@@ -7,11 +7,14 @@
  *   node log-subagent.js start   — called on SubagentStart
  *   node log-subagent.js stop    — called on SubagentStop
  *
- * Parses stdin JSON for agent metadata and logs to .planning/.hook-log.
+ * On start: logs spawn event and injects project context via additionalContext.
+ * On stop: logs completion event.
+ *
  * Non-blocking — exits 0 always.
  */
 
 const fs = require('fs');
+const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
@@ -40,6 +43,18 @@ function main() {
       agent_type: data.agent_type || data.subagent_type || null,
       description: data.description || null
     });
+
+    // Inject project context into subagent
+    const context = buildAgentContext();
+    if (context) {
+      const output = {
+        hookSpecificOutput: {
+          hookEventName: 'SubagentStart',
+          additionalContext: context
+        }
+      };
+      process.stdout.write(JSON.stringify(output));
+    }
   } else if (action === 'stop') {
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
@@ -56,4 +71,57 @@ function main() {
   process.exit(0);
 }
 
-main();
+function buildAgentContext() {
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  if (!fs.existsSync(planningDir)) return '';
+
+  const parts = [];
+
+  // Current phase and status from STATE.md
+  const stateFile = path.join(planningDir, 'STATE.md');
+  if (fs.existsSync(stateFile)) {
+    try {
+      const state = fs.readFileSync(stateFile, 'utf8');
+      const phaseMatch = state.match(/Phase:\s*(\d+)\s+of\s+(\d+)/);
+      const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
+      if (phaseMatch) {
+        parts.push(`Phase ${phaseMatch[1]} of ${phaseMatch[2]}${statusMatch ? ' (' + statusMatch[1] + ')' : ''}`);
+      }
+    } catch (_e) {
+      // skip
+    }
+  }
+
+  // Active skill context
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+  if (fs.existsSync(activeSkillFile)) {
+    try {
+      const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+      if (skill) parts.push(`Active skill: /dev:${skill}`);
+    } catch (_e) {
+      // skip
+    }
+  }
+
+  // Config highlights
+  const configFile = path.join(planningDir, 'config.json');
+  if (fs.existsSync(configFile)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+      const configParts = [];
+      if (config.depth) configParts.push(`depth=${config.depth}`);
+      if (config.git && config.git.auto_commit !== undefined) configParts.push(`auto_commit=${config.git.auto_commit}`);
+      if (configParts.length > 0) parts.push(`Config: ${configParts.join(', ')}`);
+    } catch (_e) {
+      // skip
+    }
+  }
+
+  if (parts.length === 0) return '';
+  return '[Towline Project Context] ' + parts.join(' | ');
+}
+
+module.exports = { buildAgentContext };
+if (require.main === module) { main(); }

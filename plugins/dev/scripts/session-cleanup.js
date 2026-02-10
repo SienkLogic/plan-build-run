@@ -6,6 +6,7 @@
  * Removes stale planning artifacts that shouldn't persist across sessions:
  *   - .planning/.auto-next (prevents confusion on next session start)
  *   - .planning/.active-operation (stale operation lock)
+ *   - .planning/.active-skill (stale skill tracking)
  *
  * Logs session end with reason to hook-log.
  * Non-blocking — best-effort cleanup, fails silently.
@@ -53,6 +54,9 @@ function main() {
   }
   if (tryRemove(path.join(planningDir, '.active-operation'))) {
     cleaned.push('.active-operation');
+  }
+  if (tryRemove(path.join(planningDir, '.active-skill'))) {
+    cleaned.push('.active-skill');
   }
 
   const decision = cleaned.length > 0 ? 'cleaned' : 'nothing';

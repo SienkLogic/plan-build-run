@@ -50,6 +50,21 @@
             "statusMessage": "Validating commit..."
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-skill-workflow.js",
+            "statusMessage": "Checking workflow rules..."
+          },
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-phase-boundary.js",
+            "statusMessage": "Checking phase boundary..."
+          }
+        ]
       }
     ],
     "PreCompact": [

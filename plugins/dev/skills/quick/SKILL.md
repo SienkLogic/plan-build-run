@@ -35,7 +35,9 @@ Keep the main orchestrator context lean. Follow these rules:
    - If yes: read config.json for settings
    - If no: warn "No Towline project found. This will create a standalone quick task. Consider running `/dev:begin` first for full project tracking."
 
-2. Check if ROADMAP.md exists
+2. Write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook — it will block source code writes until PLAN.md exists.
+
+3. Check if ROADMAP.md exists
    - If yes: note the current phase context (quick tasks may relate to the active phase)
    - If no: proceed without phase context
 
