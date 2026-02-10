@@ -1,9 +1,12 @@
+const fs = require('fs');
+const path = require('path');
 const {
   parseStateMd,
   parseRoadmapMd,
   parseYamlFrontmatter,
   parseMustHaves,
-  countMustHaves
+  countMustHaves,
+  atomicWrite
 } = require('../plugins/dev/scripts/towline-tools');
 
 describe('towline-tools.js', () => {
@@ -345,6 +348,80 @@ next_top_level: something`;
     test('handles missing categories', () => {
       expect(countMustHaves({ truths: ['a'] })).toBe(1);
       expect(countMustHaves({})).toBe(0);
+    });
+  });
+
+  describe('atomicWrite', () => {
+    const os = require('os');
+
+    function makeTmpFile() {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-aw-'));
+      const filePath = path.join(tmpDir, 'test-file.md');
+      return { tmpDir, filePath };
+    }
+
+    function cleanupDir(tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+
+    test('writes content to new file', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      const result = atomicWrite(filePath, '# New Content');
+      expect(result.success).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('# New Content');
+      cleanupDir(tmpDir);
+    });
+
+    test('overwrites existing file', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      fs.writeFileSync(filePath, '# Old Content');
+      const result = atomicWrite(filePath, '# Updated Content');
+      expect(result.success).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('# Updated Content');
+      cleanupDir(tmpDir);
+    });
+
+    test('creates .bak backup of original', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      fs.writeFileSync(filePath, '# Original');
+      atomicWrite(filePath, '# Updated');
+      const bakPath = filePath + '.bak';
+      expect(fs.existsSync(bakPath)).toBe(true);
+      expect(fs.readFileSync(bakPath, 'utf8')).toBe('# Original');
+      cleanupDir(tmpDir);
+    });
+
+    test('cleans up .tmp file on success', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      atomicWrite(filePath, '# Content');
+      const tmpFilePath = filePath + '.tmp';
+      expect(fs.existsSync(tmpFilePath)).toBe(false);
+      cleanupDir(tmpDir);
+    });
+
+    test('no .bak when writing to new file (no original to backup)', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      atomicWrite(filePath, '# Brand New');
+      const bakPath = filePath + '.bak';
+      expect(fs.existsSync(bakPath)).toBe(false);
+      cleanupDir(tmpDir);
+    });
+
+    test('returns error for invalid directory', () => {
+      const result = atomicWrite('/nonexistent/dir/file.md', '# Content');
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+    });
+
+    test('preserves content on multiple successive writes', () => {
+      const { tmpDir, filePath } = makeTmpFile();
+      atomicWrite(filePath, 'Version 1');
+      atomicWrite(filePath, 'Version 2');
+      atomicWrite(filePath, 'Version 3');
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('Version 3');
+      // .bak should be Version 2 (last successful backup)
+      expect(fs.readFileSync(filePath + '.bak', 'utf8')).toBe('Version 2');
+      cleanupDir(tmpDir);
     });
   });
 });

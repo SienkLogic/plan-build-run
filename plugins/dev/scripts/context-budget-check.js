@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { atomicWrite } = require('./towline-tools');
 
 function main() {
   const cwd = process.cwd();
@@ -86,7 +87,7 @@ function main() {
       content = content.trimEnd() + `\n\n${continuityHeader}\n${continuityContent}\n`;
     }
 
-    fs.writeFileSync(stateFile, content, 'utf8');
+    atomicWrite(stateFile, content);
 
     // Output additionalContext for post-compaction recovery
     const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents);

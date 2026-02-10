@@ -351,8 +351,11 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
     // Apply update
     const newContent = updateFn(content);
 
-    // Write back
-    fs.writeFileSync(filePath, newContent, 'utf8');
+    // Write back atomically
+    const writeResult = atomicWrite(filePath, newContent);
+    if (!writeResult.success) {
+      return { success: false, error: writeResult.error };
+    }
 
     return { success: true, content: newContent };
   } catch (e) {
@@ -624,5 +627,57 @@ function error(msg) {
   process.exit(1);
 }
 
+/**
+ * Write content to a file atomically: write to .tmp, backup original to .bak,
+ * rename .tmp over original. On failure, restore from .bak if available.
+ *
+ * @param {string} filePath - Target file path
+ * @param {string} content - Content to write
+ * @returns {{success: boolean, error?: string}} Result
+ */
+function atomicWrite(filePath, content) {
+  const tmpPath = filePath + '.tmp';
+  const bakPath = filePath + '.bak';
+
+  try {
+    // 1. Write to temp file
+    fs.writeFileSync(tmpPath, content, 'utf8');
+
+    // 2. Backup original if it exists
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.copyFileSync(filePath, bakPath);
+      } catch (_e) {
+        // Backup failure is non-fatal — proceed with rename
+      }
+    }
+
+    // 3. Rename temp over original (atomic on most filesystems)
+    fs.renameSync(tmpPath, filePath);
+
+    return { success: true };
+  } catch (e) {
+    // Rename failed — try to restore from backup
+    try {
+      if (fs.existsSync(bakPath)) {
+        fs.copyFileSync(bakPath, filePath);
+      }
+    } catch (_restoreErr) {
+      // Restore also failed — nothing more we can do
+    }
+
+    // Clean up temp file if it still exists
+    try {
+      if (fs.existsSync(tmpPath)) {
+        fs.unlinkSync(tmpPath);
+      }
+    } catch (_cleanupErr) {
+      // Best-effort cleanup
+    }
+
+    return { success: false, error: e.message };
+  }
+}
+
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite };
