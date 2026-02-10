@@ -260,10 +260,10 @@ Archive a completed milestone and prepare for the next one.
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
-10. **Confirm:**
-    ```
-    Milestone {version} ({name}) completed!
+10. **Confirm** using the "Milestone Complete" banner from `references/ui-formatting.md`:
 
+    Include stats in the banner body:
+    ```
     Stats:
     - {count} phases, {count} plans
     - {count} commits, {lines} lines of code
@@ -271,9 +271,9 @@ Archive a completed milestone and prepare for the next one.
 
     Archived to: .planning/milestones/{version}-*
     Git tag: {version}
-
-    Next: /dev:milestone new — to start the next milestone
     ```
+
+    Use the "Next Up" block with: `/dev:milestone new` — start the next milestone
 
 ---
 

@@ -193,16 +193,10 @@ If all automated checks and UAT items passed:
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
-```
-Phase {N}: {name} — Verified
-
-All must-haves confirmed. Phase is complete.
-
-What's next?
--> /dev:plan {N+1} — plan the next phase
--> /dev:status — see overall project progress
--> /dev:milestone complete — if this was the final phase
-```
+Use the branded output from `references/ui-formatting.md`:
+- If more phases remain: use the "Phase Complete" banner template
+- If this was the last phase: use the "Milestone Complete" banner template
+- Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config:
    - Ask: "Ready to move to Phase {N+1}?"

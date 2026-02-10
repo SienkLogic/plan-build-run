@@ -322,6 +322,13 @@ Read key findings from each file (frontmatter or first section) and display:
 Codebase Scan Complete
 ======================
 
+Use the branded stage banner from `references/ui-formatting.md`:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► SCANNING CODEBASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Project: {type} ({scale})
 Stack: {primary language} + {framework}
 Architecture: {style}
@@ -339,10 +346,22 @@ Top concerns:
 3. {third concern}
 
 Full analysis: .planning/codebase/
+```
 
-Suggested next steps:
---> /dev:begin -- start a Towline project for this codebase
---> /dev:milestone new -- create a milestone to address concerns
+Then use the "Next Up" routing block:
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+/dev:begin — start a Towline project for this codebase
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- /dev:milestone new — create a milestone to address concerns
+
+───────────────────────────────────────────────────────────────
 ```
 
 ### Step 7: Git Integration

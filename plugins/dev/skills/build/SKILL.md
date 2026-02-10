@@ -658,9 +658,17 @@ If `features.auto_continue` is `true` in config:
 
 **8f. Present completion summary:**
 
-```
-Phase {N}: {name} — Build Complete
+Use the branded output templates from `references/ui-formatting.md`. Route based on status:
 
+| Status | Template |
+|--------|----------|
+| `passed` + more phases | "Phase Complete" template |
+| `passed` + last phase | "Milestone Complete" template |
+| `gaps_found` | "Gaps Found" template |
+
+Before the branded banner, include the results table:
+
+```
 Results:
 | Plan | Status | Tasks | Commits |
 |------|--------|-------|---------|
@@ -671,19 +679,13 @@ Results:
 Verification: {PASSED | GAPS_FOUND}
   {count} must-haves checked, {count} passed, {count} gaps
 
-{If gaps found:}
-Gaps: {list gaps briefly}
-
 Total commits: {count}
 Total files created: {count}
 Total files modified: {count}
 Deviations: {count}
-
-What's next?
--> /dev:review {N} — verify and walk through what was built
--> /dev:plan {N+1} — plan the next phase
--> /dev:build {N} --gaps-only — fix verification gaps (if any)
 ```
+
+Then present the appropriate branded banner with "Next Up" routing block.
 
 **8g. Display USER-SETUP.md (conditional):**
 

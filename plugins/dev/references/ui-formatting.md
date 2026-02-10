@@ -1,44 +1,186 @@
-# UI Formatting Reference
+# Towline UI Brand & Formatting Reference
 
-Consistent output formatting for all Towline skills.
+Consistent output formatting for all Towline skills. Every skill that produces user-facing output should follow these patterns.
+
+## Stage Banners
+
+Use for major workflow transitions. Always use `TOWLINE` prefix.
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► {STAGE NAME}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Stage names (uppercase):**
+- `QUESTIONING`
+- `RESEARCHING`
+- `DEFINING REQUIREMENTS`
+- `CREATING ROADMAP`
+- `PLANNING PHASE {N}`
+- `EXECUTING WAVE {N}`
+- `VERIFYING`
+- `PHASE {N} COMPLETE ✓`
+- `MILESTONE COMPLETE 🎉`
+- `SCANNING CODEBASE`
+- `DEBUGGING`
+
+---
 
 ## Headers
 
-Use these patterns for consistent visual hierarchy:
+Use these patterns for consistent visual hierarchy within sections:
 
 ```
-## Phase 3: Authentication        ← Phase-level header
-### Plan 01: Database Schema      ← Plan-level header
-#### Task 1: Create User Table    ← Task-level header
+## Phase 3: Authentication        <- Phase-level header
+### Plan 01: Database Schema      <- Plan-level header
+#### Task 1: Create User Table    <- Task-level header
 ```
+
+---
 
 ## Status Indicators
 
 | Status | Indicator | Usage |
 |--------|-----------|-------|
-| Complete | `✓` | Completed items |
-| Failed | `✗` | Failed verification items |
+| Complete | `✓` | Completed items, passed checks |
+| Failed | `✗` | Failed verification, missing items |
 | Pending | `○` | Not yet started |
 | In Progress | `◐` | Currently executing |
 | Needs Human | `?` | Requires human verification |
 | Warning | `⚠` | Warnings, non-blocking issues |
 | Blocked | `⊘` | Blocked by dependency |
+| Auto-approved | `⚡` | Automatically approved (gates) |
+
+---
 
 ## Progress Display
 
-For phase progress:
+**Phase/milestone level:**
+```
+Progress: ████████░░ 80%
+```
+
+**Phase progress (detailed):**
 ```
 Phase 3 of 5: Authentication
 Progress: [████████░░░░░░░░░░░░] 40%
 Plans: 2/5 complete
 ```
 
-For build progress:
+**Build progress (wave tracking):**
 ```
 Wave 1: ✓ Plan 01, ✓ Plan 02
 Wave 2: ◐ Plan 03 (executing)
 Wave 3: ○ Plan 04
 ```
+
+**Task level:**
+```
+Tasks: 2/4 complete
+```
+
+---
+
+## Spawning Indicators
+
+Show when agents are being launched:
+
+```
+◐ Spawning executor...
+
+◐ Spawning 4 executors in parallel...
+  → Plan 01: Database Schema
+  → Plan 02: Auth Service
+  → Plan 03: API Routes
+  → Plan 04: Test Suite
+
+✓ Plan 01 complete (2m 14s)
+```
+
+For research agents:
+```
+◐ Spawning 4 researchers in parallel...
+  → Stack research
+  → Features research
+  → Architecture research
+  → Pitfalls research
+
+✓ Researcher complete: STACK.md written
+```
+
+---
+
+## Checkpoint Boxes
+
+User action required. Use double-line box drawing, 62-character width.
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  CHECKPOINT: {Type}                                          ║
+╚══════════════════════════════════════════════════════════════╝
+
+{Content}
+
+──────────────────────────────────────────────────────────────
+→ {ACTION PROMPT}
+──────────────────────────────────────────────────────────────
+```
+
+**Types:**
+- `CHECKPOINT: Verification Required` → `→ Type "approved" or describe issues`
+- `CHECKPOINT: Decision Required` → `→ Select: option-a / option-b`
+- `CHECKPOINT: Action Required` → `→ Type "done" when complete`
+
+---
+
+## Next Up Block
+
+Always present at end of major completions (phase complete, milestone complete, project init).
+
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**{Identifier}: {Name}** — {one-line description}
+
+`{copy-paste command}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:alternative-1` — description
+- `/dev:alternative-2` — description
+
+───────────────────────────────────────────────────────────────
+```
+
+**Shorter routing (for minor completions):**
+```
+What's next?
+→ /dev:plan 4 — plan the next phase
+→ /dev:review 3 — review what was just built
+→ /dev:status — see full project status
+```
+
+---
+
+## Error Box
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+{Error description}
+
+**To fix:** {Resolution steps}
+```
+
+---
 
 ## Tables
 
@@ -53,24 +195,7 @@ Use tables for structured data:
 | 4. Frontend | ○ Pending | 0/4 | 0% |
 ```
 
-## Routing Suggestions
-
-After completing a workflow step, suggest the next action:
-
-```
-What's next?
-→ /dev:plan 4 — plan the next phase
-→ /dev:review 3 — review what was just built
-→ /dev:status — see full project status
-```
-
-## Error Presentation
-
-```
-⚠ Issue found:
-  Plan 03-01, Task 2: <verify> element missing
-  Hint: Add a verification command to confirm the task worked
-```
+---
 
 ## Cost/Token Warnings
 
@@ -79,3 +204,117 @@ What's next?
   Estimated: ~20% of 5-hour window
   Continue? [/dev:config to adjust depth first]
 ```
+
+---
+
+## Completion Summary Templates
+
+### Phase Complete
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {Name}**
+
+{X} plans executed
+Goal verified ✓
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
+
+/dev:discuss {N+1} — gather context and clarify approach
+
+<sub>/clear first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- /dev:plan {N+1} — skip discussion, plan directly
+- /dev:review {N} — manual acceptance testing before continuing
+
+───────────────────────────────────────────────────────────────
+```
+
+### Milestone Complete
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► MILESTONE COMPLETE 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**{version}**
+
+{N} phases completed
+All phase goals verified ✓
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Audit milestone** — verify requirements, cross-phase integration, E2E flows
+
+/dev:milestone audit
+
+<sub>/clear first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- /dev:review — manual acceptance testing
+- /dev:milestone complete — skip audit, archive directly
+
+───────────────────────────────────────────────────────────────
+```
+
+### Gaps Found
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} GAPS FOUND ⚠
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {Name}**
+
+Score: {X}/{Y} must-haves verified
+Report: .planning/phases/{phase_dir}/VERIFICATION.md
+
+### What's Missing
+
+{Extract gap summaries from VERIFICATION.md}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Plan gap closure** — create additional plans to complete the phase
+
+/dev:plan {N} --gaps
+
+<sub>/clear first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- cat .planning/phases/{phase_dir}/VERIFICATION.md — see full report
+- /dev:review {N} — manual testing before planning
+
+───────────────────────────────────────────────────────────────
+```
+
+---
+
+## Anti-Patterns
+
+Do NOT:
+- Use varying box/banner widths
+- Mix banner styles (`===`, `---`, `***`) with `━━━` banners
+- Skip `TOWLINE ►` prefix in stage banners
+- Use random emoji (only `🎉` for milestone complete, `✓` for phase complete)
+- Skip the "Next Up" block after major completions
+- Reference GSD commands (always use `/dev:*` commands)
+- Use `GSD ►` or any GSD branding

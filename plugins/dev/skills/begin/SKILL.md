@@ -415,8 +415,14 @@ If `gates.confirm_project` is true in config:
 
 After all steps complete, present the final summary:
 
+Use the branded stage banner from `references/ui-formatting.md`:
+
 ```
-Project initialized: {name}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PROJECT INITIALIZED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**{name}**
 
 {core value one-liner}
 
@@ -426,12 +432,28 @@ Roadmap: {N} phases
   ...
 
 Requirements: {N} committed, {M} deferred, {K} out-of-scope
+```
 
-What's next?
--> /dev:explore — think through ideas and approaches before committing
--> /dev:discuss 1 — talk through Phase 1 details before planning
--> /dev:plan 1 — jump straight to planning Phase 1
--> /dev:config — adjust workflow settings
+Then use the "Next Up" routing block:
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Phase 1: {Name}** — {one-line goal}
+
+/dev:explore — think through ideas and approaches before committing
+
+<sub>/clear first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- /dev:discuss 1 — talk through Phase 1 details before planning
+- /dev:plan 1 — jump straight to planning Phase 1
+- /dev:config — adjust workflow settings
+
+───────────────────────────────────────────────────────────────
 ```
 
 ---
