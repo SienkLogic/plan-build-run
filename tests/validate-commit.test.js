@@ -96,6 +96,16 @@ describe('validate-commit.js', () => {
       const result = runScript({ command: 'git commit -m "feat(quick-001): fix header alignment"' });
       expect(result.exitCode).toBe(0);
     });
+
+    test('commit after cd (chained with &&)', () => {
+      const result = runScript({ command: 'cd /d/Repos/project && git commit -m "feat(01-01): add feature"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('commit after git add (chained with &&)', () => {
+      const result = runScript({ command: 'git add file.js && git commit -m "fix(02-01): resolve bug"' });
+      expect(result.exitCode).toBe(0);
+    });
   });
 
   describe('invalid commit messages', () => {
@@ -116,6 +126,11 @@ describe('validate-commit.js', () => {
 
     test('missing space after colon', () => {
       const result = runScript({ command: 'git commit -m "feat(03-01):add auth"' });
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('invalid commit after cd (chained with &&)', () => {
+      const result = runScript({ command: 'cd /d/Repos/project && git commit -m "bad message"' });
       expect(result.exitCode).toBe(2);
     });
 
