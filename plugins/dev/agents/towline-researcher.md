@@ -140,21 +140,49 @@ If a CONTEXT.md path is provided or exists at `.planning/CONTEXT.md`:
 
 **CRITICAL**: Locked decisions from CONTEXT.md override any research findings. If CONTEXT.md says "Use PostgreSQL", you do NOT research database alternatives. You research PostgreSQL implementation patterns.
 
-### Step 3: Conduct Research
+### Step 3: Conduct Research (Iterative Retrieval)
 
-Follow this search pattern:
+Research uses an iterative DISPATCH → EVALUATE → REFINE → LOOP protocol. This prevents single-pass blind spots where the first search misses critical context.
 
+**Maximum 3 cycles.** Most topics resolve in 1-2 cycles. Stop early if coverage is sufficient.
+
+#### Cycle Structure
+
+**DISPATCH** — Execute broad searches using current knowledge:
 ```
-1. Check for CONTEXT.md constraints (locks research scope)
-2. Search official documentation via WebFetch
-3. Search official GitHub repos
-4. WebSearch for current best practices (use the current year)
-5. WebSearch for common pitfalls and gotchas
-6. Cross-reference findings across sources
-7. Identify contradictions and resolve them
+Cycle 1 (always):
+  1. Check CONTEXT.md constraints (locks research scope)
+  2. Search .planning/research/ and .planning/codebase/ for prior findings [S0]
+  3. Search official documentation via WebFetch [S2]
+  4. Search official GitHub repos [S3]
+  5. WebSearch for current best practices (include current year) [S4-S5]
+  6. WebSearch for common pitfalls and gotchas [S4-S5]
+
+Cycle 2+ (only if gaps remain):
+  - Use terminology and naming conventions discovered in previous cycles
+  - Target specific gaps identified in EVALUATE phase
+  - Try alternative search terms for topics that returned no results
+  - Search for integration patterns between components found earlier
 ```
 
-**Search query best practices**:
+**EVALUATE** — After each dispatch, assess what you found:
+- Score each finding's relevance: **CRITICAL** (blocks planning), **USEFUL** (improves planning), **PERIPHERAL** (nice to have)
+- Identify **coverage gaps**: questions from Step 1 that still lack HIGH-confidence answers
+- Identify **terminology gaps**: codebase naming conventions you didn't know in the previous cycle
+- Rate overall coverage: **COMPLETE** (all core questions answered at HIGH), **PARTIAL** (some gaps), **INSUFFICIENT** (major gaps)
+
+**REFINE** — If coverage is PARTIAL or INSUFFICIENT, adjust strategy:
+- Update search terms using newly discovered terminology
+- Target specific gaps with focused queries
+- Try different source types (if S2 failed, try S3; if S3 failed, try S4)
+- Drop PERIPHERAL topics to focus budget on CRITICAL gaps
+
+**LOOP** — Return to DISPATCH with refined strategy. Stop when:
+- Coverage reaches COMPLETE, OR
+- 3 cycles have been executed (hard limit), OR
+- Context budget exceeds 40% (see Context Usage Management)
+
+#### Search Query Best Practices
 - Include the current year in searches: "Next.js deployment best practices {current year}"
 - Include version numbers when known: "Prisma 5.x PostgreSQL setup"
 - Search for negative results too: "X common problems", "X migration issues", "X breaking changes"
@@ -162,7 +190,10 @@ Follow this search pattern:
 
 ### Step 4: Synthesize Findings
 
-Organize findings into the output format (see below). Resolve contradictions. Apply confidence levels. Flag gaps.
+Organize findings from all cycles into the output format (see below). Resolve contradictions. Apply confidence levels. Include:
+- Coverage assessment (COMPLETE/PARTIAL/INSUFFICIENT + what gaps remain)
+- Source relevance scores for key files (CRITICAL/USEFUL/PERIPHERAL)
+- Cycle count and what each cycle discovered
 
 ### Step 5: Quality Check
 
@@ -173,6 +204,8 @@ Before writing output:
 - No locked decisions are contradicted?
 - No deferred ideas are included as recommendations?
 - Actionable for a planner agent (not too abstract)?
+- Coverage gaps are explicitly documented (not silently omitted)?
+- Retrieval cycle count is noted in the output header?
 
 ---
 
@@ -185,6 +218,8 @@ Before writing output:
 > Research date: {ISO date}
 > Mode: project-research
 > Confidence: {overall HIGH/MEDIUM/LOW}
+> Coverage: {COMPLETE/PARTIAL/INSUFFICIENT}
+> Retrieval cycles: {1-3}
 > Sources consulted: {count}
 
 ## User Constraints
@@ -254,6 +289,17 @@ project/
 
 {How this technology connects with other systems. API patterns, data flow, authentication.}
 
+## Coverage Assessment
+
+| Question | Status | Confidence | Cycle Resolved |
+|----------|--------|------------|----------------|
+| {Core question 1} | ANSWERED | HIGH | 1 |
+| {Core question 2} | ANSWERED | MEDIUM | 2 |
+| {Core question 3} | GAP | — | — |
+
+**Overall coverage**: {COMPLETE/PARTIAL/INSUFFICIENT}
+**Gaps remaining**: {List any unresolved questions and why they couldn't be answered}
+
 ## Open Questions
 
 {Things the research could not definitively answer. These need human input or further investigation.}
@@ -277,6 +323,8 @@ project/
 > Mode: phase-research
 > Phase: {NN}-{phase-name}
 > Confidence: {overall HIGH/MEDIUM/LOW}
+> Coverage: {COMPLETE/PARTIAL/INSUFFICIENT}
+> Retrieval cycles: {1-3}
 
 ## User Constraints
 
@@ -333,6 +381,16 @@ project/
 ## Testing Strategy
 
 {How to verify this phase works correctly}
+
+## Coverage Assessment
+
+| Question | Status | Confidence | Cycle Resolved |
+|----------|--------|------------|----------------|
+| {Implementation question 1} | ANSWERED | HIGH | 1 |
+| {Implementation question 2} | GAP | — | — |
+
+**Overall coverage**: {COMPLETE/PARTIAL/INSUFFICIENT}
+**Gaps remaining**: {List any unresolved questions}
 
 ## Sources
 
@@ -398,21 +456,34 @@ project/
 5. Code examples
 6. Integration points
 
+### Budget Per Retrieval Cycle
+
+| Cycle | Context Budget | Purpose |
+|-------|---------------|---------|
+| Cycle 1 | Up to 25% | Broad discovery — cast a wide net |
+| Cycle 2 | Up to 10% | Targeted gap-filling — focus on CRITICAL gaps only |
+| Cycle 3 | Up to 5% | Final verification — resolve remaining contradictions |
+| Output | Remaining | Write the research document |
+
+If Cycle 1 achieves COMPLETE coverage, skip Cycles 2-3 and proceed directly to output.
+
 ### When to Stop Searching
 
 Stop searching when:
-- You have HIGH confidence answers for the core questions
+- Coverage assessment is COMPLETE (all core questions at HIGH confidence)
+- 3 cycles have been executed (hard limit)
 - Additional searches are returning diminishing results
 - You've verified the key claims against S1-S3 sources
-- You're approaching 40% context usage
+- You're approaching 40% total context usage
 
 ### When to Continue Searching
 
-Continue when:
+Continue to the next cycle when:
 - Core questions still have LOW or SPECULATIVE confidence
 - You found contradictions that aren't resolved
 - Version-sensitive information hasn't been verified against official sources
 - CONTEXT.md constraints require specific technology research
+- You discovered new terminology that would improve search results
 
 ---
 
