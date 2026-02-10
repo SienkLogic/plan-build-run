@@ -1,7 +1,7 @@
 ---
 name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--gaps-only] [--team]"
 ---
 
@@ -61,7 +61,13 @@ This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, a
    - PLAN.md files exist in the directory
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
 4. If no phase number given, read current phase from `.planning/STATE.md`
-5. If `gates.confirm_execute` is true: ask user to confirm before proceeding
+5. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+   question: "Ready to build Phase {N}? This will execute {count} plans."
+   header: "Build?"
+   options:
+     - label: "Yes"  description: "Start building Phase {N}"
+     - label: "No"   description: "Cancel — review plans first"
+   If "No" or "Other": stop and suggest `/dev:plan {N}` to review plans
 6. If `git.branching_strategy` is `phase`: create and switch to branch `towline/phase-{NN}-{name}` before any build work begins
 7. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
@@ -70,9 +76,14 @@ After validating prerequisites, check plan staleness:
 1. Read each PLAN.md file's `dependency_fingerprints` field (if present)
 2. For each fingerprinted dependency, check the current SUMMARY.md file (length + modification time)
 3. If any fingerprint doesn't match: the dependency phase was re-built after this plan was created
-4. Warn user: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created. Re-plan with `/dev:plan {N}` or continue with existing plans?"
-5. If user chooses to continue: proceed (the plans may still be valid)
-6. If user chooses to re-plan: stop and suggest `/dev:plan {N}`
+4. Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
+   question: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created."
+   header: "Stale"
+   options:
+     - label: "Continue anyway"  description: "Proceed with existing plans (may still be valid)"
+     - label: "Re-plan"          description: "Stop and re-plan with `/dev:plan {N}` (recommended)"
+   If "Re-plan" or "Other": stop and suggest `/dev:plan {N}`
+   If "Continue anyway": proceed with existing plans
 7. If plans have no `dependency_fingerprints` field: skip this check (backward compatible)
 
 **Validation errors:**
@@ -131,9 +142,14 @@ Check for existing SUMMARY.md files from previous runs (crash recovery):
 3. Build the skip list of plans to exclude
 
 **If all plans already have completed SUMMARYs:**
-- "Phase {N} has already been built. All plans have completed SUMMARYs. Re-build? This will delete existing SUMMARYs and re-execute."
-- If yes: delete SUMMARY files and proceed
-- If no: suggest `/dev:review {N}`
+Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  question: "Phase {N} has already been built. All plans have completed SUMMARYs. Re-build from scratch?"
+  header: "Re-build?"
+  options:
+    - label: "Yes"  description: "Delete existing SUMMARYs and re-execute all plans"
+    - label: "No"   description: "Keep existing build — review instead"
+- If "Yes": delete SUMMARY files and proceed
+- If "No" or "Other": suggest `/dev:review {N}`
 
 ---
 
@@ -398,22 +414,25 @@ Plan {id} {status}:
   Last verify output: {output}
 ```
 
-Ask user:
-- **retry** — re-spawn the executor for the failed plan
-- **skip** — mark plan as skipped, continue to next wave
-- **rollback** — undo commits from the failed plan, revert to last-good state
-- **abort** — stop the entire build
+Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prompts.md`):
+  question: "Plan {id} failed at task {N} ({name}). How should we proceed?"
+  header: "Failed"
+  options:
+    - label: "Retry"     description: "Re-spawn the executor for this plan"
+    - label: "Skip"      description: "Mark as skipped, continue to next wave"
+    - label: "Rollback"  description: "Undo commits from this plan, revert to last good state"
+    - label: "Abort"     description: "Stop the entire build"
 
-**If retry:**
+**If user selects 'Retry':**
 - Re-spawn executor Task() with the same prompt
 - If retry also fails: ask user again (max 2 retries total)
 
-**If skip:**
+**If user selects 'Skip':**
 - Note the skip in results
 - Check if any plans in later waves depend on the skipped plan
 - If yes: warn user that those plans will also need to be skipped or adjusted
 
-**If rollback:**
+**If user selects 'Rollback':**
 - Read `last_good_commit` from `.checkpoint-manifest.json`
 - If `last_good_commit` exists:
   - Show the user: "Rolling back to commit {sha} (last verified good state). This will soft-reset {N} commits."
@@ -423,7 +442,7 @@ Ask user:
   - Continue to next wave or stop based on user preference
 - If no `last_good_commit`: warn "No rollback point available (this was the first plan). Use abort instead."
 
-**If abort:**
+**If user selects 'Abort':**
 - Update STATE.md with current progress
 - Present what was completed before the abort
 - Suggest: "Fix the issue and run `/dev:build {N}` to resume (completed plans will be skipped)"
@@ -650,9 +669,14 @@ If `planning.commit_docs` is `true`:
 If `git.branching_strategy` is `phase`:
 - All work was done on the phase branch (created in Step 1)
 - Squash merge to main: `git checkout main && git merge --squash towline/phase-{NN}-{name}`
-- Ask user to confirm: "Phase {N} complete on branch `towline/phase-{NN}-{name}`. Squash merge to main?"
-- If confirmed: complete the merge and delete the phase branch
-- If declined: leave the branch as-is and inform the user
+- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  question: "Phase {N} complete on branch `towline/phase-{NN}-{name}`. Squash merge to main?"
+  header: "Merge?"
+  options:
+    - label: "Yes, merge"   description: "Squash merge to main and delete the phase branch"
+    - label: "No, keep"     description: "Leave the branch as-is for manual review"
+- If "Yes, merge": complete the merge and delete the phase branch
+- If "No, keep" or "Other": leave the branch as-is and inform the user
 
 **8e. Auto-advance / auto-continue (conditional):**
 
