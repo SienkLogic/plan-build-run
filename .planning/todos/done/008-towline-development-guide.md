@@ -1,6 +1,6 @@
 ---
 title: "Create comprehensive Towline development guide"
-status: pending
+status: done
 priority: P1
 source: user-request
 created: 2026-02-10

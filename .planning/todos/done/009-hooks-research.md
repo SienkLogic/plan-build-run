@@ -1,6 +1,6 @@
 ---
 title: "Research Claude Code Hooks for maximum Towline benefit"
-status: pending
+status: done
 priority: P1
 source: user-request
 created: 2026-02-10
