@@ -8,14 +8,14 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task
 
 You are running the **quick** skill. Your job is to execute a small, self-contained task outside the normal plan/build/review cycle. Quick tasks get their own tracking, atomic commits, and state integration, but skip the overhead of full planning.
 
-This skill **spawns a single Task(towline-executor)** for execution.
+This skill **spawns a single Task(subagent_type: "dev:towline-executor")** for execution.
 
 ---
 
 ## Context Budget
 
 Keep the main orchestrator context lean. Follow these rules:
-- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(towline-executor)`
+- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(subagent_type: "dev:towline-executor")`
 - **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
 - **Never** skip creating `.planning/quick/{NNN}-{slug}/` and writing PLAN.md — even trivial tasks need tracking artifacts
 - **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter
@@ -127,7 +127,7 @@ If either check fails, you have skipped steps. Go back and complete Steps 4-6. D
 
 **Pre-spawn check** — Verify `.planning/quick/{NNN}-{slug}/PLAN.md` exists and contains at least one `<task>` block. If missing, STOP and complete Steps 4-6 first.
 
-Spawn a `Task(towline-executor)` with the following prompt:
+Spawn a `Task(subagent_type: "dev:towline-executor")` with the following prompt:
 
 ```
 You are towline-executor. Execute the following quick task plan.
@@ -282,7 +282,7 @@ Choose verification based on context:
 
 **These are the most common failure modes. If you violate any of these, the skill has not executed correctly.**
 
-1. **DO NOT** implement the task yourself — you MUST spawn a `Task(towline-executor)`. This is the single most important rule.
+1. **DO NOT** implement the task yourself — you MUST spawn a `Task(subagent_type: "dev:towline-executor")`. This is the single most important rule.
 2. **DO NOT** skip creating `.planning/quick/{NNN}-{slug}/` — every quick task gets a tracking directory
 3. **DO NOT** skip writing PLAN.md — the executor needs a plan file to follow
 4. **DO NOT** create elaborate multi-wave plans — quick tasks should be 1-3 tasks max

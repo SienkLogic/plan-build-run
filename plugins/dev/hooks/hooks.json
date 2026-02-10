@@ -27,6 +27,16 @@
             "statusMessage": "Checking roadmap sync..."
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/track-context-budget.js",
+            "statusMessage": "Tracking context budget..."
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [

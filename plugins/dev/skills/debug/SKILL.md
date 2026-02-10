@@ -9,7 +9,17 @@ argument-hint: "[issue description]"
 
 You are running the **debug** skill. Your job is to run a structured, hypothesis-driven debugging session that persists across conversations. You track every hypothesis, test, and finding in a debug file so work is never lost.
 
-This skill **spawns Task(towline-debugger)** for investigation work.
+This skill **spawns Task(subagent_type: "dev:towline-debugger")** for investigation work.
+
+---
+
+## Context Budget
+
+Keep the orchestrator lean. Follow these rules:
+- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+- **Never** perform investigation work yourself — delegate ALL analysis to the towline-debugger subagent
+- **Minimize** reading debug file content — read only the latest hypothesis and result section
+- **Delegate** all code reading, hypothesis testing, and fix attempts to the debugger subagent
 
 ---
 
@@ -144,7 +154,7 @@ category: "{runtime|build|test|config|integration|unknown}"
 
 #### Spawn Debugger
 
-Spawn `Task(towline-debugger)` with the prompt template.
+Spawn `Task(subagent_type: "dev:towline-debugger")` with the prompt template.
 
 Read `skills/debug/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
 
@@ -166,7 +176,7 @@ Last state:
 Continuing investigation...
 ```
 
-4. Spawn `Task(towline-debugger)` with the continuation prompt template.
+4. Spawn `Task(subagent_type: "dev:towline-debugger")` with the continuation prompt template.
 
    Read `skills/debug/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
 
@@ -227,7 +237,7 @@ Actions:
    - "Continue investigating?"
    - "Provide additional information?"
    - "Try a different approach?"
-4. If user wants to continue: spawn another `Task(towline-debugger)` with updated context
+4. If user wants to continue: spawn another `Task(subagent_type: "dev:towline-debugger")` with updated context
 5. If user wants to pause: save state, suggest `/dev:debug` to resume later
 
 #### INCONCLUSIVE

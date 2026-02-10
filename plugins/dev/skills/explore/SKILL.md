@@ -13,6 +13,15 @@ This skill runs **inline** (no Task delegation), with optional Task() spawns for
 
 ---
 
+## Context Budget
+
+This skill is mostly inline conversation, but may spawn researchers. Follow these rules:
+- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+- **Minimize** file reads — this is a thinking skill, not a code analysis skill
+- **Delegate** deep research to a towline-researcher subagent if investigation exceeds 3-4 file reads
+
+---
+
 ## How /dev:explore Differs from /dev:discuss
 
 | | /dev:discuss | /dev:explore |

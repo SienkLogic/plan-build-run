@@ -68,6 +68,13 @@ if (fs.existsSync(skillsDir)) {
           error(`skills/${dir.name}/SKILL.md frontmatter missing "description" field`);
         }
       }
+      // Check: skills with Task in allowed-tools must have Context Budget section
+      const frontmatterBlock = content.split('---')[1] || '';
+      const hasTaskTool = /allowed-tools:.*Task/.test(frontmatterBlock);
+      if (hasTaskTool && !content.includes('## Context Budget')) {
+        warn(`skills/${dir.name}/SKILL.md has Task in allowed-tools but no "## Context Budget" section`);
+      }
+
       info(`Skill: /dev:${dir.name}`);
     }
   }

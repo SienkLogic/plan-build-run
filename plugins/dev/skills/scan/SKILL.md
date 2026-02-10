@@ -8,7 +8,17 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task
 
 You are running the **scan** skill. Your job is to analyze an existing codebase and produce a comprehensive map of its structure, architecture, conventions, and concerns. This is the entry point for brownfield projects — codebases that already have code before Towline is introduced.
 
-This skill **spawns 4 parallel Task(towline-codebase-mapper)** agents for analysis.
+This skill **spawns 4 parallel Task(subagent_type: "dev:towline-codebase-mapper")** agents for analysis.
+
+---
+
+## Context Budget
+
+Keep the orchestrator lean. Follow these rules:
+- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+- **Never** analyze the codebase yourself — delegate ALL analysis to the 4 parallel codebase-mapper subagents
+- **Minimize** reading mapper outputs — read only frontmatter or first 20 lines of each output document
+- **Delegate** all file reading, pattern analysis, and architecture mapping to the codebase-mapper subagents
 
 ---
 
@@ -114,7 +124,7 @@ Before spawning agents, do a quick scan to identify what we're working with. Thi
 
 ### Step 3: Spawn Analysis Agents
 
-Spawn **4 parallel** `Task(towline-codebase-mapper)` agents, each with a different focus area. All 4 should be spawned in a single response for maximum parallelism.
+Spawn **4 parallel** `Task(subagent_type: "dev:towline-codebase-mapper")` agents, each with a different focus area. All 4 should be spawned in a single response for maximum parallelism.
 
 #### Agent 1: Technology Stack (`focus="tech"`)
 

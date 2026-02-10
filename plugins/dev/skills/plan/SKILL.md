@@ -104,8 +104,8 @@ Not all prior phase SUMMARYs need the same level of detail. Use selective depth 
 
 | Relationship to current phase | Read depth |
 |-------------------------------|------------|
-| Direct dependency (listed in `depends_on` in ROADMAP.md) | Full SUMMARY body |
-| 1 phase back from a dependency (transitive) | Frontmatter only (`provides`, `key_files`, `key_decisions`, `patterns`) |
+| Direct dependency (listed in `depends_on` in ROADMAP.md) | Frontmatter + "Key Decisions" section only. The planner reads full bodies from disk in its own context. |
+| 1 phase back from a dependency (transitive) | Frontmatter only (`provides`, `key_files`, `patterns`) |
 | 2+ phases back | Skip entirely |
 
 Example: If planning Phase 5 which depends on Phase 4, and Phase 4 depends on Phase 3:
