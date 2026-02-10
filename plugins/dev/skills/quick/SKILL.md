@@ -12,6 +12,15 @@ This skill **spawns a single Task(towline-executor)** for execution.
 
 ---
 
+## Context Budget
+
+Keep the main orchestrator context lean. Follow these rules:
+- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(towline-executor)`
+- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
+- **Never** skip creating `.planning/quick/{NNN}-{slug}/` and writing PLAN.md — even trivial tasks need tracking artifacts
+- **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter
+- **Delegate** all implementation work to a single towline-executor subagent — the orchestrator writes planning artifacts (PLAN.md, STATE.md), the executor writes code and SUMMARY.md
+
 ## Core Principle
 
 **Quick tasks are for small, well-defined work.** If the user describes something that would take more than 3-5 tasks or touches multiple subsystems, suggest using the full plan/build cycle instead.
@@ -104,7 +113,17 @@ Read `references/plan-format.md` for the plan file format. Fill in all `{variabl
 </task>
 ```
 
+**PLANNING GATE — verify before spawning executor:**
+
+Before proceeding to Step 7, confirm these exist on disk:
+1. `.planning/quick/{NNN}-{slug}/` directory exists
+2. `.planning/quick/{NNN}-{slug}/PLAN.md` exists, is non-empty, and contains at least one `<task>` block
+
+If either check fails, you have skipped steps. Go back and complete Steps 4-6. Do NOT proceed to spawning an executor.
+
 ### Step 7: Spawn Executor
+
+**Pre-spawn check** — Verify `.planning/quick/{NNN}-{slug}/PLAN.md` exists and contains at least one `<task>` block. If missing, STOP and complete Steps 4-6 first.
 
 Spawn a `Task(towline-executor)` with the following prompt:
 
@@ -165,6 +184,14 @@ If `planning.commit_docs: true` in config.json:
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
 ### Step 11: Report Results
+
+**Artifact check** — Before reporting, verify all required artifacts exist:
+1. `.planning/quick/{NNN}-{slug}/PLAN.md` exists
+2. `.planning/quick/{NNN}-{slug}/SUMMARY.md` exists and is non-empty
+3. STATE.md contains a quick task entry for {NNN} (if STATE.md exists)
+
+If SUMMARY.md is missing: the executor may have failed — re-read executor output and report the failure.
+If STATE.md entry is missing: write it now (Step 9 was skipped).
 
 Display results to the user:
 
@@ -251,11 +278,16 @@ Choose verification based on context:
 
 ## Anti-Patterns
 
-1. **DO NOT** create elaborate multi-wave plans — quick tasks should be 1-3 tasks max
-2. **DO NOT** spawn multiple executors — one executor for the whole quick task
-3. **DO NOT** skip the SUMMARY.md — even quick tasks need documentation
-4. **DO NOT** use `git add .` — stage specific files only
-5. **DO NOT** skip verification — every task needs a verify step
-6. **DO NOT** create a quick task for something that needs planning — suggest `/dev:plan`
-7. **DO NOT** modify STATE.md if it doesn't exist (other than warning)
-8. **DO NOT** break the numbering sequence — always find the next number
+**These are the most common failure modes. If you violate any of these, the skill has not executed correctly.**
+
+1. **DO NOT** implement the task yourself — you MUST spawn a `Task(towline-executor)`. This is the single most important rule.
+2. **DO NOT** skip creating `.planning/quick/{NNN}-{slug}/` — every quick task gets a tracking directory
+3. **DO NOT** skip writing PLAN.md — the executor needs a plan file to follow
+4. **DO NOT** create elaborate multi-wave plans — quick tasks should be 1-3 tasks max
+5. **DO NOT** spawn multiple executors — one executor for the whole quick task
+6. **DO NOT** skip the SUMMARY.md — even quick tasks need documentation
+7. **DO NOT** use `git add .` — stage specific files only
+8. **DO NOT** skip verification — every task needs a verify step
+9. **DO NOT** create a quick task for something that needs planning — suggest `/dev:plan`
+10. **DO NOT** modify STATE.md if it doesn't exist (other than warning)
+11. **DO NOT** break the numbering sequence — always find the next number
