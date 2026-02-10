@@ -1,6 +1,6 @@
 # Gate Prompt Patterns
 
-> Referenced by: plan, build, import, scan, review, milestone skills
+> Referenced by: plan, build, import, scan, review, milestone, config, status, resume, quick skills
 > Purpose: Reusable AskUserQuestion patterns for structured gate checks
 
 These patterns provide consistent, structured prompts for user decision points. Skills reference these patterns by name to ensure all gate checks use the same format.
@@ -148,5 +148,116 @@ Use AskUserQuestion:
     - label: "Must + should"   description: "Address critical, high, and medium gaps"
     - label: "Everything"      description: "Address all gaps including low priority"
     - label: "Let me pick"     description: "Choose specific gaps to address"
+  multiSelect: false
+```
+
+---
+
+## Pattern: settings-category-select
+
+4-option menu for configuration category selection (config skill).
+
+```
+Use AskUserQuestion:
+  question: "What would you like to configure?"
+  header: "Configure"
+  options:
+    - label: "Depth"          description: "quick/standard/comprehensive"
+    - label: "Model profile"  description: "quality/balanced/budget/adaptive"
+    - label: "Features"       description: "Toggle workflow features and gates"
+    - label: "Git settings"   description: "branching strategy, commit mode"
+  multiSelect: false
+```
+
+Note: Original 7 categories condensed to 4. "Models" (per-agent) merged into "Model profile". "Gates" and "Parallelization" merged into "Features". After selection, show a category-specific follow-up AskUserQuestion.
+
+---
+
+## Pattern: toggle-confirm
+
+2-option confirmation for enabling/disabling boolean features (config skill).
+
+```
+Use AskUserQuestion:
+  question: "Enable {feature_name}?"
+  header: "Toggle"
+  options:
+    - label: "Enable"   description: "Turn this feature on"
+    - label: "Disable"  description: "Turn this feature off"
+  multiSelect: false
+```
+
+---
+
+## Pattern: model-profile-select
+
+4-option selection for model profile presets (config skill).
+
+```
+Use AskUserQuestion:
+  question: "Select model profile"
+  header: "Profile"
+  options:
+    - label: "Quality"    description: "opus for all agents (highest cost)"
+    - label: "Balanced"   description: "sonnet/inherit mix (default)"
+    - label: "Budget"     description: "haiku for all agents (lowest cost)"
+    - label: "Adaptive"   description: "sonnet planning, haiku execution"
+  multiSelect: false
+```
+
+---
+
+## Pattern: action-routing
+
+Up to 4 suggested next actions with selection (status, resume skills).
+
+```
+Use AskUserQuestion:
+  question: "What would you like to do next?"
+  header: "Next Step"
+  options:
+    - label: "{primary action}"   description: "{explanation}"
+    - label: "{alternative 1}"    description: "{explanation}"
+    - label: "{alternative 2}"    description: "{explanation}"
+    - label: "Something else"     description: "Enter a different command"
+  multiSelect: false
+```
+
+Note: Dynamically generate options from workflow state. The "Something else" option allows freeform input. Build 1-3 real options + always include "Something else" as the last option. If only 1 real option exists, use the yes-no pattern instead.
+
+---
+
+## Pattern: pause-point-select
+
+Select from multiple resume points (resume skill).
+
+```
+Use AskUserQuestion:
+  question: "Found multiple pause points. Which would you like to resume?"
+  header: "Resume"
+  options:
+    - label: "Phase {A}"  description: "Paused {date}"
+    - label: "Phase {B}"  description: "Paused {date}"
+    - label: "Phase {C}"  description: "Paused {date}"
+    - label: "Phase {D}"  description: "Paused {date}"
+  multiSelect: false
+```
+
+Note: If more than 4 pause points exist, show the 4 most recent. The oldest option becomes "Show earlier" which re-prompts with the next batch.
+
+---
+
+## Pattern: scope-confirm
+
+3-option confirmation for quick task scope validation (quick skill).
+
+```
+Use AskUserQuestion:
+  question: "This task looks complex. Proceed as quick task or use full planning?"
+  header: "Scope"
+  options:
+    - label: "Quick task"  description: "Execute as lightweight task"
+    - label: "Full plan"   description: "Switch to /dev:plan for proper planning"
+    - label: "Revise"      description: "Let me rewrite the task description"
   multiSelect: false
 ```
