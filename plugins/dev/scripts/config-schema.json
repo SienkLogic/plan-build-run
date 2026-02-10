@@ -90,7 +90,19 @@
       "type": "object",
       "properties": {
         "always_confirm_destructive": { "type": "boolean" },
-        "always_confirm_external_services": { "type": "boolean" }
+        "always_confirm_external_services": { "type": "boolean" },
+        "enforce_phase_boundaries": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "autoFormat": { "type": "boolean" },
+        "typeCheck": { "type": "boolean" },
+        "detectConsoleLogs": { "type": "boolean" },
+        "blockDocSprawl": { "type": "boolean" },
+        "compactThreshold": { "type": "integer", "minimum": 10, "maximum": 200 }
       },
       "additionalProperties": false
     }
