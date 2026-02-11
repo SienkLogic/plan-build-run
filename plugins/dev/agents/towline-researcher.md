@@ -9,6 +9,8 @@ tools:
   - Grep
   - WebFetch
   - WebSearch
+  - mcp__context7__resolve-library-id
+  - mcp__context7__get-library-docs
   - Bash
 ---
 
