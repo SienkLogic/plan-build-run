@@ -1250,17 +1250,9 @@ towline/
 │   │   └── ... (16 references total)
 │   ├── templates/                  ← EJS-style templates
 │   │   ├── SUMMARY.md.tmpl
-│   │   ├── PLAN.md.tmpl
-│   │   ├── VERIFICATION.md.tmpl
 │   │   ├── VERIFICATION-DETAIL.md.tmpl
 │   │   ├── INTEGRATION-REPORT.md.tmpl
-│   │   ├── USER-SETUP.md.tmpl
 │   │   ├── CONTEXT.md.tmpl
-│   │   ├── DEBUG.md.tmpl
-│   │   ├── UAT.md.tmpl
-│   │   ├── discovery.md.tmpl
-│   │   ├── milestone.md.tmpl
-│   │   ├── milestone-archive.md.tmpl
 │   │   ├── continue-here.md.tmpl
 │   │   ├── codebase/               ← Brownfield scan templates
 │   │   │   ├── STACK.md.tmpl
@@ -1272,8 +1264,6 @@ towline/
 │   │   │   └── CONCERNS.md.tmpl
 │   │   └── research/               ← Initial research templates
 │   │       ├── ARCHITECTURE.md.tmpl
-│   │       ├── FEATURES.md.tmpl
-│   │       ├── PITFALLS.md.tmpl
 │   │       ├── STACK.md.tmpl
 │   │       └── SUMMARY.md.tmpl
 │   ├── commands/                   ← Command registration
@@ -1467,7 +1457,7 @@ plugins/dev/templates/{template-name}.tmpl
 
 Examples:
   plugins/dev/templates/SUMMARY.md.tmpl
-  plugins/dev/templates/VERIFICATION.md.tmpl
+  plugins/dev/templates/VERIFICATION-DETAIL.md.tmpl
   plugins/dev/templates/codebase/stack-research.md.tmpl
 ```
 
@@ -2231,15 +2221,13 @@ Templates use **simple `{variable}` placeholders** (Mustache-style) for string s
 {date}               Date (YYYY-MM-DD)
 ```
 
-**Exception**: `templates/PLAN.md.tmpl` uses EJS syntax (`<%= %>`, `<% for %>`) because it requires loops for dynamic arrays (must-haves, tasks). This is the only template that uses EJS.
-
 ### When to Use Each Syntax
 
 | Syntax | When | Example |
 |--------|------|---------|
 | `{var}` | Simple substitution (default) | `{phase}`, `{status}`, `{date}` |
-| `<%= var %>` | Only in PLAN.md.tmpl (EJS) | `<%= phase %>` |
-| `<% code %>` | Only when loops/conditionals are needed (EJS) | `<% for (const t of tasks) { %>` |
+| `<%= var %>` | EJS — only when loops/conditionals are needed | `<%= phase %>` |
+| `<% code %>` | EJS — only when loops/conditionals are needed | `<% for (const t of tasks) { %>` |
 
 **Rule**: When creating a new template, always use `{var}` syntax unless you genuinely need loops or conditionals.
 
@@ -2248,7 +2236,7 @@ Templates use **simple `{variable}` placeholders** (Mustache-style) for string s
 ```
 plugins/dev/templates/SUMMARY.md.tmpl           ← Top-level templates
 plugins/dev/templates/codebase/STACK.md.tmpl    ← Organized in subdirs
-plugins/dev/templates/research/FEATURES.md.tmpl
+plugins/dev/templates/research/SUMMARY.md.tmpl
 plugins/dev/skills/{name}/templates/            ← Skill-specific templates
 ```
 
