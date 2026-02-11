@@ -107,7 +107,11 @@ Reference `skills/shared/domain-probes.md` for technology-specific follow-up que
 
 When a knowledge gap emerges during the conversation — you're unsure about a library, pattern, or approach — surface it explicitly.
 
-**Ask the user** via AskUserQuestion: "I'm not sure about the best approach for {topic}. Want me to research it now, or save it as a research question for later?"
+**Ask the user** using the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "I'm not sure about the best approach for {topic}. Research it now?"
+  options:
+    - label: "Research now"   description: "Spawn a researcher agent to investigate"
+    - label: "Save for later" description: "Add as a research question for future investigation"
 
 **If research now:**
 
@@ -186,7 +190,16 @@ Want to adjust, add, or remove any of these?
 
 ### Step 3: Confirm
 
-The user confirms, modifies, removes, or adds outputs. Do NOT create any artifacts until the user approves.
+Use the **output-routing** pattern from `skills/shared/gate-prompts.md`:
+  question: "How do you want to handle these proposed outputs?"
+
+Handle responses:
+- "Approve all": Create all suggested artifacts (proceed to Step 4)
+- "Adjust": The user wants to modify proposals. Have a freeform conversation to adjust, then re-present with another AskUserQuestion.
+- "Add more": The user has additional outputs. Gather them conversationally, add to the list, then re-present.
+- "Skip": End the session without creating artifacts. This is fine — sometimes exploring is enough.
+
+Do NOT create any artifacts until the user selects "Approve all" on the final set.
 
 ### Step 4: Create Artifacts
 
