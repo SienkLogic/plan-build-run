@@ -1,7 +1,7 @@
 # Towline Rules
 
 Authoritative rules for all Towline skills, agents, hooks, and workflows.
-Condensed from the 3,100-line DEVELOPMENT-GUIDE.md. When in doubt, these rules govern.
+Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these rules govern.
 
 ---
 

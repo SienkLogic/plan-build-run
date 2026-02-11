@@ -1,9 +1,0 @@
-{
-  "plans": ["15-01", "15-02"],
-  "checkpoints_resolved": [],
-  "checkpoints_pending": [],
-  "wave": 1,
-  "deferred": [],
-  "commit_log": [],
-  "last_good_commit": null
-}

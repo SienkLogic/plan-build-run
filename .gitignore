@@ -2,8 +2,6 @@ node_modules/
 .env
 *.log
 nul
-.planning/research/
-.planning/.hook-log
-.planning/logs/
+.planning/
 .claude/agent-memory/
 .claude/settings.local.json
