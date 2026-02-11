@@ -1,7 +1,7 @@
 ---
 name: discuss
 description: "Talk through a phase before planning. Identifies gray areas and captures your decisions."
-allowed-tools: Read, Write, Glob, Grep
+allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
 argument-hint: "<phase-number>"
 ---
 
@@ -67,8 +67,13 @@ Read the following files to understand what this phase needs to accomplish:
 3. **REQUIREMENTS.md** (if exists) — Read project requirements relevant to this phase
 
 4. **CONTEXT.md** (if exists in the phase directory) — Check if a prior discussion already happened
-   - If CONTEXT.md exists, inform the user: "Phase {N} already has a CONTEXT.md from a prior discussion. Continue and overwrite, or append new decisions?"
-   - Use AskUserQuestion to let the user choose
+   - If CONTEXT.md exists, inform the user and use the **context-handling** pattern from `skills/shared/gate-prompts.md`:
+     question: "Phase {N} already has a CONTEXT.md from a prior discussion. How should we handle it?"
+
+   Handle responses:
+   - "Overwrite": Replace CONTEXT.md entirely with new decisions
+   - "Append": Add new decisions below existing ones, marked as "Amendment ({date})"
+   - "Cancel": Stop the discussion, keep existing CONTEXT.md
 
 ### Step 2.5: Open Exploration Phase
 
@@ -105,21 +110,19 @@ Read `skills/discuss/templates/decision-categories.md` for the category referenc
 
 ### Step 4: Present Gray Areas
 
-Present each gray area to the user with 2-4 concrete options. Use AskUserQuestion for each.
+Present each gray area to the user using the **gray-area-option** pattern from `skills/shared/gate-prompts.md`. For each gray area:
 
-**Format for each gray area:**
+Use AskUserQuestion:
+  question: "Gray Area {N}: {Title} — {Why this matters}"
+  header: "Decision"
+  options: (generate 2-4 concrete options from analysis, each with pros/cons in the description)
+    - label: "{Option A}"       description: "{Pros: ..., Cons: ...}"
+    - label: "{Option B}"       description: "{Pros: ..., Cons: ...}"
+    - ...up to 4 options total, with "Let Claude decide" always as the last option
+    - label: "Let Claude decide" description: "Mark as Claude's Discretion"
+  multiSelect: false
 
-```
-Gray Area {N}: {Title}
-
-Context: {Why this matters for the phase}
-
-Options:
-1. {Option A} — {Pros: ..., Cons: ...}
-2. {Option B} — {Pros: ..., Cons: ...}
-3. {Option C} — {Pros: ..., Cons: ...}
-4. Let Claude decide (this becomes a "Claude's Discretion" item)
-```
+If more than 3 concrete options exist for a gray area, present only the top 3 plus "Let Claude decide" (max 4 total). Mention the omitted option(s) in the question text.
 
 **Rules for presenting options:**
 - Each option must be concrete and implementable
@@ -135,15 +138,25 @@ For each gray area where the user made a decision (not "Let Claude decide"), ask
 **Follow-up question types:**
 
 1. **Scope boundary**: "Should {feature} also handle {edge case}?"
-2. **Quality level**: "How polished should this be? Quick and functional, or production-ready?"
+   Use the **yes-no** pattern — this is a binary decision.
+
+2. **Quality level**: "How polished should this be?"
+   Do NOT use AskUserQuestion — this is freeform. Let the user describe their quality expectations in their own words.
+
 3. **Integration**: "How should this interact with {existing component}?"
-4. **Future-proofing**: "Should we design this to support {potential future need}, or keep it simple for now?"
+   Do NOT use AskUserQuestion — this is freeform. The answer depends on the specific component and context.
+
+4. **Future-proofing**: "Should we design this to support {potential future need}, or keep it simple?"
+   Use the **yes-no** pattern:
+     question: "Design {feature} to support {future need}, or keep it simple for now?"
+     options:
+       - label: "Future-proof"  description: "Add extensibility for {future need}"
+       - label: "Keep simple"   description: "Build only what's needed now"
 
 **Rules for follow-ups:**
 - Ask all 4 questions for each area
-- Use AskUserQuestion for each
 - Record exact answers (don't paraphrase)
-- If the user gives a short answer, that's fine — capture it as-is
+- If the user gives a short answer, capture it as-is
 - If the user says "you decide" on a follow-up, move that specific sub-decision to Claude's Discretion
 
 ### Step 6: Capture Deferred Ideas
@@ -239,9 +252,10 @@ These come from:
 ## Edge Cases
 
 ### Phase already has CONTEXT.md
-- Ask user: "Overwrite or append?" via AskUserQuestion
-- If overwrite: replace entirely
-- If append: add new decisions below existing ones, marking them as "Amendment"
+- Use the **context-handling** pattern from `skills/shared/gate-prompts.md` (same as Step 2)
+- If "Overwrite": replace entirely
+- If "Append": add new decisions below existing ones, marking them as "Amendment"
+- If "Cancel": stop the discussion, keep existing CONTEXT.md
 
 ### Phase already has plans
 - Handled by Step 0 — warn but do not block
@@ -252,8 +266,8 @@ These come from:
 - After completing one, suggest: "Want to discuss Phase {N+1} too? Run `/dev:discuss {N+1}`."
 
 ### User disagrees with all options
-- Ask: "What would you prefer instead?" via AskUserQuestion
-- Accept any answer and lock it as a decision
+- Ask: "What would you prefer instead?" — this is freeform text, do NOT use AskUserQuestion.
+- Accept any answer and lock it as a decision.
 - The options were suggestions, not constraints
 
 ### User wants to skip follow-ups
