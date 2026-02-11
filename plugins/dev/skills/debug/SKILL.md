@@ -1,7 +1,7 @@
 ---
 name: debug
 description: "Systematic debugging with hypothesis testing. Persistent across sessions."
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "[issue description]"
 ---
 
@@ -47,20 +47,18 @@ Read each file's frontmatter to check status:
 
 **If active sessions found:**
 
-Present to user via AskUserQuestion:
-```
-Found active debug session(s):
+Use the **debug-session-select** pattern from `skills/shared/gate-prompts.md`:
+  question: "Found active debug sessions. Which would you like?"
 
-1. #{NNN}: {title} (started {date})
-   Last hypothesis: {last hypothesis}
+Generate options dynamically from active sessions:
+- Each active session becomes an option: label "#{NNN}: {title}", description "Started {date}, last: {last hypothesis}"
+- Always include "New session" as the last option: description "Start a fresh debug investigation"
+- If more than 3 active sessions exist, show only the 3 most recent plus "New session" (max 4 options)
 
-2. Start a new debug session
-
-Which would you like?
-```
-
-- If user selects an existing session: go to **Resume Flow**
-- If user selects "new": go to **New Session Flow**
+Handle responses:
+- If user selects an existing session: go to **Resume Flow** (Step 2b)
+- If user selects "New session": go to **New Session Flow** (Step 2a)
+- If user types a session number not in the list: look it up and resume it
 
 **If no active sessions found:**
 - Go to **New Session Flow**
@@ -76,7 +74,7 @@ If `$ARGUMENTS` is provided and descriptive:
 If `$ARGUMENTS` is empty or minimal:
 - Ask the user for symptoms
 
-**Symptom gathering questions** (use AskUserQuestion for each):
+**Symptom gathering questions** (ask as plain text — these are freeform, do NOT use AskUserQuestion):
 
 1. **Expected behavior**: "What should happen?"
 2. **Actual behavior**: "What actually happens? Include error messages if any."
@@ -233,12 +231,13 @@ Investigation progress:
 Actions:
 1. Update debug file with findings so far
 2. Present checkpoint to user
-3. Ask user via AskUserQuestion:
-   - "Continue investigating?"
-   - "Provide additional information?"
-   - "Try a different approach?"
-4. If user wants to continue: spawn another `Task(subagent_type: "dev:towline-debugger")` with updated context
-5. If user wants to pause: save state, suggest `/dev:debug` to resume later
+3. Use the **debug-checkpoint** pattern from `skills/shared/gate-prompts.md`:
+   question: "Investigation has reached a checkpoint. How should we proceed?"
+
+Handle responses:
+- "Continue": Spawn another `Task(subagent_type: "dev:towline-debugger")` with updated context from the debug file
+- "More info": Ask the user freeform what additional context they have, then update the debug file and spawn another debugger
+- "New approach": Ask the user freeform what alternative angle to try, then update hypotheses and spawn another debugger
 
 #### INCONCLUSIVE
 
