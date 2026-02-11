@@ -2,7 +2,7 @@
 name: todo
 description: "Persistent file-based todos that survive across sessions. Add, list, and complete todo items."
 allowed-tools: Read, Write, Bash, Glob, Grep
-argument-hint: "add <description> | list [area] | done <id>"
+argument-hint: "add <description> | list [theme] | done <NNN>"
 ---
 
 # /dev:todo — Persistent File-Based Todos
@@ -18,61 +18,67 @@ Parse `$ARGUMENTS` to determine the subcommand:
 ### `add <description>`
 
 1. Ensure `.planning/todos/pending/` directory exists
-2. Generate ID: `{YYYYMMDD}-{NNN}` where NNN is sequential within the day
-3. Infer area from description (e.g., "auth" → authentication, "test" → testing, "UI" → frontend)
-4. Check for duplicates — read existing pending todos, if a similar one exists, ask user via AskUserQuestion
-5. Create `.planning/todos/pending/{id}.md`:
+2. Generate NNN: scan **both** `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, then increment by 1 (zero-padded to 3 digits)
+3. Generate slug: take the first ~4 meaningful words from the description, lowercase, hyphen-separated (e.g., "Add rate limiting to login" → `add-rate-limiting-login`)
+4. Infer theme from description (e.g., "auth" → security, "test" → testing, "UI" → frontend, "refactor" → quality)
+5. Check for duplicates — read existing pending todos, if a similar one exists, ask user via AskUserQuestion
+6. Create `.planning/todos/pending/{NNN}-{slug}.md`:
 
 ```yaml
 ---
-id: {id}
-area: {inferred-area}
-priority: normal
-created: {ISO-timestamp}
+title: "{description}"
+status: pending
+priority: P2
 source: conversation
+created: {YYYY-MM-DD}
+theme: {inferred-theme}
 ---
 
-# {description}
+## Goal
 
-## Context
-{any relevant context from the current conversation}
+{description expanded into a clear goal statement}
 
-## Notes
-(empty — agent or user can add notes later)
+## Scope
+
+{any relevant context from the current conversation, or bullet points of what's in/out of scope}
+
+## Acceptance Criteria
+
+- [ ] {primary acceptance criterion derived from description}
 ```
 
-6. Update STATE.md Pending Todos section
-7. Confirm: "Added todo {id}: {description}"
+7. Update STATE.md Pending Todos section
+8. Confirm: "Added todo {NNN}: {description}"
 
-### `list [area]`
+### `list [theme]`
 
 1. Read all files in `.planning/todos/pending/`
 2. Parse frontmatter from each
-3. If area filter provided, filter by area
+3. If theme filter provided, filter by theme
 4. Display as table:
 
 ```
 Pending Todos:
-| ID | Area | Priority | Age | Description |
-|----|------|----------|-----|-------------|
-| 20250207-001 | auth | normal | 2d | Add rate limiting to login |
-| 20250207-002 | frontend | normal | 2d | Fix mobile nav overflow |
+| # | Title | Priority | Theme | Created |
+|---|-------|----------|-------|---------|
+| 074 | Status-line customization options | P2 | capability | 2026-02-10 |
+| 075 | Add WebSearch/WebFetch/Context7 to researcher | P2 | capability | 2026-02-10 |
 ```
 
-5. Offer actions: "Work on one? Pick an ID, or use `/dev:todo done <id>` to mark complete."
+5. Offer actions: "Work on one? Pick a number, or use `/dev:todo done <NNN>` to mark complete."
 
-### `done <id>`
+### `done <NNN>`
 
-1. Find `.planning/todos/pending/{id}.md`
-2. If not found, list available IDs
-3. Move file to `.planning/todos/done/{id}.md`
-4. Add completion timestamp to frontmatter
+1. Find `.planning/todos/pending/{NNN}-*.md` (match by number prefix)
+2. If not found, list available numbers
+3. Move file to `.planning/todos/done/{NNN}-{slug}.md`
+4. Update frontmatter: set `status: done` and add `completed: {YYYY-MM-DD}`
 5. Update STATE.md
-6. Confirm: "Completed todo {id}: {description}"
+6. Confirm: "Completed todo {NNN}: {title}"
 
 ### No arguments
 
-Show a brief summary: count of pending todos, grouped by area, plus usage hint.
+Show a brief summary: count of pending todos, grouped by theme, plus usage hint.
 
 ## State Integration
 
@@ -81,5 +87,5 @@ After any todo operation, update the "Pending Todos" section of STATE.md with th
 ## Git Integration
 
 If `planning.commit_docs: true` in config, commit todo changes:
-- `docs(planning): add todo {id}`
-- `docs(planning): complete todo {id}`
+- `docs(planning): add todo {NNN}`
+- `docs(planning): complete todo {NNN}`
