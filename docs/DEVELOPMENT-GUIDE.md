@@ -1294,8 +1294,11 @@ towline/
 │   ├── towline-tools.test.js
 │   ├── integration.test.js
 │   └── ... (24 test files total)
-├── references/                     ← Repo-level reference docs
-│   └── DEVELOPMENT-GUIDE.md        ← This file
+├── docs/                           ← Repo-level documentation
+│   ├── ARCHITECTURE.md             ← Agent orchestration internals
+│   ├── DEVELOPMENT-GUIDE.md        ← This file
+│   ├── DOCS.md                     ← Comprehensive skill reference
+│   └── WORKFLOW.md                 ← Mermaid workflow diagrams
 ├── .planning/                      ← Towline's own planning state
 │   ├── STATE.md
 │   ├── ROADMAP.md
