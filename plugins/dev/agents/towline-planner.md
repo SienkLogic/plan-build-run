@@ -153,50 +153,10 @@ Cross-phase dependencies must be documented in the roadmap.
 
 ## Roadmap Format
 
-When in Roadmap Mode, produce `.planning/ROADMAP.md`:
+When in Roadmap Mode, produce `.planning/ROADMAP.md`.
 
-```markdown
-# Project Roadmap
-
-> Generated: {date}
-> Total phases: {n}
-> Estimated plans: {n}
-
-## Phase Overview
-
-| Phase | Name | Goal | Plans | Wave | Status |
-|-------|------|------|-------|------|--------|
-| 01 | Project Setup | Development environment ready | 2 | 1 | pending |
-| 02 | Authentication | Users can sign in | 3 | 1 | pending |
-| 03 | Core Models | Data layer complete | 4 | 2 | pending |
-| ... | ... | ... | ... | ... | ... |
-
-## Dependency Graph
-
-```
-Phase 01 ──→ Phase 02 ──→ Phase 04
-         └──→ Phase 03 ──→ Phase 05
-                       └──→ Phase 04
-```
-
-## Phase Details
-
-### Phase 01: Project Setup
-
-**Goal**: {goal statement}
-**Must-Haves**:
-- {truth 1}
-- {truth 2}
-
-**Planned Plans**:
-1. {plan name} (Wave 1, autonomous)
-2. {plan name} (Wave 1, autonomous)
-
-**Dependencies**: None (starting phase)
-
-### Phase 02: Authentication
-...
-```
+Read `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl` for the complete output format.
+Key sections: Phase Overview (table with Phase/Name/Goal/Plans/Wave/Status), Dependency Graph (ASCII art), Phase Details (per-phase goal, must-haves, planned plans, dependencies).
 
 ---
 
