@@ -1909,8 +1909,10 @@ Wait for agent to complete. Do NOT read the full PLAN.md into main context.
 If `gates.confirm_plan` is true:
 1. Read PLAN.md frontmatter only (first 20 lines)
 2. Display plan summary to user
-3. Ask: "Approve this plan?"
-4. If yes: proceed. If no: abort.
+3. Use AskUserQuestion (approve-revise-abort pattern)
+4. If user selects "Approve": proceed
+5. If user selects "Request changes": enter discussion
+6. If user selects "Abort": stop and report
 
 ---
 ```
