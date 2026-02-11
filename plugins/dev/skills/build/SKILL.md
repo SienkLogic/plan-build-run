@@ -774,6 +774,8 @@ If a Task() doesn't return within a reasonable time:
 - Treat as `partial` status
 - Present to user: retry or skip
 
+For commit conventions and git workflow details, see `references/git-integration.md`.
+
 ### Git lock conflicts
 If multiple parallel executors create git lock conflicts:
 - The executor agent handles retries internally (see executor agent definition)
