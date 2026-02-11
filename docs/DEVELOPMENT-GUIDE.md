@@ -727,7 +727,6 @@ Several utility scripts provide shared functionality for hook scripts and testin
 | `event-logger.js` | Workflow event logging. Exports `logEvent()` function. Writes to `.planning/logs/events.jsonl` (JSONL format, 1,000-entry rotation). |
 | `towline-tools.js` | Shared CLI utilities. Exports `stateLoad()`, `configLoad()`, `planIndex()`, and other common functions used by multiple hook scripts. |
 | `status-line.js` | Status bar formatting for terminal display. Generates colored status indicators and progress bars. |
-| `local-llm.js` | Local LLM integration utilities. Handles communication with local LLM instances for offline operation. |
 | `validate-plugin-structure.js` | Plugin directory validation. Used by `npm run validate`. Checks that all skills, agents, hooks, and templates are properly structured. |
 
 **When to use which logger**:
