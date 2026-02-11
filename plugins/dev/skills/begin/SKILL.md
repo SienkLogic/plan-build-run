@@ -1,7 +1,7 @@
 ---
 name: begin
 description: "Start a new project. Deep questioning, research, requirements, and roadmap."
-allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task
+allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion
 ---
 
 # /dev:begin — Project Initialization
@@ -93,32 +93,48 @@ Have a natural conversation to understand the user's vision. Do NOT present a fo
 
 ### Step 3: Workflow Preferences (inline)
 
-After understanding the project, configure the Towline workflow. Use AskUserQuestion or direct conversation to determine:
+After understanding the project, configure the Towline workflow. Use AskUserQuestion for each preference below. Present them sequentially with conversational bridging (e.g., "Great. Next...") to keep the flow natural.
 
 **3a. Mode:**
-Ask: "How do you want to work? Interactive mode pauses at key gates for your approval. Autonomous mode auto-proceeds unless something critical comes up."
+Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
+  question: "How do you want to work?"
+  header: "Mode"
+  options:
+    - label: "Interactive"  description: "Pause at key gates for your approval (default)"
+    - label: "Autonomous"   description: "Auto-proceed, only stop for critical decisions"
 - `interactive` (default) — confirm at gates (roadmap, plans, transitions)
 - `autonomous` — auto-proceed, only stop for critical decisions
 
 **3b. Depth:**
-Ask: "How thorough should planning be? Quick skips research and uses 3-5 phases. Standard does 5-8 phases with research. Comprehensive does 8-12 phases with deep research."
+Use the **depth-select** pattern from `skills/shared/gate-prompts.md`:
+  question: "How thorough should planning be?"
 - `quick` — 3-5 phases, skip research, ~50% cheaper
 - `standard` (default) — 5-8 phases, includes research
 - `comprehensive` — 8-12 phases, full deep research, ~2x cost
 
 **3c. Parallelization:**
-Ask: "Should I run multiple agents in parallel when plans are independent? Faster but uses more resources."
+Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
+  question: "Run multiple agents in parallel when plans are independent?"
+  header: "Parallel"
+  options:
+    - label: "Enable"   description: "Parallel execution of independent plans (default)"
+    - label: "Disable"  description: "Sequential execution only"
 - `enabled` (default) — parallel execution of independent plans
 - `disabled` — sequential execution
 
 **3d. Git Branching:**
-Ask: "Git branching strategy: none (commit to current branch), phase (branch per phase), or milestone (branch per milestone)?"
+Use the **git-strategy-select** pattern from `skills/shared/gate-prompts.md`:
+  question: "Git branching strategy?"
 - `none` (default) — commit to current branch
 - `phase` — create branch per phase
 - `milestone` — create branch per milestone
 
 **3e. Commit Planning Docs:**
-Ask: "Should planning documents (.planning/ directory) be committed to git?"
+Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "Should planning documents (.planning/ directory) be committed to git?"
+  options:
+    - label: "Yes"  description: "Commit planning docs (default)"
+    - label: "No"   description: "Add .planning/ to .gitignore"
 - `yes` (default) — commit planning docs
 - `no` — add .planning/ to .gitignore
 
