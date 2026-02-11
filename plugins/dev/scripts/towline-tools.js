@@ -10,8 +10,14 @@
  * Commands:
  *   state load              — Full project state as JSON
  *   state check-progress    — Recalculate progress from filesystem
+ *   state update <f> <v>    — Atomically update a STATE.md field
  *   config validate          — Validate config.json against schema
  *   plan-index <phase>      — Plan inventory for a phase, grouped by wave
+ *   frontmatter <filepath>  — Parse .md file's YAML frontmatter → JSON
+ *   must-haves <phase>      — Collect all must-haves from phase plans → JSON
+ *   phase-info <phase>      — Comprehensive single-phase status → JSON
+ *   roadmap update-status <phase> <status>      — Update phase status in ROADMAP.md
+ *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
  */
 
 const fs = require('fs');
@@ -30,6 +36,13 @@ function main() {
       output(stateLoad());
     } else if (command === 'state' && subcommand === 'check-progress') {
       output(stateCheckProgress());
+    } else if (command === 'state' && subcommand === 'update') {
+      const field = args[2];
+      const value = args[3];
+      if (!field || value === undefined) {
+        error('Usage: towline-tools.js state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity');
+      }
+      output(stateUpdate(field, value));
     } else if (command === 'config' && subcommand === 'validate') {
       output(configValidate());
     } else if (command === 'plan-index') {
@@ -38,6 +51,39 @@ function main() {
         error('Usage: towline-tools.js plan-index <phase-number>');
       }
       output(planIndex(phase));
+    } else if (command === 'frontmatter') {
+      const filePath = args[1];
+      if (!filePath) {
+        error('Usage: towline-tools.js frontmatter <filepath>');
+      }
+      output(frontmatter(filePath));
+    } else if (command === 'must-haves') {
+      const phase = args[1];
+      if (!phase) {
+        error('Usage: towline-tools.js must-haves <phase-number>');
+      }
+      output(mustHavesCollect(phase));
+    } else if (command === 'phase-info') {
+      const phase = args[1];
+      if (!phase) {
+        error('Usage: towline-tools.js phase-info <phase-number>');
+      }
+      output(phaseInfo(phase));
+    } else if (command === 'roadmap' && subcommand === 'update-status') {
+      const phase = args[2];
+      const status = args[3];
+      if (!phase || !status) {
+        error('Usage: towline-tools.js roadmap update-status <phase-number> <status>');
+      }
+      output(roadmapUpdateStatus(phase, status));
+    } else if (command === 'roadmap' && subcommand === 'update-plans') {
+      const phase = args[2];
+      const complete = args[3];
+      const total = args[4];
+      if (!phase || complete === undefined || total === undefined) {
+        error('Usage: towline-tools.js roadmap update-plans <phase-number> <complete> <total>');
+      }
+      output(roadmapUpdatePlans(phase, complete, total));
     } else if (command === 'event') {
       const category = args[1];
       const event = args[2];
@@ -52,7 +98,7 @@ function main() {
       logEvent(category, event, details);
       output({ logged: true, category, event });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load, state check-progress, config validate, plan-index <phase>, event <category> <event>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, event`);
     }
   } catch (e) {
     error(e.message);
@@ -236,6 +282,364 @@ function configValidate() {
     errors,
     warnings
   };
+}
+
+// --- New read-only commands ---
+
+/**
+ * Parse a markdown file's YAML frontmatter and return as JSON.
+ * Wraps parseYamlFrontmatter() + parseMustHaves().
+ */
+function frontmatter(filePath) {
+  const resolved = path.resolve(filePath);
+  if (!fs.existsSync(resolved)) {
+    return { error: `File not found: ${resolved}` };
+  }
+  const content = fs.readFileSync(resolved, 'utf8');
+  return parseYamlFrontmatter(content);
+}
+
+/**
+ * Collect all must-haves from all PLAN.md files in a phase.
+ * Returns per-plan grouping + flat deduplicated list + total count.
+ */
+function mustHavesCollect(phaseNum) {
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { error: 'No phases directory found' };
+  }
+
+  const entries = fs.readdirSync(phasesDir, { withFileTypes: true })
+    .filter(e => e.isDirectory());
+  const phaseDir = entries.find(e => e.name.startsWith(phaseNum.padStart(2, '0') + '-'));
+  if (!phaseDir) {
+    return { error: `No phase directory found matching phase ${phaseNum}` };
+  }
+
+  const fullDir = path.join(phasesDir, phaseDir.name);
+  const planFiles = findFiles(fullDir, /-PLAN\.md$/);
+
+  const perPlan = {};
+  const allTruths = new Set();
+  const allArtifacts = new Set();
+  const allKeyLinks = new Set();
+
+  for (const file of planFiles) {
+    const content = fs.readFileSync(path.join(fullDir, file), 'utf8');
+    const fm = parseYamlFrontmatter(content);
+    const planId = fm.plan || file.replace(/-PLAN\.md$/, '');
+    const mh = fm.must_haves || { truths: [], artifacts: [], key_links: [] };
+
+    perPlan[planId] = mh;
+    (mh.truths || []).forEach(t => allTruths.add(t));
+    (mh.artifacts || []).forEach(a => allArtifacts.add(a));
+    (mh.key_links || []).forEach(k => allKeyLinks.add(k));
+  }
+
+  const all = {
+    truths: [...allTruths],
+    artifacts: [...allArtifacts],
+    key_links: [...allKeyLinks]
+  };
+
+  return {
+    phase: phaseDir.name,
+    plans: perPlan,
+    all,
+    total: all.truths.length + all.artifacts.length + all.key_links.length
+  };
+}
+
+/**
+ * Comprehensive single-phase status combining roadmap, filesystem, and plan data.
+ */
+function phaseInfo(phaseNum) {
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { error: 'No phases directory found' };
+  }
+
+  const entries = fs.readdirSync(phasesDir, { withFileTypes: true })
+    .filter(e => e.isDirectory());
+  const phaseDir = entries.find(e => e.name.startsWith(phaseNum.padStart(2, '0') + '-'));
+  if (!phaseDir) {
+    return { error: `No phase directory found matching phase ${phaseNum}` };
+  }
+
+  const fullDir = path.join(phasesDir, phaseDir.name);
+
+  // Get roadmap info
+  let roadmapInfo = null;
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  if (fs.existsSync(roadmapPath)) {
+    const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+    const roadmap = parseRoadmapMd(roadmapContent);
+    roadmapInfo = roadmap.phases.find(p => p.number === phaseNum.padStart(2, '0')) || null;
+  }
+
+  // Get plan index
+  const plans = planIndex(phaseNum);
+
+  // Check for verification
+  const verificationPath = path.join(fullDir, 'VERIFICATION.md');
+  let verification = null;
+  if (fs.existsSync(verificationPath)) {
+    const vContent = fs.readFileSync(verificationPath, 'utf8');
+    verification = parseYamlFrontmatter(vContent);
+  }
+
+  // Check summaries
+  const summaryFiles = findFiles(fullDir, /^SUMMARY-.*\.md$/);
+  const summaries = summaryFiles.map(f => {
+    const content = fs.readFileSync(path.join(fullDir, f), 'utf8');
+    const fm = parseYamlFrontmatter(content);
+    return { file: f, plan: fm.plan || f.replace(/^SUMMARY-|\.md$/g, ''), status: fm.status || 'unknown' };
+  });
+
+  // Determine filesystem status
+  const planCount = plans.total_plans || 0;
+  const completedCount = summaries.filter(s => s.status === 'complete').length;
+  const hasVerification = fs.existsSync(verificationPath);
+  const fsStatus = determinePhaseStatus(planCount, completedCount, summaryFiles.length, hasVerification, fullDir);
+
+  return {
+    phase: phaseDir.name,
+    name: roadmapInfo ? roadmapInfo.name : phaseDir.name.replace(/^\d+-/, ''),
+    goal: roadmapInfo ? roadmapInfo.goal : null,
+    roadmap_status: roadmapInfo ? roadmapInfo.status : null,
+    filesystem_status: fsStatus,
+    plans: plans.plans || [],
+    plan_count: planCount,
+    summaries,
+    completed: completedCount,
+    verification,
+    has_context: fs.existsSync(path.join(fullDir, 'CONTEXT.md'))
+  };
+}
+
+// --- Mutation commands ---
+
+/**
+ * Atomically update a field in STATE.md using lockedFileUpdate.
+ * Supports both legacy and frontmatter (v2) formats.
+ *
+ * @param {string} field - One of: current_phase, status, plans_complete, last_activity
+ * @param {string} value - New value (use 'now' for last_activity to auto-timestamp)
+ */
+function stateUpdate(field, value) {
+  const statePath = path.join(planningDir, 'STATE.md');
+  if (!fs.existsSync(statePath)) {
+    return { success: false, error: 'STATE.md not found' };
+  }
+
+  const validFields = ['current_phase', 'status', 'plans_complete', 'last_activity'];
+  if (!validFields.includes(field)) {
+    return { success: false, error: `Invalid field: ${field}. Valid fields: ${validFields.join(', ')}` };
+  }
+
+  // Auto-timestamp
+  if (field === 'last_activity' && value === 'now') {
+    value = new Date().toISOString().slice(0, 19).replace('T', ' ');
+  }
+
+  const result = lockedFileUpdate(statePath, (content) => {
+    const fm = parseYamlFrontmatter(content);
+    if (fm.version === 2 || fm.current_phase !== undefined) {
+      return updateFrontmatterField(content, field, value);
+    }
+    return updateLegacyStateField(content, field, value);
+  });
+
+  if (result.success) {
+    return { success: true, field, value };
+  }
+  return { success: false, error: result.error };
+}
+
+/**
+ * Update the Status column for a phase in ROADMAP.md's Phase Overview table.
+ */
+function roadmapUpdateStatus(phaseNum, newStatus) {
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) {
+    return { success: false, error: 'ROADMAP.md not found' };
+  }
+
+  let oldStatus = null;
+
+  const result = lockedFileUpdate(roadmapPath, (content) => {
+    const lines = content.split('\n');
+    const rowIdx = findRoadmapRow(lines, phaseNum);
+    if (rowIdx === -1) {
+      return content; // No matching row found
+    }
+    const parts = lines[rowIdx].split('|');
+    oldStatus = parts[6] ? parts[6].trim() : 'unknown';
+    lines[rowIdx] = updateTableRow(lines[rowIdx], 5, newStatus);
+    return lines.join('\n');
+  });
+
+  if (!oldStatus) {
+    return { success: false, error: `Phase ${phaseNum} not found in ROADMAP.md table` };
+  }
+
+  if (result.success) {
+    return { success: true, old_status: oldStatus, new_status: newStatus };
+  }
+  return { success: false, error: result.error };
+}
+
+/**
+ * Update the Plans column for a phase in ROADMAP.md's Phase Overview table.
+ */
+function roadmapUpdatePlans(phaseNum, complete, total) {
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) {
+    return { success: false, error: 'ROADMAP.md not found' };
+  }
+
+  let oldPlans = null;
+  const newPlans = `${complete}/${total}`;
+
+  const result = lockedFileUpdate(roadmapPath, (content) => {
+    const lines = content.split('\n');
+    const rowIdx = findRoadmapRow(lines, phaseNum);
+    if (rowIdx === -1) {
+      return content;
+    }
+    const parts = lines[rowIdx].split('|');
+    oldPlans = parts[4] ? parts[4].trim() : 'unknown';
+    lines[rowIdx] = updateTableRow(lines[rowIdx], 3, newPlans);
+    return lines.join('\n');
+  });
+
+  if (!oldPlans) {
+    return { success: false, error: `Phase ${phaseNum} not found in ROADMAP.md table` };
+  }
+
+  if (result.success) {
+    return { success: true, old_plans: oldPlans, new_plans: newPlans };
+  }
+  return { success: false, error: result.error };
+}
+
+// --- Mutation helpers ---
+
+/**
+ * Update a field in legacy (non-frontmatter) STATE.md content.
+ * Pure function: content in, content out.
+ */
+function updateLegacyStateField(content, field, value) {
+  const lines = content.split('\n');
+
+  switch (field) {
+    case 'current_phase': {
+      const idx = lines.findIndex(l => /Phase:\s*\d+\s+of\s+\d+/.test(l));
+      if (idx !== -1) {
+        lines[idx] = lines[idx].replace(/(Phase:\s*)\d+/, `$1${value}`);
+      }
+      break;
+    }
+    case 'status': {
+      const idx = lines.findIndex(l => /^Status:/i.test(l));
+      if (idx !== -1) {
+        lines[idx] = `Status: ${value}`;
+      } else {
+        const phaseIdx = lines.findIndex(l => /Phase:/.test(l));
+        if (phaseIdx !== -1) {
+          lines.splice(phaseIdx + 1, 0, `Status: ${value}`);
+        } else {
+          lines.push(`Status: ${value}`);
+        }
+      }
+      break;
+    }
+    case 'plans_complete': {
+      const idx = lines.findIndex(l => /Plan:\s*\d+\s+of\s+\d+/.test(l));
+      if (idx !== -1) {
+        lines[idx] = lines[idx].replace(/(Plan:\s*)\d+/, `$1${value}`);
+      }
+      break;
+    }
+    case 'last_activity': {
+      const idx = lines.findIndex(l => /^Last Activity:/i.test(l));
+      if (idx !== -1) {
+        lines[idx] = `Last Activity: ${value}`;
+      } else {
+        const statusIdx = lines.findIndex(l => /^Status:/i.test(l));
+        if (statusIdx !== -1) {
+          lines.splice(statusIdx + 1, 0, `Last Activity: ${value}`);
+        } else {
+          lines.push(`Last Activity: ${value}`);
+        }
+      }
+      break;
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Update a field in YAML frontmatter content.
+ * Pure function: content in, content out.
+ */
+function updateFrontmatterField(content, field, value) {
+  const match = content.match(/^(---\s*\n)([\s\S]*?)(\n---)/);
+  if (!match) return content;
+
+  const before = match[1];
+  let yaml = match[2];
+  const after = match[3];
+  const rest = content.slice(match[0].length);
+
+  // Format value: integers stay bare, strings get quotes
+  const isNum = /^\d+$/.test(String(value));
+  const formatted = isNum ? value : `"${value}"`;
+
+  const fieldRegex = new RegExp(`^(${field})\\s*:.*$`, 'm');
+  if (fieldRegex.test(yaml)) {
+    yaml = yaml.replace(fieldRegex, `${field}: ${formatted}`);
+  } else {
+    yaml = yaml + `\n${field}: ${formatted}`;
+  }
+
+  return before + yaml + after + rest;
+}
+
+/**
+ * Find the row index of a phase in a ROADMAP.md table.
+ * @returns {number} Line index or -1 if not found
+ */
+function findRoadmapRow(lines, phaseNum) {
+  const paddedPhase = phaseNum.padStart(2, '0');
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].includes('|')) continue;
+    const parts = lines[i].split('|');
+    if (parts.length < 3) continue;
+    const phaseCol = parts[1] ? parts[1].trim() : '';
+    if (phaseCol === paddedPhase) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Update a specific column in a markdown table row.
+ * @param {string} row - The full table row string (e.g., "| 01 | Setup | ... |")
+ * @param {number} columnIndex - 0-based column index (Phase=0, Name=1, ..., Status=5)
+ * @param {string} newValue - New cell value
+ * @returns {string} Updated row
+ */
+function updateTableRow(row, columnIndex, newValue) {
+  const parts = row.split('|');
+  // parts[0] is empty (before first |), data starts at parts[1]
+  const partIndex = columnIndex + 1;
+  if (partIndex < parts.length) {
+    parts[partIndex] = ` ${newValue} `;
+  }
+  return parts.join('|');
 }
 
 /**
@@ -680,4 +1084,4 @@ function atomicWrite(filePath, content) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow };

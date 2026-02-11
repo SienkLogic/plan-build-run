@@ -114,6 +114,12 @@ git.branching_strategy      — branching strategy ("phase" = branch per phase)
 
 ### Step 3: Discover Plans (inline)
 
+**Tooling shortcut**: Instead of manually parsing each PLAN.md frontmatter, run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js plan-index <phase>
+```
+This returns a JSON object with `plans` (array with plan_id, wave, depends_on, autonomous, must_haves_count per plan) and `waves` (grouped by wave). Falls back to manual parsing if unavailable.
+
 1. List all files matching `.planning/phases/{NN}-{slug}/*-PLAN.md`
 2. If `--gaps-only` flag: filter to only plans with `gap_closure: true` in frontmatter
 3. Read each plan file's YAML frontmatter to extract:
@@ -512,6 +518,14 @@ Block the STATE.md update until ALL gates pass. If any gate fails:
 - Ask user to retry the executor or manually inspect the SUMMARY file
 
 Once gates pass, update `.planning/STATE.md`:
+
+**Tooling shortcut**: Use the CLI for atomic STATE.md updates instead of manual read-modify-write:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update plans_complete {N}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update status building
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update last_activity now
+```
+
 - Current plan progress: "{completed}/{total} in current phase"
 - Last activity timestamp
 - Progress bar percentage
@@ -647,6 +661,14 @@ If triggered:
 4. Do NOT block on this — use `run_in_background: true` and continue to Step 8a. Report completion in Step 8f if it finishes in time.
 
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+
+**Tooling shortcut**: Use the CLI for atomic ROADMAP.md table updates instead of manual editing:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js roadmap update-plans {phase} {completed} {total}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js roadmap update-status {phase} {final_status}
+```
+These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`. Falls back to manual editing if unavailable.
+
 1. Open `.planning/ROADMAP.md`
 2. Find the `## Progress` table
 3. Locate the row matching this phase number

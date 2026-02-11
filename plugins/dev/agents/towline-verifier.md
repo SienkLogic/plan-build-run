@@ -63,6 +63,19 @@ ls .planning/phases/{phase_dir}/VERIFICATION.md
 
 Read these files to understand what should have been delivered:
 
+**Tooling shortcut**: Instead of manually parsing each file's YAML frontmatter, use the CLI:
+```bash
+# Collect all must-haves from all plans in one call (deduped, with per-plan grouping):
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js must-haves {phase_number}
+
+# Get comprehensive phase status (roadmap info, summaries, verification state):
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js phase-info {phase_number}
+
+# Parse any single file's frontmatter:
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js frontmatter {filepath}
+```
+These return structured JSON, saving ~500-800 tokens vs. manual parsing. Falls back to manual reading if unavailable.
+
 1. **Phase plan files**: `ls .planning/phases/{phase_dir}/*-PLAN.md`
    - Extract `must_haves` from each plan's YAML frontmatter
    - These are the primary verification targets
