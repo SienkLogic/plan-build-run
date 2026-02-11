@@ -1,0 +1,38 @@
+<h1><%= title %></h1>
+
+<p><a href="/todos">&larr; Back to Todos</a></p>
+
+<article>
+  <header>
+    <strong>Todo <%= id %></strong>
+    &nbsp;
+    <span class="status-badge" data-priority="<%= priority %>">
+      <%= priority %>
+    </span>
+    &nbsp;
+    <span class="status-badge" data-status="<%= status %>">
+      <%= status %>
+    </span>
+  </header>
+
+  <% if (phase) { %>
+  <p><strong>Phase:</strong> <%= phase %></p>
+  <% } %>
+  <% if (created) { %>
+  <p><strong>Created:</strong> <%= created %></p>
+  <% } %>
+
+  <hr>
+
+  <%- html %>
+
+  <% if (status === 'pending') { %>
+  <hr>
+  <form method="POST" action="/todos/<%= id %>/done"
+        hx-post="/todos/<%= id %>/done"
+        hx-target="#main-content"
+        style="display:inline;">
+    <button type="submit" class="secondary">Mark as Done</button>
+  </form>
+  <% } %>
+</article>

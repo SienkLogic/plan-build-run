@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html lang="en">
+<%- include('head', { title: typeof title !== 'undefined' ? title : 'Towline Dashboard' }) %>
+<body>
+  <div class="page-wrapper">
+    <%- include('header') %>
+    <%- include('sidebar', { activePage: typeof activePage !== 'undefined' ? activePage : '' }) %>
+    <main id="main-content">

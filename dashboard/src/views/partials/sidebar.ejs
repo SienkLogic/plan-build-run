@@ -1,0 +1,38 @@
+<aside class="sidebar">
+  <nav>
+    <ul>
+      <li>
+        <a href="/"
+           hx-get="/"
+           hx-target="#main-content"
+           hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? ' aria-current="page"' : '' %>>
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="/phases"
+           hx-get="/phases"
+           hx-target="#main-content"
+           hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'phases' ? ' aria-current="page"' : '' %>>
+          Phases
+        </a>
+      </li>
+      <li>
+        <a href="/todos"
+           hx-get="/todos"
+           hx-target="#main-content"
+           hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'todos' ? ' aria-current="page"' : '' %>>
+          Todos
+        </a>
+      </li>
+      <li>
+        <a href="/roadmap"
+           hx-get="/roadmap"
+           hx-target="#main-content"
+           hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'roadmap' ? ' aria-current="page"' : '' %>>
+          Roadmap
+        </a>
+      </li>
+    </ul>
+  </nav>
+</aside>
