@@ -43,14 +43,22 @@ Check if the current directory has existing code:
 ```
 
 **If existing code found:**
-- Tell the user: "This looks like an existing codebase. Would you like to run `/dev:scan` first to analyze what's already here? Or proceed with `/dev:begin` to plan new work on top?"
-- If user wants scan: suggest `/dev:scan` and stop
-- If user wants to continue: proceed to Step 2
+Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "This looks like an existing codebase. Run /dev:scan to analyze what's here first?"
+  options:
+    - label: "Yes, scan"   description: "Run /dev:scan first to analyze existing code"
+    - label: "No, begin"   description: "Proceed with /dev:begin on top of existing code"
+- If user selects "Yes, scan": suggest `/dev:scan` and stop
+- If user selects "No, begin": proceed to Step 2
 
 **If `.planning/` already exists:**
-- Tell the user: "A `.planning/` directory already exists. This will overwrite it. Continue?"
-- If user says no: stop
-- If user says yes: proceed (existing directory will be overwritten during state initialization)
+Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "A .planning/ directory already exists. This will overwrite it. Continue?"
+  options:
+    - label: "Yes"  description: "Overwrite existing planning directory"
+    - label: "No"   description: "Cancel — keep existing planning"
+- If user selects "No": stop
+- If user selects "Yes": proceed (existing directory will be overwritten during state initialization)
 
 ---
 
@@ -167,9 +175,13 @@ Based on the depth setting from Step 3, determine the research approach:
 - Tell user: "Skipping research phase (depth: quick). Moving straight to requirements."
 
 **If depth is `standard` or `comprehensive`:**
-- Ask: "I'd like to research the technology landscape before we plan. This helps me create better plans. OK to proceed?"
-- If no: skip to Step 7
-- If yes: proceed to Step 5
+Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "I'd like to research the technology landscape before planning. This helps create better plans. Proceed with research?"
+  options:
+    - label: "Yes"  description: "Run research agents (recommended for standard/comprehensive)"
+    - label: "No"   description: "Skip research, move straight to requirements"
+- If user selects "No": skip to Step 7
+- If user selects "Yes": proceed to Step 5
 
 ---
 
@@ -332,9 +344,15 @@ Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
 **After the planner completes:**
 - Read `.planning/ROADMAP.md`
-- If `gates.confirm_roadmap` is true in config: present the roadmap to the user for approval
-  - If user requests changes: edit the roadmap inline (small changes) or re-spawn planner
-  - If user approves: proceed to Step 9
+- If `gates.confirm_roadmap` is true in config, use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
+  question: "Approve this roadmap?"
+  options:
+    - label: "Approve"          description: "Proceed with this roadmap"
+    - label: "Request changes"  description: "Discuss adjustments before proceeding"
+    - label: "Abort"            description: "Cancel and start over"
+  - If user selects "Request changes": edit the roadmap inline (small changes) or re-spawn planner
+  - If user selects "Approve": proceed to Step 9
+  - If user selects "Abort": stop execution
 
 ---
 
@@ -419,11 +437,15 @@ If `gates.confirm_project` is true in config:
   - Phases: {count} phases in roadmap
   - Requirements: {count} v1 requirements
   - Config: depth={depth}, mode={mode}
-- Ask: "Everything look good? Want me to commit the planning docs?"
-- If yes and `planning.commit_docs` is true:
+- Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+  question: "Everything look good? Commit the planning docs?"
+  options:
+    - label: "Yes"  description: "Stage and commit .planning/ files"
+    - label: "No"   description: "Let me review and adjust first"
+- If user selects "Yes" and `planning.commit_docs` is true:
   - Stage `.planning/` files (excluding research/ if gitignored)
   - Commit: `chore: initialize towline project planning`
-- If no: let user review and adjust
+- If user selects "No": let user review and adjust
 
 ---
 
