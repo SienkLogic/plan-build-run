@@ -1923,18 +1923,86 @@ If `gates.confirm_plan` is true:
 
 ### Gate Check Pattern
 
-When a gate is configured, check it before proceeding:
+When a gate is configured, use AskUserQuestion for structured prompts:
 
 ```markdown
 ### Step N: Gate Check
 
 If `gates.confirm_{gate_name}` is true:
 1. Display {summary of what will happen}
-2. Ask user: "Approve?"
-3. If user says "yes" / "approved" / "looks good": proceed
-4. If user says "no" / "reject": abort
-5. If user provides feedback: {handle feedback}
+2. Use AskUserQuestion with the appropriate pattern from `skills/shared/gate-prompts.md`:
+   - `approve-revise-abort` for plan/roadmap approval
+   - `yes-no` for simple confirmations (re-plan, rebuild, commit)
+   - `multi-option-failure` for build failure handling
+   - `multi-option-escalation` for review escalation
+3. Handle the selected option:
+   - Approval options: proceed to next step
+   - Rejection/abort options: stop and report
+   - "Request changes" options: enter discussion flow
+   - Freeform text (user typed instead of selecting): treat as feedback
 ```
+
+**Important**: AskUserQuestion is orchestrator-only. It cannot be called from
+subagent Task() contexts. Gates always run in the orchestrator.
+
+### AskUserQuestion Conventions
+
+Towline uses `AskUserQuestion` for all structured user decision points. This tool
+replaced the earlier plain-text "Type approved" / "Type continue" prompts in
+Phases 15-17.
+
+**Pattern catalog**: All reusable prompt patterns live in `skills/shared/gate-prompts.md`
+(21 patterns as of Phase 17). Skills reference patterns by name rather than
+defining prompts inline.
+
+**Rules**:
+- Max 4 options per call (AskUserQuestion limit)
+- `header` max 12 characters (single word preferred)
+- `multiSelect: false` always (Towline gates require single selection)
+- Always handle the "Other" case (user typed freeform text)
+- Orchestrator-only: cannot be called from subagent Task() contexts
+
+**When to use AskUserQuestion**:
+- Gate checks (approve/reject/revise)
+- Configuration menus (category selection, toggle confirmation)
+- Action routing (suggest next command from options)
+- Workflow preferences (depth, git strategy, etc.)
+- Debug checkpoints (continue/more info/new approach)
+
+**When NOT to use AskUserQuestion**:
+- Freeform text input (task descriptions, symptom gathering)
+- Socratic discussion (explore conversations, discuss follow-ups)
+- Open-ended questions with unbounded response space
+- Subagent contexts (agents cannot call AskUserQuestion)
+
+**Adding a new pattern**:
+1. Check `skills/shared/gate-prompts.md` for an existing pattern that fits
+2. If no match, add a new `## Pattern: {slug}` section to gate-prompts.md
+3. Follow the structure: question template, header (max 12 chars), 2-4 options, multiSelect: false
+4. Add the skill name to the "Used by" list in the pattern
+5. Reference the pattern by name in the SKILL.md
+
+**Example** (from build skill, failure handling):
+```
+Use AskUserQuestion with the **multi-option-failure** pattern from gate-prompts.md:
+  question: "Plan 03-02 failed. How should we proceed?"
+  header: "Failed"
+  options:
+    - label: "Retry"     description: "Re-run this plan's executor"
+    - label: "Skip"      description: "Mark as skipped, continue to next wave"
+    - label: "Rollback"  description: "Undo commits, revert to last good state"
+    - label: "Abort"     description: "Stop the entire build"
+```
+
+**Skills using AskUserQuestion** (17 of 21):
+begin, build, config, debug, discuss, explore, import, milestone, plan, quick,
+resume, review, scan, setup, status, note, todo
+
+**Skills intentionally excluded** (4 of 21):
+continue (fully automated), health (read-only), help (read-only), pause (no interaction)
+
+Note: `note` and `todo` list AskUserQuestion in allowed-tools but do not currently
+use it. This is acceptable -- allowed-tools lists capabilities, not requirements.
 
 ### Subagent Spawning Pattern
 
