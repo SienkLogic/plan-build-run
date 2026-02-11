@@ -61,6 +61,56 @@ const WARN_PATTERNS = [
   }
 ];
 
+/**
+ * Check a parsed hook data object for dangerous commands.
+ * Returns { output, exitCode } if the command should be blocked/warned, or null if allowed.
+ * Used by pre-bash-dispatch.js for consolidated hook execution.
+ */
+function checkDangerous(data) {
+  const command = data.tool_input?.command || '';
+
+  // Skip empty commands
+  if (!command.trim()) {
+    return null;
+  }
+
+  // Check block patterns
+  for (const { pattern, reason } of BLOCK_PATTERNS) {
+    if (pattern.test(command)) {
+      logHook('check-dangerous-commands', 'PreToolUse', 'block', {
+        command: command.substring(0, 200),
+        reason
+      });
+      return {
+        output: {
+          decision: 'block',
+          reason: `Dangerous command blocked.\n\n${reason}\n\nCommand: ${command.substring(0, 150)}`
+        },
+        exitCode: 2
+      };
+    }
+  }
+
+  // Check warn patterns
+  for (const { pattern, message } of WARN_PATTERNS) {
+    if (pattern.test(command)) {
+      logHook('check-dangerous-commands', 'PreToolUse', 'warn', {
+        command: command.substring(0, 200),
+        warning: message
+      });
+      return {
+        output: {
+          additionalContext: `Warning: ${message}`
+        },
+        exitCode: 0
+      };
+    }
+  }
+
+  // No match — allow
+  return null;
+}
+
 function main() {
   let input = '';
 
@@ -69,45 +119,11 @@ function main() {
   process.stdin.on('end', () => {
     try {
       const data = JSON.parse(input);
-      const command = data.tool_input?.command || '';
-
-      // Skip empty commands
-      if (!command.trim()) {
-        process.exit(0);
+      const result = checkDangerous(data);
+      if (result) {
+        process.stdout.write(JSON.stringify(result.output));
+        process.exit(result.exitCode);
       }
-
-      // Check block patterns
-      for (const { pattern, reason } of BLOCK_PATTERNS) {
-        if (pattern.test(command)) {
-          logHook('check-dangerous-commands', 'PreToolUse', 'block', {
-            command: command.substring(0, 200),
-            reason
-          });
-          const output = {
-            decision: 'block',
-            reason: `Dangerous command blocked.\n\n${reason}\n\nCommand: ${command.substring(0, 150)}`
-          };
-          process.stdout.write(JSON.stringify(output));
-          process.exit(2);
-        }
-      }
-
-      // Check warn patterns
-      for (const { pattern, message } of WARN_PATTERNS) {
-        if (pattern.test(command)) {
-          logHook('check-dangerous-commands', 'PreToolUse', 'warn', {
-            command: command.substring(0, 200),
-            warning: message
-          });
-          const output = {
-            additionalContext: `Warning: ${message}`
-          };
-          process.stdout.write(JSON.stringify(output));
-          process.exit(0);
-        }
-      }
-
-      // No match — allow
       process.exit(0);
     } catch (_e) {
       // Parse error — don't block
@@ -116,5 +132,5 @@ function main() {
   });
 }
 
-module.exports = { BLOCK_PATTERNS, WARN_PATTERNS };
+module.exports = { BLOCK_PATTERNS, WARN_PATTERNS, checkDangerous };
 if (require.main === module) { main(); }

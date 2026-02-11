@@ -52,19 +52,21 @@ const MERGE_PATTERN = /^Merge\s/;
 // AI co-author patterns to block
 const AI_COAUTHOR_PATTERN = /Co-Authored-By:.*(?:Claude|Anthropic|noreply@anthropic\.com|OpenAI|Copilot|GPT|AI Assistant)/i;
 
-function checkAiCoAuthor(command) {
+function checkAiCoAuthorResult(command) {
   if (AI_COAUTHOR_PATTERN.test(command)) {
     logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200) });
-    const output = {
-      decision: 'block',
-      reason: 'Commit blocked: contains AI co-author attribution.\n\nTowline commits must not include Co-Authored-By lines referencing AI tools (Claude, Copilot, GPT, etc.).\n\nRemove the Co-Authored-By line and try again.'
+    return {
+      output: {
+        decision: 'block',
+        reason: 'Commit blocked: contains AI co-author attribution.\n\nTowline commits must not include Co-Authored-By lines referencing AI tools (Claude, Copilot, GPT, etc.).\n\nRemove the Co-Authored-By line and try again.'
+      },
+      exitCode: 2
     };
-    process.stdout.write(JSON.stringify(output));
-    process.exit(2);
   }
+  return null;
 }
 
-function checkSensitiveFiles() {
+function checkSensitiveFilesResult() {
   try {
     const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
     const files = output.trim().split('\n').filter(Boolean);
@@ -79,16 +81,72 @@ function checkSensitiveFiles() {
 
     if (matched.length > 0) {
       logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched });
-      const output = {
-        decision: 'block',
-        reason: `Commit blocked: staged files may contain sensitive data.\n\nFiles: ${matched.join(', ')}\n\nRemove these files from staging with:\n  git reset HEAD ${matched.join(' ')}\n\nIf these files are intentionally safe (e.g., test fixtures), rename them to include .example, .template, or .sample.`
+      return {
+        output: {
+          decision: 'block',
+          reason: `Commit blocked: staged files may contain sensitive data.\n\nFiles: ${matched.join(', ')}\n\nRemove these files from staging with:\n  git reset HEAD ${matched.join(' ')}\n\nIf these files are intentionally safe (e.g., test fixtures), rename them to include .example, .template, or .sample.`
+        },
+        exitCode: 2
       };
-      process.stdout.write(JSON.stringify(output));
-      process.exit(2);
     }
   } catch (_e) {
     // Not in a git repo or git not available - silently continue
   }
+  return null;
+}
+
+/**
+ * Check a parsed hook data object for commit validation issues.
+ * Returns { output, exitCode } if the command should be blocked, or null if allowed.
+ * Used by pre-bash-dispatch.js for consolidated hook execution.
+ */
+function checkCommit(data) {
+  const command = data.tool_input?.command || '';
+
+  // Only validate git commit commands
+  if (!isGitCommit(command)) {
+    return null;
+  }
+
+  // Extract the commit message
+  const message = extractCommitMessage(command);
+  if (!message) {
+    // Could not parse message - let it through (might be --amend or other form)
+    logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message' });
+    return null;
+  }
+
+  // Validate format
+  if (MERGE_PATTERN.test(message)) {
+    logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit' });
+    return null;
+  }
+
+  if (!COMMIT_PATTERN.test(message)) {
+    logHook('validate-commit', 'PreToolUse', 'block', { message });
+    logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block' });
+    return {
+      output: {
+        decision: 'block',
+        reason: `Invalid commit message format.\n\nExpected: {type}({scope}): {description}\nTypes: ${VALID_TYPES.join(', ')}\nExamples:\n  feat(03-01): add user authentication\n  fix(02-02): resolve database connection timeout\n  docs(planning): update roadmap with phase 4\n  wip: save progress on auth middleware\n\nGot: "${message}"`
+      },
+      exitCode: 2
+    };
+  }
+
+  // Valid format
+  logHook('validate-commit', 'PreToolUse', 'allow', { message });
+  logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
+
+  // Check AI co-author
+  const coAuthorResult = checkAiCoAuthorResult(command);
+  if (coAuthorResult) return coAuthorResult;
+
+  // Check sensitive files
+  const sensitiveResult = checkSensitiveFilesResult();
+  if (sensitiveResult) return sensitiveResult;
+
+  return null;
 }
 
 function main() {
@@ -99,43 +157,11 @@ function main() {
   process.stdin.on('end', () => {
     try {
       const data = JSON.parse(input);
-      const command = data.tool_input?.command || '';
-
-      // Only validate git commit commands
-      if (!isGitCommit(command)) {
-        process.exit(0);
+      const result = checkCommit(data);
+      if (result) {
+        process.stdout.write(JSON.stringify(result.output));
+        process.exit(result.exitCode);
       }
-
-      // Extract the commit message
-      const message = extractCommitMessage(command);
-      if (!message) {
-        // Could not parse message - let it through (might be --amend or other form)
-        logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message' });
-        process.exit(0);
-      }
-
-      // Validate format
-      if (MERGE_PATTERN.test(message)) {
-        logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit' });
-        process.exit(0);
-      }
-
-      if (!COMMIT_PATTERN.test(message)) {
-        logHook('validate-commit', 'PreToolUse', 'block', { message });
-        logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block' });
-        const output = {
-          decision: 'block',
-          reason: `Invalid commit message format.\n\nExpected: {type}({scope}): {description}\nTypes: ${VALID_TYPES.join(', ')}\nExamples:\n  feat(03-01): add user authentication\n  fix(02-02): resolve database connection timeout\n  docs(planning): update roadmap with phase 4\n  wip: save progress on auth middleware\n\nGot: "${message}"`
-        };
-        process.stdout.write(JSON.stringify(output));
-        process.exit(2);
-      }
-
-      // Valid format
-      logHook('validate-commit', 'PreToolUse', 'allow', { message });
-      logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
-      checkAiCoAuthor(command);
-      checkSensitiveFiles();
       process.exit(0);
     } catch (_e) {
       // Parse error - don't block
@@ -170,4 +196,5 @@ function extractCommitMessage(command) {
   return null;
 }
 
-main();
+module.exports = { checkCommit };
+if (require.main === module) { main(); }
