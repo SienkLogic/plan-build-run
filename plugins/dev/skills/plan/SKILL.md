@@ -66,7 +66,7 @@ Execute these steps in order for standard `/dev:plan <N>` invocations.
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
 ```
-This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. For plan inventory, use `plan-index <phase>`. Falls back gracefully if the script is missing — parse files manually in that case.
+This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. For plan inventory, use `plan-index <phase>`. For comprehensive phase status, use `phase-info <phase>`. Falls back gracefully if the script is missing — parse files manually in that case.
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for settings
@@ -366,6 +366,15 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
      ```
   4. This allows the build skill to detect if dependency phases were re-built after this plan was created
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+
+  **Tooling shortcut**: Use the CLI for atomic updates:
+  ```bash
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js roadmap update-plans {phase} 0 {N}
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js roadmap update-status {phase} planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update status planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update last_activity now
+  ```
+
   1. Open `.planning/ROADMAP.md`
   2. Find the `## Progress` table
   3. Locate the row matching this phase number
