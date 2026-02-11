@@ -134,6 +134,85 @@ User action required. Use double-line box drawing, 62-character width.
 
 ---
 
+## AskUserQuestion Patterns
+
+Structured prompts for user decision points. All gate checks use AskUserQuestion instead of
+plain-text "Type approved" prompts. See `skills/shared/gate-prompts.md` for the full
+pattern catalog (21 named AskUserQuestion patterns).
+
+### Structure
+
+```
+AskUserQuestion:
+  question: "{contextual question}"
+  header: "{max 12 chars}"
+  options:
+    - label: "{Option 1}"  description: "{What happens}"
+    - label: "{Option 2}"  description: "{What happens}"
+  multiSelect: false
+```
+
+### Rules
+
+- **Max 4 options** per call. Split into 2-step flow if more are needed.
+- **Header max 12 characters.** Single word preferred (e.g., "Approve?", "Confirm", "Scope").
+- **multiSelect: false** always. Towline gates require single selection.
+- **Handle "Other"**: Users may type freeform text instead of selecting. Skills must handle this gracefully.
+- **Orchestrator only**: AskUserQuestion cannot be called from subagents.
+
+### Common Patterns
+
+**Approval gate** (approve-revise-abort):
+```
+question: "Approve these plans?"
+header: "Approve?"
+options:
+  - label: "Approve"          description: "Proceed with execution"
+  - label: "Request changes"  description: "Discuss adjustments before proceeding"
+  - label: "Abort"            description: "Cancel this operation"
+```
+
+**Simple confirmation** (yes-no):
+```
+question: "Re-plan this phase with gap context?"
+header: "Confirm"
+options:
+  - label: "Yes"  description: "Create gap-closure plans"
+  - label: "No"   description: "Skip re-planning"
+```
+
+**Category selection** (settings-category-select):
+```
+question: "What would you like to configure?"
+header: "Configure"
+options:
+  - label: "Depth"          description: "quick/standard/comprehensive"
+  - label: "Model profile"  description: "quality/balanced/budget/adaptive"
+  - label: "Features"       description: "Toggle workflow features and gates"
+  - label: "Git settings"   description: "branching strategy, commit mode"
+```
+
+**Dynamic routing** (action-routing):
+```
+question: "What would you like to do next?"
+header: "Next Step"
+options:
+  - label: "/dev:build 3"    description: "Execute phase 3 plans"
+  - label: "/dev:review 2"   description: "Verify phase 2 results"
+  - label: "Something else"  description: "Enter a different command"
+```
+
+### When NOT to Use
+
+Do not use AskUserQuestion for:
+- Freeform text input (symptom descriptions, task descriptions, open questions)
+- Socratic discussion (explore, discuss follow-ups)
+- Situations with unbounded response space
+
+Use plain conversational prompts for these cases instead.
+
+---
+
 ## Next Up Block
 
 Always present at end of major completions (phase complete, milestone complete, project init).
