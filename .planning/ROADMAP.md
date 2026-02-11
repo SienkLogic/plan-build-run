@@ -215,26 +215,26 @@ Phase 09 + Phase 10 ──> Phase 11 ──> Phase 12
 | 12. Polish and Hardening | 2/2 | Complete | 2026-02-08 |
 | 13. Extract & Deduplicate | 8/8 | Complete | 2026-02-09 |
 | 14. Reference Architecture & GSD Parity | 6/6 | Complete | 2026-02-09 |
-| 15. Gate Check Upgrades | 2/2 | Built | 2026-02-10 |
-| 16. Config & Routing Upgrades | 3/3 | Built | 2026-02-10 |
-| 17. Discussion & Discovery Upgrades | 0/? | Not Started | — |
+| 15. Gate Check Upgrades | 2/2 | Complete | 2026-02-10 |
+| 16. Config & Routing Upgrades | 3/3 | Complete | 2026-02-10 |
+| 17. Discussion & Discovery Upgrades | 3/3 | Complete | 2026-02-10 |
 | 18. Reference Docs & Testing | 0/? | Not Started | — |
-| 19. Rich Hook Matchers | 0/? | Not Started | — |
-| 20. Auto-Format Hooks | 0/? | Not Started | — |
-| 21. Proactive Compaction Hook | 0/? | Not Started | — |
-| 22. Doc File Creation Blocker | 0/? | Not Started | — |
-| 23. Async Hooks | 0/? | Not Started | — |
-| 24. JSON Schemas | 0/? | Not Started | — |
-| 25. Atomic File Writes | 0/? | Not Started | — |
-| 26. CI Improvements | 0/? | Not Started | — |
-| 27. Hook Spawn Testing | 0/? | Not Started | — |
-| 28. Iterative Retrieval Pattern | 0/? | Not Started | — |
-| 29. Contexts & Mode Switching | 0/? | Not Started | — |
-| 30. Eval-Driven Development | 0/? | Not Started | — |
-| 31. Plugin Manifest Knowledge | 0/? | Not Started | — |
-| 32. Installation Wizard | 0/? | Not Started | — |
-| 33. Instinct Learning Research | 0/? | Not Started | — |
-| 34. Multi-Model Orchestration Research | 0/? | Not Started | — |
+| 19. Rich Hook Matchers | 1/1 | Complete | 2026-02-10 |
+| 20. Auto-Format Hooks | 1/1 | Complete | 2026-02-10 |
+| 21. Proactive Compaction Hook | 1/1 | Complete | 2026-02-10 |
+| 22. Doc File Creation Blocker | 1/1 | Complete | 2026-02-10 |
+| 23. Async Hooks | 1/1 | Complete | 2026-02-10 |
+| 24. JSON Schemas | 1/1 | Complete | 2026-02-10 |
+| 25. Atomic File Writes | 1/1 | Complete | 2026-02-10 |
+| 26. CI Improvements | 1/1 | Complete | 2026-02-10 |
+| 27. Hook Spawn Testing | 1/1 | Complete | 2026-02-10 |
+| 28. Iterative Retrieval Pattern | 1/1 | Complete | 2026-02-10 |
+| 29. Contexts & Mode Switching | 1/1 | Complete | 2026-02-10 |
+| 30. Eval-Driven Development | 1/1 | Complete | 2026-02-10 |
+| 31. Plugin Manifest Knowledge | 1/1 | Complete | 2026-02-10 |
+| 32. Installation Wizard | 1/1 | Complete | 2026-02-10 |
+| 33. Instinct Learning Research | 1/1 | Complete | 2026-02-10 |
+| 34. Multi-Model Orchestration Research | 1/1 | Complete | 2026-02-10 |
 
 ---
 
