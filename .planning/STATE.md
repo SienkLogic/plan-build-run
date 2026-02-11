@@ -6,11 +6,11 @@ See: .planning/PROJECT.md (updated 2026-02-09)
 **Current focus:** AskUserQuestion UI Upgrade — IN PROGRESS
 
 ## Current Position
-Phase: 17 of 34 (Discussion & Discovery Upgrades) — COMPLETE
+Phase: 18 of 34 (Reference Docs & Testing) — COMPLETE
 Plan: 3 of 3 complete
-Status: Phase 17 built & verified — 6 commits, 13/13 must-haves passed
-Last activity: 2026-02-10 -- Phase 17 complete (begin, discuss, explore, debug skill conversions)
-Progress: [█████████████████░░░] 85%
+Status: Phase 18 built & verified — 6 commits, 20/20 must-haves passed, 632 tests
+Last activity: 2026-02-10 -- Phase 18 complete (reference docs, 92 new tests, skill audit)
+Progress: [████████████████████] 100%
 
 ## Milestone History
 - **v1.0 Towline Dashboard** (phases 1-12): Completed 2026-02-08, all phases built and verified
@@ -38,7 +38,7 @@ Progress: [█████████████████░░░] 85%
 - Todo 056: User-facing documentation (P2, backlog)
 
 ### Blockers/Concerns
-None — ready for `/dev:plan 18`
+None — all 34 phases complete
 
 ### Completed Fixes
 - Fixed subagent_type bug across 4 skills (begin, build, plan, review)
