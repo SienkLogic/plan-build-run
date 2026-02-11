@@ -1,0 +1,30 @@
+# Health Check Execution Pattern
+
+Each of the 9 checks follows this common pattern. The check-specific details (what to read, what to validate, what constitutes PASS/FAIL) are defined in SKILL.md — this template describes only the shared execution flow.
+
+## Pattern
+
+```
+For check {check_number} ({check_name}):
+
+1. READ — Read the target file(s): {target_files}
+2. VALIDATE — Apply the check-specific rules: {validation_rules}
+3. CLASSIFY — Determine result:
+   - PASS: Validation succeeded, no issues found
+   - FAIL: A required condition is violated (counts toward issue total)
+   - WARN: A recommended condition is violated (does NOT count toward issue total)
+   - INFO: Informational note, not a problem
+4. RECORD — Store the result with:
+   - Status: [PASS], [FAIL], [WARN], or [INFO]
+   - Check name (short label)
+   - One-line summary of finding
+   - For FAIL/WARN: the specific file, the problem, and a concrete fix suggestion
+```
+
+## Rules
+
+- Every check MUST produce exactly one status line (PASS, FAIL, WARN, or INFO)
+- FAIL results MUST include: file path, problem description, and fix suggestion
+- Multiple failures within a single check produce multiple entries in the "Issues Found" section
+- Checks never auto-repair — they report only
+- If a check depends on a prior check's file (e.g., Check 2 needs config.json which Check 1 validates exists), and that file is missing, report the dependency failure and move on

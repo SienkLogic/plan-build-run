@@ -1,0 +1,63 @@
+# Health Check Output Format
+
+Present results as a single report after all checks complete.
+
+## Summary Table
+
+```
+Planning Health Check
+=====================
+
+[PASS]  Structure           .planning/ exists, all required files present
+[FAIL]  Config              config.json missing required field `projectName`
+[PASS]  Phase consistency   Directories match ROADMAP.md phases
+[PASS]  Plan/Summary        All pairings valid
+[FAIL]  STATE.md accuracy   Phase reference is stale
+[PASS]  Frontmatter         All PLAN/SUMMARY files have valid frontmatter
+[PASS]  ROADMAP/STATE sync  ROADMAP and STATE phase statuses are consistent
+[PASS]  Hook log            No recent hook errors
+[PASS]  Config completeness All expected fields present
+```
+
+## Status Indicators
+
+| Indicator | Meaning | Counts as Issue? |
+|-----------|---------|-----------------|
+| `[PASS]`  | Check passed, no problems | No |
+| `[FAIL]`  | Required condition violated | **Yes** |
+| `[WARN]`  | Recommended condition violated | No |
+| `[INFO]`  | Informational note | No |
+
+## Issues Section
+
+Only shown when at least one FAIL exists:
+
+```
+Issues Found: {count}
+---------------
+
+1. {problem description}
+   File: {file path}
+   Fix:  {concrete fix suggestion}
+
+2. {problem description}
+   File: {file path}
+   Fix:  {concrete fix suggestion}
+```
+
+## Recent Decisions (Bonus)
+
+If `.planning/logs/decisions.jsonl` exists, show the last 5 entries:
+
+```
+Recent Decisions:
+- {date}: {summary} (phase {N})
+- {date}: {summary} (phase {N})
+```
+
+If the file does not exist, skip silently.
+
+## Final Line
+
+- With issues: `Result: {N} issues found. Review and apply fixes manually.`
+- All passed: `Result: All checks passed. Planning directory is healthy.`
