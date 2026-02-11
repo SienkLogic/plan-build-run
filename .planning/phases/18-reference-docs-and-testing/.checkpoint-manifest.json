@@ -1,0 +1,13 @@
+{
+  "plans": ["18-01", "18-02", "18-03"],
+  "checkpoints_resolved": ["18-01", "18-02", "18-03"],
+  "checkpoints_pending": [],
+  "wave": 2,
+  "deferred": [],
+  "commit_log": [
+    {"plan": "18-01", "commits": ["ffef083", "16c4bf5"]},
+    {"plan": "18-02", "commits": ["bbb5f0e", "5aa772c"]},
+    {"plan": "18-03", "commits": ["0cfd29f", "4defd25"]}
+  ],
+  "last_good_commit": "4defd25"
+}
