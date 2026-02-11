@@ -1,0 +1,15 @@
+    </main>
+    <%- include('footer') %>
+  </div>
+  <div hx-ext="sse"
+       sse-connect="/api/events/stream"
+       sse-close="close">
+    <div hx-trigger="sse:file-change"
+         hx-get="<%= typeof currentPath !== 'undefined' ? currentPath : '/' %>"
+         hx-target="#main-content"
+         hx-swap="innerHTML"
+         style="display:none;">
+    </div>
+  </div>
+</body>
+</html>

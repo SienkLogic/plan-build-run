@@ -1,0 +1,171 @@
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { parseRoadmapFile } from './dashboard.service.js';
+
+/**
+ * Strip UTF-8 BOM from file content.
+ * Duplicated intentionally -- this service reads raw text, not via the repository layer.
+ *
+ * @param {string} content - Raw file content
+ * @returns {string} Content without BOM
+ */
+function stripBOM(content) {
+  return content.replace(/^\uFEFF/, '');
+}
+
+/**
+ * Count the number of PLAN.md files in a phase directory.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @param {number} phaseId - Numeric phase ID (e.g., 1, 5, 12)
+ * @returns {Promise<number>} Number of NN-NN-PLAN.md files found
+ */
+async function countPlansForPhase(projectDir, phaseId) {
+  const phaseIdPadded = String(phaseId).padStart(2, '0');
+  const phasesDir = join(projectDir, '.planning', 'phases');
+
+  try {
+    const entries = await readdir(phasesDir, { withFileTypes: true });
+    // When multiple directories match (e.g. stale rename leftover), prefer the longest name
+    const matchingDirs = entries
+      .filter(e => e.isDirectory() && e.name.startsWith(`${phaseIdPadded}-`))
+      .sort((a, b) => b.name.length - a.name.length);
+    const phaseDir = matchingDirs[0];
+
+    if (!phaseDir) return 0;
+
+    const phaseFiles = await readdir(join(phasesDir, phaseDir.name));
+    return phaseFiles.filter(f => /^\d{2}-\d{2}-PLAN\.md$/.test(f)).length;
+  } catch (err) {
+    if (err.code === 'ENOENT') return 0;
+    throw err;
+  }
+}
+
+/**
+ * Extract dependency information from all Phase Details sections in ROADMAP.md.
+ *
+ * @param {string} roadmapContent - Raw ROADMAP.md content
+ * @returns {Map<number, number[]>} Map of phaseId -> array of dependency phase IDs
+ */
+function extractAllDependencies(roadmapContent) {
+  const dependencyMap = new Map();
+
+  // Match Phase Details sections: "### Phase NN: ..." followed by "**Depends on**: ..."
+  const sectionRegex = /### Phase (\d+):[\s\S]*?\*\*Depends on\*\*:\s*([^\n]+)/g;
+  let match;
+
+  while ((match = sectionRegex.exec(roadmapContent)) !== null) {
+    const phaseId = parseInt(match[1], 10);
+    const depText = match[2].trim();
+
+    if (depText.toLowerCase().includes('none')) {
+      dependencyMap.set(phaseId, []);
+      continue;
+    }
+
+    // Extract phase numbers from "Phase 01, Phase 02" format
+    const deps = [];
+    const depMatches = depText.matchAll(/Phase (\d+)/g);
+    for (const dm of depMatches) {
+      deps.push(parseInt(dm[1], 10));
+    }
+    dependencyMap.set(phaseId, deps);
+  }
+
+  return dependencyMap;
+}
+
+/**
+ * Extract milestone information from ROADMAP.md.
+ * Parses explicit "## Milestone:" sections and infers the implicit first milestone
+ * from the roadmap title (phases before the first explicit milestone).
+ *
+ * @param {string} roadmapContent - Raw ROADMAP.md content (newlines normalized)
+ * @returns {Array<{name: string, goal: string, startPhase: number, endPhase: number}>}
+ */
+function extractMilestones(roadmapContent) {
+  const milestones = [];
+
+  // Get project title from H1: "# Roadmap: Towline Dashboard"
+  const titleMatch = roadmapContent.match(/^# Roadmap:\s*(.+)$/m);
+  const projectTitle = titleMatch ? titleMatch[1].trim() : 'Project';
+
+  // Parse explicit milestones: "## Milestone: Name\n\n**Goal:** ...\n**Phases:** N - M"
+  const milestoneRegex = /## Milestone:\s*(.+)\n\n\*\*Goal:\*\*\s*(.+)\n\*\*Phases:\*\*\s*(\d+)\s*-\s*(\d+)/g;
+  const explicit = [];
+  for (const match of roadmapContent.matchAll(milestoneRegex)) {
+    explicit.push({
+      name: match[1].trim(),
+      goal: match[2].trim(),
+      startPhase: parseInt(match[3], 10),
+      endPhase: parseInt(match[4], 10)
+    });
+  }
+
+  // Sort explicit milestones by start phase
+  explicit.sort((a, b) => a.startPhase - b.startPhase);
+
+  // Infer implicit first milestone (phases before first explicit milestone)
+  if (explicit.length > 0) {
+    const firstStart = explicit[0].startPhase;
+    if (firstStart > 1) {
+      milestones.push({
+        name: projectTitle,
+        goal: '',
+        startPhase: 1,
+        endPhase: firstStart - 1
+      });
+    }
+  } else {
+    // No explicit milestones — all phases belong to the project
+    milestones.push({
+      name: projectTitle,
+      goal: '',
+      startPhase: 1,
+      endPhase: 9999
+    });
+  }
+
+  milestones.push(...explicit);
+  return milestones;
+}
+
+/**
+ * Get enhanced roadmap data with plan counts, dependencies, and milestones.
+ * Combines parseRoadmapFile with raw ROADMAP.md reading for dependency
+ * extraction, milestone parsing, and directory scanning for plan counts.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @returns {Promise<{phases: Array, milestones: Array}>}
+ */
+export async function getRoadmapData(projectDir) {
+  const { phases: basePhases } = await parseRoadmapFile(projectDir);
+
+  if (basePhases.length === 0) {
+    return { phases: [], milestones: [] };
+  }
+
+  // Read raw ROADMAP.md for dependencies and milestones
+  let dependencyMap = new Map();
+  let milestones = [];
+  try {
+    const roadmapPath = join(projectDir, '.planning', 'ROADMAP.md');
+    const rawContent = stripBOM(await readFile(roadmapPath, 'utf-8')).replace(/\r\n/g, '\n');
+    dependencyMap = extractAllDependencies(rawContent);
+    milestones = extractMilestones(rawContent);
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+
+  // Enhance each phase with plan count and dependencies in parallel
+  const enhancedPhases = await Promise.all(
+    basePhases.map(async (phase) => {
+      const planCount = await countPlansForPhase(projectDir, phase.id);
+      const dependencies = dependencyMap.get(phase.id) || [];
+      return { ...phase, planCount, dependencies };
+    })
+  );
+
+  return { phases: enhancedPhases, milestones };
+}

@@ -1,0 +1,77 @@
+<h1><%= projectName %></h1>
+
+<!-- Project Overview Card -->
+<article>
+  <header>
+    <strong>Current Phase</strong>
+  </header>
+  <% if (currentPhase.id > 0) { %>
+    <p>
+      <span class="status-badge" data-status="in-progress">Phase <%= currentPhase.id %></span>
+      <%= currentPhase.name %>
+    </p>
+    <p><small><%= currentPhase.planStatus %></small></p>
+  <% } else { %>
+    <p>No active phase. Project has not started yet.</p>
+  <% } %>
+
+  <% if (lastActivity.date) { %>
+    <p><small>Last activity: <%= lastActivity.date %> &mdash; <%= lastActivity.description %></small></p>
+  <% } %>
+</article>
+
+<!-- Overall Progress -->
+<article>
+  <header>
+    <strong>Overall Progress</strong>
+  </header>
+  <progress value="<%= progress %>" max="100"></progress>
+  <p><%= progress %>% complete (<%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases)</p>
+</article>
+
+<!-- Phase List -->
+<article>
+  <header>
+    <strong>All Phases</strong>
+  </header>
+  <% if (phases.length > 0) { %>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Phase</th>
+          <th scope="col">Name</th>
+          <th scope="col">Description</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% phases.forEach(function(phase) { %>
+        <tr>
+          <td><%= String(phase.id).padStart(2, '0') %></td>
+          <td><a href="/phases/<%= String(phase.id).padStart(2, '0') %>"><%= phase.name %></a></td>
+          <td><%= phase.description %></td>
+          <td>
+            <span class="status-badge" data-status="<%= phase.status %>">
+              <%= phase.status.replace('-', ' ') %>
+            </span>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    </div>
+  <% } else { %>
+    <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see phases here.</p>
+  <% } %>
+</article>
+
+<!-- README Content (if available) -->
+<% if (content && content !== '<p>No project README found.</p>') { %>
+<article>
+  <header>
+    <strong>Project Notes</strong>
+  </header>
+  <%- content %>
+</article>
+<% } %>

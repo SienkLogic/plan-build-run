@@ -1,0 +1,117 @@
+<h1>Phases</h1>
+
+<% if (phases.length === 0) { %>
+<article>
+  <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see phases here.</p>
+</article>
+<% } else { %>
+
+<%
+  // Build milestone-to-phases mapping
+  const milestoneGroups = milestones.map(m => ({
+    ...m,
+    phases: phases.filter(p => p.id >= m.startPhase && p.id <= m.endPhase)
+  })).filter(g => g.phases.length > 0);
+
+  // Collect any phases not covered by a milestone
+  const coveredIds = new Set(milestoneGroups.flatMap(g => g.phases.map(p => p.id)));
+  const ungrouped = phases.filter(p => !coveredIds.has(p.id));
+%>
+
+<!-- Summary -->
+<article>
+  <header><strong>Summary</strong></header>
+  <p>
+    <%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases complete
+    across <%= milestoneGroups.length %> milestone<%= milestoneGroups.length !== 1 ? 's' : '' %>.
+  </p>
+  <progress value="<%= phases.filter(p => p.status === 'complete').length %>" max="<%= phases.length %>"></progress>
+</article>
+
+<% milestoneGroups.forEach(function(group) { %>
+<article>
+  <header>
+    <strong><%= group.name %></strong>
+    <small>(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
+    &mdash;
+    <%
+      const groupComplete = group.phases.filter(p => p.status === 'complete').length;
+      const groupTotal = group.phases.length;
+    %>
+    <span class="status-badge" data-status="<%= groupComplete === groupTotal ? 'complete' : (groupComplete > 0 ? 'in-progress' : 'not-started') %>">
+      <%= groupComplete %>/<%= groupTotal %>
+    </span>
+  </header>
+  <% if (group.goal) { %>
+    <p><small><%= group.goal %></small></p>
+  <% } %>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Phase</th>
+        <th scope="col">Name</th>
+        <th scope="col">Plans</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% group.phases.forEach(function(phase) { %>
+      <tr>
+        <td><%= String(phase.id).padStart(2, '0') %></td>
+        <td>
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+            <%= phase.name %>
+          </a>
+        </td>
+        <td><%= phase.planCount %></td>
+        <td>
+          <span class="status-badge" data-status="<%= phase.status %>">
+            <%= phase.status.replace('-', ' ') %>
+          </span>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% }); %>
+
+<% if (ungrouped.length > 0) { %>
+<article>
+  <header><strong>Other Phases</strong></header>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Phase</th>
+        <th scope="col">Name</th>
+        <th scope="col">Plans</th>
+        <th scope="col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% ungrouped.forEach(function(phase) { %>
+      <tr>
+        <td><%= String(phase.id).padStart(2, '0') %></td>
+        <td>
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+            <%= phase.name %>
+          </a>
+        </td>
+        <td><%= phase.planCount %></td>
+        <td>
+          <span class="status-badge" data-status="<%= phase.status %>">
+            <%= phase.status.replace('-', ' ') %>
+          </span>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% } %>
+
+<% } %>

@@ -1,0 +1,406 @@
+/* ============================================
+   Towline Dashboard — Layout & Typography
+   ============================================ */
+
+/* --- Custom Properties --- */
+:root {
+  --sidebar-width: 220px;
+  --header-height: 3.5rem;
+  --content-max-width: 960px;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --bg-surface: rgba(255, 255, 255, 0.03);
+  --bg-surface-hover: rgba(255, 255, 255, 0.06);
+  --text-dim: rgba(255, 255, 255, 0.5);
+}
+
+/* --- Typography Override --- */
+html {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: var(--space-sm); }
+h2 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; margin-top: var(--space-2xl); margin-bottom: var(--space-md); }
+h3 { font-size: 1.1rem; font-weight: 600; }
+
+p { line-height: 1.65; }
+
+small { font-size: 0.8125rem; color: var(--text-dim); }
+
+/* --- Page Grid Layout --- */
+.page-wrapper {
+  display: grid;
+  gap: 0;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: var(--header-height) 1fr auto;
+  grid-template-areas:
+    "header  header"
+    "sidebar content"
+    "footer  footer";
+  min-height: 100vh;
+}
+
+/* --- Header --- */
+.page-wrapper > header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-xl);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.page-wrapper > header nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.page-wrapper > header nav strong {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.page-wrapper > header nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* --- Sidebar --- */
+.page-wrapper > aside.sidebar {
+  grid-area: sidebar;
+  padding: var(--space-lg) 0;
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow-y: auto;
+}
+
+aside.sidebar nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+aside.sidebar nav li {
+  margin: 0;
+  padding: 0;
+}
+
+aside.sidebar nav a {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem var(--space-lg);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  transition: all 0.15s ease;
+}
+
+aside.sidebar nav a:hover {
+  color: var(--pico-color);
+  background: var(--bg-surface-hover);
+  border-left-color: rgba(255, 255, 255, 0.15);
+}
+
+aside.sidebar nav a[aria-current="page"] {
+  font-weight: 600;
+  color: var(--pico-primary);
+  border-left-color: var(--pico-primary);
+  background: var(--bg-surface-hover);
+}
+
+/* --- Main Content --- */
+.page-wrapper > main {
+  grid-area: content;
+  padding: var(--space-xl) var(--space-2xl);
+  overflow-y: auto;
+  max-width: calc(var(--content-max-width) + var(--space-2xl) * 2);
+}
+
+/* --- Footer --- */
+.page-wrapper > footer {
+  grid-area: footer;
+  padding: var(--space-md) var(--space-xl);
+  border-top: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.page-wrapper > footer small {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+/* --- Article Cards --- */
+article {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  margin-bottom: var(--space-lg);
+}
+
+article > header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-md) var(--space-lg);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+article > header strong {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* --- Tables --- */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 calc(-1 * var(--space-lg));
+  padding: 0 var(--space-lg);
+}
+
+table {
+  font-size: 0.875rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+td {
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+/* --- Progress Bar --- */
+progress {
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+progress::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+progress::-webkit-progress-value {
+  background: var(--pico-primary);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+progress::-moz-progress-bar {
+  background: var(--pico-primary);
+  border-radius: 999px;
+}
+
+/* --- Details/Summary --- */
+details {
+  margin: var(--space-sm) 0;
+  border: none;
+}
+
+details summary {
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--space-xs) 0;
+  color: var(--pico-primary);
+}
+
+details summary:hover {
+  text-decoration: underline;
+}
+
+details ul {
+  margin-top: var(--space-xs);
+  padding-left: var(--space-lg);
+}
+
+details li {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* --- Inline Code --- */
+:not(pre) > code {
+  font-size: 0.8125em;
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* --- Back Link --- */
+main > p:first-of-type > a[href="/"] {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+main > p:first-of-type > a[href="/"]:hover {
+  color: var(--pico-primary);
+}
+
+/* --- SSE Connection Status --- */
+#sse-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+  transition: background-color 0.3s ease;
+}
+
+#sse-status[data-connected="true"] {
+  background-color: var(--status-complete);
+}
+
+#sse-status[data-connected="false"] {
+  background-color: var(--status-not-started);
+}
+
+/* --- Mobile hamburger toggle --- */
+.sidebar-toggle {
+  display: none;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--pico-color);
+  font-size: 1.25rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* ============================================
+   Responsive Breakpoints
+   ============================================ */
+
+/* Tablet: narrower sidebar */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 180px;
+  }
+
+  .page-wrapper > main {
+    padding: var(--space-lg) var(--space-xl);
+  }
+}
+
+/* Mobile: sidebar collapses to top nav */
+@media (max-width: 768px) {
+  .page-wrapper {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--header-height) auto 1fr auto;
+    grid-template-areas:
+      "header"
+      "sidebar"
+      "content"
+      "footer";
+  }
+
+  .sidebar-toggle {
+    display: block;
+  }
+
+  .page-wrapper > aside.sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 0;
+    overflow: visible;
+    display: none;
+  }
+
+  .page-wrapper > aside.sidebar.open {
+    display: block;
+  }
+
+  aside.sidebar nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  aside.sidebar nav a {
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.85rem;
+  }
+
+  aside.sidebar nav a[aria-current="page"] {
+    border-left: none;
+    border-bottom-color: var(--pico-primary);
+  }
+
+  aside.sidebar nav a:hover {
+    border-left: none;
+  }
+
+  .page-wrapper > main {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  h1 { font-size: 1.4rem; }
+  h2 { font-size: 1.15rem; }
+
+  table {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  html {
+    font-size: 14px;
+  }
+
+  .page-wrapper > main {
+    padding: var(--space-md);
+  }
+
+  article > header {
+    padding: var(--space-sm) var(--space-md);
+  }
+}

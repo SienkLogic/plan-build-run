@@ -100,6 +100,25 @@ All `/dev:*` commands are now available globally.
 
 </details>
 
+### Dashboard (Optional)
+
+Towline ships with a companion web dashboard for browsing your project's planning state in a browser. To set it up:
+
+```bash
+# One-time install of dashboard dependencies
+npm run dashboard:install
+
+# Launch the dashboard for any project with a .planning/ directory
+npm run dashboard -- --dir /path/to/your/project
+# Opens at http://127.0.0.1:3000
+```
+
+Or run directly:
+
+```bash
+node dashboard/bin/cli.js --dir /path/to/your/project --port 3000
+```
+
 ### Your First Project
 
 ```bash
@@ -304,7 +323,7 @@ Towline creates a `.planning/` directory in your project:
 
 ## Dashboard
 
-Towline includes a companion web dashboard for browsing project state visually.
+Towline includes a companion web dashboard (`dashboard/`) for browsing project state visually. See [Dashboard setup](#dashboard-optional) for installation.
 
 | Feature | Description |
 |---------|-------------|
@@ -317,8 +336,11 @@ Towline includes a companion web dashboard for browsing project state visually.
 **Tech:** Express 5.x, EJS, Pico.css v2, HTMX 2.0, gray-matter + marked, chokidar 5.x, Helmet.
 
 ```bash
-node /path/to/towline-dashboard/bin/cli.js --dir /path/to/your/project
-# Opens at http://127.0.0.1:3000
+# From the repo root
+npm run dashboard -- --dir /path/to/your/project
+
+# Custom port
+npm run dashboard -- --dir . --port 8080
 ```
 
 ---

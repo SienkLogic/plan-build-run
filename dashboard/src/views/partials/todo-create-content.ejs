@@ -1,0 +1,53 @@
+<h1>Create Todo</h1>
+
+<p><a href="/todos">&larr; Back to Todos</a></p>
+
+<article>
+  <form method="POST" action="/todos"
+        hx-post="/todos"
+        hx-target="#main-content">
+    <label>
+      Title
+      <input
+        type="text"
+        name="title"
+        placeholder="Todo title"
+        required
+        maxlength="200"
+      />
+    </label>
+
+    <label>
+      Priority
+      <select name="priority" required>
+        <option value="">Select priority...</option>
+        <option value="P0">P0 - Critical</option>
+        <option value="P1">P1 - High</option>
+        <option value="P2">P2 - Medium</option>
+        <option value="PX">PX - Low</option>
+      </select>
+    </label>
+
+    <label>
+      Phase (optional)
+      <input
+        type="text"
+        name="phase"
+        placeholder="e.g., 09-todo-write-operations"
+      />
+      <small>Format: 01-phase-name</small>
+    </label>
+
+    <label>
+      Description
+      <textarea
+        name="description"
+        rows="10"
+        required
+        placeholder="Markdown content..."
+      ></textarea>
+    </label>
+
+    <button type="submit">Create Todo</button>
+  </form>
+</article>
