@@ -487,6 +487,8 @@ Your milestone is ready for wrap-up:
 
 ## Notes
 
+For user-friendly interpretation of verification results, see `references/reading-verification.md`.
+
 - The verifier agent has NO Write/Edit tools for project source code — it can only read, check, and write VERIFICATION.md
 - Re-running `/dev:review` after gap closure triggers fresh verification
 - UAT results are conversational — user responses are captured inline

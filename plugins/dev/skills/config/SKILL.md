@@ -10,6 +10,11 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 
 Reads and writes `.planning/config.json`. Interactive configuration with AskUserQuestion.
 
+## References
+
+- `references/planning-config.md` — Full config.json schema (54 fields, 16 feature toggles, validation rules)
+- `references/model-profiles.md` — Model selection guide for agent spawning
+
 ## Flow
 
 ### 1. Load Current Config
