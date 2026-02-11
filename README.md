@@ -432,6 +432,10 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 
 ---
 
+## Acknowledgments
+
+Towline was initially inspired by and built upon concepts from [get-shit-done](https://github.com/glittercowboy/get-shit-done) by [Lex Christopherson](https://github.com/glittercowboy), licensed under MIT. We took the foundation, had a different vision for where it should go, and built something with its own identity. See [ACKNOWLEDGMENTS](ACKNOWLEDGMENTS) for the original license.
+
 ## License
 
 [MIT](LICENSE)
