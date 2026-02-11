@@ -1,6 +1,6 @@
 # Gate Prompt Patterns
 
-> Referenced by: plan, build, import, scan, review, milestone, config, status, resume, quick skills
+> Referenced by: plan, build, import, scan, review, milestone, config, status, resume, quick, begin, discuss, explore, debug skills
 > Purpose: Reusable AskUserQuestion patterns for structured gate checks
 
 These patterns provide consistent, structured prompts for user decision points. Skills reference these patterns by name to ensure all gate checks use the same format.
@@ -259,5 +259,130 @@ Use AskUserQuestion:
     - label: "Quick task"  description: "Execute as lightweight task"
     - label: "Full plan"   description: "Switch to /dev:plan for proper planning"
     - label: "Revise"      description: "Let me rewrite the task description"
+  multiSelect: false
+```
+
+---
+
+## Pattern: depth-select
+
+3-option depth selection for begin skill workflow preferences.
+
+```
+Use AskUserQuestion:
+  question: "How thorough should planning be?"
+  header: "Depth"
+  options:
+    - label: "Quick"           description: "3-5 phases, skip research, ~50% cheaper"
+    - label: "Standard"        description: "5-8 phases with research (default)"
+    - label: "Comprehensive"   description: "8-12 phases, deep research, ~2x cost"
+  multiSelect: false
+```
+
+---
+
+## Pattern: git-strategy-select
+
+3-option git branching strategy for begin skill.
+
+```
+Use AskUserQuestion:
+  question: "Git branching strategy?"
+  header: "Git"
+  options:
+    - label: "None"                description: "Commit to current branch (default)"
+    - label: "Phase branches"      description: "Create a branch per phase"
+    - label: "Milestone branches"  description: "Create a branch per milestone"
+  multiSelect: false
+```
+
+---
+
+## Pattern: context-handling
+
+3-option handler for existing CONTEXT.md in discuss skill.
+
+```
+Use AskUserQuestion:
+  question: "Phase {N} already has a CONTEXT.md. How should we handle it?"
+  header: "Context"
+  options:
+    - label: "Overwrite"  description: "Replace with new decisions"
+    - label: "Append"     description: "Add new decisions below existing ones"
+    - label: "Cancel"     description: "Keep existing and stop"
+  multiSelect: false
+```
+
+---
+
+## Pattern: gray-area-option
+
+Dynamic template for presenting gray area choices in discuss skill.
+
+```
+Use AskUserQuestion:
+  question: "{Gray area title}"
+  header: "Decision"
+  options:
+    - label: "{Option 1}"        description: "{Concrete approach 1}"
+    - label: "{Option 2}"        description: "{Concrete approach 2}"
+    - label: "Let Claude decide"  description: "Mark as Claude's Discretion"
+  multiSelect: false
+```
+
+Note: Options are generated at runtime based on phase analysis. The pattern defines the structure; the skill fills in options per gray area. Always include "Let Claude decide" as the last option. If more than 4 options are identified, split into a 2-step flow (AskUserQuestion supports max 4 options).
+
+---
+
+## Pattern: output-routing
+
+4-option confirmation for explore skill output proposals.
+
+```
+Use AskUserQuestion:
+  question: "How do you want to handle these proposed outputs?"
+  header: "Outputs"
+  options:
+    - label: "Approve all"  description: "Create all suggested artifacts"
+    - label: "Adjust"       description: "Modify the proposals before creating"
+    - label: "Add more"     description: "I have additional outputs to capture"
+    - label: "Skip"         description: "Don't create any artifacts from this session"
+  multiSelect: false
+```
+
+---
+
+## Pattern: debug-session-select
+
+Dynamic template for debug session selection.
+
+```
+Use AskUserQuestion:
+  question: "Found active debug sessions. Which would you like?"
+  header: "Debug"
+  options:
+    - label: "#{NNN}: {title}"  description: "Started {date}, last: {hypothesis}"
+    - label: "#{NNN}: {title}"  description: "Started {date}, last: {hypothesis}"
+    - label: "#{NNN}: {title}"  description: "Started {date}, last: {hypothesis}"
+    - label: "New session"      description: "Start a fresh debug investigation"
+  multiSelect: false
+```
+
+Note: Options are generated at runtime from active debug sessions. If more than 3 active sessions exist, show the 3 most recent plus "New session" (max 4 options). Older sessions can be accessed by running `/dev:debug` with the session number.
+
+---
+
+## Pattern: debug-checkpoint
+
+3-option checkpoint response during debug investigation.
+
+```
+Use AskUserQuestion:
+  question: "Investigation has reached a checkpoint. How should we proceed?"
+  header: "Continue?"
+  options:
+    - label: "Continue"       description: "Keep investigating with current findings"
+    - label: "More info"      description: "I have additional context to share"
+    - label: "New approach"   description: "Try a different investigation angle"
   multiSelect: false
 ```
