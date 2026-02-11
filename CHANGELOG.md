@@ -5,6 +5,38 @@ All notable changes to Towline will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Token-saving CLI: 6 new commands in `towline-tools.js` — `frontmatter`, `must-haves`, `phase-info`, `state update`, `roadmap update-status`, `roadmap update-plans`
+- Companion web dashboard (Express 5.x, EJS, Pico.css v2, HTMX 2.0) with overview, phase detail, roadmap, todos, and SSE live updates
+- `/dev:import` skill — Import external plan documents into Towline format
+- `/dev:note` skill — Zero-friction idea capture with promote-to-todo support
+- `/dev:setup` skill — Interactive onboarding wizard for new installations
+- `SECURITY.md` — Vulnerability reporting policy
+- `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1
+- `ACKNOWLEDGMENTS` — Attribution to get-shit-done (MIT) by Lex Christopherson
+- "Why Towline?" comparison section in README
+- Markdownlint CI for planning document quality
+- Hook spawn tests for all lifecycle hooks
+- Iterative retrieval protocol for researcher agent
+- Behavioral contexts for agent prompt refinement
+- Plugin manifest documentation
+
+### Changed
+- Skill count increased from 18 to 21 (added import, note, setup)
+- Hook scripts consolidated: Write/Edit dispatch reduced from 4 spawns to 2
+- All hook scripts now use `logHook()` from `hook-logger.js` for unified logging
+- Agents reference new CLI tooling shortcuts instead of manual YAML parsing
+- README rewritten with polished formatting, badges, comparison table, and acknowledgments
+- CONTRIBUTING.md expanded with commit format reference, security policy link, and code of conduct
+- CHANGELOG updated to Keep a Changelog format with [Unreleased] section
+
+### Fixed
+- Context budget: main orchestrator no longer reads agent definitions (saves ~15% context)
+- Hook logger rotation: `.hook-log` now caps at 200 entries with JSONL format
+- Status line ANSI rendering on Windows terminals
+
 ## [2.0.0] - 2026-02-08
 
 ### Added
