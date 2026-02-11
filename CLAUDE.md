@@ -33,7 +33,7 @@ Towline has three layers, all under `plugins/dev/`:
 ### Skills (`skills/{name}/SKILL.md`)
 Markdown files with YAML frontmatter that define slash commands (`/dev:begin`, `/dev:plan`, etc.). Each SKILL.md is a complete prompt — it tells the orchestrator (main Claude session) what to do when the user invokes the command. Skills are the entry points; they read state, interact with the user, and spawn agents.
 
-20 skills exist: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, status, todo.
+21 skills exist: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, todo.
 
 ### Agents (`agents/towline-{name}.md`)
 Markdown files with YAML frontmatter that define specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. They are spawned by skills via `subagent_type: "dev:towline-{name}"` — agent definitions are **auto-loaded** by Claude Code from this directory; never inline agent prompts into skill files.
