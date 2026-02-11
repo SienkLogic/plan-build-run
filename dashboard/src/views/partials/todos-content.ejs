@@ -1,0 +1,53 @@
+<h1>Todos</h1>
+
+<p><a href="/todos/new" role="button"
+      hx-get="/todos/new"
+      hx-target="#main-content"
+      hx-push-url="true">Create Todo</a></p>
+
+<% if (todos.length > 0) { %>
+<article>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">ID</th>
+        <th scope="col">Title</th>
+        <th scope="col">Priority</th>
+        <th scope="col">Phase</th>
+        <th scope="col">Status</th>
+        <th scope="col">Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% todos.forEach(function(todo) { %>
+      <tr>
+        <td><%= todo.id %></td>
+        <td>
+          <a href="/todos/<%= todo.id %>">
+            <%= todo.title %>
+          </a>
+        </td>
+        <td>
+          <span class="status-badge" data-priority="<%= todo.priority %>">
+            <%= todo.priority %>
+          </span>
+        </td>
+        <td><%= todo.phase %></td>
+        <td>
+          <span class="status-badge" data-status="<%= todo.status %>">
+            <%= todo.status %>
+          </span>
+        </td>
+        <td><%= todo.created %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% } else { %>
+<article>
+  <p>No pending todos found. Add a todo file to <code>.planning/todos/pending/</code> to see it here.</p>
+</article>
+<% } %>

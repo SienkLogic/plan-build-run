@@ -1,0 +1,33 @@
+{
+  "name": "towline-dashboard",
+  "version": "0.1.0",
+  "description": "Web dashboard for viewing Towline project planning state",
+  "type": "module",
+  "bin": {
+    "towline-dashboard": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "dev": "node --watch bin/cli.js",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "towline",
+    "dashboard",
+    "planning"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^5.0.0",
+    "commander": "^12.1.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "gray-matter": "^4.0.3",
+    "helmet": "^8.1.0",
+    "marked": "^17.0.1"
+  },
+  "devDependencies": {
+    "memfs": "^4.56.10",
+    "vitest": "^3.1.0"
+  }
+}

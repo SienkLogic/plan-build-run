@@ -1,0 +1,142 @@
+<h1>Project Roadmap</h1>
+
+<% if (phases.length === 0) { %>
+<article>
+  <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see the roadmap here.</p>
+</article>
+<% } else { %>
+
+<%
+  // Group phases by milestone
+  const msGroups = (typeof milestones !== 'undefined' && milestones.length > 0)
+    ? milestones.map(m => ({
+        ...m,
+        phases: phases.filter(p => p.id >= m.startPhase && p.id <= m.endPhase)
+      })).filter(g => g.phases.length > 0)
+    : [{ name: 'All Phases', goal: '', startPhase: 1, endPhase: 9999, phases: phases }];
+
+  const coveredIds = new Set(msGroups.flatMap(g => g.phases.map(p => p.id)));
+  const ungroupedPhases = phases.filter(p => !coveredIds.has(p.id));
+%>
+
+<!-- Overall Progress -->
+<article>
+  <header><strong>Overall Progress</strong></header>
+  <%
+    const totalComplete = phases.filter(p => p.status === 'complete').length;
+    const totalPhases = phases.length;
+    const pct = totalPhases > 0 ? Math.round((totalComplete / totalPhases) * 100) : 0;
+  %>
+  <progress value="<%= totalComplete %>" max="<%= totalPhases %>"></progress>
+  <p><%= pct %>% complete (<%= totalComplete %> of <%= totalPhases %> phases)</p>
+</article>
+
+<% msGroups.forEach(function(group) { %>
+<article>
+  <header>
+    <strong><%= group.name %></strong>
+    <% if (group.startPhase && group.endPhase < 9999) { %>
+      <small>(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
+    <% } %>
+    &mdash;
+    <%
+      const gc = group.phases.filter(p => p.status === 'complete').length;
+      const gt = group.phases.length;
+    %>
+    <span class="status-badge" data-status="<%= gc === gt ? 'complete' : (gc > 0 ? 'in-progress' : 'not-started') %>">
+      <%= gc %>/<%= gt %>
+    </span>
+  </header>
+  <% if (group.goal) { %>
+    <p><small><%= group.goal %></small></p>
+  <% } %>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Phase</th>
+        <th scope="col">Name</th>
+        <th scope="col">Plans</th>
+        <th scope="col">Status</th>
+        <th scope="col">Depends On</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% group.phases.forEach(function(phase) { %>
+      <tr>
+        <td><%= String(phase.id).padStart(2, '0') %></td>
+        <td>
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+            <%= phase.name %>
+          </a>
+        </td>
+        <td><%= phase.planCount %></td>
+        <td>
+          <span class="status-badge" data-status="<%= phase.status %>">
+            <%= phase.status.replace('-', ' ') %>
+          </span>
+        </td>
+        <td>
+          <% if (phase.dependencies && phase.dependencies.length > 0) { %>
+            <% phase.dependencies.forEach(function(dep, idx) { %>
+              <a href="/phases/<%= String(dep).padStart(2, '0') %>"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
+            <% }); %>
+          <% } else { %>
+            <small>None</small>
+          <% } %>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% }); %>
+
+<% if (ungroupedPhases.length > 0) { %>
+<article>
+  <header><strong>Other Phases</strong></header>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Phase</th>
+        <th scope="col">Name</th>
+        <th scope="col">Plans</th>
+        <th scope="col">Status</th>
+        <th scope="col">Depends On</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% ungroupedPhases.forEach(function(phase) { %>
+      <tr>
+        <td><%= String(phase.id).padStart(2, '0') %></td>
+        <td>
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+            <%= phase.name %>
+          </a>
+        </td>
+        <td><%= phase.planCount %></td>
+        <td>
+          <span class="status-badge" data-status="<%= phase.status %>">
+            <%= phase.status.replace('-', ' ') %>
+          </span>
+        </td>
+        <td>
+          <% if (phase.dependencies && phase.dependencies.length > 0) { %>
+            <% phase.dependencies.forEach(function(dep, idx) { %>
+              <a href="/phases/<%= String(dep).padStart(2, '0') %>"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
+            <% }); %>
+          <% } else { %>
+            <small>None</small>
+          <% } %>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% } %>
+
+<% } %>

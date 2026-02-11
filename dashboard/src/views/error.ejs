@@ -1,0 +1,13 @@
+<%- include('partials/layout-top', { title: typeof title !== 'undefined' ? title : 'Error', activePage: '' }) %>
+
+<h1>Error <%= status %></h1>
+<p><%= message %></p>
+<% if (typeof stack !== 'undefined' && stack) { %>
+<details>
+  <summary>Stack Trace (Development Only)</summary>
+  <pre><code><%= stack %></code></pre>
+</details>
+<% } %>
+<p><a href="/">Return to Dashboard</a></p>
+
+<%- include('partials/layout-bottom') %>

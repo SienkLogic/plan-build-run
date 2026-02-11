@@ -18,7 +18,9 @@
   "scripts": {
     "test": "jest",
     "lint": "eslint plugins/dev/scripts/ tests/",
-    "validate": "node plugins/dev/scripts/validate-plugin-structure.js"
+    "validate": "node plugins/dev/scripts/validate-plugin-structure.js",
+    "dashboard": "node dashboard/bin/cli.js",
+    "dashboard:install": "npm install --prefix dashboard"
   },
   "devDependencies": {
     "jest": "^29.0.0",
@@ -28,6 +30,10 @@
     "node": ">=18.0.0"
   },
   "jest": {
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dashboard/"
+    ],
     "coverageThreshold": {
       "global": {
         "statements": 65,
