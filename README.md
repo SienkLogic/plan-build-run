@@ -13,6 +13,7 @@
   Build ambitious multi-phase software without quality degradation.
   <br />
   <br />
+  <a href="#why-towline">Why Towline?</a> &bull;
   <a href="#getting-started">Getting Started</a> &bull;
   <a href="#commands">Commands</a> &bull;
   <a href="#how-it-works">How It Works</a> &bull;
@@ -27,6 +28,45 @@
 Claude Code is remarkably capable — until your context window fills up. As tokens accumulate during a long session, reasoning quality degrades, hallucinations increase, and the model starts losing track of earlier decisions. This is **context rot**, and it's the primary failure mode when building anything beyond a single-session project.
 
 **Towline solves this.** It keeps your main orchestrator under ~15% context usage by delegating heavy work to fresh subagent contexts, each getting a clean 200k token window. All state lives on disk. Sessions are killable at any second without data loss.
+
+## Why Towline?
+
+Most AI coding tools treat context as infinite — they index your codebase, track your edits, and hope the model keeps up. That works for single-file changes. It falls apart when you're building something that takes days, spans dozens of files, and requires decisions made on Monday to still hold on Friday.
+
+Towline takes a different approach: **structured context isolation**. Instead of stuffing everything into one session, it delegates each operation to a fresh subagent with a clean 200k token window and coordinates through files on disk.
+
+### What sets it apart
+
+| Capability | IDE Assistants | Other Workflow Plugins | **Towline** |
+|:-----------|:--------------:|:----------------------:|:-----------:|
+| Solves context rot | Indexing / tracking | Conversation segmentation | Fresh 200k context per agent |
+| Multi-phase projects | No structure | Phase-based | Phase + wave + milestone |
+| Verification | Developer reviews diffs | Atomic commits | Dedicated verifier agent with 3-layer checks |
+| Quality gates | Manual | Commit enforcement | 8 lifecycle hooks + configurable gates |
+| State persistence | Lost on session end | File-based state | File-based state + crash-safe locking |
+| Parallelism | Up to 8 agents (Cursor) | Sequential | Dependency-aware wave-based parallelism |
+| Configurability | Opinionated | Limited toggles | 12 config keys, 16+ feature toggles |
+
+<details>
+<summary><strong>Key differentiators in detail</strong></summary>
+
+**Goal-backward verification** — After a phase is built, a dedicated read-only verifier agent checks your actual codebase against declared must-haves. It doesn't ask "did the tasks complete?" — it asks "does the codebase now satisfy the requirements?" Three layers: existence (file exists), substance (not a stub), wiring (connected to the system).
+
+**Lifecycle hooks** — Eight hook scripts fire on Claude Code events to enforce discipline automatically: commit format validation, plan structure checks, roadmap sync verification, context budget warnings before compaction, and auto-chaining between workflow steps. No other tool polices itself this way.
+
+**Wave-based parallelism** — Plans declare dependencies. Plans with no conflicts run in parallel (same wave); dependent plans wait. This isn't "throw 8 agents at it" — it's structured, dependency-aware concurrent execution.
+
+**Kill-safe state** — Every piece of project state lives in `.planning/` on disk. You can kill your terminal mid-build, reboot your machine, come back a week later, and `/dev:resume` picks up exactly where you left off. No session state to lose.
+
+**Token-saving CLI** — A deterministic Node.js CLI handles mechanical operations (YAML parsing, state updates, must-have collection) so agents don't waste tokens on file parsing. Saves ~4,000-11,000 tokens per phase.
+
+</details>
+
+> **When to use Towline:** Multi-phase projects where quality matters — new features spanning 5+ files, large refactors, greenfield builds, anything that would take more than one Claude Code session to complete.
+>
+> **When to skip it:** Single-file fixes, quick questions, one-off scripts. Use `/dev:quick` if you still want atomic commits without the full workflow.
+
+---
 
 ## Getting Started
 
