@@ -82,13 +82,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-commit.js",
-            "statusMessage": "Validating commit..."
-          },
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-dangerous-commands.js",
-            "statusMessage": "Checking for dangerous commands..."
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/pre-bash-dispatch.js",
+            "statusMessage": "Validating Bash command..."
           }
         ]
       },
