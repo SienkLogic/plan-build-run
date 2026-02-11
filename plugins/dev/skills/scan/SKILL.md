@@ -58,241 +58,35 @@ Check if `.planning/codebase/` directory exists:
 
 ### Step 2: Initial Reconnaissance
 
-Before spawning agents, do a quick scan to identify what we're working with. This gives agents better context:
+Before spawning agents, do a quick scan to identify what we're working with. This gives agents better context.
 
-1. **Detect project type:**
-   ```
-   Look for:
-   - package.json -> Node.js/JavaScript/TypeScript
-   - requirements.txt / setup.py / pyproject.toml -> Python
-   - CMakeLists.txt -> C/C++
-   - go.mod -> Go
-   - Cargo.toml -> Rust
-   - pom.xml / build.gradle -> Java
-   - *.sln / *.csproj -> .NET
-   - Gemfile -> Ruby
-   - composer.json -> PHP
-   ```
+1. **Detect project type** — check for language-specific config files (package.json, requirements.txt, go.mod, Cargo.toml, etc.)
+2. **Detect project scale** — count source files (exclude node_modules, venv, .git, build, dist). Categories: Small (<50), Medium (50-200), Large (200-1000), Very Large (1000+)
+3. **Detect key directories** — identify src, test, docs, config, scripts, public, migrations directories
+4. **Read existing docs** — README.md, architecture docs, .env.example
+5. **Write `.planning/codebase/RECON.md`** with project type, scale, key directories, entry points, and quick stats
 
-2. **Detect project scale:**
-   Use Glob patterns to count source files (exclude node_modules, venv, .git, build, dist).
-
-   Scale categories:
-   - Small: < 50 source files
-   - Medium: 50-200 source files
-   - Large: 200-1000 source files
-   - Very large: 1000+ source files
-
-3. **Detect key directories:**
-   ```
-   Look for:
-   - src/, lib/, app/ -> source code
-   - test/, tests/, __tests__/, spec/ -> tests
-   - docs/ -> documentation
-   - config/, .config/ -> configuration
-   - scripts/ -> build/deploy scripts
-   - public/, static/, assets/ -> static assets
-   - migrations/ -> database migrations
-   ```
-
-4. **Read existing docs:**
-   - README.md (if exists)
-   - Any existing architecture docs
-   - .env.example (to understand config shape)
-
-5. Write a brief `.planning/codebase/RECON.md` with findings:
-
-   ```markdown
-   # Codebase Reconnaissance
-
-   **Scanned:** {date}
-   **Type:** {project type}
-   **Scale:** {small/medium/large} ({file count} source files)
-   **Root:** {working directory}
-
-   ## Key Directories
-   - {dir}: {purpose}
-
-   ## Entry Points
-   - {file}: {purpose}
-
-   ## Quick Stats
-   - Source files: {count}
-   - Test files: {count}
-   - Config files: {count}
-   ```
+Refer to the "Reconnaissance Detection Reference" section of `skills/scan/templates/mapper-prompt.md.tmpl` for the full detection checklists.
 
 ### Step 3: Spawn Analysis Agents
 
 Spawn **4 parallel** `Task(subagent_type: "dev:towline-codebase-mapper")` agents, each with a different focus area. All 4 should be spawned in a single response for maximum parallelism.
 
-#### Agent 1: Technology Stack (`focus="tech"`)
+For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
+- `{focus_area}`: one of `tech`, `arch`, `quality`, `concerns`
+- `{project_path}`: the working directory
+- `{recon_data}`: contents of RECON.md
+- `{scale}`: detected scale from Step 2
+- `{output_path}`: `.planning/codebase/`
 
-```
-You are towline-codebase-mapper with focus="tech".
+The 4 agents and their outputs:
 
-Analyze the codebase technology stack and external integrations.
-
-Reconnaissance: {paste RECON.md content}
-Working directory: {cwd}
-
-Instructions:
-
-1. STACK.md -- Technology inventory
-   - Languages and versions (from config files, shebang lines, etc.)
-   - Frameworks and their versions
-   - Build tools and configuration
-   - Package manager and dependency count
-   - Runtime requirements
-   - Development tools (linters, formatters, type checkers)
-
-2. INTEGRATIONS.md -- External connections
-   - APIs consumed (look for HTTP clients, SDK imports, API keys)
-   - Databases used (look for connection strings, ORM configs, migrations)
-   - Third-party services (auth providers, payment, email, etc.)
-   - Message queues, caches, file storage
-   - CI/CD pipelines (GitHub Actions, Jenkins, etc.)
-   - Deployment targets (Docker, Kubernetes, serverless, etc.)
-
-Write both files to .planning/codebase/
-
-Read `templates/codebase/STACK.md.tmpl` for the STACK.md output format.
-Read `templates/codebase/INTEGRATIONS.md.tmpl` for the INTEGRATIONS.md output format.
-Fill in all placeholder fields with data from your codebase analysis.
-```
-
-#### Agent 2: Architecture (`focus="arch"`)
-
-```
-You are towline-codebase-mapper with focus="arch".
-
-Analyze the codebase architecture and structure.
-
-Reconnaissance: {paste RECON.md content}
-Working directory: {cwd}
-
-Instructions:
-
-1. ARCHITECTURE.md -- High-level architecture
-   - Architecture style (monolith, microservices, serverless, MVC, etc.)
-   - Layer structure (presentation, business logic, data access)
-   - Module boundaries and how they communicate
-   - Data flow through the system
-   - Key abstractions and interfaces
-   - State management approach
-   - Error handling strategy
-   - Authentication/authorization architecture
-
-2. STRUCTURE.md -- Directory and file organization
-   - Directory tree with annotations
-   - File naming conventions
-   - Module organization pattern
-   - Entry points and their roles
-   - Configuration file locations
-   - Environment-specific files
-
-Write both files to .planning/codebase/
-
-Read `templates/codebase/ARCHITECTURE.md.tmpl` for the ARCHITECTURE.md output format.
-Read `templates/codebase/STRUCTURE.md.tmpl` for the STRUCTURE.md output format.
-Fill in all placeholder fields with data from your codebase analysis.
-```
-
-#### Agent 3: Code Quality (`focus="quality"`)
-
-```
-You are towline-codebase-mapper with focus="quality".
-
-Analyze the codebase quality, conventions, and testing approach.
-
-Reconnaissance: {paste RECON.md content}
-Working directory: {cwd}
-
-Instructions:
-
-1. CONVENTIONS.md -- Coding standards in practice
-   - Naming conventions (files, functions, variables, classes)
-   - Code style (indentation, quotes, semicolons, etc.)
-   - Import/export patterns
-   - Comment style and documentation patterns
-   - Error handling patterns
-   - Logging patterns
-   - Configuration patterns (env vars, config files, constants)
-
-   IMPORTANT: Document what the codebase ACTUALLY does, not what it should do.
-   Look at multiple files to identify the dominant pattern.
-
-2. TESTING.md -- Test infrastructure and coverage
-   - Test framework(s) used
-   - Test file organization
-   - Test types present (unit, integration, e2e)
-   - Test coverage (rough estimate from test file count vs source file count)
-   - Mocking patterns
-   - Test data management
-   - CI test configuration
-   - Notable gaps in testing
-
-Write both files to .planning/codebase/
-
-Read `templates/codebase/CONVENTIONS.md.tmpl` for the CONVENTIONS.md output format.
-Read `templates/codebase/TESTING.md.tmpl` for the TESTING.md output format.
-Fill in all placeholder fields with data from your codebase analysis.
-```
-
-#### Agent 4: Concerns (`focus="concerns"`)
-
-```
-You are towline-codebase-mapper with focus="concerns".
-
-Identify concerns, risks, and improvement opportunities in the codebase.
-
-Reconnaissance: {paste RECON.md content}
-Working directory: {cwd}
-
-Instructions:
-
-Write CONCERNS.md to .planning/codebase/
-
-Analyze the codebase for:
-
-1. Security concerns
-   - Hardcoded secrets or credentials
-   - Injection vulnerabilities
-   - Insecure authentication patterns
-   - Missing input validation
-   - Outdated dependencies with known vulnerabilities
-
-2. Technical debt
-   - TODO/FIXME/HACK comments
-   - Dead code (unused exports, unreachable branches)
-   - Copy-pasted code (duplication)
-   - Overly complex functions
-   - Missing error handling
-   - Inconsistent patterns
-
-3. Scalability concerns
-   - N+1 query patterns
-   - Missing pagination
-   - Unbounded data loading
-   - Synchronous blocking operations
-   - Missing caching opportunities
-
-4. Maintainability concerns
-   - Missing documentation
-   - Complex inheritance hierarchies
-   - Tight coupling between modules
-   - Magic numbers/strings
-   - Missing type safety
-
-5. Operational concerns
-   - Missing health checks
-   - Insufficient logging
-   - No monitoring hooks
-   - Unclear deployment process
-
-Read `templates/codebase/CONCERNS.md.tmpl` for the CONCERNS.md output format.
-Fill in all placeholder fields with data from your codebase analysis.
-```
+| Agent | Focus | Output Files |
+|-------|-------|-------------|
+| 1 | tech | STACK.md, INTEGRATIONS.md |
+| 2 | arch | ARCHITECTURE.md, STRUCTURE.md |
+| 3 | quality | CONVENTIONS.md, TESTING.md |
+| 4 | concerns | CONCERNS.md |
 
 ### Step 4: Wait for Agents
 
@@ -326,13 +120,7 @@ For any missing files:
 
 ### Step 6: Present Summary
 
-Read key findings from each file (frontmatter or first section) and display:
-
-```
-Codebase Scan Complete
-======================
-
-Use the branded stage banner from `references/ui-formatting.md`:
+Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-formatting.md`:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -394,32 +182,6 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 
 ---
 
-## Scale Handling
-
-### Small projects (< 50 files)
-- Agents can be thorough -- read most files
-- Output should be concise (don't pad)
-- Concerns list may be short -- that's fine
-
-### Medium projects (50-200 files)
-- Agents should sample representative files
-- Focus on entry points, configuration, and key modules
-- Use Grep patterns to find conventions rather than reading every file
-
-### Large projects (200-1000 files)
-- Agents must be selective -- read key files only
-- Use Glob and Grep extensively for pattern detection
-- Focus on architecture and module boundaries
-- Sample 3-5 files per module for conventions
-
-### Very large projects (1000+ files)
-- Warn user: "This is a large codebase. The scan will focus on high-level architecture and key modules."
-- Agents should limit their file reads
-- Architecture focus > file-level detail
-- Consider suggesting scoping the scan to a subdirectory
-
----
-
 ## Edge Cases
 
 ### Monorepo with multiple projects
@@ -458,13 +220,13 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 
 ## Anti-Patterns
 
-1. **DO NOT** modify any source code -- scan is read-only analysis
-2. **DO NOT** run the project (no `npm start`, `python app.py`, etc.) -- analyze statically
-3. **DO NOT** install dependencies -- analyze package files, don't install
-4. **DO NOT** generate concerns without evidence -- every concern needs a file reference
-5. **DO NOT** ignore positive observations -- knowing what works well is valuable
-6. **DO NOT** produce generic output -- every finding should be specific to THIS codebase
+1. **DO NOT** modify any source code — scan is read-only analysis
+2. **DO NOT** run the project (no `npm start`, `python app.py`, etc.) — analyze statically
+3. **DO NOT** install dependencies — analyze package files, don't install
+4. **DO NOT** generate concerns without evidence — every concern needs a file reference
+5. **DO NOT** ignore positive observations — knowing what works well is valuable
+6. **DO NOT** produce generic output — every finding should be specific to THIS codebase
 7. **DO NOT** scan node_modules, venv, .git, or build output directories
-8. **DO NOT** read every file in large codebases -- sample and extrapolate
-9. **DO NOT** skip the RECON step -- agents need baseline context
-10. **DO NOT** combine agents -- the 4 agents must run in parallel with separate focuses
+8. **DO NOT** read every file in large codebases — sample and extrapolate
+9. **DO NOT** skip the RECON step — agents need baseline context
+10. **DO NOT** combine agents — the 4 agents must run in parallel with separate focuses
