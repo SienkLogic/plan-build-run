@@ -203,6 +203,16 @@ In addition to existing checks in Dimension 5, add:
 
 ### Step 1: Load Plans
 
+**Tooling shortcut**: Instead of manually parsing each plan file's YAML frontmatter, use:
+```bash
+# Parse a single plan's frontmatter (returns must_haves, wave, depends_on, etc.):
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js frontmatter {plan_filepath}
+
+# Get all plans in a phase with metadata:
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js plan-index {phase_number}
+```
+You still need to read the full plan body for XML task parsing, but frontmatter extraction is handled by the CLI.
+
 Read all plan files provided as input. Parse YAML frontmatter and XML tasks.
 
 ### Step 2: Load Context

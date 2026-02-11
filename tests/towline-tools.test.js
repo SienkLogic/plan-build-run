@@ -6,7 +6,11 @@ const {
   parseYamlFrontmatter,
   parseMustHaves,
   countMustHaves,
-  atomicWrite
+  atomicWrite,
+  updateLegacyStateField,
+  updateFrontmatterField,
+  updateTableRow,
+  findRoadmapRow
 } = require('../plugins/dev/scripts/towline-tools');
 
 describe('towline-tools.js', () => {
@@ -422,6 +426,131 @@ next_top_level: something`;
       // .bak should be Version 2 (last successful backup)
       expect(fs.readFileSync(filePath + '.bak', 'utf8')).toBe('Version 2');
       cleanupDir(tmpDir);
+    });
+  });
+
+  describe('updateLegacyStateField', () => {
+    const legacyContent = '# Project State\n\nPhase: 2 of 6 -- Authentication\nStatus: built\nProgress: 33%\n\n## Current Work\nPlan: 1 of 2\nWave: 1\n';
+
+    test('updates current_phase', () => {
+      const result = updateLegacyStateField(legacyContent, 'current_phase', '3');
+      expect(result).toContain('Phase: 3 of 6');
+      expect(result).not.toContain('Phase: 2 of 6');
+    });
+
+    test('updates status', () => {
+      const result = updateLegacyStateField(legacyContent, 'status', 'building');
+      expect(result).toContain('Status: building');
+      expect(result).not.toContain('Status: built');
+    });
+
+    test('updates plans_complete', () => {
+      const result = updateLegacyStateField(legacyContent, 'plans_complete', '2');
+      expect(result).toContain('Plan: 2 of 2');
+      expect(result).not.toContain('Plan: 1 of 2');
+    });
+
+    test('adds last_activity when not present', () => {
+      const result = updateLegacyStateField(legacyContent, 'last_activity', '2026-02-10');
+      expect(result).toContain('Last Activity: 2026-02-10');
+    });
+
+    test('updates last_activity when already present', () => {
+      const content = legacyContent.replace('Status: built', 'Status: built\nLast Activity: 2026-02-09');
+      const result = updateLegacyStateField(content, 'last_activity', '2026-02-10');
+      expect(result).toContain('Last Activity: 2026-02-10');
+      expect(result).not.toContain('Last Activity: 2026-02-09');
+    });
+
+    test('adds status when not present', () => {
+      const noStatus = '# Project State\n\nPhase: 2 of 6 -- Authentication\nProgress: 33%\n';
+      const result = updateLegacyStateField(noStatus, 'status', 'building');
+      expect(result).toContain('Status: building');
+    });
+  });
+
+  describe('updateFrontmatterField', () => {
+    const fmContent = '---\nversion: 2\ncurrent_phase: 3\nstatus: "building"\nplans_complete: 1\n---\n# Project State\n';
+
+    test('updates existing string field', () => {
+      const result = updateFrontmatterField(fmContent, 'status', 'verified');
+      expect(result).toContain('status: "verified"');
+      expect(result).not.toContain('status: "building"');
+    });
+
+    test('updates existing integer field', () => {
+      const result = updateFrontmatterField(fmContent, 'current_phase', '5');
+      expect(result).toContain('current_phase: 5');
+      expect(result).not.toContain('current_phase: 3');
+    });
+
+    test('adds new field when not present', () => {
+      const result = updateFrontmatterField(fmContent, 'last_activity', '2026-02-10');
+      expect(result).toContain('last_activity: "2026-02-10"');
+    });
+
+    test('preserves content after frontmatter', () => {
+      const result = updateFrontmatterField(fmContent, 'status', 'verified');
+      expect(result).toContain('# Project State');
+    });
+
+    test('returns content unchanged if no frontmatter', () => {
+      const noFm = '# No frontmatter here\nJust content';
+      const result = updateFrontmatterField(noFm, 'status', 'verified');
+      expect(result).toBe(noFm);
+    });
+  });
+
+  describe('updateTableRow', () => {
+    const row = '| 02 | Auth | Authentication system | 2 | 2 | planned |';
+
+    test('updates status column (index 5)', () => {
+      const result = updateTableRow(row, 5, 'building');
+      expect(result).toContain('| building |');
+      expect(result).not.toContain('| planned |');
+    });
+
+    test('updates plans column (index 3)', () => {
+      const result = updateTableRow(row, 3, '1/2');
+      expect(result).toContain('| 1/2 |');
+    });
+
+    test('updates phase column (index 0)', () => {
+      const result = updateTableRow(row, 0, '03');
+      expect(result).toContain('| 03 |');
+    });
+
+    test('preserves other columns', () => {
+      const result = updateTableRow(row, 5, 'verified');
+      expect(result).toContain('| Auth |');
+      expect(result).toContain('| Authentication system |');
+    });
+  });
+
+  describe('findRoadmapRow', () => {
+    const lines = [
+      '## Phase Overview',
+      '| Phase | Name | Goal | Plans | Wave | Status |',
+      '|-------|------|------|-------|------|--------|',
+      '| 01 | Setup | Project scaffolding | 1 | 1 | verified |',
+      '| 02 | Auth | Authentication system | 2 | 2 | planned |',
+      '| 03 | API | REST API endpoints | 0 | 0 | pending |',
+    ];
+
+    test('finds phase 01 at correct row', () => {
+      expect(findRoadmapRow(lines, '1')).toBe(3);
+    });
+
+    test('finds phase 02 at correct row', () => {
+      expect(findRoadmapRow(lines, '2')).toBe(4);
+    });
+
+    test('returns -1 for nonexistent phase', () => {
+      expect(findRoadmapRow(lines, '99')).toBe(-1);
+    });
+
+    test('handles already-padded input', () => {
+      expect(findRoadmapRow(lines, '03')).toBe(5);
     });
   });
 });

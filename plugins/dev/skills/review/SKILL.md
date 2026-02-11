@@ -59,6 +59,12 @@ Execute these steps in order.
 
 ### Step 2: Check Existing Verification (inline)
 
+**Tooling shortcut**: Instead of manually reading and parsing the phase directory, run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js phase-info <phase>
+```
+This returns a JSON object with `verification` (frontmatter from VERIFICATION.md if it exists), `summaries` (list with status per plan), `roadmap_status`, `filesystem_status`, `plan_count`, and `completed`. Falls back to manual parsing if unavailable.
+
 Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification step:
 
 1. Look for `.planning/phases/{NN}-{slug}/VERIFICATION.md`
@@ -212,6 +218,14 @@ Compile the UAT results and determine next steps.
 If all automated checks and UAT items passed:
 
 1. **Update `.planning/ROADMAP.md` Progress table** (REQUIRED — do this BEFORE updating STATE.md):
+
+   **Tooling shortcut**: Use the CLI for atomic ROADMAP.md and STATE.md updates:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js roadmap update-status {phase} verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update status verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update last_activity now
+   ```
+
    1. Open `.planning/ROADMAP.md`
    2. Find the `## Progress` table
    3. Locate the row matching this phase number
