@@ -1246,9 +1246,8 @@ towline/
 │   ├── hooks/hooks.json            ← Hook configuration
 │   ├── references/                 ← Shared reference docs
 │   │   ├── plan-format.md
-│   │   ├── commit-conventions.md
 │   │   ├── ui-formatting.md
-│   │   └── ... (17 references total)
+│   │   └── ... (16 references total)
 │   ├── templates/                  ← EJS-style templates
 │   │   ├── SUMMARY.md.tmpl
 │   │   ├── PLAN.md.tmpl
@@ -1484,7 +1483,7 @@ plugins/dev/references/{reference-name}.md
 
 Examples:
   plugins/dev/references/plan-format.md
-  plugins/dev/references/commit-conventions.md
+  plugins/dev/references/git-integration.md
   plugins/dev/references/ui-formatting.md
 ```
 
@@ -2417,7 +2416,7 @@ Max:     30% before warning user
 **What belongs in orchestrator context**:
 - Skill instructions (SKILL.md)
 - State files (STATE.md, config.json)
-- Reference docs (plan-format.md, commit-conventions.md, etc.)
+- Reference docs (plan-format.md, git-integration.md, etc.)
 - User conversation
 - Routing logic (which agent to spawn, what command to suggest next)
 

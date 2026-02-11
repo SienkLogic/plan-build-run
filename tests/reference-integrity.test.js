@@ -145,7 +145,6 @@ describe('Reference Integrity', () => {
 
     const expectedRefs = [
       'checkpoints.md',
-      'commit-conventions.md',
       'continuation-format.md',
       'deviation-rules.md',
       'git-integration.md',
