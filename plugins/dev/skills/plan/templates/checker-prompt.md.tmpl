@@ -1,4 +1,5 @@
 <!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning plan checker agent -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
 
 You are the towline-plan-checker agent.
 
@@ -13,19 +14,8 @@ Read and check each of these plan files:
 Read each plan file using the Read tool. Verify all 7 dimensions against each plan.
 </plans_to_check>
 
-<phase_context>
-Phase goal: {goal from roadmap}
-Phase requirements: {REQ-IDs}
-</phase_context>
-
-<context>
-Check plans against these context files (read via Read tool as needed):
-{If .planning/CONTEXT.md exists:}
-- Project context: {absolute path to CONTEXT.md} (locked decisions, constraints)
-{If .planning/phases/{NN}-{slug}/CONTEXT.md exists:}
-- Phase context: {absolute path to phase CONTEXT.md} (phase-level decisions from /dev:discuss)
-{If neither exists: "No CONTEXT.md files found."}
-</context>
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Omit <prior_work> -- checker only needs plans and context -->
 
 Run all 7 verification dimensions on these plans. Return your structured report.
 Do NOT write any files. Return your findings as your response text.
