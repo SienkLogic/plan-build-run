@@ -100,7 +100,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
-3. Validate:
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+4. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
@@ -194,8 +195,11 @@ After all assumptions are confirmed/corrected:
 **Skip this step if ANY of these are true:**
 - `--skip-research` flag is set
 - `--gaps` flag is set
-- `features.research_phase` is `false` in config
-- `depth` is `quick` in config
+- Depth profile has `features.research_phase: false`
+
+To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
+
+**Conditional research (standard/balanced mode):** When the profile has `features.research_phase: true`, also check whether `.planning/codebase/` or `.planning/research/` already contains relevant context for this phase. If substantial context exists (>3 files in codebase/ or a RESEARCH.md mentioning this phase's technologies), skip research and note: "Skipping research -- existing context found in {directory}." This implements the balanced mode's "conditional research" behavior.
 
 **If research is needed:**
 
@@ -286,7 +290,9 @@ Wait for the planner to complete.
 ### Step 6: Plan Validation (delegated, conditional)
 
 **Skip this step if:**
-- `features.plan_checking` is `false` in config
+- Depth profile has `features.plan_checking: false`
+
+To check: use the resolved depth profile from Step 1. The profile consolidates the depth setting and any user overrides into a single boolean.
 
 **If validation is enabled:**
 
