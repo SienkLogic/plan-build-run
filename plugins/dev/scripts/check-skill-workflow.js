@@ -96,7 +96,14 @@ function readActiveSkill(planningDir) {
 function checkSkillRules(skill, filePath, planningDir) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const normalizedPlanning = planningDir.replace(/\\/g, '/');
-  const isInPlanning = normalizedPath.startsWith(normalizedPlanning);
+  // Check with both raw paths and resolved symlinks (macOS /var → /private/var)
+  let isInPlanning = normalizedPath.startsWith(normalizedPlanning);
+  if (!isInPlanning) {
+    try {
+      const resolvedPlanning = fs.realpathSync(planningDir).replace(/\\/g, '/');
+      isInPlanning = normalizedPath.startsWith(resolvedPlanning);
+    } catch (_e) { /* not resolvable */ }
+  }
 
   // Check for orchestrator writing agent artifacts (any skill)
   const artifactViolation = checkArtifactRules(filePath, planningDir);
