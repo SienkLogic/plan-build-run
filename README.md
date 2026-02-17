@@ -13,6 +13,8 @@
   <br />
   Build ambitious multi-phase software without quality degradation.
   <br />
+  Works with any Claude Code plan. Shines on Max.
+  <br />
   <br />
   <a href="#why-towline">Why Towline?</a> &bull;
   <a href="#getting-started">Getting Started</a> &bull;
@@ -28,7 +30,7 @@
 
 Claude Code is remarkably capable — until your context window fills up. As tokens accumulate during a long session, reasoning quality degrades, hallucinations increase, and the model starts losing track of earlier decisions. This is **context rot**, and it's the primary failure mode when building anything beyond a single-session project.
 
-**Towline solves this.** It keeps your main orchestrator under ~15% context usage by delegating heavy work to fresh subagent contexts, each getting a clean 200k token window. All state lives on disk. Sessions are killable at any second without data loss.
+**Towline solves this.** It keeps your main orchestrator under ~15% context usage by delegating heavy work to fresh subagent contexts, each getting a clean 200k token window. All state lives on disk. Sessions are killable at any second without data loss. Whether you're on a free tier or Max 5x, wasted context means wasted budget — and context rot is the biggest source of waste.
 
 ## Why Towline?
 
@@ -40,13 +42,19 @@ Towline takes a different approach: **structured context isolation**. Instead of
 
 | Capability | IDE Assistants | Other Workflow Plugins | **Towline** |
 |:-----------|:--------------:|:----------------------:|:-----------:|
-| Solves context rot | Indexing / tracking | Conversation segmentation | Fresh 200k context per agent |
-| Multi-phase projects | No structure | Phase-based | Phase + wave + milestone |
-| Verification | Developer reviews diffs | Atomic commits | Dedicated verifier agent with 3-layer checks |
-| Quality gates | Manual | Commit enforcement | 15 lifecycle hooks + configurable gates |
-| State persistence | Lost on session end | File-based state | File-based state + crash-safe locking |
+| Context management | Indexing / tracking | Fresh subagent windows | Fresh 200k per agent + 15 lifecycle hooks enforcing budget |
+| Multi-phase projects | No structure | Phase-based | Phase + wave + milestone with crash-safe checkpoints |
+| Verification | Developer reviews diffs | Conversational UAT | Goal-backward: 3-layer checks against declared requirements |
+| Quality enforcement | Manual | CLI commands in agent context | Lifecycle hooks at zero token cost — automatic, not opt-in |
+| Token efficiency | Uncontrolled | CLI toolkit loaded into every agent spawn | Zero agent-side overhead; hooks + CLI run outside context |
+| Cost control | N/A | One-size-fits-all pipeline | Depth profiles + model profiles — 2 spawns or 6, your choice |
+| State persistence | Lost on session end | File-based state | File-based + atomic writes + lockfile-protected mutations |
 | Parallelism | Up to 8 agents (Cursor) | Sequential | Dependency-aware wave-based parallelism |
-| Configurability | Opinionated | Limited toggles | 12 config keys, 16+ feature toggles |
+| Debugging | Ad-hoc | Ad-hoc agents on failure | Persistent hypothesis-driven sessions with evidence tracking |
+| Testing | Varies | Minimal | 758 tests, 36 suites, Windows/macOS/Linux CI |
+| Permissions | N/A | Often requires skip-permissions | Works within Claude Code's permission system |
+| Dashboard | IDE-native | None | Web UI with live updates via SSE |
+| Configurability | Opinionated | Limited | 12 config keys, 16+ feature toggles, depth/model profiles |
 
 <details>
 <summary><strong>Key differentiators in detail</strong></summary>
@@ -61,11 +69,38 @@ Towline takes a different approach: **structured context isolation**. Instead of
 
 **Token-saving CLI** — A deterministic Node.js CLI handles mechanical operations (YAML parsing, state updates, must-have collection) so agents don't waste tokens on file parsing. Saves ~4,000-11,000 tokens per phase.
 
+**Zero agent-side overhead** — Some workflow tools load their entire CLI toolkit into every agent spawn, consuming thousands of tokens before the agent even starts working. Towline's approach is different: `towline-tools.js` runs only in hook scripts as Node.js processes, never inside agent context. Agents get clean 200k windows with nothing but the task at hand. This structural advantage compounds across every spawn in every workflow.
+
+**Lifecycle hooks, not CLI bloat** — Towline enforces workflow discipline through 15 Claude Code lifecycle hooks that fire automatically on events (commits, file writes, context compaction, agent spawns). Commit format validation, plan structure checks, dangerous command blocking, context budget warnings — all happen at zero orchestrator token cost. Other workflow tools embed these checks in CLI commands that agents must call explicitly, burning tokens for enforcement that should be free.
+
+**Configurable cost** — Most workflow plugins run the same full pipeline regardless of task complexity. Towline's depth profiles (`quick` / `standard` / `comprehensive`) let you match agent spawn count to the task. A simple config change means 2 agent spawns instead of 6 — same workflow guarantees, fraction of the cost. Pair with model profiles (`budget` / `balanced` / `quality`) for compound savings.
+
+**Systematic debugging** — `/dev:debug` provides hypothesis-driven investigation with persistent state across sessions. Each hypothesis is documented, tested, and recorded with evidence quality ratings. You can kill your terminal, come back days later, and resume exactly where you left off — with every tested hypothesis and finding preserved. Most workflow tools have no dedicated debugging facility — they spawn ad-hoc agents on failures and hope for the best.
+
+**Tested like infrastructure** — Towline ships with 758 tests in 36 suites, running on Windows, macOS, and Linux in CI. Every hook script, every CLI command, every state management function is tested. When a tool manages your project's git history and development state, you want it tested like infrastructure — not like a weekend project with a single test file.
+
+**Works with permissions, not against them** — Towline integrates cleanly with Claude Code's permission system. You don't need `--dangerously-skip-permissions` or broad permission grants to use it effectively. Hook scripts handle enforcement; agents work within normal tool access boundaries.
+
+**Real-time dashboard** — A built-in web UI (`/dev:dashboard`) shows project state, phase progress, todos, and plan details with live updates via Server-Sent Events. Browse your `.planning/` state visually instead of reading markdown files.
+
 </details>
 
-> **When to use Towline:** Multi-phase projects where quality matters — new features spanning 5+ files, large refactors, greenfield builds, anything that would take more than one Claude Code session to complete.
+> **When to use Towline:** Multi-phase projects where quality matters — new features spanning 5+ files, large refactors, greenfield builds, anything that would take more than one Claude Code session to complete. Use `depth: quick` or `depth: standard` to control agent spawn count per phase.
 >
-> **When to skip it:** Single-file fixes, quick questions, one-off scripts. Use `/dev:quick` if you still want atomic commits without the full workflow.
+> **When to skip it:** Single-file fixes, quick questions, one-off scripts. Use `/dev:quick` for atomic commits without full workflow overhead — single executor spawn, no research or verification agents.
+
+<details>
+<summary><strong>Towline on different Claude Code plans</strong></summary>
+
+**Max 5x+ (recommended):** Full pipeline — parallel research, multi-agent builds, comprehensive verification. Set `depth: comprehensive` for maximum thoroughness. Every token-saving feature (depth profiles, model profiles, CLI offloading) helps you do more within each usage window.
+
+**Max:** Towline works great here. Use `depth: standard` (the default) for a balanced pipeline. The structured workflow prevents the rework cycles that burn through quota — building it right the first time costs less than debugging a messy result.
+
+**Pro / Free tiers:** Use `depth: quick` and lean on `/dev:quick` for most tasks — single executor spawn, atomic commits, state tracking. Skip `/dev:begin` (heavy) and instead manually create your `.planning/` structure with `/dev:setup`. Use `/dev:plan --skip-research` to plan without a research agent. Towline's file-based state and commit discipline are valuable at any tier, even when you can't afford multi-agent workflows.
+
+**Key takeaway:** Towline's `depth` setting is the primary cost lever. Lower tiers should start with `quick` and step up selectively. Higher tiers can run `comprehensive` and let Towline's token management handle the efficiency.
+
+</details>
 
 ---
 
@@ -163,11 +198,26 @@ From there, the cycle is:
 
 | Principle | What it means |
 |-----------|---------------|
-| **Context is Currency** | Main orchestrator stays under 15-20% usage. Heavy lifting happens in fresh subagent contexts via `Task()`. |
+| **Context is Currency** | Main orchestrator stays under 15-20% usage. Heavy lifting happens in fresh subagent contexts via `Task()`. The `depth` setting controls how many agents each workflow spawns — from minimal (`quick`) to full pipeline (`comprehensive`). |
 | **State > Memory** | If it isn't in `.planning/STATE.md`, it didn't happen. All project state lives on disk. |
 | **Fan-Out / Fan-In** | Spawn parallel agents for throughput, aggregate results back. Three researchers beats one running three times. |
 | **Trust but Verify** | A dedicated read-only verifier checks the actual codebase against requirements — not Claude's claims about it. |
 | **Build Houses, Don't Swat Flies** | The structured workflow pays off for complex multi-phase work. For simple tasks, `/dev:quick` skips the ceremony. |
+
+## Platform Alignment
+
+Towline is built on Claude Code's plugin API — not around it. As Claude Code evolves, Towline adopts native features rather than competing with them.
+
+| Towline feature | If Claude Code adds native equivalent | Towline response |
+|----------------|--------------------------------------|-----------------|
+| File-based todos | Native task persistence | Migrate to thin wrapper |
+| Context budget tracking | Improved context compression | Keep as safety net, defer to native |
+| Auto-continue | Native workflow chaining | Adopt native, remove custom hook |
+| Goal-backward verification | — | Durable Towline value (no native equivalent) |
+| Wave-based parallelism | — | Durable Towline value (no native equivalent) |
+| Depth profiles | — | Durable Towline value (no native equivalent) |
+
+**Design principle:** Interface, don't replace. Features that Claude Code is likely to nativize are implemented as thin wrappers ready to migrate. Features that represent Towline's unique workflow layer — goal-backward verification, structured depth control, wave parallelism — are where long-term investment goes.
 
 ---
 
@@ -177,9 +227,9 @@ From there, the cycle is:
 
 | Command | Description | Agents |
 |---------|-------------|--------|
-| `/dev:begin` | Start a new project — questioning, research, requirements, roadmap | 4-6 |
-| `/dev:plan <N>` | Plan a phase — research, plan creation, verification loop | 2-3 |
-| `/dev:build <N>` | Build a phase — parallel execution in waves, atomic commits | 2-4 |
+| `/dev:begin` | Start a new project — questioning, research, requirements, roadmap | 4-6 (quick: 2-3) |
+| `/dev:plan <N>` | Plan a phase — research, plan creation, verification loop | 2-3 (quick: 1-2) |
+| `/dev:build <N>` | Build a phase — parallel execution in waves, atomic commits | 2-4 (quick: 1-2) |
 | `/dev:review <N>` | Verify a phase — automated 3-layer checks + conversational UAT | 1 |
 
 ### Planning & Discovery
@@ -201,7 +251,7 @@ From there, the cycle is:
 |---------|-------------|
 | `/dev:build <N> --gaps-only` | Execute only gap-closure plans. |
 | `/dev:build <N> --team` | Use Agent Teams for inter-agent coordination. |
-| `/dev:quick` | Quick ad-hoc task with atomic commit. Low cost. |
+| `/dev:quick` | Quick ad-hoc task with atomic commit — single executor spawn, lowest cost workflow. |
 | `/dev:continue` | Execute the next logical step automatically. No prompts. |
 
 ### Verification & Debugging
@@ -257,7 +307,10 @@ Main Session (~15% context)
 
 ### Token-Saving CLI
 
-Towline includes a built-in CLI (`towline-tools.js`) that agents call to avoid wasting tokens on mechanical file parsing:
+Towline includes a Node.js CLI (`towline-tools.js`) that agents call to avoid wasting tokens on mechanical file parsing. Saves ~4,000-11,000 tokens per phase.
+
+<details>
+<summary>CLI commands</summary>
 
 ```bash
 # Read-only commands
@@ -273,24 +326,28 @@ towline-tools.js roadmap update-status <N> <status> # Update ROADMAP.md status c
 towline-tools.js roadmap update-plans <N> <done> <total> # Update ROADMAP.md plans column
 ```
 
+</details>
+
 ---
 
 ## Agents
 
 Towline ships with 10 specialized agents, each with a focused role and appropriate tool access:
 
-| Agent | Role | Default Model |
-|-------|------|---------------|
-| **Researcher** | Domain research, implementation approaches, synthesis | Sonnet |
-| **Planner** | Executable plans, roadmaps, wave assignment, must-have declarations | Inherit |
-| **Plan Checker** | Pre-execution plan quality validation across 10 dimensions | Sonnet |
-| **Executor** | Code implementation with atomic commits, TDD, self-verification | Inherit |
-| **Verifier** | Goal-backward 3-layer verification (existence, substance, wiring) | Sonnet |
-| **Integration Checker** | Cross-phase E2E flow and export/import verification | Sonnet |
-| **Debugger** | Systematic hypothesis-based debugging with checkpoints | Inherit |
-| **Codebase Mapper** | Brownfield codebase analysis (tech, arch, quality, concerns) | Sonnet |
-| **Synthesizer** | Multi-source research synthesis and contradiction resolution | Haiku |
-| **General** | Lightweight Towline-aware agent for ad-hoc tasks | Inherit |
+| Agent | Role | Default Model | Why |
+|-------|------|---------------|-----|
+| **Researcher** | Domain research, implementation approaches, synthesis | Sonnet | Source evaluation needs strong reasoning |
+| **Planner** | Executable plans, roadmaps, wave assignment, must-have declarations | Inherit | Uses your session model |
+| **Plan Checker** | Pre-execution plan quality validation across 10 dimensions | Sonnet | Analytical depth |
+| **Executor** | Code implementation with atomic commits, TDD, self-verification | Inherit | Your most impactful spawn — inherits session model |
+| **Verifier** | Goal-backward 3-layer verification (existence, substance, wiring) | Sonnet | Solid reasoning without Opus cost |
+| **Integration Checker** | Cross-phase E2E flow and export/import verification | Sonnet | Cross-phase pattern matching |
+| **Debugger** | Systematic hypothesis-based debugging with checkpoints | Inherit | Complex work — inherits session model |
+| **Codebase Mapper** | Brownfield codebase analysis (tech, arch, quality, concerns) | Sonnet | Thorough analysis |
+| **Synthesizer** | Multi-source research synthesis and contradiction resolution | **Haiku** | Mechanical aggregation — no deep reasoning needed |
+| **General** | Lightweight Towline-aware agent for ad-hoc tasks | Inherit | Utility agent |
+
+Use `/dev:config` to switch model profiles (`budget`, `balanced`, `quality`) across all agents at once.
 
 ---
 
@@ -350,9 +407,11 @@ npm run dashboard -- --dir . --port 8080
 
 Settings live in `.planning/config.json`. Run `/dev:config` to change them interactively.
 
+> **Budget control:** The `depth` setting is the primary cost lever — `quick` skips optional agents, `standard` runs the core pipeline, `comprehensive` adds parallel research and always verifies. Pair with a model profile (`budget` / `balanced` / `quality`) to compound savings.
+
 | Setting | Options | Default |
 |---------|---------|---------|
-| `depth` | `quick` · `standard` · `comprehensive` | `standard` |
+| `depth` | `quick` (fewest spawns) · `standard` · `comprehensive` (most thorough) | `standard` |
 | `context_strategy` | `aggressive` · `balanced` · `minimal` | `aggressive` |
 | `mode` | `interactive` · `autonomous` | `interactive` |
 | `parallelization.enabled` | `true` · `false` | `true` |
@@ -381,7 +440,7 @@ There are 12 top-level configuration keys covering:
 
 ## Hooks
 
-Towline uses Claude Code lifecycle hooks to enforce workflow discipline:
+Towline uses Claude Code lifecycle hooks to enforce workflow discipline. These hooks run as lightweight Node.js processes — zero orchestrator token cost, automatic enforcement.
 
 | Hook Event | Script | Purpose |
 |------------|--------|---------|
