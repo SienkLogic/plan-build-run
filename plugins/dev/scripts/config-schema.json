@@ -195,6 +195,22 @@
       },
       "additionalProperties": false
     },
+    "spinner_tips": {
+      "type": "object",
+      "description": "Custom spinner tips shown during agent execution (Claude Code 2.1.45+)",
+      "properties": {
+        "tips": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of custom tip strings to display in the spinner"
+        },
+        "exclude_defaults": {
+          "type": "boolean",
+          "description": "When true, only show custom tips (no default Claude Code tips)"
+        }
+      },
+      "additionalProperties": false
+    },
     "status_line": {
       "type": "object",
       "properties": {

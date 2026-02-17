@@ -1,6 +1,7 @@
 ---
 name: towline-general
 description: "Lightweight Towline-aware agent for ad-hoc tasks that don't fit specialized roles."
+model: inherit
 memory: none
 tools:
   - Read

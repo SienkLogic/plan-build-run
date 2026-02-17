@@ -43,6 +43,8 @@ A full `/dev:plan` cycle spawns a minimum of 3 agents: researcher + planner + pl
 
 ## 2. Current State Assessment
 
+> **Status (2026-02-17)**: Most inefficiencies listed below have been resolved. Agent compression (33-73%), shared fragments (14 extracted), output budgets (all 10 agents), and depth profiles are now implemented. See the V2 Token Efficiency Sweep notes in MEMORY.md for details.
+
 ### What Towline already does well
 
 - **Lean orchestrator**: Skills are thin routing layers; the orchestrator stays at 2-10% context usage. This is excellent — most AI dev tools load far more into the main session.
@@ -521,6 +523,8 @@ A vision combining Towline's proven strengths with cost-aware improvements.
 ---
 
 ## Appendix A: Implementation Priority Matrix
+
+> **Status (2026-02-17)**: Items 1 (depth profiles), 2 (spawn reduction), 4 (skill compression), 6 (Claude Code adoption — now at v2.1.45), 11 (agent output budgets), and 12 (CONTEXT.md extraction) are DONE. Items 3 (PLAN.md summary), 5 (streaming context), 8 (adaptive model), and 13 (config presets) are PARTIAL or deferred. Item 10 (multi-LLM) is deferred indefinitely.
 
 | # | Improvement | Impact | Effort | Tier | Token savings |
 |---|------------|--------|--------|------|--------------|

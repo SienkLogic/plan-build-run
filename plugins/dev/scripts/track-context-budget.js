@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 
-const READ_THRESHOLD = 15;
+const READ_THRESHOLD = 20;
 const CHAR_THRESHOLD = 30000;
 
 function main() {
@@ -37,9 +37,9 @@ function main() {
         process.exit(0);
       }
 
-      // Estimate chars read (use limit if provided, otherwise assume ~2000 lines × 80 chars)
+      // Estimate chars read (use limit if provided, otherwise assume ~2000 lines × 40 chars avg)
       const limit = data.tool_input?.limit;
-      const estimatedChars = limit ? limit * 80 : 160000;
+      const estimatedChars = limit ? limit * 40 : 80000;
       // Use actual output length if available
       const actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
 

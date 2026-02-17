@@ -11,21 +11,26 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18, 20, 22]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm install
       - run: npm test -- --coverage
       - run: npm run validate
+      - name: Dashboard tests
+        run: |
+          npm --prefix dashboard install
+          npm --prefix dashboard test
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-failure-${{ matrix.os }}
+          name: test-failure-${{ matrix.os }}-node${{ matrix.node-version }}
           path: coverage/
           retention-days: 7
 

@@ -222,6 +222,9 @@ function main() {
   if (tryRemove(path.join(planningDir, '.active-skill'))) {
     cleaned.push('.active-skill');
   }
+  if (tryRemove(path.join(planningDir, '.active-plan'))) {
+    cleaned.push('.active-plan');
+  }
 
   // Clean stale checkpoint manifests (>24h old)
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);

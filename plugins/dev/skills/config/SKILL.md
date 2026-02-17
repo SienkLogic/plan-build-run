@@ -74,6 +74,13 @@ Git:
 Gates:
   ✓ Confirm project   ✓ Confirm roadmap   ✓ Confirm plan
   ✗ Confirm execute    ✓ Confirm transition ✓ Issues review
+
+Status Line:
+  Sections: [phase, plan, status, context]
+  Brand: TOWLINE
+  Context bar: 20 chars, green<50%, yellow<80%
+
+Spinner Tips: (none configured — using defaults)
 ```
 
 Then present the configuration menu using the **settings-category-select** pattern (see `skills/shared/gate-prompts.md`):
@@ -84,11 +91,11 @@ Use AskUserQuestion:
   options:
     - label: "Depth"          description: "quick/standard/comprehensive"
     - label: "Model profile"  description: "quality/balanced/budget/adaptive"
-    - label: "Features"       description: "Toggle workflow features and gates"
+    - label: "Features"       description: "Toggle workflow features, gates, status line"
     - label: "Git settings"   description: "branching strategy, commit mode"
   multiSelect: false
 
-Note: The original 7 categories are condensed to 4. "Models" (per-agent) is accessible through "Model profile" with a follow-up option. "Gates" and "Parallelization" are grouped under "Features".
+Note: The original 7 categories are condensed to 4. "Models" (per-agent) is accessible through "Model profile" with a follow-up option. "Gates", "Parallelization", and "Status Line" are grouped under "Features".
 
 **Follow-up based on selection:**
 
