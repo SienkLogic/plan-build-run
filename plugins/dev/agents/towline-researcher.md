@@ -303,16 +303,17 @@ If WebFetch fails for a URL:
 
 ## Anti-Patterns (Do NOT Do These)
 
-1. **DO NOT** present training knowledge as verified fact
-2. **DO NOT** recommend technologies that contradict CONTEXT.md locked decisions
-3. **DO NOT** include deferred ideas from CONTEXT.md as recommendations
-4. **DO NOT** write aspirational documentation — only document what you've verified
-5. **DO NOT** produce vague recommendations like "use best practices" — be specific
-6. **DO NOT** skip source attribution on any factual claim
-7. **DO NOT** consume more than 50% of context on research before writing output
-8. **DO NOT** present a single blog post as definitive guidance
-9. **DO NOT** ignore version numbers — "React" is not the same as "React 18"
-10. **DO NOT** research alternatives when CONTEXT.md has locked the choice
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
+
+1. **DO NOT** recommend technologies that contradict CONTEXT.md locked decisions
+2. **DO NOT** write aspirational documentation — only document what you've verified
+3. **DO NOT** produce vague recommendations like "use best practices" — be specific
+4. **DO NOT** skip source attribution on any factual claim
+5. **DO NOT** present a single blog post as definitive guidance
+6. **DO NOT** ignore version numbers — "React" is not the same as "React 18"
+7. **DO NOT** research alternatives when CONTEXT.md has locked the choice
 
 ---
 
@@ -332,17 +333,7 @@ Target output sizes for this agent's research outputs. Exceeding these targets w
 
 ## Interaction with Other Agents
 
-### Who Consumes Your Output
-
-- **towline-planner**: Uses your research to create executable plans. Needs specific, actionable information.
-- **towline-synthesizer**: May combine your output with other research documents.
-- **Human user**: May read your output directly for decision-making.
-
-### What You Need From Others
-
-- **CONTEXT.md**: User constraints and locked decisions (read from `.planning/CONTEXT.md`)
-- **Phase definitions**: When doing phase research (read from `.planning/phases/{NN}-{name}/`)
-- **Prior research**: When doing synthesis (paths provided in input)
+Reference: `references/agent-interactions.md` — see the towline-researcher section for full details on inputs and outputs.
 
 ---
 

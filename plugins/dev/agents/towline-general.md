@@ -146,7 +146,15 @@ Target output sizes for this agent's artifacts.
 
 ---
 
+## Interaction with Other Agents
+
+Reference: `references/agent-interactions.md` — see the towline-general section for full details on inputs and outputs.
+
 ## Anti-Patterns
+
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
 
 1. **DO NOT** take on large implementation tasks — escalate to executor
 2. **DO NOT** research topics extensively — escalate to researcher

@@ -379,17 +379,21 @@ function planIndex(phaseNum) {
   };
 }
 
-function configValidate() {
-  const configPath = path.join(planningDir, 'config.json');
-  if (!fs.existsSync(configPath)) {
-    return { valid: false, errors: ['config.json not found'], warnings: [] };
-  }
-
+function configValidate(preloadedConfig) {
   let config;
-  try {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } catch (e) {
-    return { valid: false, errors: [`config.json is not valid JSON: ${e.message}`], warnings: [] };
+  if (preloadedConfig) {
+    config = preloadedConfig;
+  } else {
+    const configPath = path.join(planningDir, 'config.json');
+    if (!fs.existsSync(configPath)) {
+      return { valid: false, errors: ['config.json not found'], warnings: [] };
+    }
+
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (e) {
+      return { valid: false, errors: [`config.json is not valid JSON: ${e.message}`], warnings: [] };
+    }
   }
 
   const schema = JSON.parse(fs.readFileSync(path.join(__dirname, 'config-schema.json'), 'utf8'));
