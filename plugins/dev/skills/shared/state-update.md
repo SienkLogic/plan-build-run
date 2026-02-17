@@ -96,6 +96,37 @@ If still over 150 lines after compaction, the Accumulated Context section has gr
 
 ---
 
+## HISTORY.md Archival
+
+When a milestone completes or a phase is verified, archive historical context to `.planning/HISTORY.md` to keep STATE.md lean:
+
+### What to Archive
+
+| Trigger | What moves to HISTORY.md |
+|---------|-------------------------|
+| Phase verified | One-liner summary: "Phase {N} ({name}): verified {date}" |
+| Milestone complete | Full milestone record: name, phases covered, key decisions |
+| Accumulated Context > 20 lines | Decisions from completed phases (keep only current-phase decisions in STATE.md) |
+
+### How to Archive
+
+Use `towline-tools.js history append`:
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js history append phase "Phase 3 (Auth)" "Verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js history append milestone "v1.0 User Auth" "Phases 1-4. All verified. Core auth flow complete."
+```
+
+### After Archiving
+
+Remove the archived content from STATE.md. The Accumulated Context section should contain ONLY:
+- Decisions relevant to the **current** phase
+- Active (unresolved) blockers
+- Pending todos for the current milestone
+
+Historical decisions live in HISTORY.md and per-phase SUMMARY.md files.
+
+---
+
 ## Common Update Scenarios
 
 ### After build completes
