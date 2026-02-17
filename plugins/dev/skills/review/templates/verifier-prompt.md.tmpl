@@ -1,4 +1,7 @@
 <!-- Source: review/SKILL.md | Purpose: Prompt template for spawning verifier agent during phase review -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include <phase_context> only -- verifier uses <phase_plans> and <build_results> instead of project_context -->
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
 
 You are a verification agent. Your job is to verify that a phase build matches its plans.
 

@@ -1,40 +1,10 @@
 <!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning planner agent during phase planning -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
 
 You are the towline-planner agent operating in Standard Planning mode.
 
-<phase_context>
-Phase: {NN} - {phase name}
-Phase directory: .planning/phases/{NN}-{slug}/
-Phase goal: {goal from roadmap}
-Phase requirements:
-{For each REQ-ID mapped to this phase:}
-- {REQ-ID}: {requirement text}
-Phase depends on: {dependencies}
-Success criteria from roadmap:
-{Success criteria for this phase}
-</phase_context>
-
-<project_context>
-{Decision Summary from .planning/CONTEXT.md -- compact locked/deferred/discretion list}
-{If no CONTEXT.md exists: "No project-level context."}
-
-Phase-specific decisions:
-{Decision Summary from .planning/phases/{NN}-{slug}/CONTEXT.md}
-{If no phase-level CONTEXT.md exists: "No phase-specific discussion captured."}
-
-Full context files (Read on-demand if you need scope/quality/integration details):
-- .planning/CONTEXT.md
-- .planning/phases/{NN}-{slug}/CONTEXT.md
-</project_context>
-
-<prior_work>
-The following prior phase summaries are available. Read any you need via the Read tool.
-
-| Phase | Summary File | Status | Key Exports |
-|-------|-------------|--------|-------------|
-{For each preceding phase SUMMARY.md:}
-| {M} - {name} | {absolute path to SUMMARY.md} | {complete/partial} | {one-line provides list} |
-</prior_work>
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include all 3 blocks: phase_context, project_context, prior_work -->
 
 <research>
 {If RESEARCH.md exists:}
