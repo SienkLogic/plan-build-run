@@ -94,7 +94,7 @@ Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as th
 
 **Placeholders to fill before sending:**
 - `{For each PLAN.md file in the phase directory:}` — inline each plan's must_haves frontmatter block
-- `{For each SUMMARY.md file in the phase directory:}` — inline YAML frontmatter only (status, key_files, commits). The verifier reads full bodies from disk in its own context.
+- `{For each SUMMARY.md file in the phase directory:}` — provide manifest table with file paths and status from frontmatter. The verifier reads full content from disk via Read tool.
 - `{NN}-{slug}` — the phase directory name
 - `{N}` — the phase number
 - `{date}`, `{count}`, `{phase name}` — fill from context
@@ -279,9 +279,9 @@ Task({
 Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
 
 **Placeholders to fill before sending:**
-- `[Inline the VERIFICATION.md content — specifically the Gaps Found section]` — paste from VERIFICATION.md
-- `[Inline all SUMMARY.md files for the phase]` — paste all phase SUMMARY.md files
-- `[Inline all PLAN.md files for the phase]` — paste all phase PLAN.md files
+- `[Inline the VERIFICATION.md content]` — provide file path; debugger reads via Read tool
+- `[Inline all SUMMARY.md files for the phase]` — provide manifest table of file paths
+- `[Inline all PLAN.md files for the phase]` — provide manifest table of file paths
 
 **Step 6b: Create Gap-Closure Plans**
 
@@ -299,10 +299,10 @@ Task({
 Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
 
 **Placeholders to fill before sending:**
-- `[Inline VERIFICATION.md]` — paste full VERIFICATION.md content
-- `[Inline the debugger's root cause analysis]` — paste the debugger agent's output
-- `[Inline all existing PLAN.md files for this phase]` — paste all phase PLAN.md files
-- `[Inline CONTEXT.md if it exists]` — paste CONTEXT.md if present
+- `[Inline VERIFICATION.md]` — provide file path; planner reads via Read tool
+- `[Inline the debugger's root cause analysis]` — keep inline (already in conversation context)
+- `[Inline all existing PLAN.md files for this phase]` — provide manifest table of file paths
+- `[Inline CONTEXT.md if it exists]` — provide file path; planner reads via Read tool
 - `{NN}-{slug}` — the phase directory name
 
 **Step 6c: Validate gap-closure plans (conditional)**

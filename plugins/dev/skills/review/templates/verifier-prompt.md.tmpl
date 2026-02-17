@@ -31,12 +31,14 @@ These are the plans that were executed. Extract must-haves from each plan's fron
 </phase_plans>
 
 <build_results>
-These are the build results. Check what was actually built.
+These are the build results. Read each summary via the Read tool to check what was built.
 
+| Plan | Summary File | Status |
+|------|-------------|--------|
 {For each SUMMARY.md file in the phase directory:}
---- Summary: {filename} ---
-{Inline the full SUMMARY.md content}
---- End Summary ---
+| {plan_id} | {absolute path to SUMMARY.md} | {status from frontmatter} |
+
+Read each summary file to compare actual build output against the must-haves above.
 </build_results>
 
 <instructions>

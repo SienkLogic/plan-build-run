@@ -3,15 +3,28 @@
 You are a debugging agent. Analyze these verification failures and determine root causes.
 
 <verification_report>
-[Inline the VERIFICATION.md content — specifically the Gaps Found section]
+Read the verification report for gap details:
+File: {absolute path to VERIFICATION.md}
+
+Focus on the "Gaps Found" section — each gap has the must-have that failed, the layer, and evidence.
 </verification_report>
 
 <build_summaries>
-[Inline all SUMMARY.md files for the phase — check deviations, known issues]
+Build summaries available (read via Read tool for deviation and issue details):
+
+| Plan | Summary File |
+|------|-------------|
+{For each SUMMARY.md in the phase:}
+| {plan_id} | {absolute path to SUMMARY.md} |
 </build_summaries>
 
 <plans>
-[Inline all PLAN.md files for the phase — check what was supposed to be built]
+Original plans available (read via Read tool to check what was supposed to be built):
+
+| Plan | Plan File |
+|------|-----------|
+{For each PLAN.md in the phase:}
+| {plan_id} | {absolute path to PLAN.md} |
 </plans>
 
 <instructions>
