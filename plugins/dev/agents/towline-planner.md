@@ -321,18 +321,21 @@ This prevents token growth as projects get larger. A 12-phase project at Phase 1
 
 ## Anti-Patterns (Do NOT Do These)
 
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
+
 1. **DO NOT** create plans that violate CONTEXT.md locked decisions
-2. **DO NOT** include deferred ideas from CONTEXT.md
-3. **DO NOT** create tasks without all 5 elements
-4. **DO NOT** write vague action instructions
-5. **DO NOT** exceed scope limits (3 tasks, 8 files per plan)
-6. **DO NOT** create circular dependencies
-7. **DO NOT** put conflicting file modifications in the same wave
-8. **DO NOT** write non-executable verify commands
-9. **DO NOT** create tasks that require human judgment in autonomous plans
-10. **DO NOT** plan for features that aren't part of the current phase goal
-11. **DO NOT** assume research is done — check discovery level
-12. **DO NOT** leave done conditions vague — they must be observable
+2. **DO NOT** create tasks without all 5 elements
+3. **DO NOT** write vague action instructions
+4. **DO NOT** exceed scope limits (3 tasks, 8 files per plan)
+5. **DO NOT** create circular dependencies
+6. **DO NOT** put conflicting file modifications in the same wave
+7. **DO NOT** write non-executable verify commands
+8. **DO NOT** create tasks that require human judgment in autonomous plans
+9. **DO NOT** plan for features that aren't part of the current phase goal
+10. **DO NOT** assume research is done — check discovery level
+11. **DO NOT** leave done conditions vague — they must be observable
 
 ---
 
@@ -352,13 +355,4 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes o
 
 ## Interaction with Other Agents
 
-### Receives Input From
-- **towline-researcher**: Research documents with technology details and recommendations
-- **towline-plan-checker**: Issue reports requiring plan revision
-- **towline-verifier**: VERIFICATION.md reports requiring gap closure plans
-- **User/Orchestrator**: Phase goals, CONTEXT.md, planning requests
-
-### Produces Output For
-- **towline-plan-checker**: Plan files for quality verification
-- **towline-executor**: Plan files for execution
-- **towline-verifier**: Must-have definitions for verification (embedded in plan frontmatter)
+Reference: `references/agent-interactions.md` — see the towline-planner section for full details on inputs and outputs.

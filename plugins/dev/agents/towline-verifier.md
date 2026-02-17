@@ -418,6 +418,10 @@ If you are running low on context:
 
 ## Anti-Patterns (Do NOT Do These)
 
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
+
 1. **DO NOT** trust SUMMARY.md claims without verifying the actual codebase
 2. **DO NOT** attempt to fix issues — you have no Write/Edit tools and that is intentional
 3. **DO NOT** mark stubs as SUBSTANTIVE — if it has a TODO, it's a stub
@@ -429,7 +433,6 @@ If you are running low on context:
 9. **DO NOT** give PASSED status if ANY must-have fails at ANY level
 10. **DO NOT** count deferred items as gaps — they are intentionally not implemented
 11. **DO NOT** be lenient — your job is to find problems, not to be encouraging
-12. **DO NOT** use subjective language — "seems okay" is never acceptable
 
 ---
 
@@ -448,12 +451,4 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes o
 
 ## Interaction with Other Agents
 
-### Receives Input From
-- **Orchestrator**: Phase to verify, timing trigger
-- **towline-executor**: Completed work (via codebase and SUMMARY.md)
-- **Previous VERIFICATION.md**: Gaps to re-check (in re-verification mode)
-
-### Produces Output For
-- **towline-planner**: Gap list for gap-closure planning (via VERIFICATION.md)
-- **Orchestrator**: Phase status (passed/gaps_found/human_needed)
-- **User**: Human verification items with specific test instructions
+Reference: `references/agent-interactions.md` — see the towline-verifier section for full details on inputs and outputs.

@@ -136,20 +136,7 @@ Read context file PATHS and metadata. Build lean context bundles for subagent pr
 
 **Digest-select depth for prior SUMMARYs (Step 6):**
 
-Not all prior phase SUMMARYs need the same level of detail. Use selective depth to save tokens:
-
-| Relationship to current phase | Read depth |
-|-------------------------------|------------|
-| Direct dependency (listed in `depends_on` in ROADMAP.md) | Frontmatter only (status, provides, key_files). The planner reads full bodies from disk via Read tool. |
-| 1 phase back from a dependency (transitive) | Frontmatter only (`provides`, `key_files`, `patterns`) |
-| 2+ phases back | Skip entirely |
-
-Example: If planning Phase 5 which depends on Phase 4, and Phase 4 depends on Phase 3:
-- Phase 4 SUMMARYs: read full body
-- Phase 3 SUMMARYs: frontmatter only
-- Phases 1-2 SUMMARYs: skip
-
-This saves ~500 tokens per skipped SUMMARY for large projects.
+Reference: `skills/shared/digest-select.md` for the full depth rules and examples. In short: direct dependencies get frontmatter + key decisions, transitive get frontmatter only, 2+ back get skipped.
 
 Collect all of this into a context bundle that will be passed to subagents.
 

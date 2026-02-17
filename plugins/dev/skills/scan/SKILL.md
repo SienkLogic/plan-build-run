@@ -59,6 +59,8 @@ Check if `.planning/codebase/` directory exists:
 
 ### Step 2: Initial Reconnaissance
 
+Reference: `skills/shared/context-loader-task.md` (Scan Reconnaissance variation) for the underlying pattern.
+
 Before spawning agents, do a quick scan to identify what we're working with. This gives agents better context.
 
 1. **Detect project type** — check for language-specific config files (package.json, requirements.txt, go.mod, Cargo.toml, etc.)
@@ -236,6 +238,10 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 ---
 
 ## Anti-Patterns
+
+Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
+
+Additionally for this skill:
 
 1. **DO NOT** modify any source code — scan is read-only analysis
 2. **DO NOT** run the project (no `npm start`, `python app.py`, etc.) — analyze statically

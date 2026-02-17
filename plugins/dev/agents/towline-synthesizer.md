@@ -196,6 +196,10 @@ If multiple documents say the same thing:
 
 ## Anti-Patterns (Do NOT Do These)
 
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
+
 1. **DO NOT** re-research topics — you synthesize what's already been researched
 2. **DO NOT** add your own recommendations not backed by input documents
 3. **DO NOT** produce a summary longer than 200 lines
@@ -203,9 +207,8 @@ If multiple documents say the same thing:
 5. **DO NOT** upgrade confidence levels beyond what the sources support
 6. **DO NOT** use prose where a table would be clearer
 7. **DO NOT** repeat the full content of input documents — summarize
-8. **DO NOT** spend more than necessary — you use sonnet for quality synthesis
-9. **DO NOT** leave the Executive Summary vague — it should be actionable
-10. **DO NOT** omit any input document from your synthesis
+8. **DO NOT** leave the Executive Summary vague — it should be actionable
+9. **DO NOT** omit any input document from your synthesis
 
 ---
 
@@ -224,10 +227,4 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes p
 
 ## Interaction with Other Agents
 
-### Receives Input From
-- **towline-researcher**: Research documents to synthesize
-- **Orchestrator**: Paths to research documents, synthesis request
-
-### Produces Output For
-- **towline-planner**: SUMMARY.md as consolidated research input for planning
-- **User**: High-level project/phase research overview
+Reference: `references/agent-interactions.md` — see the towline-synthesizer section for full details on inputs and outputs.

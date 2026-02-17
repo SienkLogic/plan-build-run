@@ -47,24 +47,11 @@ Parse `$ARGUMENTS` for an optional topic. If provided, use it to seed the openin
 
 ## Pre-Conversation Context Loader
 
+Reference: `skills/shared/context-loader-task.md` for the full briefing Task() pattern.
+
 **Only runs if `.planning/` directory exists.** Fresh explores with no project skip this entirely.
 
-When a project exists, spawn a lightweight Task() to build a briefing:
-
-```
-Task({
-  prompt: "Read the following files and return a ~500 token briefing summarizing the project state, key decisions, and any context relevant to exploring new ideas:
-    - .planning/ROADMAP.md
-    - .planning/REQUIREMENTS.md
-    - .planning/CONTEXT.md
-    - .planning/STATE.md
-    - Any .planning/phases/*/CONTEXT.md files
-    - .planning/research/SUMMARY.md (if exists)
-    - .planning/NOTES.md (if exists)
-
-  Return ONLY the briefing text. No preamble, no suggestions."
-})
-```
+When a project exists, spawn a briefing Task() per the context-loader-task pattern with `skill_purpose` = "exploring new ideas". If a topic was provided, use the topic-scoped variation with that topic.
 
 Use the briefing to inform your conversation — reference existing decisions, avoid re-litigating settled questions, and connect new ideas to the existing project structure.
 
@@ -300,6 +287,10 @@ Stage only the files created during this session. Do not stage unrelated changes
 ---
 
 ## Anti-Patterns
+
+Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
+
+Additionally for this skill:
 
 1. **DO NOT** act like an interviewer — be a thinking partner
 2. **DO NOT** cycle through a checklist of questions
