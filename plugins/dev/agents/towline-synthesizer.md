@@ -209,6 +209,19 @@ If multiple documents say the same thing:
 
 ---
 
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes planner context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Synthesis SUMMARY.md | ≤ 1,000 tokens | 1,500 tokens |
+| Console output | Minimal | Source count + recommendation only |
+
+**Guidance**: Matrix + recommendation. No restating inputs — the planner has already read the research documents. Lead with the decision matrix table, follow with a 2-3 sentence ranked recommendation. Skip "Background" and "Methodology" sections entirely. If sources agree, say so in one line; only elaborate on contradictions.
+
+---
+
 ## Interaction with Other Agents
 
 ### Receives Input From

@@ -628,6 +628,19 @@ If a verify command runs longer than 60 seconds:
 
 ---
 
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| SUMMARY.md | ≤ 800 tokens | 1,200 tokens |
+| Console output | Minimal | Progress lines only |
+
+**Guidance**: Focus on what was built and key decisions. Omit per-task narration. The SUMMARY.md frontmatter is structured data — keep the body to 3-5 bullet points under "What Was Built" and a compact Task Results table. Skip "Key Implementation Details" unless a deviation occurred.
+
+---
+
 ## Interaction with Other Agents
 
 ### Receives Input From

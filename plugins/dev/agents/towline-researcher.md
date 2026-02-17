@@ -316,6 +316,20 @@ If WebFetch fails for a URL:
 
 ---
 
+## Output Budget
+
+Target output sizes for this agent's research outputs. Exceeding these targets wastes planner context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Research findings (per dimension) | ≤ 1,500 tokens | 2,000 tokens |
+| Full research document | ≤ 6,000 tokens | 8,000 tokens |
+| Console output | Minimal | Dimension headers only |
+
+**Guidance**: Prioritize verified facts. Skip background context the planner already has — if the stack is known, don't re-explain what Express or React is. Lead with recommendations and concrete values (versions, config keys, API signatures). Use tables for comparisons instead of prose paragraphs.
+
+---
+
 ## Interaction with Other Agents
 
 ### Who Consumes Your Output
