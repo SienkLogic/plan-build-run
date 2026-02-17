@@ -1,11 +1,14 @@
 <p align="center">
+  <img src="./assets/Towline_logo_banner.png" alt="Towline Logo" width="200" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/SienkLogic/towline/actions"><img src="https://img.shields.io/github/actions/workflow/status/SienkLogic/towline/ci.yml?style=for-the-badge&label=CI&logo=github" alt="CI Status" /></a>
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
-  <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" />
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/towline?style=for-the-badge" alt="License" /></a>
   <img src="https://img.shields.io/badge/Tests-758_passing-brightgreen?style=for-the-badge" alt="758 Tests" />
-</p>
-<p align="center">
-  <img src="./assets/Towline_logo_banner.png" alt="Towline Logo" width="200" />
+  <img src="https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge" alt="Version 2.0.0" />
 </p>
 
 <p align="center">
@@ -37,6 +40,8 @@ Claude Code is remarkably capable...until your context window fills up. As token
 Most AI coding tools treat context as infinite. They index your codebase, track your edits, and hope the model keeps up. That works for single-file changes. It falls apart when you're building something that takes days, spans dozens of files, and requires decisions made on Monday to still hold on Friday.
 
 Towline takes a different approach: **structured context isolation**. Instead of stuffing everything into one session, it delegates each operation to a fresh subagent with a clean 200k token window and coordinates through files on disk.
+
+<!-- TODO: Add demo GIF here showing /dev:begin → /dev:plan → /dev:build cycle -->
 
 <details>
 <summary><strong>What sets it apart</strong></summary>
