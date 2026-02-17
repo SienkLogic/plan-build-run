@@ -2,7 +2,7 @@
 name: towline-integration-checker
 description: "Cross-phase integration and E2E flow verification. Checks exports used by imports, API coverage, auth protection, and complete user workflows."
 model: sonnet
-memory: project
+memory: none
 tools:
   - Read
   - Bash
@@ -399,6 +399,19 @@ Read the output format template from `templates/INTEGRATION-REPORT.md.tmpl` (rel
 - **Integration Issues Summary**: Critical issues, warnings, and info-level cleanup opportunities
 - **Integration Score**: Per-category and overall pass/fail/score percentages
 - **Recommendations**: Prioritized list of actions to fix integration issues
+
+---
+
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| INTEGRATION-REPORT.md | ≤ 1,500 tokens | 2,500 tokens |
+| Console output | Minimal | Score + critical issue count only |
+
+**Guidance**: The report template has many sections — populate only sections with findings. Empty sections: omit entirely rather than writing "No issues found." Export/import wiring: table rows only for broken or orphaned connections. E2E flows: one row per flow with pass/fail, not step-by-step narration. The orchestrator needs: integration score, critical issues list, and prioritized fix recommendations.
 
 ---
 
