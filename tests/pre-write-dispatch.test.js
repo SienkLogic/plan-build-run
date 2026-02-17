@@ -6,7 +6,8 @@ const os = require('os');
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'pre-write-dispatch.js');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-pwd-'));
+  // Resolve symlinks so file_path and process.cwd() match (macOS /var → /private/var)
+  const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'towline-pwd-')));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
