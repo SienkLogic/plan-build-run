@@ -144,6 +144,17 @@
         ]
       }
     ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/task-completed.js",
+            "statusMessage": "Processing task completion..."
+          }
+        ]
+      }
+    ],
     "SessionEnd": [
       {
         "hooks": [
