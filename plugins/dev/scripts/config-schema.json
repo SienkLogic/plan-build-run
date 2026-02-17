@@ -38,7 +38,16 @@
         "integration_checker": { "type": "string" },
         "debugger": { "type": "string" },
         "mapper": { "type": "string" },
-        "synthesizer": { "type": "string" }
+        "synthesizer": { "type": "string" },
+        "complexity_map": {
+          "type": "object",
+          "properties": {
+            "simple": { "type": "string", "default": "haiku" },
+            "medium": { "type": "string", "default": "sonnet" },
+            "complex": { "type": "string", "default": "inherit" }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     },
