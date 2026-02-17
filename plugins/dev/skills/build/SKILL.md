@@ -51,7 +51,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
-3. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+4. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - PLAN.md files exist in the directory
@@ -342,7 +343,9 @@ Wave {W} Results:
 
 #### 6c-ii. Inline Per-Task Verification (conditional)
 
-**Skip if** `features.inline_verify` is not `true` in config.
+**Skip if** the depth profile has `features.inline_verify: false`.
+
+To check: use the resolved depth profile. Only `comprehensive` mode enables inline verification by default.
 
 When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave. This catches issues early — before dependent plans build on a broken foundation.
 
@@ -529,8 +532,13 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update last_activity n
 ### Step 7: Phase Verification (delegated, conditional)
 
 **Skip if:**
-- `features.goal_verification` is `false` in config
 - Build was aborted
+- Depth profile has `features.goal_verification: false`
+- Depth is `quick` AND the total task count across all plans in this phase is fewer than 3
+
+To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` and read `profile["features.goal_verification"]`. For the task-count check in quick mode, sum the task counts from all PLAN.md frontmatter `must_haves` (already available from Step 3 plan discovery).
+
+This implements budget mode's "skip verifier for < 3 tasks" rule: small phases in quick mode don't need a full verification pass.
 
 **If skipping because `features.goal_verification` is `false`:**
 Note for Step 8f completion summary: append "Note: Automatic verification was skipped (goal_verification: false). Run `/dev:review {N}` to verify what was built."

@@ -45,7 +45,8 @@ Execute these steps in order.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
 2. Read `.planning/config.json`
-3. Validate:
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
@@ -59,11 +60,7 @@ Execute these steps in order.
 
 ### Step 2: Check Existing Verification (inline)
 
-**Tooling shortcut**: Instead of manually reading and parsing the phase directory, run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js phase-info <phase>
-```
-This returns a JSON object with `verification` (frontmatter from VERIFICATION.md if it exists), `summaries` (list with status per plan), `roadmap_status`, `filesystem_status`, `plan_count`, and `completed`. Falls back to manual parsing if unavailable.
+Reference: `skills/shared/config-loading.md` for the tooling shortcut (`phase-info`) and config field reference.
 
 Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification step:
 
@@ -79,6 +76,8 @@ Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification 
 ---
 
 ### Step 3: Automated Verification (delegated)
+
+**Depth profile gate:** Before spawning the verifier, resolve the depth profile. If `features.goal_verification` is false in the profile, skip automated verification and proceed directly to Step 5 (Conversational UAT). Note to user: "Automated verification skipped (depth: {depth}). Proceeding to manual review."
 
 Spawn a verifier Task() to run three-layer checks:
 
