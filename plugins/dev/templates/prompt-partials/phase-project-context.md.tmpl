@@ -1,0 +1,38 @@
+<!-- Source: templates/prompt-partials/ | Purpose: Shared context blocks for agent prompt templates -->
+<!-- Usage: Read this file and fill in placeholders, then include the result in agent prompts. -->
+<!-- Orchestrators should omit sections that don't apply to their agent type. -->
+
+<phase_context>
+Phase: {NN} - {phase_name}
+Phase directory: .planning/phases/{NN}-{slug}/
+Phase goal: {goal from roadmap}
+Phase requirements: {REQ-IDs mapped to this phase, or "None"}
+Phase depends on: {dependency phases, or "None"}
+Success criteria from roadmap:
+{success criteria list, or omit if not applicable}
+</phase_context>
+
+<project_context>
+Locked decisions:
+{All locked decisions from .planning/CONTEXT.md, or "None -- no CONTEXT.md"}
+
+User constraints:
+{All constraints from CONTEXT.md, or "None"}
+
+Deferred ideas (DO NOT plan for or implement these):
+{All deferred ideas from CONTEXT.md, or "None"}
+
+Phase-specific decisions:
+{From .planning/phases/{NN}-{slug}/CONTEXT.md if it exists, or "No phase-specific discussion captured."}
+</project_context>
+
+<prior_work>
+{For each preceding phase that has SUMMARY.md files:}
+Phase {M}: {name}
+- Status: {complete/partial}
+- Key files created: {list from SUMMARY.md frontmatter key_files}
+- Exports available: {provides from SUMMARY.md frontmatter}
+- Patterns established: {patterns from SUMMARY.md frontmatter}
+
+{If no prior phases: "No prior phases completed."}
+</prior_work>
