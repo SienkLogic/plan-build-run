@@ -270,7 +270,7 @@ describe('hooks.json Structure', () => {
   });
 
   test('async hooks have a timeout', () => {
-    for (const [eventType, entries] of Object.entries(hooksConfig.hooks)) {
+    for (const [, entries] of Object.entries(hooksConfig.hooks)) {
       for (const entry of entries) {
         for (const hook of entry.hooks || []) {
           if (hook.async === true) {

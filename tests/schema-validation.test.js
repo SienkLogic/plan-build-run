@@ -104,7 +104,7 @@ describe('hooks.json schema compliance', () => {
       for (const entry of entries) {
         for (const hook of entry.hooks || []) {
           if (hook.command && !hook.command.includes('${CLAUDE_PLUGIN_ROOT}')) {
-            violations.push(`${event}: command doesn't use $\{CLAUDE_PLUGIN_ROOT\}: ${hook.command}`);
+            violations.push(`${event}: command doesn't use \${CLAUDE_PLUGIN_ROOT}: ${hook.command}`);
           }
         }
       }

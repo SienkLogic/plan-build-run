@@ -1,4 +1,4 @@
-const { checkDocSprawl, isBlockDocSprawlEnabled, ALLOWED_DOC_BASENAMES, DOC_EXTENSIONS } = require('../plugins/dev/scripts/check-doc-sprawl');
+const { checkDocSprawl, isBlockDocSprawlEnabled } = require('../plugins/dev/scripts/check-doc-sprawl');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
