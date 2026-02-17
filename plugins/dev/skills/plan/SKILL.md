@@ -122,7 +122,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 ### Step 2: Load Context (inline)
 
-Read all relevant context files. This context will be inlined into subagent prompts.
+Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
@@ -130,7 +130,7 @@ Read all relevant context files. This context will be inlined into subagent prom
 3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
 5. Read .planning/config.json — extract feature flags, depth, model settings
-6. Read prior SUMMARY.md files using digest-select depth (see below)
+6. List prior SUMMARY.md file paths and extract frontmatter metadata only (status, provides, key_files). Do NOT read full SUMMARY bodies — agents pull these on-demand via Read tool.
 7. Read .planning/research/SUMMARY.md (if exists) — extract research findings
 ```
 
@@ -140,7 +140,7 @@ Not all prior phase SUMMARYs need the same level of detail. Use selective depth 
 
 | Relationship to current phase | Read depth |
 |-------------------------------|------------|
-| Direct dependency (listed in `depends_on` in ROADMAP.md) | Frontmatter + "Key Decisions" section only. The planner reads full bodies from disk in its own context. |
+| Direct dependency (listed in `depends_on` in ROADMAP.md) | Frontmatter only (status, provides, key_files). The planner reads full bodies from disk via Read tool. |
 | 1 phase back from a dependency (transitive) | Frontmatter only (`provides`, `key_files`, `patterns`) |
 | 2+ phases back | Skip entirely |
 
@@ -278,8 +278,8 @@ NOTE: The dev:towline-planner subagent type auto-loads the agent definition. Do 
 Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
 - `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
 - `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
-- `<prior_work>` - preceding phase SUMMARY.md data (status, key files, exports, patterns)
-- `<research>` - RESEARCH.md content if it exists
+- `<prior_work>` - manifest table of preceding phase SUMMARY.md file paths with status and one-line exports (NOT full bodies)
+- `<research>` - file path to RESEARCH.md if it exists (NOT inlined content)
 - `<config>` - max tasks, parallelization, TDD mode from config.json
 - `<planning_instructions>` - phase-specific planning rules and output path
 
@@ -310,9 +310,9 @@ NOTE: The dev:towline-plan-checker subagent type auto-loads the agent definition
 #### Checker Prompt Template
 
 Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
-- `<plans_to_check>` - inline the FULL content of each PLAN.md file in the phase directory
+- `<plans_to_check>` - manifest table of PLAN.md file paths (checker reads each via Read tool)
 - `<phase_context>` - phase goal and requirement IDs
-- `<context>` - inline project-level and phase-level CONTEXT.md files
+- `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
 
 **Process checker results:**
 - If `VERIFICATION PASSED`: proceed to Step 8
