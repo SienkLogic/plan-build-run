@@ -47,14 +47,10 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Tooling shortcut**: Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, you can run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
-```
-This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. Falls back gracefully if the script is missing — parse files manually in that case.
+Reference: `skills/shared/config-loading.md` for the tooling shortcut and config field reference.
 
 1. Parse `$ARGUMENTS` for phase number and flags
-2. Read `.planning/config.json` for parallelization, model, and gate settings
+2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -94,21 +90,7 @@ After validating prerequisites, check plan staleness:
 
 ### Step 2: Load Config (inline)
 
-Read configuration values needed for execution:
-
-```
-parallelization.enabled     — whether to run plans in parallel
-parallelization.plan_level  — parallel at plan level (within a wave)
-parallelization.max_concurrent_agents — max simultaneous executors
-features.goal_verification  — run verifier after build
-features.inline_verify      — run per-task verification after each executor commit (opt-in)
-features.atomic_commits     — require atomic commits per task
-features.auto_continue      — write .auto-next signal on phase completion
-features.auto_advance       — chain build→review→plan in autonomous mode
-planning.commit_docs        — commit planning docs after build
-git.commit_format           — commit message format
-git.branching_strategy      — branching strategy ("phase" = branch per phase)
-```
+Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching_strategy`.
 
 ---
 
@@ -235,7 +217,7 @@ This is a read-only presentation step — extract descriptions from plan frontma
 
 **State fragment rule:** Executors MUST NOT modify STATE.md directly. The build skill orchestrator is the sole STATE.md writer during execution. Executors report results via SUMMARY.md only; the orchestrator reads those summaries and updates STATE.md itself.
 
-1. Read the full PLAN.md content
+1. Extract the `## Summary` section from the PLAN.md (everything after the `## Summary` heading to end of file). If no ## Summary section exists (legacy plans), fall back to reading the full PLAN.md content. Note: The orchestrator reads the full PLAN.md once for narrative extraction AND summary extraction; only the ## Summary portion is inlined into the executor prompt. The full PLAN.md stays on disk for the executor to Read.
 2. Read `.planning/CONTEXT.md` (if exists)
 3. Read `.planning/STATE.md`
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
@@ -246,9 +228,13 @@ Construct the executor prompt:
 ```
 You are the towline-executor agent. Execute the following plan.
 
-<plan>
-[Inline the FULL PLAN.md content — frontmatter and all tasks]
-</plan>
+<plan_summary>
+[Inline only the ## Summary section from PLAN.md]
+</plan_summary>
+
+<plan_file>
+.planning/phases/{NN}-{slug}/{plan_id}-PLAN.md
+</plan_file>
 
 <project_context>
 Project root: {absolute path to project root}
@@ -272,6 +258,7 @@ State:
 </prior_work>
 
 Execute all tasks in the plan sequentially. For each task:
+0. Read the full plan file from the path in <plan_file> to get task details
 1. Execute the <action> steps
 2. Run the <verify> commands
 3. Create an atomic commit with format: {commit_format}
@@ -478,9 +465,13 @@ Reference: `references/continuation-format.md` for the continuation protocol.
 ```
 You are the towline-executor agent. Continue executing a plan from a checkpoint.
 
-<plan>
-[Inline the FULL PLAN.md content]
-</plan>
+<plan_summary>
+[Inline only the ## Summary section from PLAN.md]
+</plan_summary>
+
+<plan_file>
+.planning/phases/{NN}-{slug}/{plan_id}-PLAN.md
+</plan_file>
 
 <completed_tasks>
 | Task | Commit | Status |
