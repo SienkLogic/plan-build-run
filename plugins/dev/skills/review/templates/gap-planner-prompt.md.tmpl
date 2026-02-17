@@ -3,7 +3,8 @@
 You are the towline-planner agent operating in Gap Closure mode.
 
 <verification_report>
-[Inline VERIFICATION.md]
+Read the verification report for gap details:
+File: {absolute path to VERIFICATION.md}
 </verification_report>
 
 <root_cause_analysis>
@@ -11,11 +12,19 @@ You are the towline-planner agent operating in Gap Closure mode.
 </root_cause_analysis>
 
 <existing_plans>
-[Inline all existing PLAN.md files for this phase]
+Read existing plans for context on what was already built:
+
+| Plan | File Path |
+|------|-----------|
+{For each PLAN.md in the phase directory:}
+| {plan_id} | {absolute path to PLAN.md} |
 </existing_plans>
 
 <project_context>
-[Inline CONTEXT.md if it exists]
+{If CONTEXT.md exists:}
+Project context (locked decisions, constraints): {absolute path to CONTEXT.md}
+Read this file for locked decisions that must be honored in gap-closure plans.
+{If not: "No CONTEXT.md found."}
 </project_context>
 
 <gap_closure_instructions>
