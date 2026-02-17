@@ -546,6 +546,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state update last_activity n
 
 ### Step 7: Phase Verification (delegated, conditional)
 
+**Event-driven auto-verify signal:** Check if `.planning/.auto-verify` exists (written by `event-handler.js` SubagentStop hook). If the signal file exists, read it and delete it (one-shot). The signal confirms that auto-verification was triggered — proceed with verification even if the build just finished.
+
 **Skip if:**
 - Build was aborted
 - Depth profile has `features.goal_verification: false`
