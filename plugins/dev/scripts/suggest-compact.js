@@ -22,10 +22,8 @@ const DEFAULT_THRESHOLD = 50;
 const REMINDER_INTERVAL = 25;
 
 function main() {
-  let input = '';
-
   process.stdin.setEncoding('utf8');
-  process.stdin.on('data', (chunk) => { input += chunk; });
+  process.stdin.resume();
   process.stdin.on('end', () => {
     try {
       const cwd = process.cwd();
