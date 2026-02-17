@@ -11,12 +11,11 @@ You are the orchestrator for `/dev:plan`. This skill creates detailed, executabl
 
 ## Context Budget
 
-Keep the main orchestrator context lean. Follow these rules:
-- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
-- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
-- **Minimize** reading subagent output into main context — read only plan frontmatter for summaries
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
+- **Minimize** reading subagent output — read only plan frontmatter for summaries
 - **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
-- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` after this step to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Prerequisites
 

@@ -10,10 +10,10 @@ You are the orchestrator for `/dev:begin`. This skill initializes a new Towline 
 
 ## Context Budget
 
-Keep the main orchestrator context lean. Follow these rules:
-- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
-- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
-- **Minimize** reading subagent output into main context — read only summaries, not full research docs
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
+- **Minimize** reading subagent output — read only summaries, not full research docs
 - **Delegate** all analysis work to subagents — the orchestrator routes, it doesn't analyze
 
 ## Prerequisites
@@ -421,6 +421,8 @@ Where `{slug}` is the phase name in kebab-case (e.g., `project-setup`, `authenti
 ---
 
 ### Step 10: Git Setup (inline)
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 **10a. Gitignore:**
 If `planning.commit_docs` is `false` in config:
