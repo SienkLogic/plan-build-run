@@ -18,20 +18,17 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { configLoad } = require('./towline-tools');
 
 function main() {
   try {
     const cwd = process.cwd();
-    const configPath = path.join(cwd, '.planning', 'config.json');
-    const signalPath = path.join(cwd, '.planning', '.auto-next');
+    const planningDir = path.join(cwd, '.planning');
+    const signalPath = path.join(planningDir, '.auto-next');
 
     // Check if auto-continue is enabled
-    if (!fs.existsSync(configPath)) {
-      process.exit(0);
-    }
-
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (!config.features || !config.features.auto_continue) {
+    const config = configLoad(planningDir);
+    if (!config || !config.features || !config.features.auto_continue) {
       process.exit(0);
     }
 

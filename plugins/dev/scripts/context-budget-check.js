@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { atomicWrite } = require('./towline-tools');
+const { atomicWrite, configLoad, tailLines } = require('./towline-tools');
 
 function main() {
   const cwd = process.cwd();
@@ -206,9 +206,11 @@ function readRecentErrors(planningDir, maxErrors) {
   const count = maxErrors || 3;
   try {
     const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
-    if (!fs.existsSync(eventsLog)) return [];
+    // Only read the last 50 lines — errors are rare, so 50 tail lines
+    // is more than enough to find the most recent ones
+    const lines = tailLines(eventsLog, 50);
+    if (lines.length === 0) return [];
 
-    const lines = fs.readFileSync(eventsLog, 'utf8').trim().split('\n').filter(Boolean);
     const errors = [];
     // Read backwards for most recent
     for (let i = lines.length - 1; i >= 0 && errors.length < count; i--) {
@@ -229,9 +231,11 @@ function readRecentAgents(planningDir, maxAgents) {
   const count = maxAgents || 5;
   try {
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
-    if (!fs.existsSync(hooksLog)) return [];
+    // Only read the last 30 lines — agent spawns are interspersed with
+    // other hook events, so 30 tail lines covers recent agents well
+    const lines = tailLines(hooksLog, 30);
+    if (lines.length === 0) return [];
 
-    const lines = fs.readFileSync(hooksLog, 'utf8').trim().split('\n').filter(Boolean);
     const agents = [];
     // Read backwards for most recent
     for (let i = lines.length - 1; i >= 0 && agents.length < count; i--) {
@@ -251,21 +255,16 @@ function readRecentAgents(planningDir, maxAgents) {
 }
 
 function readConfigHighlights(planningDir) {
-  const configFile = path.join(planningDir, 'config.json');
-  if (!fs.existsSync(configFile)) return '';
+  const config = configLoad(planningDir);
+  if (!config) return '';
 
-  try {
-    const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-    const parts = [];
-    if (config.depth) parts.push(`depth=${config.depth}`);
-    if (config.mode) parts.push(`mode=${config.mode}`);
-    if (config.models && config.models.executor) parts.push(`executor=${config.models.executor}`);
-    if (config.gates && config.gates.verification !== undefined) parts.push(`verify=${config.gates.verification}`);
-    if (config.git && config.git.auto_commit !== undefined) parts.push(`auto_commit=${config.git.auto_commit}`);
-    return parts.join(', ');
-  } catch (_e) {
-    return '';
-  }
+  const parts = [];
+  if (config.depth) parts.push(`depth=${config.depth}`);
+  if (config.mode) parts.push(`mode=${config.mode}`);
+  if (config.models && config.models.executor) parts.push(`executor=${config.models.executor}`);
+  if (config.gates && config.gates.verification !== undefined) parts.push(`verify=${config.gates.verification}`);
+  if (config.git && config.git.auto_commit !== undefined) parts.push(`auto_commit=${config.git.auto_commit}`);
+  return parts.join(', ');
 }
 
 function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents) {
