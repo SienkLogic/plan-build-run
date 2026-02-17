@@ -1,6 +1,6 @@
 ---
 name: config
-description: "Configure Towline settings. Model selection, workflow toggles, depth, gates, and parallelization."
+description: "Configure settings: depth, model profiles, features, git, and gates."
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
