@@ -4,8 +4,9 @@
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" />
   <img src="https://img.shields.io/badge/Tests-540_passing-brightgreen?style=for-the-badge" alt="540 Tests" />
 </p>
-
-<h1 align="center">Towline</h1>
+<p align="center">
+  <img src="./assets/Towline_logo_banner.png" alt="Towline Logo" width="200" />
+</p>
 
 <p align="center">
   <strong>Context-engineered development workflow for Claude Code.</strong>
