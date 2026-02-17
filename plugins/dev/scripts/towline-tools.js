@@ -18,6 +18,8 @@
  *   phase-info <phase>      — Comprehensive single-phase status → JSON
  *   roadmap update-status <phase> <status>      — Update phase status in ROADMAP.md
  *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
+ *   history append <type> <title> [body] — Append record to HISTORY.md
+ *   history load                         — Load all HISTORY.md records as JSON
  */
 
 const fs = require('fs');
@@ -193,6 +195,16 @@ function main() {
         error('Usage: towline-tools.js roadmap update-plans <phase-number> <complete> <total>');
       }
       output(roadmapUpdatePlans(phase, complete, total));
+    } else if (command === 'history' && subcommand === 'append') {
+      const type = args[2];   // 'milestone' or 'phase'
+      const title = args[3];
+      const body = args[4] || '';
+      if (!type || !title) {
+        error('Usage: towline-tools.js history append <milestone|phase> <title> [body]');
+      }
+      output(historyAppend({ type, title, body }));
+    } else if (command === 'history' && subcommand === 'load') {
+      output(historyLoad());
     } else if (command === 'event') {
       const category = args[1];
       const event = args[2];
@@ -207,7 +219,7 @@ function main() {
       logEvent(category, event, details);
       output({ logged: true, category, event });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, event`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event`);
     }
   } catch (e) {
     error(e.message);
@@ -563,6 +575,63 @@ function stateUpdate(field, value) {
     return { success: true, field, value };
   }
   return { success: false, error: result.error };
+}
+
+/**
+ * Append a record to HISTORY.md. Creates the file if it doesn't exist.
+ * Each entry is a markdown section appended at the end.
+ *
+ * @param {object} entry - { type: 'milestone'|'phase', title: string, body: string }
+ * @returns {{success: boolean, error?: string}}
+ */
+function historyAppend(entry) {
+  const historyPath = path.join(planningDir, 'HISTORY.md');
+  const timestamp = new Date().toISOString().slice(0, 10);
+
+  let header = '';
+  if (!fs.existsSync(historyPath)) {
+    header = '# Project History\n\nCompleted milestones and phase records. This file is append-only.\n\n';
+  }
+
+  const section = `${header}## ${entry.type === 'milestone' ? 'Milestone' : 'Phase'}: ${entry.title}\n_Completed: ${timestamp}_\n\n${entry.body.trim()}\n\n---\n\n`;
+
+  try {
+    fs.appendFileSync(historyPath, section, 'utf8');
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Load HISTORY.md and parse it into structured records.
+ * Returns null if HISTORY.md doesn't exist.
+ *
+ * @param {string} [dir] - Path to .planning directory
+ * @returns {object|null} { records: [{type, title, date, body}], line_count }
+ */
+function historyLoad(dir) {
+  const historyPath = path.join(dir || planningDir, 'HISTORY.md');
+  if (!fs.existsSync(historyPath)) return null;
+
+  const content = fs.readFileSync(historyPath, 'utf8');
+  const records = [];
+  const sectionRegex = /^## (Milestone|Phase): (.+)\n_Completed: (\d{4}-\d{2}-\d{2})_\n\n([\s\S]*?)(?=\n---|\s*$)/gm;
+
+  let match;
+  while ((match = sectionRegex.exec(content)) !== null) {
+    records.push({
+      type: match[1].toLowerCase(),
+      title: match[2].trim(),
+      date: match[3],
+      body: match[4].trim()
+    });
+  }
+
+  return {
+    records,
+    line_count: content.split('\n').length
+  };
 }
 
 /**
@@ -1193,4 +1262,4 @@ function atomicWrite(filePath, content) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad };
