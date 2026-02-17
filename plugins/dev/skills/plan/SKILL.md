@@ -41,6 +41,7 @@ Parse the phase number and optional flags:
 | `3 --skip-research` | Plan phase 3, skip research step |
 | `3 --assumptions` | Surface assumptions before planning phase 3 |
 | `3 --gaps` | Create gap-closure plans for phase 3 (from VERIFICATION.md) |
+| `3 --teams` | Plan phase 3 using specialist agent teams |
 | (no number) | Use current phase from STATE.md |
 
 ### Subcommands
@@ -58,7 +59,7 @@ Parse the phase number and optional flags:
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
-- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`
 - The word `check` (legacy alias)
 
 If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
@@ -260,6 +261,40 @@ Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger mat
 ---
 
 ### Step 5: Planning (delegated)
+
+#### Team Mode (--teams)
+
+Reference: `references/agent-teams.md` for team role definitions and coordination details.
+
+If `--teams` flag is set OR `config.parallelization.use_teams` is true:
+
+1. Create the team output directory: `.planning/phases/{NN}-{slug}/team/`
+2. Spawn THREE planner agents in parallel using Task():
+
+   **Agent 1 -- Architect**:
+   - subagent_type: "dev:towline-planner"
+   - Prompt includes: "You are the ARCHITECT role in a planning team. Focus on: structure, file boundaries, dependency ordering, wave assignment. Write your output to `.planning/phases/{NN}-{slug}/team/architect-PLAN.md`. Do NOT write final PLAN.md files -- your output will be synthesized."
+   - Include phase goal, research doc paths, CONTEXT.md path in the prompt
+
+   **Agent 2 -- Security Reviewer**:
+   - subagent_type: "dev:towline-planner"
+   - Prompt includes: "You are the SECURITY REVIEWER role in a planning team. Focus on: authentication checks, input validation tasks, secrets handling, permission boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/security-PLAN.md`. Do NOT write final PLAN.md files."
+   - Include same context as Agent 1
+
+   **Agent 3 -- Test Designer**:
+   - subagent_type: "dev:towline-planner"
+   - Prompt includes: "You are the TEST DESIGNER role in a planning team. Focus on: test strategy, coverage targets, edge cases, which tasks should use TDD, integration test boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/test-PLAN.md`. Do NOT write final PLAN.md files."
+   - Include same context as Agent 1
+
+3. Wait for all three to complete
+4. Spawn the synthesizer agent:
+   - subagent_type: "dev:towline-synthesizer"
+   - Prompt: "Read all files in `.planning/phases/{NN}-{slug}/team/`. Synthesize them into unified PLAN.md files in `.planning/phases/{NN}-{slug}/`. The architect output provides structure, the security output adds security-related tasks or checks, and the test output informs TDD flags and test tasks. Resolve any contradictions by preferring the architect's structure with security and test additions."
+5. Proceed to plan checking as normal
+
+If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the existing single-planner flow below.
+
+#### Single-Planner Flow (default)
 
 Spawn the planner Task() with all context inlined:
 
