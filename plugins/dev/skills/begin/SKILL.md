@@ -350,9 +350,9 @@ Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
     - label: "Approve"          description: "Proceed with this roadmap"
     - label: "Request changes"  description: "Discuss adjustments before proceeding"
     - label: "Abort"            description: "Cancel and start over"
-  - If user selects "Request changes": edit the roadmap inline (small changes) or re-spawn planner
-  - If user selects "Approve": proceed to Step 9
-  - If user selects "Abort": stop execution
+    - If user selects "Request changes": edit the roadmap inline (small changes) or re-spawn planner
+    - If user selects "Approve": proceed to Step 9
+    - If user selects "Abort": stop execution
 
 ---
 
