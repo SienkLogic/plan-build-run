@@ -14,8 +14,9 @@ This skill **spawns 4 parallel Task(subagent_type: "dev:towline-codebase-mapper"
 
 ## Context Budget
 
-Keep the orchestrator lean. Follow these rules:
-- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Never** analyze the codebase yourself — delegate ALL analysis to the 4 parallel codebase-mapper subagents
 - **Minimize** reading mapper outputs — read only frontmatter or first 20 lines of each output document
 - **Delegate** all file reading, pattern analysis, and architecture mapping to the codebase-mapper subagents
@@ -177,6 +178,8 @@ Then use the "Next Up" routing block:
 ```
 
 ### Step 7: Git Integration
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `.planning/config.json` exists and `planning.commit_docs: true`:
 

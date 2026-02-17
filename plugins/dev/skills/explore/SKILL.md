@@ -15,8 +15,9 @@ This skill runs **inline** (no Task delegation), with optional Task() spawns for
 
 ## Context Budget
 
-This skill is mostly inline conversation, but may spawn researchers. Follow these rules:
-- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Minimize** file reads — this is a thinking skill, not a code analysis skill
 - **Delegate** deep research to a towline-researcher subagent if investigation exceeds 3-4 file reads
 
@@ -285,6 +286,8 @@ source: "/dev:explore session"
 ---
 
 ## Git Integration
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `planning.commit_docs: true` in config.json, commit created artifacts:
 
