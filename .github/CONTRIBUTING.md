@@ -153,12 +153,12 @@ test(hooks): add spawn tests for validate-commit
 
 ## Reporting Security Issues
 
-If you discover a security vulnerability, please report it responsibly. See [SECURITY.md](SECURITY.md) for details. Do not open a public issue for security vulnerabilities.
+If you discover a security vulnerability, please report it responsibly. See [SECURITY.md](./SECURITY.md) for details. Do not open a public issue for security vulnerabilities.
 
 ## Code of Conduct
 
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+This project follows the [Contributor Covenant Code of Conduct](./CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing, you agree that your contributions will be licensed under the [MIT License](../LICENSE).

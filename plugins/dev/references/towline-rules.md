@@ -14,7 +14,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 5. **One task, one commit.** Atomic commits for clean history and easy rollback.
 6. **Cross-platform always.** `path.join()`, CommonJS, test on Windows/macOS/Linux.
 7. **Test everything.** 70% coverage minimum. All 9 CI matrix combinations must pass.
-8. **TOWLINE branding only.** Always `TOWLINE ►`, never `GSD ►`.
+8. **TOWLINE branding only.** Always use `TOWLINE ►` prefix in banners.
 
 ---
 
@@ -80,7 +80,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 ## Agent Authoring
 
 43. Every agent file starts with YAML frontmatter: `name`, `description`, `model`, `memory`, `tools`.
-44. Agent name must use `towline-` prefix. Never `gsd-`.
+44. Agent name must use `towline-` prefix.
 45. `tools` array: only include tools the agent actually uses.
 46. Agents write artifacts to disk. They never modify STATE.md or ROADMAP.md.
 47. Agent definitions are self-contained — no cross-agent references.
@@ -184,7 +184,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 | 1 | Read agent definitions in orchestrator | Context balloons 15% → 88% |
 | 2 | Inline large files into Task() prompts | Wasted orchestrator context |
 | 3 | Read full subagent output | Context bloat |
-| 4 | Use GSD branding | User confusion |
+| 4 | Use non-Towline branding | User confusion |
 | 5 | Hardcode path separators | Cross-platform breakage |
 | 6 | Use ES modules in hooks | Hook fails to load |
 | 7 | Skip hook logging | Silent failures |

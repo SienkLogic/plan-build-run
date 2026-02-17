@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/dev:setup` skill — Interactive onboarding wizard for new installations
 - `SECURITY.md` — Vulnerability reporting policy
 - `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1
-- `ACKNOWLEDGMENTS` — Attribution to get-shit-done (MIT) by Lex Christopherson
+- `ACKNOWLEDGMENTS` — Project attribution and prior art acknowledgment
 - "Why Towline?" comparison section in README
 - Markdownlint CI for planning document quality
 - Hook spawn tests for all lifecycle hooks
