@@ -185,6 +185,8 @@ Read `skills/discuss/templates/CONTEXT.md.tmpl` for the template structure.
 - `{2-3 sentences}` -- user's vision summary from the conversation
 - `{Concern}` / `{Context}` -- concerns raised during discussion
 
+**Decision Summary generation:** The `## Decision Summary` section at the top of CONTEXT.md is a compact digest (~300 tokens) of all decisions. For each locked decision, write only the title and the user's choice in one phrase (no scope/quality/integration details). List deferred and discretion items as comma-separated titles only. This summary is injected into agent prompts by the plan skill -- keep it concise.
+
 ### Step 7.5: Update STATE.md Pointer
 
 Update `.planning/STATE.md`'s `## Accumulated Context` section to add a reference to the new CONTEXT.md:
