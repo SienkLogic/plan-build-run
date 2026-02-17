@@ -42,7 +42,9 @@ Towline Configuration
 =====================
 
 Workflow:
-  Depth: standard
+  Depth: standard (balanced)
+    Research: on   Plan-check: on   Verify: on
+    Scan mappers: 4   Debug rounds: 5   Inline verify: off
   Mode: interactive
   Context Strategy: aggressive
 
@@ -95,10 +97,21 @@ Use AskUserQuestion:
   question: "Select workflow depth"
   header: "Depth"
   options:
-    - label: "Quick"           description: "Minimal research, fast execution"
-    - label: "Standard"        description: "Balanced research and execution (default)"
-    - label: "Comprehensive"   description: "Full research, thorough verification"
+    - label: "Quick"           description: "Budget mode: skip research/plan-check/verifier, 2 scan mappers, ~1-3 fewer spawns per phase"
+    - label: "Standard"        description: "Balanced mode: conditional research, full plan-check and verification, 4 scan mappers (default)"
+    - label: "Comprehensive"   description: "Thorough mode: always research, always verify, inline verification, 4 scan mappers"
   multiSelect: false
+
+After setting depth, the profile is automatically resolved. Show the user the effective settings:
+  "Depth set to {value}. Effective profile:"
+  Then display the profile summary (research, plan-check, verify, scan mappers, debug rounds, inline verify).
+
+To resolve the profile, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth`
+
+If the user wants to override a specific profile setting, they can set `depth_profiles.{depth}.{key}` directly.
+For example: to use quick mode but keep plan-checking, the user would set depth to quick and then override:
+  `/dev:config` -> Features -> Plan checking -> Enable
+This writes `depth_profiles.quick.features.plan_checking: true` to config.json.
 
 If user selects "Model profile":
 Use the **model-profile-select** pattern:

@@ -10,7 +10,8 @@ const {
   updateLegacyStateField,
   updateFrontmatterField,
   updateTableRow,
-  findRoadmapRow
+  findRoadmapRow,
+  resolveDepthProfile
 } = require('../plugins/dev/scripts/towline-tools');
 
 describe('towline-tools.js', () => {
@@ -524,6 +525,62 @@ next_top_level: something`;
       const result = updateTableRow(row, 5, 'verified');
       expect(result).toContain('| Auth |');
       expect(result).toContain('| Authentication system |');
+    });
+  });
+
+  describe('resolveDepthProfile', () => {
+    test('returns standard defaults when config is null', () => {
+      const result = resolveDepthProfile(null);
+      expect(result.depth).toBe('standard');
+      expect(result.profile['features.research_phase']).toBe(true);
+      expect(result.profile['features.plan_checking']).toBe(true);
+      expect(result.profile['scan.mapper_count']).toBe(4);
+    });
+
+    test('returns quick profile with reduced spawns', () => {
+      const result = resolveDepthProfile({ depth: 'quick' });
+      expect(result.depth).toBe('quick');
+      expect(result.profile['features.research_phase']).toBe(false);
+      expect(result.profile['features.plan_checking']).toBe(false);
+      expect(result.profile['features.goal_verification']).toBe(false);
+      expect(result.profile['scan.mapper_count']).toBe(2);
+      expect(result.profile['scan.mapper_areas']).toEqual(['tech', 'arch']);
+      expect(result.profile['debug.max_hypothesis_rounds']).toBe(3);
+    });
+
+    test('returns comprehensive profile with all spawns', () => {
+      const result = resolveDepthProfile({ depth: 'comprehensive' });
+      expect(result.depth).toBe('comprehensive');
+      expect(result.profile['features.research_phase']).toBe(true);
+      expect(result.profile['features.inline_verify']).toBe(true);
+      expect(result.profile['scan.mapper_count']).toBe(4);
+      expect(result.profile['debug.max_hypothesis_rounds']).toBe(10);
+    });
+
+    test('user overrides merge with defaults', () => {
+      const config = {
+        depth: 'quick',
+        depth_profiles: {
+          quick: {
+            'features.plan_checking': true  // override: keep plan-checking in quick mode
+          }
+        }
+      };
+      const result = resolveDepthProfile(config);
+      expect(result.profile['features.plan_checking']).toBe(true);  // overridden
+      expect(result.profile['features.research_phase']).toBe(false);  // still default
+    });
+
+    test('unknown depth falls back to standard', () => {
+      const result = resolveDepthProfile({ depth: 'nonexistent' });
+      expect(result.depth).toBe('nonexistent');
+      expect(result.profile['features.research_phase']).toBe(true);  // standard default
+    });
+
+    test('config without depth field defaults to standard', () => {
+      const result = resolveDepthProfile({});
+      expect(result.depth).toBe('standard');
+      expect(result.profile['scan.mapper_count']).toBe(4);
     });
   });
 
