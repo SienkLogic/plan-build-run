@@ -8,6 +8,8 @@ const {
   parseMustHaves,
   countMustHaves,
   atomicWrite,
+  configLoad,
+  configClearCache,
   updateLegacyStateField,
   updateFrontmatterField,
   updateTableRow,
@@ -681,6 +683,33 @@ next_top_level: something`;
       expect(result.records[1].type).toBe('milestone');
       expect(result.records[1].title).toBe('v1.0 Auth');
       expect(result.line_count).toBeGreaterThan(0);
+    });
+  });
+
+  describe('configClearCache', () => {
+    test('resets cache so next configLoad reads fresh data', () => {
+      const tmpDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache1-'));
+      const tmpDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache2-'));
+
+      try {
+        fs.writeFileSync(path.join(tmpDir1, 'config.json'), JSON.stringify({ version: 1, name: 'first' }));
+        fs.writeFileSync(path.join(tmpDir2, 'config.json'), JSON.stringify({ version: 2, name: 'second' }));
+
+        const result1 = configLoad(tmpDir1);
+        expect(result1.name).toBe('first');
+
+        configClearCache();
+
+        const result2 = configLoad(tmpDir2);
+        expect(result2.name).toBe('second');
+      } finally {
+        fs.rmSync(tmpDir1, { recursive: true, force: true });
+        fs.rmSync(tmpDir2, { recursive: true, force: true });
+      }
+    });
+
+    test('does not throw when called before any configLoad', () => {
+      expect(() => configClearCache()).not.toThrow();
     });
   });
 });

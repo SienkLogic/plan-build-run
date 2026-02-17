@@ -3,15 +3,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/SienkLogic/towline/actions"><img src="https://img.shields.io/github/actions/workflow/status/SienkLogic/towline/ci.yml?style=for-the-badge&label=CI&logo=github" alt="CI Status" /></a>
-  <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
-  <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/towline?style=for-the-badge" alt="License" /></a>
-  <img src="https://img.shields.io/badge/Tests-758_passing-brightgreen?style=for-the-badge" alt="758 Tests" />
-  <img src="https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge" alt="Version 2.0.0" />
-</p>
-
-<p align="center">
   <strong>Context-engineered development workflow for Claude Code.</strong>
   <br />
   Build ambitious multi-phase software without quality degradation.
@@ -25,6 +16,15 @@
   <a href="#how-it-works">How It Works</a> &bull;
   <a href="https://github.com/SienkLogic/towline/wiki">Wiki</a> &bull;
   <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/SienkLogic/towline/actions"><img src="https://img.shields.io/github/actions/workflow/status/SienkLogic/towline/ci.yml?style=for-the-badge&label=CI&logo=github" alt="CI Status" /></a>
+  <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
+  <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/towline?style=for-the-badge" alt="License" /></a>
+  <img src="https://img.shields.io/badge/Tests-758_passing-brightgreen?style=for-the-badge" alt="758 Tests" />
+  <img src="https://img.shields.io/badge/Version-2.0.0-blue?style=for-the-badge" alt="Version 2.0.0" />
 </p>
 
 ---
