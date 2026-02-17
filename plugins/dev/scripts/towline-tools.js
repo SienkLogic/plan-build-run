@@ -26,6 +26,111 @@ const path = require('path');
 const cwd = process.cwd();
 const planningDir = path.join(cwd, '.planning');
 
+// --- Cached config loader ---
+
+let _configCache = null;
+let _configMtime = 0;
+
+/**
+ * Load config.json with in-process mtime-based caching.
+ * Returns the parsed config object, or null if not found / parse error.
+ * Cache invalidates when file mtime changes.
+ *
+ * @param {string} [dir] - Path to .planning directory (defaults to cwd/.planning)
+ * @returns {object|null} Parsed config or null
+ */
+function configLoad(dir) {
+  const configPath = path.join(dir || planningDir, 'config.json');
+  try {
+    if (!fs.existsSync(configPath)) return null;
+    const stat = fs.statSync(configPath);
+    const mtime = stat.mtimeMs;
+    if (_configCache && mtime === _configMtime) {
+      return _configCache;
+    }
+    _configCache = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    _configMtime = mtime;
+    return _configCache;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Read the last N lines from a file efficiently.
+ * Reads the entire file but only parses (JSON.parse) the trailing entries.
+ * For JSONL files where full parsing is expensive, this avoids parsing
+ * all lines when you only need recent entries.
+ *
+ * @param {string} filePath - Absolute path to the file
+ * @param {number} n - Number of trailing lines to return
+ * @returns {string[]} Array of raw line strings (last n lines)
+ */
+function tailLines(filePath, n) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const content = fs.readFileSync(filePath, 'utf8').trim();
+    if (!content) return [];
+    const lines = content.split('\n');
+    if (lines.length <= n) return lines;
+    return lines.slice(lines.length - n);
+  } catch (_e) {
+    return [];
+  }
+}
+
+/**
+ * Built-in depth profile defaults. These define the effective settings
+ * for each depth level. User config.depth_profiles overrides these.
+ */
+const DEPTH_PROFILE_DEFAULTS = {
+  quick: {
+    'features.research_phase': false,
+    'features.plan_checking': false,
+    'features.goal_verification': false,
+    'features.inline_verify': false,
+    'scan.mapper_count': 2,
+    'scan.mapper_areas': ['tech', 'arch'],
+    'debug.max_hypothesis_rounds': 3
+  },
+  standard: {
+    'features.research_phase': true,
+    'features.plan_checking': true,
+    'features.goal_verification': true,
+    'features.inline_verify': false,
+    'scan.mapper_count': 4,
+    'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
+    'debug.max_hypothesis_rounds': 5
+  },
+  comprehensive: {
+    'features.research_phase': true,
+    'features.plan_checking': true,
+    'features.goal_verification': true,
+    'features.inline_verify': true,
+    'scan.mapper_count': 4,
+    'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
+    'debug.max_hypothesis_rounds': 10
+  }
+};
+
+/**
+ * Resolve the effective depth profile for the current config.
+ * Merges built-in defaults with any user overrides from config.depth_profiles.
+ *
+ * @param {object|null} config - Parsed config.json (from configLoad). If null, returns 'standard' defaults.
+ * @returns {{ depth: string, profile: object }} The resolved depth name and flattened profile settings.
+ */
+function resolveDepthProfile(config) {
+  const depth = (config && config.depth) || 'standard';
+  const defaults = DEPTH_PROFILE_DEFAULTS[depth] || DEPTH_PROFILE_DEFAULTS.standard;
+
+  // Merge user overrides if present
+  const userOverrides = (config && config.depth_profiles && config.depth_profiles[depth]) || {};
+  const profile = { ...defaults, ...userOverrides };
+
+  return { depth, profile };
+}
+
 function main() {
   const args = process.argv.slice(2);
   const command = args[0];
@@ -45,6 +150,10 @@ function main() {
       output(stateUpdate(field, value));
     } else if (command === 'config' && subcommand === 'validate') {
       output(configValidate());
+    } else if (command === 'config' && subcommand === 'resolve-depth') {
+      const dir = args[2] || undefined;
+      const config = configLoad(dir);
+      output(resolveDepthProfile(config));
     } else if (command === 'plan-index') {
       const phase = args[1];
       if (!phase) {
@@ -1084,4 +1193,4 @@ function atomicWrite(filePath, content) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS };
