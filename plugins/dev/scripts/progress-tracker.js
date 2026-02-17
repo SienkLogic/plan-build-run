@@ -104,11 +104,11 @@ function buildContext(planningDir, stateFile) {
   if (config) {
     parts.push(`\nConfig: depth=${config.depth || 'standard'}, mode=${config.mode || 'interactive'}`);
 
-    // Validate config against schema
+    // Validate config against schema (reuse already-loaded config)
     const schemaPath = path.join(__dirname, 'config-schema.json');
     if (fs.existsSync(schemaPath)) {
       const { configValidate } = require('./towline-tools');
-      const validation = configValidate();
+      const validation = configValidate(config);
       if (validation.warnings.length > 0) {
         parts.push(`\nConfig warnings: ${validation.warnings.join('; ')}`);
       }

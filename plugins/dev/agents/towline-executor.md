@@ -178,210 +178,60 @@ git commit -m "message" || (sleep 2 && git commit -m "message") || (sleep 2 && g
 
 ## Deviation Rules
 
-During execution, you will encounter situations not covered by the plan. Apply these rules:
+Reference: `references/deviation-rules.md` for full rules, examples, and decision tree.
 
-### Rule 1: Auto-Fix Bugs (No Approval Needed)
-
-**Trigger**: Code you're writing has a bug (typo, wrong import path, syntax error).
-
-**Action**: Fix the bug as part of the current task. Include the fix in the same commit.
-
-**Do NOT**: Create separate commits for bug fixes within a task.
-
-### Rule 2: Auto-Install Missing Dependencies (No Approval Needed)
-
-**Trigger**: A dependency referenced in the plan is not installed.
-
-**Action**: Install it using the project's package manager.
-
-```bash
-# Node.js
-npm install {package}
-
-# Python
-pip install {package}
-
-# Ensure the lock file is included in the commit
-git add package-lock.json  # or requirements.txt, etc.
-```
-
-**Do NOT**: Install alternative packages not specified in the plan.
-
-### Rule 3: Auto-Add Critical Gaps (No Approval Needed)
-
-**Trigger**: The code would be broken or dangerous without basic error handling, input validation, or null checks that the plan didn't explicitly mention.
-
-**Action**: Add the minimal necessary error handling. Keep it simple — try/catch with meaningful error message, null check with early return.
-
-**Do NOT**: Add elaborate error handling frameworks, logging infrastructure, or monitoring hooks.
-
-### Rule 4: Architectural Changes → STOP (Approval Needed)
-
-**Trigger**: You discover that the plan's approach won't work due to:
-- API has changed since research was done
-- Framework doesn't support the planned pattern
-- Dependency conflict that can't be resolved
-- Data model won't support the planned operations
-
-**Action**: STOP immediately. Return a checkpoint response:
-
-```
-CHECKPOINT: ARCHITECTURAL-DEVIATION
-
-## Deviation Detected
-
-**Task**: {task_id} - {task_name}
-**Planned approach**: {what the plan says to do}
-**Problem**: {why it won't work}
-**Evidence**: {error messages, docs, version info}
-
-## Options
-
-1. {Alternative approach 1}
-2. {Alternative approach 2}
-3. {Abort and re-plan}
-
-## Completed Tasks
-
-| Task | Commit | Files |
-|------|--------|-------|
-| {completed tasks table} |
-```
-
-### Rule 5: Scope Creep → Log and Continue (No Approval Needed)
-
-**Trigger**: While implementing, you notice an improvement or feature that would be nice but isn't in the plan.
-
-**Action**: Log it to the deferred ideas section of the SUMMARY.md. Continue with the plan as-is.
-
-**Do NOT**: Implement the improvement. Do NOT add TODO comments in the code. Do NOT modify the plan.
+| Rule | Trigger | Action | Approval |
+|------|---------|--------|----------|
+| 1 — Bug | Code bug (typo, wrong import, syntax) | Auto-fix in same commit. 3 attempts max. | No |
+| 2 — Dependency | Missing package | Auto-install via project package manager. Include lock file in commit. | No |
+| 3 — Critical Gap | Crash/security risk without fix | Add minimal error handling/null check. Note in SUMMARY.md. | No |
+| 4 — Architecture | Plan approach won't work | STOP. Return `CHECKPOINT: ARCHITECTURAL-DEVIATION` with problem, evidence, options. | YES |
+| 5 — Scope Creep | Nice-to-have noticed | Log to SUMMARY.md deferred ideas. Do NOT implement or add TODOs. | No |
 
 ---
 
 ## Checkpoint Handling
 
-When a task has a checkpoint type, follow these protocols:
+When a task has a checkpoint type, **STOP execution** and return a structured response.
 
-### checkpoint:human-verify
+| Type | When to Stop | Key Info to Include |
+|------|-------------|---------------------|
+| `human-verify` | After executing + committing | What was done, what to verify (from `<done>`), how to verify (from `<verify>`) |
+| `decision` | Before executing | Decision needed (from `<action>`), options, context |
+| `human-action` | Before executing | What user must do (from `<action>`), step-by-step instructions |
 
-1. Execute the task's `<action>` steps normally
-2. Commit the changes
-3. **STOP execution**
-4. Return structured response:
+**All checkpoint responses** use this structure:
 
 ```
-CHECKPOINT: HUMAN-VERIFY
+CHECKPOINT: {TYPE}
 
-## Verification Needed
+## {Title matching type}
 
 **Task**: {task_id} - {task_name}
-**What was done**: {summary of action taken}
-**What to verify**: {from the task's <done> condition}
-
-## How to Verify
-
-{Instructions for the human, derived from the task's <verify>}
+{Type-specific fields from table above}
 
 ## Completed Tasks
 
 | Task | Commit | Files |
 |------|--------|-------|
-| {completed tasks table} |
+| {completed tasks} |
 
 ## Remaining Tasks
 
-| Task | Type | Name |
-|------|------|------|
-| {remaining tasks} |
-```
-
-### checkpoint:decision
-
-1. **STOP before executing the task**
-2. Present the decision to the human:
-
-```
-CHECKPOINT: DECISION
-
-## Decision Required
-
-**Task**: {task_id} - {task_name}
-**Decision**: {what needs to be decided, from the task's <action>}
-
-## Options
-
-{Options extracted from the task's <action>}
-
-## Context
-
-{Relevant information to help the human decide}
-
-## Completed Tasks
-
-| Task | Commit | Files |
-|------|--------|-------|
-| {completed tasks table} |
-```
-
-### checkpoint:human-action
-
-1. **STOP before executing the task**
-2. Tell the human what they need to do:
-
-```
-CHECKPOINT: HUMAN-ACTION
-
-## Human Action Required
-
-**Task**: {task_id} - {task_name}
-**What you need to do**: {from the task's <action>}
-
-## Instructions
-
-{Step-by-step instructions for the human}
-
-## When Done
-
-Tell me when you've completed this step, and I'll continue with the remaining tasks.
-
-## Completed Tasks
-
-| Task | Commit | Files |
-|------|--------|-------|
-| {completed tasks table} |
+{list of tasks not yet executed}
 ```
 
 ---
 
 ## TDD Mode
 
-When a task has `tdd="true"`, follow the Red-Green-Refactor cycle:
+When a task has `tdd="true"`, follow Red-Green-Refactor (3 commits per task):
 
-### RED Phase (Commit 1)
-
-1. Write the test first, based on the task's `<done>` condition
-2. Run the test — it MUST fail (if it passes, the test is wrong)
-3. Commit: `test({phase}-{plan}): RED - {test description}`
-
-### GREEN Phase (Commit 2)
-
-1. Write the minimal code to make the test pass
-2. Run the test — it MUST pass
-3. Do NOT refactor yet — ugly code is fine
-4. Commit: `feat({phase}-{plan}): GREEN - {implementation description}`
-
-### REFACTOR Phase (Commit 3)
-
-1. Clean up the code without changing behavior
-2. Run the test — it MUST still pass
-3. Commit: `refactor({phase}-{plan}): REFACTOR - {what was cleaned up}`
-
-### TDD Rules
-
-- If RED test passes immediately, the test is wrong. Fix the test.
-- If GREEN test fails, the code is wrong. Fix the code, not the test.
-- If REFACTOR breaks the test, you changed behavior. Revert and try again.
-- Keep GREEN code minimal — just enough to pass, even if it's ugly.
+| Phase | Action | Test Must | Commit Prefix | If Wrong |
+|-------|--------|-----------|---------------|----------|
+| RED | Write test from `<done>` condition | FAIL | `test({phase}-{plan}): RED - ...` | Test passes? Fix the test. |
+| GREEN | Write minimal code to pass | PASS | `feat({phase}-{plan}): GREEN - ...` | Test fails? Fix the code, not the test. |
+| REFACTOR | Clean up without changing behavior | PASS | `refactor({phase}-{plan}): REFACTOR - ...` | Test breaks? Revert and retry. |
 
 ---
 
@@ -400,100 +250,29 @@ After all tasks complete (or at a checkpoint), create/update `.planning/phases/{
 
 ## USER-SETUP.md Generation
 
-After writing SUMMARY.md, check whether this plan introduced any external setup requirements. If ANY of the following were encountered during execution, generate or append to `.planning/phases/{phase_dir}/USER-SETUP.md`:
+After writing SUMMARY.md, if the plan introduced external setup requirements, generate or append to `.planning/phases/{phase_dir}/USER-SETUP.md`.
 
-**Triggers** (any of these during execution):
-- Environment variables added to `.env.example` or referenced in code
-- API keys, OAuth credentials, or external service tokens needed
-- External service accounts that need to be created (database, cloud, SaaS)
-- System dependencies (binary tools, language runtimes, CLI tools)
-- Manual configuration steps the user must perform
+**Triggers**: env vars added/referenced, API keys/OAuth/tokens needed, external service accounts, system dependencies (binaries, runtimes), manual config steps.
 
-**USER-SETUP.md format:**
+**Format**: Include tables for Environment Variables (`Variable | Required | Purpose | How to Get`), Account Setup (`Service | Required For | Setup Steps`), System Dependencies (`Dependency | Version | Install Command`), and Verification Commands (bash commands to confirm setup).
 
-```markdown
-# User Setup: Phase {NN}
-
-> Generated by plan: {plan_id}
-> Last updated: {date}
-
-## Environment Variables
-
-| Variable | Required | Purpose | How to Get |
-|----------|----------|---------|------------|
-| {VAR_NAME} | YES/NO | {what it does} | {where to get the value} |
-
-## Account Setup
-
-| Service | Required For | Setup Steps |
-|---------|-------------|-------------|
-| {e.g., Discord Developer Portal} | {OAuth login} | 1. Go to {URL} 2. Create application 3. Copy client ID/secret |
-
-## System Dependencies
-
-| Dependency | Version | Install Command |
-|-----------|---------|-----------------|
-| {e.g., ffmpeg} | {>=5.0} | {brew install ffmpeg / apt install ffmpeg} |
-
-## Verification Commands
-
-Run these to confirm setup is complete:
-```bash
-{command to verify env vars are set}
-{command to verify service connectivity}
-```
-```
-
-**Rules:**
-- If `USER-SETUP.md` already exists (from a prior plan in this phase), APPEND to it — do not overwrite
-- Only include items that require USER action — do not list auto-installed npm packages
+**Rules**:
+- APPEND if file exists from prior plan — do not overwrite
+- Only items requiring USER action — not auto-installed packages
 - Reference the plan ID that introduced each requirement
-- If no external setup was needed, do NOT create the file
+- If no external setup needed, do NOT create the file
 
 ---
 
 ## Self-Check
 
-After writing SUMMARY.md, perform a self-check:
+After writing SUMMARY.md, perform these checks before returning:
 
-### File Existence Check
-```bash
-# For each file claimed in SUMMARY.md key_files:
-ls -la {file_path}
-```
+1. **File existence**: `ls -la {path}` for each file in `key_files` frontmatter
+2. **Commit existence**: `git log --oneline -n {expected_commit_count}` — verify count matches
+3. **Verify replay**: Re-run the LAST task's `<verify>` command — confirm it passes
 
-### Commit Existence Check
-```bash
-# Verify commit count matches
-git log --oneline -n {expected_commits}
-```
-
-### Verify Command Replay
-```bash
-# Re-run the last task's verify command to ensure it still passes
-{verify_command}
-```
-
-### Self-Check Results
-
-If any self-check fails:
-1. Update SUMMARY.md status to `partial`
-2. Add a `self_check_failures` section to the frontmatter:
-   ```yaml
-   self_check_failures:
-     - "File src/auth/discord.ts not found"
-     - "Expected 3 commits, found 2"
-   ```
-3. Do NOT try to fix the issues — the verifier will catch them
-
-### Enhanced Self-Check Protocol
-
-After writing SUMMARY.md, perform these checks BEFORE returning to the orchestrator:
-
-1. **File existence**: For each file in `key_files` frontmatter, run `ls -la {path}` — verify it exists on disk
-2. **Commit existence**: Run `git log --oneline -n {expected_commit_count}` — verify the expected number of commits exist
-3. **Verify replay**: Re-run the LAST task's `<verify>` command — confirm it still passes
-4. **If ANY check fails**: Update SUMMARY.md status to `partial`, add `self_check_failures` to frontmatter with specific failures. Do NOT try to fix — the verifier will catch it.
+**If ANY check fails**: Set SUMMARY.md status to `partial`, add `self_check_failures` to frontmatter (e.g., `"File src/auth/discord.ts not found"`). Do NOT try to fix — the verifier will catch it.
 
 ---
 
@@ -567,36 +346,12 @@ metrics:
 
 ## Error Handling During Execution
 
-### Compilation/Build Errors
-
-1. Read the error message carefully
-2. Check if it's a simple typo (Rule 1: auto-fix)
-3. Check if it's a missing dependency (Rule 2: auto-install)
-4. Check if it's a missing import or declaration (Rule 1: auto-fix)
-5. If none of the above: check if it's an architectural issue (Rule 4: STOP)
-
-### Test Failures
-
-1. Read the test failure message
-2. Determine if the test is correct but the code is wrong → fix the code
-3. Determine if the test is wrong (only for non-TDD tasks) → fix the test
-4. For TDD tasks in RED phase: test failure is EXPECTED
-5. For TDD tasks in GREEN phase: code must be fixed, not the test
-
-### Runtime Errors
-
-1. Check if it's a missing environment variable → add to `.env.example`, note in SUMMARY.md
-2. Check if it's a network issue → retry once, then report
-3. Check if it's a permissions issue → report, do not attempt to fix system permissions
-4. Check if it's a data issue → check if test data/fixtures are needed
-
-### Timeout on Verify Commands
-
-If a verify command runs longer than 60 seconds:
-1. Kill the command
-2. Check if it's waiting for user input (common mistake in verify commands)
-3. Check if it's trying to start a server (should be a background process)
-4. Report the timeout in SUMMARY.md
+| Error Type | Check Order / Action |
+|-----------|---------------------|
+| **Build/Compile** | Typo/missing import → Rule 1 auto-fix. Missing package → Rule 2 auto-install. Architectural → Rule 4 STOP. |
+| **Test Failure** | Code wrong → fix code. Test wrong (non-TDD only) → fix test. TDD RED phase → failure expected. TDD GREEN → fix code, not test. |
+| **Runtime** | Missing env var → add to `.env.example` + note in SUMMARY. Network → retry once then report. Permissions → report only. Data → check fixtures. |
+| **Verify Timeout** (>60s) | Kill command. Check for: waiting on user input, trying to start server. Report in SUMMARY.md. |
 
 ---
 
@@ -610,6 +365,10 @@ If a verify command runs longer than 60 seconds:
 ---
 
 ## Anti-Patterns (Do NOT Do These)
+
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
 
 1. **DO NOT** skip tasks or reorder them
 2. **DO NOT** combine multiple tasks into one commit
@@ -635,6 +394,8 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes o
 | Artifact | Target | Hard Limit |
 |----------|--------|------------|
 | SUMMARY.md | ≤ 800 tokens | 1,200 tokens |
+| Checkpoint responses | ≤ 200 tokens | State what's needed, nothing more |
+| Commit messages | Convention format | One-line summary + optional body |
 | Console output | Minimal | Progress lines only |
 
 **Guidance**: Focus on what was built and key decisions. Omit per-task narration. The SUMMARY.md frontmatter is structured data — keep the body to 3-5 bullet points under "What Was Built" and a compact Task Results table. Skip "Key Implementation Details" unless a deviation occurred.
@@ -643,11 +404,4 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes o
 
 ## Interaction with Other Agents
 
-### Receives Input From
-- **Orchestrator**: Plan files to execute, continuation instructions
-- **towline-planner**: The plans themselves (indirectly, via files)
-
-### Produces Output For
-- **towline-verifier**: SUMMARY.md for verification, committed code for inspection
-- **Orchestrator**: Checkpoint responses, completion status
-- **towline-planner**: Deferred ideas (in SUMMARY.md) for future planning
+Reference: `references/agent-interactions.md` — see the towline-executor section for full details on inputs and outputs.

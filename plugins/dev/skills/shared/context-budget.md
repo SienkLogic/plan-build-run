@@ -2,6 +2,8 @@
 
 Standard rules for keeping orchestrator context lean. Reference this fragment in skills that spawn Task() subagents.
 
+See also: `skills/shared/universal-anti-patterns.md` for the complete set of universal rules (context budget + file reading + behavioral rules).
+
 ---
 
 ## Universal Rules

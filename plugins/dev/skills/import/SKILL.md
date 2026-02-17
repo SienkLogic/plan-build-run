@@ -58,10 +58,7 @@ Read all relevant context files. This context is used for conflict detection in 
 3. CONTEXT.md (project-level, if exists) — extract locked decisions, deferred ideas, constraints
 4. Phase CONTEXT.md (if exists at .planning/phases/{NN}-{slug}/CONTEXT.md) — phase-specific locked decisions from /dev:discuss
 5. config.json — extract feature flags, depth, model settings
-6. Prior SUMMARY.md files — use digest-select depth:
-   - Direct dependency phases (listed in depends_on): full SUMMARY body
-   - 1 phase back from a dependency (transitive): frontmatter only (provides, key_files, key_decisions, patterns)
-   - 2+ phases back: skip entirely
+6. Prior SUMMARY.md files — use digest-select depth per `skills/shared/digest-select.md` (direct deps: full body for conflict detection, transitive: frontmatter only, 2+ back: skip)
 7. Research SUMMARY.md (if exists at .planning/research/SUMMARY.md)
 8. Seeds — glob .planning/seeds/*.md, check trigger field for matches:
    - trigger equals the phase slug
@@ -297,19 +294,14 @@ Run all verification dimensions on these plans. Return your structured report.
 Do NOT write any files. Return your findings as your response text.
 ```
 
-**Process checker results — revision loop (max 3 iterations):**
-1. If checker passes: proceed to Step 7
-2. If BLOCKER or WARNING issues found:
-   - Revise the plans inline to address the issues
-   - Re-run the checker with the revised plans
-   - After 3 iterations without resolution: present remaining issues to user. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
-     question: "Plan checker issues remain after 3 revision attempts. Proceed with current plans?"
-     header: "Proceed?"
-     options:
-       - label: "Proceed anyway"  description: "Accept plans with remaining issues"
-       - label: "Adjust approach"  description: "Discuss a different approach"
-   - If "Proceed anyway": go to Step 7
-   - If "Adjust approach" or "Other": discuss with user and re-enter Step 5 with updated context
+**Process checker results — revision loop:**
+
+Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern (max 3 iterations).
+
+Follow the revision loop with:
+- **Producer**: orchestrator (inline plan revision)
+- **Checker**: towline-plan-checker (re-run Step 6)
+- **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
 
 ---
 

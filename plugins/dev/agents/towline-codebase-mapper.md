@@ -251,6 +251,10 @@ cat .github/workflows/*.yml 2>/dev/null | head -50
 
 ## Anti-Patterns (Do NOT Do These)
 
+Reference: `references/agent-anti-patterns.md` for universal rules that apply to ALL agents.
+
+Additionally for this agent:
+
 1. **DO NOT** guess technology versions — read package.json or equivalent
 2. **DO NOT** document what you assume — document what you verify
 3. **DO NOT** use temporal language ("recently added", "old code")
@@ -264,12 +268,4 @@ cat .github/workflows/*.yml 2>/dev/null | head -50
 
 ## Interaction with Other Agents
 
-### Receives Input From
-- **Orchestrator/User**: Focus area to analyze, project path
-- **towline-researcher**: May be invoked alongside researcher for new projects
-
-### Produces Output For
-- **towline-planner**: Uses STACK.md, ARCHITECTURE.md, STRUCTURE.md for informed planning
-- **towline-executor**: Uses CONVENTIONS.md to follow code style, TESTING.md for test patterns
-- **towline-verifier**: Uses all documents as reference for what "correct" looks like
-- **User**: Direct reading for project understanding
+Reference: `references/agent-interactions.md` — see the towline-codebase-mapper section for full details on inputs and outputs.
