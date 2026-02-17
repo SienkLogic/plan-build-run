@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad } = require('./towline-tools');
+// configLoad not used here to avoid mtime-based cache issues across directories.
+// Config is read directly in shouldAutoVerify().
 
 function readStdin() {
   try {
@@ -42,7 +43,16 @@ function isExecutorAgent(data) {
  * @returns {boolean}
  */
 function shouldAutoVerify(planningDir) {
-  const config = configLoad(planningDir);
+  // Read config directly instead of using configLoad to avoid mtime-based
+  // cache issues when called repeatedly with different planning directories.
+  const configPath = path.join(planningDir, 'config.json');
+  let config;
+  try {
+    if (!fs.existsSync(configPath)) return false;
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (_e) {
+    return false;
+  }
   if (config === null) return false;
 
   // Check explicit goal_verification toggle
