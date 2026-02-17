@@ -86,6 +86,8 @@ After any todo operation, update the "Pending Todos" section of STATE.md with th
 
 ## Git Integration
 
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
+
 If `planning.commit_docs: true` in config, commit todo changes:
 - `docs(planning): add todo {NNN}`
 - `docs(planning): complete todo {NNN}`
