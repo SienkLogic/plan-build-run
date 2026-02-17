@@ -86,6 +86,37 @@ Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification 
 
 **Depth profile gate:** Before spawning the verifier, resolve the depth profile. If `features.goal_verification` is false in the profile, skip automated verification and proceed directly to Step 5 (Conversational UAT). Note to user: "Automated verification skipped (depth: {depth}). Proceeding to manual review."
 
+#### Team Review Mode
+
+If `config.parallelization.use_teams` is true:
+
+1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
+2. Spawn THREE verifier agents in parallel using Task():
+
+   **Agent 1 -- Functional Reviewer**:
+   - subagent_type: "dev:towline-verifier"
+   - Prompt includes: "You are the FUNCTIONAL REVIEWER in a review team. Focus on: must-haves met, code correctness, completeness, integration points. Write output to `.planning/phases/{NN}-{slug}/team/functional-VERIFY.md`."
+
+   **Agent 2 -- Security Auditor**:
+   - subagent_type: "dev:towline-verifier"
+   - Prompt includes: "You are the SECURITY AUDITOR in a review team. Focus on: vulnerabilities, auth bypass paths, injection risks, secrets exposure, permission escalation. Write output to `.planning/phases/{NN}-{slug}/team/security-VERIFY.md`."
+
+   **Agent 3 -- Performance Analyst**:
+   - subagent_type: "dev:towline-verifier"
+   - Prompt includes: "You are the PERFORMANCE ANALYST in a review team. Focus on: N+1 queries, memory leaks, unnecessary allocations, bundle size impact, blocking operations. Write output to `.planning/phases/{NN}-{slug}/team/performance-VERIFY.md`."
+
+3. Wait for all three to complete
+4. Spawn synthesizer:
+   - subagent_type: "dev:towline-synthesizer"
+   - Prompt: "Read all *-VERIFY.md files in `.planning/phases/{NN}-{slug}/team/`. Synthesize into a unified VERIFICATION.md. Merge pass/fail verdicts -- a must-have fails if ANY reviewer flags it. Combine gap lists. Security and performance findings go into dedicated sections."
+5. Proceed to UAT walkthrough with the unified VERIFICATION.md
+
+If teams not enabled, proceed with existing single-verifier flow.
+
+Reference: `references/agent-teams.md`
+
+#### Single-Verifier Flow (default)
+
 Spawn a verifier Task() to run three-layer checks:
 
 ```
