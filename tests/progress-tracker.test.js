@@ -203,4 +203,67 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).toContain('Line 5');
     expect(parsed.additionalContext).not.toContain('Line 6');
   });
+
+  test('does NOT inject Accumulated Context section', () => {
+    writeState(`# Project State
+
+## Current Position
+Phase: 5 of 10 (Dashboard)
+Plan: 2 of 3
+Status: building
+
+## Accumulated Context
+
+### Decisions
+- Use PostgreSQL for persistence
+- JWT for auth tokens
+- 15 more old decisions from phases 1-4
+
+### Blockers/Concerns
+None
+
+## Milestone
+Current: MyApp v2.0
+Phases: 5-10
+Status: In progress
+
+## Session Continuity
+Last session: 2026-02-15T10:00:00
+Stopped at: Building plan 5-02
+Resume file: None
+`);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    const ctx = parsed.additionalContext;
+    expect(ctx).toContain('Phase: 5 of 10');
+    expect(ctx).not.toContain('Use PostgreSQL');
+    expect(ctx).not.toContain('JWT for auth');
+    expect(ctx).not.toContain('15 more old decisions');
+  });
+
+  test('does NOT inject Milestone section', () => {
+    writeState(`# Project State
+
+## Current Position
+Phase: 3 of 8
+Status: building
+
+## Milestone
+Current: MyApp v1.0
+Phases: 1-4
+Status: In progress
+
+## Session Continuity
+Last session: 2026-02-15
+Stopped at: Phase 3 plan 1
+Resume file: None
+`);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    const ctx = parsed.additionalContext;
+    expect(ctx).not.toContain('MyApp v1.0');
+    expect(ctx).not.toContain('Phases: 1-4');
+  });
 });
