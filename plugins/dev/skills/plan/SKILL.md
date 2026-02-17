@@ -222,7 +222,7 @@ Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt 
 - `{goal from roadmap}` - phase goal statement
 - `{REQ-IDs mapped to this phase}` - requirement IDs
 - `{dependencies from roadmap}` - dependency list
-- Inline relevant CONTEXT.md sections and prior SUMMARY.md content into the `<project_context>` block
+- Fill `<project_context>` and `<prior_work>` blocks per the shared partial (`templates/prompt-partials/phase-project-context.md.tmpl`): Decision Summary for context, manifest table for prior work
 
 Wait for the researcher to complete before proceeding.
 
