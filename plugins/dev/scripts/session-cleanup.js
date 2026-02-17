@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { tailLines } = require('./towline-tools');
 
 function readStdin() {
   try {
@@ -132,41 +133,39 @@ function writeSessionHistory(planningDir, data) {
     let sessionStart = null;
 
     // Count agents from hooks log (SubagentStart entries)
-    if (fs.existsSync(hooksLog)) {
-      const lines = fs.readFileSync(hooksLog, 'utf8').trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line);
-          if (entry.event === 'SubagentStart' && entry.decision === 'spawned') {
-            agentsSpawned++;
-          }
-          // Track earliest timestamp as session start
-          if (entry.ts && (!sessionStart || entry.ts < sessionStart)) {
-            sessionStart = entry.ts;
-          }
-        } catch (_e) { /* skip malformed lines */ }
-      }
+    // Hooks log is capped at 200 entries; read last 200 to cover the full session
+    const hookLines = tailLines(hooksLog, 200);
+    for (const line of hookLines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.event === 'SubagentStart' && entry.decision === 'spawned') {
+          agentsSpawned++;
+        }
+        // Track earliest timestamp as session start
+        if (entry.ts && (!sessionStart || entry.ts < sessionStart)) {
+          sessionStart = entry.ts;
+        }
+      } catch (_e) { /* skip malformed lines */ }
     }
 
     // Count commits and commands from events log
-    if (fs.existsSync(eventsLog)) {
-      const lines = fs.readFileSync(eventsLog, 'utf8').trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const entry = JSON.parse(line);
-          if (entry.event === 'commit-validated' && entry.status === 'allow') {
-            commitsCreated++;
+    // Read last 200 entries — sufficient for a single session's events
+    const eventLines = tailLines(eventsLog, 200);
+    for (const line of eventLines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.event === 'commit-validated' && entry.status === 'allow') {
+          commitsCreated++;
+        }
+        if (entry.cat === 'workflow' && entry.event) {
+          if (!commandsRun.includes(entry.event)) {
+            commandsRun.push(entry.event);
           }
-          if (entry.cat === 'workflow' && entry.event) {
-            if (!commandsRun.includes(entry.event)) {
-              commandsRun.push(entry.event);
-            }
-          }
-          if (entry.ts && (!sessionStart || entry.ts < sessionStart)) {
-            sessionStart = entry.ts;
-          }
-        } catch (_e) { /* skip malformed lines */ }
-      }
+        }
+        if (entry.ts && (!sessionStart || entry.ts < sessionStart)) {
+          sessionStart = entry.ts;
+        }
+      } catch (_e) { /* skip malformed lines */ }
     }
 
     const sessionEnd = new Date().toISOString();

@@ -14,6 +14,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { configLoad } = require('./towline-tools');
 
 function main() {
   const cwd = process.cwd();
@@ -99,26 +100,21 @@ function buildContext(planningDir, stateFile) {
   }
 
   // Check for config and validate
-  const configFile = path.join(planningDir, 'config.json');
-  if (fs.existsSync(configFile)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-      parts.push(`\nConfig: depth=${config.depth || 'standard'}, mode=${config.mode || 'interactive'}`);
+  const config = configLoad(planningDir);
+  if (config) {
+    parts.push(`\nConfig: depth=${config.depth || 'standard'}, mode=${config.mode || 'interactive'}`);
 
-      // Validate config against schema
-      const schemaPath = path.join(__dirname, 'config-schema.json');
-      if (fs.existsSync(schemaPath)) {
-        const { configValidate } = require('./towline-tools');
-        const validation = configValidate();
-        if (validation.warnings.length > 0) {
-          parts.push(`\nConfig warnings: ${validation.warnings.join('; ')}`);
-        }
-        if (validation.errors.length > 0) {
-          parts.push(`\nConfig errors: ${validation.errors.join('; ')}`);
-        }
+    // Validate config against schema
+    const schemaPath = path.join(__dirname, 'config-schema.json');
+    if (fs.existsSync(schemaPath)) {
+      const { configValidate } = require('./towline-tools');
+      const validation = configValidate();
+      if (validation.warnings.length > 0) {
+        parts.push(`\nConfig warnings: ${validation.warnings.join('; ')}`);
       }
-    } catch (_e) {
-      // Ignore parse errors
+      if (validation.errors.length > 0) {
+        parts.push(`\nConfig errors: ${validation.errors.join('; ')}`);
+      }
     }
   }
 
