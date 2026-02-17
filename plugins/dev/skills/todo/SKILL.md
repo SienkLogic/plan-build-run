@@ -1,6 +1,6 @@
 ---
 name: todo
-description: "Persistent file-based todos that survive across sessions. Add, list, and complete todo items."
+description: "File-based persistent todos. Add, list, complete — survives sessions."
 allowed-tools: Read, Write, Bash, Glob, Grep
 argument-hint: "add <description> | list [theme] | done <NNN>"
 ---

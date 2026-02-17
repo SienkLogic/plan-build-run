@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Interactive onboarding wizard for new Towline projects. Guides through initialization, model selection, and verification."
+description: "Onboarding wizard. Initialize project, select models, verify setup."
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: import
-description: "Import an external plan document. Validates against project context, detects conflicts, and generates PLAN.md files."
+description: "Import external plans. Validates context, detects conflicts, generates PLAN.md."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--from <filepath>] [--skip-checker]"
 ---
@@ -33,11 +33,7 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Tooling shortcut**: Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, you can run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
-```
-This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. Falls back gracefully if the script is missing — parse files manually in that case.
+Reference: `skills/shared/config-loading.md` for the tooling shortcut and config field reference.
 
 1. Parse `$ARGUMENTS` for phase number
 2. Parse optional `--from <filepath>` flag (path to the external document to import)

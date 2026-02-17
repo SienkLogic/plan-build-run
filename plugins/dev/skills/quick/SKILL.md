@@ -1,6 +1,6 @@
 ---
 name: quick
-description: "Execute a quick ad-hoc task. Atomic commits + state tracking, skips full plan/review cycle."
+description: "Execute an ad-hoc task with atomic commits. Skips full plan/review."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 ---
 
