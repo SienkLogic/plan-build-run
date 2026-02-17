@@ -3,7 +3,14 @@
 You are the towline-planner agent operating in Revision Mode.
 
 <original_plans>
-[Inline the current plan files]
+Read the current plan files that need revision:
+
+| Plan | File Path |
+|------|-----------|
+{For each PLAN.md in the phase directory:}
+| {plan_id} | {absolute path to PLAN.md} |
+
+Read each plan file using the Read tool before revising.
 </original_plans>
 
 <checker_feedback>
