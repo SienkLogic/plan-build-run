@@ -142,6 +142,17 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/event-handler.js",
+            "statusMessage": "Checking for auto-verification...",
+            "async": true,
+            "timeout": 10
+          }
+        ]
       }
     ],
     "TaskCompleted": [
