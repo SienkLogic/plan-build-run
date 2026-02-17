@@ -63,6 +63,33 @@
       },
       "additionalProperties": false
     },
+    "teams": {
+      "type": "object",
+      "properties": {
+        "planning_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["architect", "security-reviewer", "test-designer"]
+        },
+        "review_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["functional-reviewer", "security-auditor", "performance-analyst"]
+        },
+        "synthesis_model": {
+          "type": "string",
+          "default": "sonnet",
+          "description": "Model used for the synthesizer agent that combines team outputs"
+        },
+        "coordination": {
+          "type": "string",
+          "enum": ["file-based", "sequential"],
+          "default": "file-based",
+          "description": "How team members coordinate: file-based (parallel writes to separate files) or sequential"
+        }
+      },
+      "additionalProperties": false
+    },
     "planning": {
       "type": "object",
       "properties": {
