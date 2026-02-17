@@ -14,8 +14,9 @@ This skill runs **inline** and may delegate to other skills via Task().
 
 ## Context Budget
 
-This skill routes to other skills, so keep reads minimal:
-- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Minimize** state reads — read only STATE.md lines 1-20 to determine next action
 - **Delegate** execution to the appropriate skill via Skill() or Task()
 
