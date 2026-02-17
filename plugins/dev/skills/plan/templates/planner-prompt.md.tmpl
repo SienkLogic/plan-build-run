@@ -28,18 +28,21 @@ Full context files (Read on-demand if you need scope/quality/integration details
 </project_context>
 
 <prior_work>
-{For each preceding phase that has SUMMARY.md files:}
-Phase {M}: {name}
-- Status: {complete/partial}
-- Key files created: {list}
-- Exports available: {provides from SUMMARY.md}
-- Patterns established: {patterns from SUMMARY.md}
+The following prior phase summaries are available. Read any you need via the Read tool.
+
+| Phase | Summary File | Status | Key Exports |
+|-------|-------------|--------|-------------|
+{For each preceding phase SUMMARY.md:}
+| {M} - {name} | {absolute path to SUMMARY.md} | {complete/partial} | {one-line provides list} |
 </prior_work>
 
 <research>
-{If RESEARCH.md exists for this phase: inline the full content}
+{If RESEARCH.md exists:}
+Phase research available at: {absolute path to RESEARCH.md}
+Read this file for technology recommendations, implementation patterns, and pitfalls.
 {If not: "No phase-specific research conducted."}
-{If research SUMMARY.md exists: inline relevant sections}
+{If research SUMMARY.md exists:}
+Research summary available at: {absolute path to research SUMMARY.md}
 </research>
 
 <config>
