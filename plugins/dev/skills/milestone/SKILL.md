@@ -15,8 +15,9 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 
 ## Context Budget
 
-Keep the orchestrator lean. Follow these rules:
-- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Never** perform integration checks yourself — delegate to the integration-checker subagent
 - **Minimize** reading audit and verification outputs — read only frontmatter and status fields
 - **Delegate** all cross-phase integration analysis to the integration-checker subagent
@@ -469,6 +470,8 @@ All subcommands update STATE.md:
 ---
 
 ## Git Integration
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 All subcommands commit if `planning.commit_docs: true`:
 - `new`: `docs(planning): start milestone "{name}" (phases {start}-{end})`

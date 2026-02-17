@@ -287,6 +287,8 @@ This skill updates STATE.md's Accumulated Context section with a pointer to the 
 
 ## Git Integration
 
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
+
 If `planning.commit_docs: true` in config.json:
 - Commit CONTEXT.md: `docs(planning): capture phase {N} discussion decisions`
 

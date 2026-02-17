@@ -123,6 +123,8 @@ If the Session Continuity section doesn't exist, create it at the end of STATE.m
 
 ### Step 6: Commit as WIP
 
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
+
 If `planning.commit_docs: true` in config.json:
 
 ```bash
