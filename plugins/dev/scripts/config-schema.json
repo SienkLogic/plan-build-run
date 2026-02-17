@@ -7,7 +7,7 @@
     "version": { "type": "integer", "enum": [1, 2] },
     "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
     "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
-    "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"] },
+    "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
     "features": {
       "type": "object",
       "properties": {
@@ -103,6 +103,94 @@
         "detectConsoleLogs": { "type": "boolean" },
         "blockDocSprawl": { "type": "boolean" },
         "compactThreshold": { "type": "integer", "minimum": 10, "maximum": 200 }
+      },
+      "additionalProperties": false
+    },
+    "depth_profiles": {
+      "type": "object",
+      "description": "Depth profile overrides. Each profile maps depth value to effective feature/gate settings.",
+      "properties": {
+        "quick": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        "standard": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        "comprehensive": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "debug": {
+      "type": "object",
+      "properties": {
+        "max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+      },
+      "additionalProperties": false
+    },
+    "status_line": {
+      "type": "object",
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["phase", "plan", "status", "context"] }
+        },
+        "brand_text": { "type": "string" },
+        "max_status_length": { "type": "integer", "minimum": 10, "maximum": 200 },
+        "context_bar": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer", "minimum": 1, "maximum": 50 },
+            "thresholds": {
+              "type": "object",
+              "properties": {
+                "green": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "yellow": { "type": "integer", "minimum": 0, "maximum": 100 }
+              },
+              "additionalProperties": false
+            },
+            "chars": {
+              "type": "object",
+              "properties": {
+                "filled": { "type": "string" },
+                "empty": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
       },
       "additionalProperties": false
     }
