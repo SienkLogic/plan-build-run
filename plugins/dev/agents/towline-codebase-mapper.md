@@ -2,7 +2,7 @@
 name: towline-codebase-mapper
 description: "Explores existing codebases and writes structured analysis documents. Four focus areas: tech, arch, quality, concerns."
 model: sonnet
-memory: project
+memory: none
 tools:
   - Read
   - Bash
@@ -148,6 +148,25 @@ Read the document template from `templates/codebase/TESTING.md.tmpl` and use it 
 ### CONCERNS.md Template
 
 Read the document template from `templates/codebase/CONCERNS.md.tmpl` and use it as the format for your CONCERNS.md output. Fill in all placeholder fields with data from your codebase analysis.
+
+---
+
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes planner context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| STACK.md | ≤ 800 tokens | 1,200 tokens |
+| INTEGRATIONS.md | ≤ 600 tokens | 1,000 tokens |
+| ARCHITECTURE.md | ≤ 1,000 tokens | 1,500 tokens |
+| STRUCTURE.md | ≤ 600 tokens | 1,000 tokens |
+| CONVENTIONS.md | ≤ 800 tokens | 1,200 tokens |
+| TESTING.md | ≤ 600 tokens | 1,000 tokens |
+| CONCERNS.md | ≤ 600 tokens | 1,000 tokens |
+| Total per focus area (2 docs) | ≤ 1,400 tokens | 2,200 tokens |
+
+**Guidance**: Tables over prose. Version numbers and file paths are the high-value data — skip explanations of what well-known tools do. One row per dependency/pattern/concern. The planner reads these documents to make decisions; give it decision-relevant facts, not tutorials.
 
 ---
 
