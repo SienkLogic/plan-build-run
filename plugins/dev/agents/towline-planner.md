@@ -204,6 +204,13 @@ Write each plan file with:
 - Executable verify commands
 - Observable done conditions
 
+6. **Append ## Summary section** at the end of each plan file, after all XML tasks. Follow the format specified in `references/plan-format.md` under "Summary Section". This summary will be injected into executor prompts by the build skill -- keep it under 500 tokens. Include:
+   - Plan ID and one-sentence description
+   - Numbered task list with names and files
+   - Key files (all files_modified)
+   - Must-haves (truths only)
+   - Provides and Consumes lists
+
 ### Step 6: Self-Check
 
 Before writing, verify:
@@ -301,6 +308,20 @@ This prevents token growth as projects get larger. A 12-phase project at Phase 1
 10. **DO NOT** plan for features that aren't part of the current phase goal
 11. **DO NOT** assume research is done — check discovery level
 12. **DO NOT** leave done conditions vague — they must be observable
+
+---
+
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| PLAN.md (per plan file) | ≤ 2,000 tokens | 3,000 tokens |
+| ROADMAP.md | ≤ 3,000 tokens | 5,000 tokens |
+| Console output | Minimal | Plan IDs + wave summary only |
+
+**Guidance**: One-line task descriptions in `<name>`. File paths in `<files>`, not explanations. Keep `<action>` steps to numbered imperatives — no background rationale. The executor reads code, not prose. Omit "why" from action steps; put architectural reasoning in the plan header comment if needed.
 
 ---
 
