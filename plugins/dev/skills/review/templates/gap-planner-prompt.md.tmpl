@@ -1,4 +1,5 @@
 <!-- Source: review/SKILL.md | Purpose: Prompt template for spawning planner agent in gap-closure mode -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
 
 You are the towline-planner agent operating in Gap Closure mode.
 
@@ -20,12 +21,8 @@ Read existing plans for context on what was already built:
 | {plan_id} | {absolute path to PLAN.md} |
 </existing_plans>
 
-<project_context>
-{If CONTEXT.md exists:}
-Project context (locked decisions, constraints): {absolute path to CONTEXT.md}
-Read this file for locked decisions that must be honored in gap-closure plans.
-{If not: "No CONTEXT.md found."}
-</project_context>
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include <project_context> only -- gap planner gets phase context from verification report -->
 
 <gap_closure_instructions>
 Create targeted gap-closure plans to fix each verified gap.

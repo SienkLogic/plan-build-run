@@ -1,29 +1,11 @@
 <!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning researcher agent during phase planning -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
 
 You are the towline-researcher agent operating in Phase Research mode.
 
-<phase_context>
-Phase: {NN} - {phase name}
-Phase goal: {goal from roadmap}
-Phase requirements: {REQ-IDs mapped to this phase}
-Phase depends on: {dependencies from roadmap}
-</phase_context>
-
-<project_context>
-{Decision Summary from CONTEXT.md -- compact locked/deferred/discretion list}
-{If no CONTEXT.md: "No project-level context."}
-
-Prior work is available in these files (read as needed):
-| Phase | Summary File | Status |
-|-------|-------------|--------|
-{For each preceding phase SUMMARY.md:}
-| {M} - {name} | {absolute path to SUMMARY.md} | {complete/partial} |
-
-{If research SUMMARY.md exists:}
-Prior research summary: {absolute path to research SUMMARY.md}
-
-Full context file (Read on-demand for details): .planning/CONTEXT.md
-</project_context>
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include the filled <phase_context> and <project_context> blocks here. -->
+<!-- Omit <prior_work> and deferred ideas -- researcher doesn't need them -->
 
 <research_questions>
 Research these specific questions for this phase:
