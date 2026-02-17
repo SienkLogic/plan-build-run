@@ -41,7 +41,9 @@ Most AI coding tools treat context as infinite. They index your codebase, track 
 
 Towline takes a different approach: **structured context isolation**. Instead of stuffing everything into one session, it delegates each operation to a fresh subagent with a clean 200k token window and coordinates through files on disk.
 
-<!-- TODO: Add demo GIF here showing /dev:begin → /dev:plan → /dev:build cycle -->
+<p align="center">
+  <img src="./assets/towline-demo.gif" alt="Towline workflow: begin → plan → build → review" width="800" />
+</p>
 
 <details>
 <summary><strong>What sets it apart</strong></summary>
