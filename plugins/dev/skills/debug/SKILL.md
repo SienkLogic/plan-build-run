@@ -34,7 +34,7 @@ Additionally for this skill:
 
 ### Step 1: Check for Active Debug Sessions
 
-**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
+**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
 
 Scan `.planning/debug/` for existing debug files:
 

@@ -402,6 +402,25 @@ function configValidate(preloadedConfig) {
 
   validateObject(config, schema, '', errors, warnings);
 
+  // Semantic conflict detection — logical contradictions that pass schema validation
+  if (config.mode === 'autonomous' && config.gates) {
+    const activeGates = Object.entries(config.gates || {}).filter(([, v]) => v === true).map(([k]) => k);
+    if (activeGates.length > 0) {
+      warnings.push(`mode=autonomous with active gates (${activeGates.join(', ')}): gates are unreachable in autonomous mode`);
+    }
+  }
+  if (config.features && config.features.auto_continue && config.mode === 'interactive') {
+    warnings.push('features.auto_continue=true with mode=interactive: auto_continue only fires in autonomous mode');
+  }
+  if (config.parallelization) {
+    if (config.parallelization.enabled === false && config.parallelization.plan_level === true) {
+      warnings.push('parallelization.enabled=false with plan_level=true: plan_level is ignored when parallelization is disabled');
+    }
+    if (config.parallelization.max_concurrent_agents === 1 && config.teams && config.teams.coordination) {
+      warnings.push('parallelization.max_concurrent_agents=1 with teams.coordination set: teams require concurrent agents to be useful');
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,

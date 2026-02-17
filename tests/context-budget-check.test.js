@@ -1,4 +1,4 @@
-const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext } = require('../plugins/dev/scripts/context-budget-check');
+const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../plugins/dev/scripts/context-budget-check');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -137,6 +137,85 @@ Implement JWT authentication middleware
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
       const result = readConfigHighlights(planningDir);
       expect(result).toBe('');
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('readRecentErrors', () => {
+    test('extracts recent errors from events.jsonl', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const logsDir = path.join(planningDir, 'logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+
+      const events = [
+        JSON.stringify({ ts: '2026-01-01T00:00:00Z', cat: 'workflow', event: 'phase-start', phase: 1 }),
+        JSON.stringify({ ts: '2026-01-01T00:01:00Z', cat: 'error', event: 'tool-failure', error: 'ENOENT: file not found' }),
+        JSON.stringify({ ts: '2026-01-01T00:02:00Z', cat: 'workflow', event: 'phase-end', phase: 1 }),
+        JSON.stringify({ ts: '2026-01-01T00:03:00Z', cat: 'workflow', event: 'tool-failure', error: 'timeout after 30s' }),
+      ];
+      fs.writeFileSync(path.join(logsDir, 'events.jsonl'), events.join('\n') + '\n');
+
+      const result = readRecentErrors(planningDir, 3);
+      expect(result.length).toBe(2);
+      expect(result[0]).toContain('timeout');
+      expect(result[1]).toContain('ENOENT');
+
+      cleanup(tmpDir);
+    });
+
+    test('returns empty array when no events log', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const result = readRecentErrors(planningDir, 3);
+      expect(result).toEqual([]);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('readRecentAgents', () => {
+    test('extracts recent agents from hooks.jsonl', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const logsDir = path.join(planningDir, 'logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+
+      const hookEntries = [
+        JSON.stringify({ ts: '2026-01-01T00:00:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'dev:towline-researcher', description: 'Research phase 1' }),
+        JSON.stringify({ ts: '2026-01-01T00:01:00Z', hook: 'check-subagent-output', event: 'PostToolUse', decision: 'allow' }),
+        JSON.stringify({ ts: '2026-01-01T00:02:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'dev:towline-executor', description: 'Execute plan 01' }),
+        JSON.stringify({ ts: '2026-01-01T00:03:00Z', hook: 'log-subagent', event: 'SubagentStop', decision: 'completed', agent_type: 'dev:towline-executor' }),
+      ];
+      fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
+
+      const result = readRecentAgents(planningDir, 5);
+      expect(result.length).toBe(2);
+      expect(result[0]).toContain('dev:towline-researcher');
+      expect(result[0]).toContain('Research phase 1');
+      expect(result[1]).toContain('dev:towline-executor');
+      expect(result[1]).toContain('Execute plan 01');
+
+      cleanup(tmpDir);
+    });
+
+    test('returns empty array when no hooks log', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const result = readRecentAgents(planningDir, 5);
+      expect(result).toEqual([]);
+      cleanup(tmpDir);
+    });
+
+    test('respects maxAgents limit', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const logsDir = path.join(planningDir, 'logs');
+      fs.mkdirSync(logsDir, { recursive: true });
+
+      const hookEntries = [];
+      for (let i = 0; i < 10; i++) {
+        hookEntries.push(JSON.stringify({ ts: `2026-01-01T00:0${i}:00Z`, hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: `dev:towline-agent-${i}` }));
+      }
+      fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
+
+      const result = readRecentAgents(planningDir, 3);
+      expect(result.length).toBe(3);
+
       cleanup(tmpDir);
     });
   });

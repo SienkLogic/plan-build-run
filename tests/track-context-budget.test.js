@@ -85,17 +85,17 @@ describe('track-context-budget.js', () => {
   });
 
   test('warns when read count exceeds threshold', () => {
-    // Pre-seed tracker at threshold - 1
+    // Pre-seed tracker at threshold - 1 (threshold is 20)
     const trackerPath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(trackerPath, JSON.stringify({
-      skill: '', reads: 14, total_chars: 1000, files: []
+      skill: '', reads: 19, total_chars: 1000, files: []
     }));
 
     const output = run({ file_path: '/final.js' }, 'content');
 
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('Context Budget Warning');
-    expect(parsed.additionalContext).toContain('15 file reads');
+    expect(parsed.additionalContext).toContain('20 file reads');
   });
 
   test('warns when char count exceeds threshold', () => {

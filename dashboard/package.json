@@ -18,6 +18,7 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.57.1",
     "chokidar": "^5.0.0",
     "commander": "^12.1.0",
     "ejs": "^3.1.10",
