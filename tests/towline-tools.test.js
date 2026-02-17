@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const {
   parseStateMd,
   parseRoadmapMd,
@@ -11,7 +12,9 @@ const {
   updateFrontmatterField,
   updateTableRow,
   findRoadmapRow,
-  resolveDepthProfile
+  resolveDepthProfile,
+  historyAppend,
+  historyLoad
 } = require('../plugins/dev/scripts/towline-tools');
 
 describe('towline-tools.js', () => {
@@ -608,6 +611,76 @@ next_top_level: something`;
 
     test('handles already-padded input', () => {
       expect(findRoadmapRow(lines, '03')).toBe(5);
+    });
+  });
+
+  describe('historyAppend and historyLoad', () => {
+    let tmpDir;
+    let origCwd;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-history-'));
+      fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+      origCwd = process.cwd();
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('historyAppend creates HISTORY.md with header on first call', () => {
+      const dir = path.join(tmpDir, '.planning');
+      const result = historyAppend({ type: 'phase', title: 'Phase 1 (Setup)', body: 'Verified. Basic scaffolding complete.' }, dir);
+      expect(result.success).toBe(true);
+
+      const content = fs.readFileSync(path.join(dir, 'HISTORY.md'), 'utf8');
+      expect(content).toContain('# Project History');
+      expect(content).toContain('## Phase: Phase 1 (Setup)');
+      expect(content).toContain('Verified. Basic scaffolding complete.');
+    });
+
+    test('historyAppend appends to existing HISTORY.md without duplicating header', () => {
+      const dir = path.join(tmpDir, '.planning');
+      historyAppend({ type: 'phase', title: 'Phase 1', body: 'Done.' }, dir);
+      historyAppend({ type: 'milestone', title: 'v1.0', body: 'Phases 1-4 complete.' }, dir);
+
+      const content = fs.readFileSync(path.join(dir, 'HISTORY.md'), 'utf8');
+      const headerCount = (content.match(/# Project History/g) || []).length;
+      expect(headerCount).toBe(1);
+      expect(content).toContain('## Phase: Phase 1');
+      expect(content).toContain('## Milestone: v1.0');
+    });
+
+    test('historyAppend includes completion date', () => {
+      const dir = path.join(tmpDir, '.planning');
+      historyAppend({ type: 'phase', title: 'Phase 2', body: 'Auth done.' }, dir);
+
+      const content = fs.readFileSync(path.join(dir, 'HISTORY.md'), 'utf8');
+      const today = new Date().toISOString().slice(0, 10);
+      expect(content).toContain(`_Completed: ${today}_`);
+    });
+
+    test('historyLoad returns null when HISTORY.md missing', () => {
+      const result = historyLoad(path.join(tmpDir, '.planning'));
+      expect(result).toBeNull();
+    });
+
+    test('historyLoad parses records from HISTORY.md', () => {
+      const dir = path.join(tmpDir, '.planning');
+      historyAppend({ type: 'phase', title: 'Phase 1 (Setup)', body: 'Scaffolding complete.' }, dir);
+      historyAppend({ type: 'milestone', title: 'v1.0 Auth', body: 'Phases 1-4. All verified.' }, dir);
+
+      const result = historyLoad(dir);
+      expect(result).not.toBeNull();
+      expect(result.records).toHaveLength(2);
+      expect(result.records[0].type).toBe('phase');
+      expect(result.records[0].title).toBe('Phase 1 (Setup)');
+      expect(result.records[0].body).toContain('Scaffolding complete.');
+      expect(result.records[1].type).toBe('milestone');
+      expect(result.records[1].title).toBe('v1.0 Auth');
+      expect(result.line_count).toBeGreaterThan(0);
     });
   });
 });

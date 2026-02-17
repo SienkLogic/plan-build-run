@@ -582,10 +582,11 @@ function stateUpdate(field, value) {
  * Each entry is a markdown section appended at the end.
  *
  * @param {object} entry - { type: 'milestone'|'phase', title: string, body: string }
+ * @param {string} [dir] - Path to .planning directory (defaults to cwd/.planning)
  * @returns {{success: boolean, error?: string}}
  */
-function historyAppend(entry) {
-  const historyPath = path.join(planningDir, 'HISTORY.md');
+function historyAppend(entry, dir) {
+  const historyPath = path.join(dir || planningDir, 'HISTORY.md');
   const timestamp = new Date().toISOString().slice(0, 10);
 
   let header = '';
