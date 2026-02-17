@@ -15,7 +15,7 @@
   <a href="#commands">Commands</a> &bull;
   <a href="#how-it-works">How It Works</a> &bull;
   <a href="https://github.com/SienkLogic/towline/wiki">Wiki</a> &bull;
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href=".github/CONTRIBUTING.md">Contributing</a>
 </p>
 
 <p align="center">
@@ -225,7 +225,7 @@ npm run validate
 claude --plugin-dir .
 ```
 
-CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -241,10 +241,6 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 | Config toggles | 12 top-level keys |
 
 ---
-
-## Acknowledgments
-
-Towline was initially inspired by and built upon concepts from [get-shit-done](https://github.com/glittercowboy/get-shit-done) by [Lex Christopherson](https://github.com/glittercowboy), licensed under MIT. We took the foundation, had a different vision for where it should go, and built something with its own identity. See [ACKNOWLEDGMENTS](ACKNOWLEDGMENTS) for the original license.
 
 ## License
 

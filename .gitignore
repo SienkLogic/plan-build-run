@@ -5,3 +5,5 @@ nul
 .planning/
 .claude/agent-memory/
 .claude/settings.local.json
+coverage/
+assets/assets_backup/
