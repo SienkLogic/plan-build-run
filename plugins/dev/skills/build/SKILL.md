@@ -11,12 +11,11 @@ You are the orchestrator for `/dev:build`. This skill executes all plans in a ph
 
 ## Context Budget
 
-Keep the main orchestrator context lean. Follow these rules:
-- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
-- **Never** inline large files into Task() prompts — tell agents to read files from disk instead
-- **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter, not full content
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
+- **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
-- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` after this wave to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Prerequisites
 
@@ -58,6 +57,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    - PLAN.md files exist in the directory
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
 4. If no phase number given, read current phase from `.planning/STATE.md`
+   - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
 5. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
    question: "Ready to build Phase {N}? This will execute {count} plans."
    header: "Build?"
@@ -217,6 +217,17 @@ Plan {id}: {plan name}
 This is a read-only presentation step — extract descriptions from plan frontmatter `must_haves.truths` and the plan's task names. Do not read full task bodies for this; keep it lightweight.
 
 **State fragment rule:** Executors MUST NOT modify STATE.md directly. The build skill orchestrator is the sole STATE.md writer during execution. Executors report results via SUMMARY.md only; the orchestrator reads those summaries and updates STATE.md itself.
+
+**Model Selection (Adaptive)**:
+Before spawning the executor for each plan, determine the model:
+1. Read the plan's task elements for `complexity` and `model` attributes
+2. If ANY task has an explicit `model` attribute, use the most capable model among them (inherit > sonnet > haiku)
+3. Otherwise, use the HIGHEST complexity among the plan's tasks to select the model:
+   - Look up `config.models.complexity_map.{complexity}` (defaults: simple->haiku, medium->sonnet, complex->inherit)
+4. If `config.models.executor` is set (non-null), it overrides adaptive selection entirely — use that model for all executors
+5. Pass the selected model to the Task() spawn
+
+Reference: `references/model-selection.md` for full details.
 
 1. Extract the `## Summary` section from the PLAN.md (everything after the `## Summary` heading to end of file). If no ## Summary section exists (legacy plans), fall back to reading the full PLAN.md content. Note: The orchestrator reads the full PLAN.md once for narrative extraction AND summary extraction; only the ## Summary portion is inlined into the executor prompt. The full PLAN.md stays on disk for the executor to Read.
 2. Read `.planning/CONTEXT.md` (if exists)
@@ -691,6 +702,7 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 - Progress bar
 
 **8c. Commit planning docs (if configured):**
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 If `planning.commit_docs` is `true`:
 - Stage SUMMARY.md files and VERIFICATION.md
 - Commit: `docs({phase}): add build summaries and verification`
