@@ -14,12 +14,12 @@ This skill **spawns a single Task(subagent_type: "dev:towline-executor")** for e
 
 ## Context Budget
 
-Keep the main orchestrator context lean. Follow these rules:
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(subagent_type: "dev:towline-executor")`
-- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
 - **Never** skip creating `.planning/quick/{NNN}-{slug}/` and writing PLAN.md — even trivial tasks need tracking artifacts
 - **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter
-- **Delegate** all implementation work to a single towline-executor subagent — the orchestrator writes planning artifacts (PLAN.md, STATE.md), the executor writes code and SUMMARY.md
 
 ## Core Principle
 
@@ -182,6 +182,8 @@ Status indicators:
 - Failed: X indicator
 
 ### Step 10: Commit Planning Docs
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `planning.commit_docs: true` in config.json:
 - Stage the quick task directory files (PLAN.md, SUMMARY.md)

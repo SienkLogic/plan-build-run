@@ -15,8 +15,9 @@ This skill **spawns Task(subagent_type: "dev:towline-debugger")** for investigat
 
 ## Context Budget
 
-Keep the orchestrator lean. Follow these rules:
-- **Never** read agent definitions (agents/*.md) — subagent_type auto-loads them
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
 - **Never** perform investigation work yourself — delegate ALL analysis to the towline-debugger subagent
 - **Minimize** reading debug file content — read only the latest hypothesis and result section
 - **Delegate** all code reading, hypothesis testing, and fix attempts to the debugger subagent
@@ -369,6 +370,8 @@ Update STATE.md Debug Sessions section (create if needed):
 ---
 
 ## Git Integration
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `planning.commit_docs: true` in config.json:
 - New session: `docs(planning): open debug session {NNN} - {slug}`
