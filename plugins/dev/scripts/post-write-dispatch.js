@@ -11,6 +11,7 @@
  * Routing:
  *   - PLAN.md or SUMMARY*.md → plan format validation
  *   - STATE.md → roadmap sync check
+ *   - SUMMARY*.md or VERIFICATION.md in .planning/phases/ → state sync (auto-update tracking files)
  *   - Other files → exit immediately (no work needed)
  *
  * Exit codes:
@@ -19,6 +20,7 @@
 
 const { checkPlanWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
+const { checkStateSync } = require('./check-state-sync');
 
 function main() {
   let input = '';
@@ -40,6 +42,13 @@ function main() {
       const syncResult = checkSync(data);
       if (syncResult) {
         process.stdout.write(JSON.stringify(syncResult.output));
+        process.exit(0);
+      }
+
+      // State sync check (SUMMARY/VERIFICATION → STATE.md + ROADMAP.md)
+      const stateSyncResult = checkStateSync(data);
+      if (stateSyncResult) {
+        process.stdout.write(JSON.stringify(stateSyncResult.output));
         process.exit(0);
       }
 
