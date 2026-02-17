@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { configLoad } = require('./towline-tools');
 
 function readStdin() {
   try {
@@ -135,17 +136,12 @@ function buildAgentContext() {
   }
 
   // Config highlights
-  const configFile = path.join(planningDir, 'config.json');
-  if (fs.existsSync(configFile)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-      const configParts = [];
-      if (config.depth) configParts.push(`depth=${config.depth}`);
-      if (config.git && config.git.auto_commit !== undefined) configParts.push(`auto_commit=${config.git.auto_commit}`);
-      if (configParts.length > 0) parts.push(`Config: ${configParts.join(', ')}`);
-    } catch (_e) {
-      // skip
-    }
+  const config = configLoad(planningDir);
+  if (config) {
+    const configParts = [];
+    if (config.depth) configParts.push(`depth=${config.depth}`);
+    if (config.git && config.git.auto_commit !== undefined) configParts.push(`auto_commit=${config.git.auto_commit}`);
+    if (configParts.length > 0) parts.push(`Config: ${configParts.join(', ')}`);
   }
 
   if (parts.length === 0) return '';

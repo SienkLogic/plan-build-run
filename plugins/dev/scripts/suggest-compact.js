@@ -16,6 +16,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { configLoad } = require('./towline-tools');
 
 const DEFAULT_THRESHOLD = 50;
 const REMINDER_INTERVAL = 25;
@@ -99,14 +100,10 @@ function saveCounter(counterPath, counter) {
 }
 
 function getThreshold(cwd) {
-  try {
-    const configPath = path.join(cwd, '.planning', 'config.json');
-    if (!fs.existsSync(configPath)) return DEFAULT_THRESHOLD;
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return config.hooks?.compactThreshold || DEFAULT_THRESHOLD;
-  } catch (_e) {
-    return DEFAULT_THRESHOLD;
-  }
+  const planningDir = path.join(cwd, '.planning');
+  const config = configLoad(planningDir);
+  if (!config) return DEFAULT_THRESHOLD;
+  return config.hooks?.compactThreshold || DEFAULT_THRESHOLD;
 }
 
 function resetCounter(planningDir) {
