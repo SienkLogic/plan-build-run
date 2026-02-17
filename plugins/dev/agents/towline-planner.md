@@ -111,6 +111,31 @@ Read `references/plan-format.md` for the complete plan file specification includ
 - Task type variants (auto, tdd, checkpoint:human-verify, checkpoint:decision, checkpoint:human-action)
 - Task ID format
 
+The task opening tag format is:
+```xml
+<task id="{plan_id}-T{n}" type="{type}" tdd="{true|false}" complexity="{simple|medium|complex}">
+```
+
+### Complexity Annotation
+
+Every task MUST include a `complexity` attribute. This drives adaptive model selection — simple tasks run on cheaper models, complex tasks on capable ones.
+
+| Complexity | Criteria | Default Model |
+|-----------|----------|---------------|
+| `simple` | <= 2 files, no new patterns, mechanical changes (renames, config edits, template fills) | haiku |
+| `medium` | 3-5 files, established patterns, standard feature work | sonnet |
+| `complex` | > 5 files, new patterns, security-critical, architectural changes, multi-system integration | inherit |
+
+**Heuristics** (apply in order, first match wins):
+1. **Keywords in task name**: "rename", "config", "update reference", "add test for existing" -> simple
+2. **Keywords in task name**: "implement", "create", "integrate", "migrate" -> medium
+3. **Keywords in task name**: "architect", "security", "design", "refactor across" -> complex
+4. **File count**: <= 2 files -> simple, 3-5 files -> medium, > 5 files -> complex
+5. **File types**: Only .md/.json/.yaml -> simple. Mix of code + config -> medium. Multiple code languages -> complex
+6. **Dependency count**: 0 deps -> no adjustment. 2+ deps -> bump up one level (simple->medium, medium->complex)
+
+**Override**: If a plan specifies `model="{model}"` on a task element, that takes precedence over complexity-based selection.
+
 Read `references/plan-authoring.md` for plan quality guidelines including:
 - Action writing rules (specificity, code snippets, numbered steps)
 - Verify command rules (executable, deterministic, automated)
