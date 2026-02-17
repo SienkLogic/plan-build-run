@@ -7,3 +7,4 @@ nul
 .claude/settings.local.json
 coverage/
 assets/assets_backup/
+dashboard/package-lock.json
