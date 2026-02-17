@@ -242,20 +242,24 @@ Project root: {absolute path to project root}
 Platform: {win32|linux|darwin}
 
 Config:
-[Inline relevant sections of config.json — commit format, TDD mode, etc.]
+  commit_format: {commit_format from config}
+  tdd_mode: {tdd_mode from config}
+  atomic_commits: {atomic_commits from config}
 
-Context:
-[Inline CONTEXT.md if it exists — locked decisions, constraints]
-
-State:
-[Inline current position section of STATE.md]
+Available context files (read via Read tool as needed):
+  - Config: {absolute path to config.json}
+  - State: {absolute path to STATE.md}
+{If CONTEXT.md exists:}
+  - Project context (locked decisions): {absolute path to CONTEXT.md}
 </project_context>
 
 <prior_work>
-[Table of completed plans in this phase with commit hashes]
-| Plan | Status | Commits | Key Exports |
+Completed plans in this phase:
+| Plan | Status | Commits | Summary File |
 |------|--------|---------|-------------|
-| {plan_id} | complete | {hash1}, {hash2} | {provides list} |
+| {plan_id} | complete | {hash1}, {hash2} | {absolute path to SUMMARY.md} |
+
+Read any SUMMARY file via Read tool if you need details on what prior plans produced.
 </prior_work>
 
 Execute all tasks in the plan sequentially. For each task:
@@ -490,7 +494,7 @@ Resume at: Task {N+1} (or re-execute checkpoint task with user's answer)
 </checkpoint_resolution>
 
 <project_context>
-[Same context as original spawn]
+{Same lean context as original spawn — config key-values + file paths, not inlined bodies}
 </project_context>
 
 Continue execution from the checkpoint. Skip completed tasks. Process the checkpoint resolution, then continue with remaining tasks. Write SUMMARY.md when done.
@@ -576,9 +580,14 @@ See references/verification-patterns.md for detailed patterns.
 </phase_plans>
 
 <build_results>
-[For each SUMMARY.md in the phase: inline only the YAML frontmatter (status, key_files, commits).
-The verifier agent has its own 200k context window and will read full SUMMARY bodies from disk when needed.
-Do NOT inline full SUMMARY content here — it wastes orchestrator context.]
+Build summaries for verification (read full content via Read tool):
+
+| Plan | Summary File | Status |
+|------|-------------|--------|
+{For each SUMMARY.md in the phase:}
+| {plan_id} | {absolute path to SUMMARY.md} | {status from frontmatter} |
+
+Read each SUMMARY file to check what was actually built against the must-haves.
 </build_results>
 
 <instructions>
