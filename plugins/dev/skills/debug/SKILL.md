@@ -33,6 +33,8 @@ Keep the orchestrator lean. Follow these rules:
 
 ### Step 1: Check for Active Debug Sessions
 
+**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
+
 Scan `.planning/debug/` for existing debug files:
 
 ```
@@ -304,6 +306,29 @@ The towline-debugger agent follows this protocol internally:
 | **Weak** | Tangentially related | Note but don't base decisions on it |
 | **Misleading** | Red herring | Record as eliminated, explain why |
 
+### Hypothesis Round Limit
+
+The maximum number of investigation rounds is controlled by the depth profile's `debug.max_hypothesis_rounds` setting:
+- `quick`: 3 rounds (fast, surface-level investigation)
+- `standard`: 5 rounds (default)
+- `comprehensive`: 10 rounds (deep investigation)
+
+The orchestrator tracks the round count. Before spawning each continuation debugger (Step 3 "CHECKPOINT" -> "Continue"), increment the round counter. If the counter reaches the limit:
+- Do NOT spawn another debugger
+- Present to user: "Debug session has reached the hypothesis round limit ({N} rounds for {depth} mode). Options:"
+
+Use AskUserQuestion:
+  question: "Reached {N}-round hypothesis limit. How should we proceed?"
+  header: "Debug Limit"
+  options:
+    - label: "Extend"    description: "Allow {N} more rounds (doubles the limit)"
+    - label: "Wrap up"   description: "Record findings so far and close the session"
+    - label: "Escalate"  description: "Save context for manual debugging"
+
+- If "Extend": double the limit and continue
+- If "Wrap up": update debug file status to `stale`, record all findings, suggest next steps
+- If "Escalate": write a detailed handoff document to the debug file with all hypotheses, evidence, and suggested manual investigation steps
+
 ---
 
 ## Debug File Management
@@ -386,7 +411,7 @@ If `planning.commit_docs: true` in config.json:
 1. **DO NOT** skip hypothesis formation — every test must have a reason
 2. **DO NOT** make random changes hoping something works
 3. **DO NOT** ignore failed hypotheses — record why they failed
-4. **DO NOT** investigate more than 5 hypotheses without checkpointing
+4. **DO NOT** exceed the depth profile's `debug.max_hypothesis_rounds` limit without user confirmation (default: 5 for standard mode)
 5. **DO NOT** fix the symptom instead of the root cause
 6. **DO NOT** auto-apply fixes for breaking changes
 7. **DO NOT** delete debug files — they're a knowledge base

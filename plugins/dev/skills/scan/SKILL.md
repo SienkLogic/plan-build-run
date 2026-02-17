@@ -44,7 +44,7 @@ Check if `.planning/codebase/` directory exists:
 
   Options:
   1. Refresh the full analysis (overwrites existing)
-  2. Refresh a specific area (tech, arch, quality, or concerns)
+  2. Refresh a specific area (available areas depend on depth profile: quick mode only offers tech/arch)
   3. Keep existing analysis
   ```
 - If user chooses "Keep": display a summary of existing analysis and stop
@@ -70,7 +70,19 @@ Refer to the "Reconnaissance Detection Reference" section of `skills/scan/templa
 
 ### Step 3: Spawn Analysis Agents
 
-Spawn **4 parallel** `Task(subagent_type: "dev:towline-codebase-mapper")` agents, each with a different focus area. All 4 should be spawned in a single response for maximum parallelism.
+**Resolve mapper configuration:** Before spawning, resolve the depth profile:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolve-depth
+```
+
+Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determine how many mappers to spawn and which focus areas to cover.
+
+**Default mappings by depth:**
+- `quick` (budget): 2 mappers -- `tech` and `arch` only. Produces STACK.md, INTEGRATIONS.md, ARCHITECTURE.md, STRUCTURE.md. Skips quality and concerns analysis.
+- `standard` (balanced): 4 mappers -- all areas. Full analysis.
+- `comprehensive` (thorough): 4 mappers -- all areas. Full analysis.
+
+Spawn `{mapper_count}` parallel `Task(subagent_type: "dev:towline-codebase-mapper")` agents, one for each area in `scan.mapper_areas`. All should be spawned in a single response for maximum parallelism.
 
 For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
 - `{focus_area}`: one of `tech`, `arch`, `quality`, `concerns`
@@ -79,14 +91,12 @@ For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in t
 - `{scale}`: detected scale from Step 2
 - `{output_path}`: `.planning/codebase/`
 
-The 4 agents and their outputs:
-
-| Agent | Focus | Output Files |
-|-------|-------|-------------|
-| 1 | tech | STACK.md, INTEGRATIONS.md |
-| 2 | arch | ARCHITECTURE.md, STRUCTURE.md |
-| 3 | quality | CONVENTIONS.md, TESTING.md |
-| 4 | concerns | CONCERNS.md |
+| Agent | Focus | Output Files | When |
+|-------|-------|-------------|------|
+| 1 | tech | STACK.md, INTEGRATIONS.md | Always |
+| 2 | arch | ARCHITECTURE.md, STRUCTURE.md | Always |
+| 3 | quality | CONVENTIONS.md, TESTING.md | standard + comprehensive |
+| 4 | concerns | CONCERNS.md | standard + comprehensive |
 
 ### Step 4: Wait for Agents
 
@@ -103,15 +113,19 @@ Scanning codebase...
 
 After all agents complete, verify the expected files exist:
 
-**Required files:**
+**Required files (always):**
 - `.planning/codebase/RECON.md` (created in Step 2)
-- `.planning/codebase/STACK.md` (Agent 1)
-- `.planning/codebase/INTEGRATIONS.md` (Agent 1)
-- `.planning/codebase/ARCHITECTURE.md` (Agent 2)
-- `.planning/codebase/STRUCTURE.md` (Agent 2)
-- `.planning/codebase/CONVENTIONS.md` (Agent 3)
-- `.planning/codebase/TESTING.md` (Agent 3)
-- `.planning/codebase/CONCERNS.md` (Agent 4)
+- `.planning/codebase/STACK.md` (tech mapper)
+- `.planning/codebase/INTEGRATIONS.md` (tech mapper)
+- `.planning/codebase/ARCHITECTURE.md` (arch mapper)
+- `.planning/codebase/STRUCTURE.md` (arch mapper)
+
+**Required files (standard + comprehensive only):**
+- `.planning/codebase/CONVENTIONS.md` (quality mapper)
+- `.planning/codebase/TESTING.md` (quality mapper)
+- `.planning/codebase/CONCERNS.md` (concerns mapper)
+
+Check only the files that correspond to the mapper areas that were actually spawned.
 
 For any missing files:
 - Warn the user which file is missing
