@@ -6,17 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Towline is a **Claude Code plugin** that provides a structured development workflow. It solves context rot — quality degradation as Claude's context window fills up — through disciplined subagent delegation, file-based state, and goal-backward verification. Users invoke `/dev:*` slash commands (skills) that orchestrate specialized agents via `Task()`.
 
+## Critical Rules
+
+- **NEVER add AI co-author lines** to git commits or PRs. No `Co-Authored-By: Claude` or similar. Only add co-author lines referencing actual human contributors.
+- **NEVER inline agent definitions** into skill prompts. Use `subagent_type: "dev:towline-{name}"` — Claude Code auto-loads agent definitions from `agents/`. Reading agent `.md` files wastes main context.
+- **NEVER use GSD agents or branding.** Always use `dev:towline-*` agents, never `gsd-*`. Use "TOWLINE" branding per `references/ui-formatting.md`.
+
 ## Commands
 
 ```bash
-npm test              # Run all Jest tests
-npm run lint          # ESLint on plugins/dev/scripts/ and tests/
-npm run validate      # Validate plugin directory structure (skills, agents, hooks)
+npm test                                    # Run all Jest tests (~540 tests, 31 suites)
+npm run lint                                # ESLint on plugins/dev/scripts/ and tests/
+npm run validate                            # Validate plugin directory structure
+npx jest tests/validate-commit.test.js      # Run a single test file
+npx jest --coverage                         # Run with coverage report
 ```
 
-Run a single test file:
+Coverage thresholds (enforced in `package.json`): 65% statements, 58% branches, 70% functions, 65% lines.
+
+Dashboard (separate dependency tree):
 ```bash
-npx jest tests/validate-commit.test.js
+npm run dashboard:install                   # One-time install of dashboard deps
+npm run dashboard -- --dir /path/to/project # Launch dashboard for a project
 ```
 
 Load the plugin locally for manual testing:
@@ -28,42 +39,55 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. All three platforms m
 
 ## Architecture
 
-Towline has three layers, all under `plugins/dev/`:
+All plugin code lives under `plugins/dev/`. Three layers:
 
 ### Skills (`skills/{name}/SKILL.md`)
-Markdown files with YAML frontmatter that define slash commands (`/dev:begin`, `/dev:plan`, etc.). Each SKILL.md is a complete prompt — it tells the orchestrator (main Claude session) what to do when the user invokes the command. Skills are the entry points; they read state, interact with the user, and spawn agents.
+Markdown files with YAML frontmatter defining slash commands (`/dev:begin`, `/dev:plan`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
-21 skills exist: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, todo.
+21 skills: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, todo.
 
 ### Agents (`agents/towline-{name}.md`)
-Markdown files with YAML frontmatter that define specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. They are spawned by skills via `subagent_type: "dev:towline-{name}"` — agent definitions are **auto-loaded** by Claude Code from this directory; never inline agent prompts into skill files.
+Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "dev:towline-{name}"` — auto-loaded by Claude Code.
 
 10 agents: researcher, planner, plan-checker, executor, verifier, integration-checker, debugger, codebase-mapper, synthesizer, general.
 
 ### Scripts (`scripts/*.js`)
-Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All scripts use CommonJS (`require`), must be cross-platform (use `path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
+28 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
 
-| Hook Event | Script | Purpose |
-|------------|--------|---------|
-| SessionStart | progress-tracker.js | Inject project state into new sessions |
-| PostToolUse (Write/Edit) | check-plan-format.js | Validate PLAN.md/SUMMARY.md structure |
-| PostToolUse (Write/Edit) | check-roadmap-sync.js | Check roadmap consistency |
-| PreToolUse (Bash) | validate-commit.js | Enforce commit message format, block sensitive files |
-| PreCompact | context-budget-check.js | Preserve STATE.md before context compression |
-| Stop | auto-continue.js | Chain next command when auto_continue is enabled |
-| SubagentStart/Stop | log-subagent.js | Track agent lifecycle |
-| SessionEnd | session-cleanup.js | Clean up session state |
+**Dispatch pattern**: Several hooks use dispatch scripts that fan out to sub-scripts based on the file being written/read:
+
+| Hook Event | Entry Script | Delegates To |
+|------------|-------------|-------------|
+| SessionStart | progress-tracker.js | — (injects project state) |
+| PostToolUse (Write\|Edit) | post-write-dispatch.js | check-plan-format.js, check-roadmap-sync.js, check-state-sync.js |
+| PostToolUse (Write\|Edit) | post-write-quality.js | check-doc-sprawl.js, check-skill-workflow.js |
+| PostToolUse (Task) | check-subagent-output.js | — (validates agent output) |
+| PostToolUse (Write\|Edit) | suggest-compact.js | — (context budget warnings) |
+| PostToolUse (Read) | track-context-budget.js | — (tracks reads for budget) |
+| PostToolUseFailure | log-tool-failure.js | — (logs failures) |
+| PreToolUse (Bash) | pre-bash-dispatch.js | validate-commit.js, check-dangerous-commands.js, check-phase-boundary.js |
+| PreToolUse (Write\|Edit) | pre-write-dispatch.js | — (write guards) |
+| PreCompact | context-budget-check.js | — (preserves STATE.md) |
+| Stop | auto-continue.js | — (chains next command) |
+| SubagentStart/Stop | log-subagent.js | — (tracks lifecycle) |
+| SubagentStop | event-handler.js | — (auto-verification trigger) |
+| TaskCompleted | task-completed.js | — (processes task completion) |
+| SessionEnd | session-cleanup.js | — (cleanup) |
+
+**Hook exit codes**: 0 = success, 2 = block (PreToolUse hooks that reject a tool call).
+
+**`${CLAUDE_PLUGIN_ROOT}`**: Used in hooks.json to reference script paths. Claude Code expands this internally — works on all platforms without shell expansion.
 
 ### Supporting directories
 
-- **`references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, etc.)
+- **`references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
 - **`commands/`** — Command registration files (one `.md` per command mapping to its skill)
-- **`skills/shared/`** — Shared skill fragments (phase argument parsing, UI formatting)
+- **`skills/shared/`** — 14 shared skill fragments extracted from repeated patterns across skills (config-loading, digest-select, revision-loop, context-loader-task, universal-anti-patterns, phase-argument-parsing, gate-prompts, state-loading, state-update, commit-planning-docs, context-budget, domain-probes, progress-display, error-reporting)
 
 ## Key Conventions
 
-**Commit format**: `{type}({scope}): {description}` — enforced by the PreToolUse hook. Types: feat, fix, refactor, test, docs, chore, wip. Scopes: `{NN}-{MM}` (phase-plan), `quick-{NNN}`, `planning`.
+**Commit format**: `{type}({scope}): {description}` — enforced by PreToolUse hook. Types: feat, fix, refactor, test, docs, chore, wip. Scopes: `{NN}-{MM}` (phase-plan), `quick-{NNN}`, `planning`, `tools`, or descriptive word.
 
 **Skill frontmatter** (SKILL.md):
 ```yaml
@@ -89,30 +113,38 @@ tools:
 ---
 ```
 
-**Hook exit codes**: 0 = success/pass, 2 = block (for PreToolUse hooks that reject a tool call).
-
-**`${CLAUDE_PLUGIN_ROOT}`**: Used in hooks.json to reference script paths. Claude Code expands this internally before execution — no shell expansion needed, works on all platforms.
-
 ## Data Flow
 
-Skills and agents communicate through files on disk, not through messages:
+Skills and agents communicate through files on disk, not messages:
 
 ```
 .planning/STATE.md      ← source of truth for current position
 .planning/ROADMAP.md    ← phase structure, goals, dependencies
-.planning/config.json   ← all workflow settings (16 feature toggles, models, gates, git)
+.planning/config.json   ← workflow settings (~62 properties across 12 top-level keys)
 .planning/phases/NN-slug/
-  PLAN.md               ← written by planner agent, read by executor agent
-  SUMMARY.md            ← written by executor agent, read by orchestrator
-  VERIFICATION.md       ← written by verifier agent, read by review skill
+  PLAN.md               ← written by planner, read by executor
+  SUMMARY.md            ← written by executor, read by orchestrator
+  VERIFICATION.md       ← written by verifier, read by review skill
 ```
 
-The main orchestrator stays lean (~15% context usage) by delegating heavy work to agents. Each agent gets a fresh context window.
+The orchestrator stays lean (~15% context) by delegating heavy work to agents. Each agent gets a fresh context window.
+
+**Utility library**: `towline-tools.js` is a shared Node.js library (stateLoad, configLoad, frontmatterParse, mustHavesCollect, etc.) used by multiple hook scripts. It provides CLI subcommands that agents call to avoid wasting tokens on file parsing.
 
 ## Testing
 
-Tests live in `tests/` and use Jest. Integration tests use a fixture project at `tests/fixtures/fake-project/.planning/`. Test files mirror script names: `validate-commit.test.js` tests `validate-commit.js`.
+Tests live in `tests/` using Jest. Test files mirror script names: `validate-commit.test.js` tests `validate-commit.js`.
 
-The `towline-tools.js` script is a shared utility library (stateLoad, configLoad, etc.) used by multiple hook scripts — its tests are in both `towline-tools.test.js` and `integration.test.js`.
+**Fixture project**: `tests/fixtures/fake-project/.planning/` provides read-only fixture data for tests.
 
-When adding a new hook script, create a corresponding test file.
+**Mutation tests**: Use `fs.mkdtempSync()` to create temporary directories — never mutate the fixture project.
+
+**`towline-tools.js` tests** span both `towline-tools.test.js` and `integration.test.js`.
+
+When adding a new hook script, create a corresponding test file. Tests must pass on Windows, macOS, and Linux.
+
+## Dashboard
+
+The dashboard (`dashboard/`) is a separate Express.js application with its own dependency tree (`dashboard/package.json`). It provides a web UI for browsing `.planning/` state. Tech: Express 5.x, EJS, Pico.css, HTMX 2.0, chokidar for file watching, SSE for live updates.
+
+Dashboard tests use Vitest (not Jest) and live in `dashboard/tests/`. Run with `npm --prefix dashboard test`.
