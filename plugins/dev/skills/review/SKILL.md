@@ -11,15 +11,21 @@ You are the orchestrator for `/dev:review`. This skill verifies that what was bu
 
 ## Context Budget
 
-Keep the main orchestrator context lean. Follow these rules:
-- **Never** read agent definition files (agents/*.md) — subagent_type auto-loads them
-- **Minimize** reading subagent output into main context — read only VERIFICATION.md frontmatter for summaries
-- **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/dev:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+
+Additionally for this skill:
+- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries
 
 ## Prerequisites
 
 - `.planning/config.json` exists
 - Phase has been built: SUMMARY.md files exist in `.planning/phases/{NN}-{slug}/`
+
+### Event-Driven Auto-Verification
+
+When `features.goal_verification` is enabled and depth is "standard" or "comprehensive", the `event-handler.js` hook automatically queues verification after executor completion. The hook writes `.planning/.auto-verify` as a signal file. The build skill's orchestrator detects this signal and spawns the verifier agent.
+
+**This is additive**: `/dev:review` can always be invoked manually regardless of auto-verification settings. If auto-verification already ran, `/dev:review` re-runs verification (useful for re-checking after fixes).
 
 ---
 
@@ -51,6 +57,7 @@ Execute these steps in order.
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
 4. If no phase number given, read current phase from `.planning/STATE.md`
+5. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
 **Validation errors:**
 - No SUMMARY.md files: "Phase {N} hasn't been built yet. Run `/dev:build {N}` first."
