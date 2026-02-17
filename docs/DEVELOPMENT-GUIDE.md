@@ -1428,7 +1428,7 @@ Examples:
 
 **Rules**:
 - All agent files in flat `agents/` directory
-- Prefix: `towline-` (never `gsd-` or other brands)
+- Prefix: `towline-`
 - Lowercase, hyphenated name
 - Extension: `.md`
 
@@ -2111,7 +2111,7 @@ Review the build results above.
 ◐ In Progress
 ```
 
-Never use `GSD ►` or any GSD branding. Always use `TOWLINE ►`.
+Always use `TOWLINE ►` branding in banners.
 
 ---
 
@@ -2876,27 +2876,7 @@ The agent will read these files from disk in its own context.
 
 **Impact**: Context bloat, slower skill execution.
 
-#### 4. Using GSD Branding
-
-**Bad**:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► EXECUTING WAVE 1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**Good**:
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- TOWLINE ► EXECUTING WAVE 1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-**Why**: Towline is a separate project. GSD is a different workflow.
-
-**Impact**: User confusion, brand inconsistency.
-
-#### 5. Hardcoding Path Separators
+#### 4. Hardcoding Path Separators
 
 **Bad**:
 ```javascript
@@ -2912,7 +2892,7 @@ const planPath = path.join(dir, 'phases', `${phase}-${slug}`, 'PLAN.md');
 
 **Impact**: Cross-platform breakage, CI failures.
 
-#### 6. Using ES Modules in Hooks
+#### 5. Using ES Modules in Hooks
 
 **Bad**:
 ```javascript
@@ -2930,7 +2910,7 @@ const { logHook } = require('./hook-logger');
 
 **Impact**: Hook fails to load, workflow breaks.
 
-#### 7. Skipping Hook Logging
+#### 6. Skipping Hook Logging
 
 **Bad**:
 ```javascript
@@ -3119,7 +3099,7 @@ must_haves:
 
 7. **Test everything**. Target 70% coverage minimum, all platforms must pass CI.
 
-8. **UI is branded**. Always use `TOWLINE ►` banners, never `GSD ►` or other brands.
+8. **UI is branded**. Always use `TOWLINE ►` banners.
 
 ### Where to Start
 

@@ -395,5 +395,5 @@ Do NOT:
 - Skip `TOWLINE ►` prefix in stage banners
 - Use random emoji (only `🎉` for milestone complete, `✓` for phase complete)
 - Skip the "Next Up" block after major completions
-- Reference GSD commands (always use `/dev:*` commands)
-- Use `GSD ►` or any GSD branding
+- Reference non-Towline commands (always use `/dev:*` commands)
+- Use non-Towline branding in banners

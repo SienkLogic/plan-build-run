@@ -10,7 +10,6 @@ Towline is a **Claude Code plugin** that provides a structured development workf
 
 - **NEVER add AI co-author lines** to git commits or PRs. No `Co-Authored-By: Claude` or similar. Only add co-author lines referencing actual human contributors.
 - **NEVER inline agent definitions** into skill prompts. Use `subagent_type: "dev:towline-{name}"` — Claude Code auto-loads agent definitions from `agents/`. Reading agent `.md` files wastes main context.
-- **NEVER use GSD agents or branding.** Always use `dev:towline-*` agents, never `gsd-*`. Use "TOWLINE" branding per `references/ui-formatting.md`.
 
 ## Commands
 
