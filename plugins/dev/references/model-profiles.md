@@ -21,7 +21,7 @@ Each Towline agent has a default model specified in its agent definition frontma
 | `towline-debugger` | `inherit` | Debugging is complex; inherits session model |
 | `towline-codebase-mapper` | `sonnet` | Codebase analysis requires thorough reasoning |
 | `towline-synthesizer` | `haiku` | Synthesis is mechanical combination; speed over depth |
-| `towline-general` | (not set) | Inherits session model by default |
+| `towline-general` | `inherit` | Lightweight utility; inherits session model |
 
 The `inherit` value means the agent uses whatever model the parent session is running (typically the user's configured Claude model).
 
@@ -79,10 +79,12 @@ Or edit `config.json` directly:
 
 | Value | Meaning |
 |-------|---------|
-| `sonnet` | Claude Sonnet -- balanced speed and capability |
-| `opus` | Claude Opus -- highest capability, slower |
-| `haiku` | Claude Haiku -- fastest, lower capability |
+| `sonnet` | Claude Sonnet (4.5/4.6) -- balanced speed and capability |
+| `opus` | Claude Opus (4.6) -- highest capability, slower |
+| `haiku` | Claude Haiku (4.5) -- fastest, lower capability |
 | `inherit` | Use the session's primary model (whatever the user is running) |
+
+Note: Claude Code 2.1.45+ supports Sonnet 4.6. Model values are abstract names — Claude Code resolves them to the latest available version.
 
 ---
 

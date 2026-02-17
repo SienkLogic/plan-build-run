@@ -29,9 +29,9 @@ router.get('/phases', async (req, res) => {
 router.get('/phases/:phaseId', async (req, res) => {
   const { phaseId } = req.params;
 
-  // Validate phaseId is exactly two digits
-  if (!/^\d{2}$/.test(phaseId)) {
-    const err = new Error('Phase ID must be a two-digit number (e.g., 01, 05, 12)');
+  // Validate phaseId: two digits, optionally followed by decimal (e.g., 01, 05, 3.1)
+  if (!/^\d{1,2}(\.\d+)?$/.test(phaseId)) {
+    const err = new Error('Phase ID must be a number (e.g., 01, 05, 3.1)');
     err.status = 404;
     throw err;
   }

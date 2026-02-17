@@ -34,11 +34,11 @@ function getSkillDirs() {
  * @returns {string[]}
  */
 function parseAllowedTools(content) {
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fmMatch) return [];
 
   const frontmatter = fmMatch[1];
-  const toolsLine = frontmatter.split('\n').find(l => l.startsWith('allowed-tools:'));
+  const toolsLine = frontmatter.split(/\r?\n/).find(l => l.startsWith('allowed-tools:'));
   if (!toolsLine) return [];
 
   return toolsLine
@@ -116,7 +116,7 @@ describe('AskUserQuestion skill audit', () => {
         const matches = content.match(pattern);
         if (matches) {
           // Check if this is inside a "do NOT use" or example context
-          const lines = content.split('\n');
+          const lines = content.split(/\r?\n/);
           for (let i = 0; i < lines.length; i++) {
             if (pattern.test(lines[i])) {
               // Check surrounding lines for "do NOT" or "example" context

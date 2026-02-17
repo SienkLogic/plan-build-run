@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { atomicWrite } = require('./towline-tools');
 
 /**
  * Extract phase number from a phase directory name.
@@ -334,7 +335,7 @@ function checkStateSync(data) {
         const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
         const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
         if (updatedRoadmap !== roadmapContent) {
-          fs.writeFileSync(roadmapPath, updatedRoadmap, 'utf8');
+          atomicWrite(roadmapPath, updatedRoadmap);
           messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
         }
       } catch (e) {
@@ -359,7 +360,7 @@ function checkStateSync(data) {
         };
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          fs.writeFileSync(statePath, updatedState, 'utf8');
+          atomicWrite(statePath, updatedState);
           messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
         }
       } catch (e) {
@@ -400,7 +401,7 @@ function checkStateSync(data) {
         const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
         const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
         if (updatedRoadmap !== roadmapContent) {
-          fs.writeFileSync(roadmapPath, updatedRoadmap, 'utf8');
+          atomicWrite(roadmapPath, updatedRoadmap);
           messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
         }
       } catch (e) {
@@ -423,7 +424,7 @@ function checkStateSync(data) {
         };
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          fs.writeFileSync(statePath, updatedState, 'utf8');
+          atomicWrite(statePath, updatedState);
           messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
         }
       } catch (e) {

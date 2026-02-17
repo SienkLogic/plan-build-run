@@ -6,6 +6,17 @@ allowed-tools: Read
 
 # /dev:help — Towline Command Reference
 
+## Contextual Help
+
+If `$ARGUMENTS` contains a command name (e.g., `plan`, `build`, `review`, `config`, `quick`), show detailed help for just that command instead of the full reference. Match the argument against the command tables below and display only the matching section with its subcommands and flags. If the argument doesn't match any command, show the full reference.
+
+Examples:
+- `/dev:help plan` → Show only the plan command and its flags (--assumptions, --skip-research, --gaps, add, insert, remove)
+- `/dev:help build` → Show only the build command and its flags (--gaps-only, --team)
+- `/dev:help` → Show the full reference below
+
+## Full Reference
+
 Display the following reference to the user:
 
 ---

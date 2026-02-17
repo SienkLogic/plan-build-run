@@ -40,7 +40,7 @@ function main() {
 
     // Read and DELETE the signal file (one-shot)
     const nextCommand = fs.readFileSync(signalPath, 'utf8').trim();
-    // Retry unlink to handle Windows file locking (e.g. antivirus/indexer)
+    // Retry unlink with exponential backoff for Windows file locking (antivirus/indexer)
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         fs.unlinkSync(signalPath);
@@ -48,6 +48,11 @@ function main() {
       } catch (unlinkErr) {
         if (attempt === 2) {
           logHook('auto-continue', 'Stop', 'unlink-failed', { error: unlinkErr.message });
+        } else {
+          // Exponential backoff: 100ms, 200ms
+          const delay = 100 * Math.pow(2, attempt);
+          const start = Date.now();
+          while (Date.now() - start < delay) { /* busy-wait */ }
         }
       }
     }

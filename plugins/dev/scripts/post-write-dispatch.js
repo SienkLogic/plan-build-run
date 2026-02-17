@@ -32,6 +32,9 @@ function main() {
       const data = JSON.parse(input);
 
       // Plan format check (PLAN.md, SUMMARY*.md)
+      // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
+      // check below. The plan format check validates frontmatter structure, while
+      // state-sync auto-updates ROADMAP.md and STATE.md tracking fields.
       const planResult = checkPlanWrite(data);
       if (planResult) {
         process.stdout.write(JSON.stringify(planResult.output));

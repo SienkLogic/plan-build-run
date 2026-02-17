@@ -180,4 +180,68 @@ describe('config validate', () => {
       expect.arrayContaining([expect.stringContaining('above maximum')])
     );
   });
+
+  test('warns on autonomous mode with active gates', () => {
+    writeConfig({
+      version: 2,
+      mode: 'autonomous',
+      gates: { confirm_plan: true, confirm_execute: true }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('gates are unreachable')])
+    );
+  });
+
+  test('warns on auto_continue with interactive mode', () => {
+    writeConfig({
+      version: 2,
+      mode: 'interactive',
+      features: { auto_continue: true }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('auto_continue only fires in autonomous')])
+    );
+  });
+
+  test('warns on plan_level with parallelization disabled', () => {
+    writeConfig({
+      version: 2,
+      parallelization: { enabled: false, plan_level: true }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('plan_level is ignored')])
+    );
+  });
+
+  test('warns on max_concurrent_agents=1 with teams', () => {
+    writeConfig({
+      version: 2,
+      parallelization: { max_concurrent_agents: 1 },
+      teams: { coordination: 'file-based' }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringContaining('teams require concurrent agents')])
+    );
+  });
+
+  test('no conflict warnings for compatible config', () => {
+    writeConfig({
+      version: 2,
+      mode: 'autonomous',
+      features: { auto_continue: true },
+      gates: {},
+      parallelization: { enabled: true, plan_level: true, max_concurrent_agents: 3 }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toEqual([]);
+  });
 });

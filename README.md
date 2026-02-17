@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Tests-540_passing-brightgreen?style=for-the-badge" alt="540 Tests" />
+  <img src="https://img.shields.io/badge/Tests-758_passing-brightgreen?style=for-the-badge" alt="758 Tests" />
 </p>
 <p align="center">
   <img src="./assets/Towline_logo_banner.png" alt="Towline Logo" width="200" />
@@ -43,7 +43,7 @@ Towline takes a different approach: **structured context isolation**. Instead of
 | Solves context rot | Indexing / tracking | Conversation segmentation | Fresh 200k context per agent |
 | Multi-phase projects | No structure | Phase-based | Phase + wave + milestone |
 | Verification | Developer reviews diffs | Atomic commits | Dedicated verifier agent with 3-layer checks |
-| Quality gates | Manual | Commit enforcement | 8 lifecycle hooks + configurable gates |
+| Quality gates | Manual | Commit enforcement | 15 lifecycle hooks + configurable gates |
 | State persistence | Lost on session end | File-based state | File-based state + crash-safe locking |
 | Parallelism | Up to 8 agents (Cursor) | Sequential | Dependency-aware wave-based parallelism |
 | Configurability | Opinionated | Limited toggles | 12 config keys, 16+ feature toggles |
@@ -53,7 +53,7 @@ Towline takes a different approach: **structured context isolation**. Instead of
 
 **Goal-backward verification** — After a phase is built, a dedicated read-only verifier agent checks your actual codebase against declared must-haves. It doesn't ask "did the tasks complete?" — it asks "does the codebase now satisfy the requirements?" Three layers: existence (file exists), substance (not a stub), wiring (connected to the system).
 
-**Lifecycle hooks** — Eight hook scripts fire on Claude Code events to enforce discipline automatically: commit format validation, plan structure checks, roadmap sync verification, context budget warnings before compaction, and auto-chaining between workflow steps. No other tool polices itself this way.
+**Lifecycle hooks** — Fifteen hook scripts fire on Claude Code events to enforce discipline automatically: commit format validation, plan structure checks, roadmap sync verification, context budget warnings before compaction, auto-chaining between workflow steps, subagent output validation, and session cleanup. No other tool polices itself this way.
 
 **Wave-based parallelism** — Plans declare dependencies. Plans with no conflicts run in parallel (same wave); dependent plans wait. This isn't "throw 8 agents at it" — it's structured, dependency-aware concurrent execution.
 
@@ -73,7 +73,7 @@ Towline takes a different approach: **structured context isolation**. Instead of
 
 ### Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 1.0.33+ &nbsp;(`claude --version`)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 2.1.45+ &nbsp;(`claude --version`)
 - Node.js 18+
 
 ### Install
@@ -386,11 +386,19 @@ Towline uses Claude Code lifecycle hooks to enforce workflow discipline:
 | Hook Event | Script | Purpose |
 |------------|--------|---------|
 | `SessionStart` | `progress-tracker.js` | Inject project state into new sessions |
-| `PostToolUse` (Write/Edit) | `post-write-dispatch.js` | Validate plan format, check roadmap sync |
-| `PreToolUse` (Bash) | `validate-commit.js` | Enforce commit format, block sensitive files |
+| `PostToolUse` (Write/Edit) | `post-write-dispatch.js` | Validate plan format, sync STATE/ROADMAP |
+| `PostToolUse` (Write/Edit) | `post-write-quality.js` | Doc sprawl checks, skill workflow validation |
+| `PostToolUse` (Task) | `check-subagent-output.js` | Validate agent output quality |
+| `PostToolUse` (Write/Edit) | `suggest-compact.js` | Context budget warnings |
+| `PostToolUse` (Read) | `track-context-budget.js` | Track reads for budget estimation |
+| `PostToolUseFailure` | `log-tool-failure.js` | Log tool failures for diagnostics |
+| `PreToolUse` (Bash) | `pre-bash-dispatch.js` | Commit validation, dangerous command checks |
+| `PreToolUse` (Write/Edit) | `pre-write-dispatch.js` | Write guards and file protection |
 | `PreCompact` | `context-budget-check.js` | Preserve STATE.md before compression |
 | `Stop` | `auto-continue.js` | Chain next command when auto_continue enabled |
-| `SubagentStart/Stop` | `log-subagent.js` | Track agent lifecycle |
+| `SubagentStart/Stop` | `log-subagent.js` | Track agent lifecycle, inject context |
+| `SubagentStop` | `event-handler.js` | Auto-verification trigger |
+| `TaskCompleted` | `task-completed.js` | Process task completion events |
 | `SessionEnd` | `session-cleanup.js` | Clean up session state |
 
 ---
@@ -403,7 +411,7 @@ git clone https://github.com/SienkLogic/towline.git
 cd towline
 npm install
 
-# Run tests (540 tests, 31 suites)
+# Run tests (758 tests, 36 suites)
 npm test
 
 # Lint
@@ -426,9 +434,9 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 |--------|-------|
 | Skills (slash commands) | 21 |
 | Specialized agents | 10 |
-| Hook scripts | 25 |
-| Tests | 540 |
-| Test suites | 31 |
+| Hook scripts | 28 |
+| Tests | 758 |
+| Test suites | 36 |
 | Config toggles | 12 top-level keys |
 
 ---
