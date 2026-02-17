@@ -3,6 +3,7 @@ const { buildStatusLine, buildContextBar, getContextPercent, loadStatusLineConfi
 /** Strip ANSI escape codes for readable assertions */
 function strip(str) {
   if (!str) return str;
+  // eslint-disable-next-line no-control-regex
   return str.replace(/\x1b\[[0-9;]*m/g, '');
 }
 
