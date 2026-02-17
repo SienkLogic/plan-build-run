@@ -13,26 +13,25 @@ Success criteria from roadmap:
 </phase_context>
 
 <project_context>
-Locked decisions:
-{All locked decisions from .planning/CONTEXT.md, or "None -- no CONTEXT.md"}
-
-User constraints:
-{All constraints from CONTEXT.md, or "None"}
-
-Deferred ideas (DO NOT plan for or implement these):
-{All deferred ideas from CONTEXT.md, or "None"}
+{Decision Summary from .planning/CONTEXT.md — compact locked/deferred/discretion list}
+{If no CONTEXT.md exists: "No project-level context."}
 
 Phase-specific decisions:
-{From .planning/phases/{NN}-{slug}/CONTEXT.md if it exists, or "No phase-specific discussion captured."}
+{Decision Summary from .planning/phases/{NN}-{slug}/CONTEXT.md}
+{If no phase-level CONTEXT.md exists: "No phase-specific discussion captured."}
+
+Full context files (Read on-demand if you need scope/quality/integration details):
+- .planning/CONTEXT.md
+- .planning/phases/{NN}-{slug}/CONTEXT.md
 </project_context>
 
 <prior_work>
-{For each preceding phase that has SUMMARY.md files:}
-Phase {M}: {name}
-- Status: {complete/partial}
-- Key files created: {list from SUMMARY.md frontmatter key_files}
-- Exports available: {provides from SUMMARY.md frontmatter}
-- Patterns established: {patterns from SUMMARY.md frontmatter}
+The following prior phase summaries are available. Read any you need via the Read tool.
+
+| Phase | Summary File | Status | Key Exports |
+|-------|-------------|--------|-------------|
+{For each preceding phase SUMMARY.md:}
+| {M} - {name} | {absolute path to SUMMARY.md} | {complete/partial} | {one-line provides list} |
 
 {If no prior phases: "No prior phases completed."}
 </prior_work>

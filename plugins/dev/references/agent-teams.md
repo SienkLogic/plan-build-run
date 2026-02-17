@@ -5,7 +5,7 @@ Agent Teams enable parallel specialist perspectives for critical phases. Teams a
 ## Activation
 
 - **Global**: Set `parallelization.use_teams: true` in `.planning/config.json`
-- **Per-invocation**: Use `--teams` flag on `/dev:plan` or `/dev:build --team`
+- **Per-invocation**: Use `--teams` flag on `/dev:plan`, `/dev:review`, or `/dev:build --team`
 - Per-invocation flag takes precedence over global config
 
 ## Planning Teams

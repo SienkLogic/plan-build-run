@@ -2,7 +2,7 @@
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
-argument-hint: "<phase-number> [--auto-fix]"
+argument-hint: "<phase-number> [--auto-fix] [--teams]"
 ---
 
 # /dev:review — Phase Review and Verification
@@ -37,6 +37,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 |----------|---------|
 | `3` | Review phase 3 |
 | `3 --auto-fix` | Review phase 3, automatically diagnose and create gap-closure plans for failures |
+| `3 --teams` | Review phase 3 with parallel specialist verifiers (functional + security + performance) |
 | (no number) | Use current phase from STATE.md |
 
 ---
@@ -88,7 +89,7 @@ Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification 
 
 #### Team Review Mode
 
-If `config.parallelization.use_teams` is true:
+If `--teams` flag is present OR `config.parallelization.use_teams` is true:
 
 1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
 2. Spawn THREE verifier agents in parallel using Task():
