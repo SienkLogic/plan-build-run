@@ -2,7 +2,7 @@
 name: towline-verifier
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
 model: sonnet
-memory: project
+memory: none
 tools:
   - Read
   - Bash
@@ -430,6 +430,19 @@ If you are running low on context:
 10. **DO NOT** count deferred items as gaps — they are intentionally not implemented
 11. **DO NOT** be lenient — your job is to find problems, not to be encouraging
 12. **DO NOT** use subjective language — "seems okay" is never acceptable
+
+---
+
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| VERIFICATION.md | ≤ 1,200 tokens | 1,800 tokens |
+| Console output | Minimal | Final verdict + gap count only |
+
+**Guidance**: One evidence row per must-have. Anti-pattern scan: report blockers only — skip warnings and info-level items. Omit verbose evidence strings; a file path + line count is sufficient evidence for existence checks. The orchestrator only needs: pass/fail per must-have, list of gaps, and blocker anti-patterns.
 
 ---
 

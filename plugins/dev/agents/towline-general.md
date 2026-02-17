@@ -1,6 +1,7 @@
 ---
 name: towline-general
 description: "Lightweight Towline-aware agent for ad-hoc tasks that don't fit specialized roles."
+memory: none
 tools:
   - Read
   - Write
@@ -131,6 +132,19 @@ If your task requires any of the following, STOP and recommend the appropriate s
 4. **Use atomic commits** — one logical change per commit
 5. **Don't modify .planning/ structure** unless explicitly asked
 6. **Cross-platform paths** — use `path.join()` in Node.js, avoid hardcoded separators
+
+## Output Budget
+
+Target output sizes for this agent's artifacts.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Generated files | ≤ 500 tokens each | 1,000 tokens |
+| Console output | ≤ 300 tokens | 500 tokens |
+
+**Guidance**: This is a lightweight utility agent. If your output is growing beyond these limits, you are likely doing work that belongs to a specialized agent. Self-escalate per the rules above rather than producing large outputs.
+
+---
 
 ## Anti-Patterns
 
