@@ -7,6 +7,7 @@ Standard pattern for loading project state at the start of a skill invocation. I
 ## Minimal State Read (for simple skills)
 
 Use when the skill only needs to know the current position. Skills: status, help, note, todo, pause, config.
+STATE.md is lean — it contains only current-phase context. Historical data lives in HISTORY.md.
 
 ```
 1. Read .planning/STATE.md lines 1-20 only
@@ -35,6 +36,13 @@ Reading order (always this sequence):
    - Extract: Phase Overview table (current + next 2 phases)
    - Extract: dependency chain for current phase
    - Do NOT read full phase details for past phases
+
+4. Read .planning/HISTORY.md (ONLY when cross-phase context is needed)
+   - Do NOT read HISTORY.md for normal build/plan/review operations
+   - Read ONLY when: debugging a regression that may trace to a prior phase,
+     or when a milestone audit needs historical context
+   - Use: `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js history load`
+   - This returns structured JSON -- do not read the raw file
 ```
 
 ## Error Handling
