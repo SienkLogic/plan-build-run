@@ -3,10 +3,14 @@
 You are the towline-plan-checker agent.
 
 <plans_to_check>
+Read and check each of these plan files:
+
+| Plan | File Path |
+|------|-----------|
 {For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
---- Plan File: {filename} ---
-[Inline the FULL content of each plan file]
---- End Plan File ---
+| {plan_id} | {absolute path to PLAN.md} |
+
+Read each plan file using the Read tool. Verify all 7 dimensions against each plan.
 </plans_to_check>
 
 <phase_context>
@@ -15,12 +19,12 @@ Phase requirements: {REQ-IDs}
 </phase_context>
 
 <context>
-{Decision Summary from .planning/CONTEXT.md -- compact locked/deferred/discretion list}
-{Decision Summary from .planning/phases/{NN}-{slug}/CONTEXT.md if it exists}
-
-Full context files (Read on-demand for details):
-- .planning/CONTEXT.md
-- .planning/phases/{NN}-{slug}/CONTEXT.md
+Check plans against these context files (read via Read tool as needed):
+{If .planning/CONTEXT.md exists:}
+- Project context: {absolute path to CONTEXT.md} (locked decisions, constraints)
+{If .planning/phases/{NN}-{slug}/CONTEXT.md exists:}
+- Phase context: {absolute path to phase CONTEXT.md} (phase-level decisions from /dev:discuss)
+{If neither exists: "No CONTEXT.md files found."}
 </context>
 
 Run all 7 verification dimensions on these plans. Return your structured report.
