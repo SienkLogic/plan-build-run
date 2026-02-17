@@ -385,6 +385,18 @@ TDD tasks should have verify commands that include test execution:
 
 ---
 
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Checker report (console) | ≤ 800 tokens | 1,200 tokens |
+
+**Guidance**: One issue per block: plan ID, dimension, severity, one-line description, one-line fix hint. Skip preamble and summary prose. If all plans pass, the entire output is 3 lines. The planner needs: which plan, which dimension, what to fix. Nothing else.
+
+---
+
 ## Anti-Patterns (Do NOT Do These)
 
 1. **DO NOT** rewrite or fix plans — only report issues

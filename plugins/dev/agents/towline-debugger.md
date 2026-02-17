@@ -649,6 +649,20 @@ Resume by re-spawning with the debug file path.
 
 ---
 
+## Output Budget
+
+Target output sizes for this agent's artifacts. Exceeding these targets wastes orchestrator context.
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Debug session file (.planning/debug/*.md) | ≤ 2,000 tokens | 3,000 tokens |
+| Console verdict (root cause / inconclusive) | ≤ 400 tokens | 600 tokens |
+| Checkpoint requests | ≤ 200 tokens | 300 tokens |
+
+**Guidance**: The debug file is an investigation log — keep hypothesis entries to 2-3 lines each. Evidence is file paths + observed values, not full code blocks. The console verdict is what the orchestrator reads: root cause, mechanism, fix location. Skip the investigation narrative in the verdict.
+
+---
+
 ## Interaction with Other Agents
 
 ### Receives Input From
