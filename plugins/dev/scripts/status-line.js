@@ -12,6 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const cp = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./towline-tools');
 
@@ -35,7 +36,7 @@ const c = {
 
 // Default status_line config — works out of the box with zero config
 const DEFAULTS = {
-  sections: ['phase', 'plan', 'status', 'context'],
+  sections: ['phase', 'plan', 'status', 'git', 'context'],
   brand_text: '\u25C6 Towline',
   max_status_length: 50,
   context_bar: {
@@ -136,6 +137,36 @@ function statusColor(statusText) {
   return c.white;
 }
 
+/**
+ * Get current git branch and dirty status.
+ * Returns null if not in a git repo or git is unavailable.
+ */
+function getGitInfo() {
+  try {
+    const branch = cp.execSync('git branch --show-current', {
+      timeout: 500, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
+    if (!branch) return null;
+    const porcelain = cp.execSync('git status --porcelain', {
+      timeout: 500, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
+    return { branch, dirty: porcelain.length > 0 };
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Format milliseconds into human-readable duration (e.g. "12m", "1h23m").
+ */
+function formatDuration(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0) return `${hours}h${minutes > 0 ? minutes + 'm' : ''}`;
+  return `${minutes}m`;
+}
+
 function main() {
   const stdinData = readStdin();
   const cwd = process.cwd();
@@ -150,7 +181,7 @@ function main() {
     const slConfig = loadStatusLineConfig(planningDir);
     const content = fs.readFileSync(stateFile, 'utf8');
     const ctxPercent = getContextPercent(stdinData);
-    const status = buildStatusLine(content, ctxPercent, slConfig);
+    const status = buildStatusLine(content, ctxPercent, slConfig, stdinData);
 
     if (status) {
       process.stdout.write(status);
@@ -163,12 +194,13 @@ function main() {
   process.exit(0);
 }
 
-function buildStatusLine(content, ctxPercent, cfg) {
+function buildStatusLine(content, ctxPercent, cfg, stdinData) {
   const config = cfg || DEFAULTS;
   const sections = config.sections || DEFAULTS.sections;
   const brandText = config.brand_text || DEFAULTS.brand_text;
   const maxLen = config.max_status_length || DEFAULTS.max_status_length;
   const barCfg = config.context_bar || DEFAULTS.context_bar;
+  const sd = stdinData || {};
 
   const parts = [];
 
@@ -206,6 +238,35 @@ function buildStatusLine(content, ctxPercent, cfg) {
     }
   }
 
+  // Git section — branch name + dirty indicator
+  if (sections.includes('git')) {
+    const gitInfo = getGitInfo();
+    if (gitInfo) {
+      const dirtyMark = gitInfo.dirty ? `${c.yellow}*${c.reset}` : '';
+      parts.push(`${c.cyan}${gitInfo.branch}${c.reset}${dirtyMark}`);
+    }
+  }
+
+  // Model section — current model display name from stdin
+  if (sections.includes('model') && sd.model && sd.model.display_name) {
+    parts.push(`${c.dim}${sd.model.display_name}${c.reset}`);
+  }
+
+  // Cost section — session cost from stdin
+  if (sections.includes('cost') && sd.cost && sd.cost.total_cost_usd != null) {
+    const cost = sd.cost.total_cost_usd;
+    const costStr = `$${cost.toFixed(2)}`;
+    let costColor = c.dim;
+    if (cost > 5) costColor = c.red;
+    else if (cost > 1) costColor = c.yellow;
+    parts.push(`${costColor}${costStr}${c.reset}`);
+  }
+
+  // Duration section — session wall-clock time from stdin
+  if (sections.includes('duration') && sd.cost && sd.cost.total_duration_ms != null) {
+    parts.push(`${c.dim}${formatDuration(sd.cost.total_duration_ms)}${c.reset}`);
+  }
+
   // Context bar section
   if (sections.includes('context') && ctxPercent != null) {
     const bar = buildContextBar(ctxPercent, barCfg.width || DEFAULTS.context_bar.width, {
@@ -221,4 +282,4 @@ function buildStatusLine(content, ctxPercent, cfg) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, loadStatusLineConfig, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, DEFAULTS };

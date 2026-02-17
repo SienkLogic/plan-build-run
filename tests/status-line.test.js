@@ -1,4 +1,5 @@
-const { buildStatusLine, buildContextBar, getContextPercent, loadStatusLineConfig, DEFAULTS } = require('../plugins/dev/scripts/status-line');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, DEFAULTS } = require('../plugins/dev/scripts/status-line');
+const { configClearCache } = require('../plugins/dev/scripts/towline-tools');
 
 /** Strip ANSI escape codes for readable assertions */
 function strip(str) {
@@ -187,8 +188,8 @@ describe('status-line.js', () => {
         expect(DEFAULTS.context_bar).toHaveProperty('chars');
       });
 
-      test('default sections include all four', () => {
-        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'context']);
+      test('default sections include phase, plan, status, git, context', () => {
+        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'git', 'context']);
       });
 
       test('default brand text is diamond Towline', () => {
@@ -333,6 +334,7 @@ describe('status-line.js', () => {
       let tmpDir;
 
       beforeEach(() => {
+        configClearCache();
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sl-test-'));
       });
 
@@ -430,6 +432,179 @@ describe('status-line.js', () => {
         const result = loadStatusLineConfig(tmpDir);
         expect(result.max_status_length).toBe(100);
       });
+    });
+  });
+
+  describe('getGitInfo', () => {
+    const cp = require('child_process');
+
+    test('returns branch and dirty false for clean repo', () => {
+      const spy = jest.spyOn(cp, 'execSync');
+      spy.mockImplementation((cmd) => {
+        if (cmd.includes('branch --show-current')) return 'main\n';
+        if (cmd.includes('status --porcelain')) return '';
+        return '';
+      });
+      const info = getGitInfo();
+      expect(info).toEqual({ branch: 'main', dirty: false });
+      spy.mockRestore();
+    });
+
+    test('returns dirty true when porcelain has output', () => {
+      const spy = jest.spyOn(cp, 'execSync');
+      spy.mockImplementation((cmd) => {
+        if (cmd.includes('branch --show-current')) return 'feature/x\n';
+        if (cmd.includes('status --porcelain')) return ' M src/index.js\n';
+        return '';
+      });
+      const info = getGitInfo();
+      expect(info).toEqual({ branch: 'feature/x', dirty: true });
+      spy.mockRestore();
+    });
+
+    test('returns null when not in a git repo', () => {
+      const spy = jest.spyOn(cp, 'execSync').mockImplementation(() => {
+        throw new Error('not a git repo');
+      });
+      const info = getGitInfo();
+      expect(info).toBeNull();
+      spy.mockRestore();
+    });
+
+    test('returns null when branch is empty', () => {
+      const spy = jest.spyOn(cp, 'execSync').mockImplementation((cmd) => {
+        if (cmd.includes('branch --show-current')) return '\n';
+        return '';
+      });
+      const info = getGitInfo();
+      expect(info).toBeNull();
+      spy.mockRestore();
+    });
+  });
+
+  describe('formatDuration', () => {
+    test('formats minutes only', () => {
+      expect(formatDuration(720000)).toBe('12m');
+    });
+
+    test('formats hours and minutes', () => {
+      expect(formatDuration(4980000)).toBe('1h23m');
+    });
+
+    test('formats hours with no minutes', () => {
+      expect(formatDuration(7200000)).toBe('2h');
+    });
+
+    test('formats zero as 0m', () => {
+      expect(formatDuration(0)).toBe('0m');
+    });
+
+    test('formats sub-minute as 0m', () => {
+      expect(formatDuration(30000)).toBe('0m');
+    });
+  });
+
+  describe('buildStatusLine with git section', () => {
+    const cp = require('child_process');
+
+    test('includes git branch when git section is configured', () => {
+      const spy = jest.spyOn(cp, 'execSync');
+      spy.mockImplementation((cmd) => {
+        if (cmd.includes('branch --show-current')) return 'main\n';
+        if (cmd.includes('status --porcelain')) return '';
+        return '';
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'git'] };
+      const result = strip(buildStatusLine(content, null, cfg));
+      expect(result).toContain('main');
+      spy.mockRestore();
+    });
+
+    test('shows dirty indicator', () => {
+      const spy = jest.spyOn(cp, 'execSync');
+      spy.mockImplementation((cmd) => {
+        if (cmd.includes('branch --show-current')) return 'dev\n';
+        if (cmd.includes('status --porcelain')) return 'M file.js\n';
+        return '';
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'git'] };
+      const result = strip(buildStatusLine(content, null, cfg));
+      expect(result).toContain('dev');
+      expect(result).toContain('*');
+      spy.mockRestore();
+    });
+
+    test('omits git when not in sections', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase'] };
+      const result = strip(buildStatusLine(content, null, cfg));
+      expect(result).not.toContain('main');
+    });
+  });
+
+  describe('buildStatusLine with cost/model/duration', () => {
+    test('shows cost from stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'cost'] };
+      const sd = { cost: { total_cost_usd: 0.42 } };
+      const result = strip(buildStatusLine(content, null, cfg, sd));
+      expect(result).toContain('$0.42');
+    });
+
+    test('shows model name from stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'model'] };
+      const sd = { model: { display_name: 'Opus' } };
+      const result = strip(buildStatusLine(content, null, cfg, sd));
+      expect(result).toContain('Opus');
+    });
+
+    test('shows duration from stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'duration'] };
+      const sd = { cost: { total_duration_ms: 180000 } };
+      const result = strip(buildStatusLine(content, null, cfg, sd));
+      expect(result).toContain('3m');
+    });
+
+    test('omits cost when not in stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'cost'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}));
+      expect(result).not.toContain('$');
+    });
+
+    test('omits model when not in stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'model'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}));
+      // Only phase brand should be present
+      expect(result).toContain('Towline');
+    });
+
+    test('omits duration when not in stdinData', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'duration'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}));
+      expect(result).toContain('Towline');
+    });
+
+    test('cost color yellow above $1', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['cost'] };
+      const sd = { cost: { total_cost_usd: 2.50 } };
+      const raw = buildStatusLine(content, null, cfg, sd);
+      expect(raw).toContain('\x1b[33m$2.50');
+    });
+
+    test('cost color red above $5', () => {
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['cost'] };
+      const sd = { cost: { total_cost_usd: 7.00 } };
+      const raw = buildStatusLine(content, null, cfg, sd);
+      expect(raw).toContain('\x1b[31m$7.00');
     });
   });
 });

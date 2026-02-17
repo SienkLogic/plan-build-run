@@ -32,11 +32,12 @@ const planningDir = path.join(cwd, '.planning');
 
 let _configCache = null;
 let _configMtime = 0;
+let _configPath = null;
 
 /**
  * Load config.json with in-process mtime-based caching.
  * Returns the parsed config object, or null if not found / parse error.
- * Cache invalidates when file mtime changes.
+ * Cache invalidates when file mtime changes or path differs.
  *
  * @param {string} [dir] - Path to .planning directory (defaults to cwd/.planning)
  * @returns {object|null} Parsed config or null
@@ -47,15 +48,26 @@ function configLoad(dir) {
     if (!fs.existsSync(configPath)) return null;
     const stat = fs.statSync(configPath);
     const mtime = stat.mtimeMs;
-    if (_configCache && mtime === _configMtime) {
+    if (_configCache && mtime === _configMtime && configPath === _configPath) {
       return _configCache;
     }
     _configCache = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     _configMtime = mtime;
+    _configPath = configPath;
     return _configCache;
   } catch (_e) {
     return null;
   }
+}
+
+/**
+ * Clear the configLoad() in-process cache.
+ * Useful in tests where multiple temp directories are used in rapid succession.
+ */
+function configClearCache() {
+  _configCache = null;
+  _configMtime = 0;
+  _configPath = null;
 }
 
 /**
@@ -1286,4 +1298,4 @@ function atomicWrite(filePath, content) {
 }
 
 if (require.main === module) { main(); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad };
