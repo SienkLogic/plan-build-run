@@ -17,6 +17,7 @@
         "Stop": { "$ref": "#/definitions/hookEntryList" },
         "SubagentStart": { "$ref": "#/definitions/hookEntryList" },
         "SubagentStop": { "$ref": "#/definitions/hookEntryList" },
+        "TaskCompleted": { "$ref": "#/definitions/hookEntryList" },
         "SessionEnd": { "$ref": "#/definitions/hookEntryList" }
       },
       "additionalProperties": false
