@@ -38,7 +38,8 @@ Most AI coding tools treat context as infinite. They index your codebase, track 
 
 Towline takes a different approach: **structured context isolation**. Instead of stuffing everything into one session, it delegates each operation to a fresh subagent with a clean 200k token window and coordinates through files on disk.
 
-### What sets it apart
+<details>
+<summary><strong>What sets it apart</strong></summary>
 
 | Capability | IDE Assistants | Other Workflow Plugins | **Towline** |
 |:-----------|:--------------:|:----------------------:|:-----------:|
@@ -57,7 +58,7 @@ Towline takes a different approach: **structured context isolation**. Instead of
 | Configurability | Opinionated | Limited | 12 config keys, 16+ feature toggles, depth/model profiles |
 
 <details>
-<summary><strong>Key differentiators in detail</strong></summary>
+<summary>Key differentiators in detail</summary>
 
 **Goal-backward verification.** After a phase is built, a dedicated read-only verifier agent checks your actual codebase against declared must-haves. It doesn't ask "did the tasks complete?" It asks "does the codebase now satisfy the requirements?" Three layers: existence (file exists), substance (not a stub), wiring (connected to the system).
 
@@ -83,6 +84,7 @@ Towline takes a different approach: **structured context isolation**. Instead of
 
 **Real-time dashboard.** A built-in web UI (`/dev:dashboard`) shows project state, phase progress, todos, and plan details with live updates via Server-Sent Events. Browse your `.planning/` state visually instead of reading markdown files.
 
+</details>
 </details>
 
 > **When to use Towline:** Multi-phase projects where quality matters. New features spanning 5+ files, large refactors, greenfield builds, anything that would take more than one Claude Code session to complete. Use `depth: quick` or `depth: standard` to control agent spawn count per phase.
@@ -155,46 +157,59 @@ Or run directly:
 node dashboard/bin/cli.js --dir /path/to/your/project --port 3000
 ```
 
-### Your First Project
+### Quick Start (Max / Max 5x)
+
+Full pipeline with parallel research and multi-agent builds. Best experience.
 
 ```bash
-cd your-project
-claude
+cd your-project && claude
+```
+```
+/dev:begin                # Towline asks about your project, researches the domain,
+                          # scopes requirements, and generates a phased roadmap
+
+/dev:plan 1               # Research + plan the first phase
+/dev:build 1              # Build it with parallel agents, atomic commits
+/dev:review 1             # Verify the codebase matches requirements
+/dev:plan 2               # Repeat for next phase
 ```
 
+That's the whole cycle. Everything lands in a `.planning/` directory. Kill your terminal anytime, `/dev:resume` picks up where you left off.
+
+### Quick Start (Pro / Free)
+
+Lighter workflow that still gives you structured state tracking and clean commits.
+
+```bash
+cd your-project && claude
 ```
-/dev:begin
+```
+/dev:setup                # Create .planning/ structure without the heavy research step
+/dev:plan 1 --skip-research   # Plan without spawning a research agent
+/dev:build 1              # Build it
+/dev:quick                # For one-off tasks: single agent, atomic commit, lowest cost
 ```
 
-Towline asks about your project, researches the domain, scopes requirements, and generates a phased roadmap. Everything lands in a `.planning/` directory.
-
-From there, the cycle is:
-
-```
-/dev:plan 1       # Plan the first phase
-/dev:build 1      # Build it (parallel agents)
-/dev:review 1     # Verify it works
-/dev:plan 2       # Next phase
-...
-```
+Set `depth: quick` in `/dev:config` to reduce agent spawns across all workflows.
 
 ### Quick Reference
 
-| When you want to... | Run |
-|---------------------|-----|
-| Start a new project | `/dev:begin` |
+| What you want | Command |
+|---------------|---------|
+| Start a new project | `/dev:begin` (or `/dev:setup` for lightweight init) |
 | Plan a phase | `/dev:plan 1` |
 | Build a phase | `/dev:build 1` |
 | Verify a phase | `/dev:review 1` |
 | Do something quick | `/dev:quick` |
 | See where you are | `/dev:status` |
-| Resume after restarting | `/dev:resume` |
-| Auto-advance to next step | `/dev:continue` |
-| Update settings | `/dev:config` |
+| Resume after restart | `/dev:resume` |
+| Auto-advance | `/dev:continue` |
+| Change settings | `/dev:config` |
 
 ---
 
-## Philosophy
+<details>
+<summary><strong>Philosophy</strong></summary>
 
 | Principle | What it means |
 |-----------|---------------|
@@ -204,7 +219,10 @@ From there, the cycle is:
 | **Trust but Verify** | A dedicated read-only verifier checks the actual codebase against requirements, not Claude's claims about it. |
 | **Build Houses, Don't Swat Flies** | The structured workflow pays off for complex multi-phase work. For simple tasks, `/dev:quick` skips the ceremony. |
 
-## Platform Alignment
+</details>
+
+<details>
+<summary><strong>Platform Alignment</strong></summary>
 
 Towline is built on Claude Code's plugin API, not around it. As Claude Code evolves, Towline adopts native features rather than competing with them.
 
@@ -219,6 +237,8 @@ Towline is built on Claude Code's plugin API, not around it. As Claude Code evol
 
 **Design principle:** Interface, don't replace. Features that Claude Code is likely to nativize are implemented as thin wrappers ready to migrate. Features that represent Towline's unique workflow layer (goal-backward verification, structured depth control, wave parallelism). That's where long-term investment goes.
 
+</details>
+
 ---
 
 ## Commands
@@ -231,6 +251,9 @@ Towline is built on Claude Code's plugin API, not around it. As Claude Code evol
 | `/dev:plan <N>` | Plan a phase: research, plan creation, verification loop | 2-3 (quick: 1-2) |
 | `/dev:build <N>` | Build a phase: parallel execution in waves, atomic commits | 2-4 (quick: 1-2) |
 | `/dev:review <N>` | Verify a phase: automated 3-layer checks + conversational UAT | 1 |
+
+<details>
+<summary><strong>All commands</strong></summary>
 
 ### Planning & Discovery
 
@@ -276,6 +299,8 @@ Towline is built on Claude Code's plugin API, not around it. As Claude Code evol
 | `/dev:import` | Import an external plan document into the Towline format. |
 | `/dev:help` | Command reference and workflow guide. |
 
+</details>
+
 ---
 
 ## How It Works
@@ -292,7 +317,8 @@ Main Session (~15% context)
   └── Task(verifier)    ──▶  checks codebase against must-haves
 ```
 
-### Key Concepts
+<details>
+<summary><strong>Key Concepts</strong></summary>
 
 | Concept | Description |
 |---------|-------------|
@@ -304,6 +330,8 @@ Main Session (~15% context)
 | **Persistent state** | All project state lives in `.planning/` and survives context resets, session kills, and crashes. |
 | **Seeds** | `/dev:explore` can create seed files with trigger conditions that automatically inject into planning. |
 | **CLI tooling** | Deterministic Node.js CLI offloads mechanical parsing from agents, saving ~4,000-11,000 tokens per phase. |
+
+</details>
 
 ### Token-Saving CLI
 
@@ -330,9 +358,8 @@ towline-tools.js roadmap update-plans <N> <done> <total> # Update ROADMAP.md pla
 
 ---
 
-## Agents
-
-Towline ships with 10 specialized agents, each with a focused role and appropriate tool access:
+<details>
+<summary><strong>Agents</strong> (10 specialized agents with configurable model profiles)</summary>
 
 | Agent | Role | Default Model | Why |
 |-------|------|---------------|-----|
@@ -349,11 +376,12 @@ Towline ships with 10 specialized agents, each with a focused role and appropria
 
 Use `/dev:config` to switch model profiles (`budget`, `balanced`, `quality`) across all agents at once.
 
+</details>
+
 ---
 
-## Project Structure
-
-Towline creates a `.planning/` directory in your project:
+<details>
+<summary><strong>Project Structure</strong> (<code>.planning/</code> directory layout)</summary>
 
 ```
 .planning/
@@ -377,11 +405,14 @@ Towline creates a `.planning/` directory in your project:
     └── done/               # Completed todos
 ```
 
+</details>
+
 ---
 
-## Dashboard
+<details>
+<summary><strong>Dashboard</strong> (web UI for browsing project state)</summary>
 
-Towline includes a companion web dashboard (`dashboard/`) for browsing project state visually. See [Dashboard setup](#dashboard-optional) for installation.
+See [Dashboard setup](#dashboard-optional) for installation.
 
 | Feature | Description |
 |---------|-------------|
@@ -394,16 +425,15 @@ Towline includes a companion web dashboard (`dashboard/`) for browsing project s
 **Tech:** Express 5.x, EJS, Pico.css v2, HTMX 2.0, gray-matter + marked, chokidar 5.x, Helmet.
 
 ```bash
-# From the repo root
 npm run dashboard -- --dir /path/to/your/project
-
-# Custom port
-npm run dashboard -- --dir . --port 8080
 ```
+
+</details>
 
 ---
 
-## Configuration
+<details>
+<summary><strong>Configuration</strong> (12 config keys, 16+ toggles)</summary>
 
 Settings live in `.planning/config.json`. Run `/dev:config` to change them interactively.
 
@@ -422,25 +452,14 @@ Settings live in `.planning/config.json`. Run `/dev:config` to change them inter
 | `features.auto_continue` | `true` · `false` | `false` |
 | `features.auto_advance` | `true` · `false` | `false` |
 
-<details>
-<summary><strong>All configuration options</strong></summary>
-
-There are 12 top-level configuration keys covering:
-
-- **Depth & strategy:** How thorough research and planning should be
-- **Models:** Which Claude model agents use (inherit, sonnet, haiku)
-- **Quality gates:** Confirm before plan, execute, and transition
-- **Parallelization:** Max concurrent agents, plan-level parallelism
-- **Git workflow:** Commit format, branching strategy, doc commits
-- **Features:** 10+ toggles for verification, TDD, auto-advance, etc.
+12 top-level keys covering: depth & strategy, models, quality gates, parallelization, git workflow, and 10+ feature toggles.
 
 </details>
 
 ---
 
-## Hooks
-
-Towline uses Claude Code lifecycle hooks to enforce workflow discipline. These hooks run as lightweight Node.js processes at zero orchestrator token cost. Enforcement is automatic.
+<details>
+<summary><strong>Hooks</strong> (15 lifecycle hooks, zero token cost)</summary>
 
 | Hook Event | Script | Purpose |
 |------------|--------|---------|
@@ -459,6 +478,8 @@ Towline uses Claude Code lifecycle hooks to enforce workflow discipline. These h
 | `SubagentStop` | `event-handler.js` | Auto-verification trigger |
 | `TaskCompleted` | `task-completed.js` | Process task completion events |
 | `SessionEnd` | `session-cleanup.js` | Clean up session state |
+
+</details>
 
 ---
 
