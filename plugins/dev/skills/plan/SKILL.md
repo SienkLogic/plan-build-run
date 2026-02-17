@@ -52,6 +52,40 @@ Parse the phase number and optional flags:
 | `insert <N>` | Insert a new phase at position N (uses decimal numbering) |
 | `remove <N>` | Remove phase N from the roadmap |
 
+### Freeform Text Guard
+
+**Before any context loading**, check whether `$ARGUMENTS` looks like freeform text rather than a valid invocation. Valid patterns are:
+
+- Empty (no arguments)
+- A phase number: integer (`3`, `03`) or decimal (`3.1`)
+- A subcommand: `add`, `insert <N>`, `remove <N>`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`
+- The word `check` (legacy alias)
+
+If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
+
+```
+`/dev:plan` expects a phase number or subcommand.
+
+Usage:
+  /dev:plan <N>              Plan phase N
+  /dev:plan <N> --gaps       Create gap-closure plans
+  /dev:plan add              Add a new phase
+  /dev:plan insert <N>       Insert a phase at position N
+  /dev:plan remove <N>       Remove phase N
+```
+
+Then suggest the appropriate skill based on the text content:
+
+| If the text looks like... | Suggest |
+|---------------------------|---------|
+| A task, idea, or feature request | `/dev:todo` to capture it, or `/dev:explore` to investigate |
+| A bug or debugging request | `/dev:debug` to investigate the issue |
+| A review or quality concern | `/dev:review` to assess existing work |
+| Anything else | `/dev:explore` for open-ended work |
+
+Do NOT proceed with planning. The user needs to use the correct skill.
+
 ---
 
 ## Orchestration Flow: Standard Planning
@@ -62,14 +96,10 @@ Execute these steps in order for standard `/dev:plan <N>` invocations.
 
 ### Step 1: Parse and Validate (inline)
 
-**Tooling shortcut**: Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, you can run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js state load
-```
-This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. For plan inventory, use `plan-index <phase>`. For comprehensive phase status, use `phase-info <phase>`. Falls back gracefully if the script is missing — parse files manually in that case.
+Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state load`, `plan-index`, `phase-info`) and config field reference.
 
 1. Parse `$ARGUMENTS` for phase number and flags
-2. Read `.planning/config.json` for settings
+2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
 3. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -96,8 +126,8 @@ Read all relevant context files. This context will be inlined into subagent prom
 ```
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
-3. Read .planning/CONTEXT.md (if exists) — extract locked decisions, constraints, deferred ideas
-4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract phase-specific locked decisions, deferred ideas, and discretion areas captured by /dev:discuss
+3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
+4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
 5. Read .planning/config.json — extract feature flags, depth, model settings
 6. Read prior SUMMARY.md files using digest-select depth (see below)
 7. Read .planning/research/SUMMARY.md (if exists) — extract research findings
@@ -286,28 +316,12 @@ Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt tem
 
 ### Step 7: Revision Loop (max 3 iterations)
 
-If the plan checker found issues:
+Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
-**Iteration 1-3:**
-
-1. Read the checker's issue report
-2. If only INFO-level issues: proceed to Step 8 (acceptable)
-3. If BLOCKER or WARNING issues:
-   a. Re-spawn the planner Task() with the checker feedback appended:
-
-Read `skills/plan/templates/revision-prompt.md.tmpl` and use it as the prompt template for the revision planner. Fill in the placeholders:
-- `<original_plans>` - inline the current plan files
-- `<checker_feedback>` - inline the checker's issue report
-- `<revision_instructions>` - specific revision guidance
-
-   b. After revision, re-run the checker (back to Step 6)
-
-**After 3 iterations:**
-If issues persist after 3 revision cycles:
-- Present remaining issues to the user
-- Ask: "These issues remain after 3 revision attempts. Proceed anyway, or do you want to adjust the approach?"
-- If proceed: go to Step 8
-- If adjust: discuss with user and re-enter Step 5 with updated context
+Follow the revision loop pattern with:
+- **Producer**: towline-planner (re-spawned with `skills/plan/templates/revision-prompt.md.tmpl`)
+- **Checker**: towline-plan-checker (back to Step 6)
+- **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
 
 ---
 
