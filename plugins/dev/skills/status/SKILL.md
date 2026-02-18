@@ -35,7 +35,16 @@ These return structured JSON with config, state, roadmap, and filesystem-verifie
 Read the following files (skip any that don't exist):
 
 1. **`.planning/config.json`** — Project settings
-   - If this doesn't exist: "No Towline project found. Run `/dev:begin` to start a new project."
+   - If this doesn't exist, display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     No Towline project found.
+
+     **To fix:** Run `/dev:begin` to start a new project, or `/dev:scan` to analyze an existing codebase.
+     ```
    - Stop here if no project found.
 
 2. **`.planning/STATE.md`** — Current position, progress, blockers

@@ -195,6 +195,31 @@ Do NOT create any artifacts until the user selects "Approve all" on the final se
 
 Create only the approved artifacts. A single explore session can produce multiple outputs across different types.
 
+### Step 5: Completion
+
+After creating artifacts (or if user chose "Skip"), display:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► EXPLORATION CAPTURED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{count} artifacts created: {list of artifact types}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+{Smart routing based on what was created:}
+- If a todo was created: `/dev:todo` — manage your task list
+- If a phase decision was captured: `/dev:plan {N}` — plan the phase
+- If a new phase was added: `/dev:discuss {N}` — talk through the new phase
+- If research questions were logged: `/dev:plan {N}` — research happens during planning
+- Default: `/dev:status` — see project status
+
+───────────────────────────────────────────────────────────────
+```
+
 ---
 
 ## Output Formats
@@ -283,6 +308,27 @@ docs(planning): capture explore session outputs
 ```
 
 Stage only the files created during this session. Do not stage unrelated changes.
+
+---
+
+## Error Handling
+
+### Researcher agent fails
+If a mid-conversation researcher Task() fails, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Research agent failed for topic: {topic}.
+
+**To fix:** Continue the conversation without research, or try `/dev:explore` again with a more specific topic.
+```
+
+### Context loader fails
+If the briefing Task() fails:
+- Display: `⚠ Context loading failed. Proceeding without project context.`
+- Continue with the exploration — the conversation can still be valuable without project context.
 
 ---
 

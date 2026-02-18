@@ -48,7 +48,13 @@ theme: {inferred-theme}
 ```
 
 7. Update STATE.md Pending Todos section
-8. Confirm: "Added todo {NNN}: {description}"
+8. Confirm with branded output:
+```
+✓ Added todo {NNN}: {description}
+
+→ `/dev:todo list` — see all pending todos
+→ `/dev:quick {NNN}` — work on it now
+```
 
 ### `list [theme]`
 
@@ -65,16 +71,36 @@ Pending Todos:
 | 075 | Add WebSearch/WebFetch/Context7 to researcher | P2 | capability | 2026-02-10 |
 ```
 
-5. Offer actions: "Work on one? Pick a number, or use `/dev:todo done <NNN>` to mark complete."
+5. Offer actions:
+```
+→ `/dev:todo done <NNN>` — mark a todo complete
+→ `/dev:quick` — work on one now
+→ `/dev:status` — see project status
+```
 
 ### `done <NNN>`
 
 1. Find `.planning/todos/pending/{NNN}-*.md` (match by number prefix)
-2. If not found, list available numbers
+2. If not found, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Todo {NNN} not found in pending todos.
+
+**To fix:** Run `/dev:todo list` to see available numbers.
+```
 3. Move file to `.planning/todos/done/{NNN}-{slug}.md`
 4. Update frontmatter: set `status: done` and add `completed: {YYYY-MM-DD}`
 5. Update STATE.md
-6. Confirm: "Completed todo {NNN}: {title}"
+6. Confirm with branded output:
+```
+✓ Completed todo {NNN}: {title}
+
+→ `/dev:todo list` — see remaining todos
+→ `/dev:continue` — execute next logical step
+```
 
 ### No arguments
 

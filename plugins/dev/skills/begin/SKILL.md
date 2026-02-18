@@ -257,7 +257,9 @@ Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure
 
 ### Step 6: Synthesis (delegated to subagent)
 
-After all researchers complete, spawn a synthesis agent:
+After all researchers complete, display to the user: `◐ Spawning synthesizer...`
+
+Spawn a synthesis agent:
 
 ```
 Task({
@@ -321,6 +323,8 @@ Read the template from `skills/begin/templates/REQUIREMENTS.md.tmpl` and write `
 ---
 
 ### Step 8: Roadmap Generation (delegated to subagent)
+
+Display to the user: `◐ Spawning planner (roadmap)...`
 
 Spawn the towline-planner in roadmap mode:
 
@@ -504,7 +508,7 @@ Then use the "Next Up" routing block:
 If a researcher Task() fails or times out:
 - Note which topic wasn't researched
 - Continue with available research
-- Flag the gap to the user: "Research on {topic} failed. Proceeding without it. You can run `/dev:plan 1 --skip-research` false later."
+- Display: `⚠ Research on {topic} failed. Proceeding without it. You can re-research during /dev:plan.`
 
 ### User wants to restart
 If user says they want to start over mid-flow:
@@ -512,9 +516,16 @@ If user says they want to start over mid-flow:
 - If yes: restart from Step 2
 
 ### Config write fails
-If `.planning/` directory can't be created:
-- Check permissions
-- Ask user for alternative path
+If `.planning/` directory can't be created, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Cannot create .planning/ directory.
+
+**To fix:** Check directory permissions or specify an alternative path.
+```
 
 ---
 

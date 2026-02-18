@@ -200,23 +200,48 @@ If `planning.commit_docs: true` in config.json:
 If SUMMARY.md is missing: the executor may have failed — re-read executor output and report the failure.
 If STATE.md entry is missing: write it now (Step 9 was skipped).
 
-Display results to the user:
+Display results to the user with branded output:
 
+**If completed:**
 ```
-Quick Task {NNN}: {description}
-Status: {Completed / Partial / Failed}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► QUICK TASK COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-{If completed:}
-Commit: {hash} - {commit message}
+**Quick Task {NNN}:** {description}
+Commit: {hash} — {commit message}
 Files: {list of files changed}
 
-{If partial:}
-Completed: {N} of {M} tasks
-Failed task: {task name} - {failure reason}
+───────────────────────────────────────────────────────────────
 
-{If failed:}
-Error: {failure details}
-Suggestion: {what to try next}
+## ▶ Next Up
+
+→ `/dev:status` — see project status
+→ `/dev:continue` — execute next logical step
+→ `/dev:todo list` — see pending todos
+
+───────────────────────────────────────────────────────────────
+```
+
+**If partial:**
+```
+⚠ Quick Task {NNN}: {description}
+Completed: {N} of {M} tasks
+Failed task: {task name} — {failure reason}
+
+→ Re-run with `/dev:quick` to retry
+→ `/dev:debug` to investigate the failure
+```
+
+**If failed:**
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Quick Task {NNN} failed: {failure details}
+
+**To fix:** {what to try next}
 ```
 
 ---

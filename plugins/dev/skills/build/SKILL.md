@@ -83,9 +83,29 @@ After validating prerequisites, check plan staleness:
    If "Continue anyway": proceed with existing plans
 7. If plans have no `dependency_fingerprints` field: skip this check (backward compatible)
 
-**Validation errors:**
-- No plans found: "Phase {N} has no plans. Run `/dev:plan {N}` first."
-- Dependencies incomplete: "Phase {N} depends on Phase {M}, which is not complete. Build Phase {M} first."
+**Validation errors — use branded error boxes:**
+
+If no plans found:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} has no plans.
+
+**To fix:** Run `/dev:plan {N}` first.
+```
+
+If dependencies incomplete:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} depends on Phase {M}, which is not complete.
+
+**To fix:** Build Phase {M} first with `/dev:build {M}`.
+```
 
 ---
 
@@ -791,18 +811,24 @@ This ensures the user sees setup requirements prominently instead of buried in S
 ## Error Handling
 
 ### Executor agent timeout
-If a Task() doesn't return within a reasonable time:
-- Check for partial SUMMARY.md (may have been written before timeout)
-- Treat as `partial` status
-- Present to user: retry or skip
+If a Task() doesn't return within a reasonable time, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Executor agent timed out for Plan {id}.
+
+**To fix:** Check `.planning/phases/{NN}-{slug}/` for partial SUMMARY.md, then retry or skip.
+```
+Treat as `partial` status. Present to user: retry or skip.
 
 For commit conventions and git workflow details, see `references/git-integration.md`.
 
 ### Git lock conflicts
 If multiple parallel executors create git lock conflicts:
 - The executor agent handles retries internally (see executor agent definition)
-- If lock conflicts persist across executors, reduce `max_concurrent_agents` to 1
-- Warn user: "Git lock conflicts detected with parallel execution. Consider disabling parallelization."
+- If lock conflicts persist, display: `⚠ Git lock conflicts detected with parallel execution. Consider reducing max_concurrent_agents to 1.`
 
 ### Executor produces unexpected files
 If SUMMARY.md shows files not listed in the plan's `files_modified`:

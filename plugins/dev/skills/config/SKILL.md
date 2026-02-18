@@ -19,7 +19,16 @@ Reads and writes `.planning/config.json`. Interactive configuration with AskUser
 
 ### 1. Load Current Config
 
-Read `.planning/config.json`. If it doesn't exist, inform user: "No Towline project found. Run /dev:begin first."
+Read `.planning/config.json`. If it doesn't exist, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No Towline project found.
+
+**To fix:** Run `/dev:begin` first.
+```
 
 ### 2. Parse Arguments
 
@@ -161,11 +170,31 @@ If user types something else (freeform): interpret as a direct setting command a
 
 ### 4. Apply Changes
 
-Update config.json with new values. Show what changed:
+Update config.json with new values. Show what changed with a branded completion:
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► CONFIG UPDATED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Updated:
   depth: standard → quick
   models.executor: inherit → sonnet
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Continue your workflow**
+
+`/dev:status` — see current project position
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:continue` — execute next logical step
+- `/dev:config` — change more settings
+
+───────────────────────────────────────────────────────────────
 ```
 
 ## Config Schema

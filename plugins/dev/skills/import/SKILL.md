@@ -249,6 +249,8 @@ gap_closure: {false for standard plans, true if closing gaps}
 
 **If validation is enabled:**
 
+Display to the user: `◐ Spawning plan checker...`
+
 Spawn the plan checker Task():
 
 ```
@@ -367,10 +369,14 @@ docs({phase}): import plans for phase {N} ({count} plans, {wave_count} waves)
 
 ### Step 10: Confirm (inline)
 
-Present a summary of the import:
+Present a summary of the import using the branded banner:
 
 ```
-Phase {N}: {name} — {plan_count} plans imported
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► IMPORT COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {name}** — {plan_count} plans imported
 
 Source: {filepath or "user input"}
 Conflicts resolved: {count of blockers resolved in Step 4}
@@ -387,10 +393,23 @@ Wave execution order:
 Must-haves coverage: {count} truths across {plan_count} plans
 Requirements traced: {count}/{total} REQ-IDs covered
 
-What's next?
--> /dev:build {N} — execute these plans
--> /dev:plan {N} — re-plan from scratch if import needs rework
--> /dev:discuss {N} — talk through details before building
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Build Phase {N}** — execute these imported plans
+
+`/dev:build {N}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:plan {N}` — re-plan from scratch if import needs rework
+- `/dev:discuss {N}` — talk through details before building
+
+───────────────────────────────────────────────────────────────
 ```
 
 ---

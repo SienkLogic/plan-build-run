@@ -387,6 +387,21 @@ If `planning.commit_docs: true` in config.json:
 - Extract key information: error type, file, line number
 - Use this to form initial hypotheses immediately
 
+### Debugger agent fails
+If the towline-debugger Task() fails or returns an error, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Debugger agent failed for session #{NNN}.
+
+**To fix:**
+- Check the debug file at `.planning/debug/{NNN}-{slug}.md` for partial findings
+- Re-run with `/dev:debug` to resume the session
+- If the issue persists, try a fresh session with different symptom details
+```
+
 ### Issue is in a dependency (not user code)
 - Document which dependency and version
 - Check if there's a known issue (search patterns in node_modules, site-packages, etc.)

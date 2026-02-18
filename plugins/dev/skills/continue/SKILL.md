@@ -37,7 +37,16 @@ Read `.planning/STATE.md` and determine current position:
 - Current plan progress
 - Phase status (planning, building, reviewing, complete)
 
-If STATE.md doesn't exist: "No project state found. Run `/dev:begin` first."
+If STATE.md doesn't exist, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No project state found.
+
+**To fix:** Run `/dev:begin` first.
+```
 
 ### Step 2: Scan for Priority Items
 
@@ -53,7 +62,12 @@ Check the resumption priority hierarchy (same as /dev:resume):
 
 ### Step 3: Execute
 
-Based on the determined action, invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, use the Skill tool which runs the skill in a clean invocation:
+Based on the determined action, display the delegation indicator to the user:
+```
+◐ Delegating to /dev:{skill} {args}...
+```
+
+Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, use the Skill tool which runs the skill in a clean invocation:
 
 | Situation | Action | How |
 |-----------|--------|-----|
@@ -67,10 +81,23 @@ Where `{N}` is the current phase number determined from STATE.md in Step 1.
 
 ### Step 4: Report and Chain
 
-After execution completes, display a brief summary:
+After execution completes, display a branded completion:
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► STEP COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ✓ Completed: {what was done}
-  Next: {suggested next action or "Run /dev:continue again"}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**{Next action description}**
+
+`/dev:continue` or `{specific command}`
+
+───────────────────────────────────────────────────────────────
 ```
 
 **If `features.auto_advance` is `true` AND `mode` is `autonomous`:**

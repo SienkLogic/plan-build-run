@@ -45,7 +45,16 @@ Parse `$ARGUMENTS` to get the phase number.
 1. List directories in `.planning/phases/`
 2. Find directory matching pattern `{NN}-*` where NN matches the phase number
 3. If not found, check ROADMAP.md for the phase name
-4. If still not found: "Phase {N} not found. Run `/dev:status` to see available phases."
+4. If still not found, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} not found.
+
+**To fix:** Run `/dev:status` to see available phases.
+```
 
 ### Step 2: Load Phase Context
 
