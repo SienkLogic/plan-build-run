@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/Plan-Build-Run_logo_banner.png" alt="Plan-Build-Run Logo" width="200" />
+  <img src="./assets/pbr_banner_logo.png" alt="Plan-Build-Run Logo" width="200" />
 </p>
 
 <p align="center">
