@@ -23,7 +23,7 @@
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/plan-build-run?style=for-the-badge" alt="License" /></a>
-  <a href="https://www.npmjs.com/package/@plan-build-run/cli"><img src="https://img.shields.io/npm/v/@plan-build-run/cli?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
+  <a href="https://www.npmjs.com/package/@sienklogic/plan-build-run"><img src="https://img.shields.io/npm/v/@sienklogic/plan-build-run?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
   <img src="https://img.shields.io/badge/Tests-780_passing-brightgreen?style=for-the-badge" alt="780 Tests" />
 </p>
 
