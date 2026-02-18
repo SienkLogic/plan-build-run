@@ -87,7 +87,7 @@ function extractAllDependencies(roadmapContent) {
 function extractMilestones(roadmapContent) {
   const milestones = [];
 
-  // Get project title from H1: "# Roadmap: Towline Dashboard"
+  // Get project title from H1: "# Roadmap: PBR Dashboard"
   const titleMatch = roadmapContent.match(/^# Roadmap:\s*(.+)$/m);
   const projectTitle = titleMatch ? titleMatch[1].trim() : 'Project';
 

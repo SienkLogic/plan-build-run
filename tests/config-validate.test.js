@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPTS = path.join(__dirname, '..', 'plugins', 'dev', 'scripts');
+const SCRIPTS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 // configValidate reads from process.cwd()/.planning/config.json
 // We need to test it via CLI execution in a temp directory
@@ -13,7 +13,7 @@ let planningDir;
 
 function run() {
   const result = execSync(
-    `node ${path.join(SCRIPTS, 'towline-tools.js')} config validate`,
+    `node ${path.join(SCRIPTS, 'pbr-tools.js')} config validate`,
     { cwd: tmpDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
   );
   return JSON.parse(result);
@@ -24,7 +24,7 @@ function writeConfig(obj) {
 }
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-config-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-config-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir, { recursive: true });
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -144,7 +144,7 @@ describe('config validate', () => {
   test('handles missing config.json gracefully', () => {
     // .planning exists but config.json does not
     const result = execSync(
-      `node ${path.join(SCRIPTS, 'towline-tools.js')} config validate`,
+      `node ${path.join(SCRIPTS, 'pbr-tools.js')} config validate`,
       { cwd: tmpDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const parsed = JSON.parse(result);

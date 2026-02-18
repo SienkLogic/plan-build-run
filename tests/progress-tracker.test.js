@@ -3,14 +3,14 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'progress-tracker.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'progress-tracker.js');
 
 describe('progress-tracker.js', () => {
   let tmpDir;
   let planningDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -53,7 +53,7 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toBeDefined();
-    expect(parsed.additionalContext).toContain('[Towline Project Detected]');
+    expect(parsed.additionalContext).toContain('[Plan-Build-Run Project Detected]');
   });
 
   test('extracts Current Position from STATE.md', () => {
@@ -94,7 +94,7 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('No STATE.md found');
-    expect(parsed.additionalContext).toContain('/dev:begin');
+    expect(parsed.additionalContext).toContain('/pbr:begin');
   });
 
   test('reads config.json depth and mode', () => {
@@ -114,7 +114,7 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     // Should still have context, just without config info
-    expect(parsed.additionalContext).toContain('[Towline Project Detected]');
+    expect(parsed.additionalContext).toContain('[Plan-Build-Run Project Detected]');
   });
 
   test('detects .continue-here.md files in phase directories', () => {
@@ -127,13 +127,13 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('Paused work found');
-    expect(parsed.additionalContext).toContain('/dev:resume');
+    expect(parsed.additionalContext).toContain('/pbr:resume');
   });
 
   test('detects stale .auto-next signal older than 10 minutes', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     const signalPath = path.join(planningDir, '.auto-next');
-    fs.writeFileSync(signalPath, '/dev:build 1');
+    fs.writeFileSync(signalPath, '/pbr:build 1');
 
     // Backdate the file modification time by 15 minutes
     const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
@@ -146,7 +146,7 @@ describe('progress-tracker.js', () => {
 
   test('does not warn about fresh .auto-next signal', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
-    fs.writeFileSync(path.join(planningDir, '.auto-next'), '/dev:build 1');
+    fs.writeFileSync(path.join(planningDir, '.auto-next'), '/pbr:build 1');
     // Fresh file — no backdating
 
     const output = run();
@@ -159,8 +159,8 @@ describe('progress-tracker.js', () => {
 
     const output = run();
     const parsed = JSON.parse(output);
-    expect(parsed.additionalContext).toContain('/dev:status');
-    expect(parsed.additionalContext).toContain('/dev:help');
+    expect(parsed.additionalContext).toContain('/pbr:status');
+    expect(parsed.additionalContext).toContain('/pbr:help');
   });
 
   test('counts project notes', () => {

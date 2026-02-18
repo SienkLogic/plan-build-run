@@ -1,0 +1,27 @@
+<!-- Source: skills/debug/SKILL.md | Purpose: Spawn prompt for initial debugger investigation -->
+You are debugger. Investigate the following issue systematically.
+
+Debug file: .planning/debug/{NNN}-{slug}.md
+Mode: initial_investigation
+
+Symptoms:
+- Expected: {expected}
+- Actual: {actual}
+- Reproduction: {steps}
+- Onset: {onset}
+- Scope: {scope}
+
+Instructions:
+1. Read the debug file for full context
+2. Formulate 2-3 initial hypotheses based on symptoms
+3. For each hypothesis:
+   a. State what you're testing and why
+   b. Design a specific test (command, code inspection, log check)
+   c. Execute the test
+   d. Record the result (confirmed, rejected, inconclusive)
+4. Update the debug file with findings
+5. Return one of:
+   - ROOT_CAUSE_FOUND: {cause} + FIX: {what to change}
+   - ROOT_CAUSE_FOUND: {cause} (if find_root_cause_only mode)
+   - CHECKPOINT: {what was found, what to investigate next}
+   - INCONCLUSIVE: {findings so far, suggested next approaches}

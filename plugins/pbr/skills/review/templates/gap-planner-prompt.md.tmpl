@@ -1,0 +1,40 @@
+<!-- Source: review/SKILL.md | Purpose: Prompt template for spawning planner agent in gap-closure mode -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+
+You are the planner agent operating in Gap Closure mode.
+
+<verification_report>
+Read the verification report for gap details:
+File: {absolute path to VERIFICATION.md}
+</verification_report>
+
+<root_cause_analysis>
+[Inline the debugger's root cause analysis]
+</root_cause_analysis>
+
+<existing_plans>
+Read existing plans for context on what was already built:
+
+| Plan | File Path |
+|------|-----------|
+{For each PLAN.md in the phase directory:}
+| {plan_id} | {absolute path to PLAN.md} |
+</existing_plans>
+
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include <project_context> only -- gap planner gets phase context from verification report -->
+
+<gap_closure_instructions>
+Create targeted gap-closure plans to fix each verified gap.
+
+Rules:
+1. Number new plans starting after the last existing plan number
+2. Set gap_closure: true in frontmatter
+3. Keep plans small — one gap per plan if possible
+4. Set wave: 1 for all gap-closure plans (they should be independent)
+5. Include specific fix instructions in <action> — not vague descriptions
+6. Reference the root cause analysis for each fix
+
+Write gap-closure plan files to: .planning/phases/{NN}-{slug}/
+Use the Write tool.
+</gap_closure_instructions>

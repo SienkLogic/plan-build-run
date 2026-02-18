@@ -1,10 +1,10 @@
 {
-  "name": "towline-dashboard",
+  "name": "plan-build-run-dashboard",
   "version": "0.1.0",
-  "description": "Web dashboard for viewing Towline project planning state",
+  "description": "Web dashboard for viewing Plan-Build-Run project planning state",
   "type": "module",
   "bin": {
-    "towline-dashboard": "./bin/cli.js"
+    "pbr-dashboard": "./bin/cli.js"
   },
   "scripts": {
     "start": "node bin/cli.js",
@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "keywords": [
-    "towline",
+    "plan-build-run",
     "dashboard",
     "planning"
   ],

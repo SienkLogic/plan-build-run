@@ -22,7 +22,7 @@ function formatPhaseName(dirName) {
  * Parse the "Task Results" markdown table from a SUMMARY.md body.
  * Returns an array of commit objects extracted from the table rows.
  *
- * Expected table format (produced by towline-executor):
+ * Expected table format (produced by pbr executor):
  * | Task | Status | Commit | Files | Verify |
  * |------|--------|--------|-------|--------|
  * | 05-01-T1: Create phase.service.js | done | 2a52581 | 1 | passed |

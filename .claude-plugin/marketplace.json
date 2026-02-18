@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "towline",
+  "name": "plan-build-run",
   "metadata": {
-    "description": "Context-engineered development workflow plugin for Claude Code"
+    "description": "Plan it, Build it, Run it — structured development workflow plugin for Claude Code"
   },
   "owner": {
     "name": "SienkLogic",
@@ -10,12 +10,12 @@
   },
   "plugins": [
     {
-      "name": "dev",
-      "source": "./plugins/dev",
-      "description": "Towline — Context-engineered development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
+      "name": "pbr",
+      "source": "./plugins/pbr",
+      "description": "Plan-Build-Run — Structured development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
       "version": "2.0.0",
       "category": "development",
-      "homepage": "https://github.com/SienkLogic/towline"
+      "homepage": "https://github.com/SienkLogic/plan-build-run"
     }
   ]
 }

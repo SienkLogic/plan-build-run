@@ -1,4 +1,4 @@
-const { buildAgentContext } = require('../plugins/dev/scripts/log-subagent');
+const { buildAgentContext } = require('../plugins/pbr/scripts/log-subagent');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -22,7 +22,7 @@ describe('log-subagent.js', () => {
     });
 
     function makeTmpDir() {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-lsa-'));
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-lsa-'));
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir, { recursive: true });
       tmpDirs.push(tmpDir);
@@ -30,7 +30,7 @@ describe('log-subagent.js', () => {
     }
 
     test('returns empty string when no .planning/ directory', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-lsa-'));
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-lsa-'));
       tmpDirs.push(tmpDir);
       process.chdir(tmpDir);
       expect(buildAgentContext()).toBe('');
@@ -50,7 +50,7 @@ describe('log-subagent.js', () => {
       process.chdir(tmpDir);
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
       const result = buildAgentContext();
-      expect(result).toContain('/dev:quick');
+      expect(result).toContain('/pbr:quick');
     });
 
     test('includes config highlights', () => {
@@ -78,9 +78,9 @@ describe('log-subagent.js', () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ depth: 'standard' }));
       const result = buildAgentContext();
-      expect(result).toContain('[Towline Project Context]');
+      expect(result).toContain('[Plan-Build-Run Project Context]');
       expect(result).toContain('Phase 2 of 5');
-      expect(result).toContain('/dev:build');
+      expect(result).toContain('/pbr:build');
       expect(result).toContain('depth=standard');
     });
   });

@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'dev', 'scripts');
+const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 /**
  * Spawn a hook script with stdin data and capture results.
@@ -57,7 +57,7 @@ function spawnHook(scriptName, stdinData, opts = {}) {
  * Create a temporary directory with minimal .planning/ structure.
  */
 function createTmpProject() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-spawn-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-spawn-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -273,7 +273,7 @@ describe('context-budget-check.js (spawn)', () => {
   });
 
   test('exits 0 when no STATE.md exists', async () => {
-    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-empty-'));
+    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-empty-'));
     const result = await spawnHook('context-budget-check.js', '', { cwd: emptyDir });
     expect(result.exitCode).toBe(0);
     cleanup(emptyDir);
@@ -285,7 +285,7 @@ describe('context-budget-check.js (spawn)', () => {
 // ─────────────────────────────────────────────────
 describe('auto-continue.js (spawn)', () => {
   test('exits 0 when no .planning directory', async () => {
-    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-ac-'));
+    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ac-'));
     const result = await spawnHook('auto-continue.js', '', { cwd: emptyDir });
     expect(result.exitCode).toBe(0);
     cleanup(emptyDir);
@@ -310,7 +310,7 @@ describe('log-subagent.js (spawn)', () => {
 
   test('start: exits 0 and may output additionalContext', async () => {
     const result = await spawnHook('log-subagent.js', {
-      subagent_type: 'dev:towline-executor',
+      subagent_type: 'pbr:executor',
       description: 'Test execution'
     }, { cwd: tmpDir, args: ['start'] });
     expect(result.exitCode).toBe(0);
@@ -318,7 +318,7 @@ describe('log-subagent.js (spawn)', () => {
 
   test('stop: exits 0', async () => {
     const result = await spawnHook('log-subagent.js', {
-      subagent_type: 'dev:towline-executor'
+      subagent_type: 'pbr:executor'
     }, { cwd: tmpDir, args: ['stop'] });
     expect(result.exitCode).toBe(0);
   });
@@ -329,7 +329,7 @@ describe('log-subagent.js (spawn)', () => {
 // ─────────────────────────────────────────────────
 describe('session-cleanup.js (spawn)', () => {
   test('exits 0 when no .planning directory', async () => {
-    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-sc-'));
+    const emptyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-sc-'));
     const result = await spawnHook('session-cleanup.js', '', { cwd: emptyDir });
     expect(result.exitCode).toBe(0);
     cleanup(emptyDir);
@@ -340,7 +340,7 @@ describe('session-cleanup.js (spawn)', () => {
     // Create session artifacts that session-cleanup.js removes
     fs.writeFileSync(path.join(tmpDir, '.planning', '.active-operation'), 'test-op');
     fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'test-skill');
-    fs.writeFileSync(path.join(tmpDir, '.planning', '.auto-next'), '/dev:build');
+    fs.writeFileSync(path.join(tmpDir, '.planning', '.auto-next'), '/pbr:build');
 
     const result = await spawnHook('session-cleanup.js', '', { cwd: tmpDir });
     expect(result.exitCode).toBe(0);

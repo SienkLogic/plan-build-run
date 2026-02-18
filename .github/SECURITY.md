@@ -2,13 +2,13 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Towline, please report it responsibly.
+If you discover a security vulnerability in Plan-Build-Run, please report it responsibly.
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
 Instead, please use one of these methods:
 
-1. **GitHub Security Advisories** (preferred): Use the [Report a vulnerability](https://github.com/SienkLogic/towline/security/advisories/new) feature on GitHub
+1. **GitHub Security Advisories** (preferred): Use the [Report a vulnerability](https://github.com/SienkLogic/plan-build-run/security/advisories/new) feature on GitHub
 2. **Email**: Contact the maintainers directly (see GitHub profile for contact info)
 
 ### What to include
@@ -26,22 +26,22 @@ Instead, please use one of these methods:
 
 ## Scope
 
-This policy covers the Towline plugin codebase, including:
+This policy covers the Plan-Build-Run plugin codebase, including:
 
-- Hook scripts (`plugins/dev/scripts/`)
-- CLI tools (`towline-tools.js`)
+- Hook scripts (`plugins/pbr/scripts/`)
+- CLI tools (`pbr-tools.js`)
 - Dashboard server (`dashboard/`)
 - Plugin configuration and lifecycle management
 
 ## Security Considerations
 
-Towline is a Claude Code plugin that runs locally on your machine. Key security aspects:
+Plan-Build-Run is a Claude Code plugin that runs locally on your machine. Key security aspects:
 
 - **Hook scripts** execute as Node.js processes with the same permissions as your user account
 - **No network calls** are made by the core plugin (the dashboard binds to `127.0.0.1` only)
 - **File operations** are scoped to the project's `.planning/` directory
 - **Commit validation** hooks inspect but do not modify git operations
-- **No credentials or secrets** are stored by Towline
+- **No credentials or secrets** are stored by Plan-Build-Run
 
 ## Supported Versions
 

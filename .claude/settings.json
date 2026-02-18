@@ -1,12 +1,12 @@
 {
   "enabledPlugins": {
-    "dev@towline": true
+    "pbr@plan-build-run": true
   },
   "extraKnownMarketplaces": {
-    "towline": {
+    "plan-build-run": {
       "source": {
         "source": "github",
-        "repo": "SienkLogic/towline"
+        "repo": "SienkLogic/plan-build-run"
       }
     }
   }

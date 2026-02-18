@@ -1,5 +1,5 @@
 /**
- * Shared test helpers for Towline hook script tests.
+ * Shared test helpers for Plan-Build-Run hook script tests.
  *
  * Provides common setup/teardown patterns and utilities
  * used across multiple test files.
@@ -14,7 +14,7 @@ const { execSync } = require('child_process');
  * Create a temporary directory with a .planning subdirectory and logs folder.
  * Returns { tmpDir, planningDir }.
  */
-function createTmpPlanning(prefix = 'towline-test-') {
+function createTmpPlanning(prefix = 'plan-build-run-test-') {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
   const planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir);

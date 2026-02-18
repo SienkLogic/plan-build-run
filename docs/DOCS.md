@@ -1,6 +1,6 @@
-# Towline Documentation
+# Plan-Build-Run Documentation
 
-Comprehensive reference for Towline v2. For an overview and quick start, see [README.md](README.md).
+Comprehensive reference for Plan-Build-Run v2. For an overview and quick start, see [README.md](README.md).
 
 ---
 
@@ -25,13 +25,13 @@ Comprehensive reference for Towline v2. For an overview and quick start, see [RE
 
 ### Core Workflow
 
-#### `/dev:begin` — Project Initialization
+#### `/pbr:begin` — Project Initialization
 
 Start a new project through deep questioning, domain research, requirements scoping, and roadmap generation.
 
-**Syntax**: `/dev:begin`
+**Syntax**: `/pbr:begin`
 
-**Agents spawned**: 2-4 `towline-researcher` (parallel, count based on depth) + 1 `towline-synthesizer` + 1 `towline-planner`
+**Agents spawned**: 2-4 `researcher` (parallel, count based on depth) + 1 `synthesizer` + 1 `planner`
 
 **Cost**: High (4-6 agents)
 
@@ -46,7 +46,7 @@ Start a new project through deep questioning, domain research, requirements scop
 - `.planning/phases/{NN}-{slug}/` — empty phase directories
 
 **Behavior**:
-- Detects existing code (brownfield) and suggests `/dev:scan` first
+- Detects existing code (brownfield) and suggests `/pbr:scan` first
 - Adaptive questioning — deeper at `comprehensive` depth, lighter at `quick`
 - Research depth scales: `quick` skips research, `standard` spawns 2 researchers, `comprehensive` spawns 4
 - Interactive requirements scoping classifies each requirement as v1 / v2 / out-of-scope
@@ -55,11 +55,11 @@ Start a new project through deep questioning, domain research, requirements scop
 
 ---
 
-#### `/dev:plan` — Phase Planning
+#### `/pbr:plan` — Phase Planning
 
 Research the phase, create executable plans, and verify them before building.
 
-**Syntax**: `/dev:plan <N> [flags]`
+**Syntax**: `/pbr:plan <N> [flags]`
 
 | Argument | Meaning |
 |----------|---------|
@@ -72,7 +72,7 @@ Research the phase, create executable plans, and verify them before building.
 | `remove 5` | Remove phase 5 and renumber subsequent phases |
 | (no number) | Use current phase from STATE.md |
 
-**Agents spawned**: 1 `towline-researcher` (conditional) + 1 `towline-planner` + 1 `towline-plan-checker` (conditional)
+**Agents spawned**: 1 `researcher` (conditional) + 1 `planner` + 1 `plan-checker` (conditional)
 
 **Cost**: Medium (2-3 agents)
 
@@ -91,11 +91,11 @@ Research the phase, create executable plans, and verify them before building.
 
 ---
 
-#### `/dev:build` — Phase Execution
+#### `/pbr:build` — Phase Execution
 
 Execute all plans in a phase by spawning executor agents in parallel waves.
 
-**Syntax**: `/dev:build <N> [flags]`
+**Syntax**: `/pbr:build <N> [flags]`
 
 | Argument | Meaning |
 |----------|---------|
@@ -104,7 +104,7 @@ Execute all plans in a phase by spawning executor agents in parallel waves.
 | `3 --team` | Use Agent Teams for complex inter-agent coordination |
 | (no number) | Use current phase from STATE.md |
 
-**Agents spawned**: Multiple `towline-executor` (parallel within waves) + 1 `towline-verifier` (conditional)
+**Agents spawned**: Multiple `executor` (parallel within waves) + 1 `verifier` (conditional)
 
 **Cost**: High (2-4 agents)
 
@@ -126,11 +126,11 @@ Execute all plans in a phase by spawning executor agents in parallel waves.
 
 ---
 
-#### `/dev:review` — Phase Review
+#### `/pbr:review` — Phase Review
 
 Verify what was built matches what was planned through automated checks and conversational UAT.
 
-**Syntax**: `/dev:review <N> [flags]`
+**Syntax**: `/pbr:review <N> [flags]`
 
 | Argument | Meaning |
 |----------|---------|
@@ -138,7 +138,7 @@ Verify what was built matches what was planned through automated checks and conv
 | `3 --auto-fix` | Auto-diagnose failures and create gap-closure plans |
 | (no number) | Use current phase from STATE.md |
 
-**Agents spawned**: 1 `towline-verifier` (if needed) + 1 `towline-debugger` + 1 `towline-planner` (both conditional on `--auto-fix`)
+**Agents spawned**: 1 `verifier` (if needed) + 1 `debugger` + 1 `planner` (both conditional on `--auto-fix`)
 
 **Cost**: Low (1 agent) or Medium with `--auto-fix`
 
@@ -156,13 +156,13 @@ Verify what was built matches what was planned through automated checks and conv
 
 ### Planning & Discovery
 
-#### `/dev:explore` — Idea Exploration
+#### `/pbr:explore` — Idea Exploration
 
 Socratic conversation to explore ideas that might become todos, requirements, phases, or decisions.
 
-**Syntax**: `/dev:explore [topic]`
+**Syntax**: `/pbr:explore [topic]`
 
-**Agents spawned**: 1 `towline-researcher` (conditional, mid-conversation if knowledge gap found)
+**Agents spawned**: 1 `researcher` (conditional, mid-conversation if knowledge gap found)
 
 **Behavior**:
 - No phase number needed — open-ended discovery
@@ -173,11 +173,11 @@ Socratic conversation to explore ideas that might become todos, requirements, ph
 
 ---
 
-#### `/dev:discuss` — Pre-Planning Discussion
+#### `/pbr:discuss` — Pre-Planning Discussion
 
 Talk through a phase before planning to identify gray areas and capture locked decisions.
 
-**Syntax**: `/dev:discuss <N>`
+**Syntax**: `/pbr:discuss <N>`
 
 **Agents spawned**: None (runs inline)
 
@@ -191,13 +191,13 @@ Talk through a phase before planning to identify gray areas and capture locked d
 
 ---
 
-#### `/dev:scan` — Codebase Analysis
+#### `/pbr:scan` — Codebase Analysis
 
 Analyze an existing codebase (brownfield). Maps structure, architecture, conventions, and concerns.
 
-**Syntax**: `/dev:scan`
+**Syntax**: `/pbr:scan`
 
-**Agents spawned**: 4 parallel `towline-codebase-mapper` agents (tech, architecture, quality, concerns)
+**Agents spawned**: 4 parallel `codebase-mapper` agents (tech, architecture, quality, concerns)
 
 **Files created**:
 - `.planning/codebase/RECON.md` — initial reconnaissance
@@ -218,13 +218,13 @@ Analyze an existing codebase (brownfield). Maps structure, architecture, convent
 
 ### Execution
 
-#### `/dev:quick` — Quick Ad-Hoc Task
+#### `/pbr:quick` — Quick Ad-Hoc Task
 
 Execute a small, well-defined task outside the plan/build/review cycle with an atomic commit.
 
-**Syntax**: `/dev:quick [description]`
+**Syntax**: `/pbr:quick [description]`
 
-**Agents spawned**: 1 `towline-executor`
+**Agents spawned**: 1 `executor`
 
 **Cost**: Low
 
@@ -239,11 +239,11 @@ Execute a small, well-defined task outside the plan/build/review cycle with an a
 
 ---
 
-#### `/dev:continue` — Auto-Continue
+#### `/pbr:continue` — Auto-Continue
 
 Determine and execute the next logical step automatically. No prompts, no decisions.
 
-**Syntax**: `/dev:continue`
+**Syntax**: `/pbr:continue`
 
 **Agents spawned**: Delegates to the appropriate skill
 
@@ -251,19 +251,19 @@ Determine and execute the next logical step automatically. No prompts, no decisi
 - Reads STATE.md and file system to determine what's next
 - Resumption priority hierarchy (6 levels): UAT blockers > checkpoint resume > gap closure > normal workflow > next phase > milestone
 - Hard stops: non-autonomous mode with gates, human-input checkpoints, errors, milestone complete
-- Differs from `/dev:resume`: continue **executes** the action; resume **shows status and suggests**
+- Differs from `/pbr:resume`: continue **executes** the action; resume **shows status and suggests**
 
 ---
 
 ### Verification & Debugging
 
-#### `/dev:debug` — Systematic Debugging
+#### `/pbr:debug` — Systematic Debugging
 
 Hypothesis-driven debugging with persistent state across sessions.
 
-**Syntax**: `/dev:debug [issue description]`
+**Syntax**: `/pbr:debug [issue description]`
 
-**Agents spawned**: 1+ `towline-debugger`
+**Agents spawned**: 1+ `debugger`
 
 **Files created**:
 - `.planning/debug/{NNN}-{slug}.md` — debug session file
@@ -277,11 +277,11 @@ Hypothesis-driven debugging with persistent state across sessions.
 
 ---
 
-#### `/dev:health` — Planning Directory Diagnostics
+#### `/pbr:health` — Planning Directory Diagnostics
 
 Validate `.planning/` integrity, report problems, suggest fixes.
 
-**Syntax**: `/dev:health`
+**Syntax**: `/pbr:health`
 
 **Agents spawned**: None (read-only, inline)
 
@@ -294,11 +294,11 @@ Validate `.planning/` integrity, report problems, suggest fixes.
 
 ### Session Management
 
-#### `/dev:status` — Project Status
+#### `/pbr:status` — Project Status
 
 Show current project status and suggest what to do next.
 
-**Syntax**: `/dev:status`
+**Syntax**: `/pbr:status`
 
 **Agents spawned**: None (read-only, inline)
 
@@ -310,11 +310,11 @@ Show current project status and suggest what to do next.
 
 ---
 
-#### `/dev:pause` — Save Session
+#### `/pbr:pause` — Save Session
 
 Capture current session state for resumption in a future conversation.
 
-**Syntax**: `/dev:pause [--checkpoint]`
+**Syntax**: `/pbr:pause [--checkpoint]`
 
 | Flag | Meaning |
 |------|---------|
@@ -331,11 +331,11 @@ Capture current session state for resumption in a future conversation.
 
 ---
 
-#### `/dev:resume` — Resume Previous Session
+#### `/pbr:resume` — Resume Previous Session
 
 Find last pause point, restore context, and suggest next action.
 
-**Syntax**: `/dev:resume`
+**Syntax**: `/pbr:resume`
 
 **Agents spawned**: None (inline)
 
@@ -349,11 +349,11 @@ Find last pause point, restore context, and suggest next action.
 
 ### Project Management
 
-#### `/dev:milestone` — Milestone Management
+#### `/pbr:milestone` — Milestone Management
 
 Manage milestone lifecycle.
 
-**Syntax**: `/dev:milestone <subcommand> [args]`
+**Syntax**: `/pbr:milestone <subcommand> [args]`
 
 | Subcommand | Description |
 |------------|-------------|
@@ -362,7 +362,7 @@ Manage milestone lifecycle.
 | `audit [version]` | Verify milestone completion, check requirements coverage |
 | `gaps` | Create phases to close gaps found by audit |
 
-**Agents spawned**: 1 `towline-integration-checker` (during `audit`)
+**Agents spawned**: 1 `integration-checker` (during `audit`)
 
 **Files created** (varies by subcommand):
 - `.planning/milestones/{version}-ROADMAP.md` — archived roadmap snapshot
@@ -372,11 +372,11 @@ Manage milestone lifecycle.
 
 ---
 
-#### `/dev:todo` — Persistent Todos
+#### `/pbr:todo` — Persistent Todos
 
 File-based todos that survive across sessions (unlike Claude Code's session-scoped Tasks).
 
-**Syntax**: `/dev:todo <subcommand>`
+**Syntax**: `/pbr:todo <subcommand>`
 
 | Subcommand | Description |
 |------------|-------------|
@@ -390,57 +390,57 @@ File-based todos that survive across sessions (unlike Claude Code's session-scop
 
 ---
 
-#### `/dev:config` — Configure Workflow
+#### `/pbr:config` — Configure Workflow
 
 Read and modify `.planning/config.json` settings.
 
-**Syntax**: `/dev:config [subcommand]`
+**Syntax**: `/pbr:config [subcommand]`
 
 | Subcommand | Example | Description |
 |------------|---------|-------------|
-| `show` (default) | `/dev:config` | Display current config |
-| `depth` | `/dev:config depth comprehensive` | Set depth level |
-| `model` | `/dev:config model executor sonnet` | Set model for specific agent |
-| `model-profile` | `/dev:config model-profile quality` | Set all models via preset |
-| `gate` | `/dev:config gate confirm_execute on` | Toggle a confirmation gate |
-| `feature` | `/dev:config feature tdd_mode on` | Toggle a feature |
-| `git branching` | `/dev:config git branching phase` | Set git branching strategy |
-| `git mode` | `/dev:config git mode disabled` | Disable git integration |
+| `show` (default) | `/pbr:config` | Display current config |
+| `depth` | `/pbr:config depth comprehensive` | Set depth level |
+| `model` | `/pbr:config model executor sonnet` | Set model for specific agent |
+| `model-profile` | `/pbr:config model-profile quality` | Set all models via preset |
+| `gate` | `/pbr:config gate confirm_execute on` | Toggle a confirmation gate |
+| `feature` | `/pbr:config feature tdd_mode on` | Toggle a feature |
+| `git branching` | `/pbr:config git branching phase` | Set git branching strategy |
+| `git mode` | `/pbr:config git mode disabled` | Disable git integration |
 
 ---
 
-#### `/dev:help` — Command Reference
+#### `/pbr:help` — Command Reference
 
 Display command reference and workflow guide. No agents, no file I/O.
 
-**Syntax**: `/dev:help`
+**Syntax**: `/pbr:help`
 
 ---
 
 ## Agents Reference
 
-Towline includes 10 specialized agents. Each runs in a fresh `Task()` context with a clean 200k token window.
+Plan-Build-Run includes 10 specialized agents. Each runs in a fresh `Task()` context with a clean 200k token window.
 
 | Agent | File | Role | Model | Read-Only | Key Output |
 |-------|------|------|-------|-----------|------------|
-| Researcher | `towline-researcher` | Domain research, phase approaches, ecosystem analysis | Sonnet | Yes | `RESEARCH.md`, research files |
-| Planner | `towline-planner` | Plans, roadmaps, requirements, wave assignment | Inherit | Yes (writes plans only) | `PLAN.md`, `ROADMAP.md` |
-| Plan Checker | `towline-plan-checker` | Validates plans against phase goals before execution | Sonnet | Yes | Revision feedback |
-| Executor | `towline-executor` | Builds code with atomic commits and self-verification | Inherit | No (full write access) | Source code, `SUMMARY.md` |
-| Verifier | `towline-verifier` | Goal-backward verification of built work | Sonnet | Yes (no source writes) | `VERIFICATION.md` |
-| Integration Checker | `towline-integration-checker` | Cross-phase E2E flow verification | Sonnet | Yes | Integration report |
-| Debugger | `towline-debugger` | Systematic hypothesis-based debugging with checkpoints | Inherit | No (can apply fixes) | Debug session files |
-| Codebase Mapper | `towline-codebase-mapper` | Brownfield codebase analysis (tech, arch, quality, concerns) | Sonnet | Yes | `.planning/codebase/*.md` |
-| Synthesizer | `towline-synthesizer` | Research output synthesis and contradiction resolution | Haiku | Yes | `SUMMARY.md` |
-| General | `towline-general` | Lightweight Towline-aware agent for ad-hoc tasks | Inherit | Varies | Varies |
+| Researcher | `researcher` | Domain research, phase approaches, ecosystem analysis | Sonnet | Yes | `RESEARCH.md`, research files |
+| Planner | `planner` | Plans, roadmaps, requirements, wave assignment | Inherit | Yes (writes plans only) | `PLAN.md`, `ROADMAP.md` |
+| Plan Checker | `plan-checker` | Validates plans against phase goals before execution | Sonnet | Yes | Revision feedback |
+| Executor | `executor` | Builds code with atomic commits and self-verification | Inherit | No (full write access) | Source code, `SUMMARY.md` |
+| Verifier | `verifier` | Goal-backward verification of built work | Sonnet | Yes (no source writes) | `VERIFICATION.md` |
+| Integration Checker | `integration-checker` | Cross-phase E2E flow verification | Sonnet | Yes | Integration report |
+| Debugger | `debugger` | Systematic hypothesis-based debugging with checkpoints | Inherit | No (can apply fixes) | Debug session files |
+| Codebase Mapper | `codebase-mapper` | Brownfield codebase analysis (tech, arch, quality, concerns) | Sonnet | Yes | `.planning/codebase/*.md` |
+| Synthesizer | `synthesizer` | Research output synthesis and contradiction resolution | Haiku | Yes | `SUMMARY.md` |
+| General | `general` | Lightweight Plan-Build-Run-aware agent for ad-hoc tasks | Inherit | Varies | Varies |
 
-**Model values**: `sonnet` = Claude Sonnet, `inherit` = same model as parent session, `haiku` = Claude Haiku, `opus` = Claude Opus. Configurable via `/dev:config model <agent> <model>` or `/dev:config model-profile <preset>`.
+**Model values**: `sonnet` = Claude Sonnet, `inherit` = same model as parent session, `haiku` = Claude Haiku, `opus` = Claude Opus. Configurable via `/pbr:config model <agent> <model>` or `/pbr:config model-profile <preset>`.
 
 ---
 
 ## Configuration Reference
 
-All settings live in `.planning/config.json`. Created by `/dev:begin`, modified by `/dev:config`.
+All settings live in `.planning/config.json`. Created by `/pbr:begin`, modified by `/pbr:config`.
 
 ### Top-Level Settings
 
@@ -485,7 +485,7 @@ Per-agent model assignments. Values: `sonnet`, `inherit`, `haiku`, `opus`.
 | `models.mapper` | `sonnet` | Model for codebase mapping |
 | `models.synthesizer` | `haiku` | Model for research synthesis |
 
-**Model Profile Presets** (set all at once with `/dev:config model-profile <name>`):
+**Model Profile Presets** (set all at once with `/pbr:config model-profile <name>`):
 
 | Profile | researcher | planner | executor | verifier | int-checker | debugger | mapper | synthesizer |
 |---------|-----------|---------|----------|----------|-------------|----------|--------|-------------|
@@ -521,8 +521,8 @@ Per-agent model assignments. Values: `sonnet`, `inherit`, `haiku`, `opus`.
 |-----|------|---------|-------------|
 | `git.branching` | enum | `none` | `none`, `phase`, `milestone`, `disabled` |
 | `git.commit_format` | string | `{type}({phase}-{plan}): {description}` | Commit message template |
-| `git.phase_branch_template` | string | `towline/phase-{phase}-{slug}` | Branch name for phase branching |
-| `git.milestone_branch_template` | string | `towline/{milestone}-{slug}` | Branch name for milestone branching |
+| `git.phase_branch_template` | string | `pbr/phase-{phase}-{slug}` | Branch name for phase branching |
+| `git.milestone_branch_template` | string | `pbr/{milestone}-{slug}` | Branch name for milestone branching |
 
 When `git.branching` is `disabled`, all git commands are skipped entirely.
 
@@ -550,7 +550,7 @@ Confirmation gates pause for user approval. Set `mode: autonomous` or toggle ind
 
 ## Hooks Reference
 
-Towline registers 5 hooks via `hooks/hooks.json`. Hooks are Node.js scripts that fire automatically on Claude Code lifecycle events.
+Plan-Build-Run registers 5 hooks via `hooks/hooks.json`. Hooks are Node.js scripts that fire automatically on Claude Code lifecycle events.
 
 ### 1. Progress Tracker — `SessionStart`
 
@@ -558,7 +558,7 @@ Towline registers 5 hooks via `hooks/hooks.json`. Hooks are Node.js scripts that
 
 **When**: Every new Claude Code session starts in a directory with `.planning/`
 
-**What it does**: Reads STATE.md and injects a concise project summary as `additionalContext`. Shows current position, blockers, paused work, and config summary. Also detects `.continue-here.md` files and suggests `/dev:resume`.
+**What it does**: Reads STATE.md and injects a concise project summary as `additionalContext`. Shows current position, blockers, paused work, and config summary. Also detects `.continue-here.md` files and suggests `/pbr:resume`.
 
 **Exits silently** if no `.planning/` directory exists.
 
@@ -606,7 +606,7 @@ Runs asynchronously (non-blocking). Issues are reported as warnings.
 
 ## Project Structure
 
-Towline creates and manages a `.planning/` directory in your project root.
+Plan-Build-Run creates and manages a `.planning/` directory in your project root.
 
 ```
 .planning/
@@ -617,7 +617,7 @@ Towline creates and manages a `.planning/` directory in your project root.
   CONTEXT.md              # Project-level decisions and constraints
   config.json             # Workflow configuration (all settings)
 
-  research/               # Domain research from /dev:begin
+  research/               # Domain research from /pbr:begin
     STACK.md              # Technology research
     FEATURES.md           # Feature research
     ARCHITECTURE.md       # Architecture research
@@ -626,8 +626,8 @@ Towline creates and manages a `.planning/` directory in your project root.
 
   phases/
     01-foundation/
-      CONTEXT.md          # Phase-level locked decisions (from /dev:discuss)
-      RESEARCH.md         # Phase-specific research (from /dev:plan)
+      CONTEXT.md          # Phase-level locked decisions (from /pbr:discuss)
+      RESEARCH.md         # Phase-specific research (from /pbr:plan)
       01-01-PLAN.md       # Executable plan (wave 1)
       01-02-PLAN.md       # Executable plan (wave 1 or 2)
       01-01-SUMMARY.md    # Execution results for plan 01
@@ -639,7 +639,7 @@ Towline creates and manages a `.planning/` directory in your project root.
     02-auth/
       ...
 
-  codebase/               # From /dev:scan (brownfield analysis)
+  codebase/               # From /pbr:scan (brownfield analysis)
     RECON.md              # Initial reconnaissance
     STACK.md              # Technology inventory
     ARCHITECTURE.md       # High-level architecture
@@ -649,12 +649,12 @@ Towline creates and manages a `.planning/` directory in your project root.
     CONCERNS.md           # Issues by severity
     INTEGRATIONS.md       # External connections
 
-  quick/                  # From /dev:quick
+  quick/                  # From /pbr:quick
     001-fix-typo/
       PLAN.md
       SUMMARY.md
 
-  debug/                  # From /dev:debug
+  debug/                  # From /pbr:debug
     001-auth-crash.md     # Debug session file
 
   todos/
@@ -663,7 +663,7 @@ Towline creates and manages a `.planning/` directory in your project root.
     done/                 # Completed todos
       20260207-001.md
 
-  milestones/             # From /dev:milestone complete
+  milestones/             # From /pbr:milestone complete
     v1.0-ROADMAP.md       # Archived roadmap snapshot
     v1.0-REQUIREMENTS.md  # Archived requirements
     v1.0-STATS.md         # Milestone statistics
@@ -671,7 +671,7 @@ Towline creates and manages a `.planning/` directory in your project root.
   seeds/                  # Deferred implementation hints
     SEED-001-caching.md
 
-  notes/                  # From /dev:explore
+  notes/                  # From /pbr:explore
     performance-ideas.md
 
   logs/                   # Hook audit trail
@@ -684,7 +684,7 @@ Towline creates and manages a `.planning/` directory in your project root.
 
 ### Commit Format
 
-All Towline commits follow conventional commit format:
+All Plan-Build-Run commits follow conventional commit format:
 
 ```
 {type}({phase}-{plan}): {description}
@@ -734,4 +734,4 @@ Progress bars use 20-character Unicode block characters: `███████�
 
 ### Domain Probes
 
-Towline includes domain-aware probing patterns for 12 technology areas: Authentication, Real-Time Updates, Dashboard, API Design, Database, Search, File Upload/Storage, Caching, Testing, and Deployment. These are used by `/dev:explore`, `/dev:begin`, and `/dev:discuss` to ask insightful follow-up questions — not as checklists, but as 2-3 targeted probes based on what the user mentions.
+Plan-Build-Run includes domain-aware probing patterns for 12 technology areas: Authentication, Real-Time Updates, Dashboard, API Design, Database, Search, File Upload/Storage, Caching, Testing, and Deployment. These are used by `/pbr:explore`, `/pbr:begin`, and `/pbr:discuss` to ask insightful follow-up questions — not as checklists, but as 2-3 targeted probes based on what the user mentions.

@@ -105,8 +105,8 @@ describe('config migration', () => {
       migrated.git = {
         branching: 'none',
         commit_format: '{type}({phase}-{plan}): {description}',
-        phase_branch_template: 'towline/phase-{phase}-{slug}',
-        milestone_branch_template: 'towline/{milestone}-{slug}',
+        phase_branch_template: 'plan-build-run/phase-{phase}-{slug}',
+        milestone_branch_template: 'plan-build-run/{milestone}-{slug}',
         ...(config.git || {}),
       };
 

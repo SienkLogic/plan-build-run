@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'log-tool-failure.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'log-tool-failure.js');
 
 function runScript(stdinData) {
   const input = JSON.stringify(stdinData);
@@ -22,7 +22,7 @@ function runScript(stdinData) {
 
 // Run in a temp dir with .planning/ so loggers can write
 function runScriptWithPlanning(stdinData) {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -76,7 +76,7 @@ describe('log-tool-failure.js', () => {
     if (result.output) {
       const parsed = JSON.parse(result.output);
       expect(parsed.hookSpecificOutput.hookEventName).toBe('PostToolUseFailure');
-      expect(parsed.hookSpecificOutput.additionalContext).toContain('/dev:debug');
+      expect(parsed.hookSpecificOutput.additionalContext).toContain('/pbr:debug');
     }
   });
 

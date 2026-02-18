@@ -1,0 +1,61 @@
+<!-- Source: discuss/SKILL.md | Purpose: Template for the CONTEXT.md file written after a phase discussion -->
+
+# Phase {N} Context
+
+**Created by:** /pbr:discuss {N}
+**Date:** {ISO date}
+
+## Decision Summary
+
+<!-- Compact digest for agent prompt injection. ~300 tokens max. -->
+<!-- Agents: Read the full sections below only if you need scope/quality/integration details. -->
+
+**Locked:**
+- {Decision title}: {User's choice in one phrase}
+- {Decision title}: {User's choice in one phrase}
+
+**Deferred (excluded):** {Comma-separated list of deferred idea titles, or "None"}
+
+**Discretion:** {Comma-separated list of discretion area titles, or "None"}
+
+## Decisions (LOCKED -- must implement exactly as specified)
+
+These decisions are NON-NEGOTIABLE during planning. If research suggests a different approach,
+the planner must use the locked decision and note the discrepancy in the plan.
+
+- [ ] **{Decision title}** -- {User's exact choice and reasoning}
+  - Scope: {Any scope boundaries from follow-ups}
+  - Quality: {Quality level from follow-ups}
+  - Integration: {Integration notes from follow-ups}
+  - Notes: {Any additional context}
+
+- [ ] **{Decision title}** -- {User's exact choice and reasoning}
+  ...
+
+## Deferred Ideas (EXCLUDED -- do not plan these)
+
+These ideas were discussed but explicitly excluded from this phase.
+They may be addressed in future phases or milestones.
+
+- **{Idea}** -- {Why deferred}
+- **{Idea}** -- {Why deferred}
+
+## Claude's Discretion (OPEN -- Claude decides during planning)
+
+These areas were identified as gray areas but the user chose to let Claude decide.
+The planner has freedom here but should document their choices.
+
+- **{Area}** -- {What Claude can choose, any constraints mentioned}
+- **{Area}** -- {What Claude can choose, any constraints mentioned}
+
+## User's Vision Summary
+
+{2-3 sentences capturing how the user imagines this phase. This should reflect
+the user's mental model, not a technical specification. Write in the user's voice
+where possible, quoting key phrases they used.}
+
+## User's Concerns
+
+Things the user raised during discussion that should inform planning:
+
+- **{Concern}** -- {Context from the conversation}

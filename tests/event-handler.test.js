@@ -1,4 +1,4 @@
-const { isExecutorAgent, shouldAutoVerify, getPhaseFromState } = require('../plugins/dev/scripts/event-handler');
+const { isExecutorAgent, shouldAutoVerify, getPhaseFromState } = require('../plugins/pbr/scripts/event-handler');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -20,7 +20,7 @@ describe('event-handler.js', () => {
   });
 
   function makeTmpDir() {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-eh-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-eh-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
     tmpDirs.push(tmpDir);
@@ -28,20 +28,20 @@ describe('event-handler.js', () => {
   }
 
   describe('isExecutorAgent', () => {
-    test('returns true for agent_type dev:towline-executor', () => {
-      expect(isExecutorAgent({ agent_type: 'dev:towline-executor' })).toBe(true);
+    test('returns true for agent_type pbr:executor', () => {
+      expect(isExecutorAgent({ agent_type: 'pbr:executor' })).toBe(true);
     });
 
-    test('returns true for subagent_type dev:towline-executor', () => {
-      expect(isExecutorAgent({ subagent_type: 'dev:towline-executor' })).toBe(true);
+    test('returns true for subagent_type pbr:executor', () => {
+      expect(isExecutorAgent({ subagent_type: 'pbr:executor' })).toBe(true);
     });
 
-    test('returns false for dev:towline-verifier', () => {
-      expect(isExecutorAgent({ agent_type: 'dev:towline-verifier' })).toBe(false);
+    test('returns false for pbr:verifier', () => {
+      expect(isExecutorAgent({ agent_type: 'pbr:verifier' })).toBe(false);
     });
 
-    test('returns false for dev:towline-researcher', () => {
-      expect(isExecutorAgent({ agent_type: 'dev:towline-researcher' })).toBe(false);
+    test('returns false for pbr:researcher', () => {
+      expect(isExecutorAgent({ agent_type: 'pbr:researcher' })).toBe(false);
     });
 
     test('returns false for empty data', () => {

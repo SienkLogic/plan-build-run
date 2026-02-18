@@ -39,7 +39,7 @@ describe('ProjectService', () => {
 
       const result = await getHomepage('/project');
 
-      expect(result.title).toBe('Towline Dashboard');
+      expect(result.title).toBe('PBR Dashboard');
     });
 
     it('should return fallback when README.md does not exist', async () => {

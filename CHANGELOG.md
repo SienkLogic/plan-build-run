@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Towline will be documented in this file.
+All notable changes to Plan-Build-Run will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -44,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-02-07
 
 ### Added
-- Initial release of Towline plugin for Claude Code
+- Initial release of Plan-Build-Run plugin for Claude Code
 - 15 skills: begin, plan, build, review, discuss, quick, debug, status, pause, resume, milestone, scan, todo, config, help
 - 9 specialized agents: researcher, planner, plan-checker, executor, verifier, integration-checker, debugger, codebase-mapper, synthesizer
 - Hook-enforced quality gates: commit validation, plan format checking, session state injection, pre-compact preservation

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const schema = require('../plugins/dev/scripts/config-schema.json');
+const schema = require('../plugins/pbr/scripts/config-schema.json');
 
 describe('agent-teams', () => {
   describe('config schema', () => {
@@ -40,7 +40,7 @@ describe('agent-teams', () => {
 
   describe('plan skill team documentation', () => {
     const planSkill = fs.readFileSync(
-      path.join(__dirname, '..', 'plugins', 'dev', 'skills', 'plan', 'SKILL.md'), 'utf8');
+      path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'plan', 'SKILL.md'), 'utf8');
 
     test('documents --teams flag', () => {
       expect(planSkill).toContain('--teams');
@@ -53,7 +53,7 @@ describe('agent-teams', () => {
     });
 
     test('includes synthesis step', () => {
-      expect(planSkill).toContain('towline-synthesizer');
+      expect(planSkill).toContain('synthesizer');
     });
 
     test('references agent-teams.md', () => {
@@ -63,7 +63,7 @@ describe('agent-teams', () => {
 
   describe('review skill team documentation', () => {
     const reviewSkill = fs.readFileSync(
-      path.join(__dirname, '..', 'plugins', 'dev', 'skills', 'review', 'SKILL.md'), 'utf8');
+      path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'review', 'SKILL.md'), 'utf8');
 
     test('documents all three review roles', () => {
       expect(reviewSkill).toContain('FUNCTIONAL REVIEWER');
@@ -72,13 +72,13 @@ describe('agent-teams', () => {
     });
 
     test('includes synthesis step', () => {
-      expect(reviewSkill).toContain('towline-synthesizer');
+      expect(reviewSkill).toContain('synthesizer');
     });
   });
 
   describe('reference doc', () => {
     const ref = fs.readFileSync(
-      path.join(__dirname, '..', 'plugins', 'dev', 'references', 'agent-teams.md'), 'utf8');
+      path.join(__dirname, '..', 'plugins', 'pbr', 'references', 'agent-teams.md'), 'utf8');
 
     test('documents planning teams', () => {
       expect(ref).toContain('Planning Teams');
