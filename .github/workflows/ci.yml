@@ -46,7 +46,7 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@v19
         with:
           globs: |
-            plugins/dev/agents/*.md
-            plugins/dev/skills/**/SKILL.md
-            plugins/dev/references/*.md
-            plugins/dev/commands/*.md
+            plugins/pbr/agents/*.md
+            plugins/pbr/skills/**/SKILL.md
+            plugins/pbr/references/*.md
+            plugins/pbr/commands/*.md
