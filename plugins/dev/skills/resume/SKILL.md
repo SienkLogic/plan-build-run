@@ -130,9 +130,13 @@ Use the selected pause point for the rest of the resume flow.
    - Blockers
    - Next steps
 
-3. Display the resume context:
+3. Display the resume context using the branded banner:
 
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► SESSION RESTORED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Resuming session from {pause date}
 
 Position: Phase {N} -- {name}

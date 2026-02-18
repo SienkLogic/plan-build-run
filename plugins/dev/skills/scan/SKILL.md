@@ -130,10 +130,17 @@ After all agents complete, verify the expected files exist:
 
 Check only the files that correspond to the mapper areas that were actually spawned.
 
-For any missing files:
-- Warn the user which file is missing
-- Note which analysis agent failed
-- Offer to re-run that specific agent
+For any missing files, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Missing analysis output: {filename}
+Agent that failed: {focus_area} mapper
+
+**To fix:** Re-run with `/dev:scan` and select "Refresh a specific area" → {focus_area}.
+```
 
 ### Step 6: Present Summary
 
@@ -141,7 +148,7 @@ Read key findings from each file (frontmatter or first section) and display usin
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- TOWLINE ► SCANNING CODEBASE
+ TOWLINE ► SCAN COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Project: {type} ({scale})

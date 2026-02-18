@@ -60,9 +60,29 @@ Execute these steps in order.
 4. If no phase number given, read current phase from `.planning/STATE.md`
 5. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
-**Validation errors:**
-- No SUMMARY.md files: "Phase {N} hasn't been built yet. Run `/dev:build {N}` first."
-- No PLAN.md files: "Phase {N} has no plans. Run `/dev:plan {N}` first."
+**Validation errors — use branded error boxes:**
+
+If no SUMMARY.md files:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} hasn't been built yet.
+
+**To fix:** Run `/dev:build {N}` first.
+```
+
+If no PLAN.md files:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} has no plans.
+
+**To fix:** Run `/dev:plan {N}` first.
+```
 
 ---
 
@@ -117,6 +137,8 @@ If teams not enabled, proceed with existing single-verifier flow.
 Reference: `references/agent-teams.md`
 
 #### Single-Verifier Flow (default)
+
+Display to the user: `◐ Spawning verifier...`
 
 Spawn a verifier Task() to run three-layer checks:
 
@@ -304,6 +326,8 @@ If gaps were found and `--auto-fix` was specified:
 
 **Step 6a: Diagnose**
 
+Display to the user: `◐ Spawning debugger...`
+
 Spawn a debugger Task() to analyze each failure:
 
 ```
@@ -324,7 +348,9 @@ Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as th
 
 **Step 6b: Create Gap-Closure Plans**
 
-After receiving the root cause analysis, spawn the planner in gap-closure mode:
+After receiving the root cause analysis, display to the user: `◐ Spawning planner (gap closure)...`
+
+Spawn the planner in gap-closure mode:
 
 ```
 Task({
@@ -347,6 +373,7 @@ Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as
 **Step 6c: Validate gap-closure plans (conditional)**
 
 If `features.plan_checking` is true in config:
+- Display to the user: `◐ Spawning plan checker...`
 - Spawn plan checker Task() on the new gap-closure plans
 - Same process as `/dev:plan` Step 6
 
@@ -459,13 +486,21 @@ After Step 3, also check cross-phase integration:
 ## Error Handling
 
 ### Verifier agent fails
-If the verifier Task() fails:
-- Fall back to manual UAT only (skip automated checks)
-- Tell user: "Automated verification failed. We'll do a manual walkthrough instead."
+If the verifier Task() fails, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Automated verification failed.
+
+**To fix:** We'll do a manual walkthrough instead.
+```
+Fall back to manual UAT only (skip automated checks).
 
 ### No must-haves to check
 If plans have empty must_haves:
-- Warn user: "Plans don't have defined must-haves. UAT will be based on plan descriptions only."
+- Warn user: `⚠ Plans don't have defined must-haves. UAT will be based on plan descriptions only.`
 - Use SUMMARY.md content as the basis for UAT
 
 ### User can't verify something
@@ -475,9 +510,17 @@ If user can't verify an item (e.g., needs server running, needs credentials):
 - Suggest how to verify later
 
 ### Debugger fails during auto-fix
-If the debugger Task() fails:
-- Fall back to gap-closure without root cause analysis
-- Tell user: "Auto-diagnosis failed. Would you like to create gap-closure plans based on the verification report alone?"
+If the debugger Task() fails, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Auto-diagnosis failed.
+
+**To fix:** Create gap-closure plans based on the verification report alone.
+```
+Ask user: "Would you like to proceed with gap-closure plans without root cause analysis?"
 
 ---
 
@@ -496,29 +539,78 @@ If the debugger Task() fails:
 
 After review completes, always present a clear next action:
 
-**If verified:**
+**If verified (not final phase):**
+
+Use the "Phase Complete" banner from `references/ui-formatting.md`, then the branded "Next Up" block:
 ```
-Phase {N} verified. Ready for Phase {N+1}.
--> /dev:plan {N+1}
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
+
+`/dev:plan {N+1}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:discuss {N+1}` — talk through details before planning
+- `/dev:status` — see full project status
+
+───────────────────────────────────────────────────────────────
 ```
 
 **If gaps remain:**
 ```
-Phase {N} has {count} gaps.
--> /dev:review {N} --auto-fix — auto-diagnose and fix
--> /dev:plan {N} --gaps — create fix plans
--> Fix manually, then /dev:review {N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} GAPS FOUND ⚠
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {name}** — {count} gaps remaining
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Fix gaps** — diagnose and create fix plans
+
+`/dev:review {N} --auto-fix`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:plan {N} --gaps` — create fix plans manually
+- Fix manually, then `/dev:review {N}`
+
+───────────────────────────────────────────────────────────────
 ```
 
 **If final phase:**
-```
-All phases complete and verified!
 
-Your milestone is ready for wrap-up:
--> /dev:milestone audit   — verify cross-phase integration (recommended first)
--> /dev:milestone complete — archive this milestone and tag it
--> /dev:milestone new      — start planning the next set of features
--> /dev:status             — see final project status
+Use the "Milestone Complete" banner from `references/ui-formatting.md`, then:
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Audit milestone** — verify cross-phase integration
+
+`/dev:milestone audit`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:milestone complete` — archive this milestone and tag it
+- `/dev:milestone new` — start planning next features
+- `/dev:status` — see final project status
+
+───────────────────────────────────────────────────────────────
 ```
 
 ---

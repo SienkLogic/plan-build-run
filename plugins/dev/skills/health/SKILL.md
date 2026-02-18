@@ -28,7 +28,17 @@ Run all 9 checks in order. Collect results and present them together at the end.
 
 Validate `.planning/` exists with required scaffolding: `STATE.md`, `config.json`, `ROADMAP.md`.
 
-- If `.planning/` is missing: FAIL the entire health check immediately — "Run `/dev:begin` to initialize." Stop all further checks.
+- If `.planning/` is missing: FAIL the entire health check immediately. Display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No .planning/ directory found.
+
+**To fix:** Run `/dev:begin` to initialize.
+```
+Stop all further checks.
 - PASS: All three required files exist
 - FAIL: List each missing file — "Run `/dev:begin` to re-initialize, or create the file manually."
 
@@ -110,6 +120,48 @@ Read `.planning/config.json` and check for fields referenced by skills:
 ## Bonus: Recent Decisions
 
 After all checks, look for `.planning/logs/decisions.jsonl`. If it exists, display the last 5 entries as `- {date}: {summary} (phase {N})`. If it does not exist, skip silently.
+
+---
+
+## Completion
+
+After all checks complete, display the branded result:
+
+**If all checks passed (0 failures):**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► HEALTH CHECK PASSED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{N} checks passed, {M} warnings
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Continue your workflow** — planning directory is healthy
+
+`/dev:status` — see current project position
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:continue` — execute next logical step
+- `/dev:config` — adjust settings
+
+───────────────────────────────────────────────────────────────
+```
+
+**If failures found:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► HEALTH CHECK FAILED ⚠
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{N} checks passed, {F} failures, {M} warnings
+
+Fix the failures listed above, then re-run `/dev:health`.
+```
 
 ---
 

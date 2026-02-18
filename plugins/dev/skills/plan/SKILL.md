@@ -190,6 +190,8 @@ To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/towline-tools.js config resolv
 
 **If research is needed:**
 
+Display to the user: `◐ Spawning researcher...`
+
 Spawn a researcher Task():
 
 ```
@@ -283,6 +285,8 @@ If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset
 
 #### Single-Planner Flow (default)
 
+Display to the user: `◐ Spawning planner...`
+
 Spawn the planner Task() with all context inlined:
 
 ```
@@ -316,6 +320,8 @@ Wait for the planner to complete.
 To check: use the resolved depth profile from Step 1. The profile consolidates the depth setting and any user overrides into a single boolean.
 
 **If validation is enabled:**
+
+Display to the user: `◐ Spawning plan checker...`
 
 Spawn the plan checker Task():
 
@@ -498,21 +504,50 @@ Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt
 ## Error Handling
 
 ### Phase not found
-If the specified phase doesn't exist in ROADMAP.md:
-- "Phase {N} not found. Run `/dev:status` to see available phases."
+If the specified phase doesn't exist in ROADMAP.md, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} not found in ROADMAP.md.
+
+**To fix:** Run `/dev:status` to see available phases.
+```
 
 ### Missing prerequisites
-If REQUIREMENTS.md or ROADMAP.md don't exist:
-- "Project not initialized. Run `/dev:begin` first."
+If REQUIREMENTS.md or ROADMAP.md don't exist, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Project not initialized. Missing REQUIREMENTS.md or ROADMAP.md.
+
+**To fix:** Run `/dev:begin` first.
+```
 
 ### Research agent fails
-If the researcher Task() fails:
-- Continue without research: "Research failed. Planning without phase-specific research. This may result in less accurate plans."
+If the researcher Task() fails, display:
+```
+⚠ Research agent failed. Planning without phase-specific research.
+  This may result in less accurate plans.
+```
+Continue to the planning step.
 
 ### Planner agent fails
-If the planner Task() fails:
-- Report the error to user
-- Suggest: "Try again with `/dev:plan {N} --skip-research`" or "Check `.planning/CONTEXT.md` for conflicting constraints"
+If the planner Task() fails, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Planner agent failed for Phase {N}.
+
+**To fix:**
+- Try again with `/dev:plan {N} --skip-research`
+- Check `.planning/CONTEXT.md` for conflicting constraints
+```
 
 ### Checker loops forever
 After 3 revision iterations without passing:
@@ -541,7 +576,7 @@ Use the branded stage banner from `references/ui-formatting.md`:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- TOWLINE ► PLANNING PHASE {N}
+ TOWLINE ► PLANNING PHASE {N} ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Phase {N}: {name}** — {plan_count} plans created
