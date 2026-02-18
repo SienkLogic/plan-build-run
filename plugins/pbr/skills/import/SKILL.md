@@ -5,6 +5,20 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--from <filepath>] [--skip-checker]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► IMPORTING PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:import — Plan Import
 
 You are the orchestrator for `/pbr:import`. This skill imports an external plan document (design doc, RFC, AI-generated plan, etc.) into the Plan-Build-Run planning format. It validates the imported document against project context, detects conflicts with locked decisions and existing architecture, and generates properly formatted PLAN.md files. Your job is to stay lean, do conflict detection inline, and delegate only the plan checker to a Task() subagent.

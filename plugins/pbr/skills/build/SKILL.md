@@ -5,6 +5,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--gaps-only] [--team]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:build — Phase Execution
 
 You are the orchestrator for `/pbr:build`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() subagents, and keep the user's main context window clean.
@@ -16,6 +18,18 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► BUILDING PHASE {N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
 ## Prerequisites
 
@@ -81,7 +95,16 @@ After validating prerequisites, check plan staleness:
      - label: "Re-plan"          description: "Stop and re-plan with `/pbr:plan {N}` (recommended)"
    If "Re-plan" or "Other": stop and suggest `/pbr:plan {N}`
    If "Continue anyway": proceed with existing plans
-7. If plans have no `dependency_fingerprints` field: skip this check (backward compatible)
+7. If plans have no `dependency_fingerprints` field, fall back to timestamp-based staleness detection:
+   a. Read `.planning/ROADMAP.md` and identify the current phase's dependencies (the `depends_on` field)
+   b. For each dependency phase, find its phase directory under `.planning/phases/`
+   c. Check if any SUMMARY.md files in the dependency phase directory have a modification timestamp newer than the current phase's PLAN.md files
+   d. If any upstream dependency was modified after planning, display a warning (do NOT block):
+      ```
+      Warning: Phase {dep_phase} (dependency of Phase {N}) was modified after this phase was planned.
+      Plans may be based on outdated assumptions. Consider re-planning with `/pbr:plan {N}`.
+      ```
+   e. This is advisory only — continue with the build after displaying the warning
 
 **Validation errors — use branded error boxes:**
 
@@ -349,7 +372,12 @@ For each completed executor:
 1. Check if SUMMARY.md was written to the expected location
 2. Read the SUMMARY.md frontmatter (not the full body — keep context lean)
 3. Extract status: `completed` | `partial` | `checkpoint` | `failed`
-4. Record commit hashes, files created, deviations
+4. Display per-plan completion to the user:
+   ```
+   ✓ Plan {id} complete — {brief summary from SUMMARY.md frontmatter description or first key_file}
+   ```
+   Extract the brief summary from the SUMMARY.md frontmatter (use the `description` field if present, otherwise use the first entry from `key_files`).
+5. Record commit hashes, files created, deviations
 5. **Update checkpoint manifest `commit_log`**: For each completed plan, append `{ plan: "{plan_id}", sha: "{commit_hash}", timestamp: "{ISO date}" }` to the `commit_log` array. Update `last_good_commit` to the last commit SHA from this wave.
 
 **Spot-check executor claims:**
@@ -668,6 +696,11 @@ must_haves_failed: {count}
 
 Use the Write tool to create VERIFICATION.md. Use Bash to run verification commands.
 ```
+
+After the verifier returns, read the VERIFICATION.md frontmatter and display the results:
+
+- If status is `passed`: display `✓ Verifier: {X}/{Y} must-haves verified` (where X = `must_haves_passed` and Y = `must_haves_checked`)
+- If status is `gaps_found`: display `⚠ Verifier found {N} gap(s) — see VERIFICATION.md` (where N = `must_haves_failed`)
 
 ---
 

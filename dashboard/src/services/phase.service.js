@@ -1,6 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { readMarkdownFile } from '../repositories/planning.repository.js';
+import { readMarkdownFile, validatePath } from '../repositories/planning.repository.js';
 
 /**
  * Format a phase directory name into a human-readable title.
@@ -164,4 +164,57 @@ export async function getPhaseDetail(projectDir, phaseId) {
     plans,
     verification
   };
+}
+
+/**
+ * Read and render a PLAN.md or SUMMARY.md file for a specific phase and plan.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @param {string} phaseId - Two-digit phase identifier (e.g., "04")
+ * @param {string} planId - Plan identifier (e.g., "04-01")
+ * @param {'plan'|'summary'} docType - Which document to read
+ * @returns {Promise<{phaseId: string, planId: string, docType: string, phaseName: string, frontmatter: object, html: string}|null>}
+ */
+export async function getPhaseDocument(projectDir, phaseId, planId, docType) {
+  const phasesDir = join(projectDir, '.planning', 'phases');
+
+  let phaseDirEntries;
+  try {
+    phaseDirEntries = await readdir(phasesDir, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+
+  const phaseDir = phaseDirEntries
+    .filter(entry => entry.isDirectory() && entry.name.startsWith(`${phaseId}-`))
+    .sort((a, b) => b.name.length - a.name.length)
+    [0];
+
+  if (!phaseDir) return null;
+
+  const phaseName = formatPhaseName(phaseDir.name);
+  const phaseFullPath = join(phasesDir, phaseDir.name);
+
+  const fileName = docType === 'plan'
+    ? `${planId}-PLAN.md`
+    : `SUMMARY-${planId}.md`;
+
+  // Validate the path stays within the phase directory
+  const filePath = validatePath(phaseFullPath, fileName);
+
+  try {
+    const doc = await readMarkdownFile(filePath);
+    return {
+      phaseId,
+      planId,
+      docType,
+      phaseName,
+      frontmatter: doc.frontmatter,
+      html: doc.html
+    };
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
 }

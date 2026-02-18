@@ -131,9 +131,12 @@ function buildContextBar(percent, width, opts) {
 function statusColor(statusText) {
   const lower = statusText.toLowerCase();
   if (lower.includes('complete') || lower.includes('verified')) return c.green;
-  if (lower.includes('progress') || lower.includes('building') || lower.includes('executing')) return c.yellow;
+  if (lower.includes('needs_fixes') || lower.includes('partial')) return c.yellow;
+  if (lower.includes('progress') || lower.includes('building') || lower.includes('executing') || lower.includes('planning')) return c.yellow;
+  if (lower.includes('verifying')) return c.blue;
   if (lower.includes('planned') || lower.includes('ready')) return c.cyan;
   if (lower.includes('blocked') || lower.includes('failed')) return c.red;
+  if (lower.includes('pending')) return c.dim;
   return c.white;
 }
 

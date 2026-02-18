@@ -248,5 +248,75 @@ function checkSync(data) {
   return null;
 }
 
-module.exports = { parseState, getRoadmapPhaseStatus, checkSync };
+/**
+ * Parse all phase directory slugs referenced in ROADMAP.md.
+ * Looks for NN-slug patterns in the Phase Overview table or
+ * phase reference lines like "## Phase 01-setup" or "01-setup".
+ * Returns an array of unique directory names, e.g. ["01-setup", "02-auth"].
+ */
+function parseRoadmapPhases(content) {
+  const phases = new Set();
+  const lines = content.split('\n');
+
+  for (const line of lines) {
+    // Match NN-slug patterns (at least two-digit prefix with hyphen and slug)
+    const matches = line.match(/\b(\d{2,}-[a-zA-Z][a-zA-Z0-9-]*)\b/g);
+    if (matches) {
+      for (const m of matches) {
+        phases.add(m);
+      }
+    }
+  }
+
+  return Array.from(phases);
+}
+
+/**
+ * Check for drift between ROADMAP.md phase references and actual
+ * phase directories on disk under .planning/phases/.
+ *
+ * Returns an array of warning strings. Empty array means no drift.
+ *
+ * @param {string} roadmapContent - Contents of ROADMAP.md
+ * @param {string} phasesDir - Absolute path to .planning/phases/
+ * @returns {string[]} warnings
+ */
+function checkFilesystemDrift(roadmapContent, phasesDir) {
+  const warnings = [];
+
+  if (!fs.existsSync(phasesDir)) {
+    return warnings;
+  }
+
+  const roadmapPhases = parseRoadmapPhases(roadmapContent);
+
+  // Check that each ROADMAP.md phase has a directory on disk
+  for (const phase of roadmapPhases) {
+    const dirPath = path.join(phasesDir, phase);
+    if (!fs.existsSync(dirPath)) {
+      warnings.push(`Phase directory missing: .planning/phases/${phase} (referenced in ROADMAP.md)`);
+    }
+  }
+
+  // Check for orphaned directories not referenced in ROADMAP.md
+  let entries;
+  try {
+    entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+  } catch (_e) {
+    return warnings;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    // Only consider NN-slug directories
+    if (!/^\d{2,}-[a-zA-Z]/.test(entry.name)) continue;
+    if (!roadmapPhases.includes(entry.name)) {
+      warnings.push(`Orphaned phase directory: .planning/phases/${entry.name} (not referenced in ROADMAP.md)`);
+    }
+  }
+
+  return warnings;
+}
+
+module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift };
 if (require.main === module) { main(); }

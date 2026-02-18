@@ -4,6 +4,20 @@ description: "Save your current session state for later resumption."
 allowed-tools: Read, Write, Bash, Glob
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► PAUSING SESSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:pause — Save Session State
 
 You are running the **pause** skill. Your job is to capture the current session state so the user can resume exactly where they left off in a future conversation. This creates a `.continue-here.md` handoff file with everything the next session needs.

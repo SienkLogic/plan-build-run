@@ -27,6 +27,48 @@ Use for major workflow transitions. Always use `PLAN-BUILD-RUN` prefix.
 
 ---
 
+## Invocation Banners
+
+**Every skill MUST display a branded banner as its very first output, BEFORE any file reads, state loading, or processing.** This is the user's immediate confirmation that their command was received.
+
+Format:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► {SKILL NAME}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Skill names (uppercase):**
+- `STARTING PROJECT` (begin)
+- `PLANNING PHASE {N}` (plan)
+- `BUILDING PHASE {N}` (build)
+- `REVIEWING PHASE {N}` (review)
+- `QUICK TASK` (quick)
+- `NEXT STEP` (continue)
+- `PROJECT STATUS` (status)
+- `RESUMING SESSION` (resume)
+- `PAUSING SESSION` (pause)
+- `HEALTH CHECK` (health)
+- `SETUP` (setup)
+- `CONFIGURATION` (config)
+- `COMMAND REFERENCE` (help)
+- `DISCUSSION` (discuss)
+- `EXPLORING` (explore)
+- `NOTE` (note)
+- `TODO` (todo)
+- `DEBUGGING` (debug)
+- `SCANNING CODEBASE` (scan)
+- `MILESTONE` (milestone)
+- `IMPORTING PLAN` (import)
+
+**Rules:**
+1. The banner MUST be output BEFORE any tool calls (Read, Glob, Bash, Task)
+2. The banner MUST be the first text the user sees
+3. After the banner, optionally show a 1-line context summary (e.g., "Phase 3 of 7 — API Layer")
+4. Then proceed to Step 1 (state loading, argument parsing, etc.)
+
+---
+
 ## Headers
 
 Use these patterns for consistent visual hierarchy within sections:

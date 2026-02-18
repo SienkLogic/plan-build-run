@@ -4,7 +4,10 @@
  * PostToolUse hook on Read: Tracks cumulative file reads per skill invocation.
  *
  * Maintains a session-scoped counter in .planning/.context-tracker.
- * Warns when reads exceed thresholds (15 reads or 30k chars).
+ * Warns only at meaningful thresholds to reduce noise:
+ *   - Unique files read crosses milestone (10, 20, 30, ...)
+ *   - Total chars read crosses milestone (50k, 100k, 150k, ...)
+ *   - A single file read is unusually large (> 5,000 chars)
  * Resets when .active-skill changes (new skill invocation).
  *
  * Exit codes:
@@ -15,8 +18,9 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 
-const READ_THRESHOLD = 20;
-const CHAR_THRESHOLD = 30000;
+const UNIQUE_FILE_MILESTONE = 10;    // warn every 10 unique files
+const CHAR_MILESTONE = 50000;        // warn every 50k chars
+const LARGE_FILE_THRESHOLD = 5000;   // warn if single read > 5k chars
 
 function main() {
   let input = '';
@@ -55,6 +59,7 @@ function main() {
       }
 
       // Update tracker
+      const prevFileCount = tracker.files.length;
       tracker.reads += 1;
       tracker.total_chars += actualChars;
       if (!tracker.files.includes(filePath)) {
@@ -68,17 +73,31 @@ function main() {
         // Best-effort
       }
 
-      // Check thresholds
-      if (tracker.reads >= READ_THRESHOLD || tracker.total_chars >= CHAR_THRESHOLD) {
-        const warnings = [];
-        if (tracker.reads >= READ_THRESHOLD) {
-          warnings.push(`${tracker.reads} file reads (threshold: ${READ_THRESHOLD})`);
-        }
-        if (tracker.total_chars >= CHAR_THRESHOLD) {
-          const kChars = Math.round(tracker.total_chars / 1000);
-          warnings.push(`~${kChars}k chars read (threshold: ${CHAR_THRESHOLD / 1000}k)`);
-        }
+      // Check thresholds — only warn at milestone crossings, not every read
+      const warnings = [];
 
+      // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
+      const curUniqueFiles = tracker.files.length;
+      if (curUniqueFiles >= UNIQUE_FILE_MILESTONE &&
+          Math.floor(curUniqueFiles / UNIQUE_FILE_MILESTONE) > Math.floor(prevFileCount / UNIQUE_FILE_MILESTONE)) {
+        warnings.push(`${curUniqueFiles} unique files read (milestone: every ${UNIQUE_FILE_MILESTONE})`);
+      }
+
+      // Milestone: total chars crosses a multiple of CHAR_MILESTONE
+      const prevChars = tracker.total_chars - actualChars;
+      if (tracker.total_chars >= CHAR_MILESTONE &&
+          Math.floor(tracker.total_chars / CHAR_MILESTONE) > Math.floor(prevChars / CHAR_MILESTONE)) {
+        const kChars = Math.round(tracker.total_chars / 1000);
+        warnings.push(`~${kChars}k chars read (milestone: every ${CHAR_MILESTONE / 1000}k)`);
+      }
+
+      // Single large file warning
+      if (actualChars >= LARGE_FILE_THRESHOLD) {
+        const kChars = Math.round(actualChars / 1000);
+        warnings.push(`large file read (~${kChars}k chars): ${path.basename(filePath)}`);
+      }
+
+      if (warnings.length > 0) {
         logHook('track-context-budget', 'PostToolUse', 'warn', {
           reads: tracker.reads,
           total_chars: tracker.total_chars,

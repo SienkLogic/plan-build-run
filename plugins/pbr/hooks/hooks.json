@@ -96,6 +96,16 @@
             "statusMessage": "Checking write rules..."
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-task.js",
+            "statusMessage": "Validating Task() call..."
+          }
+        ]
       }
     ],
     "PreCompact": [

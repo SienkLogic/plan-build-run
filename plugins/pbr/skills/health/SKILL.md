@@ -4,6 +4,20 @@ description: "Check planning directory integrity. Find and fix corrupted state."
 allowed-tools: Read, Bash, Glob, Grep
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► HEALTH CHECK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:health — Planning Directory Diagnostics
 
 You are running the **health** skill. Your job is to validate the integrity of the `.planning/` directory, report problems, and suggest targeted fixes. You never auto-repair anything.
@@ -22,7 +36,7 @@ Read `skills/health/templates/output-format.md.tmpl` for the output format: summ
 
 ## Checks
 
-Run all 9 checks in order. Collect results and present them together at the end.
+Run all 10 checks in order. Collect results and present them together at the end.
 
 ### Check 1: Structure
 
@@ -114,6 +128,26 @@ Read `.planning/config.json` and check for fields referenced by skills:
 
 - PASS: All expected fields present
 - WARN (missing fields): Report each missing field and which skill uses it — "Run `/pbr:config` to set all options."
+
+### Check 10: Orphaned Crash Recovery Files
+
+The executor creates `.PROGRESS-{plan_id}` files as crash recovery breadcrumbs during builds and deletes them after `SUMMARY.md` is written. Similarly, `.checkpoint-manifest.json` files track checkpoint state during execution. If the executor crashes mid-build, these files remain and could confuse future runs.
+
+Glob for `.planning/phases/**/.PROGRESS-*` and `.planning/phases/**/.checkpoint-manifest.json`.
+
+- PASS: No orphaned files found
+- WARN (orphaned progress files): List each file with its parent phase directory:
+  ```
+  Orphaned progress files detected:
+  - .planning/phases/02-auth/.PROGRESS-02-01 (executor may have crashed)
+  ```
+  Fix suggestion: "These are crash recovery breadcrumbs from interrupted builds. Safe to delete if no `/pbr:build` is currently running. Remove with `rm <path>`."
+- WARN (orphaned checkpoint manifests): List each file:
+  ```
+  Orphaned checkpoint manifests detected:
+  - .planning/phases/02-auth/.checkpoint-manifest.json (stale build checkpoint)
+  ```
+  Fix suggestion: "Checkpoint manifests are leftover from interrupted builds. Safe to delete if no `/pbr:build` is currently running. Remove with `rm <path>`."
 
 ---
 

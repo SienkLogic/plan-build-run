@@ -4,6 +4,20 @@ description: "Onboarding wizard. Initialize project, select models, verify setup
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► SETUP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:setup — Plan-Build-Run Setup Wizard
 
 You are running the **setup** skill. This is an interactive onboarding wizard that guides users through Plan-Build-Run project setup. Use AskUserQuestion at each step for clear choices.

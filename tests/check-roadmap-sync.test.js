@@ -1,4 +1,7 @@
-const { parseState, getRoadmapPhaseStatus } = require('../plugins/pbr/scripts/check-roadmap-sync');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { parseState, getRoadmapPhaseStatus, parseRoadmapPhases, checkFilesystemDrift } = require('../plugins/pbr/scripts/check-roadmap-sync');
 
 describe('check-roadmap-sync.js', () => {
   describe('parseState', () => {
@@ -124,6 +127,162 @@ describe('check-roadmap-sync.js', () => {
 | 05 | Deploy | complete |
 `;
       expect(getRoadmapPhaseStatus(table, '5')).toBe('complete');
+    });
+  });
+
+  describe('parseRoadmapPhases', () => {
+    test('extracts NN-slug patterns from ROADMAP.md content', () => {
+      const content = `# Roadmap
+
+## Phase Overview
+| Phase | Name | Goal | Plans | Wave | Status |
+|-------|------|------|-------|------|--------|
+| 01-setup | Setup | Init project | 2 | 1 | planned |
+| 02-auth | Auth | Add login | 3 | 1 | built |
+| 03-api | API | REST endpoints | 4 | 2 | pending |
+`;
+      const phases = parseRoadmapPhases(content);
+      expect(phases).toContain('01-setup');
+      expect(phases).toContain('02-auth');
+      expect(phases).toContain('03-api');
+      expect(phases).toHaveLength(3);
+    });
+
+    test('extracts phases from heading references', () => {
+      const content = `## Phase 01-setup
+Some description
+## Phase 02-auth
+More description`;
+      const phases = parseRoadmapPhases(content);
+      expect(phases).toContain('01-setup');
+      expect(phases).toContain('02-auth');
+    });
+
+    test('deduplicates repeated phase references', () => {
+      const content = `01-setup is referenced here
+and 01-setup is referenced again`;
+      const phases = parseRoadmapPhases(content);
+      expect(phases.filter(p => p === '01-setup')).toHaveLength(1);
+    });
+
+    test('returns empty array for content without phase patterns', () => {
+      const content = '# Roadmap\nNo phase directories here';
+      expect(parseRoadmapPhases(content)).toEqual([]);
+    });
+
+    test('ignores single-digit prefixes without proper slug', () => {
+      const content = 'Phase 1 is active\nphase 2 next';
+      expect(parseRoadmapPhases(content)).toEqual([]);
+    });
+
+    test('handles multi-word slugs with hyphens', () => {
+      const content = '| 01-user-auth-system | Setup |';
+      const phases = parseRoadmapPhases(content);
+      expect(phases).toContain('01-user-auth-system');
+    });
+  });
+
+  describe('checkFilesystemDrift', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-drift-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('returns empty warnings when all phases match', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '01-setup'));
+      fs.mkdirSync(path.join(phasesDir, '02-auth'));
+
+      const roadmap = `| 01-setup | Setup | planned |
+| 02-auth | Auth | built |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toEqual([]);
+    });
+
+    test('warns about missing phase directories', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '01-setup'));
+      // 02-auth is NOT created on disk
+
+      const roadmap = `| 01-setup | Setup | planned |
+| 02-auth | Auth | built |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('Phase directory missing');
+      expect(warnings[0]).toContain('02-auth');
+      expect(warnings[0]).toContain('referenced in ROADMAP.md');
+    });
+
+    test('warns about orphaned phase directories', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '01-setup'));
+      fs.mkdirSync(path.join(phasesDir, '99-orphan'));
+
+      const roadmap = `| 01-setup | Setup | planned |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toContain('Orphaned phase directory');
+      expect(warnings[0]).toContain('99-orphan');
+      expect(warnings[0]).toContain('not referenced in ROADMAP.md');
+    });
+
+    test('detects both missing and orphaned simultaneously', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '03-extra'));
+      // 01-setup referenced in ROADMAP but missing on disk
+
+      const roadmap = `| 01-setup | Setup | planned |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toHaveLength(2);
+      const missing = warnings.find(w => w.includes('missing'));
+      const orphaned = warnings.find(w => w.includes('Orphaned'));
+      expect(missing).toContain('01-setup');
+      expect(orphaned).toContain('03-extra');
+    });
+
+    test('returns empty when phases directory does not exist', () => {
+      const phasesDir = path.join(tmpDir, 'nonexistent');
+      const roadmap = `| 01-setup | Setup | planned |`;
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toEqual([]);
+    });
+
+    test('ignores non-directory entries in phases folder', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '01-setup'));
+      fs.writeFileSync(path.join(phasesDir, '02-notes.txt'), 'just a file');
+
+      const roadmap = `| 01-setup | Setup | planned |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toEqual([]);
+    });
+
+    test('ignores directories that do not match NN-slug pattern', () => {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.mkdirSync(path.join(phasesDir, '01-setup'));
+      fs.mkdirSync(path.join(phasesDir, 'temp'));
+      fs.mkdirSync(path.join(phasesDir, '.hidden'));
+
+      const roadmap = `| 01-setup | Setup | planned |`;
+
+      const warnings = checkFilesystemDrift(roadmap, phasesDir);
+      expect(warnings).toEqual([]);
     });
   });
 });

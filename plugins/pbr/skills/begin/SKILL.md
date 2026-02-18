@@ -4,6 +4,8 @@ description: "Start a new project. Deep questioning, research, requirements, and
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:begin — Project Initialization
 
 You are the orchestrator for `/pbr:begin`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() subagents and keep the user's main context window clean.
@@ -15,6 +17,18 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** reading subagent output — read only summaries, not full research docs
 - **Delegate** all analysis work to subagents — the orchestrator routes, it doesn't analyze
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► STARTING PROJECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
 
 ## Prerequisites
 
@@ -31,15 +45,17 @@ Execute these steps in order. Each step specifies whether it runs inline (in you
 
 ### Step 1: Detect Brownfield (inline)
 
+> **Cross-platform note**: Use the Glob tool (not Bash `ls` or `find`) for all file and directory discovery. Bash file commands fail on Windows due to path separator issues.
+
 Check if the current directory has existing code:
 
 ```
-1. Run: ls to check directory contents
+1. Use Glob to check directory contents (e.g., pattern "*" at project root)
 2. Look for indicators of existing code:
    - package.json, requirements.txt, CMakeLists.txt, go.mod, Cargo.toml
    - src/, lib/, app/ directories
    - .git/ directory with commits
-3. Check if .planning/ already exists
+3. Use Glob to check if .planning/ already exists (e.g., pattern ".planning/*")
 ```
 
 **If existing code found:**
@@ -57,7 +73,11 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   options:
     - label: "Yes"  description: "Overwrite existing planning directory"
     - label: "No"   description: "Cancel — keep existing planning"
-- If user selects "No": stop
+- If user selects "No": **STOP IMMEDIATELY. Do not ask again. Do not proceed to Step 2. End the skill with this message:**
+  ```
+  Keeping existing .planning/ directory. Use `/pbr:status` to see current project state, or `/pbr:plan` to continue planning.
+  ```
+  **Do NOT re-prompt the same question or any other question. The skill is finished.**
 - If user selects "Yes": proceed (existing directory will be overwritten during state initialization)
 
 ---
@@ -279,6 +299,11 @@ Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 **Placeholders to fill:**
 - `{List all .planning/research/*.md files that were created}` — list the research files produced in Step 5
 
+**After the synthesizer completes**, display:
+```
+✓ Research synthesis complete — see .planning/research/SUMMARY.md
+```
+
 ---
 
 ### Step 7: Requirements Scoping (inline)
@@ -349,6 +374,11 @@ Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
 **After the planner completes:**
 - Read `.planning/ROADMAP.md`
+- Count the phases and milestones from the roadmap content
+- Display:
+  ```
+  ✓ Roadmap created — {N} phases across {M} milestones
+  ```
 - If `gates.confirm_roadmap` is true in config, use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
   question: "Approve this roadmap?"
   options:

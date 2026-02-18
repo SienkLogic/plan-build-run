@@ -84,24 +84,37 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toHaveLength(1);
   });
 
-  test('warns when read count exceeds threshold', () => {
-    // Pre-seed tracker at threshold - 1 (threshold is 20)
+  test('warns when unique file count crosses milestone (10)', () => {
+    // Pre-seed tracker with 9 unique files (just below milestone of 10)
     const trackerPath = path.join(planningDir, '.context-tracker');
+    const files = Array.from({ length: 9 }, (_, i) => `/file${i}.js`);
     fs.writeFileSync(trackerPath, JSON.stringify({
-      skill: '', reads: 19, total_chars: 1000, files: []
+      skill: '', reads: 9, total_chars: 1000, files: files
     }));
 
-    const output = run({ file_path: '/final.js' }, 'content');
+    const output = run({ file_path: '/file9.js' }, 'content');
 
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('Context Budget Warning');
-    expect(parsed.additionalContext).toContain('20 file reads');
+    expect(parsed.additionalContext).toContain('10 unique files read');
   });
 
-  test('warns when char count exceeds threshold', () => {
+  test('does not warn when unique files below milestone', () => {
+    // Pre-seed tracker with 5 unique files — well below 10
+    const trackerPath = path.join(planningDir, '.context-tracker');
+    const files = Array.from({ length: 5 }, (_, i) => `/file${i}.js`);
+    fs.writeFileSync(trackerPath, JSON.stringify({
+      skill: '', reads: 5, total_chars: 1000, files: files
+    }));
+
+    const output = run({ file_path: '/file5.js' }, 'small content');
+    expect(output).toBe('');
+  });
+
+  test('warns when char count crosses milestone (50k)', () => {
     const trackerPath = path.join(planningDir, '.context-tracker');
     fs.writeFileSync(trackerPath, JSON.stringify({
-      skill: '', reads: 1, total_chars: 29500, files: []
+      skill: '', reads: 5, total_chars: 49500, files: ['/a.js']
     }));
 
     const bigContent = 'x'.repeat(600);
@@ -112,8 +125,42 @@ describe('track-context-budget.js', () => {
     expect(parsed.additionalContext).toContain('chars read');
   });
 
-  test('no warning when below thresholds', () => {
+  test('does not warn when char count stays within same milestone bucket', () => {
+    // Total will be 20000 + 500 = 20500, still in first 50k bucket
+    const trackerPath = path.join(planningDir, '.context-tracker');
+    fs.writeFileSync(trackerPath, JSON.stringify({
+      skill: '', reads: 3, total_chars: 20000, files: ['/a.js']
+    }));
+
+    const output = run({ file_path: '/b.js' }, 'x'.repeat(500));
+    expect(output).toBe('');
+  });
+
+  test('warns when a single file read is large (>5000 chars)', () => {
+    const largeContent = 'x'.repeat(6000);
+    const output = run({ file_path: '/huge.js' }, largeContent);
+
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).toContain('Context Budget Warning');
+    expect(parsed.additionalContext).toContain('large file read');
+    expect(parsed.additionalContext).toContain('huge.js');
+  });
+
+  test('no warning for small read below all thresholds', () => {
     const output = run({ file_path: '/small.js' }, 'tiny');
+    expect(output).toBe('');
+  });
+
+  test('does not warn on every read after crossing a milestone', () => {
+    // Pre-seed at 10 unique files (already crossed first milestone)
+    // Adding file 11 should NOT trigger unique-files warning (next milestone is 20)
+    const trackerPath = path.join(planningDir, '.context-tracker');
+    const files = Array.from({ length: 10 }, (_, i) => `/file${i}.js`);
+    fs.writeFileSync(trackerPath, JSON.stringify({
+      skill: '', reads: 10, total_chars: 1000, files: files
+    }));
+
+    const output = run({ file_path: '/file10.js' }, 'small');
     expect(output).toBe('');
   });
 

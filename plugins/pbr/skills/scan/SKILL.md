@@ -4,6 +4,20 @@ description: "Analyze an existing codebase. Maps structure, architecture, conven
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► SCANNING CODEBASE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:scan — Codebase Analysis
 
 You are running the **scan** skill. Your job is to analyze an existing codebase and produce a comprehensive map of its structure, architecture, conventions, and concerns. This is the entry point for brownfield projects — codebases that already have code before Plan-Build-Run is introduced.
@@ -85,7 +99,16 @@ Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determ
 - `standard` (balanced): 4 mappers -- all areas. Full analysis.
 - `comprehensive` (thorough): 4 mappers -- all areas. Full analysis.
 
-Display to the user: `◐ Spawning {mapper_count} codebase mapper(s) in parallel...`
+Display to the user:
+```
+◐ Spawning {mapper_count} codebase mapper(s) in parallel...
+  → Technology stack analysis
+  → Architecture patterns
+  → Code quality assessment
+  → Concerns & risks
+```
+
+(Only list the focus areas that will actually be spawned based on the depth profile.)
 
 Spawn `{mapper_count}` parallel `Task(subagent_type: "pbr:codebase-mapper")` agents, one for each area in `scan.mapper_areas`. All should be spawned in a single response for maximum parallelism.
 
@@ -105,14 +128,15 @@ For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in t
 
 ### Step 4: Wait for Agents
 
-All 4 agents run in parallel. Report progress as each completes:
+All agents run in parallel. As each completes, display:
 ```
-Scanning codebase...
-  [1/4] Technology stack... done
-  [2/4] Architecture... done
-  [3/4] Code quality... done
-  [4/4] Concerns... done
+✓ Technology stack analysis complete
+✓ Architecture patterns complete
+✓ Code quality assessment complete
+✓ Concerns & risks complete
 ```
+
+(Only display lines for the focus areas that were actually spawned.)
 
 ### Step 5: Verify Output
 
