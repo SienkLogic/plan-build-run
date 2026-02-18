@@ -7,53 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-02-17
+
 ### Added
 - Token-saving CLI: 6 new commands in `towline-tools.js` — `frontmatter`, `must-haves`, `phase-info`, `state update`, `roadmap update-status`, `roadmap update-plans`
 - Companion web dashboard (Express 5.x, EJS, Pico.css v2, HTMX 2.0) with overview, phase detail, roadmap, todos, and SSE live updates
 - `/dev:import` skill — Import external plan documents into Towline format
 - `/dev:note` skill — Zero-friction idea capture with promote-to-todo support
 - `/dev:setup` skill — Interactive onboarding wizard for new installations
-- `SECURITY.md` — Vulnerability reporting policy
-- `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1
-- `ACKNOWLEDGMENTS` — Project attribution and prior art acknowledgment
-- "Why Towline?" comparison section in README
-- Markdownlint CI for planning document quality
+- `/dev:explore` skill — Socratic conversation for idea exploration
+- `/dev:continue` skill — Execute the next logical step automatically
+- `/dev:health` skill — Validate `.planning/` directory integrity
+- General agent — Lightweight Towline-aware agent for ad-hoc tasks
+- `/dev:build <N> --team` variant — Agent Teams for complex inter-agent coordination
+- `/dev:review <N> --auto-fix` variant — Auto-diagnose and fix verification failures
 - Hook spawn tests for all lifecycle hooks
 - Iterative retrieval protocol for researcher agent
 - Behavioral contexts for agent prompt refinement
-- Plugin manifest documentation
+- Published to npm with OIDC trusted publishing
 
 ### Changed
-- Skill count increased from 18 to 21 (added import, note, setup)
+- Skill count increased from 15 to 21
+- Agent count increased from 9 to 10 (added General agent)
 - Hook scripts consolidated: Write/Edit dispatch reduced from 4 spawns to 2
 - All hook scripts now use `logHook()` from `hook-logger.js` for unified logging
 - Agents reference new CLI tooling shortcuts instead of manual YAML parsing
-- README rewritten with polished formatting, badges, comparison table, and acknowledgments
-- CONTRIBUTING.md expanded with commit format reference, security policy link, and code of conduct
-- CHANGELOG updated to Keep a Changelog format with [Unreleased] section
+- README rewritten with badges, comparison table, and acknowledgments
+- Package tarball trimmed from 1.9MB to 305KB via explicit `files` field
 
 ### Fixed
+- Windows CI: `parseMustHaves` now trims CRLF line endings
 - Context budget: main orchestrator no longer reads agent definitions (saves ~15% context)
 - Hook logger rotation: `.hook-log` now caps at 200 entries with JSONL format
 - Status line ANSI rendering on Windows terminals
-
-## [2.0.0] - 2026-02-08
-
-### Added
-- `/dev:explore` skill — Socratic conversation for idea exploration before formalizing requirements
-- `/dev:continue` skill — Execute the next logical step automatically without prompting
-- `/dev:health` skill — Validate `.planning/` directory integrity with pass/fail diagnostics
-- General agent — Lightweight Towline-aware agent for ad-hoc tasks that don't fit specialized roles
-- `/dev:build <N> --team` variant — Agent Teams for complex inter-agent coordination
-- `/dev:review <N> --auto-fix` variant — Auto-diagnose and fix verification failures
-- Cost indicators on core workflow commands in help reference
-
-### Changed
-- README rewritten with philosophy, problem statement, typical workflow, and restructured layout
-- Help skill expanded with full command reference, typical workflow, and quick reference section
-- Agent count increased from 9 to 10 (added General agent)
-- Skill count increased from 15 to 18 (added explore, continue, health)
-- Configuration section documents 16 feature toggles
 
 ## [1.0.0] - 2025-02-07
 

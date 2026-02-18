@@ -14,7 +14,7 @@ Towline is a **Claude Code plugin** that provides a structured development workf
 ## Commands
 
 ```bash
-npm test                                    # Run all Jest tests (~540 tests, 31 suites)
+npm test                                    # Run all Jest tests (~780 tests, 36 suites)
 npm run lint                                # ESLint on plugins/dev/scripts/ and tests/
 npm run validate                            # Validate plugin directory structure
 npx jest tests/validate-commit.test.js      # Run a single test file
