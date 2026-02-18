@@ -4,6 +4,8 @@ description: "Execute the next logical step automatically. No prompts, no decisi
 allowed-tools: Read, Write, Bash, Glob, Grep, Task
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:continue — Action-Oriented Resumption
 
 You are running the **continue** skill. Unlike `/pbr:resume` which shows status and suggests actions, `/pbr:continue` determines and EXECUTES the next logical step automatically.
@@ -11,6 +13,18 @@ You are running the **continue** skill. Unlike `/pbr:resume` which shows status 
 This skill runs **inline** and may delegate to other skills via Task().
 
 ---
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► NEXT STEP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
 
 ## Context Budget
 
@@ -47,6 +61,25 @@ No project state found.
 
 **To fix:** Run `/pbr:begin` first.
 ```
+
+#### Context Budget Guard
+
+Before proceeding to priority evaluation, check for runaway continue chains:
+
+1. Read `last_command` from STATE.md
+2. If `last_command` is `/pbr:continue`, this is a chained continue. Check session context for consecutive `/pbr:continue` invocations.
+3. **If this is the 3rd consecutive `/pbr:continue` in a row**, display:
+
+```
+WARNING: Context budget warning: 3 consecutive auto-continues detected.
+Recommend running /pbr:pause then resuming in a fresh session.
+```
+
+Then present the user with a choice:
+- **"Continue"** — proceed with the next action
+- **"Pause"** — run `/pbr:pause` logic to save state and stop
+
+This prevents runaway chains that fill the context window without a human checkpoint.
 
 ### Step 2: Scan for Priority Items
 

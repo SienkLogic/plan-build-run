@@ -29,24 +29,36 @@ function readStdin() {
   return {};
 }
 
+/**
+ * Extract agent type from hook data, checking multiple possible field locations.
+ * Returns the first non-empty value found, or null if no type info is available.
+ */
+function resolveAgentType(data) {
+  return data.agent_type
+    || data.subagent_type
+    || (data.tool_input && (data.tool_input.subagent_type || data.tool_input.agent_type))
+    || null;
+}
+
 function main() {
   const action = process.argv[2]; // 'start' or 'stop'
   const data = readStdin();
+  const agentType = resolveAgentType(data);
 
   if (action === 'start') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
-      agent_type: data.agent_type || data.subagent_type || null,
+      agent_type: agentType,
       description: data.description || null
     });
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
-      agent_type: data.agent_type || data.subagent_type || null,
+      agent_type: agentType,
       description: data.description || null
     });
 
     // Write .active-agent signal so other hooks know a subagent is running
-    writeActiveAgent(data.agent_type || data.subagent_type || 'unknown');
+    writeActiveAgent(agentType || 'unknown');
 
     // Inject project context into subagent
     const context = buildAgentContext();
@@ -64,12 +76,12 @@ function main() {
     removeActiveAgent();
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
-      agent_type: data.agent_type || data.subagent_type || null,
+      agent_type: agentType,
       duration_ms: data.duration_ms || null
     });
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
-      agent_type: data.agent_type || data.subagent_type || null,
+      agent_type: agentType,
       duration_ms: data.duration_ms || null
     });
   }
@@ -148,5 +160,5 @@ function buildAgentContext() {
   return '[Plan-Build-Run Project Context] ' + parts.join(' | ');
 }
 
-module.exports = { buildAgentContext };
+module.exports = { buildAgentContext, resolveAgentType };
 if (require.main === module) { main(); }

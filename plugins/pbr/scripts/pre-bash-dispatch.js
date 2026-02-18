@@ -7,9 +7,39 @@
  * into a single process, reading stdin once and routing to both
  * checks sequentially. This halves the process spawns per Bash call.
  *
- * Check order:
- *   1. Dangerous commands check (can block destructive operations)
- *   2. Commit validation (can block badly-formatted commits)
+ * ── Dispatch Order & Rationale ──────────────────────────────────
+ *
+ *   1. check-dangerous-commands — Blocks destructive shell operations
+ *      (rm -rf, git push --force, etc.). Runs first because safety
+ *      takes priority: if a command is dangerous, we must reject it
+ *      before even considering whether its commit message is valid.
+ *      Can block (exit 2).
+ *
+ *   2. validate-commit          — Enforces conventional commit format
+ *      ({type}({scope}): {desc}) on git commit commands. Runs second
+ *      because commit format validation is only relevant for git
+ *      commit operations, a narrow subset of all Bash calls. There's
+ *      no benefit to checking format if the command was already
+ *      blocked as dangerous. Can block (exit 2).
+ *
+ * ── Short-Circuit Behavior ──────────────────────────────────────
+ *
+ *   If an earlier check returns a result (blocking with exit 2),
+ *   later checks are skipped entirely. The first failure is the
+ *   most relevant — a dangerous command should be blocked regardless
+ *   of whether it also has a valid commit message.
+ *
+ * ── Adding New Checks ───────────────────────────────────────────
+ *
+ *   1. Create a new check module exporting a function that takes
+ *      the parsed hook data and returns null (pass) or
+ *      { output: {...}, exitCode: N }.
+ *   2. require() it at the top of this file.
+ *   3. Add the call in sequence below, following the pattern:
+ *        const result = checkFoo(data);
+ *        if (result) { log; write output; exit with code; }
+ *   4. Position the check based on severity: safety-critical checks
+ *      should run earlier; format/style checks should run later.
  *
  * Exit codes:
  *   0 = allowed or warning only

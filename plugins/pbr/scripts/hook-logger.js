@@ -39,7 +39,7 @@ function getLogPath() {
   return newPath;
 }
 
-function logHook(hookName, eventType, decision, details = {}) {
+function logHook(hookName, eventType, decision, details = {}, startTime) {
   const logPath = getLogPath();
   if (!logPath) return; // Not a Plan-Build-Run project
 
@@ -50,6 +50,10 @@ function logHook(hookName, eventType, decision, details = {}) {
     decision,
     ...details
   };
+
+  if (typeof startTime === 'number' && startTime > 0) {
+    entry.duration_ms = Date.now() - startTime;
+  }
 
   try {
     let lines = [];

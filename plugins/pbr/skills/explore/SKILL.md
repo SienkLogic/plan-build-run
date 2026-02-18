@@ -5,6 +5,20 @@ allowed-tools: Read, Write, Glob, Grep, Task, AskUserQuestion
 argument-hint: "[topic]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► EXPLORING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:explore — Idea Exploration
 
 You are running the **explore** skill. Your job is to help the user think through ideas that might become a todo, requirement, phase, decision, or nothing yet. This is Socratic conversation, not requirements gathering. No phase number is needed.
@@ -120,7 +134,9 @@ Task({
 })
 ```
 
-After the researcher completes:
+After the researcher completes, display: `✓ Research complete — results in .planning/research/{topic-slug}.md`
+
+Then:
 - Read ONLY the frontmatter and summary section of the research file (not the full document)
 - Incorporate the 2-3 key findings into the conversation
 - Main context gets ~200 tokens of research insight, not the full document

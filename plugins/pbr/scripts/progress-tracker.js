@@ -178,6 +178,12 @@ function buildContext(planningDir, stateFile) {
     }
   }
 
+  // Hook health summary from recent log entries
+  const hookHealth = getHookHealthSummary(planningDir);
+  if (hookHealth) {
+    parts.push(`\n${hookHealth}`);
+  }
+
   parts.push('\nAvailable commands: /pbr:status, /pbr:plan, /pbr:build, /pbr:review, /pbr:help');
 
   return parts.join('\n');
@@ -224,5 +230,52 @@ function countNotes(filePath) {
     return 0;
   }
 }
+
+const FAILURE_DECISIONS = /^(block|error|warn|warning|block-coauthor|block-sensitive|unlink-failed)$/;
+const HOOK_HEALTH_MAX_ENTRIES = 50;
+
+function getHookHealthSummary(planningDir) {
+  const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+  try {
+    if (!fs.existsSync(logPath)) return null;
+    const content = fs.readFileSync(logPath, 'utf8').trim();
+    if (!content) return null;
+
+    const lines = content.split('\n');
+    // Take only the last N entries
+    const recent = lines.slice(-HOOK_HEALTH_MAX_ENTRIES);
+
+    const failuresByHook = {};
+    let totalFailures = 0;
+
+    for (const line of recent) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.decision && FAILURE_DECISIONS.test(entry.decision)) {
+          const hookName = entry.hook || 'unknown';
+          failuresByHook[hookName] = (failuresByHook[hookName] || 0) + 1;
+          totalFailures++;
+        }
+      } catch (_e) {
+        // Skip malformed lines
+      }
+    }
+
+    if (totalFailures === 0) return null;
+
+    // Sort hooks by failure count descending
+    const sorted = Object.entries(failuresByHook)
+      .sort((a, b) => b[1] - a[1])
+      .map(([hook, count]) => `${hook}: ${count}`)
+      .join(', ');
+
+    return `Hook health: ${totalFailures} failure${totalFailures !== 1 ? 's' : ''} in last ${recent.length} entries (${sorted})`;
+  } catch (_e) {
+    return null;
+  }
+}
+
+// Exported for testing
+module.exports = { getHookHealthSummary, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES };
 
 main();

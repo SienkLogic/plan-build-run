@@ -181,15 +181,15 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on autonomous mode with active gates', () => {
+  test('errors on autonomous mode with active gates', () => {
     writeConfig({
       version: 2,
       mode: 'autonomous',
       gates: { confirm_plan: true, confirm_execute: true }
     });
     const result = run();
-    expect(result.valid).toBe(true);
-    expect(result.warnings).toEqual(
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
       expect.arrayContaining([expect.stringContaining('gates are unreachable')])
     );
   });
@@ -219,15 +219,15 @@ describe('config validate', () => {
     );
   });
 
-  test('warns on max_concurrent_agents=1 with teams', () => {
+  test('errors on max_concurrent_agents=1 with teams', () => {
     writeConfig({
       version: 2,
       parallelization: { max_concurrent_agents: 1 },
       teams: { coordination: 'file-based' }
     });
     const result = run();
-    expect(result.valid).toBe(true);
-    expect(result.warnings).toEqual(
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
       expect.arrayContaining([expect.stringContaining('teams require concurrent agents')])
     );
   });

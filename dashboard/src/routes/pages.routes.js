@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getPhaseDetail } from '../services/phase.service.js';
+import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
 import { getRoadmapData } from '../services/roadmap.service.js';
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 
@@ -52,6 +52,56 @@ router.get('/phases/:phaseId', async (req, res) => {
     res.render('partials/phase-content', templateData);
   } else {
     res.render('phase-detail', templateData);
+  }
+});
+
+router.get('/phases/:phaseId/:planId/:docType', async (req, res) => {
+  const { phaseId, planId, docType } = req.params;
+
+  // Validate phaseId
+  if (!/^\d{1,2}(\.\d+)?$/.test(phaseId)) {
+    const err = new Error('Phase ID must be a number (e.g., 01, 05, 3.1)');
+    err.status = 404;
+    throw err;
+  }
+
+  // Validate planId: NN-NN format
+  if (!/^\d{2}-\d{2}$/.test(planId)) {
+    const err = new Error('Plan ID must be in NN-NN format (e.g., 04-01)');
+    err.status = 404;
+    throw err;
+  }
+
+  // Validate docType
+  if (docType !== 'plan' && docType !== 'summary') {
+    const err = new Error('Document type must be "plan" or "summary"');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const doc = await getPhaseDocument(projectDir, phaseId, planId, docType);
+
+  if (!doc) {
+    const err = new Error(`${docType === 'plan' ? 'Plan' : 'Summary'} ${planId} not found for phase ${phaseId}`);
+    err.status = 404;
+    throw err;
+  }
+
+  const docLabel = docType === 'plan' ? 'Plan' : 'Summary';
+  const templateData = {
+    title: `${docLabel} ${planId} — Phase ${phaseId}: ${doc.phaseName}`,
+    activePage: 'phases',
+    currentPath: `/phases/${phaseId}/${planId}/${docType}`,
+    ...doc
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/phase-doc-content', templateData);
+  } else {
+    res.render('phase-doc', templateData);
   }
 });
 

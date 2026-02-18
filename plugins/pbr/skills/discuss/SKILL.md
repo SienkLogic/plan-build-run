@@ -5,6 +5,20 @@ allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
 argument-hint: "<phase-number>"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► DISCUSSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:discuss — Pre-Planning Discussion
 
 You are running the **discuss** skill. Your job is to help the user think through a phase BEFORE planning begins. You identify gray areas where the user's preference matters, ask structured questions, and capture every decision in a CONTEXT.md file that the planner must honor.

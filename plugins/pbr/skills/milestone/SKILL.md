@@ -5,6 +5,20 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "new|complete|audit|gaps [version]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► MILESTONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:milestone — Milestone Management
 
 You are running the **milestone** skill. Milestones represent significant project checkpoints — a set of phases that together deliver a cohesive chunk of functionality. This skill handles the full milestone lifecycle: creation, completion, auditing, and gap analysis.

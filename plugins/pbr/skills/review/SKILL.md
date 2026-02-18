@@ -5,6 +5,8 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--auto-fix] [--teams]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:review — Phase Review and Verification
 
 You are the orchestrator for `/pbr:review`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
@@ -15,6 +17,18 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► REVIEWING PHASE {N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
 ## Prerequisites
 
@@ -165,6 +179,23 @@ Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as th
 - `{date}`, `{count}`, `{phase name}` — fill from context
 
 Wait for the verifier to complete.
+
+**After the verifier completes**, read VERIFICATION.md frontmatter and display a quick summary before the full results:
+
+```
+✓ Verifier: {passed}/{total} must-haves verified
+```
+
+Then show a brief table of must-haves with pass/fail status:
+
+```
+| Must-Have | Status |
+|-----------|--------|
+| {name}    | ✓      |
+| {name}    | ✗      |
+```
+
+Then display the overall verdict (`PASSED`, `GAPS FOUND`, or `HUMAN NEEDED`) before proceeding to the full results presentation.
 
 ---
 

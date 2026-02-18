@@ -5,6 +5,20 @@ allowed-tools: Read, Write, Glob, Grep
 argument-hint: "<text> | list | promote <index> [--global]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► NOTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:note — Quick Note Capture
 
 You are running the **note** skill. Your job is zero-friction idea capture. One Write call, one confirmation line. No questions, no prompts.

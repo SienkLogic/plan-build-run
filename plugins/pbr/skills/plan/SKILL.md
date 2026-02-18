@@ -5,6 +5,8 @@ allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUser
 argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] | add | insert <N> | remove <N>"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:plan — Phase Planning
 
 You are the orchestrator for `/pbr:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() subagents, and keep the user's main context window clean.
@@ -16,6 +18,18 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** reading subagent output — read only plan frontmatter for summaries
 - **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► PLANNING PHASE {N}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
 ## Prerequisites
 
@@ -249,6 +263,32 @@ Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger mat
 
 ---
 
+### Step 4.6: Surface Deferred Ideas (inline, before planning)
+
+Before spawning the planner, check `.planning/CONTEXT.md` for deferred ideas that may be relevant to this phase:
+
+1. If `.planning/CONTEXT.md` does NOT exist, skip this step silently
+2. If it exists, scan for sections named "Deferred Ideas", "Deferred", "Ideas", or "Seeds" (case-insensitive heading match)
+3. For each deferred item found, check relevance to the current phase by comparing the item text against the phase goal, requirements, and slug
+4. If relevant deferred items are found, present them to the user:
+   ```
+   Found {N} deferred idea(s) from previous discussions that may be relevant to Phase {NN}:
+     - {deferred item summary}
+     - {deferred item summary}
+   ```
+   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+     question: "Include these deferred ideas in the planning context?"
+     header: "Deferred Ideas"
+     options:
+       - label: "Yes"  description: "Pass relevant deferred ideas to the planner"
+       - label: "No"   description: "Proceed without deferred ideas"
+5. If "Yes": append the relevant deferred items to the context bundle for the planner prompt (add them to the `<project_context>` block under a `Deferred ideas to consider:` heading)
+6. If "No" or no relevant items found: proceed without changes
+
+This is a lightweight relevance filter — do NOT spawn a subagent for this. Just match keywords from the deferred items against the phase goal and requirement text.
+
+---
+
 ### Step 5: Planning (delegated)
 
 #### Team Mode (--teams)
@@ -314,6 +354,14 @@ Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt tem
 
 Wait for the planner to complete.
 
+After the planner returns, read the plan files it created to extract counts. Display a completion summary:
+
+```
+✓ Planner created {N} plan(s) across {M} wave(s)
+```
+
+Where `{N}` is the number of PLAN.md files written and `{M}` is the number of distinct wave values across those plans (from frontmatter).
+
 ---
 
 ### Step 6: Plan Validation (delegated, conditional)
@@ -346,8 +394,11 @@ Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt tem
 - `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
 
 **Process checker results:**
-- If `VERIFICATION PASSED`: proceed to Step 8
-- If issues found: proceed to Step 7
+
+After the plan checker returns, display its result:
+
+- If `VERIFICATION PASSED`: display `✓ Plan checker: all plans passed` and proceed to Step 8
+- If issues found: display `⚠ Plan checker found {N} issue(s) — entering revision loop` and proceed to Step 7
 
 ---
 

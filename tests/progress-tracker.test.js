@@ -242,6 +242,97 @@ Resume file: None
     expect(ctx).not.toContain('15 more old decisions');
   });
 
+  // --- Hook health summary tests ---
+
+  function writeHookLog(entries) {
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const lines = entries.map(e => JSON.stringify(e));
+    fs.writeFileSync(logPath, lines.join('\n') + '\n');
+  }
+
+  test('shows hook health summary when failures exist in log', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    writeHookLog([
+      { ts: '2026-02-18T10:00:00Z', hook: 'check-plan-format', event: 'PostToolUse', decision: 'block' },
+      { ts: '2026-02-18T10:01:00Z', hook: 'validate-commit', event: 'PreToolUse', decision: 'allow' },
+      { ts: '2026-02-18T10:02:00Z', hook: 'check-plan-format', event: 'PostToolUse', decision: 'warn' },
+      { ts: '2026-02-18T10:03:00Z', hook: 'validate-commit', event: 'PreToolUse', decision: 'block' },
+    ]);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).toContain('Hook health:');
+    expect(parsed.additionalContext).toContain('3 failures in last 4 entries');
+    expect(parsed.additionalContext).toContain('check-plan-format: 2');
+    expect(parsed.additionalContext).toContain('validate-commit: 1');
+  });
+
+  test('does not show hook health when no failures', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    writeHookLog([
+      { ts: '2026-02-18T10:00:00Z', hook: 'validate-commit', event: 'PreToolUse', decision: 'allow' },
+      { ts: '2026-02-18T10:01:00Z', hook: 'check-plan-format', event: 'PostToolUse', decision: 'pass' },
+    ]);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).not.toContain('Hook health:');
+  });
+
+  test('does not show hook health when no log file exists', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    // No hooks.jsonl written
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).not.toContain('Hook health:');
+  });
+
+  test('handles malformed lines in hook log gracefully', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    fs.writeFileSync(logPath, 'not json\n{"ts":"2026-02-18","hook":"validate-commit","event":"PreToolUse","decision":"block"}\n');
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).toContain('Hook health:');
+    expect(parsed.additionalContext).toContain('1 failure in last 2 entries');
+  });
+
+  test('recognizes all failure decision types', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    writeHookLog([
+      { ts: '2026-02-18T10:00:00Z', hook: 'hook-a', event: 'E', decision: 'block' },
+      { ts: '2026-02-18T10:01:00Z', hook: 'hook-b', event: 'E', decision: 'error' },
+      { ts: '2026-02-18T10:02:00Z', hook: 'hook-c', event: 'E', decision: 'warn' },
+      { ts: '2026-02-18T10:03:00Z', hook: 'hook-d', event: 'E', decision: 'warning' },
+      { ts: '2026-02-18T10:04:00Z', hook: 'hook-e', event: 'E', decision: 'block-coauthor' },
+      { ts: '2026-02-18T10:05:00Z', hook: 'hook-f', event: 'E', decision: 'block-sensitive' },
+    ]);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).toContain('6 failures in last 6 entries');
+  });
+
+  test('limits hook health to last 50 entries', () => {
+    writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
+    // Write 60 entries: first 10 are failures, last 50 are passes
+    const entries = [];
+    for (let i = 0; i < 10; i++) {
+      entries.push({ ts: `2026-02-18T09:${String(i).padStart(2, '0')}:00Z`, hook: 'old-hook', event: 'E', decision: 'block' });
+    }
+    for (let i = 0; i < 50; i++) {
+      entries.push({ ts: `2026-02-18T10:${String(i).padStart(2, '0')}:00Z`, hook: 'new-hook', event: 'E', decision: 'allow' });
+    }
+    writeHookLog(entries);
+
+    const output = run();
+    const parsed = JSON.parse(output);
+    // The old failures should be outside the 50-entry window
+    expect(parsed.additionalContext).not.toContain('Hook health:');
+  });
+
   test('does NOT inject Milestone section', () => {
     writeState(`# Project State
 

@@ -1,0 +1,38 @@
+<%
+  var docLabel = docType === 'plan' ? 'Plan' : 'Summary';
+%>
+
+<h1><%= docLabel %> <%= planId %></h1>
+
+<p><a href="/phases/<%= phaseId %>">&larr; Back to Phase <%= phaseId %>: <%= phaseName %></a></p>
+
+<% if (frontmatter && Object.keys(frontmatter).length > 0) { %>
+<article>
+  <header>
+    <strong>Metadata</strong>
+  </header>
+  <div class="table-wrap">
+  <table>
+    <tbody>
+      <% Object.entries(frontmatter).forEach(function([key, val]) { %>
+        <% if (typeof val !== 'object' || val === null) { %>
+        <tr>
+          <td><strong><%= key %></strong></td>
+          <td><%= val %></td>
+        </tr>
+        <% } %>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
+</article>
+<% } %>
+
+<article>
+  <header>
+    <strong>Content</strong>
+  </header>
+  <div class="markdown-body">
+    <%- html %>
+  </div>
+</article>
