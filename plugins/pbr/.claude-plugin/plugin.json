@@ -1,0 +1,13 @@
+{
+  "name": "pbr",
+  "version": "2.0.0",
+  "description": "Plan-Build-Run — Structured development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
+  "author": {
+    "name": "SienkLogic",
+    "email": "dave@sienklogic.com"
+  },
+  "homepage": "https://github.com/SienkLogic/plan-build-run",
+  "repository": "https://github.com/SienkLogic/plan-build-run",
+  "license": "MIT",
+  "keywords": ["claude-code", "context-engineering", "development-workflow", "subagent-delegation"]
+}

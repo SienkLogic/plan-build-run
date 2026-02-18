@@ -7,9 +7,9 @@ import { startServer } from '../src/server.js';
 const program = new Command();
 
 program
-  .name('towline-dashboard')
-  .description('Start the Towline planning dashboard')
-  .option('-d, --dir <path>', 'Path to Towline project directory', process.cwd())
+  .name('pbr-dashboard')
+  .description('Start the Plan-Build-Run planning dashboard')
+  .option('-d, --dir <path>', 'Path to Plan-Build-Run project directory', process.cwd())
   .option('-p, --port <number>', 'Server port', '3000')
   .parse();
 

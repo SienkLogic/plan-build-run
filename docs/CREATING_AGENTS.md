@@ -1,24 +1,24 @@
 # Creating Agents
 
-A guide for adding or modifying specialized agents in Towline.
+A guide for adding or modifying specialized agents in Plan-Build-Run.
 
 ## What Is an Agent?
 
-An agent is a markdown file (`towline-{name}.md`) that defines a prompt for a subagent spawned via `Task()`. Each agent runs in a fresh 200k token context window, isolated from the main orchestrator. Agents are auto-loaded by Claude Code when referenced via `subagent_type: "dev:towline-{name}"`.
+An agent is a markdown file (`{name}.md`) that defines a prompt for a subagent spawned via `Task()`. Each agent runs in a fresh 200k token context window, isolated from the main orchestrator. Agents are auto-loaded by Claude Code when referenced via `subagent_type: "pbr:{name}"`.
 
 ## File Location
 
 ```
-plugins/dev/agents/towline-{name}.md
+plugins/pbr/agents/{name}.md
 ```
 
-All agent files must be in `plugins/dev/agents/` and follow the naming convention `towline-{name}.md`.
+All agent files must be in `plugins/pbr/agents/` and follow the naming convention `{name}.md`.
 
 ## Agent Frontmatter
 
 ```yaml
 ---
-name: towline-{name}
+name: {name}
 description: "What this agent does"
 model: sonnet
 memory: none
@@ -36,7 +36,7 @@ tools:
 
 | Field | Required | Values | Description |
 |-------|----------|--------|-------------|
-| `name` | Yes | `towline-{name}` | Must match filename |
+| `name` | Yes | `{name}` | Must match filename |
 | `description` | Yes | String | Shown in agent listings |
 | `model` | Yes | `sonnet`, `inherit`, `haiku` | Which model to use |
 | `memory` | Yes | `none`, `user`, `project` | Memory scope |
@@ -70,7 +70,7 @@ From a skill's orchestrator, spawn agents using `Task()` with `subagent_type`:
 
 ```
 Use Task() with:
-  subagent_type: "dev:towline-researcher"
+  subagent_type: "pbr:researcher"
   prompt: "Research authentication approaches for this Node.js project..."
 ```
 
@@ -81,9 +81,9 @@ Use Task() with:
 After frontmatter, write the agent's prompt:
 
 ```markdown
-# Towline {Name}
+# Plan-Build-Run {Name}
 
-You are **towline-{name}**, the {role} agent for the Towline development system.
+You are **{name}**, the {role} agent for the Plan-Build-Run development system.
 {One paragraph explaining the agent's purpose.}
 
 ## When You're Used
@@ -122,7 +122,7 @@ npm test            # Structural tests verify all agents
 
 ```yaml
 ---
-name: towline-reviewer
+name: reviewer
 description: "Reviews code changes for quality, security, and convention adherence"
 model: sonnet
 memory: none
@@ -133,9 +133,9 @@ tools:
   - Bash
 ---
 
-# Towline Reviewer
+# Plan-Build-Run Reviewer
 
-You are **towline-reviewer**, a code review agent for the Towline development system.
+You are **reviewer**, a code review agent for the Plan-Build-Run development system.
 You review code changes for bugs, security issues, and project convention adherence.
 
 ## Methodology

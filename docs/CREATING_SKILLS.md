@@ -1,15 +1,15 @@
 # Creating Skills
 
-A step-by-step guide for adding new skills (slash commands) to Towline.
+A step-by-step guide for adding new skills (slash commands) to Plan-Build-Run.
 
 ## What Is a Skill?
 
-A skill is a markdown file (`SKILL.md`) that defines a slash command. When a user types `/dev:yourskill`, Claude Code loads the SKILL.md as a prompt for the orchestrator. The skill tells the orchestrator what to do — read state, interact with the user, spawn agents, and update files.
+A skill is a markdown file (`SKILL.md`) that defines a slash command. When a user types `/pbr:yourskill`, Claude Code loads the SKILL.md as a prompt for the orchestrator. The skill tells the orchestrator what to do — read state, interact with the user, spawn agents, and update files.
 
 ## File Structure
 
 ```
-plugins/dev/
+plugins/pbr/
 ├── skills/
 │   └── yourskill/
 │       └── SKILL.md         # The skill definition
@@ -19,12 +19,12 @@ plugins/dev/
 
 ## Step 1: Create the SKILL.md
 
-Create `plugins/dev/skills/yourskill/SKILL.md` with YAML frontmatter:
+Create `plugins/pbr/skills/yourskill/SKILL.md` with YAML frontmatter:
 
 ```yaml
 ---
 name: yourskill
-description: "One-line description shown in /dev:help"
+description: "One-line description shown in /pbr:help"
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
 argument-hint: "<phase-number> [--flag]"
 ---
@@ -52,9 +52,9 @@ Include `AskUserQuestion` if the skill has any user decision points (gate checks
 After the frontmatter, write the prompt that guides the orchestrator. Key sections:
 
 ```markdown
-# /dev:yourskill — Title
+# /pbr:yourskill — Title
 
-You are the orchestrator for `/dev:yourskill`. [One sentence about what this skill does.]
+You are the orchestrator for `/pbr:yourskill`. [One sentence about what this skill does.]
 
 ## Context Budget
 
@@ -98,7 +98,7 @@ Reference syntax: `Reference: \`skills/shared/context-budget.md\` for the univer
 
 ## Step 3: Register the Command
 
-Create `plugins/dev/commands/yourskill.md`:
+Create `plugins/pbr/commands/yourskill.md`:
 
 ```yaml
 ---
@@ -130,9 +130,9 @@ description: "Show project statistics — files, commits, agent spawns"
 allowed-tools: Read, Bash, Glob, Grep
 ---
 
-# /dev:stats — Project Statistics
+# /pbr:stats — Project Statistics
 
-You are the orchestrator for `/dev:stats`. Show the user key statistics about their project.
+You are the orchestrator for `/pbr:stats`. Show the user key statistics about their project.
 
 ## Context Budget
 

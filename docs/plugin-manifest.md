@@ -36,7 +36,7 @@ Hooks are auto-loaded from `hooks/hooks.json` by convention. Including a `hooks`
 
 ### 2. Agent paths must be explicit file paths
 
-If you list agents in plugin.json (optional — they're auto-discovered), each entry must be a full file path like `agents/towline-executor.md`, not a directory path like `agents/`.
+If you list agents in plugin.json (optional — they're auto-discovered), each entry must be a full file path like `agents/executor.md`, not a directory path like `agents/`.
 
 ### 3. All component fields must be arrays
 
@@ -59,17 +59,17 @@ Windows is stricter about:
 - File permissions (no execute bit needed for .js scripts — `node` invokes them directly)
 - Case sensitivity (Windows is case-insensitive but the validator may not be)
 
-## Towline's Current Manifest
+## Plan-Build-Run's Current Manifest
 
-Towline's plugin.json is intentionally minimal — it relies on auto-discovery for all components:
+Plan-Build-Run's plugin.json is intentionally minimal — it relies on auto-discovery for all components:
 
 ```json
 {
   "name": "dev",
   "version": "2.0.0",
-  "description": "Towline — Context-engineered development workflow...",
+  "description": "Plan-Build-Run — Context-engineered development workflow...",
   "author": { "name": "SienkLogic", "email": "..." },
-  "homepage": "https://github.com/SienkLogic/towline",
+  "homepage": "https://github.com/SienkLogic/plan-build-run",
   "license": "MIT"
 }
 ```

@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug in Towline
+about: Report a bug in Plan-Build-Run
 labels: bug
 ---
 
@@ -19,7 +19,7 @@ labels: bug
 - OS: <!-- Windows / macOS / Linux -->
 - Node.js version: <!-- node --version -->
 - Claude Code version: <!-- claude --version -->
-- Towline version: <!-- check package.json -->
+- Plan-Build-Run version: <!-- check package.json -->
 
 ## Relevant Logs
 <!-- Paste any error messages or logs -->

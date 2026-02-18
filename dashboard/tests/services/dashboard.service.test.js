@@ -16,7 +16,7 @@ const VALID_STATE_MD = `# Project State
 
 ## Project Reference
 See: .planning/PROJECT.md (updated 2026-02-07)
-**Core value:** Visual insight into Towline project progress
+**Core value:** Visual insight into Plan-Build-Run project progress
 **Current focus:** Phase 3 - UI Shell
 
 ## Current Position
@@ -27,7 +27,7 @@ Last activity: 2026-02-08 -- Phase 3 built (2 plans, 5 tasks, 5 commits)
 Progress: [█████░░░░░░░░░░░░░░░] 25%
 `;
 
-const VALID_ROADMAP_MD = `# Roadmap: Towline Dashboard
+const VALID_ROADMAP_MD = `# Roadmap: Plan-Build-Run Dashboard
 
 ## Phases
 
@@ -222,7 +222,7 @@ describe('DashboardService', () => {
 
     it('should mark current phase as in-progress', async () => {
       // Use a ROADMAP where Phase 03 is NOT complete ([ ]) so it can be marked in-progress
-      const roadmapWithPhase3Incomplete = `# Roadmap: Towline Dashboard
+      const roadmapWithPhase3Incomplete = `# Roadmap: Plan-Build-Run Dashboard
 
 ## Phases
 

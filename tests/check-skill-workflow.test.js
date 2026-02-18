@@ -1,10 +1,10 @@
-const { readActiveSkill, checkSkillRules, hasPlanFile } = require('../plugins/dev/scripts/check-skill-workflow');
+const { readActiveSkill, checkSkillRules, hasPlanFile } = require('../plugins/pbr/scripts/check-skill-workflow');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-csw-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-csw-'));
   const planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir, { recursive: true });
   return { tmpDir, planningDir };

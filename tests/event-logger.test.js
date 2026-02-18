@@ -9,7 +9,7 @@ describe('event-logger.js', () => {
   let originalCwd;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     originalCwd = process.cwd();
@@ -23,7 +23,7 @@ describe('event-logger.js', () => {
   });
 
   function getLogger() {
-    return require('../plugins/dev/scripts/event-logger');
+    return require('../plugins/pbr/scripts/event-logger');
   }
 
   function getLogPath() {
@@ -111,7 +111,7 @@ describe('event-logger.js', () => {
   });
 
   test('CLI logs event and exits 0', () => {
-    const script = path.resolve(__dirname, '..', 'plugins', 'dev', 'scripts', 'event-logger.js');
+    const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     const jsonArg = '{"phase":1}';
     const result = execSync(
       `node "${script}" workflow test ${jsonArg}`,
@@ -132,7 +132,7 @@ describe('event-logger.js', () => {
   });
 
   test('CLI exits 1 with no args', () => {
-    const script = path.resolve(__dirname, '..', 'plugins', 'dev', 'scripts', 'event-logger.js');
+    const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     let exitCode = 0;
     try {
       execSync(`node "${script}"`, { cwd: tmpDir, encoding: 'utf8' });

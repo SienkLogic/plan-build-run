@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'check-dangerous-commands.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-dangerous-commands.js');
 
 function runScript(command) {
   const input = JSON.stringify({ tool_input: { command } });

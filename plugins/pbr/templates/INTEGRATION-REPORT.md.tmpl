@@ -1,0 +1,151 @@
+<!-- Source: agents/integration-checker.md | Purpose: Output format for cross-phase integration verification reports -->
+
+```markdown
+# Integration Verification Report
+
+> Verified: {date}
+> Phases checked: {comma-separated list of phase IDs}
+> Status: **{INTEGRATED | GAPS_FOUND}**
+
+## Phase Dependency Graph
+
+```
+Phase 01 (Setup) ──provides──→ Phase 02 (Auth)
+Phase 01 (Setup) ──provides──→ Phase 03 (Core)
+Phase 02 (Auth)  ──provides──→ Phase 03 (Core)
+Phase 02 (Auth)  ──provides──→ Phase 04 (Frontend)
+Phase 03 (Core)  ──provides──→ Phase 04 (Frontend)
+```
+
+## 1. Export/Import Wiring
+
+### Export Status Summary
+
+| Phase | Total Exports | Consumed | Orphaned | Unused Imports | Mismatched |
+|-------|--------------|----------|----------|---------------|------------|
+| 01 | {n} | {n} | {n} | {n} | {n} |
+| 02 | {n} | {n} | {n} | {n} | {n} |
+
+### Detailed Export Map
+
+| Export | Source Phase | Source File:Line | Consumer(s) | Status |
+|--------|------------|-----------------|-------------|--------|
+| DatabaseConnection | 01 | src/db/conn.ts:5 | Phase 02, 03 | CONSUMED |
+| ConfigLoader | 01 | src/config/index.ts:12 | Phase 03 | CONSUMED |
+| ThemeProvider | 04 | src/theme/provider.tsx:8 | - | ORPHANED |
+
+### Orphaned Exports (created but never used)
+
+| Export | Phase | File | Line | Likely Intended Consumer |
+|--------|-------|------|------|------------------------|
+| {name} | {phase} | {file} | {line} | {best guess or "unknown"} |
+
+### Unused Imports (imported but symbol never called)
+
+| File | Imported Symbol | Source Module | Line |
+|------|----------------|--------------|------|
+| {file} | {symbol} | {module} | {line} |
+
+## 2. API Coverage
+
+### Route Coverage Matrix
+
+| Route | Method | Handler | Frontend Caller | Auth | Status |
+|-------|--------|---------|----------------|------|--------|
+| /api/users | GET | users.ts:12 | UserList.tsx:34 | YES | COVERED |
+| /api/users/:id | DELETE | users.ts:45 | - | YES | NO_CALLER |
+| /api/settings | PUT | - | Settings.tsx:22 | - | NO_HANDLER |
+
+### Uncovered Routes (backend exists, no frontend caller)
+
+| Route | Method | Handler | Possible Reason |
+|-------|--------|---------|----------------|
+| {route} | {method} | {file:line} | {guess: future feature, admin only, etc.} |
+
+### Missing Handlers (frontend calls, no backend route)
+
+| Frontend File | Calls | Expected Route | Expected Method |
+|--------------|-------|---------------|----------------|
+| {file} | fetch('/api/X') | /api/X | GET |
+
+## 3. Auth Protection
+
+### Route Protection Summary
+
+| Category | Total | Protected | Unprotected | Status |
+|----------|-------|-----------|-------------|--------|
+| API Routes | {n} | {n} | {n} | {OK/ISSUES} |
+| Pages | {n} | {n} | {n} | {OK/ISSUES} |
+| Public Routes | {n} | - | {n} | OK |
+
+### Unprotected Routes (SECURITY ISSUES)
+
+| Route | Method | Handler | Should Protect | Evidence |
+|-------|--------|---------|---------------|----------|
+| {route} | {method} | {file:line} | YES | No auth middleware in chain |
+
+### Auth Flow Completeness
+
+| Step | Status | Evidence |
+|------|--------|----------|
+| Login form exists | {YES/NO} | {file:line} |
+| Auth API called | {YES/NO} | {file:line} |
+| Token/session created | {YES/NO} | {file:line} |
+| Token sent with requests | {YES/NO} | {file:line} |
+| Auth middleware applied | {YES/NO} | {file:line} |
+| Unauthorized redirect | {YES/NO} | {file:line} |
+
+## 4. End-to-End Flows
+
+### Flow 1: {Flow Name} - {STATUS}
+
+| Step | Description | Component | Exists | Connected to Next | Evidence |
+|------|------------|-----------|--------|-------------------|----------|
+| 1 | {step desc} | {file} | YES | YES | import at L12, call at L45 |
+| 2 | {step desc} | {file} | YES | NO | handler exists but not called |
+| 3 | {step desc} | - | NO | - | File not found |
+
+**Break point**: {If BROKEN, where exactly the chain breaks}
+**Impact**: {What user action fails because of this break}
+
+### Flow 2: {Flow Name} - {STATUS}
+...
+
+## 5. Integration Issues Summary
+
+### Critical Issues (system cannot function)
+
+1. **{Issue}**: {description with evidence}
+   - Impact: {what breaks}
+   - Fix: {recommended action}
+
+### Warnings (partial functionality)
+
+1. **{Issue}**: {description with evidence}
+   - Impact: {what's degraded}
+   - Fix: {recommended action}
+
+### Info (cleanup opportunities)
+
+1. **{Issue}**: {description}
+   - Fix: {recommended action}
+
+## 6. Integration Score
+
+| Category | Items Checked | Passed | Failed | Score |
+|----------|--------------|--------|--------|-------|
+| Export wiring | {n} | {n} | {n} | {%} |
+| API coverage | {n} | {n} | {n} | {%} |
+| Auth protection | {n} | {n} | {n} | {%} |
+| E2E flows | {n} | {n} | {n} | {%} |
+| **Overall** | {n} | {n} | {n} | **{%}** |
+
+## Recommendations
+
+{Prioritized list of actions to fix integration issues}
+
+1. **[CRITICAL]** {Most important fix}
+2. **[CRITICAL]** {Second most important}
+3. **[WARNING]** {Important but not blocking}
+4. ...
+```

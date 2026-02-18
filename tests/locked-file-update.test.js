@@ -1,12 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { lockedFileUpdate } = require('../plugins/dev/scripts/towline-tools');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/pbr-tools');
 
 let tmpDir;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-lock-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-lock-'));
 });
 
 afterEach(() => {

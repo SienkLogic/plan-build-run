@@ -1,4 +1,4 @@
-const { validatePlan, validateSummary } = require('../plugins/dev/scripts/check-plan-format');
+const { validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format');
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {

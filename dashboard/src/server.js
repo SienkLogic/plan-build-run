@@ -12,13 +12,13 @@ export function startServer(config) {
   });
 
   const server = app.listen(port, '127.0.0.1', () => {
-    console.log(`Towline Dashboard running at http://127.0.0.1:${port}`);
+    console.log(`PBR Dashboard running at http://127.0.0.1:${port}`);
     console.log(`Project directory: ${projectDir}`);
     console.log('File watcher active on .planning/**/*.md');
   });
 
   const shutdown = async (signal) => {
-    console.log(`${signal} received. Shutting down Towline Dashboard...`);
+    console.log(`${signal} received. Shutting down PBR Dashboard...`);
 
     // Close watcher first (stops generating events)
     try {

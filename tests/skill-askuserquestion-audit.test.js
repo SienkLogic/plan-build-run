@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PLUGIN_ROOT = path.resolve(__dirname, '..', 'plugins', 'dev');
+const PLUGIN_ROOT = path.resolve(__dirname, '..', 'plugins', 'pbr');
 const SKILLS_DIR = path.join(PLUGIN_ROOT, 'skills');
 const GATE_PROMPTS_PATH = path.join(PLUGIN_ROOT, 'skills', 'shared', 'gate-prompts.md');
 

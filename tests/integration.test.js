@@ -1,8 +1,8 @@
 /**
- * Integration tests for Towline tooling.
+ * Integration tests for Plan-Build-Run tooling.
  *
  * Uses a fake-project fixture under tests/fixtures/fake-project/.planning/
- * to exercise towline-tools, check-roadmap-sync, check-plan-format,
+ * to exercise pbr-tools, check-roadmap-sync, check-plan-format,
  * event-logger, status-line, and log-subagent against realistic data.
  */
 
@@ -12,7 +12,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'fake-project');
-const SCRIPTS_DIR = path.join(__dirname, '..', 'plugins', 'dev', 'scripts');
+const SCRIPTS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 let originalCwd;
 
@@ -38,7 +38,7 @@ describe('stateLoad', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    stateLoad = require('../plugins/dev/scripts/towline-tools').stateLoad;
+    stateLoad = require('../plugins/pbr/scripts/pbr-tools').stateLoad;
   });
 
   test('returns exists: true for fixture project', () => {
@@ -85,7 +85,7 @@ describe('stateCheckProgress', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    stateCheckProgress = require('../plugins/dev/scripts/towline-tools').stateCheckProgress;
+    stateCheckProgress = require('../plugins/pbr/scripts/pbr-tools').stateCheckProgress;
   });
 
   test('detects 6 phases', () => {
@@ -144,7 +144,7 @@ describe('planIndex', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    planIndex = require('../plugins/dev/scripts/towline-tools').planIndex;
+    planIndex = require('../plugins/pbr/scripts/pbr-tools').planIndex;
   });
 
   test('returns 2 plans for phase 2', () => {
@@ -198,7 +198,7 @@ describe('roadmap sync', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    ({ parseState, getRoadmapPhaseStatus } = require('../plugins/dev/scripts/check-roadmap-sync'));
+    ({ parseState, getRoadmapPhaseStatus } = require('../plugins/pbr/scripts/check-roadmap-sync'));
   });
 
   test('detects mismatch: STATE says built, ROADMAP says planned for phase 2', () => {
@@ -232,7 +232,7 @@ describe('plan format validation', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    ({ validatePlan, validateSummary } = require('../plugins/dev/scripts/check-plan-format'));
+    ({ validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format'));
   });
 
   test('valid plan passes with no issues', () => {
@@ -260,19 +260,19 @@ describe('plan format validation', () => {
 // Group 6: CLI commands (existing)
 // ---------------------------------------------------------------------------
 describe('CLI commands', () => {
-  test('towline-tools.js state load exits 0 with valid JSON', () => {
+  test('pbr-tools.js state load exits 0 with valid JSON', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" state load`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" state load`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
     expect(parsed.exists).toBe(true);
   });
 
-  test('towline-tools.js bad-command exits non-zero', () => {
+  test('pbr-tools.js bad-command exits non-zero', () => {
     expect(() => {
       execSync(
-        `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" bad-command`,
+        `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" bad-command`,
         { cwd: FIXTURE_DIR, encoding: 'utf8' }
       );
     }).toThrow();
@@ -285,7 +285,7 @@ describe('CLI commands', () => {
       { cwd: FIXTURE_DIR, encoding: 'utf8', input: stdinData }
     );
     // Status line outputs plain text with ANSI color codes
-    expect(result).toContain('Towline');
+    expect(result).toContain('Plan-Build-Run');
     expect(result).toContain('45%');
   });
 
@@ -307,7 +307,7 @@ describe('frontmatter', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    frontmatter = require('../plugins/dev/scripts/towline-tools').frontmatter;
+    frontmatter = require('../plugins/pbr/scripts/pbr-tools').frontmatter;
   });
 
   test('parses plan file frontmatter via function', () => {
@@ -336,7 +336,7 @@ describe('frontmatter', () => {
   test('CLI: frontmatter returns valid JSON', () => {
     const planPath = path.join(FIXTURE_DIR, '.planning', 'phases', '02-auth', 'auth-02-PLAN.md');
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" frontmatter "${planPath}"`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" frontmatter "${planPath}"`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -353,7 +353,7 @@ describe('mustHavesCollect', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    mustHavesCollect = require('../plugins/dev/scripts/towline-tools').mustHavesCollect;
+    mustHavesCollect = require('../plugins/pbr/scripts/pbr-tools').mustHavesCollect;
   });
 
   test('collects must-haves from phase 2 (2 plans)', () => {
@@ -384,7 +384,7 @@ describe('mustHavesCollect', () => {
 
   test('CLI: must-haves returns valid JSON', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" must-haves 2`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" must-haves 2`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -401,7 +401,7 @@ describe('phaseInfo', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    phaseInfo = require('../plugins/dev/scripts/towline-tools').phaseInfo;
+    phaseInfo = require('../plugins/pbr/scripts/pbr-tools').phaseInfo;
   });
 
   test('returns comprehensive info for phase 2', () => {
@@ -439,7 +439,7 @@ describe('phaseInfo', () => {
 
   test('CLI: phase-info returns valid JSON', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" phase-info 2`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" phase-info 2`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -456,7 +456,7 @@ describe('state update', () => {
 
   beforeAll(() => {
     // Create temp dir with .planning/STATE.md
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-state-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-state-'));
     const planDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planDir, { recursive: true });
     fs.copyFileSync(
@@ -481,7 +481,7 @@ describe('state update', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { stateUpdate: su } = require('../plugins/dev/scripts/towline-tools');
+    const { stateUpdate: su } = require('../plugins/pbr/scripts/pbr-tools');
     const result = su('status', 'building');
     process.chdir(origCwd);
     expect(result.success).toBe(true);
@@ -495,7 +495,7 @@ describe('state update', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { stateUpdate: su } = require('../plugins/dev/scripts/towline-tools');
+    const { stateUpdate: su } = require('../plugins/pbr/scripts/pbr-tools');
     const result = su('current_phase', '3');
     process.chdir(origCwd);
     expect(result.success).toBe(true);
@@ -507,7 +507,7 @@ describe('state update', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { stateUpdate: su } = require('../plugins/dev/scripts/towline-tools');
+    const { stateUpdate: su } = require('../plugins/pbr/scripts/pbr-tools');
     const result = su('invalid_field', 'value');
     process.chdir(origCwd);
     expect(result.success).toBe(false);
@@ -516,7 +516,7 @@ describe('state update', () => {
 
   test('CLI: state update status building', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" state update status building`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" state update status building`,
       { cwd: tmpDir, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -533,7 +533,7 @@ describe('roadmap update-status', () => {
   let tmpDir;
 
   beforeAll(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-roadmap-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-roadmap-'));
     const planDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planDir, { recursive: true });
   });
@@ -553,7 +553,7 @@ describe('roadmap update-status', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { roadmapUpdateStatus } = require('../plugins/dev/scripts/towline-tools');
+    const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/pbr-tools');
     const result = roadmapUpdateStatus('2', 'building');
     process.chdir(origCwd);
     expect(result.success).toBe(true);
@@ -568,7 +568,7 @@ describe('roadmap update-status', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { roadmapUpdateStatus } = require('../plugins/dev/scripts/towline-tools');
+    const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/pbr-tools');
     const result = roadmapUpdateStatus('99', 'building');
     process.chdir(origCwd);
     expect(result.success).toBe(false);
@@ -577,7 +577,7 @@ describe('roadmap update-status', () => {
 
   test('CLI: roadmap update-status 2 building', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" roadmap update-status 2 building`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" roadmap update-status 2 building`,
       { cwd: tmpDir, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -594,7 +594,7 @@ describe('roadmap update-plans', () => {
   let tmpDir;
 
   beforeAll(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-roadmap-p-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-roadmap-p-'));
     const planDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planDir, { recursive: true });
   });
@@ -614,7 +614,7 @@ describe('roadmap update-plans', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { roadmapUpdatePlans } = require('../plugins/dev/scripts/towline-tools');
+    const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/pbr-tools');
     const result = roadmapUpdatePlans('2', '1', '2');
     process.chdir(origCwd);
     expect(result.success).toBe(true);
@@ -629,7 +629,7 @@ describe('roadmap update-plans', () => {
     const origCwd = process.cwd();
     process.chdir(tmpDir);
     jest.resetModules();
-    const { roadmapUpdatePlans } = require('../plugins/dev/scripts/towline-tools');
+    const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/pbr-tools');
     const result = roadmapUpdatePlans('99', '1', '2');
     process.chdir(origCwd);
     expect(result.success).toBe(false);
@@ -638,7 +638,7 @@ describe('roadmap update-plans', () => {
 
   test('CLI: roadmap update-plans 2 1 2', () => {
     const result = execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" roadmap update-plans 2 1 2`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" roadmap update-plans 2 1 2`,
       { cwd: tmpDir, encoding: 'utf8' }
     );
     const parsed = JSON.parse(result);
@@ -653,7 +653,7 @@ describe('roadmap update-plans', () => {
 describe('event logger integration', () => {
   test('logEvent writes to .planning/logs/events.jsonl', () => {
     jest.resetModules();
-    const { logEvent } = require('../plugins/dev/scripts/event-logger');
+    const { logEvent } = require('../plugins/pbr/scripts/event-logger');
     logEvent('workflow', 'test-event', { phase: 1 });
     const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');
     expect(fs.existsSync(logPath)).toBe(true);
@@ -663,10 +663,10 @@ describe('event logger integration', () => {
     expect(entry.event).toBe('test-event');
   });
 
-  test('towline-tools.js event CLI writes event', () => {
+  test('pbr-tools.js event CLI writes event', () => {
     const detailsJson = JSON.stringify({ phase: 99 });
     execSync(
-      `node "${path.join(SCRIPTS_DIR, 'towline-tools.js')}" event workflow cli-test "${detailsJson}"`,
+      `node "${path.join(SCRIPTS_DIR, 'pbr-tools.js')}" event workflow cli-test "${detailsJson}"`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
     const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');

@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const schema = require('../plugins/dev/scripts/config-schema.json');
-const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'dev');
+const schema = require('../plugins/pbr/scripts/config-schema.json');
+const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
 
 describe('model-selection', () => {
   describe('config schema structure', () => {
@@ -37,7 +37,7 @@ describe('model-selection', () => {
 
   describe('planner complexity attribute documentation', () => {
     const plannerContent = fs.readFileSync(
-      path.join(PLUGIN_ROOT, 'agents', 'towline-planner.md'),
+      path.join(PLUGIN_ROOT, 'agents', 'planner.md'),
       'utf8'
     );
 

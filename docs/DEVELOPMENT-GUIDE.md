@@ -1,8 +1,8 @@
-# Towline Development Guide
+# Plan-Build-Run Development Guide
 
-This document describes how to develop **Towline itself** — the workflow patterns, architectural decisions, conventions, and anti-patterns for contributing to the Towline Claude Code plugin.
+This document describes how to develop **Plan-Build-Run itself** — the workflow patterns, architectural decisions, conventions, and anti-patterns for contributing to the Plan-Build-Run Claude Code plugin.
 
-**Audience**: Contributors to the Towline codebase (human or AI).
+**Audience**: Contributors to the Plan-Build-Run codebase (human or AI).
 
 **Scope**: This is NOT user documentation. For user-facing docs, see [Getting Started](GETTING-STARTED.md) or `CLAUDE.md` in the repo root.
 
@@ -10,7 +10,7 @@ This document describes how to develop **Towline itself** — the workflow patte
 
 ## Table of Contents
 
-### Part 1: Towline Workflow Documentation
+### Part 1: Plan-Build-Run Workflow Documentation
 - [Workflow Overview](#workflow-overview)
 - [Full Lifecycle Map](#full-lifecycle-map)
 - [Skill Invocation Graph](#skill-invocation-graph)
@@ -40,17 +40,17 @@ This document describes how to develop **Towline itself** — the workflow patte
 
 ---
 
-# Part 1: Towline Workflow Documentation
+# Part 1: Plan-Build-Run Workflow Documentation
 
 ## Workflow Overview
 
-Towline is a structured development workflow for Claude Code that solves **context rot** through disciplined subagent delegation, file-based state management, and goal-backward verification.
+Plan-Build-Run is a structured development workflow for Claude Code that solves **context rot** through disciplined subagent delegation, file-based state management, and goal-backward verification.
 
 **Core principle**: The main Claude session (orchestrator) stays lean (~15% context usage) by delegating heavy work to Task() subagents. Each subagent gets a fresh 200k token context window.
 
 **Communication mechanism**: Skills and agents communicate through files on disk, not through messages. Every workflow artifact is written to `.planning/` and read by subsequent skills.
 
-**User entry points**: Users invoke `/dev:*` slash commands (skills) that orchestrate specialized agents.
+**User entry points**: Users invoke `/pbr:*` slash commands (skills) that orchestrate specialized agents.
 
 ---
 
@@ -61,7 +61,7 @@ Towline is a structured development workflow for Claude Code that solves **conte
 │                         PROJECT INITIALIZATION                      │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:begin
+/pbr:begin
   ├─ Step 1: Detect brownfield (inline)
   ├─ Step 2: Deep questioning (inline)
   │    └─ Reference: references/questioning.md
@@ -69,14 +69,14 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    ├─ Mode: interactive/autonomous
   │    ├─ Depth: quick/standard/comprehensive
   │    └─ Features: tdd_mode, parallelization, etc.
-  ├─ Step 4: Research (delegate to 4 towline-researcher agents in parallel)
+  ├─ Step 4: Research (delegate to 4 researcher agents in parallel)
   │    ├─ Stack research → .planning/research/STACK.md
   │    ├─ Features research → .planning/research/FEATURES.md
   │    ├─ Architecture research → .planning/research/ARCHITECTURE.md
   │    └─ Pitfalls research → .planning/research/PITFALLS.md
-  ├─ Step 5: Requirements scoping (spawn towline-synthesizer)
+  ├─ Step 5: Requirements scoping (spawn synthesizer)
   │    └─ Write .planning/REQUIREMENTS.md
-  ├─ Step 6: Roadmap generation (spawn towline-planner)
+  ├─ Step 6: Roadmap generation (spawn planner)
   │    └─ Write .planning/ROADMAP.md
   ├─ Step 7: Gate check (if confirm_roadmap: true)
   ├─ Step 8: Initialize state (inline)
@@ -86,48 +86,48 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    ├─ Create phase directories: .planning/phases/{NN}-{slug}/
   │    └─ Git commit: docs(planning): initialize project structure
   └─ Step 9: Next up routing
-       └─ Suggest: /dev:plan 1, /dev:discuss 1, or /dev:explore
+       └─ Suggest: /pbr:plan 1, /pbr:discuss 1, or /pbr:explore
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         IDEA EXPLORATION (OPTIONAL)                 │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:explore [topic]
+/pbr:explore [topic]
   ├─ Load project context (if .planning/ exists)
   ├─ Socratic conversation (inline)
   │    ├─ Surface implications and trade-offs
   │    ├─ Challenge with alternatives
-  │    ├─ Optional mid-conversation research (spawn towline-researcher)
+  │    ├─ Optional mid-conversation research (spawn researcher)
   │    └─ Help user think through what they actually want
   └─ Route insights:
-       ├─ /dev:todo create → capture as a todo
+       ├─ /pbr:todo create → capture as a todo
        ├─ Append to NOTES.md → record for later
        ├─ Append to REQUIREMENTS.md → commit as a requirement
        ├─ Append to CONTEXT.md → lock as a decision
-       └─ /dev:discuss <N> → continue with phase-specific discussion
+       └─ /pbr:discuss <N> → continue with phase-specific discussion
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         PHASE DISCUSSION (OPTIONAL)                 │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:discuss <N>
+/pbr:discuss <N>
   ├─ Load phase context from ROADMAP.md
-  ├─ Spawn towline-synthesizer in conversational mode
+  ├─ Spawn synthesizer in conversational mode
   │    ├─ Surface discretion areas (planner needs guidance)
   │    ├─ Surface assumptions (sanity check before planning)
   │    └─ Capture locked decisions and deferred ideas
   ├─ Write .planning/phases/{NN}-{slug}/CONTEXT.md
-  └─ Next up: /dev:plan <N>
+  └─ Next up: /pbr:plan <N>
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         PHASE PLANNING                              │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:plan <N> [--skip-research] [--assumptions] [--gaps]
+/pbr:plan <N> [--skip-research] [--assumptions] [--gaps]
   ├─ Step 1: Parse and validate (inline)
   │    ├─ Check phase exists in ROADMAP.md
   │    ├─ Check phase directory exists
-  │    └─ Warn if CONTEXT.md missing (suggest /dev:discuss first)
+  │    └─ Warn if CONTEXT.md missing (suggest /pbr:discuss first)
   ├─ Step 2: Load context (inline)
   │    ├─ Read ROADMAP.md (phase goal)
   │    ├─ Read REQUIREMENTS.md (mapped requirements)
@@ -136,24 +136,24 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    ├─ Read research/SUMMARY.md or individual research files
   │    └─ Read dependency SUMMARY.md files (digest-select depth)
   ├─ Step 3: Research (if not --skip-research and research_phase: true)
-  │    └─ Spawn towline-researcher → .planning/phases/{NN}-{slug}/RESEARCH.md
-  ├─ Step 4: Generate plans (spawn towline-planner)
+  │    └─ Spawn researcher → .planning/phases/{NN}-{slug}/RESEARCH.md
+  ├─ Step 4: Generate plans (spawn planner)
   │    ├─ Planner reads: ROADMAP, REQUIREMENTS, CONTEXT, RESEARCH
   │    ├─ Planner writes: PLAN.md files (one per plan)
   │    └─ Each PLAN.md: YAML frontmatter + XML tasks
   ├─ Step 5: Plan checking (if plan_checking: true)
-  │    └─ Spawn towline-plan-checker for each PLAN.md
+  │    └─ Spawn plan-checker for each PLAN.md
   │         └─ Verify: completeness, must-haves coverage, dependencies
   ├─ Step 6: Gate check (if confirm_plan: true)
   │    └─ Display plan summaries, ask user to approve
   └─ Step 7: Next up routing
-       └─ Suggest: /dev:build <N>
+       └─ Suggest: /pbr:build <N>
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         PHASE BUILD                                 │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:build <N>
+/pbr:build <N>
   ├─ Step 1: Validate (inline)
   │    ├─ Check PLAN.md files exist
   │    ├─ Check all dependencies complete (have SUMMARY.md)
@@ -166,7 +166,7 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │         └─ Else:
   │              └─ Spawn executor agents sequentially
   │
-  │         Each executor agent (towline-executor):
+  │         Each executor agent (executor):
   │         ├─ Read PLAN.md
   │         ├─ For each task:
   │         │    ├─ Execute <action>
@@ -177,24 +177,24 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │         ├─ Write SUMMARY.md (task results, files modified, commits)
   │         └─ Run self-check
   ├─ Step 4: Integration check (if integration_verification: true)
-  │    └─ Spawn towline-integration-checker
+  │    └─ Spawn integration-checker
   │         ├─ Read all SUMMARY.md files in phase
   │         ├─ Verify cross-plan integration points
   │         └─ Write INTEGRATION-REPORT.md
   ├─ Step 5: Commit planning docs (if commit_docs: true)
   │    └─ git commit -m "docs({phase}): add build summaries and verification"
   └─ Step 6: Next up routing
-       ├─ If goal_verification enabled: suggest /dev:review <N>
-       └─ Else: suggest /dev:plan <N+1> or manual testing
+       ├─ If goal_verification enabled: suggest /pbr:review <N>
+       └─ Else: suggest /pbr:plan <N+1> or manual testing
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         PHASE VERIFICATION                          │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:review <N> [--auto-fix]
+/pbr:review <N> [--auto-fix]
   ├─ Step 1: Validate (inline)
   │    └─ Check phase has SUMMARY.md files
-  ├─ Step 2: Spawn towline-verifier
+  ├─ Step 2: Spawn verifier
   │    ├─ Read ROADMAP.md (phase goal)
   │    ├─ Read all PLAN.md files (must-haves)
   │    ├─ Read all SUMMARY.md files (what was built)
@@ -211,62 +211,62 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    └─ If gaps: "PHASE N GAPS FOUND ⚠" + gap summary
   ├─ Step 5: Auto-fix flow (if --auto-fix flag)
   │    └─ If gaps found:
-  │         ├─ Spawn towline-debugger for root cause analysis
+  │         ├─ Spawn debugger for root cause analysis
   │         ├─ Create gap-closure plans inline
-  │         └─ Route to: /dev:build {N} --gaps-only
+  │         └─ Route to: /pbr:build {N} --gaps-only
   └─ Step 6: Next up routing (if not auto-fix)
-       ├─ If pass: suggest /dev:plan <N+1> or /dev:milestone
-       └─ If gaps: suggest /dev:plan <N> --gaps (gap closure plans)
+       ├─ If pass: suggest /pbr:plan <N+1> or /pbr:milestone
+       └─ If gaps: suggest /pbr:plan <N> --gaps (gap closure plans)
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         MILESTONE COMPLETION                        │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:milestone [new|complete|audit|gaps]
+/pbr:milestone [new|complete|audit|gaps]
   ├─ new: Start a new milestone cycle
   │    ├─ Mini roadmap session (condensed questioning)
-  │    ├─ Spawn towline-planner to generate new phases
+  │    ├─ Spawn planner to generate new phases
   │    ├─ Append phases to ROADMAP.md
   │    └─ Update STATE.md with new milestone
   ├─ complete: Manual acceptance testing
   │    └─ Display UAT checklist, ask user to confirm
   ├─ audit: Cross-phase verification
-  │    ├─ Spawn towline-verifier for milestone-level checks
+  │    ├─ Spawn verifier for milestone-level checks
   │    ├─ Check all requirements mapped to phases are complete
   │    ├─ Check cross-phase integration points
   │    └─ Write .planning/MILESTONE.md
   └─ gaps: Create phases to close audit gaps
        ├─ Read most recent MILESTONE.md
        ├─ Extract failed requirements and integration issues
-       ├─ Spawn towline-planner to generate gap-closure phases
+       ├─ Spawn planner to generate gap-closure phases
        └─ Append to ROADMAP.md
 
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         UTILITY WORKFLOWS                           │
 └─────────────────────────────────────────────────────────────────────┘
 
-/dev:quick <task-description>
+/pbr:quick <task-description>
   ├─ Parse task description from arguments or ask user
   ├─ Validate scope (warn if too large for quick task)
   ├─ Generate slug and task number (NNN)
   ├─ Create .planning/quick/{NNN}-{slug}/ directory
   ├─ Write PLAN.md (1-3 tasks max, minimal structure)
-  ├─ Spawn single towline-executor agent
+  ├─ Spawn single executor agent
   │    ├─ Execute tasks (code changes, tests, etc.)
   │    └─ Write SUMMARY.md
   ├─ Update STATE.md (increment quick_task_count)
   ├─ Commit: {type}(quick-{NNN}): {description}
   └─ Display completion summary
 
-/dev:debug [<phase>] [--context] [--attach-llm]
+/pbr:debug [<phase>] [--context] [--attach-llm]
   ├─ Scan for failing tests, error logs, broken builds
-  ├─ Spawn towline-debugger
+  ├─ Spawn debugger
   ├─ Write .planning/DEBUG.md (root cause analysis)
   └─ Suggest fixes or create gap-closure plans
 
-/dev:scan [--depth=quick|standard|deep]
+/pbr:scan [--depth=quick|standard|deep]
   ├─ Analyze existing codebase (brownfield projects)
-  ├─ Spawn 4x towline-codebase-mapper agents (parallel)
+  ├─ Spawn 4x codebase-mapper agents (parallel)
   ├─ Write 8 output files to .planning/codebase/:
   │    ├─ RECON.md — Initial reconnaissance (entry points, scale)
   │    ├─ STACK.md — Technology stack inventory
@@ -276,19 +276,19 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    ├─ CONVENTIONS.md — Coding standards and patterns
   │    ├─ TESTING.md — Test coverage and strategy
   │    └─ CONCERNS.md — Technical debt and risks
-  └─ Suggest: /dev:begin or /dev:import
+  └─ Suggest: /pbr:begin or /pbr:import
 
-/dev:import <source-doc>
+/pbr:import <source-doc>
   ├─ Parse existing roadmap/plan from doc
-  ├─ Convert to Towline format
+  ├─ Convert to Plan-Build-Run format
   └─ Write ROADMAP.md or PLAN.md files
 
-/dev:status [--detail]
+/pbr:status [--detail]
   ├─ Read STATE.md, ROADMAP.md, SUMMARY.md files
   ├─ Display progress table (phases, plans, tasks)
   └─ Show next recommended command
 
-/dev:health
+/pbr:health
   ├─ Run 8 diagnostic checks:
   │    1. .planning/ structure
   │    2. State file integrity
@@ -300,35 +300,35 @@ Towline is a structured development workflow for Claude Code that solves **conte
   │    8. Hook log check
   └─ Display health report with fixes
 
-/dev:continue
+/pbr:continue
   ├─ Resume from paused state
   ├─ Read STATE.md (last_activity, current phase/plan)
   └─ Route to appropriate next command
 
-/dev:resume
+/pbr:resume
   ├─ Similar to continue but handles checkpoint resumption
   └─ Read checkpoint metadata from SUMMARY.md
 
-/dev:pause
+/pbr:pause
   ├─ Save current progress to STATE.md
   ├─ Create continuation instructions
   └─ Write .planning/.continue-here
 
-/dev:config [<key> <value>]
+/pbr:config [<key> <value>]
   ├─ Read or modify config.json
   ├─ Validate against schema
   └─ Write updated config.json
 
-/dev:note <message>
+/pbr:note <message>
   ├─ Append timestamped note to .planning/NOTES.md
   └─ Useful for tracking decisions, observations
 
-/dev:todo [list|create|complete|remove]
+/pbr:todo [list|create|complete|remove]
   ├─ Manage .planning/todos/pending/ and .planning/todos/done/
   ├─ Todo format: YAML frontmatter + markdown body
   └─ Track P1/P2/P3 priorities
 
-/dev:help [<skill-name>]
+/pbr:help [<skill-name>]
   └─ Display skill documentation
 ```
 
@@ -339,54 +339,54 @@ Towline is a structured development workflow for Claude Code that solves **conte
 ```
 Skill-to-Skill Invocation Paths:
 
-/dev:begin
-  └─> suggests /dev:plan 1, /dev:discuss 1, or /dev:explore
+/pbr:begin
+  └─> suggests /pbr:plan 1, /pbr:discuss 1, or /pbr:explore
 
-/dev:explore [topic]
-  ├─> routes to /dev:todo create (capture as todo)
+/pbr:explore [topic]
+  ├─> routes to /pbr:todo create (capture as todo)
   ├─> routes to NOTES.md (append note)
   ├─> routes to REQUIREMENTS.md (commit requirement)
   ├─> routes to CONTEXT.md (lock decision)
-  └─> routes to /dev:discuss <N> (continue with phase discussion)
+  └─> routes to /pbr:discuss <N> (continue with phase discussion)
 
-/dev:discuss <N>
-  └─> suggests /dev:plan <N>
+/pbr:discuss <N>
+  └─> suggests /pbr:plan <N>
 
-/dev:plan <N>
-  └─> suggests /dev:build <N>
+/pbr:plan <N>
+  └─> suggests /pbr:build <N>
 
-/dev:build <N>
-  ├─> suggests /dev:review <N> (if goal_verification enabled)
-  └─> suggests /dev:plan <N+1> (if goal_verification disabled)
+/pbr:build <N>
+  ├─> suggests /pbr:review <N> (if goal_verification enabled)
+  └─> suggests /pbr:plan <N+1> (if goal_verification disabled)
 
-/dev:review <N>
-  ├─> suggests /dev:plan <N+1> (if phase passes)
-  ├─> suggests /dev:plan <N> --gaps (if gaps found)
-  └─> suggests /dev:milestone (if last phase)
+/pbr:review <N>
+  ├─> suggests /pbr:plan <N+1> (if phase passes)
+  ├─> suggests /pbr:plan <N> --gaps (if gaps found)
+  └─> suggests /pbr:milestone (if last phase)
 
-/dev:milestone
-  └─> suggests /dev:begin (for next milestone) or project complete
+/pbr:milestone
+  └─> suggests /pbr:begin (for next milestone) or project complete
 
-/dev:pause
+/pbr:pause
   └─> creates .continue-here file with next command
 
-/dev:continue / /dev:resume
+/pbr:continue / /pbr:resume
   └─> reads .continue-here, routes to appropriate skill
       (UNIQUE: uses Skill() tool for direct invocation, not suggestions)
 
-/dev:scan
-  └─> suggests /dev:begin or /dev:import
+/pbr:scan
+  └─> suggests /pbr:begin or /pbr:import
 
-/dev:import
-  └─> suggests /dev:plan 1
+/pbr:import
+  └─> suggests /pbr:plan 1
 
-/dev:debug
-  └─> suggests /dev:build <N> or /dev:plan <N> --gaps
+/pbr:debug
+  └─> suggests /pbr:build <N> or /pbr:plan <N> --gaps
 
-/dev:quick
+/pbr:quick
   └─> standalone (no suggestions)
 
-/dev:status, /dev:health, /dev:config, /dev:note, /dev:todo, /dev:help
+/pbr:status, /pbr:health, /pbr:config, /pbr:note, /pbr:todo, /pbr:help
   └─> standalone (informational/utility)
 ```
 
@@ -396,7 +396,7 @@ Skill-to-Skill Invocation Paths:
 2. Suggestion text in "Next Up" blocks
 3. `.continue-here` files (for auto-continuation when auto_continue enabled)
 
-**Exception**: `/dev:continue` uses the `Skill()` tool to directly invoke the next command (the only skill that does this). All other skills only suggest next commands.
+**Exception**: `/pbr:continue` uses the `Skill()` tool to directly invoke the next command (the only skill that does this). All other skills only suggest next commands.
 
 ---
 
@@ -405,35 +405,35 @@ Skill-to-Skill Invocation Paths:
 ```
 Skill              → Agents Spawned                      → Output Files
 ─────────────────────────────────────────────────────────────────────────────────
-/dev:begin         → 4x towline-researcher (parallel)    → .planning/research/*.md
-                   → towline-synthesizer                 → .planning/REQUIREMENTS.md
-                   → towline-planner                     → .planning/ROADMAP.md
+/pbr:begin         → 4x researcher (parallel)    → .planning/research/*.md
+                   → synthesizer                 → .planning/REQUIREMENTS.md
+                   → planner                     → .planning/ROADMAP.md
 
-/dev:discuss       → towline-synthesizer                 → .planning/phases/{NN}/CONTEXT.md
+/pbr:discuss       → synthesizer                 → .planning/phases/{NN}/CONTEXT.md
 
-/dev:plan          → towline-researcher (optional)       → .planning/phases/{NN}/RESEARCH.md
-                   → towline-planner                     → .planning/phases/{NN}/PLAN-{MM}.md
-                   → Nx towline-plan-checker (optional)  → Validation feedback (not saved)
+/pbr:plan          → researcher (optional)       → .planning/phases/{NN}/RESEARCH.md
+                   → planner                     → .planning/phases/{NN}/PLAN-{MM}.md
+                   → Nx plan-checker (optional)  → Validation feedback (not saved)
 
-/dev:build         → Nx towline-executor (sequential     → .planning/phases/{NN}/SUMMARY-{MM}.md
+/pbr:build         → Nx executor (sequential     → .planning/phases/{NN}/SUMMARY-{MM}.md
                       or parallel, per wave)             → Git commits (atomic, per task)
 
-/dev:review        → towline-verifier                    → .planning/phases/{NN}/VERIFICATION.md
+/pbr:review        → verifier                    → .planning/phases/{NN}/VERIFICATION.md
 
-/dev:milestone     → towline-verifier (for audit)        → .planning/MILESTONE.md
+/pbr:milestone     → verifier (for audit)        → .planning/MILESTONE.md
                                                           → .planning/archive/{milestone}/SUMMARY.md
-                   → towline-integration-checker         → .planning/phases/{NN}/INTEGRATION-REPORT.md
+                   → integration-checker         → .planning/phases/{NN}/INTEGRATION-REPORT.md
                       (optional, during audit)
 
-/dev:scan          → 4x towline-codebase-mapper          → .planning/codebase/*.md (7 files)
+/pbr:scan          → 4x codebase-mapper          → .planning/codebase/*.md (7 files)
                       (RECON.md written inline first)      → .planning/codebase/RECON.md
 
-/dev:debug         → towline-debugger                    → .planning/debug/{NNN}-{slug}.md
+/pbr:debug         → debugger                    → .planning/debug/{NNN}-{slug}.md
 
-/dev:quick         → towline-executor                    → .planning/quick/{NNN}-{slug}/SUMMARY.md
+/pbr:quick         → executor                    → .planning/quick/{NNN}-{slug}/SUMMARY.md
 
-/dev:import        → towline-planner                     → .planning/ROADMAP.md or PLAN.md
-                   → towline-synthesizer (optional)      → .planning/REQUIREMENTS.md
+/pbr:import        → planner                     → .planning/ROADMAP.md or PLAN.md
+                   → synthesizer (optional)      → .planning/REQUIREMENTS.md
 
 All other skills   → No agents (inline logic only)
 ```
@@ -443,27 +443,27 @@ All other skills   → No agents (inline logic only)
 Some agents read output from other agents:
 
 ```
-towline-planner reads:
-  ← towline-researcher output (RESEARCH.md, STACK.md, etc.)
-  ← towline-synthesizer output (REQUIREMENTS.md, CONTEXT.md)
+planner reads:
+  ← researcher output (RESEARCH.md, STACK.md, etc.)
+  ← synthesizer output (REQUIREMENTS.md, CONTEXT.md)
 
-towline-executor reads:
-  ← towline-planner output (PLAN.md)
-  ← towline-executor output from dependencies (SUMMARY.md)
+executor reads:
+  ← planner output (PLAN.md)
+  ← executor output from dependencies (SUMMARY.md)
 
-towline-verifier reads:
-  ← towline-planner output (PLAN.md must-haves)
-  ← towline-executor output (SUMMARY.md)
+verifier reads:
+  ← planner output (PLAN.md must-haves)
+  ← executor output (SUMMARY.md)
 
-towline-integration-checker reads:
-  ← towline-executor output from multiple plans (SUMMARY.md)
+integration-checker reads:
+  ← executor output from multiple plans (SUMMARY.md)
 
-towline-debugger reads:
-  ← towline-executor output (SUMMARY.md, git log)
-  ← towline-verifier output (VERIFICATION.md)
+debugger reads:
+  ← executor output (SUMMARY.md, git log)
+  ← verifier output (VERIFICATION.md)
 ```
 
-**Critical**: Agents never read other agent *definitions* (agents/*.md files). The `subagent_type: "dev:towline-{name}"` mechanism auto-loads agent definitions from disk. Main orchestrator never inlines agent prompts into Task() calls.
+**Critical**: Agents never read other agent *definitions* (agents/*.md files). The `subagent_type: "pbr:{name}"` mechanism auto-loads agent definitions from disk. Main orchestrator never inlines agent prompts into Task() calls.
 
 ---
 
@@ -472,20 +472,20 @@ towline-debugger reads:
 ### STATE.md Lifecycle
 
 ```
-/dev:begin
+/pbr:begin
   ├─ CREATE: .planning/STATE.md
   │    ├─ current_phase: 1
   │    ├─ status: "planning"
   │    ├─ progress: 0%
   │    └─ last_activity: timestamp
 
-/dev:plan <N>
+/pbr:plan <N>
   ├─ UPDATE: STATE.md
   │    ├─ current_phase: N
   │    ├─ status: "planning"
   │    └─ last_activity: timestamp
 
-/dev:build <N>
+/pbr:build <N>
   ├─ UPDATE: STATE.md
   │    ├─ status: "building"
   │    └─ last_activity: timestamp
@@ -493,7 +493,7 @@ towline-debugger reads:
        ├─ status: "built" or "verification pending"
        └─ progress: updated based on phase completion
 
-/dev:review <N>
+/pbr:review <N>
   ├─ UPDATE: STATE.md
   │    ├─ status: "verifying"
   │    └─ last_activity: timestamp
@@ -501,18 +501,18 @@ towline-debugger reads:
        ├─ status: "phase_complete" or "gaps_found"
        └─ progress: updated
 
-/dev:milestone
+/pbr:milestone
   ├─ UPDATE: STATE.md
   │    ├─ milestone_history: append completed milestone
   │    └─ status: "milestone_complete"
 
-/dev:pause
+/pbr:pause
   ├─ UPDATE: STATE.md
   │    ├─ status: "paused"
   │    └─ last_activity: timestamp
   └─ CREATE: .planning/.continue-here (instruction file)
 
-/dev:continue / /dev:resume
+/pbr:continue / /pbr:resume
   ├─ UPDATE: STATE.md
   │    └─ status: resume prior status
   └─ DELETE: .planning/.continue-here
@@ -521,53 +521,53 @@ towline-debugger reads:
 ### ROADMAP.md Lifecycle
 
 ```
-/dev:begin
+/pbr:begin
   └─ CREATE: .planning/ROADMAP.md (initial phase structure)
 
-/dev:plan add
+/pbr:plan add
   └─ APPEND: Add new phase to end of ROADMAP.md
 
-/dev:plan insert <N>
+/pbr:plan insert <N>
   └─ INSERT: Add phase at position N, renumber subsequent phases
 
-/dev:plan remove <N>
+/pbr:plan remove <N>
   └─ REMOVE: Delete phase, renumber subsequent phases
 
-/dev:import
+/pbr:import
   └─ REPLACE: Overwrite ROADMAP.md with imported structure
 ```
 
 ### Checkpoint Manifest Lifecycle
 
 ```
-/dev:build <N>
+/pbr:build <N>
   ├─ CREATE: .checkpoint-manifest.json (per phase directory)
   ├─ UPDATE: after each wave (resolved plans, commits, wave counter)
   └─ READ: on resume to skip completed plans
 
-/dev:session-cleanup (SessionEnd hook)
+/pbr:session-cleanup (SessionEnd hook)
   └─ WARN: about stale checkpoint manifests (>24h old)
 ```
 
 ### PLAN.md Lifecycle
 
 ```
-/dev:plan <N>
+/pbr:plan <N>
   └─ CREATE: .planning/phases/{NN}-{slug}/PLAN-{MM}.md (per plan)
        ├─ YAML frontmatter (metadata, must-haves)
        └─ XML tasks (executable specifications)
 
-/dev:plan <N> --gaps
+/pbr:plan <N> --gaps
   └─ APPEND: Create additional PLAN-{MM}.md files (gap_closure: true)
 
-/dev:build <N>
+/pbr:build <N>
   └─ READ-ONLY: Executors read PLAN.md, never modify
 ```
 
 ### SUMMARY.md Lifecycle
 
 ```
-/dev:build <N>
+/pbr:build <N>
   └─ CREATE: .planning/phases/{NN}-{slug}/SUMMARY-{MM}.md (per plan)
        ├─ Frontmatter: plan_id, status, execution_time
        ├─ Task results (success/failure/checkpoint)
@@ -582,23 +582,23 @@ Checkpoint continuation:
 ### VERIFICATION.md Lifecycle
 
 ```
-/dev:review <N>
+/pbr:review <N>
   └─ CREATE: .planning/phases/{NN}-{slug}/VERIFICATION.md
        ├─ Must-have checklist (✓ verified / ✗ failed)
        ├─ Gap details (what's missing)
        └─ Score: X/Y must-haves verified
 
-/dev:milestone audit
+/pbr:milestone audit
   └─ CREATE: .planning/MILESTONE.md (cross-phase verification)
 ```
 
 ### CONTEXT.md Lifecycle
 
 ```
-/dev:begin
+/pbr:begin
   └─ CREATE: .planning/CONTEXT.md (project-level locked decisions)
 
-/dev:discuss <N>
+/pbr:discuss <N>
   └─ CREATE: .planning/phases/{NN}-{slug}/CONTEXT.md (phase-level)
        ├─ Locked decisions
        ├─ Deferred ideas
@@ -608,10 +608,10 @@ Checkpoint continuation:
 ### config.json Lifecycle
 
 ```
-/dev:begin
+/pbr:begin
   └─ CREATE: .planning/config.json (workflow settings)
 
-/dev:config <key> <value>
+/pbr:config <key> <value>
   └─ UPDATE: Modify specific config keys
 
 Manual edit
@@ -622,7 +622,7 @@ Manual edit
 
 ## Hook Firing Sequence
 
-Hooks are configured in `plugins/dev/hooks/hooks.json` and fire at specific lifecycle events.
+Hooks are configured in `plugins/pbr/hooks/hooks.json` and fire at specific lifecycle events.
 
 ### Session Lifecycle
 
@@ -634,7 +634,7 @@ SESSION START
   │         ├─ Injects project context into session
   │         └─ Logs to .planning/logs/hooks.jsonl
   │
-  ├─ User invokes skill (/dev:plan 3)
+  ├─ User invokes skill (/pbr:plan 3)
   │
   ├─ Skill executes (orchestrator reads files, spawns agents)
   │
@@ -725,7 +725,7 @@ Several utility scripts provide shared functionality for hook scripts and testin
 |--------|---------|
 | `hook-logger.js` | Shared logging for all hooks. Exports `logHook()` function. Writes to `.planning/logs/hooks.jsonl` (JSONL format, 200-entry rotation). |
 | `event-logger.js` | Workflow event logging. Exports `logEvent()` function. Writes to `.planning/logs/events.jsonl` (JSONL format, 1,000-entry rotation). |
-| `towline-tools.js` | Shared CLI utilities. Exports `stateLoad()`, `configLoad()`, `planIndex()`, and other common functions used by multiple hook scripts. |
+| `pbr-tools.js` | Shared CLI utilities. Exports `stateLoad()`, `configLoad()`, `planIndex()`, and other common functions used by multiple hook scripts. |
 | `status-line.js` | Status bar formatting for terminal display. Generates colored status indicators and progress bars. |
 | `validate-plugin-structure.js` | Plugin directory validation. Used by `npm run validate`. Checks that all skills, agents, hooks, and templates are properly structured. |
 
@@ -743,40 +743,40 @@ The workflow branches at multiple decision points based on config toggles, user 
 
 ```
 features.research_phase
-  ├─ true:  /dev:plan spawns researcher before planner
-  └─ false: /dev:plan skips research, planner uses prior research only
+  ├─ true:  /pbr:plan spawns researcher before planner
+  └─ false: /pbr:plan skips research, planner uses prior research only
 
 features.plan_checking
-  ├─ true:  /dev:plan spawns plan-checker after planner
-  └─ false: /dev:plan skips plan validation
+  ├─ true:  /pbr:plan spawns plan-checker after planner
+  └─ false: /pbr:plan skips plan validation
 
 features.goal_verification
-  ├─ true:  /dev:build suggests /dev:review after execution
-  └─ false: /dev:build suggests /dev:plan <N+1>
+  ├─ true:  /pbr:build suggests /pbr:review after execution
+  └─ false: /pbr:build suggests /pbr:plan <N+1>
 
 features.integration_verification
-  ├─ true:  /dev:build spawns integration-checker after wave completion
-  └─ false: /dev:build skips cross-plan checks
+  ├─ true:  /pbr:build spawns integration-checker after wave completion
+  └─ false: /pbr:build skips cross-plan checks
 
 features.tdd_mode
   ├─ true:  Executors follow Red-Green-Refactor, 3 commits per task
   └─ false: Executors produce 1 commit per task
 
 parallelization.enabled
-  ├─ true:  /dev:build spawns multiple executors concurrently
-  └─ false: /dev:build spawns executors sequentially
+  ├─ true:  /pbr:build spawns multiple executors concurrently
+  └─ false: /pbr:build spawns executors sequentially
 
 gates.confirm_roadmap
-  ├─ true:  /dev:begin pauses for user approval before finalizing roadmap
-  └─ false: /dev:begin auto-approves roadmap
+  ├─ true:  /pbr:begin pauses for user approval before finalizing roadmap
+  └─ false: /pbr:begin auto-approves roadmap
 
 gates.confirm_plan
-  ├─ true:  /dev:plan pauses for user approval before finalizing plans
-  └─ false: /dev:plan auto-approves plans
+  ├─ true:  /pbr:plan pauses for user approval before finalizing plans
+  └─ false: /pbr:plan auto-approves plans
 
 gates.confirm_execute
-  ├─ true:  /dev:build pauses for user approval before execution
-  └─ false: /dev:build auto-starts execution
+  ├─ true:  /pbr:build pauses for user approval before execution
+  └─ false: /pbr:build auto-starts execution
 
 gates.confirm_transition
   ├─ true:  After phase complete, pause before suggesting next phase
@@ -784,8 +784,8 @@ gates.confirm_transition
 
 git.branching
   ├─ "none":      Work on current branch
-  ├─ "phase":     Create branch per phase (towline/phase-{N}-{slug})
-  ├─ "milestone": Create branch per milestone (towline/{version}-{slug})
+  ├─ "phase":     Create branch per phase (pbr/phase-{N}-{slug})
+  ├─ "milestone": Create branch per milestone (pbr/{version}-{slug})
   └─ "disabled":  No git operations at all
 
 git.mode
@@ -802,32 +802,32 @@ depth
 
 ```
 .planning/ exists?
-  ├─ Yes: /dev:begin warns about overwrite
-  └─ No:  /dev:begin proceeds
+  ├─ Yes: /pbr:begin warns about overwrite
+  └─ No:  /pbr:begin proceeds
 
 Existing code detected?
-  ├─ Yes: /dev:begin suggests /dev:scan first
-  └─ No:  /dev:begin proceeds to questioning
+  ├─ Yes: /pbr:begin suggests /pbr:scan first
+  └─ No:  /pbr:begin proceeds to questioning
 
 CONTEXT.md exists for phase?
-  ├─ Yes: /dev:plan proceeds
-  └─ No:  /dev:plan warns, suggests /dev:discuss first
+  ├─ Yes: /pbr:plan proceeds
+  └─ No:  /pbr:plan warns, suggests /pbr:discuss first
 
 PLAN.md files exist for phase?
-  ├─ Yes: /dev:plan asks to re-plan or skip
-  └─ No:  /dev:plan proceeds
+  ├─ Yes: /pbr:plan asks to re-plan or skip
+  └─ No:  /pbr:plan proceeds
 
 All dependencies complete (have SUMMARY.md)?
-  ├─ Yes: /dev:build proceeds
-  └─ No:  /dev:build blocks with error
+  ├─ Yes: /pbr:build proceeds
+  └─ No:  /pbr:build blocks with error
 
 Phase verification passed?
   ├─ Yes: Suggest next phase
   └─ No:  Suggest gap closure plans
 
 Last phase of milestone?
-  ├─ Yes: Suggest /dev:milestone
-  └─ No:  Suggest /dev:plan <N+1>
+  ├─ Yes: Suggest /pbr:milestone
+  └─ No:  Suggest /pbr:plan <N+1>
 
 Checkpoint encountered during execution?
   ├─ Yes: Executor stops, returns checkpoint metadata
@@ -853,7 +853,7 @@ Checkpoint verification:
 
 Checkpoint decision:
   ├─ User selects option A/B/C → record decision, continue
-  └─ User defers → pause, suggest /dev:note
+  └─ User defers → pause, suggest /pbr:note
 
 Checkpoint human-action:
   ├─ User says "done" → continue to next task
@@ -861,8 +861,8 @@ Checkpoint human-action:
 
 Verification gaps:
   ├─ User accepts gaps → mark phase complete anyway
-  ├─ User requests fixes → run /dev:plan <N> --gaps
-  └─ User wants to debug → run /dev:debug <N>
+  ├─ User requests fixes → run /pbr:plan <N> --gaps
+  └─ User wants to debug → run /pbr:debug <N>
 ```
 
 ---
@@ -875,7 +875,7 @@ Verification gaps:
 └─────────────────────────────────────────────────────────────────────┘
 
 User conversation
-  └─> /dev:begin
+  └─> /pbr:begin
 
       Deep questioning (inline)
         └─> Conversation context (in memory)
@@ -905,7 +905,7 @@ User conversation
 
 ────────────────────────────────────────────────────────────────────────
 
-User: /dev:discuss <N>
+User: /pbr:discuss <N>
 
       Synthesizer agent (conversational mode)
         ├─> Read: .planning/ROADMAP.md (phase goal)
@@ -916,7 +916,7 @@ User: /dev:discuss <N>
 
 ────────────────────────────────────────────────────────────────────────
 
-User: /dev:plan <N>
+User: /pbr:plan <N>
 
       Context loading (inline)
         ├─> Read: .planning/ROADMAP.md
@@ -940,7 +940,7 @@ User: /dev:plan <N>
 
 ────────────────────────────────────────────────────────────────────────
 
-User: /dev:build <N>
+User: /pbr:build <N>
 
       Validation (inline)
         ├─> Read: .planning/phases/{NN}-{slug}/PLAN-*.md
@@ -963,7 +963,7 @@ User: /dev:build <N>
 
 ────────────────────────────────────────────────────────────────────────
 
-User: /dev:review <N>
+User: /pbr:review <N>
 
       Verification (verifier agent)
         ├─> Read: .planning/ROADMAP.md (phase goal)
@@ -979,7 +979,7 @@ User: /dev:review <N>
 
 ────────────────────────────────────────────────────────────────────────
 
-User: /dev:milestone audit
+User: /pbr:milestone audit
 
       Milestone verification (verifier agent)
         ├─> Read: .planning/REQUIREMENTS.md
@@ -1028,7 +1028,7 @@ Task verify fails:
   │    └─> STOP, return error checkpoint
   │         ├─> What failed: task ID, verify command, error output
   │         ├─> Completed tasks: list with commits
-  │         └─> Suggest: /dev:debug or manual fix
+  │         └─> Suggest: /pbr:debug or manual fix
 
 Checkpoint task:
   ├─ Executor stops execution
@@ -1060,8 +1060,8 @@ Must-have verification fails:
   ├─> Write VERIFICATION.md with gaps
   ├─> Orchestrator displays gap summary
   └─> User chooses:
-       ├─ /dev:plan <N> --gaps → create gap-closure plans
-       ├─ /dev:debug <N> → investigate why verification failed
+       ├─ /pbr:plan <N> --gaps → create gap-closure plans
+       ├─ /pbr:debug <N> → investigate why verification failed
        └─ Accept gaps → mark phase complete anyway
 
 Verification command errors:
@@ -1095,7 +1095,7 @@ PreToolUse hook blocks (exit 2):
 Hook script crashes (exit code != 0, != 2):
   ├─> Hook is logged as failed
   ├─> Tool call proceeds anyway (non-blocking)
-  └─> /dev:health Check 8 flags hook errors
+  └─> /pbr:health Check 8 flags hook errors
 
 Hook log full (>200 entries):
   ├─> Rotate log
@@ -1107,22 +1107,22 @@ Hook log full (>200 entries):
 
 ```
 STATE.md missing or malformed:
-  ├─> /dev:health detects issue
+  ├─> /pbr:health detects issue
   ├─> Suggest: restore from git history
-  └─> Or: run /dev:begin to reinitialize
+  └─> Or: run /pbr:begin to reinitialize
 
 ROADMAP.md out of sync with phase directories:
-  ├─> /dev:health detects issue
-  ├─> Suggest: run /dev:config to fix
+  ├─> /pbr:health detects issue
+  ├─> Suggest: run /pbr:config to fix
   └─> Or: manually edit ROADMAP.md
 
 Orphaned PLAN.md (phase not in ROADMAP):
-  ├─> /dev:health detects issue
+  ├─> /pbr:health detects issue
   └─> Suggest: remove orphaned files or add phase to ROADMAP
 
 Missing dependency SUMMARY.md:
-  ├─> /dev:build blocks before execution
-  └─> Suggest: run /dev:build <dep_phase> first
+  ├─> /pbr:build blocks before execution
+  └─> Suggest: run /pbr:build <dep_phase> first
 ```
 
 ### Context Budget Overflow
@@ -1130,10 +1130,10 @@ Missing dependency SUMMARY.md:
 ```
 Context approaching limit during skill:
   ├─> Orchestrator proactively warns user:
-  │    "Context budget is getting heavy. Consider /dev:pause after this step."
+  │    "Context budget is getting heavy. Consider /pbr:pause after this step."
   ├─> User can:
   │    ├─ Continue (risk compaction mid-task)
-  │    └─ Run /dev:pause now (checkpoint progress)
+  │    └─ Run /pbr:pause now (checkpoint progress)
 
 Context compacted mid-session:
   ├─> PreCompact hook fires → context-budget-check.js
@@ -1146,38 +1146,38 @@ Context compacted mid-session:
 ### Gap Closure Loop
 
 ```
-/dev:review {N} finds gaps in verification:
+/pbr:review {N} finds gaps in verification:
   ├─> Verifier writes VERIFICATION.md with failed must-haves
   ├─> Orchestrator displays gap summary
-  └─> Suggests: /dev:plan {N} --gaps
+  └─> Suggests: /pbr:plan {N} --gaps
 
-/dev:plan {N} --gaps creates gap-closure plans:
+/pbr:plan {N} --gaps creates gap-closure plans:
   ├─> Read VERIFICATION.md to identify failed must-haves
-  ├─> Spawn towline-planner with gap context
+  ├─> Spawn planner with gap context
   ├─> Planner creates PLAN-{MM}.md files with:
   │    ├─ Frontmatter: gap_closure: true
   │    ├─ Focused tasks to close specific gaps
   │    └─ Must-haves that verify the gaps are closed
-  └─> Suggests: /dev:build {N} --gaps-only
+  └─> Suggests: /pbr:build {N} --gaps-only
 
-/dev:build {N} --gaps-only executes gap-closure plans:
+/pbr:build {N} --gaps-only executes gap-closure plans:
   ├─> Filter plans to gap_closure: true only
   ├─> Spawn executors for gap-closure plans
   ├─> Write SUMMARY.md files for gap plans
-  └─> Suggests: /dev:review {N}
+  └─> Suggests: /pbr:review {N}
 
-/dev:review {N} re-verifies the phase:
+/pbr:review {N} re-verifies the phase:
   ├─> Read VERIFICATION.md from prior run
   ├─> Re-check only previously-failed must-haves
   ├─> Update VERIFICATION.md with new results
   └─> If all pass: "PHASE N COMPLETE ✓"
-       If gaps remain: suggest /dev:plan {N} --gaps (iterate)
+       If gaps remain: suggest /pbr:plan {N} --gaps (iterate)
 ```
 
 ### Checkpoint Resume Flow
 
 ```
-/dev:build {N} executor hits checkpoint task:
+/pbr:build {N} executor hits checkpoint task:
   ├─> Executor executes task (if checkpoint:human-verify)
   │    OR stops before execution (if checkpoint:decision or checkpoint:human-action)
   ├─> Executor commits completed work
@@ -1199,7 +1199,7 @@ User handles checkpoint:
   ├─ checkpoint:human-action → User performs external action, says "done"
   └─ AUTH-GATE → User configures credentials, says "done"
 
-/dev:continue resumes from checkpoint:
+/pbr:continue resumes from checkpoint:
   ├─> Read .checkpoint-manifest.json
   ├─> Read partial SUMMARY.md
   ├─> Spawn executor with resumption context:
@@ -1226,21 +1226,21 @@ Checkpoint types:
 ## Project Structure
 
 ```
-towline/
-├── plugins/dev/                    ← Plugin root (${CLAUDE_PLUGIN_ROOT})
+plan-build-run/
+├── plugins/pbr/                    ← Plugin root (${CLAUDE_PLUGIN_ROOT})
 │   ├── skills/                     ← Skill definitions
 │   │   ├── begin/SKILL.md
 │   │   ├── plan/SKILL.md
 │   │   ├── build/SKILL.md
 │   │   └── ... (20 skills total)
 │   ├── agents/                     ← Agent definitions
-│   │   ├── towline-executor.md
-│   │   ├── towline-verifier.md
+│   │   ├── executor.md
+│   │   ├── verifier.md
 │   │   └── ... (10 agents total)
 │   ├── scripts/                    ← Hook scripts (CommonJS)
 │   │   ├── validate-commit.js
 │   │   ├── progress-tracker.js
-│   │   ├── towline-tools.js        ← Shared utilities
+│   │   ├── pbr-tools.js        ← Shared utilities
 │   │   └── ... (20 scripts total)
 │   ├── hooks/hooks.json            ← Hook configuration
 │   ├── references/                 ← Shared reference docs
@@ -1279,7 +1279,7 @@ towline/
 ├── tests/                          ← Jest test suite
 │   ├── fixtures/fake-project/      ← Test fixture (.planning/ structure)
 │   ├── validate-commit.test.js
-│   ├── towline-tools.test.js
+│   ├── pbr-tools.test.js
 │   ├── integration.test.js
 │   └── ... (24 test files total)
 ├── docs/                           ← Repo-level documentation
@@ -1287,11 +1287,11 @@ towline/
 │   ├── DEVELOPMENT-GUIDE.md        ← This file
 │   ├── DOCS.md                     ← Comprehensive skill reference
 │   └── WORKFLOW.md                 ← Mermaid workflow diagrams
-├── .planning/                      ← Towline's own planning state
+├── .planning/                      ← Plan-Build-Run's own planning state
 │   ├── STATE.md
 │   ├── ROADMAP.md
 │   ├── config.json
-│   └── phases/                     ← 14 phases (Towline v1 + v2)
+│   └── phases/                     ← 14 phases (Plan-Build-Run v1 + v2)
 ├── CLAUDE.md                       ← User-facing documentation
 ├── package.json                    ← Node.js project config
 ├── .github/workflows/ci.yml        ← CI pipeline (Node 18/20/22, Win/Mac/Linux)
@@ -1402,12 +1402,12 @@ To bypass false positives, rename files to include `.example`, `.template`, or `
 ### Skill Files
 
 ```
-plugins/dev/skills/{skill-name}/SKILL.md
+plugins/pbr/skills/{skill-name}/SKILL.md
 
 Examples:
-  plugins/dev/skills/begin/SKILL.md
-  plugins/dev/skills/plan/SKILL.md
-  plugins/dev/skills/build/SKILL.md
+  plugins/pbr/skills/begin/SKILL.md
+  plugins/pbr/skills/plan/SKILL.md
+  plugins/pbr/skills/build/SKILL.md
 ```
 
 **Rules**:
@@ -1418,29 +1418,29 @@ Examples:
 ### Agent Files
 
 ```
-plugins/dev/agents/towline-{agent-name}.md
+plugins/pbr/agents/{agent-name}.md
 
 Examples:
-  plugins/dev/agents/towline-executor.md
-  plugins/dev/agents/towline-verifier.md
-  plugins/dev/agents/towline-planner.md
+  plugins/pbr/agents/executor.md
+  plugins/pbr/agents/verifier.md
+  plugins/pbr/agents/planner.md
 ```
 
 **Rules**:
 - All agent files in flat `agents/` directory
-- Prefix: `towline-`
+- No prefix needed
 - Lowercase, hyphenated name
 - Extension: `.md`
 
 ### Script Files
 
 ```
-plugins/dev/scripts/{script-name}.js
+plugins/pbr/scripts/{script-name}.js
 
 Examples:
-  plugins/dev/scripts/validate-commit.js
-  plugins/dev/scripts/progress-tracker.js
-  plugins/dev/scripts/towline-tools.js
+  plugins/pbr/scripts/validate-commit.js
+  plugins/pbr/scripts/progress-tracker.js
+  plugins/pbr/scripts/pbr-tools.js
 ```
 
 **Rules**:
@@ -1452,12 +1452,12 @@ Examples:
 ### Template Files
 
 ```
-plugins/dev/templates/{template-name}.tmpl
+plugins/pbr/templates/{template-name}.tmpl
 
 Examples:
-  plugins/dev/templates/SUMMARY.md.tmpl
-  plugins/dev/templates/VERIFICATION-DETAIL.md.tmpl
-  plugins/dev/templates/codebase/stack-research.md.tmpl
+  plugins/pbr/templates/SUMMARY.md.tmpl
+  plugins/pbr/templates/VERIFICATION-DETAIL.md.tmpl
+  plugins/pbr/templates/codebase/stack-research.md.tmpl
 ```
 
 **Rules**:
@@ -1468,12 +1468,12 @@ Examples:
 ### Reference Files
 
 ```
-plugins/dev/references/{reference-name}.md
+plugins/pbr/references/{reference-name}.md
 
 Examples:
-  plugins/dev/references/plan-format.md
-  plugins/dev/references/git-integration.md
-  plugins/dev/references/ui-formatting.md
+  plugins/pbr/references/plan-format.md
+  plugins/pbr/references/git-integration.md
+  plugins/pbr/references/ui-formatting.md
 ```
 
 **Rules**:
@@ -1489,7 +1489,7 @@ tests/{script-name}.test.js
 
 Examples:
   tests/validate-commit.test.js
-  tests/towline-tools.test.js
+  tests/pbr-tools.test.js
   tests/integration.test.js
 ```
 
@@ -1505,7 +1505,7 @@ Examples:
 
 ### Planning State Structure
 
-When Towline initializes a project, it creates this structure:
+When Plan-Build-Run initializes a project, it creates this structure:
 
 ```
 .planning/
@@ -1545,7 +1545,7 @@ When Towline initializes a project, it creates this structure:
 │       └── SUMMARY.md
 ├── debug/                          ← Debug session artifacts
 │   └── {slug}.md
-├── codebase/                       ← Brownfield analysis (from /dev:scan)
+├── codebase/                       ← Brownfield analysis (from /pbr:scan)
 │   ├── RECON.md
 │   ├── STACK.md
 │   ├── INTEGRATIONS.md
@@ -1568,15 +1568,15 @@ When Towline initializes a project, it creates this structure:
 
 | File | Purpose | Created By | Read By |
 |------|---------|------------|---------|
-| STATE.md | Source of truth for current position | /dev:begin | All skills |
-| ROADMAP.md | Phase structure, goals, dependencies | /dev:begin | /dev:plan, /dev:build, /dev:review |
-| REQUIREMENTS.md | Committed requirements | /dev:begin | /dev:plan, /dev:milestone |
-| CONTEXT.md | Project-level locked decisions | /dev:begin | /dev:plan, agents |
-| config.json | Workflow settings | /dev:begin | All skills |
-| PLAN.md | Executable plan (YAML + XML tasks) | /dev:plan | /dev:build |
-| SUMMARY.md | Build results (task outcomes, commits) | /dev:build | /dev:review, /dev:status |
-| VERIFICATION.md | Goal verification results | /dev:review | /dev:status, /dev:milestone |
-| RESEARCH.md | Research findings | /dev:plan | /dev:plan (planner agent) |
+| STATE.md | Source of truth for current position | /pbr:begin | All skills |
+| ROADMAP.md | Phase structure, goals, dependencies | /pbr:begin | /pbr:plan, /pbr:build, /pbr:review |
+| REQUIREMENTS.md | Committed requirements | /pbr:begin | /pbr:plan, /pbr:milestone |
+| CONTEXT.md | Project-level locked decisions | /pbr:begin | /pbr:plan, agents |
+| config.json | Workflow settings | /pbr:begin | All skills |
+| PLAN.md | Executable plan (YAML + XML tasks) | /pbr:plan | /pbr:build |
+| SUMMARY.md | Build results (task outcomes, commits) | /pbr:build | /pbr:review, /pbr:status |
+| VERIFICATION.md | Goal verification results | /pbr:review | /pbr:status, /pbr:milestone |
+| RESEARCH.md | Research findings | /pbr:plan | /pbr:plan (planner agent) |
 
 ---
 
@@ -1800,10 +1800,10 @@ for (let attempt = 0; attempt < 3; attempt++) {
 
 ### Checkpoint Manifest Lifecycle
 
-The `.checkpoint-manifest.json` file tracks build execution progress for crash recovery. It is created and managed by the `/dev:build` skill.
+The `.checkpoint-manifest.json` file tracks build execution progress for crash recovery. It is created and managed by the `/pbr:build` skill.
 
 ```
-/dev:build <N>
+/pbr:build <N>
   ├─ CREATE: .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
   │    ├─ plans: list of all plan IDs in the phase
   │    ├─ checkpoints_resolved: plans completed in this run
@@ -1820,7 +1820,7 @@ The `.checkpoint-manifest.json` file tracks build execution progress for crash r
        └─ Reconstruct skip list from checkpoints_resolved
 ```
 
-The manifest persists across sessions. If the orchestrator's context is compacted or the session is interrupted mid-build, the next `/dev:build` invocation reads it to skip already-completed plans.
+The manifest persists across sessions. If the orchestrator's context is compacted or the session is interrupted mid-build, the next `/pbr:build` invocation reads it to skip already-completed plans.
 
 ---
 
@@ -1833,7 +1833,7 @@ Every SKILL.md starts with YAML frontmatter:
 ```yaml
 ---
 name: skill-name                    # Must match directory name
-description: "One-line description" # Used in /dev:help
+description: "One-line description" # Used in /pbr:help
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task
 argument-hint: "<N> [--flag]"       # Shown in help text
 ---
@@ -1883,7 +1883,7 @@ Execute these steps in order.
 Spawn a Task() subagent:
 
 ```
-subagent_type: "dev:towline-planner"
+subagent_type: "pbr:planner"
 input:
   phase: {N}
   goal: {from ROADMAP.md}
@@ -1940,7 +1940,7 @@ subagent Task() contexts. Gates always run in the orchestrator.
 
 ### AskUserQuestion Conventions
 
-Towline uses `AskUserQuestion` for all structured user decision points. This tool
+Plan-Build-Run uses `AskUserQuestion` for all structured user decision points. This tool
 replaced the earlier plain-text "Type approved" / "Type continue" prompts in
 Phases 15-17.
 
@@ -1951,7 +1951,7 @@ defining prompts inline.
 **Rules**:
 - Max 4 options per call (AskUserQuestion limit)
 - `header` max 12 characters (single word preferred)
-- `multiSelect: false` always (Towline gates require single selection)
+- `multiSelect: false` always (Plan-Build-Run gates require single selection)
 - Always handle the "Other" case (user typed freeform text)
 - Orchestrator-only: cannot be called from subagent Task() contexts
 
@@ -2003,7 +2003,7 @@ use it. This is acceptable -- allowed-tools lists capabilities, not requirements
 ```markdown
 Spawn a Task() subagent:
 
-subagent_type: "dev:towline-planner"
+subagent_type: "pbr:planner"
 input:
   phase: 3
   goal: "Implement user authentication"
@@ -2015,11 +2015,11 @@ input:
 ```markdown
 Spawn a Task() subagent with this prompt:
 
-"You are towline-planner, a specialized planning agent. Your job is to..."
+"You are planner, a specialized planning agent. Your job is to..."
 (400 lines of agent definition)
 ```
 
-**Why**: `subagent_type` auto-loads the agent definition from `agents/towline-{name}.md`. Inlining the definition wastes 400+ lines of main context.
+**Why**: `subagent_type` auto-loads the agent definition from `agents/{name}.md`. Inlining the definition wastes 400+ lines of main context.
 
 ### File Reading Pattern
 
@@ -2066,12 +2066,12 @@ After a subagent completes, read only the summary:
 
 ### UI Formatting
 
-All skills MUST use Towline-branded UI elements from `references/ui-formatting.md`:
+All skills MUST use Plan-Build-Run-branded UI elements from `references/ui-formatting.md`:
 
 **Stage banners**:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- TOWLINE ► PLANNING PHASE 3
+ PLAN-BUILD-RUN ► PLANNING PHASE 3
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -2096,7 +2096,7 @@ Review the build results above.
 
 **Phase 4: Frontend** — Build the user interface
 
-/dev:plan 4
+/pbr:plan 4
 
 <sub>/clear first → fresh context window</sub>
 
@@ -2111,7 +2111,7 @@ Review the build results above.
 ◐ In Progress
 ```
 
-Always use `TOWLINE ►` branding in banners.
+Always use `PLAN-BUILD-RUN ►` branding in banners.
 
 ---
 
@@ -2123,7 +2123,7 @@ Every agent file starts with YAML frontmatter:
 
 ```yaml
 ---
-name: towline-agent-name            # Must match filename
+name: agent-name            # Must match filename
 description: "One-line description" # Used in logs
 model: inherit|sonnet|haiku|opus   # Model preference
 memory: none|user|project          # Memory context
@@ -2156,7 +2156,7 @@ frontmatter here
 
 # Agent Name
 
-You are **towline-agent-name**, the {role} agent for the Towline development system. You {core job description}.
+You are **agent-name**, the {role} agent for the Plan-Build-Run development system. You {core job description}.
 
 ## Core Principle
 
@@ -2191,12 +2191,12 @@ You are **towline-agent-name**, the {role} agent for the Towline development sys
 
 **Bad**: Reading agent definitions in agent prompts
 ```markdown
-You are towline-executor. Before you start, read agents/towline-verifier.md to understand how verification works.
+You are executor. Before you start, read agents/verifier.md to understand how verification works.
 ```
 
 **Good**: Assume agent definitions are self-contained
 ```markdown
-You are towline-executor. Your job is to execute tasks. When done, you write SUMMARY.md. The verifier agent will read this later.
+You are executor. Your job is to execute tasks. When done, you write SUMMARY.md. The verifier agent will read this later.
 ```
 
 **Why**: Agents should never need to read other agent definitions. Each agent is a black box with a clear input/output contract.
@@ -2233,10 +2233,10 @@ Templates use **simple `{variable}` placeholders** (Mustache-style) for string s
 ### Template Location
 
 ```
-plugins/dev/templates/SUMMARY.md.tmpl           ← Top-level templates
-plugins/dev/templates/codebase/STACK.md.tmpl    ← Organized in subdirs
-plugins/dev/templates/research/SUMMARY.md.tmpl
-plugins/dev/skills/{name}/templates/            ← Skill-specific templates
+plugins/pbr/templates/SUMMARY.md.tmpl           ← Top-level templates
+plugins/pbr/templates/codebase/STACK.md.tmpl    ← Organized in subdirs
+plugins/pbr/templates/research/SUMMARY.md.tmpl
+plugins/pbr/skills/{name}/templates/            ← Skill-specific templates
 ```
 
 ### Template Usage in Skills
@@ -2271,9 +2271,9 @@ status: {status}
 Test files MUST mirror script names:
 
 ```
-plugins/dev/scripts/validate-commit.js  → tests/validate-commit.test.js
-plugins/dev/scripts/towline-tools.js    → tests/towline-tools.test.js
-plugins/dev/scripts/progress-tracker.js → tests/progress-tracker.test.js
+plugins/pbr/scripts/validate-commit.js  → tests/validate-commit.test.js
+plugins/pbr/scripts/pbr-tools.js    → tests/pbr-tools.test.js
+plugins/pbr/scripts/progress-tracker.js → tests/progress-tracker.test.js
 ```
 
 ### Jest Configuration
@@ -2284,8 +2284,8 @@ Jest runs with **default configuration** from `package.json`:
 {
   "scripts": {
     "test": "jest",
-    "lint": "eslint plugins/dev/scripts/ tests/",
-    "validate": "node plugins/dev/scripts/validate-plugin-structure.js"
+    "lint": "eslint plugins/pbr/scripts/ tests/",
+    "validate": "node plugins/pbr/scripts/validate-plugin-structure.js"
   }
 }
 ```
@@ -2391,7 +2391,7 @@ Claude has a 200k token context window. When context fills up:
 2. Context compaction kicks in (conversation history is summarized, losing details)
 3. Cost increases (more tokens = higher API cost)
 
-Towline solves this through **context isolation**: the main orchestrator delegates heavy work to Task() subagents. Each subagent gets a fresh 200k token window.
+Plan-Build-Run solves this through **context isolation**: the main orchestrator delegates heavy work to Task() subagents. Each subagent gets a fresh 200k token window.
 
 ### Orchestrator Budget Guidelines
 
@@ -2420,7 +2420,7 @@ Max:     30% before warning user
 **NEVER** do this in a skill:
 
 ```markdown
-Read `agents/towline-executor.md` and inline it into the Task() prompt.
+Read `agents/executor.md` and inline it into the Task() prompt.
 ```
 
 **ALWAYS** do this instead:
@@ -2428,13 +2428,13 @@ Read `agents/towline-executor.md` and inline it into the Task() prompt.
 ```markdown
 Spawn a Task() subagent:
 
-subagent_type: "dev:towline-executor"
+subagent_type: "pbr:executor"
 input:
   plan: "03-01"
   goal: "Implement authentication"
 ```
 
-**Why**: The `subagent_type` mechanism auto-loads the agent definition from disk. Claude Code reads `agents/towline-executor.md` directly when spawning the Task(). This saves 400+ lines of orchestrator context per agent spawn.
+**Why**: The `subagent_type` mechanism auto-loads the agent definition from disk. Claude Code reads `agents/executor.md` directly when spawning the Task(). This saves 400+ lines of orchestrator context per agent spawn.
 
 ### Reading Subagent Output
 
@@ -2476,7 +2476,7 @@ Skills should warn users BEFORE context gets full:
 Before spawning 4 researchers in parallel, check context usage:
 
 If context is already >30%:
-  "Context budget is getting heavy. I recommend running `/dev:pause` now to checkpoint progress, then `/dev:continue` with a fresh window."
+  "Context budget is getting heavy. I recommend running `/pbr:pause` now to checkpoint progress, then `/pbr:continue` with a fresh window."
 
 If user wants to continue anyway:
   "Proceeding. If context compacts mid-research, you may need to re-run this step."
@@ -2523,13 +2523,13 @@ Every skill MUST trust STATE.md as the authoritative source of:
 Skills update STATE.md at these points:
 
 ```
-/dev:begin       Creates STATE.md
-/dev:plan        Updates current_phase, status="planning"
-/dev:build       Updates status="building" → "built"
-/dev:review      Updates status="verifying" → "phase_complete" or "gaps_found"
-/dev:pause       Updates status="paused", creates .continue-here
-/dev:continue    Updates status to resume prior status
-/dev:milestone   Appends to milestone_history
+/pbr:begin       Creates STATE.md
+/pbr:plan        Updates current_phase, status="planning"
+/pbr:build       Updates status="building" → "built"
+/pbr:review      Updates status="verifying" → "phase_complete" or "gaps_found"
+/pbr:pause       Updates status="paused", creates .continue-here
+/pbr:continue    Updates status to resume prior status
+/pbr:milestone   Appends to milestone_history
 ```
 
 **Pattern**:
@@ -2568,13 +2568,13 @@ Multiple files must stay in sync:
 **STATE.md ↔ SUMMARY.md**:
 - If STATE.md says phase 3 is complete, `.planning/phases/03-*/SUMMARY-*.md` files must exist
 
-The `/dev:health` skill checks these invariants.
+The `/pbr:health` skill checks these invariants.
 
 ---
 
 ## Cross-Platform Compatibility
 
-Towline must work on Windows, macOS, and Linux.
+Plan-Build-Run must work on Windows, macOS, and Linux.
 
 ### Path Separators
 
@@ -2654,12 +2654,12 @@ Don't rely on execute bits. Always invoke scripts via `node`:
 
 **Good**:
 ```bash
-node plugins/dev/scripts/validate-commit.js
+node plugins/pbr/scripts/validate-commit.js
 ```
 
 **Bad**:
 ```bash
-./plugins/dev/scripts/validate-commit.js  # Requires +x, fails on Windows
+./plugins/pbr/scripts/validate-commit.js  # Requires +x, fails on Windows
 ```
 
 ### Testing Cross-Platform
@@ -2690,7 +2690,7 @@ OS:      ubuntu-latest, macos-latest, windows-latest
 
 ### CI Checks
 
-1. **Lint**: ESLint on `plugins/dev/scripts/` and `tests/`
+1. **Lint**: ESLint on `plugins/pbr/scripts/` and `tests/`
 2. **Test**: Jest on all test files
 3. **Coverage**: Minimum 70% on all metrics
 4. **Structure**: `npm run validate` (checks plugin directory structure)
@@ -2730,7 +2730,7 @@ Missing dependencies      → Check package.json
 
 ## Development Gotchas
 
-Common edge cases and platform-specific issues encountered during Towline development.
+Common edge cases and platform-specific issues encountered during Plan-Build-Run development.
 
 ### 1. JSDoc `*/` in Glob Patterns
 
@@ -2817,7 +2817,7 @@ afterAll(() => {
 ```markdown
 Step 3: Spawn Executor
 
-Read `agents/towline-executor.md` and inline the full prompt into Task().
+Read `agents/executor.md` and inline the full prompt into Task().
 ```
 
 **Good**:
@@ -2825,7 +2825,7 @@ Read `agents/towline-executor.md` and inline the full prompt into Task().
 Step 3: Spawn Executor
 
 Spawn Task() with:
-subagent_type: "dev:towline-executor"
+subagent_type: "pbr:executor"
 ```
 
 **Why**: Agent definitions are 400+ lines. `subagent_type` auto-loads them. Reading them wastes orchestrator context.
@@ -2842,7 +2842,7 @@ Read ROADMAP.md (500 lines), REQUIREMENTS.md (300 lines), and all prior SUMMARY.
 **Good**:
 ```markdown
 Spawn planner agent with:
-subagent_type: "dev:towline-planner"
+subagent_type: "pbr:planner"
 input:
   roadmap_path: ".planning/ROADMAP.md"
   requirements_path: ".planning/REQUIREMENTS.md"
@@ -2938,13 +2938,13 @@ function main() {
 }
 ```
 
-**Why**: Logs are used by `/dev:health` Check 8 to verify hooks are working.
+**Why**: Logs are used by `/pbr:health` Check 8 to verify hooks are working.
 
 **Impact**: Silent hook failures, harder debugging.
 
 #### 8. Modifying State Files in Agents
 
-**Bad** (in towline-executor.md):
+**Bad** (in executor.md):
 ```markdown
 After completing all tasks, update STATE.md to mark the phase complete.
 ```
@@ -2964,26 +2964,26 @@ After completing all tasks, write SUMMARY.md. The orchestrator will update STATE
 
 **Bad**:
 ```markdown
-/dev:build completes all tasks, displays "Phase complete", but doesn't update STATE.md.
+/pbr:build completes all tasks, displays "Phase complete", but doesn't update STATE.md.
 ```
 
 **Good**:
 ```markdown
-/dev:build completes all tasks, updates STATE.md status to "built", displays "Phase complete".
+/pbr:build completes all tasks, updates STATE.md status to "built", displays "Phase complete".
 ```
 
-**Why**: Other skills trust STATE.md. If it's not updated, `/dev:status` shows stale data.
+**Why**: Other skills trust STATE.md. If it's not updated, `/pbr:status` shows stale data.
 
 #### 10. Not Checking Gates
 
 **Bad**:
 ```markdown
-/dev:plan generates plans and immediately proceeds to /dev:build.
+/pbr:plan generates plans and immediately proceeds to /pbr:build.
 ```
 
 **Good**:
 ```markdown
-/dev:plan generates plans, checks gates.confirm_plan, pauses if true, then suggests /dev:build.
+/pbr:plan generates plans, checks gates.confirm_plan, pauses if true, then suggests /pbr:build.
 ```
 
 **Why**: Users expect gates to be respected. Skipping gates breaks the workflow contract.
@@ -3083,7 +3083,7 @@ must_haves:
 
 ## Summary
 
-### The Towline Development Philosophy
+### The Plan-Build-Run Development Philosophy
 
 1. **Context is precious**. Protect the main orchestrator context by delegating heavy work to subagents.
 
@@ -3099,27 +3099,27 @@ must_haves:
 
 7. **Test everything**. Target 70% coverage minimum, all platforms must pass CI.
 
-8. **UI is branded**. Always use `TOWLINE ►` banners.
+8. **UI is branded**. Always use `PLAN-BUILD-RUN ►` banners.
 
 ### Where to Start
 
 **Adding a new skill**:
-1. Create `plugins/dev/skills/{name}/SKILL.md` with frontmatter
+1. Create `plugins/pbr/skills/{name}/SKILL.md` with frontmatter
 2. Add Context Budget section
 3. Write orchestration flow (inline vs. delegate steps)
 4. Reference templates and reference docs, don't inline them
-5. Add command registration in `plugins/dev/commands/{name}.md`
+5. Add command registration in `plugins/pbr/commands/{name}.md`
 6. Test manually with `claude --plugin-dir .`
 
 **Adding a new agent**:
-1. Create `plugins/dev/agents/towline-{name}.md` with frontmatter
+1. Create `plugins/pbr/agents/{name}.md` with frontmatter
 2. Write agent-specific instructions
 3. Define clear input/output contract
 4. Update skills to spawn this agent via `subagent_type`
 
 **Adding a new hook**:
-1. Create `plugins/dev/scripts/{name}.js` (CommonJS)
-2. Add hook registration in `plugins/dev/hooks/hooks.json`
+1. Create `plugins/pbr/scripts/{name}.js` (CommonJS)
+2. Add hook registration in `plugins/pbr/hooks/hooks.json`
 3. Use `logHook()` from `hook-logger.js`
 4. Create `tests/{name}.test.js`
 5. Run `npm test` to verify
@@ -3136,18 +3136,18 @@ must_haves:
 ### Resources
 
 - **CLAUDE.md**: User-facing plugin documentation
-- **plugins/dev/references/**: Reference docs for skills and agents
-- **plugins/dev/templates/**: EJS-style templates
+- **plugins/pbr/references/**: Reference docs for skills and agents
+- **plugins/pbr/templates/**: EJS-style templates
 - **tests/**: Jest test suite
-- **.planning/**: Towline's own planning state (dogfood testing)
+- **.planning/**: Plan-Build-Run's own planning state (dogfood testing)
 
 ### Getting Help
 
-- Run `/dev:help {skill-name}` to see skill documentation
-- Run `/dev:health` to diagnose workflow issues
+- Run `/pbr:help {skill-name}` to see skill documentation
+- Run `/pbr:health` to diagnose workflow issues
 - Check `.planning/logs/hooks.jsonl` for hook execution logs
 - Check CI logs for platform-specific failures
 
 ---
 
-**This is a living document**. As Towline evolves, update this guide to reflect new patterns, conventions, and anti-patterns discovered through dogfooding and user feedback.
+**This is a living document**. As Plan-Build-Run evolves, update this guide to reflect new patterns, conventions, and anti-patterns discovered through dogfooding and user feedback.

@@ -55,7 +55,7 @@ export function createApp(config) {
       const originalRender = res.render.bind(res);
       res.render = function(view, options, callback) {
         if (options && options.title && !res.getHeader('HX-Title')) {
-          res.setHeader('HX-Title', `${options.title} - Towline`);
+          res.setHeader('HX-Title', `${options.title} - Plan-Build-Run`);
         }
         return originalRender(view, options, callback);
       };

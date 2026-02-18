@@ -1,4 +1,4 @@
-const { parseState, getRoadmapPhaseStatus } = require('../plugins/dev/scripts/check-roadmap-sync');
+const { parseState, getRoadmapPhaseStatus } = require('../plugins/pbr/scripts/check-roadmap-sync');
 
 describe('check-roadmap-sync.js', () => {
   describe('parseState', () => {

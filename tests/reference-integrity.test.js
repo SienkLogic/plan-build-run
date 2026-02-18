@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const PLUGIN_ROOT = path.resolve(__dirname, '..', 'plugins', 'dev');
+const PLUGIN_ROOT = path.resolve(__dirname, '..', 'plugins', 'pbr');
 const SKILLS_DIR = path.join(PLUGIN_ROOT, 'skills');
 const AGENTS_DIR = path.join(PLUGIN_ROOT, 'agents');
 
@@ -156,7 +156,7 @@ describe('Reference Integrity', () => {
       'reading-verification.md',
       'stub-patterns.md',
       'subagent-coordination.md',
-      'towline-rules.md',
+      'pbr-rules.md',
       'ui-formatting.md',
       'verification-patterns.md',
       'wave-execution.md',
@@ -295,7 +295,7 @@ describe('hooks.json Structure', () => {
 
 describe('Anti-Pattern Checks', () => {
   test('synthesizer agent uses sonnet model', () => {
-    const synthPath = path.join(AGENTS_DIR, 'towline-synthesizer.md');
+    const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
     expect(frontmatter).toMatch(/model:\s*sonnet/);
@@ -341,7 +341,7 @@ describe('Anti-Pattern Checks', () => {
   });
 
   test('no hardcoded year references in researcher agent', () => {
-    const researcherPath = path.join(AGENTS_DIR, 'towline-researcher.md');
+    const researcherPath = path.join(AGENTS_DIR, 'researcher.md');
     const content = fs.readFileSync(researcherPath, 'utf8');
     // Should use dynamic date, not hardcoded years
     const yearPattern = /\b20(?:2[5-9]|[3-9]\d)\b/g;
@@ -365,7 +365,7 @@ describe('Anti-Pattern Checks', () => {
     if (!fs.existsSync(configPath)) return;
 
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const synthPath = path.join(AGENTS_DIR, 'towline-synthesizer.md');
+    const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
     const modelMatch = frontmatter.match(/model:\s*(\w+)/);

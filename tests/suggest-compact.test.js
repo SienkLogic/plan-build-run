@@ -1,13 +1,13 @@
-const { checkCompaction, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../plugins/dev/scripts/suggest-compact');
+const { checkCompaction, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../plugins/pbr/scripts/suggest-compact');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'suggest-compact.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'suggest-compact.js');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-sc-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-sc-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -193,8 +193,8 @@ describe('suggest-compact.js', () => {
       cleanup(tmpDir);
     });
 
-    test('exits 0 when not a Towline project', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-sc-noplan-'));
+    test('exits 0 when not a Plan-Build-Run project', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-sc-noplan-'));
       const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'app.js') });
       expect(result.exitCode).toBe(0);
       expect(result.output).toBe('');
