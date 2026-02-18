@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════
-# Towline Demo Script - Simulated terminal output for GIF recording
+# Plan-Build-Run Demo Script - Simulated terminal output for GIF recording
 # ═══════════════════════════════════════════════════════════════
 #
 # HOW TO RECORD:
@@ -14,7 +14,7 @@
 #
 #   Option B (asciinema + agg):
 #     1. asciinema rec demo.cast -c "bash assets/demo-script.sh"
-#     2. agg demo.cast assets/towline-demo.gif --theme mocha
+#     2. agg demo.cast assets/pbr-demo.gif --theme mocha
 #
 #   Option C (VHS by Charm):
 #     1. vhs assets/demo.tape  (see demo.tape for the wrapper)
@@ -54,20 +54,20 @@ printf "${BOLD}${CYAN}❯${RESET} "
 type_cmd "claude" 0.06
 pause 0.8
 
-printf "\n${DIM}  Claude Code v2.34  •  towline plugin loaded${RESET}\n\n"
+printf "\n${DIM}  Claude Code v2.34  •  plan-build-run plugin loaded${RESET}\n\n"
 pause 0.6
 
 # ═══════════════════════════════════════
-# SCENE 1: /dev:begin (project setup)
+# SCENE 1: /pbr:begin (project setup)
 # ═══════════════════════════════════════
 
 printf "${BOLD}${CYAN}❯${RESET} "
-type_cmd "/dev:begin" 0.05
+type_cmd "/pbr:begin" 0.05
 pause 0.5
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► QUESTIONING${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► QUESTIONING${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
 pause 0.8
 
@@ -78,7 +78,7 @@ type_cmd "A task management API with auth, PostgreSQL, and a React dashboard" 0.
 pause 0.6
 
 printf "\n${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► RESEARCHING${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► RESEARCHING${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${YELLOW}◐${RESET} Spawning 4 researchers in parallel...\n"
@@ -98,7 +98,7 @@ printf "  ${GREEN}✓${RESET} Pitfalls research complete        ${DIM}(19s)${RES
 pause 0.6
 
 printf "\n${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► CREATING ROADMAP${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► CREATING ROADMAP${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 pause 0.8
 
@@ -116,16 +116,16 @@ printf "  ${GREEN}✓${RESET} ROADMAP.md written       ${DIM}(5 phases, 18 plans
 pause 0.8
 
 # ═══════════════════════════════════════
-# SCENE 2: /dev:plan 1
+# SCENE 2: /pbr:plan 1
 # ═══════════════════════════════════════
 
 printf "\n${BOLD}${CYAN}❯${RESET} "
-type_cmd "/dev:plan 1" 0.05
+type_cmd "/pbr:plan 1" 0.05
 pause 0.4
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► PLANNING PHASE 1${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► PLANNING PHASE 1${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${YELLOW}◐${RESET} Spawning researcher...\n"
@@ -146,16 +146,16 @@ printf "  ${DIM}Wave 2:${RESET}  Plan 03: Testing infrastructure  ${DIM}(depends
 pause 1
 
 # ═══════════════════════════════════════
-# SCENE 3: /dev:build 1
+# SCENE 3: /pbr:build 1
 # ═══════════════════════════════════════
 
 printf "\n${BOLD}${CYAN}❯${RESET} "
-type_cmd "/dev:build 1" 0.05
+type_cmd "/pbr:build 1" 0.05
 pause 0.4
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► EXECUTING WAVE 1${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► EXECUTING WAVE 1${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${YELLOW}◐${RESET} Spawning 2 executors in parallel...\n"
@@ -170,7 +170,7 @@ pause 0.5
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► EXECUTING WAVE 2${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► EXECUTING WAVE 2${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${YELLOW}◐${RESET} Spawning executor...\n"
@@ -187,16 +187,16 @@ printf "  Progress: ${GREEN}█████████████████�
 pause 1
 
 # ═══════════════════════════════════════
-# SCENE 4: /dev:review 1
+# SCENE 4: /pbr:review 1
 # ═══════════════════════════════════════
 
 printf "\n${BOLD}${CYAN}❯${RESET} "
-type_cmd "/dev:review 1" 0.05
+type_cmd "/pbr:review 1" 0.05
 pause 0.4
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${WHITE} TOWLINE ► VERIFYING${RESET}\n"
+printf "${BOLD}${WHITE} PLAN-BUILD-RUN ► VERIFYING${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${YELLOW}◐${RESET} Spawning verifier...  ${DIM}(read-only, checks codebase against must-haves)${RESET}\n"
@@ -215,7 +215,7 @@ pause 0.5
 
 printf "\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}${GREEN} TOWLINE ► PHASE 1 COMPLETE ✓${RESET}\n"
+printf "${BOLD}${GREEN} PLAN-BUILD-RUN ► PHASE 1 COMPLETE ✓${RESET}\n"
 printf "${BOLD}${WHITE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
 
 printf "  ${BOLD}Phase 1: Foundation & Config${RESET}\n"
@@ -224,7 +224,7 @@ printf "  3 plans executed, goal verified ${GREEN}✓${RESET}\n\n"
 printf "  ${DIM}───────────────────────────────────────────────────${RESET}\n\n"
 printf "  ${BOLD}▶ Next Up${RESET}\n\n"
 printf "  ${BOLD}Phase 2: Database & Models${RESET}\n"
-printf "  ${CYAN}/dev:plan 2${RESET}\n\n"
+printf "  ${CYAN}/pbr:plan 2${RESET}\n\n"
 printf "  ${DIM}───────────────────────────────────────────────────${RESET}\n"
 
 pause 3

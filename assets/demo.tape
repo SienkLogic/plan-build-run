@@ -1,11 +1,11 @@
-# Towline Demo GIF - VHS Tape File
+# Plan-Build-Run Demo GIF - VHS Tape File
 # Install VHS: go install github.com/charmbracelet/vhs@latest
 # Run: vhs assets/demo.tape
 #
 # This wraps demo-script.sh for VHS recording.
 # For manual recording, just run: bash assets/demo-script.sh
 
-Output assets/towline-demo.gif
+Output assets/pbr-demo.gif
 
 Set Theme "Catppuccin Mocha"
 Set FontFamily "JetBrains Mono"
