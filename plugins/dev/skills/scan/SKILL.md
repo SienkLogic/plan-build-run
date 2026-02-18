@@ -85,6 +85,8 @@ Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determ
 - `standard` (balanced): 4 mappers -- all areas. Full analysis.
 - `comprehensive` (thorough): 4 mappers -- all areas. Full analysis.
 
+Display to the user: `◐ Spawning {mapper_count} codebase mapper(s) in parallel...`
+
 Spawn `{mapper_count}` parallel `Task(subagent_type: "dev:towline-codebase-mapper")` agents, one for each area in `scan.mapper_areas`. All should be spawned in a single response for maximum parallelism.
 
 For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
@@ -176,12 +178,17 @@ Then use the "Next Up" routing block:
 
 ## ▶ Next Up
 
-/dev:begin — start a Towline project for this codebase
+**Start a project** — use the scan results to plan your work
+
+`/dev:begin`
+
+<sub>`/clear` first → fresh context window</sub>
 
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- /dev:milestone new — create a milestone to address concerns
+- `/dev:milestone new` — create a milestone to address concerns
+- `/dev:status` — see project status
 
 ───────────────────────────────────────────────────────────────
 ```

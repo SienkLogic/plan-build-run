@@ -258,7 +258,9 @@ Reference: `references/agent-teams.md` for team role definitions and coordinatio
 If `--teams` flag is set OR `config.parallelization.use_teams` is true:
 
 1. Create the team output directory: `.planning/phases/{NN}-{slug}/team/`
-2. Spawn THREE planner agents in parallel using Task():
+2. Display to the user: `◐ Spawning 3 planners in parallel (architect, security, test)...`
+
+   Spawn THREE planner agents in parallel using Task():
 
    **Agent 1 -- Architect**:
    - subagent_type: "dev:towline-planner"
@@ -276,7 +278,9 @@ If `--teams` flag is set OR `config.parallelization.use_teams` is true:
    - Include same context as Agent 1
 
 3. Wait for all three to complete
-4. Spawn the synthesizer agent:
+4. Display to the user: `◐ Spawning synthesizer...`
+
+   Spawn the synthesizer agent:
    - subagent_type: "dev:towline-synthesizer"
    - Prompt: "Read all files in `.planning/phases/{NN}-{slug}/team/`. Synthesize them into unified PLAN.md files in `.planning/phases/{NN}-{slug}/`. The architect output provides structure, the security output adds security-related tasks or checks, and the test output informs TDD flags and test tasks. Resolve any contradictions by preferring the architect's structure with security and test additions."
 5. Proceed to plan checking as normal
@@ -550,9 +554,20 @@ Planner agent failed for Phase {N}.
 ```
 
 ### Checker loops forever
-After 3 revision iterations without passing:
-- Present remaining issues
-- Ask user to decide: proceed or intervene
+After 3 revision iterations without passing, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Plan checker failed to pass after 3 revision iterations for Phase {N}.
+
+**To fix:**
+- Review the remaining issues below and decide whether to proceed or revise manually
+- Run `/dev:plan {N}` to restart planning from scratch
+```
+
+Present remaining issues and ask user to decide: proceed or intervene.
 
 ---
 

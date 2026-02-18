@@ -112,7 +112,9 @@ Check if a VERIFICATION.md already exists from `/dev:build`'s auto-verification 
 If `--teams` flag is present OR `config.parallelization.use_teams` is true:
 
 1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
-2. Spawn THREE verifier agents in parallel using Task():
+2. Display to the user: `◐ Spawning 3 verifiers in parallel (functional, security, performance)...`
+
+   Spawn THREE verifier agents in parallel using Task():
 
    **Agent 1 -- Functional Reviewer**:
    - subagent_type: "dev:towline-verifier"
@@ -127,7 +129,9 @@ If `--teams` flag is present OR `config.parallelization.use_teams` is true:
    - Prompt includes: "You are the PERFORMANCE ANALYST in a review team. Focus on: N+1 queries, memory leaks, unnecessary allocations, bundle size impact, blocking operations. Write output to `.planning/phases/{NN}-{slug}/team/performance-VERIFY.md`."
 
 3. Wait for all three to complete
-4. Spawn synthesizer:
+4. Display to the user: `◐ Spawning synthesizer...`
+
+   Spawn synthesizer:
    - subagent_type: "dev:towline-synthesizer"
    - Prompt: "Read all *-VERIFY.md files in `.planning/phases/{NN}-{slug}/team/`. Synthesize into a unified VERIFICATION.md. Merge pass/fail verdicts -- a must-have fails if ANY reviewer flags it. Combine gap lists. Security and performance findings go into dedicated sections."
 5. Proceed to UAT walkthrough with the unified VERIFICATION.md
@@ -541,7 +545,19 @@ After review completes, always present a clear next action:
 
 **If verified (not final phase):**
 
-Use the "Phase Complete" banner from `references/ui-formatting.md`, then the branded "Next Up" block:
+Display the "Phase Complete" banner inline:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {Name}**
+
+{X} plans executed
+Goal verified ✓
+```
+
+Then the branded "Next Up" block:
 ```
 ───────────────────────────────────────────────────────────────
 
@@ -591,7 +607,17 @@ Use the "Phase Complete" banner from `references/ui-formatting.md`, then the bra
 
 **If final phase:**
 
-Use the "Milestone Complete" banner from `references/ui-formatting.md`, then:
+Display the "Milestone Complete" banner inline:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► MILESTONE COMPLETE 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{N} phases completed
+All phase goals verified ✓
+```
+
+Then:
 ```
 ───────────────────────────────────────────────────────────────
 

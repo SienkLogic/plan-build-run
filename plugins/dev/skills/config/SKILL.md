@@ -184,9 +184,11 @@ Updated:
 
 ## ▶ Next Up
 
-**Continue your workflow**
+**Continue your workflow** — settings saved
 
-`/dev:status` — see current project position
+`/dev:status`
+
+<sub>`/clear` first → fresh context window</sub>
 
 ───────────────────────────────────────────────────────────────
 

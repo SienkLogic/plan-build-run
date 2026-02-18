@@ -141,7 +141,9 @@ After all checks complete, display the branded result:
 
 **Continue your workflow** — planning directory is healthy
 
-`/dev:status` — see current project position
+`/dev:status`
+
+<sub>`/clear` first → fresh context window</sub>
 
 ───────────────────────────────────────────────────────────────
 
@@ -160,7 +162,15 @@ After all checks complete, display the branded result:
 
 {N} checks passed, {F} failures, {M} warnings
 
-Fix the failures listed above, then re-run `/dev:health`.
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Fix the failures** listed above, then re-run
+
+`/dev:health`
+
+───────────────────────────────────────────────────────────────
 ```
 
 ---
