@@ -1159,7 +1159,7 @@ function parseMustHaves(yaml) {
       if (/^\w/.test(line)) break; // New top-level key, stop
 
       if (section && /^\s+-\s+/.test(line)) {
-        result[section].push(line.replace(/^\s+-\s+/, '').replace(/^["']|["']$/g, ''));
+        result[section].push(line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, ''));
       }
     }
   }
