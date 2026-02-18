@@ -4,7 +4,7 @@ This document describes how to develop **Towline itself** — the workflow patte
 
 **Audience**: Contributors to the Towline codebase (human or AI).
 
-**Scope**: This is NOT user documentation. For user-facing documentation, see `CLAUDE.md` in the repo root.
+**Scope**: This is NOT user documentation. For user-facing docs, see [Getting Started](GETTING-STARTED.md) or `CLAUDE.md` in the repo root.
 
 ---
 

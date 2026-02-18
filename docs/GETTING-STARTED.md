@@ -6,13 +6,13 @@ This guide walks you through installing Towline and completing your first projec
 
 ## Prerequisites
 
-- **Claude Code** 1.0.33 or later ([installation guide](https://docs.anthropic.com/en/docs/claude-code))
+- **Claude Code** 2.1.45 or later ([installation guide](https://docs.anthropic.com/en/docs/claude-code))
 - **Node.js** 18 or later
 
 Verify both are installed:
 
 ```bash
-claude --version    # Should be 1.0.33+
+claude --version    # Should be 2.1.45+
 node --version      # Should be v18+
 ```
 
