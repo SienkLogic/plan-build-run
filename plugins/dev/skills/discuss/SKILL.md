@@ -209,12 +209,35 @@ This creates a pointer so `/dev:resume` and `progress-tracker.js` know that phas
 
 ### Step 8: Confirm and Route
 
-After writing CONTEXT.md:
-1. Display a summary of what was captured:
-   - Number of locked decisions
-   - Number of deferred ideas
-   - Number of discretion areas
-2. Suggest next action: "Run `/dev:plan {N}` to plan this phase. Your decisions will be honored."
+After writing CONTEXT.md, display branded output:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► DISCUSSION CAPTURED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {name}**
+
+Decisions: {count} locked, {count} deferred, {count} discretion
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Plan this phase** — your decisions will be honored
+
+`/dev:plan {N}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:status` — see project status
+- `/dev:explore` — explore ideas further
+
+───────────────────────────────────────────────────────────────
+```
 
 ---
 

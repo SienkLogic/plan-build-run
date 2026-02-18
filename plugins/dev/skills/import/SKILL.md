@@ -417,25 +417,66 @@ Requirements traced: {count}/{total} REQ-IDs covered
 ## Error Handling
 
 ### Phase not found
-If the specified phase does not exist in ROADMAP.md:
-- "Phase {N} not found. Run `/dev:status` to see available phases."
+If the specified phase does not exist in ROADMAP.md, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Phase {N} not found.
+
+**To fix:** Run `/dev:status` to see available phases.
+```
 
 ### Missing prerequisites
-If REQUIREMENTS.md or ROADMAP.md do not exist:
-- "Project not initialized. Run `/dev:begin` first."
+If REQUIREMENTS.md or ROADMAP.md do not exist, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Project not initialized.
+
+**To fix:** Run `/dev:begin` first.
+```
 
 ### Import file not found
-If `--from <filepath>` points to a nonexistent file:
-- "File not found: {filepath}. Check the path and try again."
+If `--from <filepath>` points to a nonexistent file, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+File not found: {filepath}
+
+**To fix:** Check the path and try again.
+```
 
 ### Import document too vague
-If the imported document contains no actionable tasks:
-- "The imported document is too vague to convert into plans. It contains no specific tasks, files, or implementation steps. Consider using `/dev:plan {N}` to generate plans from scratch, or provide a more detailed document."
+If the imported document contains no actionable tasks, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+The imported document is too vague to convert into plans. No specific tasks, files, or implementation steps found.
+
+**To fix:** Provide a more detailed document, or use `/dev:plan {N}` to generate plans from scratch.
+```
 
 ### Checker loops without resolution
-After 3 revision iterations without passing:
-- Present remaining issues
-- Ask user to decide: proceed or intervene
+After 3 revision iterations without passing, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Import plan checker failed to pass after 3 revision iterations.
+
+**To fix:** Review the remaining issues below and decide whether to proceed or revise manually.
+```
+
+Present remaining issues and ask user to decide: proceed or intervene.
 
 ---
 

@@ -103,6 +103,8 @@ When a knowledge gap emerges during the conversation — you're unsure about a l
 
 **If research now:**
 
+Display to the user: `◐ Spawning researcher...`
+
 ```
 Task({
   subagent_type: "dev:towline-researcher",
@@ -210,12 +212,24 @@ After creating artifacts (or if user chose "Skip"), display:
 
 ## ▶ Next Up
 
-{Smart routing based on what was created:}
-- If a todo was created: `/dev:todo` — manage your task list
-- If a phase decision was captured: `/dev:plan {N}` — plan the phase
-- If a new phase was added: `/dev:discuss {N}` — talk through the new phase
-- If research questions were logged: `/dev:plan {N}` — research happens during planning
-- Default: `/dev:status` — see project status
+**{Primary route based on what was created}**
+
+{Smart routing — pick the most relevant primary command:}
+- If a todo was created: **Manage tasks** → `/dev:todo`
+- If a phase decision was captured: **Plan the phase** → `/dev:plan {N}`
+- If a new phase was added: **Discuss the new phase** → `/dev:discuss {N}`
+- If research questions were logged: **Plan with research** → `/dev:plan {N}`
+- Default: **See project status** → `/dev:status`
+
+`{primary command}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:status` — see project status
+- `/dev:continue` — execute next logical step
 
 ───────────────────────────────────────────────────────────────
 ```

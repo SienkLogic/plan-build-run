@@ -155,6 +155,8 @@ category: "{runtime|build|test|config|integration|unknown}"
 
 #### Spawn Debugger
 
+Display to the user: `◐ Spawning debugger...`
+
 Spawn `Task(subagent_type: "dev:towline-debugger")` with the prompt template.
 
 Read `skills/debug/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
@@ -177,7 +179,9 @@ Last state:
 Continuing investigation...
 ```
 
-4. Spawn `Task(subagent_type: "dev:towline-debugger")` with the continuation prompt template.
+4. Display to the user: `◐ Spawning debugger (resuming session #{NNN})...`
+
+   Spawn `Task(subagent_type: "dev:towline-debugger")` with the continuation prompt template.
 
    Read `skills/debug/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
 
@@ -200,7 +204,36 @@ Actions:
    - Fill "Fix Applied" section
    - Add timeline entry
 2. Update STATE.md if it has a Debug Sessions section
-3. Report to user with full details
+3. Report to user with branded output:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► BUG RESOLVED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Session #{NNN}:** {title}
+**Root cause:** {cause}
+**Fix:** {description}
+**Commit:** {hash}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Continue your workflow** — the bug is fixed
+
+`/dev:status`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:continue` — execute next logical step
+- `/dev:review {N}` — verify the current phase
+
+───────────────────────────────────────────────────────────────
+```
 
 #### ROOT CAUSE FOUND (no fix)
 
@@ -217,8 +250,26 @@ Actions:
    - Fill "Root Cause" section
    - Add suggested fix to notes
 2. Suggest next steps to user:
-   - `/dev:quick {fix description}` for simple fixes
-   - `/dev:plan` for complex fixes
+
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Apply the fix** — root cause identified, fix needed
+
+`/dev:quick {fix description}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:plan` — for complex fixes that need planning
+- `/dev:status` — see project status
+
+───────────────────────────────────────────────────────────────
+```
 
 #### CHECKPOINT
 
@@ -238,7 +289,7 @@ Actions:
    question: "Investigation has reached a checkpoint. How should we proceed?"
 
 Handle responses:
-- "Continue": Spawn another `Task(subagent_type: "dev:towline-debugger")` with updated context from the debug file
+- "Continue": Display `◐ Spawning debugger (continuing investigation)...` and spawn another `Task(subagent_type: "dev:towline-debugger")` with updated context from the debug file
 - "More info": Ask the user freeform what additional context they have, then update the debug file and spawn another debugger
 - "New approach": Ask the user freeform what alternative angle to try, then update hypotheses and spawn another debugger
 

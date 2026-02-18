@@ -130,6 +130,8 @@ If either check fails, you have skipped steps. Go back and complete Steps 4-6. D
 
 **Pre-spawn check** — Verify `.planning/quick/{NNN}-{slug}/PLAN.md` exists and contains at least one `<task>` block. If missing, STOP and complete Steps 4-6 first.
 
+Display to the user: `◐ Spawning executor...`
+
 Spawn a `Task(subagent_type: "dev:towline-executor")` with the following prompt:
 
 ```
@@ -216,9 +218,17 @@ Files: {list of files changed}
 
 ## ▶ Next Up
 
-→ `/dev:status` — see project status
-→ `/dev:continue` — execute next logical step
-→ `/dev:todo list` — see pending todos
+**Continue your workflow** — task complete
+
+`/dev:status`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:continue` — execute next logical step
+- `/dev:todo list` — see pending todos
 
 ───────────────────────────────────────────────────────────────
 ```

@@ -143,16 +143,36 @@ Start a new milestone cycle with new phases.
    docs(planning): start milestone "{name}" (phases {start}-{end})
    ```
 
-10. **Confirm:**
+10. **Confirm** with branded output:
     ```
-    Milestone "{name}" created with {count} phases.
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     TOWLINE ► MILESTONE CREATED ✓
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    **Milestone: {name}** — {count} phases
 
     Phases:
     {N}. {name}
     {N+1}. {name}
     ...
 
-    Next: /dev:discuss {N} or /dev:plan {N}
+    ───────────────────────────────────────────────────────────────
+
+    ## ▶ Next Up
+
+    **Phase {N}: {name}** — start with discussion or planning
+
+    `/dev:discuss {N}`
+
+    <sub>`/clear` first → fresh context window</sub>
+
+    ───────────────────────────────────────────────────────────────
+
+    **Also available:**
+    - `/dev:plan {N}` — skip discussion, plan directly
+    - `/dev:status` — see project status
+
+    ───────────────────────────────────────────────────────────────
     ```
 
 ---
@@ -278,10 +298,14 @@ Archive a completed milestone and prepare for the next one.
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
-10. **Confirm** using the "Milestone Complete" banner from `references/ui-formatting.md`:
-
-    Include stats in the banner body:
+10. **Confirm** with branded output:
     ```
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+     TOWLINE ► MILESTONE COMPLETE 🎉
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    **{version}**
+
     Stats:
     - {count} phases, {count} plans
     - {count} commits, {lines} lines of code
@@ -289,9 +313,25 @@ Archive a completed milestone and prepare for the next one.
 
     Archived to: .planning/milestones/{version}-*
     Git tag: {version}
-    ```
 
-    Use the "Next Up" block with: `/dev:milestone new` — start the next milestone
+    ───────────────────────────────────────────────────────────────
+
+    ## ▶ Next Up
+
+    **Start the next milestone** — plan new features
+
+    `/dev:milestone new`
+
+    <sub>`/clear` first → fresh context window</sub>
+
+    ───────────────────────────────────────────────────────────────
+
+    **Also available:**
+    - `/dev:status` — see project status
+    - `/dev:help` — see all commands
+
+    ───────────────────────────────────────────────────────────────
+    ```
 
 ---
 
@@ -311,6 +351,8 @@ Verify milestone completion with cross-phase integration checks.
    - Note any phases without verification
 
 3. **Spawn integration checker:**
+
+   Display to the user: `◐ Spawning integration checker...`
 
    Spawn `Task(subagent_type: "dev:towline-integration-checker")` with:
 
@@ -367,6 +409,14 @@ Verify milestone completion with cross-phase integration checks.
 
    `/dev:milestone complete {version}`
 
+   <sub>`/clear` first → fresh context window</sub>
+
+   ───────────────────────────────────────────────────────────────
+
+   **Also available:**
+   - `/dev:milestone gaps` — address any minor issues first
+   - `/dev:status` — see project status
+
    ───────────────────────────────────────────────────────────────
    ```
 
@@ -388,6 +438,14 @@ Verify milestone completion with cross-phase integration checks.
 
    `/dev:milestone gaps`
 
+   <sub>`/clear` first → fresh context window</sub>
+
+   ───────────────────────────────────────────────────────────────
+
+   **Also available:**
+   - `/dev:milestone complete` — proceed despite gaps
+   - `/dev:status` — see project status
+
    ───────────────────────────────────────────────────────────────
    ```
 
@@ -407,6 +465,8 @@ Verify milestone completion with cross-phase integration checks.
 
    `/dev:milestone gaps` — create cleanup phases
    `/dev:milestone complete` — proceed as-is
+
+   <sub>`/clear` first → fresh context window</sub>
 
    ───────────────────────────────────────────────────────────────
    ```
@@ -489,13 +549,32 @@ Create phases to close gaps found during an audit.
    docs(planning): add gap-closure phases from milestone audit
    ```
 
-9. **Confirm:**
+9. **Confirm** with branded output:
    ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    TOWLINE ► GAP PHASES CREATED ✓
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
    Created {count} gap-closure phase(s):
    - Phase {N}: {name}
    - Phase {N+1}: {name}
 
-   Next: /dev:plan {N} to plan the first gap-closure phase.
+   ───────────────────────────────────────────────────────────────
+
+   ## ▶ Next Up
+
+   **Plan the first gap-closure phase**
+
+   `/dev:plan {N}`
+
+   <sub>`/clear` first → fresh context window</sub>
+
+   ───────────────────────────────────────────────────────────────
+
+   **Also available:**
+   - `/dev:status` — see project status
+
+   ───────────────────────────────────────────────────────────────
    ```
 
 ---

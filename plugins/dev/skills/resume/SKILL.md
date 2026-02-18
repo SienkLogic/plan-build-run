@@ -166,10 +166,19 @@ Blockers:
 
 5. Present the next action from the continue-here file.
 
-**If only one clear next action exists**, present it directly:
+**If only one clear next action exists**, present it with branded routing:
 ```
-Next step:
---> {suggested command} -- {explanation from continue-here}
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**{explanation from continue-here}**
+
+`{suggested command}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
 ```
 
 **If multiple reasonable actions exist** (e.g., the continue-here suggests one thing but the filesystem state suggests another), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
@@ -233,7 +242,16 @@ Show only the options that apply to the current state (1-3 real options + "Somet
 When neither .continue-here.md nor STATE.md position data exists:
 
 1. Check if `.planning/` directory exists at all
-   - If no: "No Towline project found. Run `/dev:begin` to start a new project, or `/dev:scan` to analyze an existing codebase."
+   - If no, display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     No Towline project found.
+
+     **To fix:** Run `/dev:begin` to start a new project, or `/dev:scan` to analyze an existing codebase.
+     ```
    - Stop here.
 
 2. If `.planning/` exists, scan for any project state:
@@ -345,9 +363,16 @@ If .continue-here.md is more than 7 days old:
   - Suggest switching branches or starting fresh
 
 ### Empty project (just initialized)
-- If `.planning/` exists but only has config.json:
-  - "Project was initialized but no work has been done."
-  - Suggest: `/dev:plan 1` or `/dev:discuss 1`
+- If `.planning/` exists but only has config.json, display:
+  ```
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  ERROR                                                       ║
+  ╚══════════════════════════════════════════════════════════════╝
+
+  Project was initialized but no work has been done.
+
+  **To fix:** Run `/dev:plan 1` to start planning, or `/dev:discuss 1` to talk through the first phase.
+  ```
 
 ---
 
