@@ -34,7 +34,16 @@ Read the following files to understand where things stand:
 
 1. **`.planning/STATE.md`** — Current position
    - Extract: current phase, current plan, progress, blockers
-   - If STATE.md doesn't exist: "No Towline project state found. Nothing to pause."
+   - If STATE.md doesn't exist, display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     No Towline project state found. Nothing to pause.
+
+     **To fix:** Run `/dev:begin` to initialize a project first.
+     ```
 
 2. **`.planning/config.json`** — Project settings
    - Extract: project name, feature toggles
@@ -141,17 +150,28 @@ git commit -m "wip: pause at phase {N} plan {M}"
 
 ### Step 7: Confirm to User
 
-Display confirmation:
+Display branded confirmation:
 
 ```
-Session saved.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► SESSION SAVED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Position: Phase {N} -- {phase name}, Plan {M}
+Position: Phase {N} — {phase name}, Plan {M}
 Completed: {count} plans this session
 Remaining: {count} plans in this phase
-Next: {suggested action}
 
-Run `/dev:resume` in your next session to continue.
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Resume in your next session**
+
+`/dev:resume`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
 ```
 
 ---

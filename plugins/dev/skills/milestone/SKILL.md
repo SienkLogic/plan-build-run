@@ -349,25 +349,66 @@ Verify milestone completion with cross-phase integration checks.
 
    Read `skills/milestone/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
 
-6. **Report to user:**
+6. **Report to user** using branded banners:
 
+   **If PASSED:**
    ```
-   Milestone Audit: {version}
-   Status: {PASSED / GAPS FOUND / TECH DEBT}
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    TOWLINE ► MILESTONE AUDIT PASSED ✓
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-   {If PASSED:}
    All phases verified, integration checks passed, requirements covered.
-   Ready for /dev:milestone complete {version}
 
-   {If GAPS FOUND:}
+   ───────────────────────────────────────────────────────────────
+
+   ## ▶ Next Up
+
+   **Complete the milestone** — archive and tag
+
+   `/dev:milestone complete {version}`
+
+   ───────────────────────────────────────────────────────────────
+   ```
+
+   **If GAPS FOUND:**
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    TOWLINE ► MILESTONE AUDIT — GAPS FOUND ⚠
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
    Found {count} gaps:
    - {gap 1}
    - {gap 2}
-   Run /dev:milestone gaps to create fix phases.
 
-   {If TECH DEBT:}
+   ───────────────────────────────────────────────────────────────
+
+   ## ▶ Next Up
+
+   **Close the gaps** — create fix phases
+
+   `/dev:milestone gaps`
+
+   ───────────────────────────────────────────────────────────────
+   ```
+
+   **If TECH DEBT:**
+   ```
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    TOWLINE ► MILESTONE AUDIT — TECH DEBT ⚠
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
    Milestone functional but has {count} tech debt items.
-   Consider /dev:milestone gaps for cleanup or proceed with /dev:milestone complete.
+
+   ───────────────────────────────────────────────────────────────
+
+   ## ▶ Next Up
+
+   **Address tech debt or proceed**
+
+   `/dev:milestone gaps` — create cleanup phases
+   `/dev:milestone complete` — proceed as-is
+
+   ───────────────────────────────────────────────────────────────
    ```
 
 ---
@@ -488,11 +529,30 @@ Tags (complete only):
 
 ### No ROADMAP.md exists
 - For `new`: Create one from scratch (this is a fresh start)
-- For others: "No roadmap found. Run `/dev:begin` or `/dev:milestone new` first."
+- For others, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No roadmap found.
+
+**To fix:** Run `/dev:begin` or `/dev:milestone new` first.
+```
 
 ### Milestone has no phases
-- For `complete`: "No phases found for this milestone. Nothing to complete."
-- For `audit`: "No phases to audit."
+Display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No phases found for this milestone.
+
+**To fix:**
+- For `complete`: Nothing to complete — add phases first.
+- For `audit`: Nothing to audit — build phases first.
+```
 
 ### Audit finds no gaps
 - Status: PASSED
@@ -500,8 +560,17 @@ Tags (complete only):
 - Suggest proceeding to complete
 
 ### Version already exists (tag collision)
-- For `complete`: "Tag {version} already exists. Use a different version number."
-- Ask for alternative via AskUserQuestion
+Display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Git tag {version} already exists.
+
+**To fix:** Use a different version number (e.g., {version}.1).
+```
+Ask for alternative via AskUserQuestion.
 
 ### Partially verified milestone
 - `complete` warns but allows proceeding with user confirmation

@@ -119,6 +119,21 @@ Towline includes three behavioral contexts in `contexts/` that adjust how Claude
 
 Skills automatically activate the appropriate context: `/dev:build` uses dev context, `/dev:discuss` uses research context, `/dev:review` uses review context.
 
+## Getting Started
+
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+→ `/dev:begin` — start a new project
+→ `/dev:status` — check current project status
+→ `/dev:config` — configure workflow settings
+→ `/dev:help <command>` — detailed help for a specific command
+
+───────────────────────────────────────────────────────────────
+```
+
 ## Getting Help
 
 - GitHub Issues: https://github.com/SienkLogic/towline/issues

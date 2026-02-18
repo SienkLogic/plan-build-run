@@ -174,6 +174,34 @@ Quick captures from `/dev:note`. Ideas worth remembering.
 
 ---
 
+## Error Handling
+
+### Write failure
+If the Write tool fails (permissions, disk full, etc.), display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Failed to write note to {target_file}.
+
+**To fix:** Check file permissions or disk space.
+```
+
+### Promote target not found
+If the specified note index is invalid, display:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Note {N} not found. Valid range: 1-{max}.
+
+**To fix:** Run `/dev:note list` to see available notes.
+```
+
+---
+
 ## Anti-Patterns
 
 1. **DO NOT** ask questions on append — just write and confirm
