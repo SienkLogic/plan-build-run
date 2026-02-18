@@ -246,8 +246,9 @@ Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure
 **Parallelization:**
 - Spawn ALL researchers in parallel (multiple Task() calls in one response)
 - Use `run_in_background: true` for each researcher
+- Before spawning, display to the user: `◐ Spawning {N} researchers in parallel...`
 - While waiting, display progress to the user:
-  - After spawning: "Launched {N} researchers in parallel: {list of topics}"
+  - After spawning: list of topics being researched
   - Periodically (every ~30s): check `TaskOutput` with `block: false` for each agent and report status
   - When each completes: "✓ {topic} researcher complete ({duration})"
   - When all complete: "All {N} researchers finished. Proceeding to synthesis."
@@ -486,16 +487,16 @@ Then use the "Next Up" routing block:
 
 **Phase 1: {Name}** — {one-line goal}
 
-/dev:explore — think through ideas and approaches before committing
+`/dev:explore`
 
-<sub>/clear first → fresh context window</sub>
+<sub>`/clear` first → fresh context window</sub>
 
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- /dev:discuss 1 — talk through Phase 1 details before planning
-- /dev:plan 1 — jump straight to planning Phase 1
-- /dev:config — adjust workflow settings
+- `/dev:discuss 1` — talk through Phase 1 details before planning
+- `/dev:plan 1` — jump straight to planning Phase 1
+- `/dev:config` — adjust workflow settings
 
 ───────────────────────────────────────────────────────────────
 ```

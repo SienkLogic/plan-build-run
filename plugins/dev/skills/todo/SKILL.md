@@ -48,12 +48,43 @@ theme: {inferred-theme}
 ```
 
 7. Update STATE.md Pending Todos section
+
+   If the Write fails, display:
+   ```
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  ERROR                                                       ║
+   ╚══════════════════════════════════════════════════════════════╝
+
+   Failed to write todo file.
+
+   **To fix:** Check that `.planning/todos/pending/` exists and is writable.
+   ```
+
 8. Confirm with branded output:
 ```
-✓ Added todo {NNN}: {description}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► TODO ADDED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-→ `/dev:todo list` — see all pending todos
-→ `/dev:quick {NNN}` — work on it now
+**Todo {NNN}:** {description}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Work on it now** or see your task list
+
+`/dev:quick`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:todo list` — see all pending todos
+- `/dev:status` — see project status
+
+───────────────────────────────────────────────────────────────
 ```
 
 ### `list [theme]`
@@ -71,11 +102,23 @@ Pending Todos:
 | 075 | Add WebSearch/WebFetch/Context7 to researcher | P2 | capability | 2026-02-10 |
 ```
 
-5. Offer actions:
+5. Offer actions with branded routing:
 ```
-→ `/dev:todo done <NNN>` — mark a todo complete
-→ `/dev:quick` — work on one now
-→ `/dev:status` — see project status
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Pick a todo** — mark one done or start working
+
+`/dev:todo done <NNN>`
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:quick` — work on one now
+- `/dev:status` — see project status
+
+───────────────────────────────────────────────────────────────
 ```
 
 ### `done <NNN>`
@@ -96,10 +139,29 @@ Todo {NNN} not found in pending todos.
 5. Update STATE.md
 6. Confirm with branded output:
 ```
-✓ Completed todo {NNN}: {title}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► TODO COMPLETED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-→ `/dev:todo list` — see remaining todos
-→ `/dev:continue` — execute next logical step
+**Todo {NNN}:** {title}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**See remaining tasks**
+
+`/dev:todo list`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:continue` — execute next logical step
+- `/dev:status` — see project status
+
+───────────────────────────────────────────────────────────────
 ```
 
 ### No arguments

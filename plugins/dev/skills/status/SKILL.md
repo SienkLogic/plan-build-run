@@ -251,11 +251,20 @@ Based on the project state, suggest the single most logical next action:
    → "Start your project: `/dev:begin`"
 ```
 
-**If only one reasonable next action exists**, present it directly:
+**If only one reasonable next action exists**, present it with branded routing:
 
 ```
-Next step:
---> {suggested command} -- {brief explanation}
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**{brief explanation}**
+
+`{suggested command}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
 ```
 
 **If multiple reasonable next actions exist** (2-3 alternatives), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):

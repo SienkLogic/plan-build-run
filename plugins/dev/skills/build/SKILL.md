@@ -221,7 +221,13 @@ For each plan in the current wave (excluding skipped plans):
 
 **Present plan narrative before spawning:**
 
-Before spawning executors for this wave, present a brief narrative for each plan to give the user context on what's about to happen:
+Display to the user before spawning:
+
+```
+◐ Spawning {N} executor(s) for Wave {W}...
+```
+
+Then present a brief narrative for each plan to give the user context on what's about to happen:
 
 ```
 Wave {W} — {N} plan(s):
@@ -387,7 +393,9 @@ When inline verification is enabled, each completed plan gets a targeted verific
 For each plan that completed successfully in this wave:
 
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
-2. Spawn a lightweight verifier:
+2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
+
+   Spawn a lightweight verifier:
 
 ```
 Task({
@@ -582,6 +590,8 @@ Note for Step 8f completion summary: append "Note: Automatic verification was sk
 
 **If verification is enabled:**
 
+Display to the user: `◐ Spawning verifier...`
+
 Spawn a verifier Task():
 
 ```
@@ -691,7 +701,9 @@ Only run if ALL of these are true:
 If triggered:
 1. Record the pre-build commit SHA at the start of Step 1 (before any executors run) for comparison
 2. Run `git diff --name-only {pre_build_commit}..HEAD` to get the list of changed files
-3. Spawn a lightweight mapper Task():
+3. Display to the user: `◐ Spawning codebase mapper (incremental update)...`
+
+   Spawn a lightweight mapper Task():
    ```
    Task({
      subagent_type: "dev:towline-codebase-mapper",
@@ -790,7 +802,99 @@ Total files modified: {count}
 Deviations: {count}
 ```
 
-Then present the appropriate branded banner with "Next Up" routing block.
+Then present the appropriate branded banner:
+
+**If `passed` + more phases:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} COMPLETE ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {Name}**
+
+{X} plans executed
+Goal verified ✓
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
+
+`/dev:plan {N+1}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:review {N}` — manual acceptance testing before continuing
+- `/dev:status` — see full project status
+
+───────────────────────────────────────────────────────────────
+```
+
+**If `passed` + last phase:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► MILESTONE COMPLETE 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{N} phases completed
+All phase goals verified ✓
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Audit milestone** — verify requirements, cross-phase integration, E2E flows
+
+`/dev:milestone audit`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `/dev:review` — manual acceptance testing
+- `/dev:milestone complete` — skip audit, archive directly
+
+───────────────────────────────────────────────────────────────
+```
+
+**If `gaps_found`:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TOWLINE ► PHASE {N} GAPS FOUND ⚠
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Phase {N}: {Name}**
+
+Score: {X}/{Y} must-haves verified
+Report: .planning/phases/{phase_dir}/VERIFICATION.md
+
+### What's Missing
+
+{Extract gap summaries from VERIFICATION.md}
+
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Plan gap closure** — create additional plans to complete the phase
+
+`/dev:plan {N} --gaps`
+
+<sub>`/clear` first → fresh context window</sub>
+
+───────────────────────────────────────────────────────────────
+
+**Also available:**
+- `cat .planning/phases/{phase_dir}/VERIFICATION.md` — see full report
+- `/dev:review {N}` — manual testing before planning
+
+───────────────────────────────────────────────────────────────
+```
 
 **8g. Display USER-SETUP.md (conditional):**
 
