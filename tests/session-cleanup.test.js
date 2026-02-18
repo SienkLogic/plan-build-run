@@ -3,14 +3,14 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'session-cleanup.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'session-cleanup.js');
 
 describe('session-cleanup.js', () => {
   let tmpDir;
   let planningDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -38,7 +38,7 @@ describe('session-cleanup.js', () => {
 
   test('removes .auto-next file', () => {
     const filePath = path.join(planningDir, '.auto-next');
-    fs.writeFileSync(filePath, '/dev:build 3');
+    fs.writeFileSync(filePath, '/pbr:build 3');
 
     run();
 

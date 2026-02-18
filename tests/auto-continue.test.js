@@ -3,14 +3,14 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'auto-continue.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'auto-continue.js');
 
 describe('auto-continue.js', () => {
   let tmpDir;
   let planningDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -74,17 +74,17 @@ describe('auto-continue.js', () => {
 
   test('reads signal file and outputs next command', () => {
     writeConfig();
-    writeSignal('/dev:build 3');
+    writeSignal('/pbr:build 3');
 
     const output = run();
     const parsed = JSON.parse(output);
-    expect(parsed.command).toBe('/dev:build 3');
-    expect(parsed.message).toContain('/dev:build 3');
+    expect(parsed.command).toBe('/pbr:build 3');
+    expect(parsed.message).toContain('/pbr:build 3');
   });
 
   test('deletes signal file after reading (one-shot)', () => {
     writeConfig();
-    writeSignal('/dev:review 2');
+    writeSignal('/pbr:review 2');
 
     run();
 
@@ -116,7 +116,7 @@ describe('auto-continue.js', () => {
 
   test('logs continue decision with next command', () => {
     writeConfig();
-    writeSignal('/dev:plan 4');
+    writeSignal('/pbr:plan 4');
 
     run();
 
@@ -125,7 +125,7 @@ describe('auto-continue.js', () => {
     const entry = JSON.parse(lines[lines.length - 1]);
     expect(entry.hook).toBe('auto-continue');
     expect(entry.decision).toBe('continue');
-    expect(entry.next).toBe('/dev:plan 4');
+    expect(entry.next).toBe('/pbr:plan 4');
   });
 
   test('does not crash when .planning dir is missing', () => {

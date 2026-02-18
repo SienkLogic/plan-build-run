@@ -7,7 +7,7 @@ const {
   updateStatePosition,
   buildProgressBar,
   checkStateSync
-} = require('../plugins/dev/scripts/check-state-sync');
+} = require('../plugins/pbr/scripts/check-state-sync');
 
 describe('check-state-sync.js', () => {
   describe('extractPhaseNum', () => {

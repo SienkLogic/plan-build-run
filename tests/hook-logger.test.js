@@ -8,7 +8,7 @@ describe('hook-logger.js', () => {
   let originalCwd;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
     planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     originalCwd = process.cwd();
@@ -23,7 +23,7 @@ describe('hook-logger.js', () => {
   });
 
   function getLogger() {
-    return require('../plugins/dev/scripts/hook-logger');
+    return require('../plugins/pbr/scripts/hook-logger');
   }
 
   test('creates valid JSONL entry with required fields', () => {

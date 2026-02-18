@@ -1,11 +1,11 @@
-const { checkDocSprawl, isBlockDocSprawlEnabled } = require('../plugins/dev/scripts/check-doc-sprawl');
+const { checkDocSprawl, isBlockDocSprawlEnabled } = require('../plugins/pbr/scripts/check-doc-sprawl');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-cds-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-cds-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
@@ -177,7 +177,7 @@ describe('check-doc-sprawl.js', () => {
   });
 
   describe('pre-write-dispatch integration', () => {
-    const DISPATCH_SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'pre-write-dispatch.js');
+    const DISPATCH_SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pre-write-dispatch.js');
 
     test('blocks doc sprawl through dispatcher', () => {
       const { tmpDir, planningDir } = makeTmpDir();

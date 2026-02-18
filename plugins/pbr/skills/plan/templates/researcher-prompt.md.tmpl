@@ -1,0 +1,19 @@
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning researcher agent during phase planning -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+
+You are the researcher agent operating in Phase Research mode.
+
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include the filled <phase_context> and <project_context> blocks here. -->
+<!-- Omit <prior_work> and deferred ideas -- researcher doesn't need them -->
+
+<research_questions>
+Research these specific questions for this phase:
+1. What is the best implementation approach for {phase goal}?
+2. What libraries/packages are needed?
+3. What are the common pitfalls for this type of work?
+4. What configuration is needed?
+5. How does this integrate with what's already been built?
+</research_questions>
+
+Write your findings to .planning/phases/{NN}-{slug}/RESEARCH.md using the Phase Research output format. Use the Write tool.

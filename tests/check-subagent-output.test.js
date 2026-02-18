@@ -3,13 +3,13 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'check-subagent-output.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
 
 let tmpDir;
 let originalCwd;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-subagent-'));
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-subagent-'));
   originalCwd = process.cwd();
   process.chdir(tmpDir);
   // Create .planning structure
@@ -46,22 +46,22 @@ function runScript(data) {
 describe('check-subagent-output.js', () => {
   test('exits 0 when no .planning directory', () => {
     fs.rmSync(path.join(tmpDir, '.planning'), { recursive: true, force: true });
-    const result = runScript({ subagent_type: 'dev:towline-executor' });
+    const result = runScript({ subagent_type: 'pbr:executor' });
     expect(result.exitCode).toBe(0);
   });
 
   test('exits 0 for unknown agent types', () => {
-    const result = runScript({ subagent_type: 'dev:towline-unknown' });
+    const result = runScript({ subagent_type: 'pbr:unknown' });
     expect(result.exitCode).toBe(0);
   });
 
-  test('exits 0 for non-towline agent types', () => {
+  test('exits 0 for non-plan-build-run agent types', () => {
     const result = runScript({ subagent_type: 'general-purpose' });
     expect(result.exitCode).toBe(0);
   });
 
   test('warns when executor produces no SUMMARY.md', () => {
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-executor' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
     expect(result.output).toContain('SUMMARY');
@@ -72,13 +72,13 @@ describe('check-subagent-output.js', () => {
       path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
       '---\nstatus: complete\n---\nResults'
     );
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-executor' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).not.toContain('Warning');
   });
 
   test('warns when planner produces no PLAN.md', () => {
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-planner' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
     expect(result.output).toContain('PLAN');
@@ -89,13 +89,13 @@ describe('check-subagent-output.js', () => {
       path.join(tmpDir, '.planning', 'phases', '03-auth', 'PLAN-01.md'),
       '---\nplan: 01\n---\nTasks'
     );
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-planner' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).not.toContain('Warning');
   });
 
   test('warns when verifier produces no VERIFICATION.md', () => {
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-verifier' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:verifier' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
     expect(result.output).toContain('VERIFICATION');
@@ -106,13 +106,13 @@ describe('check-subagent-output.js', () => {
       path.join(tmpDir, '.planning', 'phases', '03-auth', 'VERIFICATION.md'),
       '---\nstatus: passed\n---\nResults'
     );
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-verifier' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:verifier' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).not.toContain('Warning');
   });
 
   test('warns when researcher produces no research files', () => {
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-researcher' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
     expect(result.output).toContain('research');
@@ -123,7 +123,7 @@ describe('check-subagent-output.js', () => {
       path.join(tmpDir, '.planning', 'research', 'STACK.md'),
       '# Stack Research\nResults'
     );
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-researcher' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).not.toContain('Warning');
   });
@@ -134,13 +134,13 @@ describe('check-subagent-output.js', () => {
       path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
       ''
     );
-    const result = runScript({ tool_input: { subagent_type: 'dev:towline-executor' } });
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
   });
 
   test('handles subagent_type at top level (not nested in tool_input)', () => {
-    const result = runScript({ subagent_type: 'dev:towline-executor' });
+    const result = runScript({ subagent_type: 'pbr:executor' });
     expect(result.exitCode).toBe(0);
     expect(result.output).toContain('Warning');
   });

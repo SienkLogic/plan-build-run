@@ -1,10 +1,10 @@
-const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../plugins/dev/scripts/context-budget-check');
+const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../plugins/pbr/scripts/context-budget-check');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-cbc-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-cbc-'));
   const planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir, { recursive: true });
   return { tmpDir, planningDir };
@@ -178,18 +178,18 @@ Implement JWT authentication middleware
       fs.mkdirSync(logsDir, { recursive: true });
 
       const hookEntries = [
-        JSON.stringify({ ts: '2026-01-01T00:00:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'dev:towline-researcher', description: 'Research phase 1' }),
+        JSON.stringify({ ts: '2026-01-01T00:00:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'pbr:researcher', description: 'Research phase 1' }),
         JSON.stringify({ ts: '2026-01-01T00:01:00Z', hook: 'check-subagent-output', event: 'PostToolUse', decision: 'allow' }),
-        JSON.stringify({ ts: '2026-01-01T00:02:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'dev:towline-executor', description: 'Execute plan 01' }),
-        JSON.stringify({ ts: '2026-01-01T00:03:00Z', hook: 'log-subagent', event: 'SubagentStop', decision: 'completed', agent_type: 'dev:towline-executor' }),
+        JSON.stringify({ ts: '2026-01-01T00:02:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'pbr:executor', description: 'Execute plan 01' }),
+        JSON.stringify({ ts: '2026-01-01T00:03:00Z', hook: 'log-subagent', event: 'SubagentStop', decision: 'completed', agent_type: 'pbr:executor' }),
       ];
       fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
 
       const result = readRecentAgents(planningDir, 5);
       expect(result.length).toBe(2);
-      expect(result[0]).toContain('dev:towline-researcher');
+      expect(result[0]).toContain('pbr:researcher');
       expect(result[0]).toContain('Research phase 1');
-      expect(result[1]).toContain('dev:towline-executor');
+      expect(result[1]).toContain('pbr:executor');
       expect(result[1]).toContain('Execute plan 01');
 
       cleanup(tmpDir);
@@ -209,7 +209,7 @@ Implement JWT authentication middleware
 
       const hookEntries = [];
       for (let i = 0; i < 10; i++) {
-        hookEntries.push(JSON.stringify({ ts: `2026-01-01T00:0${i}:00Z`, hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: `dev:towline-agent-${i}` }));
+        hookEntries.push(JSON.stringify({ ts: `2026-01-01T00:0${i}:00Z`, hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: `pbr:agent-${i}` }));
       }
       fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
 

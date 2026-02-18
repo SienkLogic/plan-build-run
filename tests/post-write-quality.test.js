@@ -1,13 +1,13 @@
-const { checkQuality, loadHooksConfig, findLocalBin, detectConsoleLogs } = require('../plugins/dev/scripts/post-write-quality');
+const { checkQuality, loadHooksConfig, findLocalBin, detectConsoleLogs } = require('../plugins/pbr/scripts/post-write-quality');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'post-write-quality.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'post-write-quality.js');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-pwq-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pwq-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });

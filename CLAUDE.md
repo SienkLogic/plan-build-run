@@ -4,18 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Towline is a **Claude Code plugin** that provides a structured development workflow. It solves context rot — quality degradation as Claude's context window fills up — through disciplined subagent delegation, file-based state, and goal-backward verification. Users invoke `/dev:*` slash commands (skills) that orchestrate specialized agents via `Task()`.
+Plan-Build-Run is a **Claude Code plugin** that provides a structured development workflow. It solves context rot — quality degradation as Claude's context window fills up — through disciplined subagent delegation, file-based state, and goal-backward verification. Users invoke `/pbr:*` slash commands (skills) that orchestrate specialized agents via `Task()`.
 
 ## Critical Rules
 
 - **NEVER add AI co-author lines** to git commits or PRs. No `Co-Authored-By: Claude` or similar. Only add co-author lines referencing actual human contributors.
-- **NEVER inline agent definitions** into skill prompts. Use `subagent_type: "dev:towline-{name}"` — Claude Code auto-loads agent definitions from `agents/`. Reading agent `.md` files wastes main context.
+- **NEVER inline agent definitions** into skill prompts. Use `subagent_type: "pbr:{name}"` — Claude Code auto-loads agent definitions from `agents/`. Reading agent `.md` files wastes main context.
 
 ## Commands
 
 ```bash
 npm test                                    # Run all Jest tests (~780 tests, 36 suites)
-npm run lint                                # ESLint on plugins/dev/scripts/ and tests/
+npm run lint                                # ESLint on plugins/pbr/scripts/ and tests/
 npm run validate                            # Validate plugin directory structure
 npx jest tests/validate-commit.test.js      # Run a single test file
 npx jest --coverage                         # Run with coverage report
@@ -38,15 +38,15 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. All three platforms m
 
 ## Architecture
 
-All plugin code lives under `plugins/dev/`. Three layers:
+All plugin code lives under `plugins/pbr/`. Three layers:
 
 ### Skills (`skills/{name}/SKILL.md`)
-Markdown files with YAML frontmatter defining slash commands (`/dev:begin`, `/dev:plan`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
+Markdown files with YAML frontmatter defining slash commands (`/pbr:begin`, `/pbr:plan`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
 21 skills: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, todo.
 
-### Agents (`agents/towline-{name}.md`)
-Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "dev:towline-{name}"` — auto-loaded by Claude Code.
+### Agents (`agents/{name}.md`)
+Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "pbr:{name}"` — auto-loaded by Claude Code.
 
 10 agents: researcher, planner, plan-checker, executor, verifier, integration-checker, debugger, codebase-mapper, synthesizer, general.
 
@@ -98,10 +98,10 @@ argument-hint: "<N> [--flag]"
 ---
 ```
 
-**Agent frontmatter** (towline-{name}.md):
+**Agent frontmatter** ({name}.md):
 ```yaml
 ---
-name: towline-agent-name
+name: agent-name
 description: "What this agent does"
 model: sonnet|inherit|haiku
 memory: none|user|project
@@ -128,7 +128,7 @@ Skills and agents communicate through files on disk, not messages:
 
 The orchestrator stays lean (~15% context) by delegating heavy work to agents. Each agent gets a fresh context window.
 
-**Utility library**: `towline-tools.js` is a shared Node.js library (stateLoad, configLoad, frontmatterParse, mustHavesCollect, etc.) used by multiple hook scripts. It provides CLI subcommands that agents call to avoid wasting tokens on file parsing.
+**Utility library**: `pbr-tools.js` is a shared Node.js library (stateLoad, configLoad, frontmatterParse, mustHavesCollect, etc.) used by multiple hook scripts. It provides CLI subcommands that agents call to avoid wasting tokens on file parsing.
 
 ## Testing
 
@@ -138,7 +138,7 @@ Tests live in `tests/` using Jest. Test files mirror script names: `validate-com
 
 **Mutation tests**: Use `fs.mkdtempSync()` to create temporary directories — never mutate the fixture project.
 
-**`towline-tools.js` tests** span both `towline-tools.test.js` and `integration.test.js`.
+**`pbr-tools.js` tests** span both `pbr-tools.test.js` and `integration.test.js`.
 
 When adding a new hook script, create a corresponding test file. Tests must pass on Windows, macOS, and Linux.
 

@@ -1,11 +1,11 @@
-# Contributing to Towline
+# Contributing to Plan-Build-Run
 
-Thank you for your interest in contributing to Towline! This guide will help you get started.
+Thank you for your interest in contributing to Plan-Build-Run! This guide will help you get started.
 
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/towline.git`
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/plan-build-run.git`
 3. Install dependencies: `npm install`
 4. Run tests: `npm test`
 5. Load the plugin locally: `claude --plugin-dir .`
@@ -15,7 +15,7 @@ Thank you for your interest in contributing to Towline! This guide will help you
 | Contribution Type | What to Do | Files Touched |
 |-------------------|-----------|---------------|
 | New skill | Create `skills/my-skill/SKILL.md` + supporting files | 1 directory (no existing files changed) |
-| New agent | Create `agents/towline-my-agent.md` | 1 file |
+| New agent | Create `agents/my-agent.md` | 1 file |
 | New hook | Add script to `scripts/`, add entry to `hooks/hooks.json` | 2 files |
 | Bug fix in skill | Edit the specific `SKILL.md` | 1 file |
 | Bug fix in script | Edit script + update test | 2 files |
@@ -42,19 +42,19 @@ Thank you for your interest in contributing to Towline! This guide will help you
    ---
    ```
 
-3. Test your skill: `claude --plugin-dir . "/dev:my-skill"`
+3. Test your skill: `claude --plugin-dir . "/pbr:my-skill"`
 
 ### Adding or Modifying an Agent
 
 1. Create or edit a markdown file in `agents/`:
    ```
-   agents/towline-my-agent.md
+   agents/my-agent.md
    ```
 
 2. Include valid YAML frontmatter:
    ```yaml
    ---
-   name: towline-my-agent
+   name: my-agent
    description: "What this agent does"
    model: sonnet|inherit|haiku
    memory: none|user|project

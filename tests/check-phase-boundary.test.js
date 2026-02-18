@@ -1,13 +1,13 @@
-const { getEnforceSetting } = require('../plugins/dev/scripts/check-phase-boundary');
+const { getEnforceSetting } = require('../plugins/pbr/scripts/check-phase-boundary');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'dev', 'scripts', 'check-phase-boundary.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-phase-boundary.js');
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'towline-cpb-'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-cpb-'));
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });

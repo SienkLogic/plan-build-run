@@ -1,5 +1,5 @@
 /**
- * Schema validation tests for Towline configuration files.
+ * Schema validation tests for Plan-Build-Run configuration files.
  *
  * Validates hooks.json and config-schema.json structures without
  * requiring a JSON Schema validator library (no ajv dependency).
@@ -8,8 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'dev', 'scripts');
-const HOOKS_DIR = path.resolve(__dirname, '..', 'plugins', 'dev', 'hooks');
+const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts');
+const HOOKS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'hooks');
 
 const VALID_HOOK_EVENTS = [
   'SessionStart', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
@@ -220,7 +220,7 @@ describe('config-schema.json is valid JSON Schema', () => {
 
 describe('plugin.json manifest constraints', () => {
   const pluginJsonPath = path.join(
-    path.resolve(__dirname, '..', 'plugins', 'dev', '.claude-plugin'),
+    path.resolve(__dirname, '..', 'plugins', 'pbr', '.claude-plugin'),
     'plugin.json'
   );
   const plugin = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));

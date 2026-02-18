@@ -14,7 +14,7 @@ export async function getHomepage(projectDir) {
     const { frontmatter, html } = await readMarkdownFile(readmePath);
 
     return {
-      title: frontmatter.title || 'Towline Dashboard',
+      title: frontmatter.title || 'PBR Dashboard',
       projectDir,
       content: html
     };
