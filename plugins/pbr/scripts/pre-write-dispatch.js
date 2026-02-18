@@ -7,10 +7,45 @@
  * and check-doc-sprawl.js into a single process, reading stdin once
  * and running all checks sequentially.
  *
- * Check order matters: skill workflow runs first (can block writes
- * that violate planning rules), then phase boundary (can block or
- * warn about cross-phase writes), then doc sprawl (blocks new .md/.txt
- * files outside the allowlist when enabled).
+ * ── Dispatch Order & Rationale ──────────────────────────────────
+ *
+ *   1. check-skill-workflow  — Enforces planning-phase rules (e.g. no
+ *      code writes during the plan phase). Runs first because workflow
+ *      violations are the most fundamental: if the write shouldn't
+ *      happen at all in the current workflow state, there's no point
+ *      evaluating boundary or sprawl rules. Can block (exit 2).
+ *
+ *   2. check-phase-boundary  — Guards against writes that target files
+ *      outside the current phase directory. Runs second because once
+ *      we know the write is allowed by workflow rules, we need to
+ *      verify it's scoped to the correct phase. Can block (exit 2)
+ *      or warn (exit 0 with message).
+ *
+ *   3. check-doc-sprawl      — Prevents creation of new .md/.txt files
+ *      outside a known allowlist (when enabled in config). Runs last
+ *      because it's the most granular check — only relevant for new
+ *      documentation files, not all writes. Can block (exit 2).
+ *
+ * ── Short-Circuit Behavior ──────────────────────────────────────
+ *
+ *   If an earlier check returns a result (blocking or warning with
+ *   output), later checks are skipped entirely. For blocking results
+ *   (exit 2), this means the write is rejected without evaluating
+ *   remaining checks. This is intentional: the first failure is the
+ *   most relevant, and running further checks would be wasteful.
+ *
+ * ── Adding New Checks ───────────────────────────────────────────
+ *
+ *   1. Create a new check module exporting a function that takes
+ *      the parsed hook data and returns null (pass) or
+ *      { output: {...}, exitCode: N }.
+ *   2. require() it at the top of this file.
+ *   3. Add the call in sequence below, following the pattern:
+ *        const result = checkFoo(data);
+ *        if (result) { write output; exit with code; }
+ *   4. Position the check based on severity: more fundamental /
+ *      broader checks should run earlier; narrow / granular checks
+ *      should run later.
  *
  * Exit codes:
  *   0 = allowed or warning only

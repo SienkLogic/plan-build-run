@@ -16,7 +16,9 @@ const {
   findRoadmapRow,
   resolveDepthProfile,
   historyAppend,
-  historyLoad
+  historyLoad,
+  VALID_STATUS_TRANSITIONS,
+  validateStatusTransition
 } = require('../plugins/pbr/scripts/pbr-tools');
 
 describe('pbr-tools.js', () => {
@@ -683,6 +685,106 @@ next_top_level: something`;
       expect(result.records[1].type).toBe('milestone');
       expect(result.records[1].title).toBe('v1.0 Auth');
       expect(result.line_count).toBeGreaterThan(0);
+    });
+  });
+
+  describe('VALID_STATUS_TRANSITIONS', () => {
+    test('defines transitions for all known statuses', () => {
+      const expectedStatuses = ['pending', 'planned', 'building', 'built', 'partial', 'verified', 'needs_fixes', 'skipped'];
+      for (const status of expectedStatuses) {
+        expect(VALID_STATUS_TRANSITIONS).toHaveProperty(status);
+        expect(Array.isArray(VALID_STATUS_TRANSITIONS[status])).toBe(true);
+        expect(VALID_STATUS_TRANSITIONS[status].length).toBeGreaterThan(0);
+      }
+    });
+
+    test('pending can transition to planned and skipped', () => {
+      expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'skipped']);
+    });
+
+    test('planned can transition to building', () => {
+      expect(VALID_STATUS_TRANSITIONS.planned).toEqual(['building']);
+    });
+
+    test('building can transition to built, partial, or needs_fixes', () => {
+      expect(VALID_STATUS_TRANSITIONS.building).toEqual(['built', 'partial', 'needs_fixes']);
+    });
+
+    test('built can transition to verified or needs_fixes', () => {
+      expect(VALID_STATUS_TRANSITIONS.built).toEqual(['verified', 'needs_fixes']);
+    });
+
+    test('verified can transition to building (re-execution)', () => {
+      expect(VALID_STATUS_TRANSITIONS.verified).toEqual(['building']);
+    });
+
+    test('needs_fixes can transition to planned or building', () => {
+      expect(VALID_STATUS_TRANSITIONS.needs_fixes).toEqual(['planned', 'building']);
+    });
+
+    test('skipped can transition to pending (unskip)', () => {
+      expect(VALID_STATUS_TRANSITIONS.skipped).toEqual(['pending']);
+    });
+  });
+
+  describe('validateStatusTransition', () => {
+    test('valid transition returns { valid: true }', () => {
+      expect(validateStatusTransition('pending', 'planned')).toEqual({ valid: true });
+      expect(validateStatusTransition('planned', 'building')).toEqual({ valid: true });
+      expect(validateStatusTransition('building', 'built')).toEqual({ valid: true });
+      expect(validateStatusTransition('built', 'verified')).toEqual({ valid: true });
+      expect(validateStatusTransition('verified', 'building')).toEqual({ valid: true });
+      expect(validateStatusTransition('needs_fixes', 'building')).toEqual({ valid: true });
+      expect(validateStatusTransition('skipped', 'pending')).toEqual({ valid: true });
+    });
+
+    test('invalid transition returns { valid: false, warning }', () => {
+      const result = validateStatusTransition('pending', 'verified');
+      expect(result.valid).toBe(false);
+      expect(result.warning).toContain('Suspicious status transition');
+      expect(result.warning).toContain('"pending"');
+      expect(result.warning).toContain('"verified"');
+      expect(result.warning).toContain('planned, skipped');
+    });
+
+    test('pending -> built is invalid', () => {
+      const result = validateStatusTransition('pending', 'built');
+      expect(result.valid).toBe(false);
+    });
+
+    test('planned -> verified is invalid (skips building)', () => {
+      const result = validateStatusTransition('planned', 'verified');
+      expect(result.valid).toBe(false);
+    });
+
+    test('skipped -> building is invalid (must unskip first)', () => {
+      const result = validateStatusTransition('skipped', 'building');
+      expect(result.valid).toBe(false);
+    });
+
+    test('same status is always valid (no-op)', () => {
+      expect(validateStatusTransition('building', 'building')).toEqual({ valid: true });
+      expect(validateStatusTransition('pending', 'pending')).toEqual({ valid: true });
+    });
+
+    test('unknown old status is treated as valid (cannot validate)', () => {
+      expect(validateStatusTransition('some_custom_status', 'building')).toEqual({ valid: true });
+    });
+
+    test('handles whitespace and case normalization', () => {
+      expect(validateStatusTransition('  Pending ', ' Planned ')).toEqual({ valid: true });
+      expect(validateStatusTransition('BUILDING', 'BUILT')).toEqual({ valid: true });
+    });
+
+    test('handles null/undefined old status gracefully', () => {
+      expect(validateStatusTransition(null, 'planned')).toEqual({ valid: true });
+      expect(validateStatusTransition(undefined, 'building')).toEqual({ valid: true });
+    });
+
+    test('handles null/undefined new status gracefully', () => {
+      // empty string from null won't match any allowed transition from pending
+      const result = validateStatusTransition('pending', null);
+      expect(result.valid).toBe(false);
     });
   });
 

@@ -4,6 +4,20 @@ description: "Show current project status and suggest what to do next."
 allowed-tools: Read, Glob, Grep, AskUserQuestion
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► PROJECT STATUS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 # /pbr:status — Project Status Dashboard
 
 You are running the **status** skill. Your job is to read the project state and present a clear, actionable status dashboard. You suggest the most logical next action based on where the project is.

@@ -72,25 +72,28 @@ Create the directory if it doesn't exist.
 
 ## Exploration Process
 
+> **Cross-platform note**: Use Glob and Read tools (not Bash `ls`, `find`, or `cat`) for all file and directory discovery. Bash file commands fail on Windows due to path separator issues. Use Grep for content searching instead of `grep`.
+
 For any focus area, follow this general exploration pattern:
 
 ### Step 1: Orientation
 
-```bash
-# Get directory structure overview
-find . -type f -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.py" -o -name "*.go" -o -name "*.rs" | head -100
+```
+# Get directory structure overview — use Glob for each language
+Glob("**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
+Glob("**/*.py", "**/*.go", "**/*.rs")
 
-# Find key configuration files
-ls -la package.json tsconfig.json .eslintrc* .prettierrc* jest.config* vite.config* next.config* webpack.config* Makefile CMakeLists.txt requirements.txt pyproject.toml Cargo.toml go.mod 2>/dev/null
+# Find key configuration files — use Glob
+Glob("package.json", "tsconfig.json", ".eslintrc*", ".prettierrc*", "jest.config*", "vite.config*", "next.config*", "webpack.config*", "Makefile", "CMakeLists.txt", "requirements.txt", "pyproject.toml", "Cargo.toml", "go.mod")
 
-# Check for documentation
-ls -la README.md CLAUDE.md .cursorrules docs/ 2>/dev/null
+# Check for documentation — use Glob
+Glob("README.md", "CLAUDE.md", ".cursorrules", "docs/**/*")
 
-# Check for Docker
-ls -la Dockerfile docker-compose.yml .dockerignore 2>/dev/null
+# Check for Docker — use Glob
+Glob("Dockerfile", "docker-compose.yml", ".dockerignore")
 
-# Check for CI/CD
-ls -la .github/workflows/ .gitlab-ci.yml Jenkinsfile .circleci/ 2>/dev/null
+# Check for CI/CD — use Glob
+Glob(".github/workflows/*", ".gitlab-ci.yml", "Jenkinsfile", ".circleci/*")
 ```
 
 ### Step 2: Deep Inspection
@@ -172,66 +175,71 @@ Target output sizes for this agent's artifacts. Exceeding these targets wastes p
 
 ## Exploration Commands
 
+Use Glob, Read, and Grep tools instead of Bash commands for cross-platform compatibility.
+
 ### Node.js/TypeScript Projects
 
-```bash
-# Package info
-cat package.json | head -50
-cat package-lock.json | head -5  # Check package manager version
+```
+# Package info — use Read
+Read("package.json")
+Read("package-lock.json", limit: 5)
 
-# TypeScript config
-cat tsconfig.json
+# TypeScript config — use Read
+Read("tsconfig.json")
 
-# Linting/formatting config
-cat .eslintrc* .prettierrc* 2>/dev/null
+# Linting/formatting config — use Glob then Read
+Glob(".eslintrc*", ".prettierrc*")
 
-# Entry points
-grep -rn "export default\|createServer\|listen\|app\." src/ --include="*.ts" | head -20
+# Entry points — use Grep
+Grep("export default|createServer|listen|app\\.", glob: "*.ts", path: "src/")
 
-# Route definitions
-grep -rn "router\.\|app\.\(get\|post\|put\|delete\|use\)" src/ --include="*.ts" --include="*.js"
+# Route definitions — use Grep
+Grep("router\\.|app\\.(get|post|put|delete|use)", glob: "*.{ts,js}", path: "src/")
 
-# Test config
-cat jest.config* vitest.config* 2>/dev/null
+# Test config — use Glob then Read
+Glob("jest.config*", "vitest.config*")
 
-# Database config
-cat prisma/schema.prisma 2>/dev/null
-grep -rn "createConnection\|createPool\|mongoose.connect\|PrismaClient" src/ --include="*.ts"
+# Database config — use Read and Grep
+Read("prisma/schema.prisma")  # if it exists
+Grep("createConnection|createPool|mongoose\\.connect|PrismaClient", glob: "*.ts", path: "src/")
 
-# Environment variables used
-grep -rn "process\.env\.\|import\.meta\.env\." src/ --include="*.ts" --include="*.tsx"
+# Environment variables used — use Grep
+Grep("process\\.env\\.|import\\.meta\\.env\\.", glob: "*.{ts,tsx}", path: "src/")
 ```
 
 ### Python Projects
 
-```bash
-# Dependencies
-cat requirements.txt pyproject.toml setup.py setup.cfg 2>/dev/null
+```
+# Dependencies — use Glob then Read
+Glob("requirements.txt", "pyproject.toml", "setup.py", "setup.cfg")
 
-# Entry points
-grep -rn "if __name__.*__main__\|app\s*=\s*Flask\|app\s*=\s*FastAPI" . --include="*.py"
+# Entry points — use Grep
+Grep("if __name__.*__main__|app\\s*=\\s*Flask|app\\s*=\\s*FastAPI", glob: "*.py")
 
-# Config
-cat settings.py config.py .env.example 2>/dev/null
+# Config — use Glob then Read
+Glob("settings.py", "config.py", ".env.example")
 
-# Tests
-find . -name "test_*.py" -o -name "*_test.py" | head -20
-cat pytest.ini pyproject.toml 2>/dev/null | grep -A20 "\[tool.pytest"
+# Tests — use Glob
+Glob("**/test_*.py", "**/*_test.py")
+Read("pyproject.toml")  # check [tool.pytest] section
 ```
 
 ### General
 
 ```bash
-# Git info
+# Git info (these Bash commands are cross-platform safe)
 git log --oneline -10
 git remote -v
+```
 
-# Docker
-cat Dockerfile docker-compose.yml 2>/dev/null
+```
+# Docker — use Read
+Read("Dockerfile")
+Read("docker-compose.yml")
 
-# CI/CD
-ls -la .github/workflows/ 2>/dev/null
-cat .github/workflows/*.yml 2>/dev/null | head -50
+# CI/CD — use Glob then Read
+Glob(".github/workflows/*")
+# Then Read each workflow file found
 ```
 
 ---

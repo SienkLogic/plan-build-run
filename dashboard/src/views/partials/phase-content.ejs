@@ -66,6 +66,13 @@
     <% } %>
   </header>
 
+  <p>
+    <a href="/phases/<%= phaseId %>/<%= plan.planId %>/plan">View Plan</a>
+    <% if (plan.summary) { %>
+      &nbsp;|&nbsp; <a href="/phases/<%= phaseId %>/<%= plan.planId %>/summary">View Summary</a>
+    <% } %>
+  </p>
+
   <% if (plan.summary) { %>
 
     <% if (plan.summary.subsystem) { %>

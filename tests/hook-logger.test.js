@@ -138,6 +138,56 @@ describe('hook-logger.js', () => {
     expect(newEntry.hook).toBe('new-hook');
   });
 
+  test('includes duration_ms when startTime is provided', () => {
+    const { logHook } = getLogger();
+    const startTime = Date.now() - 42;
+    logHook('timed-hook', 'PreToolUse', 'allow', {}, startTime);
+
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+
+    expect(entry.hook).toBe('timed-hook');
+    expect(typeof entry.duration_ms).toBe('number');
+    expect(entry.duration_ms).toBeGreaterThanOrEqual(42);
+    expect(entry.duration_ms).toBeLessThan(5000); // sanity bound
+  });
+
+  test('omits duration_ms when startTime is not provided', () => {
+    const { logHook } = getLogger();
+    logHook('no-time-hook', 'PreToolUse', 'allow', { extra: 'data' });
+
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+
+    expect(entry.hook).toBe('no-time-hook');
+    expect(entry.extra).toBe('data');
+    expect(entry.duration_ms).toBeUndefined();
+  });
+
+  test('omits duration_ms when startTime is invalid', () => {
+    const { logHook } = getLogger();
+    logHook('bad-time-hook', 'PreToolUse', 'allow', {}, -1);
+
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+
+    expect(entry.duration_ms).toBeUndefined();
+  });
+
+  test('omits duration_ms when startTime is not a number', () => {
+    const { logHook } = getLogger();
+    logHook('string-time-hook', 'PreToolUse', 'allow', {}, 'not-a-number');
+
+    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+
+    expect(entry.duration_ms).toBeUndefined();
+  });
+
   test('auto-creates logs/ directory when only .planning/ exists', () => {
     // .planning/ exists from beforeEach but logs/ does not
     const logsDir = path.join(planningDir, 'logs');

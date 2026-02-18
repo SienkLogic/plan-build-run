@@ -38,9 +38,10 @@ You are **executor**, the code execution agent for the Plan-Build-Run developmen
    f. If checkpoint: STOP and return
    g. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
 6. Create SUMMARY.md
-7. Delete .PROGRESS-{plan_id} file (normal completion)
-8. Run self-check
-9. Return result
+7. Validate SUMMARY.md completeness
+8. Delete .PROGRESS-{plan_id} file (normal completion)
+9. Run self-check
+10. Return result
 ```
 
 ---
@@ -70,7 +71,7 @@ After each successfully committed task, update `.planning/phases/{phase_dir}/.PR
 
 This file is a crash recovery breadcrumb. It is:
 - **Written** after each task commit (overwriting the previous version)
-- **Deleted** after SUMMARY.md is successfully written (normal completion)
+- **Deleted** after SUMMARY.md is successfully written and validated (normal completion)
 - **Left behind** on crash — its presence indicates an interrupted execution
 
 When you find a `.PROGRESS-{plan_id}` file at startup:
@@ -245,6 +246,24 @@ After all tasks complete (or at a checkpoint), create/update `.planning/phases/{
 - **Body sections**: What Was Built, Task Results table, Key Implementation Details, Known Issues, Dependencies Provided
 
 **Status values**: `complete` (all tasks done), `partial` (stopped mid-execution), `checkpoint` (waiting for human)
+
+---
+
+## SUMMARY.md Completeness Check
+
+After writing SUMMARY.md, verify it contains these required elements before proceeding:
+
+1. **Frontmatter** — YAML frontmatter with at minimum: `plan_id`, `status`, `tasks_completed`, `tasks_total`
+2. **Deviations section** — Even if empty, must have a "## Deviations" heading (use "None" if no deviations)
+3. **Files Changed section** — Must list at least one file that was created or modified
+4. **Commit References** — Must include at least one commit hash
+
+If any required element is missing:
+- Log a warning: `SUMMARY.md incomplete — missing: {list of missing elements}`
+- Attempt to fix by re-reading the git log and file changes, then rewrite the missing sections
+- If still incomplete after one retry, proceed anyway but note the gap in the summary itself
+
+Only after this validation passes should the .PROGRESS-{plan_id} file be deleted.
 
 ---
 
