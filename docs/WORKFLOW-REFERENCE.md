@@ -1,6 +1,6 @@
 # Workflow Reference
 
-A complete guide to Towline's 21 commands and how they fit together.
+A complete guide to Towline's 21 skills and how they fit together.
 
 ---
 
