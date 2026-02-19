@@ -141,11 +141,11 @@ function main() {
   writeAutoVerifySignal(planningDir, stateInfo.phase);
 
   const output = {
-    message: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.`
+    additionalContext: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.`
   };
   process.stdout.write(JSON.stringify(output));
   process.exit(0);
 }
 
 module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

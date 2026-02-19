@@ -313,7 +313,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         const result = checkStateSync(data);
 
         expect(result).not.toBeNull();
-        expect(result.output.message).toContain('ROADMAP.md');
+        expect(result.output.additionalContext).toContain('ROADMAP.md');
 
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
         expect(updated).toContain('1/2');
@@ -437,7 +437,7 @@ Progress: [██████████░░░░░░░░░░] 50%
         const result = checkStateSync(data);
 
         expect(result).not.toBeNull();
-        expect(result.output.message).toContain('ROADMAP.md');
+        expect(result.output.additionalContext).toContain('ROADMAP.md');
 
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
         expect(updated).toContain('1/1');
@@ -463,7 +463,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         const result = checkStateSync(data);
 
         expect(result).not.toBeNull();
-        expect(result.output.message).toContain('STATE.md');
+        expect(result.output.additionalContext).toContain('STATE.md');
       });
 
       test('handles Windows-style backslash paths', () => {
@@ -478,7 +478,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         // It may or may not find tracking files depending on cwd, but it should not return null
         // due to path normalization (the file is inside .planning/phases/)
         // The important thing is it doesn't crash and the path guard doesn't reject it
-        expect(result === null || result.output.message).toBeTruthy();
+        expect(result === null || result.output.additionalContext).toBeTruthy();
       });
     });
   });

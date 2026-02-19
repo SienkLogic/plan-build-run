@@ -284,4 +284,4 @@ function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighl
 }
 
 module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

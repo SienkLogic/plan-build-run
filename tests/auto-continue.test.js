@@ -20,11 +20,12 @@ describe('auto-continue.js', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function run() {
+  function run(stdinData = '') {
     return execSync(`node "${SCRIPT}"`, {
       cwd: tmpDir,
       encoding: 'utf8',
       timeout: 5000,
+      input: stdinData,
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   }
@@ -72,14 +73,26 @@ describe('auto-continue.js', () => {
     expect(entry.decision).toBe('no-signal');
   });
 
-  test('reads signal file and outputs next command', () => {
+  test('reads signal file and outputs block decision with next command', () => {
     writeConfig();
     writeSignal('/pbr:build 3');
 
     const output = run();
     const parsed = JSON.parse(output);
-    expect(parsed.command).toBe('/pbr:build 3');
-    expect(parsed.message).toContain('/pbr:build 3');
+    expect(parsed.decision).toBe('block');
+    expect(parsed.reason).toContain('/pbr:build 3');
+  });
+
+  test('exits silently when stop_hook_active is true (prevents infinite loops)', () => {
+    writeConfig();
+    writeSignal('/pbr:build 3');
+
+    const output = run(JSON.stringify({ stop_hook_active: true }));
+    expect(output).toBe('');
+
+    // Signal file should NOT be consumed
+    const signalPath = path.join(planningDir, '.auto-next');
+    expect(fs.existsSync(signalPath)).toBe(true);
   });
 
   test('deletes signal file after reading (one-shot)', () => {
