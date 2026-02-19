@@ -142,13 +142,24 @@ if (fs.existsSync(hooksJsonPath)) {
         for (const handler of handlers) {
           if (handler.command) {
             const cmd = handler.command.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
-            const parts = cmd.split(' ');
-            const scriptPart = parts.find(p => p.endsWith('.js'));
-            if (scriptPart) {
-              const scriptPath = scriptPart.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
-              const resolvedPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(ROOT, scriptPath);
+            // Handle run-hook.js bootstrap pattern: command ends with "run-hook.js\" scriptName.js"
+            const runHookMatch = cmd.match(/run-hook\.js[^"]*\)?\)?"?\s+(\S+\.js)/);
+            if (runHookMatch) {
+              // Script is dispatched via run-hook.js — look in scripts/ dir
+              const scriptName = runHookMatch[1];
+              const resolvedPath = path.join(ROOT, 'scripts', scriptName);
               if (!fs.existsSync(resolvedPath)) {
-                error(`hooks.json references missing script: ${scriptPart}`);
+                error(`hooks.json references missing script: ${scriptName}`);
+              }
+            } else {
+              const parts = cmd.split(' ');
+              const scriptPart = parts.find(p => p.endsWith('.js'));
+              if (scriptPart) {
+                const scriptPath = scriptPart.replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, ROOT);
+                const resolvedPath = path.isAbsolute(scriptPath) ? scriptPath : path.join(ROOT, scriptPath);
+                if (!fs.existsSync(resolvedPath)) {
+                  error(`hooks.json references missing script: ${scriptPart}`);
+                }
               }
             }
           }
