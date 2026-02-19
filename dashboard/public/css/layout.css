@@ -267,6 +267,72 @@ details li {
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* --- Markdown Body (rendered markdown content) --- */
+.markdown-body h1 { font-size: 1.5rem; margin-top: var(--space-xl); margin-bottom: var(--space-sm); }
+.markdown-body h2 { font-size: 1.25rem; margin-top: var(--space-xl); margin-bottom: var(--space-sm); }
+.markdown-body h3 { font-size: 1.05rem; margin-top: var(--space-lg); margin-bottom: var(--space-xs); }
+
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--space-md) 0;
+  font-size: 0.875rem;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border-subtle);
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+}
+
+.markdown-body th {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  overflow-x: auto;
+  margin: var(--space-md) 0;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid var(--pico-primary);
+  background: rgba(255, 255, 255, 0.02);
+  margin: var(--space-md) 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.markdown-body ul.contains-task-list {
+  list-style: none;
+  padding-left: var(--space-sm);
+}
+
+.markdown-body ul.contains-task-list li {
+  position: relative;
+  padding-left: var(--space-xs);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--space-lg) 0;
+}
+
 /* --- Back Link --- */
 main > p:first-of-type > a[href="/"] {
   font-size: 0.875rem;
