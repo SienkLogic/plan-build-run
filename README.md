@@ -147,6 +147,11 @@ npm run dashboard
 npm run dashboard -- --dir /path/to/your/project --port 3000
 ```
 
+Or launch it directly from a Claude Code or Cursor session:
+```
+/pbr:dashboard
+```
+
 Opens at `http://127.0.0.1:3000` with live updates via SSE.
 
 </details>
