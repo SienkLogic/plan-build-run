@@ -86,7 +86,7 @@ function main() {
         fs.renameSync(tmpPath, trackerPath);
       } catch (_e) {
         // Best-effort — clean up temp file if rename failed
-        try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) {}
+        try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
       }
 
       // Check thresholds — only warn at milestone crossings, not every read
