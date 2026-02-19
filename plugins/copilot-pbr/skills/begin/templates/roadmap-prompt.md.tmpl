@@ -1,0 +1,31 @@
+<\!-- canonical: ../../../../pbr/skills/begin/templates/roadmap-prompt.md.tmpl -->
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning the planner agent in roadmap mode -->
+
+<project_context>
+Project: {project name}
+Description: {description}
+Depth: {quick|standard|comprehensive}
+</project_context>
+
+<roadmap_instructions>
+Create a project roadmap following the Roadmap Mode instructions in your agent definition.
+
+Read these files for context:
+- .planning/REQUIREMENTS.md — committed requirements
+- .planning/research/SUMMARY.md — research synthesis (if it exists)
+
+Phase count guidelines based on depth:
+- quick: 3-5 phases
+- standard: 5-8 phases
+- comprehensive: 8-12 phases
+
+Each phase should:
+1. Have a clear, achievable goal
+2. Map to specific REQ-IDs
+3. Build on prior phases logically
+4. Be independently verifiable
+
+Write the roadmap to .planning/ROADMAP.md using the roadmap format from your agent definition.
+</roadmap_instructions>
+
+Write the roadmap to .planning/ROADMAP.md using the Write tool.

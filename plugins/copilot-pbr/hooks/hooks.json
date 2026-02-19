@@ -1,0 +1,144 @@
+{
+  "$schema": "../../pbr/scripts/hooks-schema.json",
+  "description": "Plan-Build-Run workflow hooks for Copilot CLI plugin — delegates to shared scripts in plugins/pbr/scripts/",
+  "hooks": {
+    "sessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" progress-tracker.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') progress-tracker.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" post-write-dispatch.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') post-write-dispatch.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" post-write-quality.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') post-write-quality.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" check-subagent-output.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') check-subagent-output.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" suggest-compact.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') suggest-compact.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" track-context-budget.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') track-context-budget.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" pre-bash-dispatch.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') pre-bash-dispatch.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" pre-write-dispatch.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') pre-write-dispatch.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" validate-task.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') validate-task.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" validate-skill-args.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') validate-skill-args.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      }
+    ],
+    "sessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" session-cleanup.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') session-cleanup.js",
+            "cwd": ".",
+            "timeoutSec": 30
+          }
+        ]
+      }
+    ]
+  }
+}
