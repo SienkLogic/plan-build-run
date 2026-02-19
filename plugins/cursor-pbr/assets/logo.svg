@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+  <!-- Plan: circle -->
+  <circle cx="12" cy="32" r="9" fill="#0F766E" opacity="0.9"/>
+  <!-- Build: square -->
+  <rect x="23" y="23" width="18" height="18" rx="3" fill="#0D9488" opacity="0.9"/>
+  <!-- Run: triangle -->
+  <polygon points="52,23 62,32 52,41" fill="#0EA5E9" opacity="0.9"/>
+  <!-- Connecting lines -->
+  <line x1="21" y1="32" x2="23" y2="32" stroke="#94A3B8" stroke-width="1.5"/>
+  <line x1="41" y1="32" x2="52" y2="32" stroke="#94A3B8" stroke-width="1.5"/>
+  <!-- Labels -->
+  <text x="12" y="50" text-anchor="middle" font-family="system-ui,sans-serif" font-size="5" fill="#475569">P</text>
+  <text x="32" y="50" text-anchor="middle" font-family="system-ui,sans-serif" font-size="5" fill="#475569">B</text>
+  <text x="55" y="50" text-anchor="middle" font-family="system-ui,sans-serif" font-size="5" fill="#475569">R</text>
+</svg>
