@@ -379,10 +379,11 @@ Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
 **After the planner completes:**
 - Read `.planning/ROADMAP.md`
-- Count the phases and milestones from the roadmap content
+- Count the phases from the roadmap content
+- Verify the roadmap contains a `## Milestone:` section wrapping the phases (the planner should generate this). If not, the initial set of phases constitutes the first milestone — add the section header yourself.
 - Display:
   ```
-  ✓ Roadmap created — {N} phases across {M} milestones
+  ✓ Roadmap created — {N} phases in milestone "{name}"
   ```
 - If `gates.confirm_roadmap` is true in config, use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
   question: "Approve this roadmap?"
@@ -544,6 +545,7 @@ Then use the "Next Up" routing block:
 **Also available:**
 - `/pbr:explore` — open-ended exploration before planning
 - `/pbr:plan 1` — jump straight to planning Phase 1
+- `/pbr:milestone new` — add a second milestone with new phases
 - `/pbr:config` — adjust workflow settings
 
 ───────────────────────────────────────────────────────────────

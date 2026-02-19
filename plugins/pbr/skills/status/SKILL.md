@@ -251,7 +251,7 @@ Based on the project state, suggest the single most logical next action:
          YES → "Re-plan with updated context: `/pbr:plan {N+1}`"
          NO → "Build the next phase: `/pbr:build {N+1}`"
        NO → "Plan the next phase: `/pbr:plan {N+1}`"
-     NO → "All phases complete! Your next steps:\n       -> /pbr:milestone audit — verify cross-phase integration (recommended)\n       -> /pbr:milestone complete — archive this milestone and create a git tag\n       -> /pbr:milestone new — start planning the next set of features"
+     NO → Check for existing `*-MILESTONE-AUDIT.md` in `.planning/`:\n       IF audit passed → "All phases complete and audited! `/pbr:milestone complete` to archive and tag."\n       IF audit has gaps → "Audit found gaps. `/pbr:milestone gaps` to address them."\n       IF no audit → "All phases complete! `/pbr:milestone audit` to verify cross-phase integration (recommended), then `/pbr:milestone complete`."
 
 6. Is the current phase not started?
    YES → Has it been discussed?
@@ -317,7 +317,10 @@ Build options dynamically from the decision tree results. Always include "Someth
 
 ### All phases complete
 - Celebrate briefly: "All phases complete!"
-- Suggest: `/pbr:milestone audit` to verify cross-phase integration (recommended first)
+- Check for existing audit report: look for `*-MILESTONE-AUDIT.md` in `.planning/`
+  - **If audit exists and passed:** Suggest `/pbr:milestone complete` to archive (audit already done)
+  - **If audit exists with gaps:** Suggest `/pbr:milestone gaps` to address issues
+  - **If no audit exists:** Suggest `/pbr:milestone audit` to verify cross-phase integration (recommended first)
 - Then: `/pbr:milestone complete` to archive the milestone and tag it
 - Or: `/pbr:milestone new` to start the next set of features
 

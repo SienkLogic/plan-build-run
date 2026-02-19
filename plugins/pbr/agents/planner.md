@@ -38,6 +38,8 @@ Invoked with plan-checker feedback containing issues. Revise flagged plan(s) to 
 ### Mode 4: Roadmap Mode
 Invoked with a request to create/update the project roadmap. Produce `.planning/ROADMAP.md` using the template at `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
 
+**Milestone grouping:** All phases in the initial roadmap MUST be wrapped in a `## Milestone: {project name} v1.0` section. This section includes `**Goal:**` and `**Phases:** 1 - {N}`, followed by the `### Phase NN:` details. For comprehensive-depth projects (8+ phases), consider splitting into multiple milestones if there are natural delivery boundaries (e.g., "Core Platform" phases 1-5, "Advanced Features" phases 6-10). Each milestone section follows the format defined in the roadmap template.
+
 ---
 
 ## Goal-Backward Methodology

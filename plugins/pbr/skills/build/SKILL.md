@@ -744,7 +744,7 @@ Chain to the next skill directly within this session. This eliminates manual pha
 | Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
 | Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
 | Verification gaps found | **HARD STOP** — present gaps to user | Do NOT auto-advance past failures |
-| Last phase complete | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit` |
+| Last phase in current milestone | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
 | Build errors occurred | **HARD STOP** — errors need human review | Do NOT auto-advance past errors |
 
 After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review→plan, plan→build) if auto_advance remains true. This creates the full cycle: build→review→plan→build→...
@@ -759,8 +759,10 @@ Use the branded output templates from `references/ui-formatting.md`. Route based
 
 | Status | Template |
 |--------|----------|
-| `passed` + more phases | "Phase Complete" template |
-| `passed` + last phase | "Milestone Complete" template |
+| `passed` + more phases in current milestone | "Phase Complete" template |
+| `passed` + last phase in current milestone | "Milestone Complete" template |
+
+**Milestone boundary detection:** To determine "last phase in current milestone", read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone. For projects with a single milestone or no explicit milestone sections, "last phase in ROADMAP" is equivalent.
 | `gaps_found` | "Gaps Found" template |
 
 Before the branded banner, include the results table:
@@ -838,7 +840,7 @@ All phase goals verified ✓
 
 **Also available:**
 - `/pbr:review` — manual acceptance testing
-- `/pbr:milestone complete` — skip audit, archive directly
+- `/pbr:milestone complete` — archive milestone after audit passes
 
 ───────────────────────────────────────────────────────────────
 ```

@@ -95,7 +95,8 @@ Check the resumption priority hierarchy (same as /pbr:resume):
 4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:build {N}`
 5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:review {N}`
 6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan {N+1}`
-7. **All phases complete**: Verification passed on final phase, no more phases in ROADMAP.md → Stop. Display: "All phases are complete. Run `/pbr:milestone audit` to verify cross-phase integration, or `/pbr:milestone complete` to archive this milestone."
+7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:milestone audit` to verify cross-phase integration, then `/pbr:milestone complete` to archive."
+8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:milestone new` to start the next milestone, or `/pbr:milestone audit` if not yet audited."
 
 ### Step 3: Execute
 
