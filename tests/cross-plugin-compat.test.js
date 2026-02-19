@@ -423,4 +423,19 @@ describe('cross-plugin compatibility', () => {
       });
     });
   });
+
+  describe('version sync', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+
+    const manifests = [
+      { name: 'pbr', path: path.join(PBR_DIR, '.claude-plugin', 'plugin.json') },
+      { name: 'cursor-pbr', path: path.join(CURSOR_DIR, '.cursor-plugin', 'plugin.json') },
+      { name: 'copilot-pbr', path: path.join(COPILOT_DIR, 'plugin.json') },
+    ];
+
+    test.each(manifests)('$name manifest version matches package.json', ({ name, path: manifestPath }) => {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      expect(manifest.version).toBe(pkg.version);
+    });
+  });
 });
