@@ -26,6 +26,19 @@ export async function parseStateFile(projectDir) {
     const raw = await readFile(path, 'utf-8');
     const content = stripBOM(raw);
 
+    // Parse YAML frontmatter if present (STATE.md v2 format)
+    let frontmatter = {};
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+    if (fmMatch) {
+      for (const line of fmMatch[1].split('\n')) {
+        const kv = line.match(/^(\w+):\s*(.+)/);
+        if (kv) {
+          const val = kv[2].trim().replace(/^"(.*)"$/, '$1');
+          frontmatter[kv[1]] = val;
+        }
+      }
+    }
+
     // Extract project name from **Current focus:** line
     let projectName = 'Unknown Project';
     const focusMatch = content.match(/\*\*Current focus:\*\*\s*(.+)/);
@@ -76,13 +89,23 @@ export async function parseStateFile(projectDir) {
       progress = Math.ceil((currentPhaseId / totalPhases) * 100);
     }
 
+    // Determine phase status from frontmatter or body text
+    // "built", "verified", "complete" all mean the current phase is done
+    const fmStatus = (frontmatter.status || '').toLowerCase();
+    const phaseStatus = ['built', 'verified', 'complete', 'reviewed'].includes(fmStatus)
+      ? 'complete'
+      : ['building', 'planning', 'planned', 'in-progress'].includes(fmStatus)
+        ? 'in-progress'
+        : fmStatus || 'unknown';
+
     return {
       projectName,
       currentPhase: {
         id: currentPhaseId,
         total: totalPhases,
         name: phaseName,
-        planStatus
+        planStatus,
+        status: phaseStatus
       },
       lastActivity: {
         date: activityDate,
@@ -94,7 +117,7 @@ export async function parseStateFile(projectDir) {
     if (error.code === 'ENOENT') {
       return {
         projectName: 'Unknown Project',
-        currentPhase: { id: 0, total: 0, name: 'Not Started', planStatus: 'N/A' },
+        currentPhase: { id: 0, total: 0, name: 'Not Started', planStatus: 'N/A', status: 'unknown' },
         lastActivity: { date: '', description: 'No activity recorded' },
         progress: 0
       };
@@ -218,13 +241,24 @@ export async function getDashboardData(projectDir) {
     parseRoadmapFile(projectDir)
   ]);
 
-  // Derive "in-progress" status for the current phase
-  const phases = roadmapData.phases.map(phase => ({
-    ...phase,
-    status: (phase.id === stateData.currentPhase.id && phase.status !== 'complete')
-      ? 'in-progress'
-      : phase.status
-  }));
+  // Derive phase statuses from STATE.md context:
+  // - Phases before the current phase are complete
+  // - Current phase status comes from STATE.md (built/verified = complete)
+  // - Phases after the current phase stay as-is (not-started)
+  const currentId = stateData.currentPhase.id;
+  const currentStatus = stateData.currentPhase.status || 'unknown';
+  const phases = roadmapData.phases.map(phase => {
+    // If the roadmap already has explicit status (from progress table/checkboxes), keep it
+    if (phase.status === 'complete') return phase;
+
+    if (phase.id < currentId) {
+      return { ...phase, status: 'complete' };
+    }
+    if (phase.id === currentId) {
+      return { ...phase, status: currentStatus === 'complete' ? 'complete' : 'in-progress' };
+    }
+    return phase;
+  });
 
   // Prefer roadmap progress if phases exist, otherwise use state progress
   const progress = roadmapData.phases.length > 0
