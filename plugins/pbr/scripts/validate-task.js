@@ -556,6 +556,80 @@ function checkBuildDependencyGate(data) {
   return null;
 }
 
+/**
+ * Advisory check: when active skill is "build" and an executor is being
+ * spawned, warn if .checkpoint-manifest.json is missing in the phase dir.
+ * Returns a warning string or null.
+ */
+function checkCheckpointManifest(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+
+  if (subagentType !== 'pbr:executor') return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+
+  try {
+    const activeSkill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+    if (activeSkill !== 'build') return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Find current phase dir
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    const state = fs.readFileSync(stateFile, 'utf8');
+    const phaseMatch = state.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+    if (!phaseMatch) return null;
+
+    const currentPhase = phaseMatch[1].padStart(2, '0');
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+
+    const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(currentPhase + '-'));
+    if (dirs.length === 0) return null;
+
+    const phaseDir = path.join(phasesDir, dirs[0]);
+    const manifestFile = path.join(phaseDir, '.checkpoint-manifest.json');
+    if (!fs.existsSync(manifestFile)) {
+      return 'Build advisory: .checkpoint-manifest.json not found in phase directory. The build skill should write this before spawning executors.';
+    }
+  } catch (_e) {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Advisory check: when any pbr:* agent is being spawned, warn if
+ * .planning/.active-skill doesn't exist. Without this file, all
+ * skill-specific enforcement is silently disabled.
+ * Returns a warning string or null.
+ */
+function checkActiveSkillIntegrity(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+
+  if (typeof subagentType !== 'string' || !subagentType.startsWith('pbr:')) return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  // Only check if .planning/ exists (PBR project)
+  if (!fs.existsSync(planningDir)) return null;
+
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+  if (!fs.existsSync(activeSkillFile)) {
+    return 'Active-skill integrity: .planning/.active-skill not found. Skill-specific enforcement is disabled. The invoking skill should write this file.';
+  }
+
+  return null;
+}
+
 function main() {
   let input = '';
 
@@ -651,6 +725,10 @@ function main() {
 
       // Advisory warnings
       const warnings = checkTask(data);
+      const manifestWarning = checkCheckpointManifest(data);
+      if (manifestWarning) warnings.push(manifestWarning);
+      const activeSkillWarning = checkActiveSkillIntegrity(data);
+      if (activeSkillWarning) warnings.push(activeSkillWarning);
 
       if (warnings.length > 0) {
         for (const warning of warnings) {
@@ -669,5 +747,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkActiveSkillIntegrity, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }
