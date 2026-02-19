@@ -188,6 +188,30 @@ function findInQuickDir(planningDir, pattern) {
   return matches;
 }
 
+function checkSummaryCommits(planningDir, foundFiles, warnings) {
+  // Look for SUMMARY files in found list
+  const summaryFiles = foundFiles.filter(f => /SUMMARY/i.test(f));
+  for (const relPath of summaryFiles) {
+    try {
+      const fullPath = path.join(planningDir, relPath);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      // Parse frontmatter for commits field
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fm = fmMatch[1];
+      const commitsMatch = fm.match(/commits:\s*(\[.*?\]|.*)/);
+      if (!commitsMatch) {
+        warnings.push(`${relPath}: No "commits" field in frontmatter. Executor should record commit hashes.`);
+        continue;
+      }
+      const commitsVal = commitsMatch[1].trim();
+      if (commitsVal === '[]' || commitsVal === '' || commitsVal === '~' || commitsVal === 'null') {
+        warnings.push(`${relPath}: "commits" field is empty. Executor may have failed to commit changes.`);
+      }
+    } catch (_e) { /* best-effort */ }
+  }
+}
+
 function readStdin() {
   try {
     const input = fs.readFileSync(0, 'utf8').trim();
@@ -217,20 +241,72 @@ function main() {
     process.exit(0);
   }
 
+  // Read active skill
+  let activeSkill = '';
+  try {
+    activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim();
+  } catch (_e) { /* no active skill */ }
+
   // Check for expected outputs
   const found = outputSpec.check(planningDir);
 
-  if (found.length === 0 && !outputSpec.noFileExpected) {
+  const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
+
+  // Skill-specific post-completion validation
+  const skillWarnings = [];
+
+  // GAP-04: Begin planner must produce core files
+  if (activeSkill === 'begin' && agentType === 'pbr:planner') {
+    const coreFiles = ['REQUIREMENTS.md', 'ROADMAP.md', 'STATE.md'];
+    for (const f of coreFiles) {
+      if (!fs.existsSync(path.join(planningDir, f))) {
+        skillWarnings.push(`Begin planner: ${f} was not created. The project may be in an incomplete state.`);
+      }
+    }
+  }
+
+  // GAP-05: Plan researcher should produce phase-level RESEARCH.md
+  if (activeSkill === 'plan' && agentType === 'pbr:researcher') {
+    const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
+    if (found.length === 0 && phaseResearch.length === 0) {
+      skillWarnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
+    }
+  }
+
+  // GAP-06: Build executor SUMMARY should have commits
+  if (activeSkill === 'build' && agentType === 'pbr:executor') {
+    checkSummaryCommits(planningDir, found, skillWarnings);
+  }
+
+  // Output logic: avoid duplicating warnings
+  if (genericMissing && skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', {
+      skill: activeSkill,
+      agent_type: agentType,
+      warnings: skillWarnings
+    });
+    const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
+      skillWarnings.map(w => `- ${w}`).join('\n');
+    process.stdout.write(JSON.stringify({ additionalContext: msg }));
+  } else if (genericMissing) {
     logHook('check-subagent-output', 'PostToolUse', 'warning', {
       agent_type: agentType,
       expected: outputSpec.description,
       found: 'none'
     });
-
     const output = {
       additionalContext: `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found. The agent may have failed silently. Check agent output for errors.`
     };
     process.stdout.write(JSON.stringify(output));
+  } else if (skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', {
+      skill: activeSkill,
+      agent_type: agentType,
+      warnings: skillWarnings
+    });
+    process.stdout.write(JSON.stringify({
+      additionalContext: 'Skill-specific warnings:\n' + skillWarnings.map(w => `- ${w}`).join('\n')
+    }));
   } else {
     logHook('check-subagent-output', 'PostToolUse', 'verified', {
       agent_type: agentType,
@@ -241,5 +317,5 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir };
+module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits };
 if (require.main === module || process.argv[1] === __filename) { main(); }

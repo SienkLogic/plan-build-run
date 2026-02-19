@@ -274,6 +274,81 @@ describe('check-subagent-output.js', () => {
     });
   });
 
+  describe('skill-aware validation', () => {
+    // GAP-04: Begin planner core files
+    test('warns when begin planner completes without REQUIREMENTS.md', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'begin');
+      // STATE.md and phases exist but no REQUIREMENTS.md or ROADMAP.md
+      const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('REQUIREMENTS.md');
+    });
+
+    test('no warning when begin planner produces all core files', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'begin');
+      fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'), '# Reqs');
+      fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), '# Roadmap');
+      // STATE.md already exists from beforeEach
+      // Also need PLAN.md so the generic warning doesn't fire
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'PLAN-01.md'),
+        '---\nplan: 01\n---\nTasks'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('REQUIREMENTS.md');
+    });
+
+    // GAP-05: Plan researcher phase-level RESEARCH.md
+    test('warns when plan researcher produces no research', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'plan');
+      // Remove research files
+      fs.rmSync(path.join(tmpDir, '.planning', 'research'), { recursive: true, force: true });
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'research'), { recursive: true });
+      const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('research output');
+    });
+
+    test('no warning when phase RESEARCH.md exists', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'plan');
+      // No global research files
+      fs.rmSync(path.join(tmpDir, '.planning', 'research'), { recursive: true, force: true });
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'research'), { recursive: true });
+      // But phase-level RESEARCH.md exists
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'RESEARCH.md'),
+        '# Research\nFindings'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('research output');
+    });
+
+    // GAP-06: Build executor SUMMARY commits
+    test('warns when build executor SUMMARY has empty commits', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: []\n---\nResults'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('commits');
+    });
+
+    test('no warning when SUMMARY has commits', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\nResults'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('commits');
+    });
+  });
+
   describe('warning vs noFileExpected', () => {
     test('warning is produced when expected file is missing for non-noFileExpected agent', () => {
       const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
