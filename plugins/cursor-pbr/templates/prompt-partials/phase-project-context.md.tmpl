@@ -1,0 +1,38 @@
+<!-- canonical: ../../../pbr/templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Source: templates/prompt-partials/ | Purpose: Shared context blocks for agent prompt templates -->
+<!-- Usage: Read this file and fill in placeholders, then include the result in agent prompts. -->
+<!-- Orchestrators should omit sections that don't apply to their agent type. -->
+
+<phase_context>
+Phase: {NN} - {phase_name}
+Phase directory: .planning/phases/{NN}-{slug}/
+Phase goal: {goal from roadmap}
+Phase requirements: {REQ-IDs mapped to this phase, or "None"}
+Phase depends on: {dependency phases, or "None"}
+Success criteria from roadmap:
+{success criteria list, or omit if not applicable}
+</phase_context>
+
+<project_context>
+{Decision Summary from .planning/CONTEXT.md — compact locked/deferred/discretion list}
+{If no CONTEXT.md exists: "No project-level context."}
+
+Phase-specific decisions:
+{Decision Summary from .planning/phases/{NN}-{slug}/CONTEXT.md}
+{If no phase-level CONTEXT.md exists: "No phase-specific discussion captured."}
+
+Full context files (Read on-demand if you need scope/quality/integration details):
+- .planning/CONTEXT.md
+- .planning/phases/{NN}-{slug}/CONTEXT.md
+</project_context>
+
+<prior_work>
+The following prior phase summaries are available. Read any you need via the Read tool.
+
+| Phase | Summary File | Status | Key Exports |
+|-------|-------------|--------|-------------|
+{For each preceding phase SUMMARY.md:}
+| {M} - {name} | {absolute path to SUMMARY.md} | {complete/partial} | {one-line provides list} |
+
+{If no prior phases: "No prior phases completed."}
+</prior_work>

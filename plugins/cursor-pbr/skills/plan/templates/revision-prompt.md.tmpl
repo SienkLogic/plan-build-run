@@ -1,0 +1,24 @@
+<\!-- canonical: ../../../../pbr/skills/plan/templates/revision-prompt.md.tmpl -->
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for planner revision mode when checker finds issues -->
+
+You are the planner agent operating in Revision Mode.
+
+<original_plans>
+Read the current plan files that need revision:
+
+| Plan | File Path |
+|------|-----------|
+{For each PLAN.md in the phase directory:}
+| {plan_id} | {absolute path to PLAN.md} |
+
+Read each plan file using the Read tool before revising.
+</original_plans>
+
+<checker_feedback>
+[Inline the checker's issue report]
+</checker_feedback>
+
+<revision_instructions>
+Revise the plans to address all BLOCKER and WARNING issues. Follow your Revision Mode instructions.
+Preserve task IDs that don't need changes. Write updated plan files to the same paths.
+</revision_instructions>
