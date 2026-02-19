@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-02-19
+
+### Added
+- **GitHub Copilot CLI plugin** (`plugins/copilot-pbr/`) — complete port with 22 skills, 10 agents (`.agent.md` format), and Copilot CLI hook configuration
+- Setup scripts (`setup.sh`, `setup.ps1`) for Copilot CLI plugin installation with `copilot plugin install` support
+- Cross-plugin compatibility tests now cover all three plugins (Claude Code, Cursor, Copilot CLI) — 164 tests via data-driven `describe.each`
+- New cross-plugin guard tests: `references/ files match PBR` and `templates/ files match PBR` catch drift automatically
+- Dashboard skill now works from Copilot CLI sessions (`/pbr:dashboard`)
+- Platform badges in README link to install pages (wiki or anchor)
+
+### Fixed
+- Synced 13 missing template files (`codebase/`, `research/`, `research-outputs/`) to Cursor and Copilot plugins
+- Dashboard skill in derivative plugins now references correct relative path (`../../dashboard/`) instead of nonexistent `<plugin-root>/dashboard/`
+- Cross-plugin frontmatter parser now handles both `\r\n` and `\n` line endings (was silently failing on Windows-style files)
+- Test count: 1219 tests across 44 suites (up from 1134)
+
+## [2.3.0] - 2026-02-19
+
+### Added
+- `/pbr:do` freeform router — routes natural language input to the right PBR skill automatically
+- Smart skill suggestions in hook feedback when freeform text is detected
+- Freeform text guard hook for `/pbr:plan` and todo work subcommand
+
+### Fixed
+- Dashboard skill `argument-hint` synced to Cursor plugin
+
 ## [2.2.0] - 2026-02-19
 
 ### Added
