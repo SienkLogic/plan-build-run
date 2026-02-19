@@ -116,6 +116,7 @@ function checkSkillRules(skill, filePath, planningDir) {
     return checkBuildRules(filePath, isInPlanning, planningDir);
   case 'statusline':
     return checkStatuslineRules(filePath, isInPlanning, planningDir);
+  case 'plan':
   case 'review':
   case 'discuss':
   case 'begin':
