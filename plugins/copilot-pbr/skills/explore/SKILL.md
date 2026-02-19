@@ -231,6 +231,7 @@ After creating artifacts (or if user chose "Skip"), display:
 - If a phase decision was captured: **Plan the phase** → `/pbr:plan {N}`
 - If a new phase was added: **Discuss the new phase** → `/pbr:discuss {N}`
 - If research questions were logged: **Plan with research** → `/pbr:plan {N}`
+- If current milestone is complete (STATE.md status is "milestone-complete"): **Start next milestone** → `/pbr:milestone new`
 - Default: **See project status** → `/pbr:status`
 
 `{primary command}`
@@ -242,6 +243,7 @@ After creating artifacts (or if user chose "Skip"), display:
 **Also available:**
 - `/pbr:status` — see project status
 - `/pbr:continue` — execute next logical step
+- `/pbr:milestone new` — start a new milestone with new phases
 
 ───────────────────────────────────────────────────────────────
 ```
