@@ -1,0 +1,17 @@
+<\!-- canonical: ../../../../pbr/skills/begin/templates/synthesis-prompt.md.tmpl -->
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning the synthesis agent after research completes -->
+
+<research_documents>
+Read the following research documents and synthesize them:
+{List all .planning/research/*.md files that were created}
+</research_documents>
+
+<synthesis_instructions>
+1. Read all research documents
+2. Identify consensus findings
+3. Resolve contradictions (higher source level wins)
+4. Produce a unified summary with clear recommendations
+5. Write the synthesis to .planning/research/SUMMARY.md using the Synthesis output format
+</synthesis_instructions>
+
+Write the synthesis to .planning/research/SUMMARY.md using the Write tool.
