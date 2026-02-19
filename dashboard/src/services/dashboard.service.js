@@ -132,7 +132,7 @@ export async function parseRoadmapFile(projectDir) {
 
     // 2. Parse descriptions from Phase Details: "### Phase NN: Name\n**Goal**: ..."
     const goalMap = new Map();
-    const goalRegex = /### Phase (\d+):\s*(.+)\n\*\*Goal\*\*:\s*(.+)/g;
+    const goalRegex = /### Phase (\d+):\s*(.+)\n\*\*Goal:?\*\*:?\s*(.+)/g;
     for (const match of content.matchAll(goalRegex)) {
       goalMap.set(parseInt(match[1], 10), match[3].trim());
     }
@@ -158,11 +158,28 @@ export async function parseRoadmapFile(projectDir) {
       progressPhases.push({ id, name, description, status });
     }
 
-    // Use Progress table if available, otherwise fall back to checkbox parsing
+    // 4. Parse H3 Phase Details: "### Phase N: Name\n**Goal:** ..."
+    const h3Phases = [];
+    const h3Regex = /### Phase (\d+):\s*(.+)\n\*\*Goal\*?\*?:?\*?\*?\s*(.+)/g;
+    for (const match of content.matchAll(h3Regex)) {
+      const id = parseInt(match[1], 10);
+      const name = match[2].trim();
+      const description = match[3].trim();
+      // Check checkbox map for status, default to not-started
+      const cbInfo = checkboxMap.get(id);
+      h3Phases.push({
+        id,
+        name,
+        description,
+        status: cbInfo?.status || 'not-started'
+      });
+    }
+
+    // Use Progress table if available, then checkbox list, then H3 headings
     let phases;
     if (progressPhases.length > 0) {
       phases = progressPhases;
-    } else {
+    } else if (checkboxMap.size > 0) {
       phases = [...checkboxMap.entries()]
         .map(([id, info]) => ({
           id,
@@ -171,6 +188,8 @@ export async function parseRoadmapFile(projectDir) {
           status: info.status
         }))
         .sort((a, b) => a.id - b.id);
+    } else {
+      phases = h3Phases.sort((a, b) => a.id - b.id);
     }
 
     const completed = phases.filter(p => p.status === 'complete').length;
