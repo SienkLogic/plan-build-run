@@ -252,6 +252,60 @@ function checkPlanExecutorGate(data) {
   };
 }
 
+/**
+ * Blocking check: when the active skill is "review" and a planner is being
+ * spawned, verify that a VERIFICATION.md exists in the current phase directory.
+ * Returns { block: true, reason: "..." } if blocked, or null if OK.
+ */
+function checkReviewPlannerGate(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+
+  // Only gate pbr:planner
+  if (subagentType !== 'pbr:planner') return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+
+  // Only gate when active skill is "review"
+  try {
+    const activeSkill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+    if (activeSkill !== 'review') return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Read STATE.md for current phase
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    const state = fs.readFileSync(stateFile, 'utf8');
+    const phaseMatch = state.match(/Phase:\s*(\d+)/);
+    if (!phaseMatch) return null;
+
+    const currentPhase = phaseMatch[1].padStart(2, '0');
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+
+    const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(currentPhase + '-'));
+    if (dirs.length === 0) return null;
+
+    const phaseDir = path.join(phasesDir, dirs[0]);
+    const hasVerification = fs.existsSync(path.join(phaseDir, 'VERIFICATION.md'));
+
+    if (!hasVerification) {
+      return {
+        block: true,
+        reason: 'Review planner gate: Cannot spawn planner for gap closure without a VERIFICATION.md. Run /pbr:review first to generate verification results.'
+      };
+    }
+  } catch (_e) {
+    return null;
+  }
+
+  return null;
+}
+
 function main() {
   let input = '';
 
@@ -280,6 +334,18 @@ function main() {
         process.stdout.write(JSON.stringify({
           decision: 'block',
           reason: buildGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
+      // Blocking gate: review skill planner needs VERIFICATION.md
+      const reviewGate = checkReviewPlannerGate(data);
+      if (reviewGate && reviewGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: reviewGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: reviewGate.reason
         }));
         process.exit(2);
         return;
@@ -317,5 +383,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }
