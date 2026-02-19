@@ -198,10 +198,33 @@ export async function parseRoadmapFile(projectDir) {
       });
     }
 
-    // Use Progress table if available, then checkbox list, then H3 headings
+    // 5. Parse simple two-column table: "| 1. Name | Completed |"
+    //    Used in milestone-archived roadmaps
+    const simpleTableRegex = /^\|\s*(\d+)\.\s+(.+?)\s*\|\s*(.+?)\s*\|$/gm;
+    const simplePhases = [];
+    for (const match of content.matchAll(simpleTableRegex)) {
+      const id = parseInt(match[1], 10);
+      const name = match[2].trim();
+      const statusText = match[3].trim().toLowerCase();
+
+      let status;
+      if (statusText === 'completed' || statusText === 'complete') status = 'complete';
+      else if (statusText === 'in progress' || statusText === 'in-progress') status = 'in-progress';
+      else status = 'not-started';
+
+      const cbInfo = checkboxMap.get(id);
+      const goalDesc = goalMap.get(id);
+      const description = cbInfo?.description || goalDesc || '';
+
+      simplePhases.push({ id, name, description, status });
+    }
+
+    // Use Progress table if available, then simple table, then checkbox list, then H3 headings
     let phases;
     if (progressPhases.length > 0) {
       phases = progressPhases;
+    } else if (simplePhases.length > 0) {
+      phases = simplePhases;
     } else if (checkboxMap.size > 0) {
       phases = [...checkboxMap.entries()]
         .map(([id, info]) => ({
