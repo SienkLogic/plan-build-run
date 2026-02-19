@@ -40,7 +40,7 @@ Every claim in your report must be backed by evidence you collected during verif
 
 ## The 10-Step Verification Process
 
-### Step 1: Check Previous Verification
+### Step 1: Check Previous Verification (Always)
 
 Look for an existing `VERIFICATION.md` in the phase directory:
 
@@ -59,7 +59,7 @@ ls .planning/phases/{phase_dir}/VERIFICATION.md
 
 **Override handling:** When a must-have appears in the `overrides` list, mark it as `PASSED (override)` in the results table. Do not re-verify it. Count it toward `must_haves_passed`, not `must_haves_failed`. Preserve the overrides list in the new VERIFICATION.md frontmatter.
 
-### Step 2: Load Context
+### Step 2: Load Context (Always)
 
 Read these files to understand what should have been delivered:
 
@@ -74,7 +74,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
 # Parse any single file's frontmatter:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter {filepath}
 ```
-These return structured JSON, saving ~500-800 tokens vs. manual parsing. Falls back to manual reading if unavailable.
+These return structured JSON, saving ~500-800 tokens vs. manual parsing. Stop and report error if pbr-tools CLI is unavailable. Do not fall back to manual parsing.
 
 1. **Phase plan files**: `ls .planning/phases/{phase_dir}/*-PLAN.md`
    - Extract `must_haves` from each plan's YAML frontmatter
@@ -92,7 +92,7 @@ These return structured JSON, saving ~500-800 tokens vs. manual parsing. Falls b
    - Get the phase goal statement
    - Understand dependencies on prior phases
 
-### Step 3: Establish Must-Haves
+### Step 3: Establish Must-Haves (Full Verification Only)
 
 **Must-haves are the PRIMARY verification input.** Read must_haves from PLAN.md frontmatter FIRST, then check each one:
 - `truths`: Can this behavior actually be observed? (May require running the app)
@@ -119,7 +119,7 @@ must_haves:
 
 **Output**: A numbered list of every must-have to verify.
 
-### Step 4: Verify Observable Truths
+### Step 4: Verify Observable Truths (Always)
 
 For each truth in the must-haves list:
 
@@ -142,7 +142,7 @@ For each truth in the must-haves list:
 | "Protected routes require auth" | Check middleware applied to route definitions |
 | "Tests pass" | Run `npm test` or `pytest` and check exit code |
 
-### Step 5: Verify Artifacts (3-Level Check)
+### Step 5: Verify Artifacts (Always — depth varies, see Selective Re-verification)
 
 For EVERY artifact in the must-haves, perform three levels of verification:
 
@@ -205,6 +205,21 @@ wc -l {file}
 - **STUB**: Contains any stub indicators. Has TODO placeholders, empty functions, hardcoded returns.
 - **PARTIAL**: Mix of real and stub code. Some functions implemented, others placeholder.
 
+**Code Pattern Examples**:
+
+```typescript
+// STUB — throws not-implemented or returns empty
+export function calculateDiscount() { throw new Error('not implemented'); }
+export function getUsers() { return []; }
+export const handler = (req, res) => { res.status(501).json({}); };
+
+// REAL — contains actual logic
+export function calculateDiscount(price: number, tier: string): number {
+  const rates = { bronze: 0.05, silver: 0.10, gold: 0.15 };
+  return price * (rates[tier] ?? 0);
+}
+```
+
 **Result**: `SUBSTANTIVE`, `STUB`, or `PARTIAL` with evidence
 
 #### Level 3: Wired (Connected to the System)
@@ -238,7 +253,18 @@ grep -rn "{ModelName}\.\(find\|create\|update\|delete\|save\|query\)" {project_s
 
 **Result**: `WIRED`, `IMPORTED-UNUSED`, or `ORPHANED` with evidence
 
-### Step 6: Verify Key Links
+#### Artifact Outcome Decision Table
+
+Use this table to map the 3-level results to a final artifact status:
+
+| Exists | Substantive | Wired | Status |
+|--------|-------------|-------|--------|
+| No | -- | -- | MISSING |
+| Yes | No | -- | STUB |
+| Yes | Yes | No | UNWIRED |
+| Yes | Yes | Yes | PASSED |
+
+### Step 6: Verify Key Links (Always)
 
 For each key_link in the must-haves:
 
@@ -265,7 +291,7 @@ Key links are CONNECTIONS between components. They verify that the system is wir
 | State variable set but never read | `useState` called but the value is never used |
 | Callback registered but never triggered | `on('event', handler)` exists but event is never emitted |
 
-### Step 7: Check Requirements Coverage
+### Step 7: Check Requirements Coverage (Always)
 
 Cross-reference all must-haves against verification results:
 
@@ -277,7 +303,7 @@ Cross-reference all must-haves against verification results:
 | 3 | {description} | key_link | - | - | YES/NO | PASS/FAIL |
 ```
 
-### Step 8: Scan for Anti-Patterns
+### Step 8: Scan for Anti-Patterns (Full Verification Only)
 
 Even if must-haves pass, scan for common problems that indicate incomplete or poor quality work:
 
@@ -309,7 +335,7 @@ ls -la {project_root}/.env 2>/dev/null
 git ls-files --cached | grep "\.env$"
 ```
 
-### Step 9: Identify Human Verification Needs
+### Step 9: Identify Human Verification Needs (Full Verification Only)
 
 Some things CANNOT be verified programmatically. List them with specific instructions:
 
@@ -329,7 +355,7 @@ For each human verification item, provide:
 3. Expected behavior
 4. Which must-have it relates to
 
-### Step 10: Determine Overall Status
+### Step 10: Determine Overall Status (Always)
 
 | Status | Condition |
 |--------|-----------|
@@ -376,6 +402,15 @@ When a previous VERIFICATION.md exists with `status: gaps_found`:
 4. Run a FULL scan (all 10 steps) to catch regressions
 5. Compare current results against previous results
 6. Produce updated VERIFICATION.md
+
+### Selective Re-verification
+
+When re-verifying after gap closure, use depth-based triage to save context budget:
+
+- **Previously-PASSED items**: Level 1 (existence) only. They already passed full verification; a quick existence check catches regressions without repeating deep inspection.
+- **Previously-FAILED items**: Full 3-level verification (existence, substantiveness, wiring). These are the items that gap-closure work targeted and must be thoroughly re-checked.
+
+This ensures focused effort on the items most likely to have changed while still detecting regressions in previously-passing items.
 
 ### Regression Detection
 

@@ -98,7 +98,7 @@ Show notes from both project and global scopes.
 2. Read `~/.claude/notes.md` (if exists) — these are "global" notes
 3. Parse entries: lines matching `^- \[` are notes
 4. Exclude lines containing `[promoted]` from active counts (but still show them, dimmed)
-5. Number all active entries sequentially starting at 1 (across both scopes)
+5. Number all active entries sequentially starting at 1, using plain integers (1, 2, 3...) for display (across both scopes)
 6. If total active entries > 20, show only the last 10 with a note about how many were omitted
 
 ### Display Format
@@ -132,26 +132,31 @@ Convert a note into a todo file.
 3. If N is invalid or refers to an already-promoted note, tell the user and stop
 4. **Requires `.planning/` directory** — if it doesn't exist, warn: "Todos require a Plan-Build-Run project. Run `/pbr:begin` to initialize one, or use `/pbr:todo add` in an existing project."
 5. Ensure `.planning/todos/pending/` directory exists
-6. Generate todo ID: `{YYYYMMDD}-{NNN}` where NNN is sequential within the day (check existing files)
+6. Generate todo ID: `{NNN}-{slug}` where NNN is the next sequential number (scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, zero-pad to 3 digits) and slug is the first ~4 meaningful words of the note text, lowercase, hyphen-separated
 7. Extract the note text (everything after the timestamp)
 8. Create `.planning/todos/pending/{id}.md`:
 
 ```yaml
 ---
-id: {id}
-area: general
-priority: normal
-created: {ISO-timestamp}
+title: "{note text}"
+status: pending
+priority: P2
 source: "promoted from /pbr:note"
+created: {YYYY-MM-DD}
+theme: general
 ---
 
-# {note text}
+## Goal
+
+{note text}
 
 ## Context
+
 Promoted from quick note captured on {original date}.
 
-## Notes
-(empty)
+## Acceptance Criteria
+
+- [ ] {primary criterion derived from note text}
 ```
 
 9. Mark the original note as promoted: replace `- [` with `- [promoted] [` on that line

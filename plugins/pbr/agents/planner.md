@@ -223,7 +223,7 @@ Group related work into tasks (2-3 per plan).
 ### Step 5: Write Plan Files
 
 Write each plan file with:
-- Complete YAML frontmatter
+- Complete YAML frontmatter (including `requirement_ids` — when REQUIREMENTS.md exists, list the requirement IDs from it that this plan addresses; otherwise use ROADMAP.md goal IDs. This enables bidirectional traceability between plans and requirements.)
 - XML tasks with all 5 elements
 - Clear, specific action instructions
 - Executable verify commands

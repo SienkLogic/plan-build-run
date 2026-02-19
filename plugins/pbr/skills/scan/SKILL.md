@@ -50,7 +50,14 @@ Additionally for this skill:
 Check if `.planning/codebase/` directory exists:
 
 **If it exists and has files:**
-- Present to user via AskUserQuestion:
+
+First, resolve the depth profile so you know which areas are available:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
+```
+Read `profile["scan.mapper_areas"]` to determine available areas (quick: tech, arch; standard/comprehensive: tech, arch, quality, concerns).
+
+Then present to user via AskUserQuestion:
   ```
   A codebase analysis already exists (from {date based on file modification}).
 
@@ -59,11 +66,11 @@ Check if `.planning/codebase/` directory exists:
 
   Options:
   1. Refresh the full analysis (overwrites existing)
-  2. Refresh a specific area (available areas depend on depth profile: quick mode only offers tech/arch)
+  2. Refresh a specific area ({list available areas from depth profile})
   3. Keep existing analysis
   ```
 - If user chooses "Keep": display a summary of existing analysis and stop
-- If user chooses "Refresh specific": only spawn that agent (Step 3)
+- If user chooses "Refresh specific": present the available areas based on the already-resolved depth profile (quick mode only offers tech/arch; standard/comprehensive offers all 4). Only spawn the selected agent. Skip re-resolving depth in Step 3 since it was already resolved here.
 - If user chooses "Refresh all": proceed with full scan
 
 **If it doesn't exist:**
@@ -186,14 +193,18 @@ Key Stats:
 - {dependency count} dependencies
 - {integration count} external integrations
 
+Full analysis: .planning/codebase/
+```
+
+**Concerns section** (only display if ALL of these conditions are true: (1) the concerns mapper was included in `scan.mapper_areas` for the resolved depth profile, (2) the concerns mapper was actually spawned, AND (3) `.planning/codebase/CONCERNS.md` exists and contains at least one concern entry). If any condition is false, skip this entire section silently — do NOT display an empty concerns block or a "no concerns" message:
+
+```
 Concerns: {critical} critical, {high} high, {medium} medium
 
 Top concerns:
 1. {most critical concern}
 2. {second concern}
 3. {third concern}
-
-Full analysis: .planning/codebase/
 ```
 
 Then use the "Next Up" routing block:

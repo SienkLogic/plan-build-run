@@ -71,8 +71,8 @@ Execute these steps in order.
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
-4. If no phase number given, read current phase from `.planning/STATE.md`
-5. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
+5. If no phase number given, read current phase from `.planning/STATE.md`
+6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
 **Validation errors — use branded error boxes:**
 
@@ -166,6 +166,8 @@ Task({
   prompt: <verifier prompt>
 })
 ```
+
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -266,6 +268,7 @@ Walk the user through each deliverable one by one. This is an interactive conver
 
 **For each plan in the phase:**
 
+0. **Filter out ineligible plans**: Read each plan's SUMMARY.md `status` field. Skip plans with `status: failed`, `status: incomplete`, or `status: partial` that have zero committed tasks (check `commits` frontmatter field). Only walk through plans that completed successfully (`status: complete`) or partially with at least one committed task. For each skipped plan, note it to the user: "Skipping plan {plan_id} ({status}) — not eligible for UAT." If ALL plans in the phase are skipped, display: "No plans eligible for UAT walkthrough. All plans in Phase {N} are incomplete or failed. Run `/pbr:build {N}` to retry." and stop.
 1. Read the plan's must-haves and SUMMARY.md
 2. Present what was built:
 
@@ -351,7 +354,7 @@ Use the branded output from `references/ui-formatting.md`:
    - If "No" or "Other": stop
 
 5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
-   - Chain directly to plan: `Skill({ skill: "dev:plan", args: "{N+1}" })`
+   - Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1}" })`
    - This continues the build→review→plan cycle automatically
    - **If this is the last phase:** HARD STOP — do NOT auto-advance past milestone boundaries
 

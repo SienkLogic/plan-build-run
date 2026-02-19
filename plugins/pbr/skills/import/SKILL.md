@@ -34,7 +34,7 @@ Additionally for this skill:
 
 - `.planning/config.json` exists (run `/pbr:begin` first)
 - `.planning/ROADMAP.md` exists with at least one phase
-- `.planning/REQUIREMENTS.md` exists
+- `.planning/REQUIREMENTS.md` exists (optional — if absent, skip requirement ID cross-referencing and warn the user: "No REQUIREMENTS.md found. Skipping REQ-ID validation.")
 
 ---
 
@@ -143,7 +143,7 @@ Run each of these checks. If any matches, record a `[BLOCKER]`:
 #### WARNING checks (user should review):
 Run each of these checks. If any matches, record a `[WARNING]`:
 
-1. **Requirement coverage gap**: Does the plan fail to cover all phase requirements from REQUIREMENTS.md? List each missing REQ-ID explicitly. This is mandatory — you must cross-reference every REQ-ID assigned to this phase against the plan's tasks.
+1. **Requirement coverage gap**: Does the plan fail to cover all phase requirements from REQUIREMENTS.md? List each missing REQ-ID explicitly. This is mandatory — you must cross-reference every REQ-ID assigned to this phase against the plan's tasks. **Guard:** If REQUIREMENTS.md does not exist (as noted in Prerequisites), skip this check entirely and emit `[INFO] No REQUIREMENTS.md — REQ-ID coverage check skipped` instead.
 2. **Task count exceeds limit**: Does any logical grouping in the plan contain more than 3 tasks? Plan-Build-Run plans are limited to 2-3 tasks each. Count the tasks in the imported document and flag if over 3.
 3. **Scope exceeds file limit**: Does any logical grouping reference more than 8 files? Plan-Build-Run plans are limited to 5-8 files each.
 4. **Stale dependencies**: Does the plan assume prior phase output that has changed since the plan was written?

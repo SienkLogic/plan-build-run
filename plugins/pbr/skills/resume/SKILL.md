@@ -1,7 +1,7 @@
 ---
 name: resume
 description: "Pick up where you left off. Restores context and suggests next action."
-allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -208,7 +208,7 @@ Use AskUserQuestion:
   multiSelect: false
 
 **After user selects an option:**
-- Display "Run: `/dev:{action} {args}`" so the user can execute it
+- Display "Run: `/pbr:{action} {args}`" so the user can execute it
 - This skill does not auto-execute — it suggests and the user acts
 
 6. Clean up:

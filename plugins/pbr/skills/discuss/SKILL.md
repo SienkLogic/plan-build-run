@@ -35,18 +35,7 @@ This skill runs **inline** (no Task delegation).
 
 ## Flow
 
-### Step 0: Check for Existing Plans
-
-Before starting the discussion, check whether the phase already has plan artifacts:
-
-1. Resolve the phase directory (see Step 1 for resolution logic)
-2. Check for `PLAN.md` or `PLAN-*.md` files in the phase directory
-3. If plan files exist:
-   - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/pbr:plan {N}` after."
-   - This is a **warning only** — do not block the discussion
-   - Proceed to Step 1
-
-### Step 1: Parse Phase Number
+### Step 1: Parse Phase Number and Check for Existing Plans
 
 Parse `$ARGUMENTS` to get the phase number.
 
@@ -69,6 +58,12 @@ Phase {N} not found.
 
 **To fix:** Run `/pbr:status` to see available phases.
 ```
+
+**Check for existing plans** (after resolving the phase directory):
+1. Check for `PLAN.md` or `PLAN-*.md` files in the phase directory
+2. If plan files exist:
+   - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/pbr:plan {N}` after."
+   - This is a **warning only** — do not block the discussion
 
 ### Step 2: Load Phase Context
 
@@ -306,8 +301,8 @@ These come from:
 - If "Cancel": stop the discussion, keep existing CONTEXT.md
 
 ### Phase already has plans
-- Handled by Step 0 — warn but do not block
-- See Step 0 for the exact warning message
+- Handled by Step 1 — warn but do not block
+- See Step 1 "Check for existing plans" for the exact warning message
 
 ### User wants to discuss multiple phases
 - Handle one at a time
