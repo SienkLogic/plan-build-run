@@ -214,10 +214,10 @@ function hasPlanFile(dir) {
   try {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-      if (entry.isFile() && entry.name.endsWith('PLAN.md')) return true;
+      if (entry.isFile() && /^PLAN.*\.md$/i.test(entry.name)) return true;
       if (entry.isDirectory()) {
         const subEntries = fs.readdirSync(path.join(dir, entry.name));
-        if (subEntries.some(f => f.endsWith('PLAN.md'))) return true;
+        if (subEntries.some(f => /^PLAN.*\.md$/i.test(f))) return true;
       }
     }
   } catch (_e) {
