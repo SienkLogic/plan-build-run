@@ -284,5 +284,5 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
   return parts.join(` ${c.dim}\u2502${c.reset} `);
 }
 
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }
 module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, DEFAULTS };

@@ -80,7 +80,7 @@ function main() {
         });
 
         const output = {
-          message: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
+          additionalContext: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
         };
         process.stdout.write(JSON.stringify(output));
       } else {
@@ -238,7 +238,7 @@ function checkSync(data) {
     });
     return {
       output: {
-        message: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
+        additionalContext: `ROADMAP.md out of sync: Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the Phase Overview table in ROADMAP.md to match.`
       }
     };
   }
@@ -319,4 +319,4 @@ function checkFilesystemDrift(roadmapContent, phasesDir) {
 }
 
 module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

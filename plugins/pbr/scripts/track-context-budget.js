@@ -52,9 +52,11 @@ function main() {
         }
       }
 
-      // Estimate chars read (use limit if provided, otherwise assume ~2000 lines × 40 chars avg)
+      // Estimate chars read from actual output or limit, with a conservative default.
+      // Previous default of 80k (2000 lines × 40 chars) caused every read to cross
+      // the 50k milestone, flooding logs with warnings on every single Read call.
       const limit = data.tool_input?.limit;
-      const estimatedChars = limit ? limit * 40 : 80000;
+      const estimatedChars = limit ? limit * 40 : 8000;
       // Use actual output length if available
       const actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
 
@@ -65,7 +67,7 @@ function main() {
       const currentSkill = readFileSafe(skillPath);
       let tracker = loadTracker(trackerPath);
 
-      if (tracker.skill !== currentSkill) {
+      if (tracker.skill !== currentSkill || tracker.files.length > 200) {
         tracker = { skill: currentSkill, reads: 0, total_chars: 0, files: [] };
       }
 
@@ -77,11 +79,14 @@ function main() {
         tracker.files.push(filePath);
       }
 
-      // Save tracker
+      // Save tracker (atomic write to avoid corruption from concurrent hooks)
       try {
-        fs.writeFileSync(trackerPath, JSON.stringify(tracker), 'utf8');
+        const tmpPath = trackerPath + '.' + process.pid;
+        fs.writeFileSync(tmpPath, JSON.stringify(tracker), 'utf8');
+        fs.renameSync(tmpPath, trackerPath);
       } catch (_e) {
-        // Best-effort
+        // Best-effort — clean up temp file if rename failed
+        try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) {}
       }
 
       // Check thresholds — only warn at milestone crossings, not every read

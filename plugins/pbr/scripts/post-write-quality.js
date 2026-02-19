@@ -204,4 +204,4 @@ function detectConsoleLogs(filePath) {
 }
 
 module.exports = { checkQuality, loadHooksConfig, findLocalBin, runPrettier, runTypeCheck, detectConsoleLogs };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

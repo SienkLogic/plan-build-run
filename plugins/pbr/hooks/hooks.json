@@ -119,7 +119,17 @@
         ]
       }
     ],
-    "Stop": [],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" auto-continue.js",
+            "statusMessage": "Checking for auto-continue..."
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "hooks": [
@@ -137,9 +147,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" log-subagent.js stop",
-            "statusMessage": "Logging agent completion...",
-            "async": true,
-            "timeout": 30
+            "statusMessage": "Logging agent completion..."
           }
         ]
       },
@@ -148,9 +156,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" event-handler.js",
-            "statusMessage": "Checking for auto-verification...",
-            "async": true,
-            "timeout": 10
+            "statusMessage": "Checking for auto-verification..."
           }
         ]
       }
@@ -172,9 +178,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" session-cleanup.js",
-            "statusMessage": "Cleaning up session...",
-            "async": true,
-            "timeout": 30
+            "statusMessage": "Cleaning up session..."
           }
         ]
       }

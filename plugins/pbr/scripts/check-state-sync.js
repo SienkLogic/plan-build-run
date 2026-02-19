@@ -437,7 +437,7 @@ function checkStateSync(data) {
     const msg = `Auto-synced tracking files: ${messages.join('; ')}`;
     logHook('check-state-sync', 'PostToolUse', 'sync', { phase: phaseNum, updates: messages });
     logEvent('workflow', 'state-sync', { phase: phaseNum, trigger: isSummary ? 'summary' : 'verification', updates: messages });
-    return { output: { message: msg } };
+    return { output: { additionalContext: msg } };
   }
 
   logHook('check-state-sync', 'PostToolUse', 'skip', { reason: 'no tracking files to update', phase: phaseNum });
@@ -464,7 +464,7 @@ function main() {
   });
 }
 
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }
 module.exports = {
   extractPhaseNum,
   countPhaseArtifacts,

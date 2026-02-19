@@ -251,4 +251,4 @@ function main() {
 }
 
 module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }
