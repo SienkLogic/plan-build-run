@@ -1,6 +1,7 @@
 ---
 name: dashboard
 description: "Launch the PBR web dashboard for the current project."
+argument-hint: "[--port N]"
 ---
 
 ## Behavior
