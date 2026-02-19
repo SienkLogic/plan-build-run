@@ -3,9 +3,11 @@ name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:build — Phase Execution
 
-You are the orchestrator for `/pbr:build`. This skill executes all plans in a phase by invoking executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to agents, and keep the user's main context window clean.
+You are the orchestrator for `/pbr:build`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() agents, and keep the user's main context window clean.
 
 ## Context Budget
 
@@ -68,7 +70,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
 6. If no phase number given, read current phase from `.planning/STATE.md`
    - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
-7. If `gates.confirm_execute` is true: use the yes-no pattern from `skills/shared/gate-prompts.md`:
+7. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
    question: "Ready to build Phase {N}? This will execute {count} plans."
    header: "Build?"
    options:
@@ -83,7 +85,7 @@ After validating prerequisites, check plan staleness:
 1. Read each PLAN.md file's `dependency_fingerprints` field (if present)
 2. For each fingerprinted dependency, check the current SUMMARY.md file (length + modification time)
 3. If any fingerprint doesn't match: the dependency phase was re-built after this plan was created
-4. Use the stale-continue pattern from `skills/shared/gate-prompts.md`:
+4. Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
    question: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created."
    header: "Stale"
    options:
@@ -106,7 +108,9 @@ After validating prerequisites, check plan staleness:
 
 If no plans found:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Phase {N} has no plans.
 
@@ -115,7 +119,9 @@ Phase {N} has no plans.
 
 If dependencies incomplete:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Phase {N} depends on Phase {M}, which is not complete.
 
@@ -166,7 +172,7 @@ Check for existing SUMMARY.md files from previous runs (crash recovery):
 3. Build the skip list of plans to exclude
 
 **If all plans already have completed SUMMARYs:**
-Use the yes-no pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Phase {N} has already been built. All plans have completed SUMMARYs. Re-build from scratch?"
   header: "Re-build?"
   options:
@@ -239,7 +245,7 @@ For each plan in the current wave (excluding skipped plans):
 Display to the user before spawning:
 
 ```
-Spawning {N} executor(s) for Wave {W}...
+◐ Spawning {N} executor(s) for Wave {W}...
 ```
 
 Then present a brief narrative for each plan to give the user context on what's about to happen:
@@ -260,13 +266,13 @@ This is a read-only presentation step — extract descriptions from plan frontma
 **State fragment rule:** Executors MUST NOT modify STATE.md directly. The build skill orchestrator is the sole STATE.md writer during execution. Executors report results via SUMMARY.md only; the orchestrator reads those summaries and updates STATE.md itself.
 
 **Model Selection (Adaptive)**:
-Before invoking the executor for each plan, determine the model:
+Before spawning the executor for each plan, determine the model:
 1. Read the plan's task elements for `complexity` and `model` attributes
 2. If ANY task has an explicit `model` attribute, use the most capable model among them (inherit > sonnet > haiku)
 3. Otherwise, use the HIGHEST complexity among the plan's tasks to select the model:
    - Look up `config.models.complexity_map.{complexity}` (defaults: simple->haiku, medium->sonnet, complex->inherit)
 4. If `config.models.executor` is set (non-null), it overrides adaptive selection entirely — use that model for all executors
-5. Pass the selected model to the agent invocation
+5. Pass the selected model to the Task() spawn
 
 Reference: `references/model-selection.md` for full details.
 
@@ -276,7 +282,7 @@ Reference: `references/model-selection.md` for full details.
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
 5. Read `.planning/config.json`
 
-Construct the executor prompt and invoke `@executor`:
+Construct the executor prompt:
 
 ```
 You are the executor agent. Execute the following plan.
@@ -329,26 +335,35 @@ After all tasks complete:
 If you hit a checkpoint task, STOP and return the checkpoint response format immediately.
 ```
 
-**NOTE**: The `@executor` agent is defined in `agents/executor.md`. Do NOT inline it.
-
 **Spawn strategy based on config:**
 
 - If `parallelization.enabled: true` AND multiple plans in this wave:
-  - Invoke up to `max_concurrent_agents` executors in parallel
-  - Each invocation is independent
+  - Spawn up to `max_concurrent_agents` Task() calls in parallel
+  - Each Task() call is independent
+  - Use `run_in_background: true` for each executor
   - While waiting, display progress to the user:
     - After spawning: "Wave {W}: launched {N} executors in parallel: {list of plan names}"
+    - Periodically (~30s): check `TaskOutput` with `block: false` and report status
     - When each completes: "Plan {id} complete ({duration})"
     - When all complete: "Wave {W} finished. {passed}/{total} plans succeeded."
 
 - If `parallelization.enabled: false` OR single plan in wave:
-  - Invoke executors sequentially, one at a time
+  - Spawn Task() calls sequentially, one at a time
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+```
+Task({
+  agent_type: "pbr:executor",
+  prompt: <executor prompt constructed above>
+})
+
+NOTE: The pbr:executor agent type auto-loads the agent definition. Do NOT inline it.
+```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### 6b. Wait for Wave Completion
 
-Block until all executor agents for this wave complete.
+Block until all executor Task() calls for this wave complete.
 
 #### 6c. Read Results
 
@@ -359,7 +374,7 @@ For each completed executor:
 3. Extract status: `completed` | `partial` | `checkpoint` | `failed`
 4. Display per-plan completion to the user:
    ```
-   Plan {id} complete — {brief summary from SUMMARY.md frontmatter description or first key_file}
+   ✓ Plan {id} complete — {brief summary from SUMMARY.md frontmatter description or first key_file}
    ```
    Extract the brief summary from the SUMMARY.md frontmatter (use the `description` field if present, otherwise use the first entry from `key_files`).
 5. Record commit hashes, files created, deviations
@@ -406,12 +421,20 @@ When inline verification is enabled, each completed plan gets a targeted verific
 For each plan that completed successfully in this wave:
 
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
-2. Display to the user: `Spawning inline verifier for plan {plan_id}...`
+2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
-   Invoke `@verifier` with a lightweight targeted verification prompt:
+   Spawn a lightweight verifier:
+
+   <!-- NOTE: This is a targeted inline check (existence/substantiveness/wiring for specific files),
+        NOT the full must-have verifier. The canonical full verifier prompt lives in
+        agents/verifier.md and is templated via skills/review/templates/verifier-prompt.md.tmpl.
+        Keep this lightweight prompt distinct from the full verifier. -->
 
 ```
-Targeted inline verification for plan {plan_id}.
+Task({
+  agent_type: "pbr:verifier",
+  model: "haiku",
+  prompt: "Targeted inline verification for plan {plan_id}.
 
 Verify ONLY these files: {comma-separated key_files list}
 
@@ -421,16 +444,17 @@ For each file, check three layers:
 3. Wiring — is it imported/used by at least one other file?
 
 Report PASS or FAIL with a one-line reason per file.
-Write nothing to disk — just return your results as text.
+Write nothing to disk — just return your results as text."
+})
 ```
 
 3. If verifier reports FAIL for any file:
    - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
-   - Re-invoke the executor for just the failed items: include only the failing file context in the prompt
+   - Re-spawn the executor for just the failed items: include only the failing file context in the prompt
    - If the retry also fails: proceed but flag in the wave results table (don't block indefinitely)
 4. If verifier reports all PASS: continue to next wave
 
-**Note:** This adds latency (~10-20s per plan for the verifier). It's opt-in via `features.inline_verify: true` for projects where early detection outweighs speed.
+**Note:** This adds latency (~10-20s per plan for the haiku verifier). It's opt-in via `features.inline_verify: true` for projects where early detection outweighs speed.
 
 ---
 
@@ -440,7 +464,7 @@ If any executor returned `failed` or `partial`:
 
 **Handoff bug check (false-failure detection):**
 
-Before presenting failure options, check whether the executor actually completed its work despite reporting failure:
+Before presenting failure options, check whether the executor actually completed its work despite reporting failure (known Claude Code platform bug where handoff reports failure but work is done):
 
 1. Check if SUMMARY.md exists at the expected path for this plan
 2. If SUMMARY.md exists:
@@ -462,17 +486,17 @@ Plan {id} {status}:
   Last verify output: {output}
 ```
 
-Use the multi-option-failure pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prompts.md`):
   question: "Plan {id} failed at task {N} ({name}). How should we proceed?"
   header: "Failed"
   options:
-    - label: "Retry"     description: "Re-invoke the executor for this plan"
+    - label: "Retry"     description: "Re-spawn the executor for this plan"
     - label: "Skip"      description: "Mark as skipped, continue to next wave"
     - label: "Rollback"  description: "Undo commits from this plan, revert to last good state"
     - label: "Abort"     description: "Stop the entire build"
 
 **If user selects 'Retry':**
-- Re-invoke executor with the same prompt
+- Re-spawn executor Task() with the same prompt
 - If retry also fails: ask user again (max 2 retries total)
 
 **If user selects 'Skip':**
@@ -513,7 +537,7 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 ```
 
 3. Wait for user response
-4. Invoke a FRESH continuation executor:
+4. Spawn a FRESH continuation executor:
 
 Reference: `references/continuation-format.md` for the continuation protocol.
 
@@ -583,7 +607,7 @@ node ${PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 
 ### Step 7: Phase Verification (delegated, conditional)
 
-**Event-driven auto-verify signal:** Check if `.planning/.auto-verify` exists (written by event hooks). If the signal file exists, read it and delete it (one-shot). The signal confirms that auto-verification was triggered — proceed with verification even if the build just finished.
+**Event-driven auto-verify signal:** Check if `.planning/.auto-verify` exists (written by `event-handler.js` SubagentStop hook). If the signal file exists, read it and delete it (one-shot). The signal confirms that auto-verification was triggered — proceed with verification even if the build just finished.
 
 **Skip if:**
 - Build was aborted
@@ -599,13 +623,20 @@ Note for Step 8f completion summary: append "Note: Automatic verification was sk
 
 **If verification is enabled:**
 
-Display to the user: `Spawning verifier...`
+Display to the user: `◐ Spawning verifier...`
 
-Invoke the `@verifier` agent with the verifier prompt.
+Spawn a verifier Task():
 
-**NOTE**: The `@verifier` agent is defined in `agents/verifier.md`. Do NOT inline it.
+```
+Task({
+  agent_type: "pbr:verifier",
+  prompt: <verifier prompt>
+})
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+NOTE: The pbr:verifier agent type auto-loads the agent definition. Do NOT inline it.
+```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -613,8 +644,8 @@ Use the same verifier prompt template as defined in `/pbr:review`: read `skills/
 
 After the verifier returns, read the VERIFICATION.md frontmatter and display the results:
 
-- If status is `passed`: display `Verifier: {X}/{Y} must-haves verified` (where X = `must_haves_passed` and Y = `must_haves_checked`)
-- If status is `gaps_found`: display `Verifier found {N} gap(s) — see VERIFICATION.md` (where N = `must_haves_failed`)
+- If status is `passed`: display `✓ Verifier: {X}/{Y} must-haves verified` (where X = `must_haves_passed` and Y = `must_haves_checked`)
+- If status is `gaps_found`: display `⚠ Verifier found {N} gap(s) — see VERIFICATION.md` (where N = `must_haves_failed`)
 
 ---
 
@@ -648,10 +679,17 @@ Only run if ALL of these are true:
 If triggered:
 1. Record the pre-build commit SHA at the start of Step 1 (before any executors run) for comparison
 2. Run `git diff --name-only {pre_build_commit}..HEAD` to get the list of changed files
-3. Display to the user: `Spawning codebase mapper (incremental update)...`
+3. Display to the user: `◐ Spawning codebase mapper (incremental update)...`
 
-   Invoke `@codebase-mapper` with: "Incremental codebase map update. These files changed during the Phase {N} build:\n{diff file list}\n\nRead the existing .planning/codebase/ documents. Update ONLY the sections affected by these changes. Do NOT rewrite entire documents — make targeted updates. If a new dependency was added, update STACK.md. If new directories/modules were created, update STRUCTURE.md. If new patterns were introduced, update CONVENTIONS.md. Write updated files to .planning/codebase/."
-4. Do NOT block on this — run in background and continue to Step 8a. Report completion in Step 8f if it finishes in time.
+   Spawn a lightweight mapper Task():
+   ```
+   Task({
+     agent_type: "pbr:codebase-mapper",
+     model: "haiku",
+     prompt: "Incremental codebase map update. These files changed during the Phase {N} build:\n{diff file list}\n\nRead the existing .planning/codebase/ documents. Update ONLY the sections affected by these changes. Do NOT rewrite entire documents — make targeted updates. If a new dependency was added, update STACK.md. If new directories/modules were created, update STRUCTURE.md. If new patterns were introduced, update CONVENTIONS.md. Write updated files to .planning/codebase/."
+   })
+   ```
+4. Do NOT block on this — use `run_in_background: true` and continue to Step 8a. Report completion in Step 8f if it finishes in time.
 
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
@@ -685,7 +723,7 @@ If `planning.commit_docs` is `true`:
 If `git.branching` is `phase`:
 - All work was done on the phase branch (created in Step 1)
 - Squash merge to main: `git checkout main && git merge --squash plan-build-run/phase-{NN}-{name}`
-- Use the yes-no pattern from `skills/shared/gate-prompts.md`:
+- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Phase {N} complete on branch `plan-build-run/phase-{NN}-{name}`. Squash merge to main?"
   header: "Merge?"
   options:
@@ -701,17 +739,32 @@ Chain to the next skill directly within this session. This eliminates manual pha
 
 | Build Result | Next Action | How |
 |-------------|-------------|-----|
-| Verification passed, more phases | Plan next phase | Chain to `/pbr:plan {N+1}` |
-| Verification skipped | Run review | Chain to `/pbr:review {N}` |
+| Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
+| Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
 | Verification gaps found | **HARD STOP** — present gaps to user | Do NOT auto-advance past failures |
-| Last phase complete | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit` |
+| Last phase in current milestone | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
 | Build errors occurred | **HARD STOP** — errors need human review | Do NOT auto-advance past errors |
 
-After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review->plan, plan->build) if auto_advance remains true. This creates the full cycle: build->review->plan->build->...
+After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review→plan, plan→build) if auto_advance remains true. This creates the full cycle: build→review→plan→build→...
 
 **Else if `features.auto_continue` is `true`:**
 Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:plan {N+1}` or `/pbr:review {N}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
+
+**8e-ii. Check Pending Todos:**
+
+After completing the build, check if any pending todos are now satisfied:
+
+1. Check if `.planning/todos/pending/` exists and contains files
+2. If no pending todos: skip to 8f
+3. If pending todos exist:
+   a. Read the title and description from each pending todo's YAML frontmatter
+   b. Compare each todo against the phase work (plans executed, files changed, features built)
+   c. If a todo is **clearly satisfied**: move it to `.planning/todos/done/`, update `status: done`, add `completed: {YYYY-MM-DD}`, delete from `pending/` via Bash `rm`. Display: `✓ Auto-closed todo {NNN}: {title} (satisfied by Phase {N} build)`
+   d. If **partially related**: display `ℹ Related pending todo {NNN}: {title} — may be partially addressed`
+   e. If unrelated: skip silently
+
+Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 **8f. Present completion summary:**
 
@@ -719,8 +772,10 @@ Use the branded output templates from `references/ui-formatting.md`. Route based
 
 | Status | Template |
 |--------|----------|
-| `passed` + more phases | "Phase Complete" template |
-| `passed` + last phase | "Milestone Complete" template |
+| `passed` + more phases in current milestone | "Phase Complete" template |
+| `passed` + last phase in current milestone | "Milestone Complete" template |
+
+**Milestone boundary detection:** To determine "last phase in current milestone", read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone. For projects with a single milestone or no explicit milestone sections, "last phase in ROADMAP" is equivalent.
 | `gaps_found` | "Gaps Found" template |
 
 Before the branded banner, include the results table:
@@ -747,66 +802,66 @@ Then present the appropriate branded banner:
 **If `passed` + more phases:**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PHASE {N} COMPLETE
+ PLAN-BUILD-RUN ► PHASE {N} COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Phase {N}: {Name}**
 
 {X} plans executed
-Goal verified
+Goal verified ✓
 
----
+───────────────────────────────────────────────────────────────
 
-## Next Up
+## ▶ Next Up
 
 **Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
 
 `/pbr:plan {N+1}`
 
-`/clear` first for a fresh context window
+<sub>`/clear` first → fresh context window</sub>
 
----
+───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `/pbr:review {N}` — manual acceptance testing before continuing
 - `/pbr:discuss {N+1}` — talk through the next phase before planning
 - `/pbr:status` — see full project status
 
----
+───────────────────────────────────────────────────────────────
 ```
 
 **If `passed` + last phase:**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► MILESTONE COMPLETE
+ PLAN-BUILD-RUN ► MILESTONE COMPLETE 🎉
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {N} phases completed
-All phase goals verified
+All phase goals verified ✓
 
----
+───────────────────────────────────────────────────────────────
 
-## Next Up
+## ▶ Next Up
 
 **Audit milestone** — verify requirements, cross-phase integration, E2E flows
 
 `/pbr:milestone audit`
 
-`/clear` first for a fresh context window
+<sub>`/clear` first → fresh context window</sub>
 
----
+───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `/pbr:review` — manual acceptance testing
-- `/pbr:milestone complete` — skip audit, archive directly
+- `/pbr:milestone complete` — archive milestone after audit passes
 
----
+───────────────────────────────────────────────────────────────
 ```
 
 **If `gaps_found`:**
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND
+ PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND ⚠
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Phase {N}: {Name}**
@@ -818,23 +873,23 @@ Report: .planning/phases/{phase_dir}/VERIFICATION.md
 
 {Extract gap summaries from VERIFICATION.md}
 
----
+───────────────────────────────────────────────────────────────
 
-## Next Up
+## ▶ Next Up
 
 **Plan gap closure** — create additional plans to complete the phase
 
 `/pbr:plan {N} --gaps`
 
-`/clear` first for a fresh context window
+<sub>`/clear` first → fresh context window</sub>
 
----
+───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `cat .planning/phases/{phase_dir}/VERIFICATION.md` — see full report
 - `/pbr:review {N}` — manual testing before planning
 
----
+───────────────────────────────────────────────────────────────
 ```
 
 **8g. Display USER-SETUP.md (conditional):**
@@ -856,9 +911,11 @@ This ensures the user sees setup requirements prominently instead of buried in S
 ## Error Handling
 
 ### Executor agent timeout
-If an executor agent doesn't return within a reasonable time, display:
+If a Task() doesn't return within a reasonable time, display:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Executor agent timed out for Plan {id}.
 
@@ -871,7 +928,7 @@ For commit conventions and git workflow details, see `references/git-integration
 ### Git lock conflicts
 If multiple parallel executors create git lock conflicts:
 - The executor agent handles retries internally (see executor agent definition)
-- If lock conflicts persist, display: "Git lock conflicts detected with parallel execution. Consider reducing max_concurrent_agents to 1."
+- If lock conflicts persist, display: `⚠ Git lock conflicts detected with parallel execution. Consider reducing max_concurrent_agents to 1.`
 
 ### Executor produces unexpected files
 If SUMMARY.md shows files not listed in the plan's `files_modified`:
@@ -895,7 +952,7 @@ If `git.branching` is `phase` but we're not on the phase branch:
 | `.planning/phases/{NN}-{slug}/USER-SETUP.md` | External setup requirements | Step 6 (executor, if needed) |
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Phase verification report | Step 7 |
 | `.planning/codebase/*.md` | Incremental codebase map updates | Step 8-pre-c (if codebase/ exists) |
-| `.planning/ROADMAP.md` | Plans Complete + Status -> `built` or `partial` | Step 8a |
+| `.planning/ROADMAP.md` | Plans Complete + Status → `built` or `partial` | Step 8a |
 | `.planning/STATE.md` | Updated progress | Steps 6f, 8b |
 | `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8e |
 | Project source files | Actual code | Step 6 (executors) |

@@ -753,6 +753,21 @@ After invoking the chained skill, it runs within the same session. When it compl
 Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:plan {N+1}` or `/pbr:review {N}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
 
+**8e-ii. Check Pending Todos:**
+
+After completing the build, check if any pending todos are now satisfied:
+
+1. Check if `.planning/todos/pending/` exists and contains files
+2. If no pending todos: skip to 8f
+3. If pending todos exist:
+   a. Read the title and description from each pending todo's YAML frontmatter
+   b. Compare each todo against the phase work (plans executed, files changed, features built)
+   c. If a todo is **clearly satisfied**: move it to `.planning/todos/done/`, update `status: done`, add `completed: {YYYY-MM-DD}`, delete from `pending/` via Bash `rm`. Display: `✓ Auto-closed todo {NNN}: {title} (satisfied by Phase {N} build)`
+   d. If **partially related**: display `ℹ Related pending todo {NNN}: {title} — may be partially addressed`
+   e. If unrelated: skip silently
+
+Only auto-close when the match is unambiguous. When in doubt, leave it open.
+
 **8f. Present completion summary:**
 
 Use the branded output templates from `references/ui-formatting.md`. Route based on status:
