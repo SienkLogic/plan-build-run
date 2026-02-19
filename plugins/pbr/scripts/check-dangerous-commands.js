@@ -19,6 +19,8 @@
  *   2 = blocked (destructive command detected)
  */
 
+const fs = require('fs');
+const path = require('path');
 const { logHook } = require('./hook-logger');
 
 // Commands that are outright blocked
@@ -107,7 +109,49 @@ function checkDangerous(data) {
     }
   }
 
+  // Skill-specific checks
+  const skillResult = checkSkillSpecificBash(command);
+  if (skillResult) return skillResult;
+
   // No match — allow
+  return null;
+}
+
+/**
+ * Skill-specific bash command checks.
+ * Currently: statusline skill cannot use sed/awk/perl on JSON files.
+ */
+function checkSkillSpecificBash(command) {
+  const planningDir = path.join(process.cwd(), '.planning');
+  const skillFile = path.join(planningDir, '.active-skill');
+
+  let activeSkill = null;
+  try {
+    activeSkill = fs.readFileSync(skillFile, 'utf8').trim();
+  } catch (_e) {
+    return null;
+  }
+
+  if (activeSkill !== 'statusline') return null;
+
+  // Block sed/awk/perl targeting .json files
+  const jsonManipPattern = /\b(sed|awk|perl)\b.*\.json/;
+  const echoRedirectPattern = /echo\s.*>\s*.*\.json/;
+
+  if (jsonManipPattern.test(command) || echoRedirectPattern.test(command)) {
+    logHook('check-dangerous-commands', 'PreToolUse', 'block', {
+      command: command.substring(0, 200),
+      reason: 'JSON shell manipulation during statusline'
+    });
+    return {
+      output: {
+        decision: 'block',
+        reason: 'CRITICAL: Use Read + Write tools for JSON files, not shell text manipulation. Shell tools can corrupt JSON structure.'
+      },
+      exitCode: 2
+    };
+  }
+
   return null;
 }
 
