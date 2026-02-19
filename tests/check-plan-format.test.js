@@ -1,4 +1,4 @@
-const { validatePlan, validateSummary, validateVerification } = require('../plugins/pbr/scripts/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState } = require('../plugins/pbr/scripts/check-plan-format');
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
@@ -359,6 +359,40 @@ must_haves_failed: 0
 Body`;
       const result = validateVerification(content, 'VERIFICATION.md');
       expect(result.errors.some(e => e.includes('must_haves_checked'))).toBe(true);
+    });
+  });
+
+  describe('validateState', () => {
+    test('valid STATE.md with all required fields passes', () => {
+      const content = '---\nversion: 2\ncurrent_phase: 3\ntotal_phases: 5\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('missing version field produces warning', () => {
+      const content = '---\ncurrent_phase: 3\ntotal_phases: 5\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.warnings.some(w => w.includes('version'))).toBe(true);
+    });
+
+    test('missing phase_slug produces warning', () => {
+      const content = '---\nversion: 2\ncurrent_phase: 3\ntotal_phases: 5\nstatus: "planned"\n---\n';
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.warnings.some(w => w.includes('phase_slug'))).toBe(true);
+    });
+
+    test('missing frontmatter produces warning', () => {
+      const content = '# State\nNo frontmatter here';
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.warnings.some(w => w.includes('frontmatter'))).toBe(true);
+    });
+
+    test('unclosed frontmatter produces warning', () => {
+      const content = '---\nversion: 2\ncurrent_phase: 3\n';
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.warnings).toContain('Unclosed YAML frontmatter');
     });
   });
 });

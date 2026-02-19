@@ -18,7 +18,7 @@
  *   0 = always (PostToolUse hooks are advisory)
  */
 
-const { checkPlanWrite } = require('./check-plan-format');
+const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 
@@ -45,6 +45,13 @@ function main() {
       const syncResult = checkSync(data);
       if (syncResult) {
         process.stdout.write(JSON.stringify(syncResult.output));
+        process.exit(0);
+      }
+
+      // STATE.md frontmatter validation (after roadmap sync, advisory only)
+      const stateResult = checkStateWrite(data);
+      if (stateResult) {
+        process.stdout.write(JSON.stringify(stateResult.output));
         process.exit(0);
       }
 

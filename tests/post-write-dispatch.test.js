@@ -112,7 +112,7 @@ must_haves:
   test('passes when STATE.md and ROADMAP.md are in sync', () => {
     const { tmpDir, planningDir } = makeTmpDir();
     const statePath = path.join(planningDir, 'STATE.md');
-    fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: built');
+    fs.writeFileSync(statePath, '---\nversion: 2\ncurrent_phase: 3\ntotal_phases: 5\nphase_slug: "test"\nstatus: "built"\n---\n**Phase**: 03\n**Status**: built');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
       '| Phase | Status |\n|-------|--------|\n| 03 | Built |');
     const result = runScript(tmpDir, { file_path: statePath });

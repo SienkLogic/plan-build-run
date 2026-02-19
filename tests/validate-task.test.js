@@ -859,6 +859,96 @@ Status: built
     });
   });
 
+  describe('checkpoint manifest advisory', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-cm-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    const { checkCheckpointManifest } = require('../plugins/pbr/scripts/validate-task');
+
+    test('warns when build executor spawns without manifest', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(path.join(planningDir, 'phases', '01-test'), { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\nPhase: 1 of 3 (Test)\n');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toContain('checkpoint-manifest');
+      process.cwd.mockRestore();
+    });
+
+    test('no warning when manifest exists', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '01-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\nPhase: 1 of 3 (Test)\n');
+      fs.writeFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), '{}');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('no warning for non-build skill', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('no warning for non-executor agent', () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkCheckpointManifest({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+  });
+
+  describe('active-skill integrity', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-as-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    const { checkActiveSkillIntegrity } = require('../plugins/pbr/scripts/validate-task');
+
+    test('warns when pbr agent spawns without .active-skill', () => {
+      fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toContain('active-skill');
+      process.cwd.mockRestore();
+    });
+
+    test('no warning when .active-skill exists', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('no warning for non-pbr agents', () => {
+      fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'custom:agent' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('no warning when no .planning dir', () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+  });
+
   describe('error handling', () => {
     test('handles missing TOOL_INPUT gracefully', () => {
       const input = JSON.stringify({});
