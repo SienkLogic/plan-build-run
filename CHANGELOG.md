@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-02-19
+
+### Added
+- Milestone integration into workflow lifecycle — milestones are now created automatically during `/pbr:begin` roadmap generation
+- Planner agent generates milestone-grouped roadmaps (single milestone for standard projects, multiple for 8+ phase comprehensive projects)
+- Milestone-aware boundary detection in `/pbr:build` and `/pbr:review` — reads ROADMAP.md phase ranges instead of just "last phase overall"
+- Between-milestones state handling in `/pbr:continue`
+- Audit report detection in `/pbr:status` — suggests the correct next action based on whether an audit exists and its result
+
+### Fixed
+- "Skip audit" option in build/review completion banners now correctly says "archive milestone after audit passes" (consistent with milestone anti-pattern rules)
+- `auto_advance` hard-stop message at milestone boundaries now explains why it paused
+
 ## [2.1.0] - 2026-02-19
 
 ### Added
