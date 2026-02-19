@@ -114,6 +114,12 @@ function checkSkillRules(skill, filePath, planningDir) {
     return checkQuickRules(filePath, isInPlanning, planningDir);
   case 'build':
     return checkBuildRules(filePath, isInPlanning, planningDir);
+  case 'statusline':
+    return checkStatuslineRules(filePath, isInPlanning, planningDir);
+  case 'review':
+  case 'discuss':
+  case 'begin':
+    return checkReadOnlySkillRules(skill, filePath, isInPlanning);
   default:
     return null;
   }
@@ -206,6 +212,63 @@ function checkBuildRules(filePath, isInPlanning, planningDir) {
 }
 
 /**
+ * /pbr:statusline rules:
+ * - Warn when writing settings.json with hardcoded home directory paths
+ */
+function checkStatuslineRules(filePath, isInPlanning, _planningDir) {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  // Only check settings.json writes
+  if (!normalizedPath.endsWith('settings.json')) return null;
+
+  // Check tool_input content isn't available here — we only have filePath.
+  // The hardcoded path check needs content, which we get from the hook data.
+  // This function is called from checkSkillRules which only passes filePath.
+  // We'll check in the wrapper instead. For now, return null (pass).
+  return null;
+}
+
+/**
+ * Extended statusline check that includes content inspection.
+ * Called from checkWorkflow/main where we have access to full hook data.
+ */
+function checkStatuslineContent(data) {
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  const normalizedPath = filePath.replace(/\\/g, '/');
+
+  if (!normalizedPath.endsWith('settings.json')) return null;
+
+  // Check new_string (Edit) or content (Write) for hardcoded home paths
+  const content = data.tool_input?.new_string || data.tool_input?.content || '';
+  const oldString = data.tool_input?.old_string || '';
+  const textToCheck = content + ' ' + oldString;
+
+  // Hardcoded home directory paths — warn, don't block (may be legitimately resolved)
+  const hardcodedPathPattern = /(\/home\/|C:\\Users\\|\/Users\/)[^"'\s]*\.claude/i;
+  if (hardcodedPathPattern.test(textToCheck)) {
+    return {
+      rule: 'statusline-hardcoded-path',
+      message: `Warning: settings.json write appears to contain a hardcoded home directory path.\n\nFile: ${filePath}\n\nCRITICAL: Do NOT hardcode paths. Use dynamic path resolution to find the correct plugin installation directory.`
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Read-only skill rules (review, discuss, begin):
+ * - Cannot write files outside .planning/
+ */
+function checkReadOnlySkillRules(skill, filePath, isInPlanning) {
+  if (isInPlanning) return null;
+
+  return {
+    rule: `${skill}-readonly`,
+    message: `Workflow violation: /pbr:${skill} should only write to .planning/ files.\n\nBlocked: ${filePath}\n\nThe ${skill} skill is not intended to modify source code.`
+  };
+}
+
+/**
  * Check if any PLAN.md file exists in a directory (recursive one level).
  */
 function hasPlanFile(dir) {
@@ -255,8 +318,22 @@ function checkWorkflow(data) {
     };
   }
 
+  // Statusline content check (needs full data for content inspection)
+  if (activeSkill === 'statusline') {
+    const contentViolation = checkStatuslineContent(data);
+    if (contentViolation) {
+      logHook('check-skill-workflow', 'PreToolUse', 'warn', {
+        skill: activeSkill, file: path.basename(filePath), rule: contentViolation.rule
+      });
+      return {
+        exitCode: 0,
+        output: { additionalContext: contentViolation.message }
+      };
+    }
+  }
+
   return null;
 }
 
-module.exports = { readActiveSkill, checkSkillRules, hasPlanFile, checkWorkflow };
+module.exports = { readActiveSkill, checkSkillRules, hasPlanFile, checkWorkflow, checkStatuslineContent, checkReadOnlySkillRules };
 if (require.main === module || process.argv[1] === __filename) { main(); }
