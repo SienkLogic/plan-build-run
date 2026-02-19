@@ -32,6 +32,12 @@ function main() {
 
   const context = buildContext(planningDir, stateFile);
 
+  // Auto-launch dashboard if configured
+  const config = configLoad(planningDir);
+  if (config && config.dashboard && config.dashboard.auto_launch) {
+    tryLaunchDashboard(config.dashboard.port || 3000, planningDir, cwd);
+  }
+
   if (context) {
     const output = {
       additionalContext: context
@@ -275,7 +281,46 @@ function getHookHealthSummary(planningDir) {
   }
 }
 
+/**
+ * Attempt to launch the dashboard in a detached background process.
+ * Checks if the port is already in use before spawning.
+ */
+function tryLaunchDashboard(port, _planningDir, projectDir) {
+  const net = require('net');
+  const { spawn } = require('child_process');
+
+  // Quick port probe — if something is already listening, skip launch
+  const probe = net.createConnection({ port, host: '127.0.0.1' });
+  probe.on('connect', () => {
+    probe.destroy();
+    logHook('progress-tracker', 'SessionStart', 'dashboard-already-running', { port });
+  });
+  probe.on('error', () => {
+    // Port is free — launch dashboard
+    const cliPath = path.join(__dirname, '..', 'dashboard', 'bin', 'cli.js');
+    if (!fs.existsSync(cliPath)) {
+      logHook('progress-tracker', 'SessionStart', 'dashboard-cli-missing', { cliPath });
+      return;
+    }
+
+    try {
+      const child = spawn(process.execPath, [cliPath, '--dir', projectDir, '--port', String(port)], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: projectDir
+      });
+      child.unref();
+      logHook('progress-tracker', 'SessionStart', 'dashboard-launched', { port, pid: child.pid });
+    } catch (e) {
+      logHook('progress-tracker', 'SessionStart', 'dashboard-launch-error', { error: e.message });
+    }
+  });
+
+  // Don't let the probe keep the process alive
+  probe.unref();
+}
+
 // Exported for testing
-module.exports = { getHookHealthSummary, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES };
+module.exports = { getHookHealthSummary, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard };
 
 main();
