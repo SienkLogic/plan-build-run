@@ -260,10 +260,13 @@ Archive a completed milestone and prepare for the next one.
 
 5. **Archive milestone documents:**
 
-   Copy/create archive files:
-   - `.planning/milestones/{version}-ROADMAP.md` — snapshot of ROADMAP.md at completion
-   - `.planning/milestones/{version}-REQUIREMENTS.md` — snapshot of REQUIREMENTS.md
-   - `.planning/milestones/{version}-STATS.md` — milestone statistics
+   Create a versioned archive directory and move phase directories into it:
+   - `.planning/milestones/{version}/ROADMAP.md` — snapshot of ROADMAP.md at completion
+   - `.planning/milestones/{version}/REQUIREMENTS.md` — snapshot of REQUIREMENTS.md
+   - `.planning/milestones/{version}/STATS.md` — milestone statistics
+   - `.planning/milestones/{version}/phases/{NN}-{slug}/` — move each milestone phase directory from `.planning/phases/` into the archive
+
+   **Move phases:** For each phase belonging to this milestone, move (not copy) its directory from `.planning/phases/{NN}-{slug}/` to `.planning/milestones/{version}/phases/{NN}-{slug}/`. This keeps the active phases directory clean for the next milestone.
 
    **Stats file content:**
 
@@ -290,7 +293,7 @@ Archive a completed milestone and prepare for the next one.
    ```markdown
    ## Milestone: {name} ({version}) -- COMPLETED
 
-   Phases {start}-{end} completed on {date}. See `.planning/milestones/{version}-ROADMAP.md` for details.
+   Phases {start}-{end} completed on {date}. See `.planning/milestones/{version}/ROADMAP.md` for details.
 
    | Phase | Status |
    |-------|--------|
@@ -322,7 +325,7 @@ Archive a completed milestone and prepare for the next one.
 
 9. **Commit:**
    ```bash
-   git add .planning/milestones/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/HISTORY.md
+   git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/HISTORY.md
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
@@ -339,7 +342,7 @@ Archive a completed milestone and prepare for the next one.
     - {count} commits, {lines} lines of code
     - {duration} days
 
-    Archived to: .planning/milestones/{version}-*
+    Archived to: .planning/milestones/{version}/
     Git tag: {version}
 
     ───────────────────────────────────────────────────────────────

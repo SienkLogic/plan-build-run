@@ -62,6 +62,58 @@ describe('milestone.service', () => {
       expect(result).toHaveLength(1);
       expect(result[0].version).toBe('1.0');
     });
+
+    it('detects directory-format milestones', async () => {
+      vol.fromJSON({
+        '/project/.planning/milestones/v2.0/ROADMAP.md': '# Roadmap v2',
+        '/project/.planning/milestones/v2.0/STATS.md': '---\nmilestone: "Beta Release"\ncompleted: "2026-02-01"\nduration: "3 weeks"\n---\n\nStats',
+        '/project/.planning/milestones/v2.0/REQUIREMENTS.md': '# Reqs',
+      });
+
+      const result = await listArchivedMilestones('/project');
+      expect(result).toHaveLength(1);
+      expect(result[0].version).toBe('2.0');
+      expect(result[0].name).toBe('Beta Release');
+      expect(result[0].date).toBe('2026-02-01');
+      expect(result[0].files).toHaveLength(3);
+      expect(result[0].files).toContain('STATS.md');
+    });
+
+    it('handles mixed formats with directory taking precedence', async () => {
+      vol.fromJSON({
+        // v1.0 in flat format
+        '/project/.planning/milestones/v1.0-ROADMAP.md': '# Roadmap v1',
+        '/project/.planning/milestones/v1.0-STATS.md': '---\nmilestone: "MVP"\n---\n\nStats',
+        // v2.0 in directory format
+        '/project/.planning/milestones/v2.0/ROADMAP.md': '# Roadmap v2',
+        '/project/.planning/milestones/v2.0/STATS.md': '---\nmilestone: "Beta"\n---\n\nStats',
+      });
+
+      const result = await listArchivedMilestones('/project');
+      expect(result).toHaveLength(2);
+      // Newest first
+      expect(result[0].version).toBe('2.0');
+      expect(result[0].name).toBe('Beta');
+      expect(result[1].version).toBe('1.0');
+      expect(result[1].name).toBe('MVP');
+    });
+
+    it('directory format takes precedence over flat files for same version', async () => {
+      vol.fromJSON({
+        // Both formats for v1.0 — directory should win
+        '/project/.planning/milestones/v1.0/ROADMAP.md': '# Dir format',
+        '/project/.planning/milestones/v1.0/STATS.md': '---\nmilestone: "From Dir"\n---\n\nStats',
+        '/project/.planning/milestones/v1.0-ROADMAP.md': '# Flat format',
+        '/project/.planning/milestones/v1.0-STATS.md': '---\nmilestone: "From Flat"\n---\n\nStats',
+      });
+
+      const result = await listArchivedMilestones('/project');
+      expect(result).toHaveLength(1);
+      expect(result[0].name).toBe('From Dir');
+      // files should be from directory format (no version prefix)
+      expect(result[0].files).toContain('ROADMAP.md');
+      expect(result[0].files).not.toContain('v1.0-ROADMAP.md');
+    });
   });
 
   describe('getAllMilestones', () => {
@@ -96,6 +148,31 @@ describe('milestone.service', () => {
       expect(result.sections[0].type).toBe('ROADMAP');
       expect(result.sections[0].html).toContain('Phase Overview');
       expect(result.sections[1].type).toBe('STATS');
+    });
+
+    it('reads from directory format', async () => {
+      vol.fromJSON({
+        '/project/.planning/milestones/v2.0/ROADMAP.md': '---\ntitle: Roadmap\n---\n\n# Phase Overview v2\n\nContent here',
+        '/project/.planning/milestones/v2.0/STATS.md': '---\nmilestone: Beta\n---\n\nStat data',
+      });
+
+      const result = await getMilestoneDetail('/project', '2.0');
+      expect(result.version).toBe('2.0');
+      expect(result.sections).toHaveLength(2);
+      expect(result.sections[0].type).toBe('ROADMAP');
+      expect(result.sections[0].html).toContain('Phase Overview v2');
+      expect(result.sections[1].type).toBe('STATS');
+    });
+
+    it('falls back to flat file when directory does not exist', async () => {
+      vol.fromJSON({
+        '/project/.planning/milestones/v1.0-ROADMAP.md': '---\ntitle: Roadmap\n---\n\n# Old Format\n\nContent',
+      });
+
+      const result = await getMilestoneDetail('/project', '1.0');
+      expect(result.sections).toHaveLength(1);
+      expect(result.sections[0].type).toBe('ROADMAP');
+      expect(result.sections[0].html).toContain('Old Format');
     });
 
     it('returns empty sections for nonexistent version', async () => {
