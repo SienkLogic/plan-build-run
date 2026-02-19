@@ -378,5 +378,49 @@ describe('cross-plugin compatibility', () => {
         expect(derivFm.description).toBe(pbrFm.description);
       });
     });
+
+    // Verify derivative skills don't reference paths that only exist in the canonical plugin
+    describe('skill path references', () => {
+      test('dashboard skill references a reachable dashboard path', () => {
+        const dashboardSkill = fs.readFileSync(
+          path.join(dir, 'skills', 'dashboard', 'SKILL.md'), 'utf8'
+        );
+        // Derivative plugins are at plugins/{name}/ — dashboard is at ../../dashboard/
+        // Skills should NOT reference <plugin-root>/dashboard/ (doesn't exist in derivatives)
+        expect(dashboardSkill).not.toMatch(/\$\{.*PLUGIN_ROOT\}\/dashboard/);
+        expect(dashboardSkill).not.toMatch(/<plugin-root>\/dashboard/);
+      });
+    });
+
+    // Verify references/ and templates/ directories have the same files as PBR
+    describe('shared resource sync', () => {
+      test('references/ files match PBR', () => {
+        const pbrRefs = fs.readdirSync(path.join(PBR_DIR, 'references'))
+          .filter(f => f.endsWith('.md'))
+          .sort();
+        const derivRefs = fs.readdirSync(path.join(dir, 'references'))
+          .filter(f => f.endsWith('.md'))
+          .sort();
+        expect(derivRefs).toEqual(pbrRefs);
+      });
+
+      test('templates/ files match PBR', () => {
+        function listTemplates(base) {
+          const files = [];
+          function walk(current, prefix) {
+            for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+              const rel = prefix ? path.join(prefix, entry.name) : entry.name;
+              if (entry.isDirectory()) walk(path.join(current, entry.name), rel);
+              else files.push(rel);
+            }
+          }
+          walk(base, '');
+          return files.sort();
+        }
+        const pbrTemplates = listTemplates(path.join(PBR_DIR, 'templates'));
+        const derivTemplates = listTemplates(path.join(dir, 'templates'));
+        expect(derivTemplates).toEqual(pbrTemplates);
+      });
+    });
   });
 });
