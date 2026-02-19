@@ -387,7 +387,7 @@ All phase goals verified ✓
 
 **Also available:**
 - /pbr:review — manual acceptance testing
-- /pbr:milestone complete — skip audit, archive directly
+- /pbr:milestone complete — archive milestone after audit passes
 
 ───────────────────────────────────────────────────────────────
 ```
