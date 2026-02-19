@@ -106,6 +106,16 @@
             "statusMessage": "Validating Task() call..."
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" validate-skill-args.js",
+            "statusMessage": "Validating skill arguments..."
+          }
+        ]
       }
     ],
     "PreCompact": [
