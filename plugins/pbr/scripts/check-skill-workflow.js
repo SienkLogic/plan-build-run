@@ -10,6 +10,8 @@
  *   - /pbr:quick: Cannot write files outside .planning/ until a PLAN.md
  *     exists in .planning/quick/. This prevents the orchestrator from
  *     skipping the planning steps and jumping straight to implementation.
+ *   - /pbr:milestone, /pbr:explore, /pbr:import, /pbr:scan: Read-only skills
+ *     that cannot write files outside .planning/.
  *
  * Skills opt in by writing .planning/.active-skill at the start of
  * their execution. If the file doesn't exist, this hook does nothing.
@@ -120,6 +122,10 @@ function checkSkillRules(skill, filePath, planningDir) {
   case 'review':
   case 'discuss':
   case 'begin':
+  case 'milestone':
+  case 'explore':
+  case 'import':
+  case 'scan':
     return checkReadOnlySkillRules(skill, filePath, isInPlanning);
   default:
     return null;
