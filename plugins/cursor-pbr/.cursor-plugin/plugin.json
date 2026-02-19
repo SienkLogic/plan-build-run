@@ -11,7 +11,7 @@
   "homepage": "https://github.com/SienkLogic/plan-build-run",
   "repository": "https://github.com/SienkLogic/plan-build-run",
   "license": "MIT",
-  "logo": "assets/logo.svg",
+  "logo": "../assets/logo.svg",
   "keywords": ["cursor", "context-engineering", "development-workflow", "subagent-delegation"],
   "category": "developer-tools",
   "tags": ["planning", "workflow", "structured-development", "context-management"],
