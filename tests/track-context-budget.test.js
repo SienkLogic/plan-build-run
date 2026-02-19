@@ -20,7 +20,7 @@ describe('track-context-budget.js', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  function run(toolInput = {}, toolOutput = '') {
+  function run(toolInput = {}, toolOutput = '', env = {}) {
     const input = JSON.stringify({ tool_input: toolInput, tool_output: toolOutput });
     return execSync(`node "${SCRIPT}"`, {
       cwd: tmpDir,
@@ -28,6 +28,7 @@ describe('track-context-budget.js', () => {
       encoding: 'utf8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...env },
     });
   }
 
@@ -180,6 +181,38 @@ describe('track-context-budget.js', () => {
     expect(tracker.skill).toBe('build');
     expect(tracker.reads).toBe(1);
     expect(tracker.files).toEqual(['/new.js']);
+  });
+
+  test('skips tracking for files under CLAUDE_PLUGIN_ROOT', () => {
+    const pluginDir = path.join(tmpDir, 'my-plugin');
+    fs.mkdirSync(pluginDir, { recursive: true });
+
+    const largeContent = 'x'.repeat(6000);
+    const output = run(
+      { file_path: path.join(pluginDir, 'skills', 'begin', 'SKILL.md') },
+      largeContent,
+      { CLAUDE_PLUGIN_ROOT: pluginDir }
+    );
+
+    // Should produce no output and no tracker update
+    expect(output).toBe('');
+    const tracker = readTracker();
+    expect(tracker).toBeNull();
+  });
+
+  test('still tracks files outside CLAUDE_PLUGIN_ROOT', () => {
+    const pluginDir = path.join(tmpDir, 'my-plugin');
+
+    const largeContent = 'x'.repeat(6000);
+    const output = run(
+      { file_path: path.join(tmpDir, 'src', 'app.js') },
+      largeContent,
+      { CLAUDE_PLUGIN_ROOT: pluginDir }
+    );
+
+    // Should warn about large file
+    const parsed = JSON.parse(output);
+    expect(parsed.additionalContext).toContain('large file read');
   });
 
   test('does not reset when skill is the same', () => {

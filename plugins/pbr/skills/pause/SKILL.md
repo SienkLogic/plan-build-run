@@ -153,11 +153,11 @@ If `planning.commit_docs: true` in config.json:
 ```bash
 git add .planning/phases/{NN}-{phase-name}/.continue-here.md
 git add .planning/STATE.md
-git commit -m "wip: pause at phase {N} plan {M}"
+git commit -m "wip(planning): save session state — phase {N} plan {M}"
 ```
 
 **Commit rules:**
-- Always use `wip:` prefix for pause commits
+- Always use `wip(planning):` prefix for pause commits
 - Include phase and plan numbers
 - Stage only the continue-here and STATE.md files
 - Do NOT stage any code changes (those should already be committed by the executor)
@@ -242,7 +242,7 @@ Remaining: {count} plans in this phase
 
 1. **DO NOT** include full file contents in .continue-here.md — keep it concise
 2. **DO NOT** stage code files in the WIP commit — only planning docs
-3. **DO NOT** skip the commit — the WIP commit is how `/pbr:resume` finds the pause point
+3. **DO NOT** skip the commit when `planning.commit_docs` is enabled — the WIP commit preserves the pause state in version control and ensures `.continue-here.md` is not lost if working tree changes occur
 4. **DO NOT** write multiple .continue-here.md files — one per pause
 5. **DO NOT** include sensitive information (API keys, passwords) in the handoff
 6. **DO NOT** modify any code files — this skill only writes planning docs

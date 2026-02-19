@@ -148,10 +148,13 @@ Todo {NNN} not found in pending todos.
 
 **To fix:** Run `/pbr:todo list` to see available numbers.
 ```
-3. Move file to `.planning/todos/done/{NNN}-{slug}.md`
-4. Update frontmatter: set `status: done` and add `completed: {YYYY-MM-DD}`
-5. Update STATE.md
-6. Confirm with branded output:
+3. Ensure `.planning/todos/done/` directory exists (create if needed)
+4. Read the pending file content
+5. Update frontmatter in the content: set `status: done` and add `completed: {YYYY-MM-DD}`
+6. Write the updated content to `.planning/todos/done/{NNN}-{slug}.md`
+7. Delete the original file from `.planning/todos/pending/` (use `rm` via Bash)
+8. Update STATE.md
+9. Confirm with branded output:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  PLAN-BUILD-RUN ► TODO COMPLETED ✓

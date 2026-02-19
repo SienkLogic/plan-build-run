@@ -66,21 +66,21 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
-4. Validate:
+5. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - PLAN.md files exist in the directory
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
-4. If no phase number given, read current phase from `.planning/STATE.md`
+6. If no phase number given, read current phase from `.planning/STATE.md`
    - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
-5. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+7. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
    question: "Ready to build Phase {N}? This will execute {count} plans."
    header: "Build?"
    options:
      - label: "Yes"  description: "Start building Phase {N}"
      - label: "No"   description: "Cancel — review plans first"
    If "No" or "Other": stop and suggest `/pbr:plan {N}` to review plans
-6. If `git.branching_strategy` is `phase`: create and switch to branch `plan-build-run/phase-{NN}-{name}` before any build work begins
-7. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
+8. If `git.branching` is `phase`: create and switch to branch `plan-build-run/phase-{NN}-{name}` before any build work begins
+9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
 **Staleness check (dependency fingerprints):**
 After validating prerequisites, check plan staleness:
@@ -95,7 +95,7 @@ After validating prerequisites, check plan staleness:
      - label: "Re-plan"          description: "Stop and re-plan with `/pbr:plan {N}` (recommended)"
    If "Re-plan" or "Other": stop and suggest `/pbr:plan {N}`
    If "Continue anyway": proceed with existing plans
-7. If plans have no `dependency_fingerprints` field, fall back to timestamp-based staleness detection:
+10. If plans have no `dependency_fingerprints` field, fall back to timestamp-based staleness detection:
    a. Read `.planning/ROADMAP.md` and identify the current phase's dependencies (the `depends_on` field)
    b. For each dependency phase, find its phase directory under `.planning/phases/`
    c. Check if any SUMMARY.md files in the dependency phase directory have a modification timestamp newer than the current phase's PLAN.md files
@@ -134,7 +134,7 @@ Phase {N} depends on Phase {M}, which is not complete.
 
 ### Step 2: Load Config (inline)
 
-Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching_strategy`.
+Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
 
 ---
 
@@ -361,6 +361,8 @@ Task({
 NOTE: The pbr:executor subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+
 #### 6b. Wait for Wave Completion
 
 Block until all executor Task() calls for this wave complete.
@@ -424,6 +426,11 @@ For each plan that completed successfully in this wave:
 2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
    Spawn a lightweight verifier:
+
+   <!-- NOTE: This is a targeted inline check (existence/substantiveness/wiring for specific files),
+        NOT the full must-have verifier. The canonical full verifier prompt lives in
+        agents/verifier.md and is templated via skills/review/templates/verifier-prompt.md.tmpl.
+        Keep this lightweight prompt distinct from the full verifier. -->
 
 ```
 Task({
@@ -631,71 +638,11 @@ Task({
 NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+
 #### Verifier Prompt Template
 
-```
-You are the verifier agent. Verify that phase {N} meets its goals.
-
-<verification_approach>
-For each must-have from the phase's plans, perform a three-layer check:
-
-Layer 1 — Existence: Does the artifact exist? (ls, grep for exports)
-Layer 2 — Substantiveness: Is it more than a stub? (wc -l, grep for implementation)
-Layer 3 — Wiring: Is it connected to the rest of the system? (grep for imports/usage)
-
-See references/verification-patterns.md for detailed patterns.
-</verification_approach>
-
-<phase_plans>
-[For each PLAN.md in the phase: inline the must_haves section from frontmatter]
-</phase_plans>
-
-<build_results>
-Build summaries for verification (read full content via Read tool):
-
-| Plan | Summary File | Status |
-|------|-------------|--------|
-{For each SUMMARY.md in the phase:}
-| {plan_id} | {absolute path to SUMMARY.md} | {status from frontmatter} |
-
-Read each SUMMARY file to check what was actually built against the must-haves.
-</build_results>
-
-<instructions>
-1. For each must-have truth: run existence, substantiveness, and wiring checks
-2. For each must-have artifact: verify the file exists and has real content
-3. For each must-have key_link: verify the connection is made
-
-Write your verification report to .planning/phases/{NN}-{slug}/VERIFICATION.md
-
-Format:
----
-status: "passed" | "gaps_found" | "human_needed"
-phase: "{NN}-{slug}"
-checked_at: "{date}"
-must_haves_checked: {count}
-must_haves_passed: {count}
-must_haves_failed: {count}
----
-
-# Phase Verification: {phase name}
-
-## Results
-
-| Must-Have | Layer 1 | Layer 2 | Layer 3 | Status |
-|-----------|---------|---------|---------|--------|
-| {truth} | PASS | PASS | PASS | PASSED |
-| {truth} | PASS | FAIL | — | GAP |
-
-## Gaps Found
-{For each gap: what's missing, which layer failed, suggested fix}
-
-## Passed
-{For each pass: what was verified, how}
-</instructions>
-
-Use the Write tool to create VERIFICATION.md. Use Bash to run verification commands.
-```
+Use the same verifier prompt template as defined in `/pbr:review`: read `skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
 
 After the verifier returns, read the VERIFICATION.md frontmatter and display the results:
 
@@ -775,7 +722,7 @@ If `planning.commit_docs` is `true`:
 - Commit: `docs({phase}): add build summaries and verification`
 
 **8d. Handle git branching:**
-If `git.branching_strategy` is `phase`:
+If `git.branching` is `phase`:
 - All work was done on the phase branch (created in Step 1)
 - Squash merge to main: `git checkout main && git merge --squash plan-build-run/phase-{NN}-{name}`
 - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
@@ -794,8 +741,8 @@ Chain to the next skill directly within this session. This eliminates manual pha
 
 | Build Result | Next Action | How |
 |-------------|-------------|-----|
-| Verification passed, more phases | Plan next phase | `Skill({ skill: "dev:plan", args: "{N+1}" })` |
-| Verification skipped | Run review | `Skill({ skill: "dev:review", args: "{N}" })` |
+| Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
+| Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
 | Verification gaps found | **HARD STOP** — present gaps to user | Do NOT auto-advance past failures |
 | Last phase complete | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit` |
 | Build errors occurred | **HARD STOP** — errors need human review | Do NOT auto-advance past errors |
@@ -862,6 +809,7 @@ Goal verified ✓
 
 **Also available:**
 - `/pbr:review {N}` — manual acceptance testing before continuing
+- `/pbr:discuss {N+1}` — talk through the next phase before planning
 - `/pbr:status` — see full project status
 
 ───────────────────────────────────────────────────────────────
@@ -974,7 +922,7 @@ If SUMMARY.md shows files not listed in the plan's `files_modified`:
 - Flag for review: "Plan {id} modified files not in the plan: {list}"
 
 ### Build on wrong branch
-If `git.branching_strategy` is `phase` but we're not on the phase branch:
+If `git.branching` is `phase` but we're not on the phase branch:
 - Create the phase branch: `git checkout -b plan-build-run/phase-{NN}-{name}`
 - Proceed with build on the new branch
 

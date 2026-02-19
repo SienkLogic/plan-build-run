@@ -222,6 +222,8 @@ Task({
 
 **NOTE**: The `pbr:researcher` subagent type auto-loads the agent definition from `agents/researcher.md`. Do NOT inline the agent definition — it wastes main context.
 
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+
 #### Researcher Prompt Template
 
 For each researcher, construct the prompt by reading the template and filling in placeholders:
@@ -285,12 +287,13 @@ Spawn a synthesis agent:
 ```
 Task({
   subagent_type: "pbr:synthesizer",
-  model: "haiku",
   prompt: <synthesis prompt>
 })
 ```
 
-**NOTE**: The `pbr:synthesizer` subagent type auto-loads the agent definition. Do NOT inline it. Use `model: "haiku"` — synthesis is fast summarization work that doesn't need a large model.
+**NOTE**: The `pbr:synthesizer` subagent type auto-loads the agent definition. Do NOT inline it. The agent definition specifies `model: sonnet` — do not override it.
+
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it.
 
 #### Synthesis Prompt Template
 
@@ -362,6 +365,8 @@ Task({
 ```
 
 **NOTE**: The `pbr:planner` subagent type auto-loads the agent definition. Do NOT inline it. The planner agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
+
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it.
 
 #### Roadmap Prompt Template
 
@@ -443,7 +448,20 @@ Create `.planning/CONTEXT.md` from information gathered during questioning:
 | {feature} | {reason} |
 ```
 
-**9d. Create phase directories:**
+**9d. Write HISTORY.md:**
+Create `.planning/HISTORY.md` with an initial entry:
+
+```markdown
+# Project History
+
+## {date} — Project Created
+
+- Initialized Plan-Build-Run project
+- Depth: {depth}, Mode: {mode}
+- Roadmap: {N} phases planned
+```
+
+**9e. Create phase directories:**
 For each phase in the roadmap, create the directory structure:
 ```
 .planning/phases/01-{slug}/
@@ -517,14 +535,14 @@ Then use the "Next Up" routing block:
 
 **Phase 1: {Name}** — {one-line goal}
 
-`/pbr:explore`
+`/pbr:discuss 1`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- `/pbr:discuss 1` — talk through Phase 1 details before planning
+- `/pbr:explore` — open-ended exploration before planning
 - `/pbr:plan 1` — jump straight to planning Phase 1
 - `/pbr:config` — adjust workflow settings
 
@@ -572,4 +590,5 @@ Cannot create .planning/ directory.
 | `.planning/PROJECT.md` | Project overview | Step 9 |
 | `.planning/STATE.md` | Current state tracker | Step 9 |
 | `.planning/CONTEXT.md` | Decisions and constraints | Step 9 |
+| `.planning/HISTORY.md` | Project history log | Step 9 |
 | `.planning/phases/NN-*/` | Phase directories | Step 9 |

@@ -47,9 +47,9 @@ Additionally for this skill:
 
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings
-   - If no: warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
+   - If no: create `.planning/` directory first, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
 
-2. Write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook — it will block source code writes until PLAN.md exists.
+2. **After** confirming `.planning/` directory exists (created in step 1 if needed), write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook — it will block source code writes until PLAN.md exists.
 
 3. Check if ROADMAP.md exists
    - If yes: note the current phase context (quick tasks may relate to the active phase)
@@ -197,7 +197,11 @@ Status indicators:
 - Partial: warning indicator
 - Failed: X indicator
 
-### Step 10: Commit Planning Docs
+### Step 10: Clean Up Active Skill
+
+Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
+
+### Step 11: Commit Planning Docs
 
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
@@ -206,7 +210,7 @@ If `planning.commit_docs: true` in config.json:
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
-### Step 11: Report Results
+### Step 12: Report Results
 
 **Artifact check** — Before reporting, verify all required artifacts exist:
 1. `.planning/quick/{NNN}-{slug}/PLAN.md` exists
@@ -315,6 +319,7 @@ Choose verification based on context:
 - Warn user about limited tracking
 
 ### Executor fails entirely
+- Delete `.planning/.active-skill` before reporting the error
 - Read error output
 - Present to user with suggestion
 - Do NOT auto-retry — let the user decide

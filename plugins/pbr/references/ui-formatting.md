@@ -429,6 +429,26 @@ Report: .planning/phases/{phase_dir}/VERIFICATION.md
 
 ---
 
+## Session Banners
+
+Use for session lifecycle transitions (pause/resume):
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► SESSION RESTORED ✓
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Position: Phase {N} — {phase name}, Plan {M}
+Paused: {ISO datetime}
+Duration: {time since pause}
+
+{Summary of where work left off}
+```
+
+Other session banners: `SESSION SAVED ✓` (pause), `RESUMING SESSION` (resume start).
+
+---
+
 ## Anti-Patterns
 
 Do NOT:
@@ -437,5 +457,5 @@ Do NOT:
 - Skip `PLAN-BUILD-RUN ►` prefix in stage banners
 - Use random emoji (only `🎉` for milestone complete, `✓` for phase complete)
 - Skip the "Next Up" block after major completions
-- Reference non-Plan-Build-Run commands (always use `/dev:*` commands)
+- Reference non-Plan-Build-Run commands (always use `/pbr:*` commands)
 - Use non-Plan-Build-Run branding in banners

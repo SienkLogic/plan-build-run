@@ -58,7 +58,7 @@ Stop all further checks.
 
 ### Check 2: Config Validity
 
-Parse `.planning/config.json` as JSON. Check required fields: `projectName`, `version`. Check recommended fields: `phases`, `currentPhase`.
+Parse `.planning/config.json` as JSON. Check required fields: `version`, `depth`. Check recommended fields: `features`, `models`.
 
 - PASS: Valid JSON with all required fields
 - FAIL (parse error): Report the parse error message — "Open the file and correct the syntax."
@@ -111,7 +111,7 @@ Compare ROADMAP.md phase statuses against STATE.md current position. Flag if ROA
 
 ### Check 8: Hook Execution Log
 
-Check if `.planning/logs/hooks.jsonl` exists. If so, scan last 20 entries for `result: "error"` or `result: "unlink-failed"`.
+Check if `.planning/logs/hooks.jsonl` exists. Also check the legacy path `.planning/.hook-log` (the logger migrates this automatically, but it may still exist if hooks haven't fired since the migration was added). Use whichever file exists (prefer `hooks.jsonl`). If found, scan last 20 entries for `decision: "error"` or `decision: "unlink-failed"`.
 
 - PASS: Log exists with no recent errors
 - WARN (errors found): Report error count and most recent error description — "Hooks may not be firing correctly."
@@ -125,8 +125,9 @@ Read `.planning/config.json` and check for fields referenced by skills:
 - `features.goal_verification` (build, review skills)
 - `features.integration_verification` (review skill)
 - `git.mode` (config skill)
+- `planning.commit_docs` (import, discuss, quick skills) — must be a boolean; validate that the value is strictly `true` or `false`, not a string or number
 
-- PASS: All expected fields present
+- PASS: All expected fields present with correct types
 - WARN (missing fields): Report each missing field and which skill uses it — "Run `/pbr:config` to set all options."
 
 ### Check 10: Orphaned Crash Recovery Files
