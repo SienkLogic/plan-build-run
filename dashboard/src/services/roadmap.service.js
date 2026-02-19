@@ -52,7 +52,7 @@ function extractAllDependencies(roadmapContent) {
   const dependencyMap = new Map();
 
   // Match Phase Details sections: "### Phase NN: ..." followed by "**Depends on**: ..."
-  const sectionRegex = /### Phase (\d+):[\s\S]*?\*\*Depends on\*\*:\s*([^\n]+)/g;
+  const sectionRegex = /### Phase (\d+):[\s\S]*?\*\*Depends on:?\*\*:?\s*([^\n]+)/g;
   let match;
 
   while ((match = sectionRegex.exec(roadmapContent)) !== null) {
@@ -92,7 +92,7 @@ function extractMilestones(roadmapContent) {
   const projectTitle = titleMatch ? titleMatch[1].trim() : 'Project';
 
   // Parse explicit milestones: "## Milestone: Name\n\n**Goal:** ...\n**Phases:** N - M"
-  const milestoneRegex = /## Milestone:\s*(.+)\n\n\*\*Goal:\*\*\s*(.+)\n\*\*Phases:\*\*\s*(\d+)\s*-\s*(\d+)/g;
+  const milestoneRegex = /## Milestone:\s*(.+)\n+\*\*Goal:?\*\*:?\s*(.+)\n\*\*Phases:?\*\*:?\s*(\d+)\s*-\s*(\d+)/g;
   const explicit = [];
   for (const match of roadmapContent.matchAll(milestoneRegex)) {
     explicit.push({
