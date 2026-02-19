@@ -477,6 +477,388 @@ describe('validate-task.js', () => {
     });
   });
 
+  describe('review verifier gate', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-rv-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    function makeEnv(opts) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      if (opts.activeSkill) fs.writeFileSync(path.join(planningDir, '.active-skill'), opts.activeSkill);
+      if (opts.stateContent) fs.writeFileSync(path.join(planningDir, 'STATE.md'), opts.stateContent);
+      if (opts.phaseDir) {
+        const pDir = path.join(planningDir, 'phases', opts.phaseDir);
+        fs.mkdirSync(pDir, { recursive: true });
+        if (opts.summaryFiles) {
+          for (const f of opts.summaryFiles) {
+            fs.writeFileSync(path.join(pDir, f), '# Summary\nstatus: complete');
+          }
+        }
+      }
+    }
+
+    function runInDir(toolInput) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd: tmpDir });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks verifier when no SUMMARY.md', () => {
+      makeEnv({
+        activeSkill: 'review',
+        phaseDir: '01-test',
+        stateContent: '# State\nPhase: 1 of 3 (Test)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run verifier', subagent_type: 'pbr:verifier' });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('SUMMARY');
+    });
+
+    test('allows verifier when SUMMARY.md exists', () => {
+      makeEnv({
+        activeSkill: 'review',
+        phaseDir: '01-test',
+        summaryFiles: ['SUMMARY.md'],
+        stateContent: '# State\nPhase: 1 of 3 (Test)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run verifier', subagent_type: 'pbr:verifier' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows verifier when SUMMARY-01-01.md exists', () => {
+      makeEnv({
+        activeSkill: 'review',
+        phaseDir: '01-test',
+        summaryFiles: ['SUMMARY-01-01.md'],
+        stateContent: '# State\nPhase: 1 of 3 (Test)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run verifier', subagent_type: 'pbr:verifier' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows non-verifier agents in review', () => {
+      makeEnv({
+        activeSkill: 'review',
+        phaseDir: '01-test',
+        stateContent: '# State\nPhase: 1 of 3 (Test)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run researcher', subagent_type: 'pbr:researcher' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows verifier when skill is not review', () => {
+      makeEnv({
+        activeSkill: 'build',
+        phaseDir: '01-test',
+        stateContent: '# State\nPhase: 1 of 3 (Test)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run verifier', subagent_type: 'pbr:verifier' });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('milestone complete gate', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-ms-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    const ROADMAP_CONTENT = `# Roadmap
+
+## Milestone: Test Milestone
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+| 2 | Second | 02-01 | Built |
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+**Depends on:** Phase 1
+`;
+
+    const STATE_CONTENT = `---
+version: 2
+current_phase: 2
+total_phases: 2
+phase_slug: "second"
+---
+# State
+
+Phase: 2 of 2 (Second)
+Status: built
+`;
+
+    function makeEnv(opts) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      if (opts.activeSkill) fs.writeFileSync(path.join(planningDir, '.active-skill'), opts.activeSkill);
+      if (opts.stateContent) fs.writeFileSync(path.join(planningDir, 'STATE.md'), opts.stateContent);
+      if (opts.roadmapContent) fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), opts.roadmapContent);
+      if (opts.phaseDirs) {
+        const phasesDir = path.join(planningDir, 'phases');
+        fs.mkdirSync(phasesDir, { recursive: true });
+        for (const pd of opts.phaseDirs) {
+          const pDir = path.join(phasesDir, pd.name);
+          fs.mkdirSync(pDir, { recursive: true });
+          if (pd.hasVerification) {
+            fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), '# Verification\nAll checks passed.');
+          }
+        }
+      }
+    }
+
+    function runInDir(toolInput) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd: tmpDir });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks when a phase lacks VERIFICATION.md', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        stateContent: STATE_CONTENT,
+        roadmapContent: ROADMAP_CONTENT,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('Milestone complete gate');
+      expect(result.output).toContain('VERIFICATION.md');
+    });
+
+    test('allows when all phases have VERIFICATION.md', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        stateContent: STATE_CONTENT,
+        roadmapContent: ROADMAP_CONTENT,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: true }
+        ]
+      });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows non-milestone skill', () => {
+      makeEnv({
+        activeSkill: 'build',
+        stateContent: STATE_CONTENT,
+        roadmapContent: ROADMAP_CONTENT,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows non-general/planner agents', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        stateContent: STATE_CONTENT,
+        roadmapContent: ROADMAP_CONTENT,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows non-complete operations', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        stateContent: STATE_CONTENT,
+        roadmapContent: ROADMAP_CONTENT,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Create new milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('build dependency gate', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-dep-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    function makeEnv(opts) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      if (opts.activeSkill) fs.writeFileSync(path.join(planningDir, '.active-skill'), opts.activeSkill);
+      if (opts.stateContent) fs.writeFileSync(path.join(planningDir, 'STATE.md'), opts.stateContent);
+      if (opts.roadmapContent) fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), opts.roadmapContent);
+      if (opts.phaseDirs) {
+        const phasesDir = path.join(planningDir, 'phases');
+        fs.mkdirSync(phasesDir, { recursive: true });
+        for (const pd of opts.phaseDirs) {
+          const pDir = path.join(phasesDir, pd.name);
+          fs.mkdirSync(pDir, { recursive: true });
+          if (pd.hasVerification) {
+            fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), '# Verification\nAll checks passed.');
+          }
+          // Always add a PLAN.md so the build executor gate doesn't block first
+          fs.writeFileSync(path.join(pDir, 'PLAN-01.md'), '# Plan\n<task name="test" type="auto">\ndo stuff\n</task>');
+        }
+      }
+    }
+
+    function runInDir(toolInput) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd: tmpDir });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    const ROADMAP_WITH_DEPS = `# Roadmap
+
+## Milestone: Test
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+| 2 | Second | 02-01 | Building |
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+**Depends on:** Phase 1
+`;
+
+    const ROADMAP_NO_DEPS = `# Roadmap
+
+## Milestone: Test
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+| 2 | Second | 02-01 | Building |
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+**Depends on:** None
+`;
+
+    const ROADMAP_ABSENT_DEPS = `# Roadmap
+
+## Milestone: Test
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+| 2 | Second | 02-01 | Building |
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+`;
+
+    const STATE_PHASE_2 = '# State\nPhase: 2 of 2 (Second)\nStatus: building';
+
+    test('blocks executor when dependent phase lacks VERIFICATION.md', () => {
+      makeEnv({
+        activeSkill: 'build',
+        stateContent: STATE_PHASE_2,
+        roadmapContent: ROADMAP_WITH_DEPS,
+        phaseDirs: [
+          { name: '01-first', hasVerification: false },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('Build dependency gate');
+      expect(result.output).toContain('VERIFICATION.md');
+    });
+
+    test('allows executor when dependent phase has VERIFICATION.md', () => {
+      makeEnv({
+        activeSkill: 'build',
+        stateContent: STATE_PHASE_2,
+        roadmapContent: ROADMAP_WITH_DEPS,
+        phaseDirs: [
+          { name: '01-first', hasVerification: true },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows when no dependencies', () => {
+      makeEnv({
+        activeSkill: 'build',
+        stateContent: STATE_PHASE_2,
+        roadmapContent: ROADMAP_NO_DEPS,
+        phaseDirs: [
+          { name: '01-first', hasVerification: false },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows when depends-on line absent', () => {
+      makeEnv({
+        activeSkill: 'build',
+        stateContent: STATE_PHASE_2,
+        roadmapContent: ROADMAP_ABSENT_DEPS,
+        phaseDirs: [
+          { name: '01-first', hasVerification: false },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('allows non-build skill', () => {
+      makeEnv({
+        activeSkill: 'review',
+        stateContent: STATE_PHASE_2,
+        roadmapContent: ROADMAP_WITH_DEPS,
+        phaseDirs: [
+          { name: '01-first', hasVerification: false },
+          { name: '02-second', hasVerification: false }
+        ]
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     test('handles missing TOOL_INPUT gracefully', () => {
       const input = JSON.stringify({});
