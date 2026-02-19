@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-02-19
+
+### Added
+- **Cursor IDE plugin** (`plugins/cursor-pbr/`) — complete port with 21 skills, 10 agents, and `.mdc` workflow rules
+- Cross-plugin compatibility: shared `.planning/` state between Claude Code and Cursor plugins
+- Setup scripts (`setup.sh` for macOS/Linux, `setup.ps1` for Windows) for easy Cursor plugin installation
+- Summary gate hook (`check-summary-gate.js`) — enforces SUMMARY file before phase state can advance
+- Cross-plugin compatibility test suite (7 tests)
+- Cursor plugin validation test suite (92 tests)
+- Companion web dashboard improvements: service and route enhancements
+
+### Changed
+- Agent definitions optimized — 48% average size reduction across all 10 agents
+- Hook scripts improved with better error handling and dispatch logic
+- Test count increased from 758 to 1008 across 42 suites
+- Removed `.gitkeep` placeholder files from `cursor-pbr/` (replaced by real content)
+
 ## [2.0.0] - 2026-02-17
 
 ### Added
