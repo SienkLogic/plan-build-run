@@ -8,15 +8,25 @@ argument-hint: "[--port N]"
 
 1. **Parse arguments**: Extract `--port N` from the user's input. Default to `3000`.
 
-2. **Check dependencies**: Check if the dashboard `node_modules/` exists in the plugin's dashboard directory. If not, run `npm install` in that directory.
+2. **Locate dashboard**: The dashboard lives at `../../dashboard/` relative to this plugin's root directory (i.e. two levels up from `plugins/cursor-pbr/`). Resolve the absolute path.
 
-3. **Launch dashboard**: Run in background:
+3. **Check dependencies**: Check if `node_modules/` exists in the dashboard directory. If not, run:
    ```
-   node <plugin-root>/dashboard/bin/cli.js --dir <cwd> --port <port> &
+   npm install --prefix <dashboard-dir>
    ```
 
-4. **Output to user**:
+4. **Launch dashboard**: Run in background:
+   ```
+   node <dashboard-dir>/bin/cli.js --dir <cwd> --port <port> &
+   ```
+
+5. **Output to user**:
    ```
    Dashboard running at http://localhost:<port>
    Open this URL in your browser to view your project's planning state.
    ```
+
+## Notes
+
+- If the port is already in use, the dashboard will fail to start — suggest the user try a different port with `--port`.
+- The dashboard watches `.planning/` for live updates via SSE.

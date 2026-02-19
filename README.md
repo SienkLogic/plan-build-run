@@ -147,7 +147,7 @@ npm run dashboard
 npm run dashboard -- --dir /path/to/your/project --port 3000
 ```
 
-Or launch it directly from a Claude Code or Cursor session:
+Or launch it directly from a Claude Code, Cursor, or Copilot CLI session:
 ```
 /pbr:dashboard
 ```
