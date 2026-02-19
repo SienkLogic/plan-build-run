@@ -3,11 +3,11 @@
 </p>
 
 <p align="center">
-  <strong>Context-engineered development workflow for Claude Code.</strong>
+  <strong>Context-engineered development workflow for Claude Code and Cursor.</strong>
   <br />
   Build ambitious multi-phase software without quality degradation.
   <br />
-  Works with any Claude Code plan. Shines on Max.
+  Works with any Claude Code plan. Shines on Max. Now available for Cursor IDE.
   <br />
   <br />
   <a href="#why-plan-build-run">Why Plan-Build-Run?</a> &bull;
@@ -21,10 +21,11 @@
 <p align="center">
   <a href="https://github.com/SienkLogic/plan-build-run/actions"><img src="https://img.shields.io/github/actions/workflow/status/SienkLogic/plan-build-run/ci.yml?style=for-the-badge&label=CI&logo=github" alt="CI Status" /></a>
   <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
+  <img src="https://img.shields.io/badge/Cursor-Plugin-00A67E?style=for-the-badge&logo=cursor&logoColor=white" alt="Cursor Plugin" />
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/plan-build-run?style=for-the-badge" alt="License" /></a>
   <a href="https://www.npmjs.com/package/@sienklogic/plan-build-run"><img src="https://img.shields.io/npm/v/@sienklogic/plan-build-run?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
-  <img src="https://img.shields.io/badge/Tests-780_passing-brightgreen?style=for-the-badge" alt="780 Tests" />
+  <img src="https://img.shields.io/badge/Tests-1008_passing-brightgreen?style=for-the-badge" alt="1008 Tests" />
 </p>
 
 ---
@@ -86,6 +87,24 @@ All `/pbr:*` commands are now available globally.
 | **Team project** | `claude plugin install pbr@plan-build-run --scope project` | Shared via git, teammates get prompted |
 
 </details>
+
+### Install for Cursor IDE
+
+Plan-Build-Run also works in Cursor. The setup script symlinks rules and agents into your project's `.cursor/` directory.
+
+**macOS / Linux:**
+```bash
+cd /path/to/your/project
+bash /path/to/plan-build-run/plugins/cursor-pbr/setup.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\your\project
+powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\cursor-pbr\setup.ps1
+```
+
+Both plugins share the same `.planning/` directory — start a project in Claude Code, continue in Cursor, or vice versa. See [`plugins/cursor-pbr/README.md`](plugins/cursor-pbr/README.md) for full details.
 
 ### Dashboard (Optional)
 
@@ -212,7 +231,7 @@ git clone https://github.com/SienkLogic/plan-build-run.git
 cd plan-build-run
 npm install
 
-# Run tests (758 tests, 36 suites)
+# Run tests (1008 tests, 42 suites)
 npm test
 
 # Lint
@@ -236,8 +255,8 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 | Skills (slash commands) | 21 |
 | Specialized agents | 10 |
 | Hook scripts | 28 |
-| Tests | 758 |
-| Test suites | 36 |
+| Tests | 1008 |
+| Test suites | 42 |
 | Config toggles | 12 top-level keys |
 
 ---
