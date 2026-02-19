@@ -85,7 +85,7 @@ Use AskUserQuestion:
   multiSelect: false
 
 If user selects "Quick task": continue to Step 4.
-If user selects "Full plan": respond "Use `/pbr:plan` to create a full planning cycle for this task." and stop.
+If user selects "Full plan": clean up `.active-skill` if it exists, then chain directly to the plan skill. The user's task description carries over in conversation context — the plan skill will pick it up.
 If user selects "Revise": go back to Step 2 to get a new task description.
 If user types something else (freeform): interpret their response and proceed accordingly.
 
