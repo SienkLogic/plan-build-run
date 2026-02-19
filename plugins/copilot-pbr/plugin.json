@@ -1,7 +1,7 @@
 {
   "name": "pbr",
   "displayName": "Plan-Build-Run",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Plan-Build-Run — Structured development workflow for GitHub Copilot CLI. Solves context rot through disciplined agent delegation, structured planning, atomic execution, and goal-backward verification.",
   "author": {
     "name": "SienkLogic",
@@ -11,9 +11,19 @@
   "homepage": "https://github.com/SienkLogic/plan-build-run",
   "repository": "https://github.com/SienkLogic/plan-build-run",
   "license": "MIT",
-  "keywords": ["copilot-cli", "context-engineering", "development-workflow", "agent-delegation"],
+  "keywords": [
+    "copilot-cli",
+    "context-engineering",
+    "development-workflow",
+    "agent-delegation"
+  ],
   "category": "developer-tools",
-  "tags": ["planning", "workflow", "structured-development", "context-management"],
+  "tags": [
+    "planning",
+    "workflow",
+    "structured-development",
+    "context-management"
+  ],
   "skills": "./skills/",
   "agents": "./agents/",
   "hooks": "./hooks/hooks.json"
