@@ -215,7 +215,7 @@ function checkBuildRules(filePath, isInPlanning, planningDir) {
  * /pbr:statusline rules:
  * - Warn when writing settings.json with hardcoded home directory paths
  */
-function checkStatuslineRules(filePath, isInPlanning, _planningDir) {
+function checkStatuslineRules(filePath, _isInPlanning, _planningDir) {
   const normalizedPath = filePath.replace(/\\/g, '/');
 
   // Only check settings.json writes

@@ -1,4 +1,4 @@
-const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent, checkReadOnlySkillRules } = require('../plugins/pbr/scripts/check-skill-workflow');
+const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent } = require('../plugins/pbr/scripts/check-skill-workflow');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
