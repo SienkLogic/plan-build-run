@@ -3,11 +3,13 @@ name: quick
 description: "Execute an ad-hoc task with atomic commits. Skips full plan/review."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:quick — Quick Ad-Hoc Task Execution
 
 You are running the **quick** skill. Your job is to execute a small, self-contained task outside the normal plan/build/review cycle. Quick tasks get their own tracking, atomic commits, and state integration, but skip the overhead of full planning.
 
-This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution.
+This skill **spawns a single Task(agent_type: "pbr:executor")** for execution.
 
 ---
 
@@ -28,7 +30,7 @@ Then proceed to Step 1.
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(subagent_type: "pbr:executor")`
+- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(agent_type: "pbr:executor")`
 - **Never** skip creating `.planning/quick/{NNN}-{slug}/` and writing PLAN.md — even trivial tasks need tracking artifacts
 - **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter
 
@@ -143,7 +145,7 @@ If either check fails, you have skipped steps. Go back and complete Steps 4-6. D
 
 Display to the user: `◐ Spawning executor...`
 
-Spawn a `Task(subagent_type: "pbr:executor")` with the following prompt:
+Spawn a `Task(agent_type: "pbr:executor")` with the following prompt:
 
 ```
 You are executor. Execute the following quick task plan.
@@ -206,6 +208,24 @@ If `planning.commit_docs: true` in config.json:
 - Stage the quick task directory files (PLAN.md, SUMMARY.md)
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
+
+### Step 11b: Check Pending Todos
+
+After completing work, check if any pending todos are now satisfied:
+
+1. Check if `.planning/todos/pending/` exists and contains files
+2. If no pending todos: skip to Step 12
+3. If pending todos exist:
+   a. Read the title and description from each pending todo's YAML frontmatter
+   b. Compare each todo against the work just completed (the task description, files changed, commits made)
+   c. If a todo is **clearly satisfied** by the work (the todo's goal matches what was built):
+      - Move it: read the file, update `status: done`, add `completed: {YYYY-MM-DD}`, write to `.planning/todos/done/{filename}`, delete from `pending/` via Bash `rm`
+      - Display: `✓ Auto-closed todo {NNN}: {title} (satisfied by quick task {NNN})`
+   d. If a todo is **partially related** but not fully satisfied: do NOT close it, but mention it:
+      - Display: `ℹ Related pending todo {NNN}: {title} — may be partially addressed`
+   e. If a todo is unrelated: skip silently
+
+**Important:** Only auto-close todos where the match is unambiguous. When in doubt, leave it open — false closures are worse than missed closures.
 
 ### Step 12: Report Results
 
@@ -338,7 +358,7 @@ Choose verification based on context:
 
 **These are the most common failure modes. If you violate any of these, the skill has not executed correctly.**
 
-1. **DO NOT** implement the task yourself — you MUST spawn a `Task(subagent_type: "pbr:executor")`. This is the single most important rule.
+1. **DO NOT** implement the task yourself — you MUST spawn a `Task(agent_type: "pbr:executor")`. This is the single most important rule.
 2. **DO NOT** skip creating `.planning/quick/{NNN}-{slug}/` — every quick task gets a tracking directory
 3. **DO NOT** skip writing PLAN.md — the executor needs a plan file to follow
 4. **DO NOT** create elaborate multi-wave plans — quick tasks should be 1-3 tasks max
