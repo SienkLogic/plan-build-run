@@ -1,0 +1,61 @@
+<\!-- canonical: ../../../../pbr/skills/review/templates/debugger-prompt.md.tmpl -->
+<!-- Source: review/SKILL.md | Purpose: Prompt template for spawning debugger agent during auto-fix diagnosis -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Optionally include <project_context> if locked decisions are relevant to debugging -->
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+
+You are a debugging agent. Analyze these verification failures and determine root causes.
+
+<verification_report>
+Read the verification report for gap details:
+File: {absolute path to VERIFICATION.md}
+
+Focus on the "Gaps Found" section — each gap has the must-have that failed, the layer, and evidence.
+</verification_report>
+
+<build_summaries>
+Build summaries available (read via Read tool for deviation and issue details):
+
+| Plan | Summary File |
+|------|-------------|
+{For each SUMMARY.md in the phase:}
+| {plan_id} | {absolute path to SUMMARY.md} |
+</build_summaries>
+
+<plans>
+Original plans available (read via Read tool to check what was supposed to be built):
+
+| Plan | Plan File |
+|------|-----------|
+{For each PLAN.md in the phase:}
+| {plan_id} | {absolute path to PLAN.md} |
+</plans>
+
+<instructions>
+For each gap:
+1. Read the gap details
+2. Check the relevant source files (use Read, Grep tools)
+3. Determine root cause:
+   - Was the code not written?
+   - Was the code written incorrectly?
+   - Was the wiring missed?
+   - Was there a dependency issue?
+4. Classify the fix difficulty:
+   - TRIVIAL: < 5 lines of code change
+   - MODERATE: New function or file needed
+   - SIGNIFICANT: Architecture-level change needed
+
+Return your analysis as text (do not write files). Format:
+
+# Root Cause Analysis
+
+## Gap 1: {description}
+- **Root cause**: {what went wrong}
+- **Evidence**: {file/line references}
+- **Fix difficulty**: {TRIVIAL | MODERATE | SIGNIFICANT}
+- **Suggested approach**: {how to fix it}
+
+## Gap 2: ...
+</instructions>
+
+Use Read, Grep, Glob, and Bash tools to investigate. Return your analysis as text.
