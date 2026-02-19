@@ -20,9 +20,9 @@
 
 <p align="center">
   <a href="https://github.com/SienkLogic/plan-build-run/actions"><img src="https://img.shields.io/github/actions/workflow/status/SienkLogic/plan-build-run/ci.yml?style=for-the-badge&label=CI&logo=github" alt="CI Status" /></a>
-  <img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
-  <img src="https://img.shields.io/badge/Cursor-Plugin-00A67E?style=for-the-badge&logo=cursor&logoColor=white" alt="Cursor Plugin" />
-  <img src="https://img.shields.io/badge/Copilot_CLI-Plugin-1F6FEB?style=for-the-badge&logo=github&logoColor=white" alt="Copilot CLI Plugin" />
+  <a href="#install"><img src="https://img.shields.io/badge/Claude_Code-Plugin-7C3AED?style=for-the-badge&logo=anthropic&logoColor=white" alt="Claude Code Plugin" /></a>
+  <a href="https://github.com/SienkLogic/plan-build-run/wiki/Cursor-IDE"><img src="https://img.shields.io/badge/Cursor-Plugin-00A67E?style=for-the-badge&logo=cursor&logoColor=white" alt="Cursor Plugin" /></a>
+  <a href="https://github.com/SienkLogic/plan-build-run/wiki/Copilot-CLI"><img src="https://img.shields.io/badge/Copilot_CLI-Plugin-1F6FEB?style=for-the-badge&logo=github&logoColor=white" alt="Copilot CLI Plugin" /></a>
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/plan-build-run?style=for-the-badge" alt="License" /></a>
   <a href="https://www.npmjs.com/package/@sienklogic/plan-build-run"><img src="https://img.shields.io/npm/v/@sienklogic/plan-build-run?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
@@ -89,7 +89,8 @@ All `/pbr:*` commands are now available globally.
 
 </details>
 
-### Install for Cursor IDE
+<details>
+<summary><strong>Install for Cursor IDE</strong></summary>
 
 Plan-Build-Run also works in Cursor. The setup script symlinks rules and agents into your project's `.cursor/` directory.
 
@@ -107,7 +108,10 @@ powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\curso
 
 Both plugins share the same `.planning/` directory — start a project in Claude Code, continue in Cursor, or vice versa. See [`plugins/cursor-pbr/README.md`](plugins/cursor-pbr/README.md) for full details.
 
-### Install for GitHub Copilot CLI
+</details>
+
+<details>
+<summary><strong>Install for GitHub Copilot CLI</strong></summary>
 
 Plan-Build-Run also works in GitHub Copilot CLI. The setup script installs PBR as a Copilot CLI plugin and symlinks agents into your project.
 
@@ -125,24 +129,27 @@ powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\copil
 
 All three plugins share the same `.planning/` directory — start in any tool, continue in another. See [`plugins/copilot-pbr/README.md`](plugins/copilot-pbr/README.md) for full details.
 
-### Dashboard (Optional)
+</details>
 
-Plan-Build-Run ships with a companion web dashboard for browsing your project's planning state in a browser. To set it up:
+<details>
+<summary><strong>Dashboard (Optional)</strong></summary>
+
+Plan-Build-Run ships with a companion web dashboard for browsing your project's planning state in a browser.
 
 ```bash
 # One-time install of dashboard dependencies
 npm run dashboard:install
 
-# Launch the dashboard for any project with a .planning/ directory
-npm run dashboard -- --dir /path/to/your/project
-# Opens at http://127.0.0.1:3000
+# Launch the dashboard (defaults to current directory)
+npm run dashboard
+
+# Or specify a project directory and port
+npm run dashboard -- --dir /path/to/your/project --port 3000
 ```
 
-Or run directly:
+Opens at `http://127.0.0.1:3000` with live updates via SSE.
 
-```bash
-node dashboard/bin/cli.js --dir /path/to/your/project --port 3000
-```
+</details>
 
 ### Quick Start (Max / Max 5x)
 
