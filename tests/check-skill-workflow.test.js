@@ -1,4 +1,4 @@
-const { readActiveSkill, checkSkillRules, hasPlanFile } = require('../plugins/pbr/scripts/check-skill-workflow');
+const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent, checkReadOnlySkillRules } = require('../plugins/pbr/scripts/check-skill-workflow');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -142,6 +142,142 @@ describe('check-skill-workflow.js', () => {
         expect(result).toBeNull();
         cleanup(tmpDir);
       });
+    });
+
+    describe('statusline skill', () => {
+      test('passes for non-settings.json files', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('statusline', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('passes for settings.json without content check', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, '.claude', 'settings.json');
+        const result = checkSkillRules('statusline', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('review skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        fs.writeFileSync(path.join(planningDir, '.active-agent'), 'verifier');
+        const filePath = path.join(planningDir, 'VERIFICATION.md');
+        const result = checkSkillRules('review', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks source code writes', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('review', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('review-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('discuss skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'notes.md');
+        const result = checkSkillRules('discuss', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks source code writes', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'app.js');
+        const result = checkSkillRules('discuss', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('discuss-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('begin skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'STATE.md');
+        const result = checkSkillRules('begin', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks source code writes', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'main.py');
+        const result = checkSkillRules('begin', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('begin-readonly');
+        cleanup(tmpDir);
+      });
+    });
+  });
+
+  describe('checkStatuslineContent', () => {
+    test('warns when settings.json write contains hardcoded home path', () => {
+      const data = {
+        tool_input: {
+          file_path: '/home/user/.claude/settings.json',
+          content: '{"plugins":["/home/user/.claude/plugins/plan-build-run"]}'
+        }
+      };
+      const result = checkStatuslineContent(data);
+      expect(result).not.toBeNull();
+      expect(result.rule).toBe('statusline-hardcoded-path');
+    });
+
+    test('warns when Edit new_string contains hardcoded Windows path', () => {
+      const data = {
+        tool_input: {
+          file_path: 'C:\\Users\\dave\\.claude\\settings.json',
+          new_string: '"C:\\Users\\dave\\.claude\\plugins\\pbr"'
+        }
+      };
+      const result = checkStatuslineContent(data);
+      expect(result).not.toBeNull();
+      expect(result.rule).toBe('statusline-hardcoded-path');
+    });
+
+    test('passes when settings.json write has properly resolved path', () => {
+      const data = {
+        tool_input: {
+          file_path: '/home/user/.claude/settings.json',
+          content: '{"plugins":["plan-build-run"]}'
+        }
+      };
+      const result = checkStatuslineContent(data);
+      expect(result).toBeNull();
+    });
+
+    test('passes for non-settings.json files', () => {
+      const data = {
+        tool_input: {
+          file_path: '/home/user/project/config.json',
+          content: '/home/user/.claude/plugins/foo'
+        }
+      };
+      const result = checkStatuslineContent(data);
+      expect(result).toBeNull();
+    });
+
+    test('warns on macOS /Users/ path', () => {
+      const data = {
+        tool_input: {
+          file_path: '/Users/dave/.claude/settings.json',
+          content: '"/Users/dave/.claude/plugins/pbr"'
+        }
+      };
+      const result = checkStatuslineContent(data);
+      expect(result).not.toBeNull();
+      expect(result.rule).toBe('statusline-hardcoded-path');
     });
   });
 });

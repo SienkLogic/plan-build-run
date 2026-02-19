@@ -1,5 +1,8 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { checkDangerous } = require('../plugins/pbr/scripts/check-dangerous-commands');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-dangerous-commands.js');
 
@@ -134,6 +137,69 @@ describe('check-dangerous-commands.js', () => {
       const result = runScript('git push --force origin feature-branch');
       expect(result.exitCode).toBe(0);
       expect(result.output).toContain('Warning');
+    });
+  });
+
+  describe('statusline JSON safety guard', () => {
+    let tmpDir;
+    let originalCwd;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-dc-'));
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      originalCwd = process.cwd();
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(originalCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('blocks sed on JSON files when active skill is statusline', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'statusline');
+      const result = checkDangerous({ tool_input: { command: "sed -i 's/foo/bar/' settings.json" } });
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+      expect(result.output.decision).toBe('block');
+    });
+
+    test('blocks awk on JSON files when active skill is statusline', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'statusline');
+      const result = checkDangerous({ tool_input: { command: "awk '{print}' config.json > tmp.json" } });
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('blocks echo redirect to JSON when active skill is statusline', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'statusline');
+      const result = checkDangerous({ tool_input: { command: 'echo "test" > settings.json' } });
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('passes sed on non-JSON files during statusline', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'statusline');
+      const result = checkDangerous({ tool_input: { command: "sed -i 's/foo/bar/' config.txt" } });
+      expect(result).toBeNull();
+    });
+
+    test('passes sed on JSON files when NOT in statusline skill', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      const result = checkDangerous({ tool_input: { command: "sed -i 's/foo/bar/' settings.json" } });
+      expect(result).toBeNull();
+    });
+
+    test('passes normal bash commands during statusline skill', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'statusline');
+      const result = checkDangerous({ tool_input: { command: 'npm install' } });
+      expect(result).toBeNull();
+    });
+
+    test('passes when no .active-skill file exists', () => {
+      const result = checkDangerous({ tool_input: { command: "sed -i 's/foo/bar/' settings.json" } });
+      expect(result).toBeNull();
     });
   });
 
