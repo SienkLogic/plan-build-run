@@ -5,7 +5,10 @@ import { getRoadmapData } from './roadmap.service.js';
 
 /**
  * Scan .planning/milestones/ for archived milestone files.
- * Groups files by version prefix (e.g., v1.0-ROADMAP.md, v1.0-STATS.md).
+ * Supports two formats:
+ * - Directory: v{version}/ containing ROADMAP.md, STATS.md, etc.
+ * - Flat file: v{version}-{TYPE}.md (legacy)
+ * Directory format takes precedence if both exist for the same version.
  *
  * @param {string} projectDir - Absolute path to the project root
  * @returns {Promise<Array<{version: string, name: string, date: string, duration: string, files: string[]}>>}
@@ -15,33 +18,69 @@ export async function listArchivedMilestones(projectDir) {
 
   let entries;
   try {
-    entries = await readdir(milestonesDir);
+    entries = await readdir(milestonesDir, { withFileTypes: true });
   } catch (err) {
     if (err.code === 'ENOENT') return [];
     throw err;
   }
 
-  // Group files by version prefix: v1.0-ROADMAP.md -> version "1.0"
   const versionMap = new Map();
-  const versionPattern = /^v([\w.-]+)-(\w+)\.md$/;
 
-  for (const file of entries) {
-    const match = file.match(versionPattern);
+  // Pass 1: Detect directory-format milestones (v1.0/, v2.0/, etc.)
+  const dirPattern = /^v([\w.-]+)$/;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const match = entry.name.match(dirPattern);
     if (!match) continue;
 
     const version = match[1];
-    if (!versionMap.has(version)) {
-      versionMap.set(version, { version, name: '', date: '', duration: '', files: [] });
+    // Read files inside the version directory
+    let dirFiles;
+    try {
+      dirFiles = await readdir(join(milestonesDir, entry.name));
+    } catch (_e) {
+      continue;
     }
-    versionMap.get(version).files.push(file);
+    const mdFiles = dirFiles.filter(f => f.endsWith('.md'));
+    if (mdFiles.length === 0) continue;
+
+    versionMap.set(version, { version, name: '', date: '', duration: '', files: mdFiles, format: 'directory' });
+  }
+
+  // Pass 2: Detect flat-file milestones (v1.0-ROADMAP.md, etc.) — skip versions already found as directories
+  const filePattern = /^v([\w.-]+)-(\w+)\.md$/;
+  for (const entry of entries) {
+    if (entry.isDirectory()) continue;
+    const match = entry.name.match(filePattern);
+    if (!match) continue;
+
+    const version = match[1];
+    // Skip if this version was already found as a directory
+    if (versionMap.has(version) && versionMap.get(version).format === 'directory') continue;
+
+    if (!versionMap.has(version)) {
+      versionMap.set(version, { version, name: '', date: '', duration: '', files: [], format: 'flat' });
+    }
+    versionMap.get(version).files.push(entry.name);
   }
 
   // Try to parse STATS.md for each version to get name/date/duration
   for (const [version, milestone] of versionMap) {
-    const statsFile = `v${version}-STATS.md`;
-    if (milestone.files.includes(statsFile)) {
+    let statsPath;
+    if (milestone.format === 'directory') {
+      if (milestone.files.includes('STATS.md')) {
+        statsPath = join(milestonesDir, `v${version}`, 'STATS.md');
+      }
+    } else {
+      const statsFile = `v${version}-STATS.md`;
+      if (milestone.files.includes(statsFile)) {
+        statsPath = join(milestonesDir, statsFile);
+      }
+    }
+
+    if (statsPath) {
       try {
-        const { frontmatter } = await readMarkdownFile(join(milestonesDir, statsFile));
+        const { frontmatter } = await readMarkdownFile(statsPath);
         milestone.name = frontmatter.milestone || frontmatter.name || `v${version}`;
         milestone.date = frontmatter.completed || frontmatter.date || '';
         milestone.duration = frontmatter.duration || '';
@@ -53,8 +92,10 @@ export async function listArchivedMilestones(projectDir) {
     }
   }
 
-  // Sort by version descending (newest first)
-  return [...versionMap.values()].sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }));
+  // Sort by version descending (newest first) — strip internal format field
+  return [...versionMap.values()]
+    .sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }))
+    .map(({ format: _f, ...rest }) => rest);
 }
 
 /**
@@ -89,14 +130,24 @@ export async function getMilestoneDetail(projectDir, version) {
 
   const sections = [];
   for (const type of fileTypes) {
-    const filePath = join(milestonesDir, `v${version}-${type}.md`);
+    // Try directory format first, then fall back to flat file
+    const dirPath = join(milestonesDir, `v${version}`, `${type}.md`);
+    const flatPath = join(milestonesDir, `v${version}-${type}.md`);
+
+    let result;
     try {
-      const result = await readMarkdownFile(filePath);
-      sections.push({ type, frontmatter: result.frontmatter, html: result.html });
+      result = await readMarkdownFile(dirPath);
     } catch (err) {
       if (err.code !== 'ENOENT') throw err;
-      // File doesn't exist for this type — skip
+      try {
+        result = await readMarkdownFile(flatPath);
+      } catch (err2) {
+        if (err2.code !== 'ENOENT') throw err2;
+        // Neither format exists for this type — skip
+        continue;
+      }
     }
+    sections.push({ type, frontmatter: result.frontmatter, html: result.html });
   }
 
   return { version, sections };
