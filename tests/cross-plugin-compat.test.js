@@ -178,4 +178,141 @@ describe('cross-plugin compatibility', () => {
 
     expect(unexpectedOverlap).toEqual([]);
   });
+
+  describe('hook event and matcher sync', () => {
+    let pbrHooks, cursorHooks;
+
+    beforeAll(() => {
+      pbrHooks = JSON.parse(
+        fs.readFileSync(path.join(PBR_DIR, 'hooks', 'hooks.json'), 'utf8')
+      );
+      cursorHooks = JSON.parse(
+        fs.readFileSync(path.join(CURSOR_DIR, 'hooks', 'hooks.json'), 'utf8')
+      );
+    });
+
+    test('same hook event types registered', () => {
+      const pbrEvents = Object.keys(pbrHooks.hooks).sort();
+      const cursorEvents = Object.keys(cursorHooks.hooks).sort();
+      expect(cursorEvents).toEqual(pbrEvents);
+    });
+
+    test('same matchers per hook event', () => {
+      for (const event of Object.keys(pbrHooks.hooks)) {
+        const pbrMatchers = pbrHooks.hooks[event]
+          .map(e => e.matcher || '(all)')
+          .sort();
+        const cursorMatchers = cursorHooks.hooks[event]
+          .map(e => e.matcher || '(all)')
+          .sort();
+        expect(cursorMatchers).toEqual(pbrMatchers);
+      }
+    });
+
+    test('same scripts referenced per matcher', () => {
+      // Extract script name from the end of a hook command string
+      function scriptName(command) {
+        const match = command.match(/([\w-]+\.js)(\s+\w+)?\s*$/);
+        return match ? match[1] : command;
+      }
+
+      for (const event of Object.keys(pbrHooks.hooks)) {
+        const pbrEntries = pbrHooks.hooks[event];
+        const cursorEntries = cursorHooks.hooks[event];
+
+        const pbrScripts = pbrEntries.flatMap(e =>
+          (e.hooks || []).map(h => `${e.matcher || '(all)'}:${scriptName(h.command)}`)
+        ).sort();
+        const cursorScripts = cursorEntries.flatMap(e =>
+          (e.hooks || []).map(h => `${e.matcher || '(all)'}:${scriptName(h.command)}`)
+        ).sort();
+
+        expect(cursorScripts).toEqual(pbrScripts);
+      }
+    });
+  });
+
+  describe('skill content sync', () => {
+    /**
+     * Parse YAML frontmatter from a SKILL.md file.
+     * Returns an object with the frontmatter fields we care about.
+     */
+    function parseFrontmatter(content) {
+      const match = content.match(/^---\n([\s\S]*?)\n---/);
+      if (!match) return {};
+      const fm = {};
+      for (const line of match[1].split('\n')) {
+        const kv = line.match(/^(\w[\w-]*):\s*"?(.+?)"?\s*$/);
+        if (kv) fm[kv[1]] = kv[2];
+      }
+      return fm;
+    }
+
+    /**
+     * Extract markdown heading names (### level) from skill content.
+     * These represent subcommands and structural sections.
+     * Normalizes parenthetical annotations so cosmetic wording differences
+     * (e.g., "delegated to subagents" vs "delegated to agents") don't fail.
+     */
+    function extractHeadings(content) {
+      return [...content.matchAll(/^###\s+(.+)$/gm)]
+        .map(m => m[1]
+          .replace(/[`—]/g, '')
+          .replace(/\(.*?\)/g, '')  // strip parenthetical annotations
+          .trim()
+        );
+    }
+
+    const skillDirs = fs.readdirSync(path.join(PBR_DIR, 'skills'))
+      .filter(f => {
+        const p = path.join(PBR_DIR, 'skills', f);
+        return fs.statSync(p).isDirectory() && f !== 'shared';
+      });
+
+    test.each(skillDirs)('skill "%s" has matching argument-hint', (skill) => {
+      const pbrContent = fs.readFileSync(
+        path.join(PBR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+      const cursorContent = fs.readFileSync(
+        path.join(CURSOR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+
+      const pbrFm = parseFrontmatter(pbrContent);
+      const cursorFm = parseFrontmatter(cursorContent);
+
+      // argument-hint defines the user-facing CLI interface — must match
+      if (pbrFm['argument-hint']) {
+        expect(cursorFm['argument-hint']).toBe(pbrFm['argument-hint']);
+      }
+    });
+
+    test.each(skillDirs)('skill "%s" has matching subcommand headings', (skill) => {
+      const pbrContent = fs.readFileSync(
+        path.join(PBR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+      const cursorContent = fs.readFileSync(
+        path.join(CURSOR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+
+      const pbrHeadings = extractHeadings(pbrContent);
+      const cursorHeadings = extractHeadings(cursorContent);
+
+      // Subcommand headings define the skill's behavior structure — must match
+      expect(cursorHeadings).toEqual(pbrHeadings);
+    });
+
+    test.each(skillDirs)('skill "%s" has matching description', (skill) => {
+      const pbrContent = fs.readFileSync(
+        path.join(PBR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+      const cursorContent = fs.readFileSync(
+        path.join(CURSOR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+
+      const pbrFm = parseFrontmatter(pbrContent);
+      const cursorFm = parseFrontmatter(cursorContent);
+
+      expect(cursorFm.description).toBe(pbrFm.description);
+    });
+  });
 });

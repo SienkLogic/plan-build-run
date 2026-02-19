@@ -1,8 +1,8 @@
 ---
 name: todo
 description: "File-based persistent todos. Add, list, complete — survives sessions."
-allowed-tools: Read, Write, Bash, Glob, Grep
-argument-hint: "add <description> | list [theme] | done <NNN>"
+allowed-tools: Read, Write, Bash, Glob, Grep, Skill
+argument-hint: "add <description> | list [theme] | done <NNN> | work <NNN>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -124,12 +124,12 @@ Pending Todos:
 
 **Pick a todo** — mark one done or start working
 
-`/pbr:todo done <NNN>`
+`/pbr:todo work <NNN>` — start working on a todo
+`/pbr:todo done <NNN>` — mark a todo as complete
 
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- `/pbr:quick` — work on one now
 - `/pbr:status` — see project status
 
 ───────────────────────────────────────────────────────────────
@@ -177,6 +177,45 @@ Todo {NNN} not found in pending todos.
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:status` — see project status
+
+───────────────────────────────────────────────────────────────
+```
+
+### `work <NNN>`
+
+1. Find `.planning/todos/pending/{NNN}-*.md` (match by number prefix)
+2. If not found, display the same error block as `done` — suggest `/pbr:todo list`
+3. Read the todo file content (frontmatter + body)
+4. Extract the `title` from frontmatter and the full body (Goal, Scope, Acceptance Criteria sections)
+5. Display branded output:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► WORKING ON TODO {NNN}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Todo {NNN}:** {title}
+
+Launching /pbr:quick with todo context...
+```
+6. Invoke the Skill tool: `skill: "pbr:quick"` with `args` set to the todo title followed by the body content. Format the args as:
+
+```
+{title}
+
+Context from todo {NNN}:
+{body content — Goal, Scope, Acceptance Criteria sections}
+```
+
+This hands off execution to `/pbr:quick`, which will spawn an executor agent, make atomic commits, and track the work. When quick completes, remind the user:
+
+```
+───────────────────────────────────────────────────────────────
+
+## ▶ Next Up
+
+**Mark this todo as done if the work is complete**
+
+`/pbr:todo done {NNN}`
 
 ───────────────────────────────────────────────────────────────
 ```

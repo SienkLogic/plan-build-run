@@ -66,9 +66,9 @@ Parse the phase number and optional flags:
 | `insert <N>` | Insert a new phase at position N (uses decimal numbering) |
 | `remove <N>` | Remove phase N from the roadmap |
 
-### Freeform Text Guard
+### Freeform Text Guard — CRITICAL
 
-**Before any context loading**, check whether `$ARGUMENTS` looks like freeform text rather than a valid invocation. Valid patterns are:
+**STOP. Before ANY context loading or Step 1 work**, you MUST check whether `$ARGUMENTS` looks like freeform text rather than a valid invocation. This check is non-negotiable. Valid patterns are:
 
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
@@ -99,6 +99,8 @@ Then suggest the appropriate skill based on the text content:
 | Anything else | `/pbr:explore` for open-ended work |
 
 Do NOT proceed with planning. The user needs to use the correct skill.
+
+**Self-check**: If you reach Step 1 without having matched a valid argument pattern above, you have a bug. Stop immediately and show the usage block.
 
 ---
 
