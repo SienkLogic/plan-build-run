@@ -24,7 +24,7 @@ export async function parseStateFile(projectDir) {
   try {
     const path = join(projectDir, '.planning', 'STATE.md');
     const raw = await readFile(path, 'utf-8');
-    const content = stripBOM(raw);
+    const content = stripBOM(raw).replace(/\r\n/g, '\n');
 
     // Parse YAML frontmatter if present (STATE.md v2 format)
     let frontmatter = {};
@@ -235,19 +235,20 @@ export async function parseRoadmapFile(projectDir) {
  * @param {string} projectDir - Absolute path to the project root
  * @returns {Promise<{projectName: string, currentPhase: object, lastActivity: object, progress: number, phases: Array}>}
  */
-export async function getDashboardData(projectDir) {
-  const [stateData, roadmapData] = await Promise.all([
-    parseStateFile(projectDir),
-    parseRoadmapFile(projectDir)
-  ]);
-
-  // Derive phase statuses from STATE.md context:
-  // - Phases before the current phase are complete
-  // - Current phase status comes from STATE.md (built/verified = complete)
-  // - Phases after the current phase stay as-is (not-started)
-  const currentId = stateData.currentPhase.id;
-  const currentStatus = stateData.currentPhase.status || 'unknown';
-  const phases = roadmapData.phases.map(phase => {
+/**
+ * Derive phase statuses by combining roadmap phases with STATE.md context.
+ * Phases before the current phase are marked complete.
+ * The current phase gets its status from STATE.md.
+ * Phases after the current phase keep their roadmap status (typically not-started).
+ *
+ * @param {Array} phases - Raw phases from parseRoadmapFile
+ * @param {{id: number, status: string}} currentPhase - Current phase from parseStateFile
+ * @returns {Array} Phases with derived statuses
+ */
+export function derivePhaseStatuses(phases, currentPhase) {
+  const currentId = currentPhase.id;
+  const currentStatus = currentPhase.status || 'unknown';
+  return phases.map(phase => {
     // If the roadmap already has explicit status (from progress table/checkboxes), keep it
     if (phase.status === 'complete') return phase;
 
@@ -259,10 +260,20 @@ export async function getDashboardData(projectDir) {
     }
     return phase;
   });
+}
 
-  // Prefer roadmap progress if phases exist, otherwise use state progress
-  const progress = roadmapData.phases.length > 0
-    ? roadmapData.progress
+export async function getDashboardData(projectDir) {
+  const [stateData, roadmapData] = await Promise.all([
+    parseStateFile(projectDir),
+    parseRoadmapFile(projectDir)
+  ]);
+
+  const phases = derivePhaseStatuses(roadmapData.phases, stateData.currentPhase);
+
+  // Recalculate progress from derived phase statuses
+  const completedPhases = phases.filter(p => p.status === 'complete').length;
+  const progress = phases.length > 0
+    ? Math.ceil((completedPhases / phases.length) * 100)
     : stateData.progress;
 
   return {

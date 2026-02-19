@@ -1,19 +1,23 @@
 import { Router } from 'express';
 import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
 import { getRoadmapData } from '../services/roadmap.service.js';
+import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.service.js';
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 
 const router = Router();
 
 router.get('/phases', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
-  const roadmapData = await getRoadmapData(projectDir);
+  const [roadmapData, stateData] = await Promise.all([
+    getRoadmapData(projectDir),
+    parseStateFile(projectDir)
+  ]);
 
   const templateData = {
     title: 'Phases',
     activePage: 'phases',
     currentPath: '/phases',
-    phases: roadmapData.phases,
+    phases: derivePhaseStatuses(roadmapData.phases, stateData.currentPhase),
     milestones: roadmapData.milestones
   };
 
@@ -223,13 +227,16 @@ router.post('/todos/:id/done', async (req, res) => {
 
 router.get('/roadmap', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
-  const roadmapData = await getRoadmapData(projectDir);
+  const [roadmapData, stateData] = await Promise.all([
+    getRoadmapData(projectDir),
+    parseStateFile(projectDir)
+  ]);
 
   const templateData = {
     title: 'Roadmap',
     activePage: 'roadmap',
     currentPath: '/roadmap',
-    phases: roadmapData.phases,
+    phases: derivePhaseStatuses(roadmapData.phases, stateData.currentPhase),
     milestones: roadmapData.milestones
   };
 
