@@ -433,7 +433,7 @@ describe('cross-plugin compatibility', () => {
       { name: 'copilot-pbr', path: path.join(COPILOT_DIR, 'plugin.json') },
     ];
 
-    test.each(manifests)('$name manifest version matches package.json', ({ name, path: manifestPath }) => {
+    test.each(manifests)('$name manifest version matches package.json', ({ name: _name, path: manifestPath }) => {
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       expect(manifest.version).toBe(pkg.version);
     });
