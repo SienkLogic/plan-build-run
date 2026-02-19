@@ -340,7 +340,8 @@ If all automated checks and UAT items passed:
 
 Use the branded output from `references/ui-formatting.md`:
 - If more phases remain: use the "Phase Complete" banner template
-- If this was the last phase: use the "Milestone Complete" banner template
+- If this was the last phase in the current milestone: use the "Milestone Complete" banner template
+- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
 - Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
@@ -356,7 +357,7 @@ Use the branded output from `references/ui-formatting.md`:
 5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
    - Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1}" })`
    - This continues the build→review→plan cycle automatically
-   - **If this is the last phase:** HARD STOP — do NOT auto-advance past milestone boundaries
+   - **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."
 
 #### Gaps Found WITH `--auto-fix`
 
@@ -666,7 +667,7 @@ Then:
 ───────────────────────────────────────────────────────────────
 
 **Also available:**
-- `/pbr:milestone complete` — archive this milestone and tag it
+- `/pbr:milestone complete` — archive milestone after audit passes
 - `/pbr:milestone new` — start planning next features
 - `/pbr:status` — see final project status
 
