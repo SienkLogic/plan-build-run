@@ -329,8 +329,6 @@ describe('shared skill fragments', () => {
 
 describe('cleanup', () => {
   test('no .gitkeep files remain in agent or rules dirs', () => {
-    const agentGitkeep = path.join(PLUGIN_ROOT, 'agents', '.gitkeep');
-    const rulesGitkeep = path.join(PLUGIN_ROOT, 'rules', '.gitkeep');
     // .gitkeep files should have been removed once real content was added
     // This is non-blocking — just verify content exists
     const agentFiles = fs.readdirSync(path.join(PLUGIN_ROOT, 'agents')).filter(f => f !== '.gitkeep');
