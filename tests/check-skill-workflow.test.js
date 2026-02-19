@@ -201,6 +201,25 @@ describe('check-skill-workflow.js', () => {
       });
     });
 
+    describe('plan skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'STATE.md');
+        const result = checkSkillRules('plan', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks source code writes', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'main.py');
+        const result = checkSkillRules('plan', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('plan-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
     describe('begin skill', () => {
       test('allows writes to .planning/', () => {
         const { tmpDir, planningDir } = makeTmpDir();
