@@ -15,13 +15,18 @@
  *      happen at all in the current workflow state, there's no point
  *      evaluating boundary or sprawl rules. Can block (exit 2).
  *
- *   2. check-phase-boundary  — Guards against writes that target files
+ *   2. check-summary-gate    — Blocks STATE.md status advancement
+ *      (to built/verified/complete) unless a SUMMARY file exists for
+ *      the current phase. Prevents inconsistent state where a phase
+ *      appears complete but has no build receipt. Can block (exit 2).
+ *
+ *   3. check-phase-boundary  — Guards against writes that target files
  *      outside the current phase directory. Runs second because once
  *      we know the write is allowed by workflow rules, we need to
  *      verify it's scoped to the correct phase. Can block (exit 2)
  *      or warn (exit 0 with message).
  *
- *   3. check-doc-sprawl      — Prevents creation of new .md/.txt files
+ *   4. check-doc-sprawl      — Prevents creation of new .md/.txt files
  *      outside a known allowlist (when enabled in config). Runs last
  *      because it's the most granular check — only relevant for new
  *      documentation files, not all writes. Can block (exit 2).
@@ -53,6 +58,7 @@
  */
 
 const { checkWorkflow } = require('./check-skill-workflow');
+const { checkSummaryGate } = require('./check-summary-gate');
 const { checkBoundary } = require('./check-phase-boundary');
 const { checkDocSprawl } = require('./check-doc-sprawl');
 
@@ -70,6 +76,13 @@ function main() {
       if (workflowResult) {
         process.stdout.write(JSON.stringify(workflowResult.output));
         process.exit(workflowResult.exitCode || 0);
+      }
+
+      // SUMMARY gate — blocks STATE.md advancement without SUMMARY
+      const summaryGateResult = checkSummaryGate(data);
+      if (summaryGateResult) {
+        process.stdout.write(JSON.stringify(summaryGateResult.output));
+        process.exit(summaryGateResult.exitCode || 0);
       }
 
       // Phase boundary check — can block or warn
@@ -94,4 +107,4 @@ function main() {
   });
 }
 
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

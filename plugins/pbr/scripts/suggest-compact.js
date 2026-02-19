@@ -116,4 +116,4 @@ function resetCounter(planningDir) {
 }
 
 module.exports = { checkCompaction, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

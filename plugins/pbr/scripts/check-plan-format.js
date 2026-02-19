@@ -96,7 +96,7 @@ function main() {
         });
 
         const output = {
-          message: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}`
+          additionalContext: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}`
         };
         process.stdout.write(JSON.stringify(output));
       } else {
@@ -258,7 +258,7 @@ function checkPlanWrite(data) {
   if (result.warnings.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'warn', { file: basename, warnings: result.warnings });
     logEvent('workflow', eventType, { file: basename, status: 'warn', warningCount: result.warnings.length });
-    return { output: { message: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}` } };
+    return { output: { additionalContext: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}` } };
   }
 
   logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
@@ -267,4 +267,4 @@ function checkPlanWrite(data) {
 }
 
 module.exports = { validatePlan, validateSummary, checkPlanWrite };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

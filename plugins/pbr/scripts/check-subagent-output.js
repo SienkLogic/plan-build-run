@@ -141,4 +141,4 @@ function main() {
 }
 
 module.exports = { AGENT_OUTPUTS, findInPhaseDir };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

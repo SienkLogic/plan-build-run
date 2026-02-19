@@ -161,4 +161,4 @@ function buildAgentContext() {
 }
 
 module.exports = { buildAgentContext, resolveAgentType };
-if (require.main === module) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -103,9 +103,9 @@ must_haves:
     const result = runScript(tmpDir, { file_path: statePath });
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.output);
-    expect(parsed.message).toContain('out of sync');
-    expect(parsed.message).toContain('built');
-    expect(parsed.message).toContain('planned');
+    expect(parsed.additionalContext).toContain('out of sync');
+    expect(parsed.additionalContext).toContain('built');
+    expect(parsed.additionalContext).toContain('planned');
     cleanup(tmpDir);
   });
 

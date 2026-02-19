@@ -22,7 +22,22 @@ const { configLoad } = require('./pbr-tools');
 
 function main() {
   try {
-    const cwd = process.cwd();
+    // Parse hook input from stdin (Claude Code passes JSON with stop_hook_active flag)
+    let hookInput = {};
+    try {
+      const stdin = fs.readFileSync(0, 'utf8').trim();
+      if (stdin) hookInput = JSON.parse(stdin);
+    } catch (_parseErr) {
+      // No stdin or invalid JSON — proceed with defaults
+    }
+
+    // Guard against infinite loops: if we're already in a Stop hook continuation, bail out
+    if (hookInput.stop_hook_active) {
+      logHook('auto-continue', 'Stop', 'already-active', {});
+      process.exit(0);
+    }
+
+    const cwd = hookInput.cwd || process.cwd();
     const planningDir = path.join(cwd, '.planning');
     const signalPath = path.join(planningDir, '.auto-next');
 
@@ -64,10 +79,11 @@ function main() {
 
     logHook('auto-continue', 'Stop', 'continue', { next: nextCommand });
 
-    // Output the next command for Claude Code to execute
+    // Block the stop and inject the next command as Claude's continuation reason.
+    // Claude Code Stop hooks use { decision: "block", reason: "..." } to keep going.
     const output = {
-      message: `Auto-continuing with: ${nextCommand}`,
-      command: nextCommand
+      decision: 'block',
+      reason: `Auto-continue: execute ${nextCommand}`
     };
     process.stdout.write(JSON.stringify(output));
     process.exit(0);
