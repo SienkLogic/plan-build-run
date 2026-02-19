@@ -1,0 +1,22 @@
+<\!-- canonical: ../../../../pbr/skills/plan/templates/checker-prompt.md.tmpl -->
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning plan checker agent -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+
+You are the plan-checker agent.
+
+<plans_to_check>
+Read and check each of these plan files:
+
+| Plan | File Path |
+|------|-----------|
+{For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
+| {plan_id} | {absolute path to PLAN.md} |
+
+Read each plan file using the Read tool. Verify all 7 dimensions against each plan.
+</plans_to_check>
+
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Omit <prior_work> -- checker only needs plans and context -->
+
+Run all 7 verification dimensions on these plans. Return your structured report.
+Do NOT write any files. Return your findings as your response text.

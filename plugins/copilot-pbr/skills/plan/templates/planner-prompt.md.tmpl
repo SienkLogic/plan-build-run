@@ -1,0 +1,39 @@
+<\!-- canonical: ../../../../pbr/skills/plan/templates/planner-prompt.md.tmpl -->
+<!-- Source: plan/SKILL.md | Purpose: Prompt template for spawning planner agent during phase planning -->
+<!-- Depends on: templates/prompt-partials/phase-project-context.md.tmpl -->
+
+You are the planner agent operating in Standard Planning mode.
+
+<!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
+<!-- Include all 3 blocks: phase_context, project_context, prior_work -->
+
+<research>
+{If RESEARCH.md exists:}
+Phase research available at: {absolute path to RESEARCH.md}
+Read this file for technology recommendations, implementation patterns, and pitfalls.
+{If not: "No phase-specific research conducted."}
+{If research SUMMARY.md exists:}
+Research summary available at: {absolute path to research SUMMARY.md}
+</research>
+
+<config>
+Max tasks per plan: {from config.json}
+Parallelization enabled: {from config.json}
+TDD mode: {from config.json}
+</config>
+
+<planning_instructions>
+Create executable plans for this phase following your Standard Planning mode instructions.
+
+Key rules:
+1. Apply goal-backward methodology — derive must-haves first
+2. 2-3 tasks per plan, 5-8 files per plan maximum
+3. Assign wave numbers for parallel execution
+4. Every task needs all 5 elements: name, files, action, verify, done
+5. Honor all locked decisions from CONTEXT.md
+6. Do NOT include deferred ideas
+7. Write plan files to: .planning/phases/{NN}-{slug}/{phase}-{plan_num}-PLAN.md
+8. If any task requires env vars, API keys, or external service setup, note it in the task's <action> — the executor will generate USER-SETUP.md automatically
+
+Use the Write tool to create each plan file.
+</planning_instructions>

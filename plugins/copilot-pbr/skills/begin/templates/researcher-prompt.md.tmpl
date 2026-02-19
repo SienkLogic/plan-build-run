@@ -1,0 +1,20 @@
+<\!-- canonical: ../../../../pbr/skills/begin/templates/researcher-prompt.md.tmpl -->
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning researcher agents during project initialization -->
+
+<project_context>
+Project: {project name from questioning}
+Description: {2-3 sentence description from questioning}
+Technology constraints: {any locked technology choices}
+User constraints: {budget, timeline, skill level, etc.}
+</project_context>
+
+<research_assignment>
+Topic: {topic - e.g., "Technology Stack Analysis"}
+Output file: .planning/research/{TOPIC}.md
+Mode: project-research
+
+Research these specific questions:
+{topic-specific questions - see below}
+</research_assignment>
+
+Write your findings to the output file using the Project Research output format from your agent definition. Use the Write tool to create the file.
