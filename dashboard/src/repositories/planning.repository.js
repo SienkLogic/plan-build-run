@@ -3,6 +3,8 @@ import { join, resolve, relative, normalize } from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 
+marked.setOptions({ gfm: true, breaks: false });
+
 /**
  * Strip UTF-8 BOM (Byte Order Mark) if present.
  * Windows editors (Notepad, older VS Code) may prepend BOM to UTF-8 files.
