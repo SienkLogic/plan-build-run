@@ -7,8 +7,8 @@
  *   - /pbr:plan — blocks freeform text arguments that don't match
  *     valid patterns (phase number, subcommand, flags).
  *
- * This provides structural enforcement that catches cases where the
- * LLM ignores the prompt-based freeform text guard in SKILL.md.
+ * When freeform text is detected, analyzes it to suggest the most
+ * appropriate skill (quick, debug, explore, todo, plan).
  *
  * Exit codes:
  *   0 = allowed (valid args or non-plan skill)
@@ -30,6 +30,47 @@ const { logHook } = require('./hook-logger');
 const PLAN_VALID_PATTERN = /^\s*$|^\s*\d+(\.\d+)?\s*(--(?:skip-research|assumptions|gaps|teams)\s*)*$|^\s*(?:add|check)\s*$|^\s*(?:insert|remove)\s+\d+(\.\d+)?\s*$/i;
 
 /**
+ * Keyword patterns for routing freeform text to the right skill.
+ * Order matters — first match wins.
+ */
+const ROUTE_PATTERNS = [
+  {
+    pattern: /\b(bugs?|fix(es|ing)?|errors?|crash(es|ing)?|fails?|failing|broken|issues?|debug(ging)?|diagnos(e|ing)|stack\s*trace|exceptions?|regress(ion|ing)?)\b/i,
+    skill: '/pbr:debug',
+    reason: 'Looks like a bug or debugging task'
+  },
+  {
+    pattern: /\b(explore|research|understand|how does|what is|analy[zs]e|evaluate|compare|pros and cons|trade-?offs?|approach(es)?)\b/i,
+    skill: '/pbr:explore',
+    reason: 'Looks like exploration or research'
+  },
+  {
+    pattern: /\b(refactor|redesign|architect|migrate|restructure|overhaul|rewrite|multi-?phase|complex|system|infrastructure)\b/i,
+    skill: '/pbr:plan add',
+    reason: 'Looks like a complex task that needs full planning'
+  },
+  {
+    // Default: anything actionable goes to quick
+    pattern: /./,
+    skill: '/pbr:quick',
+    reason: 'Looks like a straightforward task'
+  }
+];
+
+/**
+ * Suggest the best skill for freeform text.
+ * Returns { skill, reason }.
+ */
+function suggestSkill(text) {
+  for (const route of ROUTE_PATTERNS) {
+    if (route.pattern.test(text)) {
+      return { skill: route.skill, reason: route.reason };
+    }
+  }
+  return { skill: '/pbr:quick', reason: 'Default routing' };
+}
+
+/**
  * Check whether a Skill tool call has valid arguments.
  * Returns null if valid, or { output, exitCode } if blocked.
  */
@@ -48,11 +89,14 @@ function checkSkillArgs(data) {
     return null;
   }
 
-  // Freeform text detected — block
+  // Freeform text detected — suggest the right skill
+  const suggestion = suggestSkill(args);
+
   logHook('validate-skill-args', 'PreToolUse', 'blocked', {
     skill,
     args: args.substring(0, 100),
-    reason: 'freeform-text'
+    reason: 'freeform-text',
+    suggested: suggestion.skill
   });
 
   return {
@@ -62,17 +106,17 @@ function checkSkillArgs(data) {
         '',
         'The arguments "' + args.substring(0, 80) + (args.length > 80 ? '...' : '') + '" do not match any valid pattern.',
         '',
-        'Valid usage:',
+        'Valid /pbr:plan usage:',
         '  /pbr:plan <N>              Plan phase N',
         '  /pbr:plan <N> --gaps       Create gap-closure plans',
         '  /pbr:plan add              Add a new phase',
         '  /pbr:plan insert <N>       Insert a phase at position N',
         '  /pbr:plan remove <N>       Remove phase N',
         '',
-        'For freeform tasks, use:',
-        '  /pbr:todo add <description>   Capture as a todo',
-        '  /pbr:quick <description>      Execute immediately',
-        '  /pbr:explore <topic>          Investigate an idea'
+        'Suggested skill for this text:',
+        '  ' + suggestion.skill + ' — ' + suggestion.reason,
+        '',
+        'Or use /pbr:do to auto-route freeform text to the right skill.'
       ].join('\n')
     },
     exitCode: 2
@@ -102,5 +146,5 @@ function main() {
   });
 }
 
-module.exports = { checkSkillArgs, PLAN_VALID_PATTERN };
+module.exports = { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN, ROUTE_PATTERNS };
 if (require.main === module || process.argv[1] === __filename) { main(); }
