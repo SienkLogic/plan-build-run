@@ -1,7 +1,7 @@
 {
   "name": "pbr",
   "displayName": "Plan-Build-Run",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Plan-Build-Run — Structured development workflow for Cursor. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
   "author": {
     "name": "SienkLogic",
@@ -12,9 +12,19 @@
   "repository": "https://github.com/SienkLogic/plan-build-run",
   "license": "MIT",
   "logo": "../assets/logo.svg",
-  "keywords": ["cursor", "context-engineering", "development-workflow", "subagent-delegation"],
+  "keywords": [
+    "cursor",
+    "context-engineering",
+    "development-workflow",
+    "subagent-delegation"
+  ],
   "category": "developer-tools",
-  "tags": ["planning", "workflow", "structured-development", "context-management"],
+  "tags": [
+    "planning",
+    "workflow",
+    "structured-development",
+    "context-management"
+  ],
   "skills": "./skills/",
   "agents": "./agents/",
   "rules": "./rules/",
