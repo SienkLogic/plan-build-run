@@ -306,6 +306,256 @@ function checkReviewPlannerGate(data) {
   return null;
 }
 
+/**
+ * Blocking check: when the active skill is "review" and a verifier is being
+ * spawned, verify that a SUMMARY*.md exists in the current phase directory.
+ * Returns { block: true, reason: "..." } if blocked, or null if OK.
+ */
+function checkReviewVerifierGate(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+
+  // Only gate pbr:verifier
+  if (subagentType !== 'pbr:verifier') return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+
+  // Only gate when active skill is "review"
+  try {
+    const activeSkill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+    if (activeSkill !== 'review') return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Read STATE.md for current phase
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    const state = fs.readFileSync(stateFile, 'utf8');
+    const phaseMatch = state.match(/Phase:\s*(\d+)/);
+    if (!phaseMatch) return null;
+
+    const currentPhase = phaseMatch[1].padStart(2, '0');
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+
+    const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(currentPhase + '-'));
+    if (dirs.length === 0) return null;
+
+    const phaseDir = path.join(phasesDir, dirs[0]);
+    const files = fs.readdirSync(phaseDir);
+    const hasSummary = files.some(f => {
+      if (!/^SUMMARY/i.test(f)) return false;
+      try {
+        return fs.statSync(path.join(phaseDir, f)).size > 0;
+      } catch (_e) {
+        return false;
+      }
+    });
+
+    if (!hasSummary) {
+      return {
+        block: true,
+        reason: 'Review verifier gate: Cannot spawn verifier without SUMMARY.md in phase directory. Run /pbr:build first.'
+      };
+    }
+  } catch (_e) {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Blocking check: when the active skill is "milestone" and a general/planner agent
+ * is being spawned for a "complete" operation, verify all milestone phases have VERIFICATION.md.
+ * Returns { block: true, reason: "..." } if blocked, or null if OK.
+ */
+function checkMilestoneCompleteGate(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+  const description = toolInput.description || '';
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+
+  // Only gate when active skill is "milestone"
+  try {
+    const activeSkill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+    if (activeSkill !== 'milestone') return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Only gate pbr:general and pbr:planner
+  if (subagentType !== 'pbr:general' && subagentType !== 'pbr:planner') return null;
+
+  // Only gate "complete" operations
+  if (!/complete/i.test(description)) return null;
+
+  // Read STATE.md for current phase
+  const stateFile = path.join(planningDir, 'STATE.md');
+  let currentPhase;
+  try {
+    const state = fs.readFileSync(stateFile, 'utf8');
+    const fmMatch = state.match(/current_phase:\s*(\d+)/);
+    if (fmMatch) {
+      currentPhase = parseInt(fmMatch[1], 10);
+    } else {
+      const bodyMatch = state.match(/Phase:\s*(\d+)/);
+      if (bodyMatch) currentPhase = parseInt(bodyMatch[1], 10);
+    }
+    if (!currentPhase) return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Read ROADMAP.md and find the milestone containing the current phase
+  const roadmapFile = path.join(planningDir, 'ROADMAP.md');
+  try {
+    const roadmap = fs.readFileSync(roadmapFile, 'utf8');
+
+    // Split into milestone sections
+    const milestoneSections = roadmap.split(/^## Milestone:/m).slice(1);
+
+    for (const section of milestoneSections) {
+      // Parse phase numbers from table rows
+      const phaseNumbers = [];
+      const tableRowRegex = /^\|\s*(\d+)\s*\|/gm;
+      let match;
+      while ((match = tableRowRegex.exec(section)) !== null) {
+        phaseNumbers.push(parseInt(match[1], 10));
+      }
+
+      // Check if current phase is in this milestone
+      if (!phaseNumbers.includes(currentPhase)) continue;
+
+      // Found the right milestone — check all phases have VERIFICATION.md
+      const phasesDir = path.join(planningDir, 'phases');
+      if (!fs.existsSync(phasesDir)) return null;
+
+      for (const phaseNum of phaseNumbers) {
+        const paddedPhase = String(phaseNum).padStart(2, '0');
+        const pDirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(paddedPhase + '-'));
+        if (pDirs.length === 0) {
+          return {
+            block: true,
+            reason: `Milestone complete gate: Phase ${paddedPhase} directory not found. All milestone phases must be verified before completing milestone.`
+          };
+        }
+        const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
+        if (!hasVerification) {
+          return {
+            block: true,
+            reason: `Milestone complete gate: Phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md. All milestone phases must be verified before completing milestone.`
+          };
+        }
+      }
+
+      // All phases verified
+      return null;
+    }
+  } catch (_e) {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Blocking check: when the active skill is "build" and an executor is being
+ * spawned, verify that dependent phases (from ROADMAP.md) have VERIFICATION.md.
+ * Returns { block: true, reason: "..." } if blocked, or null if OK.
+ */
+function checkBuildDependencyGate(data) {
+  const toolInput = data.tool_input || {};
+  const subagentType = toolInput.subagent_type || '';
+
+  // Only gate pbr:executor
+  if (subagentType !== 'pbr:executor') return null;
+
+  const cwd = process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+
+  // Only gate when active skill is "build"
+  try {
+    const activeSkill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+    if (activeSkill !== 'build') return null;
+  } catch (_e) {
+    return null;
+  }
+
+  // Read STATE.md for current phase
+  const stateFile = path.join(planningDir, 'STATE.md');
+  let currentPhase;
+  try {
+    const state = fs.readFileSync(stateFile, 'utf8');
+    const phaseMatch = state.match(/Phase:\s*(\d+)/);
+    if (!phaseMatch) return null;
+    currentPhase = parseInt(phaseMatch[1], 10);
+  } catch (_e) {
+    return null;
+  }
+
+  // Read ROADMAP.md, find current phase section, check dependencies
+  const roadmapFile = path.join(planningDir, 'ROADMAP.md');
+  try {
+    const roadmap = fs.readFileSync(roadmapFile, 'utf8');
+
+    // Find ### Phase N: section
+    const phaseRegex = new RegExp(`### Phase ${currentPhase}:[\\s\\S]*?(?=### Phase \\d|$)`);
+    const phaseSection = roadmap.match(phaseRegex);
+    if (!phaseSection) return null;
+
+    // Look for **Depends on:** line
+    const depMatch = phaseSection[0].match(/\*\*Depends on:\*\*\s*(.*)/);
+    if (!depMatch) return null;
+
+    const depLine = depMatch[1].trim();
+    if (!depLine || /^none$/i.test(depLine)) return null;
+
+    // Parse phase numbers from "Phase 1", "Phase 1, Phase 2", etc.
+    const depPhases = [];
+    const depRegex = /Phase\s+(\d+)/gi;
+    let match;
+    while ((match = depRegex.exec(depLine)) !== null) {
+      depPhases.push(parseInt(match[1], 10));
+    }
+
+    if (depPhases.length === 0) return null;
+
+    // Check each dependent phase has VERIFICATION.md
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+
+    for (const depPhase of depPhases) {
+      const paddedPhase = String(depPhase).padStart(2, '0');
+      const pDirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(paddedPhase + '-'));
+      if (pDirs.length === 0) {
+        return {
+          block: true,
+          reason: `Build dependency gate: Dependent phase ${paddedPhase} lacks VERIFICATION.md. Run /pbr:review on dependent phases first.`
+        };
+      }
+      const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
+      if (!hasVerification) {
+        return {
+          block: true,
+          reason: `Build dependency gate: Dependent phase ${paddedPhase} lacks VERIFICATION.md. Run /pbr:review on dependent phases first.`
+        };
+      }
+    }
+  } catch (_e) {
+    return null;
+  }
+
+  return null;
+}
+
 function main() {
   let input = '';
 
@@ -363,6 +613,42 @@ function main() {
         return;
       }
 
+      // Blocking gate: review verifier needs SUMMARY.md
+      const reviewVerifierGate = checkReviewVerifierGate(data);
+      if (reviewVerifierGate && reviewVerifierGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: reviewVerifierGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: reviewVerifierGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
+      // Blocking gate: milestone complete needs all phases verified
+      const milestoneGate = checkMilestoneCompleteGate(data);
+      if (milestoneGate && milestoneGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: milestoneGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: milestoneGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
+      // Blocking gate: build dependency check
+      const buildDepGate = checkBuildDependencyGate(data);
+      if (buildDepGate && buildDepGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: buildDepGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: buildDepGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
       // Advisory warnings
       const warnings = checkTask(data);
 
@@ -383,5 +669,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }
