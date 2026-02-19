@@ -101,7 +101,7 @@ Plan-Build-Run is a structured development workflow for Claude Code that solves 
   │    └─ Help user think through what they actually want
   └─ Route insights:
        ├─ /pbr:todo create → capture as a todo
-       ├─ Append to NOTES.md → record for later
+       ├─ Append to .planning/notes/ → record for later
        ├─ Append to REQUIREMENTS.md → commit as a requirement
        ├─ Append to CONTEXT.md → lock as a decision
        └─ /pbr:discuss <N> → continue with phase-specific discussion
@@ -320,7 +320,7 @@ Plan-Build-Run is a structured development workflow for Claude Code that solves 
   └─ Write updated config.json
 
 /pbr:note <message>
-  ├─ Append timestamped note to .planning/NOTES.md
+  ├─ Create timestamped note file in .planning/notes/
   └─ Useful for tracking decisions, observations
 
 /pbr:todo [list|create|complete|remove]
@@ -344,7 +344,7 @@ Skill-to-Skill Invocation Paths:
 
 /pbr:explore [topic]
   ├─> routes to /pbr:todo create (capture as todo)
-  ├─> routes to NOTES.md (append note)
+  ├─> routes to .planning/notes/ (append note)
   ├─> routes to REQUIREMENTS.md (commit requirement)
   ├─> routes to CONTEXT.md (lock decision)
   └─> routes to /pbr:discuss <N> (continue with phase discussion)

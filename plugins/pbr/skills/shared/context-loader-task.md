@@ -31,7 +31,7 @@ Task({
     - .planning/CONTEXT.md
     - Any .planning/phases/*/CONTEXT.md files
     - .planning/research/SUMMARY.md (if exists)
-    - .planning/NOTES.md (if exists)
+    - .planning/notes/*.md (if notes directory exists — read frontmatter for date/promoted status)
     - .planning/HISTORY.md (if exists — scan for decisions relevant to current work only, do NOT summarize all history)
 
   Return ONLY the briefing text. No preamble, no suggestions."

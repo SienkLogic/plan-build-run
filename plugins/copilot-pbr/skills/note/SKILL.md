@@ -23,12 +23,23 @@ This skill runs **inline** — no Task, no AskUserQuestion, no Bash.
 
 ---
 
-## Scope Detection
+## Storage Format
 
-Two scopes exist. Auto-detect which to use:
+Notes are stored as **individual markdown files** in a notes directory:
 
-1. **Project scope**: `.planning/NOTES.md` — used when `.planning/` directory exists in cwd
-2. **Global scope**: `~/.claude/notes.md` — used as fallback when no `.planning/`, or when `--global` flag is present
+- **Project scope**: `.planning/notes/{YYYY-MM-DD}-{slug}.md` — used when `.planning/` directory exists in cwd
+- **Global scope**: `~/.claude/notes/{YYYY-MM-DD}-{slug}.md` — used as fallback when no `.planning/`, or when `--global` flag is present
+
+Each note file has this format:
+
+```markdown
+---
+date: "YYYY-MM-DD HH:mm"
+promoted: false
+---
+
+{note text verbatim}
+```
 
 **`--global` flag**: Strip `--global` from anywhere in `$ARGUMENTS` before parsing. When present, force global scope regardless of whether `.planning/` exists.
 
@@ -53,27 +64,17 @@ Parse `$ARGUMENTS` after stripping `--global`:
 
 ## Subcommand: append
 
-Append a timestamped note to the target file.
+Create a timestamped note file in the target directory.
 
 ### Steps
 
-1. Determine scope (project or global) per Scope Detection above
-2. Read the target file if it exists
-3. If the file doesn't exist, create it with this header:
-
-```markdown
-# Notes
-
-Quick captures from `/pbr:note`. Ideas worth remembering.
-
----
-
-```
-
-4. Ensure the file content ends with a newline before appending
-5. Append: `- [YYYY-MM-DD HH:mm] {note text verbatim}`
-6. Write the file
-7. Confirm with exactly one line: `Noted ({scope}): {note text}`
+1. Determine scope (project or global) per Storage Format above
+2. Ensure the notes directory exists (`.planning/notes/` or `~/.claude/notes/`)
+3. Generate slug: first ~4 meaningful words of the note text, lowercase, hyphen-separated (strip articles/prepositions from the start)
+4. Generate filename: `{YYYY-MM-DD}-{slug}.md`
+   - If a file with that name already exists, append `-2`, `-3`, etc.
+5. Write the file with frontmatter and note text (see Storage Format)
+6. Confirm with exactly one line: `Noted ({scope}): {note text}`
    - Where `{scope}` is "project" or "global"
 
 ### Constraints
@@ -90,11 +91,11 @@ Show notes from both project and global scopes.
 
 ### Steps
 
-1. Read `.planning/NOTES.md` (if exists) — these are "project" notes
-2. Read `~/.claude/notes.md` (if exists) — these are "global" notes
-3. Parse entries: lines matching `^- \[` are notes
-4. Exclude lines containing `[promoted]` from active counts (but still show them, dimmed)
-5. Number all active entries sequentially starting at 1, using plain integers (1, 2, 3...) for display (across both scopes)
+1. Glob `.planning/notes/*.md` (if directory exists) — these are "project" notes
+2. Glob `~/.claude/notes/*.md` (if directory exists) — these are "global" notes
+3. For each file, read frontmatter to get `date` and `promoted` status
+4. Exclude files where `promoted: true` from active counts (but still show them, dimmed)
+5. Sort by date, number all active entries sequentially starting at 1
 6. If total active entries > 20, show only the last 10 with a note about how many were omitted
 
 ### Display Format
@@ -102,18 +103,18 @@ Show notes from both project and global scopes.
 ```
 Notes:
 
-Project (.planning/NOTES.md):
+Project (.planning/notes/):
   1. [2026-02-08 14:32] refactor the hook system to support async validators
   2. [promoted] [2026-02-08 14:40] add rate limiting to the API endpoints
   3. [2026-02-08 15:10] consider adding a --dry-run flag to build
 
-Global (~/.claude/notes.md):
+Global (~/.claude/notes/):
   4. [2026-02-08 10:00] cross-project idea about shared config
 
 {count} active note(s). Use `/pbr:note promote <N>` to convert to a todo.
 ```
 
-If a scope has no file or no entries, show: `(no notes)`
+If a scope has no directory or no entries, show: `(no notes)`
 
 ---
 
@@ -129,7 +130,7 @@ Convert a note into a todo file.
 4. **Requires `.planning/` directory** — if it doesn't exist, warn: "Todos require a Plan-Build-Run project. Run `/pbr:begin` to initialize one, or use `/pbr:todo add` in an existing project."
 5. Ensure `.planning/todos/pending/` directory exists
 6. Generate todo ID: `{NNN}-{slug}` where NNN is the next sequential number (scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, zero-pad to 3 digits) and slug is the first ~4 meaningful words of the note text, lowercase, hyphen-separated
-7. Extract the note text (everything after the timestamp)
+7. Extract the note text from the source file (body after frontmatter)
 8. Create `.planning/todos/pending/{id}.md`:
 
 ```yaml
@@ -155,34 +156,18 @@ Promoted from quick note captured on {original date}.
 - [ ] {primary criterion derived from note text}
 ```
 
-9. Mark the original note as promoted: replace `- [` with `- [promoted] [` on that line
+9. Mark the source note file as promoted: update its frontmatter to `promoted: true`
 10. Confirm: `Promoted note {N} to todo {id}: {note text}`
-
----
-
-## NOTES.md Format Reference
-
-```markdown
-# Notes
-
-Quick captures from `/pbr:note`. Ideas worth remembering.
-
----
-
-- [2026-02-08 14:32] refactor the hook system to support async validators
-- [promoted] [2026-02-08 14:40] add rate limiting to the API endpoints
-- [2026-02-08 15:10] consider adding a --dry-run flag to build
-```
 
 ---
 
 ## Edge Cases
 
 1. **"list" as note text**: `/pbr:note list of things` → saves note "list of things" (subcommand only when `list` is the entire arg)
-2. **No `.planning/`**: Falls back to global `~/.claude/notes.md` — works in any directory
+2. **No `.planning/`**: Falls back to global `~/.claude/notes/` — works in any directory
 3. **Promote without project**: Warns that todos require `.planning/`, suggests `/pbr:begin`
 4. **Large files**: `list` shows last 10 when >20 active entries
-5. **Missing newline**: Always ensure trailing newline before appending
+5. **Duplicate slugs**: Append `-2`, `-3` etc. to filename if slug already used on same date
 6. **`--global` position**: Stripped from anywhere — `--global my idea` and `my idea --global` both save "my idea" globally
 7. **Promote already-promoted**: Tell user "Note {N} is already promoted" and stop
 8. **Empty note text after stripping flags**: Treat as `list` subcommand
@@ -225,3 +210,4 @@ Note {N} not found. Valid range: 1-{max}.
 4. **DO NOT** create `.planning/` if it doesn't exist — fall back to global
 5. **DO NOT** number promoted notes in the active count (but still display them)
 6. **DO NOT** over-format the confirmation — one line is enough
+7. **DO NOT** use a flat NOTES.md file — always use individual files in notes directory

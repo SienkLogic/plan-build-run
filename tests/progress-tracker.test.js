@@ -165,7 +165,10 @@ describe('progress-tracker.js', () => {
 
   test('counts project notes', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
-    fs.writeFileSync(path.join(planningDir, 'NOTES.md'), '# Notes\n\n- [2026-02-10] First note\n- [2026-02-10] Second note\n');
+    const notesDir = path.join(planningDir, 'notes');
+    fs.mkdirSync(notesDir, { recursive: true });
+    fs.writeFileSync(path.join(notesDir, '2026-02-10-first-note.md'), '---\ndate: "2026-02-10 14:00"\npromoted: false\n---\n\nFirst note\n');
+    fs.writeFileSync(path.join(notesDir, '2026-02-10-second-note.md'), '---\ndate: "2026-02-10 14:05"\npromoted: false\n---\n\nSecond note\n');
 
     const output = run();
     const parsed = JSON.parse(output);
