@@ -1,0 +1,44 @@
+<h1>Milestones</h1>
+
+<% if (active.length > 0) { %>
+<h2>Active</h2>
+<% active.forEach(function(m) { %>
+<article>
+  <header>
+    <strong><%= m.name %></strong>
+    <% if (m.goal) { %><small> &mdash; <%= m.goal %></small><% } %>
+  </header>
+  <p>
+    Phases <%= m.startPhase %> &ndash; <%= m.endPhase %>
+  </p>
+</article>
+<% }); %>
+<% } %>
+
+<% if (archived.length > 0) { %>
+<h2>Archived</h2>
+<% archived.forEach(function(m) { %>
+<article>
+  <header>
+    <strong>
+      <a href="/milestones/<%= m.version %>"
+         hx-get="/milestones/<%= m.version %>"
+         hx-target="#main-content"
+         hx-push-url="true">
+        v<%= m.version %> &mdash; <%= m.name %>
+      </a>
+    </strong>
+  </header>
+  <p>
+    <% if (m.date) { %><small>Completed: <%= m.date %></small><% } %>
+    <% if (m.duration) { %><small> &bull; Duration: <%= m.duration %></small><% } %>
+    <br>
+    <small><%= m.files.length %> archived file<%= m.files.length !== 1 ? 's' : '' %></small>
+  </p>
+</article>
+<% }); %>
+<% } %>
+
+<% if (active.length === 0 && archived.length === 0) { %>
+<p>No milestones found. Use <code>/pbr:milestone new</code> to create one.</p>
+<% } %>
