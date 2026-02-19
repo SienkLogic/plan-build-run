@@ -3,6 +3,7 @@ import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
 import { getRoadmapData } from '../services/roadmap.service.js';
 import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.service.js';
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
+import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
 
 const router = Router();
 
@@ -222,6 +223,61 @@ router.post('/todos/:id/done', async (req, res) => {
     });
   } else {
     res.redirect('/todos');
+  }
+});
+
+router.get('/milestones', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const milestoneData = await getAllMilestones(projectDir);
+
+  const templateData = {
+    title: 'Milestones',
+    activePage: 'milestones',
+    currentPath: '/milestones',
+    ...milestoneData
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/milestones-content', templateData);
+  } else {
+    res.render('milestones', templateData);
+  }
+});
+
+router.get('/milestones/:version', async (req, res) => {
+  const { version } = req.params;
+
+  // Validate version: alphanumeric with dots and dashes
+  if (!/^[\w.-]+$/.test(version)) {
+    const err = new Error('Invalid milestone version format');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const detail = await getMilestoneDetail(projectDir, version);
+
+  if (detail.sections.length === 0) {
+    const err = new Error(`No archived files found for milestone v${version}`);
+    err.status = 404;
+    throw err;
+  }
+
+  const templateData = {
+    title: `Milestone v${version}`,
+    activePage: 'milestones',
+    currentPath: '/milestones/' + version,
+    ...detail
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/milestone-detail-content', templateData);
+  } else {
+    res.render('milestone-detail', templateData);
   }
 });
 

@@ -33,6 +33,14 @@
           Roadmap
         </a>
       </li>
+      <li>
+        <a href="/milestones"
+           hx-get="/milestones"
+           hx-target="#main-content"
+           hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'milestones' ? ' aria-current="page"' : '' %>>
+          Milestones
+        </a>
+      </li>
     </ul>
   </nav>
 </aside>

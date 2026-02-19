@@ -1,0 +1,19 @@
+<h1>Milestone v<%= version %></h1>
+
+<p>
+  <a href="/milestones"
+     hx-get="/milestones"
+     hx-target="#main-content"
+     hx-push-url="true">&larr; Back to Milestones</a>
+</p>
+
+<% sections.forEach(function(section) { %>
+<article>
+  <header>
+    <strong><%= section.type %></strong>
+  </header>
+  <div class="markdown-body">
+    <%- section.html %>
+  </div>
+</article>
+<% }); %>
