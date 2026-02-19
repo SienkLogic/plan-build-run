@@ -24,8 +24,13 @@ const { logHook } = require('./hook-logger');
 // Agent type → expected output patterns
 const AGENT_OUTPUTS = {
   'pbr:executor': {
-    description: 'SUMMARY.md in the phase directory',
-    check: (planningDir) => findInPhaseDir(planningDir, /^SUMMARY.*\.md$/i)
+    description: 'SUMMARY.md in the phase or quick directory',
+    check: (planningDir) => {
+      // Check phase directory first, then quick directory
+      const phaseMatches = findInPhaseDir(planningDir, /^SUMMARY.*\.md$/i);
+      if (phaseMatches.length > 0) return phaseMatches;
+      return findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
+    }
   },
   'pbr:planner': {
     description: 'PLAN.md in the phase directory',
@@ -78,6 +83,39 @@ function findInPhaseDir(planningDir, pattern) {
         const stat = fs.statSync(filePath);
         if (stat.size > 0) {
           matches.push(path.join('phases', dirs[0], file));
+        }
+      }
+    }
+  } catch (_e) {
+    // best-effort
+  }
+  return matches;
+}
+
+function findInQuickDir(planningDir, pattern) {
+  const matches = [];
+  const quickDir = path.join(planningDir, 'quick');
+  if (!fs.existsSync(quickDir)) return matches;
+
+  try {
+    // Find the most recent quick task directory (highest NNN)
+    const dirs = fs.readdirSync(quickDir)
+      .filter(d => /^\d{3}-/.test(d))
+      .sort()
+      .reverse();
+    if (dirs.length === 0) return matches;
+
+    const latestDir = path.join(quickDir, dirs[0]);
+    const stat = fs.statSync(latestDir);
+    if (!stat.isDirectory()) return matches;
+
+    const files = fs.readdirSync(latestDir);
+    for (const file of files) {
+      if (pattern.test(file)) {
+        const filePath = path.join(latestDir, file);
+        const fileStat = fs.statSync(filePath);
+        if (fileStat.size > 0) {
+          matches.push(path.join('quick', dirs[0], file));
         }
       }
     }
@@ -140,5 +178,5 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, findInPhaseDir };
+module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir };
 if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -47,11 +47,13 @@ Additionally for this skill:
 
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings
-   - If no: create `.planning/` directory first, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
+   - If no: create **both** `.planning/` and `.planning/quick/` directories, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
 
-2. **After** confirming `.planning/` directory exists (created in step 1 if needed), write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook — it will block source code writes until PLAN.md exists.
+2. If `.planning/` exists but `.planning/quick/` does not: create `.planning/quick/` now. **Every quick task gets tracked in `.planning/quick/` — this directory MUST exist before Step 4.**
 
-3. Check if ROADMAP.md exists
+3. **After** confirming both directories exist, write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook — it will block source code writes until PLAN.md exists.
+
+4. Check if ROADMAP.md exists
    - If yes: note the current phase context (quick tasks may relate to the active phase)
    - If no: proceed without phase context
 
@@ -90,6 +92,8 @@ If user types something else (freeform): interpret their response and proceed ac
 
 ### Step 4: Generate Slug and Task Number
 
+**CRITICAL: You MUST complete Steps 4, 5, and 6 before any executor is spawned. If you skip these steps, the quick task will have no tracking artifacts and no PLAN.md for the executor to follow. This is the #1 failure mode of this skill.**
+
 **Generate slug:**
 - Take the first 4-5 meaningful words from the description
 - Lowercase, hyphen-separated
@@ -105,7 +109,11 @@ If user types something else (freeform): interpret their response and proceed ac
 
 ### Step 5: Create Quick Task Directory
 
+**STOP — Use the Write or Bash tool RIGHT NOW to create this directory. Do not skip this step.**
+
 Create: `.planning/quick/{NNN}-{slug}/`
+
+Verify the directory exists with `ls .planning/quick/{NNN}-{slug}/` before proceeding. If the directory doesn't exist, you have a bug — go back and create it.
 
 ### Step 6: Create Minimal PLAN.md
 
