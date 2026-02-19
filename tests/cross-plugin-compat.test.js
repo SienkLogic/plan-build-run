@@ -122,6 +122,7 @@ const EVENT_NAME_MAP = {
 };
 
 describe('cross-plugin compatibility', () => {
+  // eslint-disable-next-line no-unused-vars
   describe.each(DERIVATIVES)('$name', ({ name, dir, agentExt, hasArgumentHint, hookFormat }) => {
 
     test('plugin manifest is valid', () => {
