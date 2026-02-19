@@ -4,11 +4,46 @@ A structured development workflow plugin for Cursor that solves context rot thro
 
 ## Installation
 
-1. Clone or download this repository
-2. In Cursor, load the plugin directory: `plugins/cursor-pbr/`
-3. The plugin registers `/pbr:*` slash commands automatically
+### Automated Setup (Recommended)
+
+The setup script creates symlinks from your project's `.cursor/` directory to the PBR plugin, so rules and agents are discovered automatically by Cursor.
+
+**macOS / Linux:**
+```bash
+cd /path/to/your/project
+bash /path/to/plan-build-run/plugins/cursor-pbr/setup.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\your\project
+powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\cursor-pbr\setup.ps1
+```
+
+This installs:
+- `.cursor/rules/pbr-workflow.mdc` — Workflow rules (auto-loaded when `.planning/` exists)
+- `.cursor/agents/*.md` — 10 specialized agent definitions
+
+### Manual Setup
+
+If you prefer not to use the setup script:
+
+1. Copy or symlink `rules/pbr-workflow.mdc` into your project's `.cursor/rules/` directory
+2. Copy or symlink all files from `agents/` into your project's `.cursor/agents/` directory
+3. Skills (in `skills/`) are prompt templates — paste a skill's `SKILL.md` content into Cursor chat to invoke it, or reference the skill directory if Cursor supports skill discovery
+
+### Uninstall
+
+Remove the symlinks created by setup:
+
+```bash
+rm .cursor/rules/pbr-workflow.mdc
+rm .cursor/agents/*.md    # only PBR agent files
+```
 
 ## Quick Start
+
+The core workflow follows four steps per phase:
 
 ```
 /pbr:begin     — Define your project: requirements, research, roadmap
@@ -45,6 +80,8 @@ Repeat `plan` / `build` / `review` for each phase in your roadmap.
 | status | Show current project status and suggest what to do next. |
 | todo | File-based persistent todos. Add, list, complete — survives sessions. |
 
+Skills live in `skills/{name}/SKILL.md`. Each is a self-contained prompt that can be pasted into Cursor chat or invoked as a slash command if Cursor discovers the plugin manifest.
+
 ## Agents (10)
 
 | Agent | Description |
@@ -73,7 +110,7 @@ Run `/pbr:config` to interactively adjust settings like depth, model profiles, a
 
 ## Cross-Plugin Compatibility
 
-This plugin works alongside the Claude Code version of Plan-Build-Run. Both plugins share the same `.planning/` directory and file formats, so you can switch between Cursor and Claude Code without losing state. Hook scripts under `plugins/pbr/scripts/` are shared between both plugins.
+This plugin works alongside the Claude Code version of Plan-Build-Run. Both plugins share the same `.planning/` directory and file formats, so you can switch between Cursor and Claude Code without losing state. Hook scripts under `plugins/pbr/scripts/` are shared between both plugins via relative paths.
 
 ## Links
 
