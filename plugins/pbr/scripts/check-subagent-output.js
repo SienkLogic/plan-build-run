@@ -53,6 +53,69 @@ const AGENT_OUTPUTS = {
         return [];
       }
     }
+  },
+  'pbr:synthesizer': {
+    description: 'synthesis file in .planning/research/ or CONTEXT.md update',
+    check: (planningDir) => {
+      const researchDir = path.join(planningDir, 'research');
+      if (fs.existsSync(researchDir)) {
+        try {
+          const files = fs.readdirSync(researchDir).filter(f => f.endsWith('.md'));
+          if (files.length > 0) return files.map(f => path.join('research', f));
+        } catch (_e) { /* best-effort */ }
+      }
+      const contextFile = path.join(planningDir, 'CONTEXT.md');
+      if (fs.existsSync(contextFile)) {
+        try {
+          const stat = fs.statSync(contextFile);
+          if (stat.size > 0) return ['CONTEXT.md'];
+        } catch (_e) { /* best-effort */ }
+      }
+      return [];
+    }
+  },
+  'pbr:plan-checker': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:integration-checker': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:debugger': {
+    description: 'debug file in .planning/debug/',
+    check: (planningDir) => {
+      const debugDir = path.join(planningDir, 'debug');
+      if (!fs.existsSync(debugDir)) return [];
+      try {
+        return fs.readdirSync(debugDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('debug', f));
+      } catch (_e) {
+        return [];
+      }
+    }
+  },
+  'pbr:codebase-mapper': {
+    description: 'codebase map in .planning/codebase/',
+    check: (planningDir) => {
+      const codebaseDir = path.join(planningDir, 'codebase');
+      if (!fs.existsSync(codebaseDir)) return [];
+      try {
+        return fs.readdirSync(codebaseDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('codebase', f));
+      } catch (_e) {
+        return [];
+      }
+    }
+  },
+  'pbr:general': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => []
   }
 };
 
@@ -157,7 +220,7 @@ function main() {
   // Check for expected outputs
   const found = outputSpec.check(planningDir);
 
-  if (found.length === 0) {
+  if (found.length === 0 && !outputSpec.noFileExpected) {
     logHook('check-subagent-output', 'PostToolUse', 'warning', {
       agent_type: agentType,
       expected: outputSpec.description,
