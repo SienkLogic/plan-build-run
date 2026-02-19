@@ -1,6 +1,6 @@
 'use strict';
 
-const { checkSkillArgs, PLAN_VALID_PATTERN } = require('../plugins/pbr/scripts/validate-skill-args');
+const { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN } = require('../plugins/pbr/scripts/validate-skill-args');
 
 describe('validate-skill-args', () => {
   describe('PLAN_VALID_PATTERN', () => {
@@ -41,6 +41,51 @@ describe('validate-skill-args', () => {
     });
   });
 
+  describe('suggestSkill', () => {
+    test.each([
+      ['fix the bug in checkout', '/pbr:debug'],
+      ['there is an error in the login flow', '/pbr:debug'],
+      ['the app crashes on startup', '/pbr:debug'],
+      ['investigate the failing test', '/pbr:debug'],
+      ['debug the stack trace', '/pbr:debug'],
+    ])('routes debug text: "%s" → %s', (text, expected) => {
+      expect(suggestSkill(text).skill).toBe(expected);
+    });
+
+    test.each([
+      ['explore how the auth system works', '/pbr:explore'],
+      ['research caching strategies', '/pbr:explore'],
+      ['what is the best approach for this', '/pbr:explore'],
+      ['compare React vs Vue for the frontend', '/pbr:explore'],
+    ])('routes explore text: "%s" → %s', (text, expected) => {
+      expect(suggestSkill(text).skill).toBe(expected);
+    });
+
+    test.each([
+      ['refactor the entire auth module', '/pbr:plan add'],
+      ['migrate the database to PostgreSQL', '/pbr:plan add'],
+      ['redesign the API architecture', '/pbr:plan add'],
+      ['restructure the project layout', '/pbr:plan add'],
+    ])('routes complex text: "%s" → %s', (text, expected) => {
+      expect(suggestSkill(text).skill).toBe(expected);
+    });
+
+    test.each([
+      ['add a logout button', '/pbr:quick'],
+      ['update the readme', '/pbr:quick'],
+      ['write a test for the parser', '/pbr:quick'],
+      ['change the background color to blue', '/pbr:quick'],
+    ])('routes simple text: "%s" → %s', (text, expected) => {
+      expect(suggestSkill(text).skill).toBe(expected);
+    });
+
+    test('returns a reason with every suggestion', () => {
+      const result = suggestSkill('fix the bug');
+      expect(result.reason).toBeTruthy();
+      expect(typeof result.reason).toBe('string');
+    });
+  });
+
   describe('checkSkillArgs', () => {
     test('returns null for non-plan skills', () => {
       const data = { tool_input: { skill: 'pbr:build', args: 'anything here' } };
@@ -68,7 +113,13 @@ describe('validate-skill-args', () => {
       expect(result).not.toBeNull();
       expect(result.exitCode).toBe(2);
       expect(result.output.additionalContext).toContain('BLOCKED');
-      expect(result.output.additionalContext).toContain('/pbr:quick');
+    });
+
+    test('includes skill suggestion in block message', () => {
+      const data = { tool_input: { skill: 'pbr:plan', args: 'fix the bug in login' } };
+      const result = checkSkillArgs(data);
+      expect(result.output.additionalContext).toContain('/pbr:debug');
+      expect(result.output.additionalContext).toContain('/pbr:do');
     });
 
     test('blocks freeform text with phase-like prefix', () => {

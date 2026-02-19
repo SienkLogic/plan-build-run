@@ -1,7 +1,7 @@
 ---
 name: todo
 description: "File-based persistent todos. Add, list, complete — survives sessions."
-allowed-tools: Read, Write, Bash, Glob, Grep, Skill
+allowed-tools: Read, Write, Bash, Glob, Grep, Skill, AskUserQuestion
 argument-hint: "add <description> | list [theme] | done <NNN> | work <NNN>"
 ---
 
@@ -187,17 +187,38 @@ Todo {NNN} not found in pending todos.
 2. If not found, display the same error block as `done` — suggest `/pbr:todo list`
 3. Read the todo file content (frontmatter + body)
 4. Extract the `title` from frontmatter and the full body (Goal, Scope, Acceptance Criteria sections)
-5. Display branded output:
+
+5. **Assess complexity** to choose the right skill. Evaluate the todo content against these criteria:
+
+| Signal | Route to |
+|--------|----------|
+| Single file change, small fix, simple addition | `/pbr:quick` |
+| Multiple acceptance criteria, multi-file scope, architectural decisions, needs research | `/pbr:plan` (requires an active phase) |
+| Investigation needed, unclear root cause | `/pbr:debug` |
+| Open-ended exploration, no clear deliverable | `/pbr:explore` |
+
+If unsure, ask the user via AskUserQuestion:
+```
+Todo {NNN} could be handled as a quick task or may need full planning.
+
+Which approach?
+- Quick task (/pbr:quick) — single executor, atomic commit
+- Full planning (/pbr:plan) — research, plan, build cycle
+- Debug (/pbr:debug) — systematic investigation
+- Explore (/pbr:explore) — open-ended investigation
+```
+
+6. Display branded output:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  PLAN-BUILD-RUN ► WORKING ON TODO {NNN}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Todo {NNN}:** {title}
-
-Launching /pbr:quick with todo context...
+**Routing to:** /pbr:{chosen-skill}
 ```
-6. Invoke the Skill tool: `skill: "pbr:quick"` with `args` set to the todo title followed by the body content. Format the args as:
+
+7. Invoke the chosen skill via the Skill tool, passing the todo title and body as args:
 
 ```
 {title}
@@ -206,7 +227,9 @@ Context from todo {NNN}:
 {body content — Goal, Scope, Acceptance Criteria sections}
 ```
 
-This hands off execution to `/pbr:quick`, which will spawn an executor agent, make atomic commits, and track the work. When quick completes, remind the user:
+For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pbr:plan add` first to create one, then re-run `/pbr:todo work {NNN}`.
+
+8. When the skill completes, remind the user:
 
 ```
 ───────────────────────────────────────────────────────────────
