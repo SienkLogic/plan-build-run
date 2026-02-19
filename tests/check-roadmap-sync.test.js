@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { parseState, getRoadmapPhaseStatus, parseRoadmapPhases, checkFilesystemDrift } = require('../plugins/pbr/scripts/check-roadmap-sync');
+const { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift } = require('../plugins/pbr/scripts/check-roadmap-sync');
 
 describe('check-roadmap-sync.js', () => {
   describe('parseState', () => {
@@ -179,6 +179,67 @@ and 01-setup is referenced again`;
       const content = '| 01-user-auth-system | Setup |';
       const phases = parseRoadmapPhases(content);
       expect(phases).toContain('01-user-auth-system');
+    });
+  });
+
+  describe('checkSync CRITICAL warnings', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-sync-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function setupFiles(stateContent, roadmapContent) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      const statePath = path.join(planningDir, 'STATE.md');
+      fs.writeFileSync(statePath, stateContent);
+      if (roadmapContent !== undefined) {
+        fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmapContent);
+      }
+      return statePath;
+    }
+
+    test('mismatch warning includes CRITICAL prefix', () => {
+      const statePath = setupFiles(
+        '**Phase**: 01\n**Status**: built',
+        '| Phase | Name | Status |\n|---|---|---|\n| 01 | Setup | planned |'
+      );
+      const origCwd = process.cwd();
+      try {
+        process.chdir(tmpDir);
+        const result = checkSync({ tool_input: { file_path: statePath } });
+        expect(result).not.toBeNull();
+        expect(result.output.additionalContext).toMatch(/^CRITICAL:/);
+        expect(result.output.additionalContext).toContain('Phase 1');
+        expect(result.output.additionalContext).toContain('"planned"');
+        expect(result.output.additionalContext).toContain('"built"');
+        expect(result.output.additionalContext).toContain('Update the ROADMAP.md Progress table NOW');
+      } finally {
+        process.chdir(origCwd);
+      }
+    });
+
+    test('missing phase in ROADMAP triggers CRITICAL warning', () => {
+      const statePath = setupFiles(
+        '**Phase**: 05\n**Status**: built',
+        '| Phase | Name | Status |\n|---|---|---|\n| 01 | Setup | planned |'
+      );
+      const origCwd = process.cwd();
+      try {
+        process.chdir(tmpDir);
+        const result = checkSync({ tool_input: { file_path: statePath } });
+        expect(result).not.toBeNull();
+        expect(result.output.additionalContext).toMatch(/^CRITICAL:/);
+        expect(result.output.additionalContext).toContain('Phase 5');
+        expect(result.output.additionalContext).toContain('not listed in ROADMAP.md');
+      } finally {
+        process.chdir(origCwd);
+      }
     });
   });
 
