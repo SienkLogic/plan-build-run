@@ -98,6 +98,7 @@ Display the following reference to the user:
 | `/pbr:todo add\|list\|done` | Persistent file-based todos. |
 | `/pbr:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
 | `/pbr:config` | Configure workflow settings. |
+| `/pbr:import <N>` | Import external plans (design docs, RFCs) into PBR format. |
 | `/pbr:setup` | Interactive onboarding wizard for new projects. |
 
 ## Typical Workflow
@@ -120,7 +121,7 @@ Display the following reference to the user:
 - **State files**: `.planning/STATE.md` (position), `.planning/ROADMAP.md` (phases), `.planning/config.json` (settings)
 - **Configure**: `/pbr:config` to change depth, models, gates, parallelization
 - **Tip**: Use `/pbr:quick` for creative/visual work where structured planning adds overhead without benefit.
-- **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching_strategy: phase`) which squash-merges code-only changes to main.
+- **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching: phase`) which squash-merges code-only changes to main.
 - **Seeds**: `/pbr:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
 
 ## Behavioral Contexts

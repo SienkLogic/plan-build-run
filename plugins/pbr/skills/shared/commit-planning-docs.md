@@ -9,7 +9,7 @@ Standard pattern for committing planning artifacts to git. Reference this fragme
 ```
 If `planning.commit_docs: true` in config.json:
 1. Stage the relevant .planning/ files for this skill's output
-2. Commit with format: `docs({scope}): {description}`
+2. Commit with the format from the **Commit Messages by Skill** table below (most use `docs({scope}):` but some skills like pause use `wip(planning):`)
 3. Use the appropriate scope from the skill's commit conventions
 
 If `planning.commit_docs: false` or config.json missing:
@@ -30,6 +30,6 @@ If `planning.commit_docs: false` or config.json missing:
 | explore | `docs(planning): capture explore session outputs` |
 | debug | `docs(planning): open/resolve debug session {NNN}` |
 | discuss | `docs(planning): capture phase {N} discussion decisions` |
-| pause | `docs(planning): checkpoint phase {N} progress` |
+| pause | `wip(planning): save session state — phase {N} plan {M}` |
 | todo | `docs(planning): add/complete todo {NNN}` |
 | milestone | `docs(planning): start/complete/audit milestone` |

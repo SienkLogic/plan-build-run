@@ -80,8 +80,8 @@ For each phase listed in ROADMAP.md:
 1. Check if the phase directory exists in `.planning/phases/`
 2. If exists, scan for:
    - `CONTEXT.md` — discussion happened
-   - `PLAN-*.md` or plan files — plans exist
-   - `SUMMARY-*.md` or summary files — plans were executed
+   - `*-PLAN.md` or `PLAN.md` files — plans exist
+   - `*-SUMMARY.md` or `SUMMARY.md` files — plans were executed
    - `VERIFICATION.md` — phase was reviewed
    - `.continue-here.md` — paused work
 
@@ -203,15 +203,15 @@ Notes: {count} quick capture(s). `/pbr:note list` to review.
 Generate a 20-character progress bar:
 
 ```
-[####################] 100%    (all filled)
-[################....] 80%     (16 filled, 4 empty)
-[########............] 40%     (8 filled, 12 empty)
-[....................] 0%      (all empty)
+[████████████████████] 100%    (all filled)
+[████████████████░░░░] 80%     (16 filled, 4 empty)
+[████████░░░░░░░░░░░░] 40%     (8 filled, 12 empty)
+[░░░░░░░░░░░░░░░░░░░░] 0%      (all empty)
 ```
 
-Use the Unicode block characters from the UI formatting reference:
-- Filled: block character
-- Empty: light shade
+Use Unicode block characters:
+- Filled: `█` (full block, U+2588)
+- Empty: `░` (light shade, U+2591)
 
 ### Status Indicators
 
@@ -296,7 +296,7 @@ Use AskUserQuestion:
 Build options dynamically from the decision tree results. Always include "Something else" as the last option. Generate 1-3 real options based on the state analysis.
 
 **After user selects an option:**
-- If they selected a real action: display "Run: `/dev:{action} {args}`" so they can execute it
+- If they selected a real action: display "Run: `/pbr:{action} {args}`" so they can execute it
 - If they selected "Something else": ask what they'd like to do (freeform text)
 - This skill remains read-only — display the command, do not execute it
 

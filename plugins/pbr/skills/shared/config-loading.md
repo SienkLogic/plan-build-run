@@ -65,7 +65,7 @@ planning.max_tasks_per_plan    -- maximum tasks in a single plan
 ### Git
 ```
 git.commit_format              -- commit message format
-git.branching_strategy         -- none | phase | milestone
+git.branching         -- none | phase | milestone
 ```
 
 ### Models
@@ -98,5 +98,5 @@ models.verifier                -- model for verifier agent
 | parallelization.* | X | | | | | | |
 | planning.commit_docs | X | | | | | X | X |
 | git.commit_format | X | | | | X | X | |
-| git.branching_strategy | X | | | | | | |
+| git.branching | X | | | | | | |
 | models.* | | X | X | | X | | X |

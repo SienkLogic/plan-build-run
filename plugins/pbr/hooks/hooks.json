@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/progress-tracker.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" progress-tracker.js",
             "statusMessage": "Loading project state..."
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/post-write-dispatch.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" post-write-dispatch.js",
             "statusMessage": "Validating write output..."
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/post-write-quality.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" post-write-quality.js",
             "statusMessage": "Running quality checks..."
           }
         ]
@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/check-subagent-output.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" check-subagent-output.js",
             "statusMessage": "Validating agent output..."
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/suggest-compact.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" suggest-compact.js",
             "statusMessage": "Checking context budget..."
           }
         ]
@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/track-context-budget.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" track-context-budget.js",
             "statusMessage": "Tracking context budget..."
           }
         ]
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-tool-failure.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" log-tool-failure.js",
             "statusMessage": "Logging tool failure..."
           }
         ]
@@ -82,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/pre-bash-dispatch.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" pre-bash-dispatch.js",
             "statusMessage": "Validating Bash command..."
           }
         ]
@@ -92,7 +92,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/pre-write-dispatch.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" pre-write-dispatch.js",
             "statusMessage": "Checking write rules..."
           }
         ]
@@ -102,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/validate-task.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" validate-task.js",
             "statusMessage": "Validating Task() call..."
           }
         ]
@@ -113,29 +113,19 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/context-budget-check.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" context-budget-check.js",
             "statusMessage": "Preserving state before compaction..."
           }
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/auto-continue.js",
-            "statusMessage": "Checking for next command..."
-          }
-        ]
-      }
-    ],
+    "Stop": [],
     "SubagentStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js start",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" log-subagent.js start",
             "statusMessage": "Logging agent spawn..."
           }
         ]
@@ -146,7 +136,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/log-subagent.js stop",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" log-subagent.js stop",
             "statusMessage": "Logging agent completion...",
             "async": true,
             "timeout": 30
@@ -157,7 +147,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/event-handler.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" event-handler.js",
             "statusMessage": "Checking for auto-verification...",
             "async": true,
             "timeout": 10
@@ -170,7 +160,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/task-completed.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" task-completed.js",
             "statusMessage": "Processing task completion..."
           }
         ]
@@ -181,7 +171,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/session-cleanup.js",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" session-cleanup.js",
             "statusMessage": "Cleaning up session...",
             "async": true,
             "timeout": 30

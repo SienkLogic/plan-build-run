@@ -119,8 +119,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
-4. If no phase number given, read current phase from `.planning/STATE.md`
-5. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether `.planning/CONTEXT.md` exists. If missing, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue.
+5. If no phase number given, read current phase from `.planning/STATE.md`
+6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
 
 **If phase already has plans:**
 - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
@@ -216,6 +216,8 @@ Task({
 
 NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT inline it.
 ```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Phase Research Prompt Template
 
@@ -342,6 +344,8 @@ Task({
 NOTE: The pbr:planner subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+
 #### Planning Prompt Template
 
 Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
@@ -385,6 +389,8 @@ Task({
 
 NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Checker Prompt Template
 
@@ -484,7 +490,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
 - Update STATE.md: set current phase plan status to "planned"
-- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "dev:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
+- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:build {N}`
 
 ---

@@ -301,6 +301,23 @@ Archive a completed milestone and prepare for the next one.
    | {N+1}. {name} | Completed |
    ```
 
+7b. **Update STATE.md:**
+   - Update `.planning/STATE.md` to mark the milestone as complete
+   - Clear the current milestone field or set status to "completed"
+   - Update last activity timestamp
+   - Record the milestone version in the history/completed section
+
+7c. **Update HISTORY.md:**
+   - Append a milestone completion entry to `.planning/HISTORY.md`:
+     ```markdown
+     ## {date} — Milestone {version} Completed
+
+     - Milestone: {name}
+     - Phases: {start} - {end}
+     - Duration: {duration} days
+     - Key deliverables: {summary from Step 4}
+     ```
+
 8. **Git tag:**
    ```bash
    git tag -a {version} -m "Milestone: {name}"
@@ -308,7 +325,7 @@ Archive a completed milestone and prepare for the next one.
 
 9. **Commit:**
    ```bash
-   git add .planning/milestones/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md
+   git add .planning/milestones/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/HISTORY.md
    git commit -m "docs(planning): complete milestone {version}"
    ```
 

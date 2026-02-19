@@ -43,6 +43,9 @@ provides:
   - "requireAuth() middleware"
 consumes:
   - "Database connection (from plan 01-01)"
+requirement_ids:
+  - "P02-G1"
+  - "P02-G2"
 ---
 ```
 
@@ -65,6 +68,7 @@ consumes:
 | `must_haves.key_links` | YES | array | Connections between components. Append `: grep command` for verification. |
 | `provides` | NO | array | What this plan exports for other plans to consume (classes, endpoints, modules) |
 | `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
+| `requirement_ids` | NO | array | Requirement IDs from REQUIREMENTS.md or ROADMAP.md goal IDs that this plan addresses. Enables bidirectional traceability between plans and requirements/goals. |
 | `dependency_fingerprints` | NO | object | Hashes of dependency phase SUMMARY.md files at plan-creation time. Used to detect stale plans. |
 
 ---

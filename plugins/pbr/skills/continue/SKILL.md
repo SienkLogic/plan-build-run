@@ -66,9 +66,13 @@ No project state found.
 
 Before proceeding to priority evaluation, check for runaway continue chains:
 
-1. Read `last_command` from STATE.md
-2. If `last_command` is `/pbr:continue`, this is a chained continue. Check session context for consecutive `/pbr:continue` invocations.
-3. **If this is the 3rd consecutive `/pbr:continue` in a row**, display:
+1. Read `last_command` from STATE.md. **If `last_command` is missing, empty, or the field does not exist, skip directly to the fallback detection** — do NOT error or warn.
+2. If `last_command` is present and equals `/pbr:continue`, this is a chained continue. Check session context for consecutive `/pbr:continue` invocations.
+3. **Fallback detection** — if `last_command` is not available or not present in STATE.md:
+   - Check `.planning/.active-skill` file — if it contains `continue`, treat as a chained continue
+   - Check STATE.md `last_action` field — if it contains `continue`, treat as a chained continue
+   - If neither source is available, assume this is the first invocation (do not warn)
+4. **If this is the 3rd consecutive `/pbr:continue` in a row**, display:
 
 ```
 WARNING: Context budget warning: 3 consecutive auto-continues detected.
@@ -97,18 +101,18 @@ Check the resumption priority hierarchy (same as /pbr:resume):
 
 Based on the determined action, display the delegation indicator to the user:
 ```
-◐ Delegating to /dev:{skill} {args}...
+◐ Delegating to /pbr:{skill} {args}...
 ```
 
 Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, use the Skill tool which runs the skill in a clean invocation:
 
 | Situation | Action | How |
 |-----------|--------|-----|
-| Gaps need closure | Plan gap closure | `Skill({ skill: "dev:plan", args: "{N} --gaps" })` |
-| Build incomplete | Continue build | `Skill({ skill: "dev:build", args: "{N}" })` |
-| Review needed | Run review | `Skill({ skill: "dev:review", args: "{N}" })` |
-| Next phase needed | Plan next phase | `Skill({ skill: "dev:plan", args: "{N+1}" })` |
-| Project not started | Plan phase 1 | `Skill({ skill: "dev:plan", args: "1" })` |
+| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` |
+| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` |
+| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
+| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
+| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` |
 
 Where `{N}` is the current phase number determined from STATE.md in Step 1.
 

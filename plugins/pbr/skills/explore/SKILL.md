@@ -256,7 +256,7 @@ After creating artifacts (or if user chose "Skip"), display:
 
 ### Todo
 
-Write to `.planning/todos/pending/{NNN}-{slug}.md`. Follow the format used by the existing todo skill.
+Write to `.planning/todos/pending/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, and zero-pad. Follow the format used by the existing todo skill.
 
 ### Requirement
 
@@ -290,7 +290,7 @@ Append to `.planning/ROADMAP.md` following the existing phase format. Assign the
 
 ### Note
 
-Write to `.planning/notes/{slug}.md`:
+Write to `.planning/notes/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/notes/` for the highest existing number prefix, increment by 1, and zero-pad.
 
 ```markdown
 ---
@@ -305,7 +305,7 @@ topic: "{topic}"
 
 ### Seed
 
-Write to `.planning/seeds/SEED-{NNN}-{slug}.md`:
+Write to `.planning/seeds/SEED-{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/seeds/` for the highest existing SEED number, increment by 1, and zero-pad.
 
 ```markdown
 ---

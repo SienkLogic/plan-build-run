@@ -41,6 +41,17 @@ function main() {
         process.exit(0);
       }
 
+      // Skip plugin-internal files — these are loaded by the plugin system,
+      // not by the orchestrator, so they shouldn't count against context budget
+      const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '';
+      if (pluginRoot) {
+        const normalizedFile = path.resolve(filePath);
+        const normalizedPlugin = path.resolve(pluginRoot);
+        if (normalizedFile.startsWith(normalizedPlugin + path.sep) || normalizedFile === normalizedPlugin) {
+          process.exit(0);
+        }
+      }
+
       // Estimate chars read (use limit if provided, otherwise assume ~2000 lines × 40 chars avg)
       const limit = data.tool_input?.limit;
       const estimatedChars = limit ? limit * 40 : 80000;

@@ -46,7 +46,17 @@ Additionally for this skill:
 
 ## Flow
 
-### Step 1: Check for Active Debug Sessions
+### Step 1: Ensure Debug Directory Exists
+
+Before any file operations, ensure both directories exist by running:
+
+```bash
+mkdir -p .planning/debug
+```
+
+This handles the case where neither `.planning/` nor `.planning/debug/` exist yet (debug can be run before other skills that create `.planning/`). Do NOT skip this step — writing files to a non-existent directory will fail.
+
+### Step 2: Check for Active Debug Sessions
 
 **Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
 
@@ -73,14 +83,14 @@ Generate options dynamically from active sessions:
 - If more than 3 active sessions exist, show only the 3 most recent plus "New session" (max 4 options)
 
 Handle responses:
-- If user selects an existing session: go to **Resume Flow** (Step 2b)
-- If user selects "New session": go to **New Session Flow** (Step 2a)
+- If user selects an existing session: go to **Resume Flow** (Step 3b)
+- If user selects "New session": go to **New Session Flow** (Step 3a)
 - If user types a session number not in the list: look it up and resume it
 
 **If no active sessions found:**
-- Go to **New Session Flow**
+- Go to **New Session Flow** (Step 3a)
 
-### Step 2a: New Session Flow
+### Step 3a: New Session Flow
 
 #### Gather Symptoms
 
@@ -175,7 +185,7 @@ Spawn `Task(subagent_type: "pbr:debugger")` with the prompt template.
 
 Read `skills/debug/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
 
-### Step 2b: Resume Flow
+### Step 3b: Resume Flow
 
 1. Read the debug file content
 2. Parse the investigation log and hypotheses table
@@ -193,13 +203,13 @@ Last state:
 Continuing investigation...
 ```
 
-4. Display to the user: `◐ Spawning debugger (resuming session #{NNN})...`
+4. **Increment the round counter** (resuming counts as a new round). Display to the user: `◐ Spawning debugger (resuming session #{NNN}, round {N})...`
 
    Spawn `Task(subagent_type: "pbr:debugger")` with the continuation prompt template.
 
    Read `skills/debug/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
 
-### Step 3: Handle Debugger Results
+### Step 4: Handle Debugger Results
 
 When the debugger agent completes, display: `✓ Debug session complete — {N} hypotheses tested` (read the hypothesis count from the debug file's Hypotheses table).
 
@@ -305,9 +315,9 @@ Actions:
    question: "Investigation has reached a checkpoint. How should we proceed?"
 
 Handle responses:
-- "Continue": Display `◐ Spawning debugger (continuing investigation)...` and spawn another `Task(subagent_type: "pbr:debugger")` with updated context from the debug file
-- "More info": Ask the user freeform what additional context they have, then update the debug file and spawn another debugger
-- "New approach": Ask the user freeform what alternative angle to try, then update hypotheses and spawn another debugger
+- "Continue": **Increment the round counter** (e.g., round 1 becomes round 2). Then display `◐ Spawning debugger (continuing investigation, round {N})...` and spawn another `Task(subagent_type: "pbr:debugger")` with updated context from the debug file
+- "More info": **Increment the round counter.** Ask the user freeform what additional context they have, then update the debug file and spawn another debugger
+- "New approach": **Increment the round counter.** Ask the user freeform what alternative angle to try, then update hypotheses and spawn another debugger
 
 #### INCONCLUSIVE
 
@@ -381,7 +391,7 @@ The maximum number of investigation rounds is controlled by the depth profile's 
 - `standard`: 5 rounds (default)
 - `comprehensive`: 10 rounds (deep investigation)
 
-The orchestrator tracks the round count. Before spawning each continuation debugger (Step 3 "CHECKPOINT" -> "Continue"), increment the round counter. If the counter reaches the limit:
+The orchestrator tracks the round count. Before spawning each continuation debugger (Step 4 "CHECKPOINT" -> "Continue"), increment the round counter. If the counter reaches the limit:
 - Do NOT spawn another debugger
 - Present to user: "Debug session has reached the hypothesis round limit ({N} rounds for {depth} mode). Options:"
 

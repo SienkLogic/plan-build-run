@@ -59,12 +59,13 @@ Create `.planning/config.json` with defaults:
 ```json
 {
   "version": 2,
+  "context_strategy": "aggressive",
+  "mode": "interactive",
   "depth": "standard",
-  "mode": "guided",
   "features": {
     "structured_planning": true,
     "goal_verification": true,
-    "integration_verification": false,
+    "integration_verification": true,
     "context_isolation": true,
     "atomic_commits": true,
     "session_persistence": true,
@@ -78,36 +79,47 @@ Create `.planning/config.json` with defaults:
     "inline_verify": false
   },
   "models": {
-    "executor": "sonnet",
     "researcher": "sonnet",
-    "planner": "sonnet",
+    "planner": "inherit",
+    "executor": "inherit",
     "verifier": "sonnet",
-    "synthesizer": "haiku"
+    "integration_checker": "sonnet",
+    "debugger": "inherit",
+    "mapper": "sonnet",
+    "synthesizer": "sonnet"
   },
   "parallelization": {
+    "enabled": true,
+    "plan_level": true,
+    "task_level": false,
     "max_concurrent_agents": 3,
-    "allow_parallel_plans": true
+    "min_plans_for_parallel": 2,
+    "use_teams": false
   },
   "planning": {
-    "max_plans_per_phase": 4,
-    "min_must_haves": 3
+    "commit_docs": true,
+    "max_tasks_per_plan": 3,
+    "search_gitignored": false
   },
   "git": {
-    "auto_commit": true,
-    "commit_format": "conventional",
-    "branching_strategy": "none"
+    "branching": "none",
+    "commit_format": "{type}({phase}-{plan}): {description}",
+    "phase_branch_template": "plan-build-run/phase-{phase}-{slug}",
+    "milestone_branch_template": "plan-build-run/{milestone}-{slug}",
+    "mode": "enabled"
   },
   "gates": {
-    "verification": true,
-    "review": true,
-    "plan_approval": false,
-    "pre_build_checklist": false
+    "confirm_project": true,
+    "confirm_roadmap": true,
+    "confirm_plan": true,
+    "confirm_execute": false,
+    "confirm_transition": true,
+    "issues_review": true
   },
   "safety": {
-    "block_sensitive_files": true,
-    "require_tests": false
-  },
-  "hooks": {}
+    "always_confirm_destructive": true,
+    "always_confirm_external_services": true
+  }
 }
 ```
 
@@ -202,7 +214,7 @@ Apply selections:
 - **Auto-continue**: Set `features.auto_continue: true`
 - **TDD mode**: Set `features.tdd_mode: true`
 - **Strict gates**: Set `gates.verification: true`, `gates.review: true`, `gates.plan_approval: true`
-- **Git branching**: Set `git.branching_strategy: "phase"`
+- **Git branching**: Set `git.branching: "phase"`
 
 ---
 

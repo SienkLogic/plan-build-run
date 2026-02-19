@@ -51,7 +51,7 @@ If `$ARGUMENTS` is provided, handle direct setting:
 - `model <agent> <model>` — set model for specific agent (e.g., `model executor sonnet`)
 - `model-profile quality|balanced|budget|adaptive` — set all models at once using a preset
 - `gate <gate-name> on|off` — toggle a gate
-- `feature <feature-name> on|off` — toggle a feature (e.g., `feature auto_continue on`)
+- `feature <feature-name> on|off` — toggle a feature (e.g., `feature auto_continue on`). When the user specifies a feature name without the `features.` prefix, automatically prepend `features.` before writing to config.
 - `git branching none|phase|milestone|disabled` — set branching strategy
 - `git mode disabled` — disable git integration entirely
 - `show` — display current config (default when no args)
@@ -158,7 +158,8 @@ Use AskUserQuestion:
 If user asks for per-agent model selection (typed "models" or "per-agent"), present individual agent selection as plain text: list the agents and ask which one to change, then ask for the model. This is a freeform flow because agent names are dynamic.
 
 If user selects "Features":
-List all features and gates with current status, then use the **toggle-confirm** pattern for each change:
+List all features and gates with current status, then use the **toggle-confirm** pattern for each change.
+**Feature name normalization:** When toggling a feature, if the user specifies a bare name (e.g., `inline_verify`), normalize it to `features.inline_verify` before writing to config. All feature flags live under the `features.*` namespace in config.json.
 Use AskUserQuestion:
   question: "Enable {feature_name}?"
   header: "Toggle"
