@@ -245,7 +245,7 @@ function checkPlanWrite(data) {
     ? validatePlan(content, filePath)
     : isVerification
       ? validateVerification(content, filePath)
-      : validateSummary(content, filePath);
+        : validateSummary(content, filePath);
 
   const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : 'summary-validated';
 
@@ -273,6 +273,32 @@ function checkPlanWrite(data) {
   return null;
 }
 
+function validateState(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  // STATE.md uses warnings (not errors) because it's written by multiple hooks
+  // and auto-sync processes. Blocking would create feedback loops.
+  if (!content.startsWith('---')) {
+    warnings.push('Missing YAML frontmatter');
+  } else {
+    const frontmatterEnd = content.indexOf('---', 3);
+    if (frontmatterEnd === -1) {
+      warnings.push('Unclosed YAML frontmatter');
+    } else {
+      const frontmatter = content.substring(3, frontmatterEnd);
+      const requiredFields = ['version', 'current_phase', 'total_phases', 'phase_slug', 'status'];
+      for (const field of requiredFields) {
+        if (!frontmatter.includes(`${field}:`)) {
+          warnings.push(`Frontmatter missing "${field}" field`);
+        }
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+
 function validateVerification(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -297,5 +323,30 @@ function validateVerification(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, checkPlanWrite };
+/**
+ * Separate STATE.md validation for use by dispatchers.
+ * Kept separate from checkPlanWrite because STATE.md routing in the
+ * dispatcher must happen AFTER roadmap sync (which also triggers on STATE.md).
+ */
+function checkStateWrite(data) {
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  const basename = path.basename(filePath);
+  if (basename !== 'STATE.md') return null;
+  if (!fs.existsSync(filePath)) return null;
+
+  const content = fs.readFileSync(filePath, 'utf8');
+  const result = validateState(content, filePath);
+
+  if (result.warnings.length > 0) {
+    logHook('check-plan-format', 'PostToolUse', 'warn', { file: basename, warnings: result.warnings });
+    logEvent('workflow', 'state-validated', { file: basename, status: 'warn', warningCount: result.warnings.length });
+    return { output: { additionalContext: `${basename} warnings:\n${result.warnings.map(i => `  - ${i}`).join('\n')}` } };
+  }
+
+  logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
+  logEvent('workflow', 'state-validated', { file: basename, status: 'pass' });
+  return null;
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, checkPlanWrite, checkStateWrite };
 if (require.main === module || process.argv[1] === __filename) { main(); }
