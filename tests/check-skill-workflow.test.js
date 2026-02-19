@@ -238,6 +238,82 @@ describe('check-skill-workflow.js', () => {
         cleanup(tmpDir);
       });
     });
+
+    describe('milestone skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'ROADMAP.md');
+        const result = checkSkillRules('milestone', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks writes outside .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('milestone', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('milestone-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('explore skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'ROADMAP.md');
+        const result = checkSkillRules('explore', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks writes outside .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('explore', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('explore-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('import skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'ROADMAP.md');
+        const result = checkSkillRules('import', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks writes outside .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('import', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('import-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('scan skill', () => {
+      test('allows writes to .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(planningDir, 'ROADMAP.md');
+        const result = checkSkillRules('scan', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('blocks writes outside .planning/', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('scan', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('scan-readonly');
+        cleanup(tmpDir);
+      });
+    });
   });
 
   describe('checkStatuslineContent', () => {
