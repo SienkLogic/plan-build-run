@@ -125,10 +125,10 @@ function buildContext(planningDir, stateFile) {
   }
 
   // Check for quick notes
-  const projectNotesFile = path.join(planningDir, 'NOTES.md');
-  const globalNotesFile = path.join(os.homedir(), '.claude', 'notes.md');
-  const projectNoteCount = countNotes(projectNotesFile);
-  const globalNoteCount = countNotes(globalNotesFile);
+  const projectNotesDir = path.join(planningDir, 'notes');
+  const globalNotesDir = path.join(os.homedir(), '.claude', 'notes');
+  const projectNoteCount = countNotes(projectNotesDir);
+  const globalNoteCount = countNotes(globalNotesDir);
   if (projectNoteCount > 0 || globalNoteCount > 0) {
     const noteParts = [];
     if (projectNoteCount > 0) noteParts.push(`${projectNoteCount} project`);
@@ -226,12 +226,16 @@ function findContinueFiles(dir) {
   return results;
 }
 
-function countNotes(filePath) {
+function countNotes(notesDir) {
   try {
-    if (!fs.existsSync(filePath)) return 0;
-    const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n');
-    return lines.filter(l => /^- \[/.test(l) && !l.includes('[promoted]')).length;
+    if (!fs.existsSync(notesDir)) return 0;
+    const files = fs.readdirSync(notesDir).filter(f => f.endsWith('.md'));
+    let count = 0;
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(notesDir, file), 'utf8');
+      if (!content.includes('promoted: true')) count++;
+    }
+    return count;
   } catch (_e) {
     return 0;
   }

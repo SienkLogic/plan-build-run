@@ -80,7 +80,7 @@ Read all relevant context files. This context is used for conflict detection in 
    - trigger equals the phase number as integer
    - trigger equals * (always matches)
 9. Pending todos — scan .planning/todos/pending/ for items related to this phase
-10. NOTES.md (if exists at .planning/NOTES.md) — check for related notes
+10. Notes (if .planning/notes/ exists) — check for related notes
 ```
 
 Collect all of this into a context bundle for use in Steps 4 and 5.
@@ -154,7 +154,7 @@ Run each of these checks. If any matches, record a `[WARNING]`:
 #### INFO checks (supplementary context):
 Run each of these checks. If any matches, record an `[INFO]`:
 
-1. **Related notes**: Are there related notes in NOTES.md?
+1. **Related notes**: Are there related notes in `.planning/notes/`?
 2. **Matching seeds**: Are there matching seeds in `.planning/seeds/` that could enhance the plan?
 3. **Prior phase patterns**: What patterns from prior phases (from SUMMARY.md `patterns` fields) should the imported plan follow?
 

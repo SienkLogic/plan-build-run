@@ -142,9 +142,9 @@ If any discrepancy found, add: `Run /pbr:resume to auto-reconcile STATE.md.`
 - Count and summarize if any exist
 
 #### Quick Notes
-- Check `.planning/NOTES.md` for active note entries
-- Count active notes (lines matching `^- \[` that don't contain `[promoted]`)
-- Also check `~/.claude/notes.md` for global notes
+- Check `.planning/notes/` directory for note files (individual `.md` files)
+- Count active notes (files where frontmatter does NOT contain `promoted: true`)
+- Also check `~/.claude/notes/` for global notes
 
 #### Quick Tasks
 - Check `.planning/quick/` for recent quick tasks
