@@ -388,6 +388,95 @@ describe('validate-task.js', () => {
     });
   });
 
+  describe('review planner gate', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-review-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function makeReviewEnv({ activeSkill, phaseDir, hasVerification, stateContent } = {}) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+
+      if (activeSkill) {
+        fs.writeFileSync(path.join(planningDir, '.active-skill'), activeSkill);
+      }
+
+      if (stateContent) {
+        fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
+      }
+
+      if (phaseDir) {
+        const pDir = path.join(planningDir, 'phases', phaseDir);
+        fs.mkdirSync(pDir, { recursive: true });
+        if (hasVerification) {
+          fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), '# Verification\nAll checks passed.');
+        }
+      }
+    }
+
+    function runInDir(toolInput, cwd) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks planner when active-skill is review and no VERIFICATION.md', () => {
+      makeReviewEnv({
+        activeSkill: 'review',
+        phaseDir: '01-setup',
+        hasVerification: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run planner', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('Review planner gate');
+      expect(result.output).toContain('VERIFICATION.md');
+    });
+
+    test('allows planner when VERIFICATION.md exists', () => {
+      makeReviewEnv({
+        activeSkill: 'review',
+        phaseDir: '01-setup',
+        hasVerification: true,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run planner', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('returns null when active-skill is not review', () => {
+      makeReviewEnv({
+        activeSkill: 'build',
+        phaseDir: '01-setup',
+        hasVerification: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run planner', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('returns null when subagent_type is not pbr:planner', () => {
+      makeReviewEnv({
+        activeSkill: 'review',
+        phaseDir: '01-setup',
+        hasVerification: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: built'
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     test('handles missing TOOL_INPUT gracefully', () => {
       const input = JSON.stringify({});
