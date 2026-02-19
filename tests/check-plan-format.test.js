@@ -1,4 +1,4 @@
-const { validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format');
+const { validatePlan, validateSummary, validateVerification } = require('../plugins/pbr/scripts/check-plan-format');
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
@@ -309,6 +309,56 @@ Body`;
       // Should NOT be in errors
       const pathError = result.errors.find(i => i.includes('not found on disk'));
       expect(pathError).toBeUndefined();
+    });
+  });
+
+  describe('validateVerification', () => {
+    test('valid VERIFICATION.md passes', () => {
+      const content = `---
+status: passed
+phase: 03-auth
+checked_at: 2026-02-19T10:00:00Z
+must_haves_checked: 5
+must_haves_passed: 5
+must_haves_failed: 0
+---
+
+## Results
+All checks passed.`;
+      const result = validateVerification(content, 'VERIFICATION.md');
+      expect(result.errors).toEqual([]);
+    });
+
+    test('missing frontmatter produces error', () => {
+      const content = '# Verification\nNo frontmatter';
+      const result = validateVerification(content, 'VERIFICATION.md');
+      expect(result.errors).toContain('Missing YAML frontmatter');
+    });
+
+    test('missing status field produces error', () => {
+      const content = `---
+phase: 03-auth
+checked_at: 2026-02-19T10:00:00Z
+must_haves_checked: 5
+must_haves_passed: 5
+must_haves_failed: 0
+---
+Body`;
+      const result = validateVerification(content, 'VERIFICATION.md');
+      expect(result.errors.some(e => e.includes('status'))).toBe(true);
+    });
+
+    test('missing must_haves_checked produces error', () => {
+      const content = `---
+status: passed
+phase: 03-auth
+checked_at: 2026-02-19T10:00:00Z
+must_haves_passed: 5
+must_haves_failed: 0
+---
+Body`;
+      const result = validateVerification(content, 'VERIFICATION.md');
+      expect(result.errors.some(e => e.includes('must_haves_checked'))).toBe(true);
     });
   });
 });

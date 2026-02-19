@@ -42,7 +42,9 @@ function main() {
       const isPlan = basename.endsWith('PLAN.md');
       const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
 
-      if (!isPlan && !isSummary) {
+      const isVerification = basename === 'VERIFICATION.md';
+
+      if (!isPlan && !isSummary && !isVerification) {
         process.exit(0);
       }
 
@@ -53,9 +55,11 @@ function main() {
       const content = fs.readFileSync(filePath, 'utf8');
       const result = isPlan
         ? validatePlan(content, filePath)
-        : validateSummary(content, filePath);
+        : isVerification
+          ? validateVerification(content, filePath)
+          : validateSummary(content, filePath);
 
-      const eventType = isPlan ? 'plan-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -231,16 +235,19 @@ function checkPlanWrite(data) {
   const basename = path.basename(filePath);
   const isPlan = basename.endsWith('PLAN.md');
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
+  const isVerification = basename === 'VERIFICATION.md';
 
-  if (!isPlan && !isSummary) return null;
+  if (!isPlan && !isSummary && !isVerification) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
   const result = isPlan
     ? validatePlan(content, filePath)
-    : validateSummary(content, filePath);
+    : isVerification
+      ? validateVerification(content, filePath)
+      : validateSummary(content, filePath);
 
-  const eventType = isPlan ? 'plan-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -266,5 +273,29 @@ function checkPlanWrite(data) {
   return null;
 }
 
-module.exports = { validatePlan, validateSummary, checkPlanWrite };
+function validateVerification(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  if (!content.startsWith('---')) {
+    errors.push('Missing YAML frontmatter');
+  } else {
+    const frontmatterEnd = content.indexOf('---', 3);
+    if (frontmatterEnd === -1) {
+      errors.push('Unclosed YAML frontmatter');
+    } else {
+      const frontmatter = content.substring(3, frontmatterEnd);
+      const requiredFields = ['status', 'phase', 'checked_at', 'must_haves_checked', 'must_haves_passed', 'must_haves_failed'];
+      for (const field of requiredFields) {
+        if (!frontmatter.includes(`${field}:`)) {
+          errors.push(`Frontmatter missing "${field}" field`);
+        }
+      }
+    }
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, checkPlanWrite };
 if (require.main === module || process.argv[1] === __filename) { main(); }
