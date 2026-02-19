@@ -3,9 +3,7 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-      - 'release-please--**'
+    branches: [main]
     tags:
       - 'v*'
   pull_request:
