@@ -211,6 +211,14 @@
       },
       "additionalProperties": false
     },
+    "dashboard": {
+      "type": "object",
+      "properties": {
+        "auto_launch": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+      },
+      "additionalProperties": false
+    },
     "status_line": {
       "type": "object",
       "properties": {

@@ -65,12 +65,12 @@ describe('AskUserQuestion skill audit', () => {
   const patternNames = getPatternNames();
 
   // Skills that intentionally do NOT have AskUserQuestion in allowed-tools.
-  // - continue, health, help, pause: no interactive decision points
+  // - continue, dashboard, health, help, pause: no interactive decision points
   // - note, todo: lightweight utilities, no gate checks
-  const EXCLUDED_SKILLS = ['continue', 'health', 'help', 'note', 'pause', 'todo'];
+  const EXCLUDED_SKILLS = ['continue', 'dashboard', 'health', 'help', 'note', 'pause', 'todo'];
 
-  test('found expected number of skills (21)', () => {
-    expect(skillDirs.length).toBe(21);
+  test('found expected number of skills (22)', () => {
+    expect(skillDirs.length).toBe(22);
   });
 
   test('excluded skills do not have AskUserQuestion in allowed-tools', () => {
