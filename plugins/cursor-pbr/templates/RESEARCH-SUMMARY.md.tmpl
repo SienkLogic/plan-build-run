@@ -1,0 +1,98 @@
+<!-- canonical: ../../pbr/templates/RESEARCH-SUMMARY.md.tmpl -->
+# Research Summary
+
+> Synthesized: {date}
+> Input documents: {count}
+> Sources: {list of document names/paths}
+
+## Executive Summary
+
+{3-5 sentences maximum. What was researched, the single most important conclusion, and the recommended approach. This paragraph should give a planner enough context to start planning without reading further.}
+
+## Recommended Stack
+
+{Only include if project-level synthesis. For phase-level, skip this section.}
+
+| Layer | Choice | Version | Confidence | Alternatives | Source |
+|-------|--------|---------|------------|-------------|--------|
+| Runtime | {Node.js} | {20.x} | HIGH | {Bun, Deno} | {Doc A, Doc B} |
+| Framework | {Next.js} | {14.x} | HIGH | {Remix, Astro} | {Doc A} |
+| Database | {PostgreSQL} | {16.x} | HIGH | {MySQL} | {Doc A, Doc C} |
+| ORM | {Prisma} | {5.x} | MEDIUM | {Drizzle, TypeORM} | {Doc B} |
+| Auth | {NextAuth.js} | {5.x} | MEDIUM | {Clerk, Auth0} | {Doc A} |
+| Hosting | {Vercel} | - | MEDIUM | {AWS, Railway} | {Doc C} |
+| Testing | {Vitest} | {1.x} | HIGH | {Jest} | {Doc B} |
+
+### Stack Rationale
+
+{Brief explanation of why this combination. 2-3 sentences.}
+
+## Architecture Recommendations
+
+{Key architectural decisions informed by research. Use bullet points.}
+
+- **Pattern**: {Recommended pattern with rationale}
+- **Data flow**: {How data should move through the system}
+- **Separation**: {How to organize the code}
+- **State**: {How to manage state}
+
+## Key Patterns
+
+{Patterns to follow during implementation.}
+
+| Pattern | When to Use | Example |
+|---------|------------|---------|
+| {Repository} | {Database access} | {Brief code hint} |
+| {Middleware} | {Auth, logging, validation} | {Brief code hint} |
+| {DTO validation} | {API input/output} | {Zod schemas} |
+
+## Pitfalls & Warnings
+
+{Ranked by severity. These are the things most likely to cause problems.}
+
+| # | Pitfall | Severity | Source | Mitigation |
+|---|---------|----------|--------|------------|
+| 1 | {Most critical pitfall} | CRITICAL | {Doc A} | {How to avoid} |
+| 2 | {Second pitfall} | HIGH | {Doc B, Doc C} | {How to avoid} |
+| 3 | {Third pitfall} | MEDIUM | {Doc A} | {How to avoid} |
+
+## Contradictions Resolved
+
+{Where input documents disagreed and how it was resolved.}
+
+| Topic | Position A | Position B | Resolution | Basis |
+|-------|-----------|-----------|------------|-------|
+| {Database} | PostgreSQL (Doc A, C) | MongoDB (Doc B) | PostgreSQL | Majority + S2 source |
+| {Auth} | JWT (Doc A, B) | Sessions (Doc C) | JWT | Majority + better for API |
+
+{If any contradictions could not be resolved:}
+
+### Unresolved: {Topic}
+
+**Options**: {A} vs {B}
+**Trade-offs**: {A is better for X, B is better for Y}
+**Recommendation**: {best guess} `[NEEDS DECISION]`
+
+## Open Questions
+
+{Things that none of the research documents could definitively answer.}
+
+1. {Question} -- Impact: {what planning/implementation is blocked by this}
+2. {Question} -- Impact: {what planning/implementation is blocked by this}
+
+## Additional Notes
+
+{P3 (Nice to Know) items. Brief bullet points only.}
+
+- {Performance tip from Doc A}
+- {Future consideration from Doc C}
+- {Alternative approach worth noting from Doc B}
+
+## Sources
+
+{Consolidated source list from all input documents.}
+
+| # | Document | Key Contribution | Confidence |
+|---|----------|-----------------|------------|
+| 1 | {path/name} | {what it contributed} | {overall confidence} |
+| 2 | {path/name} | {what it contributed} | {overall confidence} |
