@@ -109,16 +109,19 @@ export async function getPhaseDetail(projectDir, phaseId) {
   const phaseFiles = await readdir(phaseFullPath);
 
   // Filter and sort PLAN.md files
-  const planRegex = /^\d{2}-\d{2}-PLAN\.md$/;
-  const planIdRegex = /^(\d{2}-\d{2})-PLAN\.md$/;
+  // Supports both naming conventions:
+  //   - NN-NN-PLAN.md (plan ID embedded in filename)
+  //   - PLAN.md (single plan per phase, ID derived from phase directory)
+  const planRegex = /^(?:\d{2}-\d{2}-)?PLAN\.md$/;
   const planFiles = phaseFiles
     .filter(f => planRegex.test(f))
     .sort();
 
   // Build summary paths and read them in parallel
-  const summaryPaths = planFiles.map(planFile => {
-    const match = planFile.match(planIdRegex);
-    const planId = match[1];
+  // Derive planId from filename (NN-NN-PLAN.md) or phase directory (PLAN.md -> NN-01)
+  const summaryPaths = planFiles.map((planFile, index) => {
+    const idMatch = planFile.match(/^(\d{2}-\d{2})-PLAN\.md$/);
+    const planId = idMatch ? idMatch[1] : `${phaseId.padStart(2, '0')}-${String(index + 1).padStart(2, '0')}`;
     return { planId, planFile, summaryPath: join(phaseFullPath, `SUMMARY-${planId}.md`) };
   });
 
@@ -196,25 +199,28 @@ export async function getPhaseDocument(projectDir, phaseId, planId, docType) {
   const phaseName = formatPhaseName(phaseDir.name);
   const phaseFullPath = join(phasesDir, phaseDir.name);
 
-  const fileName = docType === 'plan'
-    ? `${planId}-PLAN.md`
-    : `SUMMARY-${planId}.md`;
+  // Try plan ID-prefixed filename first, then fall back to plain PLAN.md
+  // Supports both "01-01-PLAN.md" and "PLAN.md" naming conventions
+  const fileNames = docType === 'plan'
+    ? [`${planId}-PLAN.md`, 'PLAN.md']
+    : [`SUMMARY-${planId}.md`];
 
-  // Validate the path stays within the phase directory
-  const filePath = validatePath(phaseFullPath, fileName);
-
-  try {
-    const doc = await readMarkdownFile(filePath);
-    return {
-      phaseId,
-      planId,
-      docType,
-      phaseName,
-      frontmatter: doc.frontmatter,
-      html: doc.html
-    };
-  } catch (error) {
-    if (error.code === 'ENOENT') return null;
-    throw error;
+  for (const fileName of fileNames) {
+    const filePath = validatePath(phaseFullPath, fileName);
+    try {
+      const doc = await readMarkdownFile(filePath);
+      return {
+        phaseId,
+        planId,
+        docType,
+        phaseName,
+        frontmatter: doc.frontmatter,
+        html: doc.html
+      };
+    } catch (error) {
+      if (error.code === 'ENOENT') continue;
+      throw error;
+    }
   }
+  return null;
 }

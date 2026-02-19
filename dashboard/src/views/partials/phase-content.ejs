@@ -10,14 +10,15 @@
   </header>
   <%
     // Map verification status to CSS status-badge data-status values
+    var vStatus = verification.status || verification.verdict || 'unknown';
     var verificationCssStatus = 'not-started';
-    if (verification.status === 'passed') verificationCssStatus = 'complete';
-    else if (verification.status === 'failed') verificationCssStatus = 'blocked';
-    else if (verification.status === 'partial') verificationCssStatus = 'in-progress';
+    if (vStatus === 'passed') verificationCssStatus = 'complete';
+    else if (vStatus === 'failed') verificationCssStatus = 'blocked';
+    else if (vStatus === 'partial') verificationCssStatus = 'in-progress';
   %>
   <p>
     <span class="status-badge" data-status="<%= verificationCssStatus %>">
-      <%= verification.status.toUpperCase() %>
+      <%= vStatus.toUpperCase() %>
     </span>
     <% if (verification.verified) { %>
       &nbsp; Verified: <%= new Date(verification.verified).toLocaleString() %>
