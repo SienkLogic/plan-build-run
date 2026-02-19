@@ -1,4 +1,5 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
@@ -153,6 +154,237 @@ describe('validate-task.js', () => {
       });
       expect(result.exitCode).toBe(0);
       expect(result.output).toContain('subagent_type');
+    });
+  });
+
+  describe('quick executor gate', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function makeQuickEnv({ activeSkill, quickDirs } = {}) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+
+      if (activeSkill) {
+        fs.writeFileSync(path.join(planningDir, '.active-skill'), activeSkill);
+      }
+
+      if (quickDirs) {
+        const quickDir = path.join(planningDir, 'quick');
+        fs.mkdirSync(quickDir, { recursive: true });
+        for (const [dirName, hasPlan] of Object.entries(quickDirs)) {
+          const taskDir = path.join(quickDir, dirName);
+          fs.mkdirSync(taskDir, { recursive: true });
+          if (hasPlan) {
+            fs.writeFileSync(path.join(taskDir, 'PLAN.md'), '# Plan\n<task name="test" type="auto">\ndo stuff\n</task>');
+          }
+        }
+      }
+    }
+
+    function runInDir(toolInput, cwd) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('non-executor agents pass even in quick context', () => {
+      makeQuickEnv({ activeSkill: 'quick' });
+      const result = runInDir({ description: 'Plan task', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('executor passes when no .active-skill file exists', () => {
+      fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('executor passes when active skill is not quick', () => {
+      makeQuickEnv({ activeSkill: 'build' });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('blocks executor when active skill is quick but no quick/ dir', () => {
+      makeQuickEnv({ activeSkill: 'quick' });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('does not exist');
+    });
+
+    test('blocks executor when quick/ dir exists but no PLAN.md', () => {
+      makeQuickEnv({ activeSkill: 'quick', quickDirs: { '001-test-task': false } });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('no PLAN.md found');
+    });
+
+    test('executor passes when quick task has PLAN.md', () => {
+      makeQuickEnv({ activeSkill: 'quick', quickDirs: { '001-test-task': true } });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('executor passes with no .planning dir at all', () => {
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('build executor gate', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-build-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function makeBuildEnv({ activeSkill, phaseDir, hasPlan, stateContent } = {}) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+
+      if (activeSkill) {
+        fs.writeFileSync(path.join(planningDir, '.active-skill'), activeSkill);
+      }
+
+      if (stateContent) {
+        fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
+      }
+
+      if (phaseDir) {
+        const pDir = path.join(planningDir, 'phases', phaseDir);
+        fs.mkdirSync(pDir, { recursive: true });
+        if (hasPlan) {
+          fs.writeFileSync(path.join(pDir, 'PLAN-01.md'), '---\nplan: 01\n---\n<task name="test" type="auto">\ndo stuff\n</task>');
+        }
+      }
+    }
+
+    function runInDir(toolInput, cwd) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks executor when active skill is build but no PLAN.md in phase dir', () => {
+      makeBuildEnv({
+        activeSkill: 'build',
+        phaseDir: '01-setup',
+        hasPlan: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('no PLAN.md found');
+    });
+
+    test('passes executor when active skill is build and PLAN.md exists', () => {
+      makeBuildEnv({
+        activeSkill: 'build',
+        phaseDir: '01-setup',
+        hasPlan: true,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('passes when active skill is not build', () => {
+      makeBuildEnv({
+        activeSkill: 'review',
+        phaseDir: '01-setup',
+        hasPlan: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('passes non-executor agents even in build context', () => {
+      makeBuildEnv({
+        activeSkill: 'build',
+        phaseDir: '01-setup',
+        hasPlan: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
+      });
+      const result = runInDir({ description: 'Run planner', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('passes when no .active-skill file exists', () => {
+      makeBuildEnv({
+        phaseDir: '01-setup',
+        hasPlan: false,
+        stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
+      });
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('plan executor gate', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-plan-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function runInDir(toolInput, cwd) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks executor when active skill is plan', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+      const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('Plan skill should not spawn executors');
+    });
+
+    test('passes planner when active skill is plan', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+      const result = runInDir({ description: 'Run planner', subagent_type: 'pbr:planner' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('passes researcher when active skill is plan', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+      const result = runInDir({ description: 'Run researcher', subagent_type: 'pbr:researcher' }, tmpDir);
+      expect(result.exitCode).toBe(0);
     });
   });
 
