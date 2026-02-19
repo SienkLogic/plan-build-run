@@ -49,6 +49,20 @@ function main() {
 
     // Check for signal file
     if (!fs.existsSync(signalPath)) {
+      // No auto-continue signal — check for pending todos as a reminder
+      const todoPendingDir = path.join(planningDir, 'todos', 'pending');
+      try {
+        if (fs.existsSync(todoPendingDir)) {
+          const pending = fs.readdirSync(todoPendingDir).filter(f => f.endsWith('.md'));
+          if (pending.length > 0) {
+            logHook('auto-continue', 'Stop', 'pending-todos', { count: pending.length });
+            // Non-blocking reminder — write to stderr so it shows in hook output
+            process.stderr.write(`[pbr] ${pending.length} pending todo(s) in .planning/todos/pending/ — run /pbr:todo list to review\n`);
+          }
+        }
+      } catch (_todoErr) {
+        // Ignore errors scanning todos
+      }
       logHook('auto-continue', 'Stop', 'no-signal', {});
       process.exit(0);
     }

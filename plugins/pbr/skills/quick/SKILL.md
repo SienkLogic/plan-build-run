@@ -210,6 +210,24 @@ If `planning.commit_docs: true` in config.json:
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
+### Step 11b: Check Pending Todos
+
+After completing work, check if any pending todos are now satisfied:
+
+1. Check if `.planning/todos/pending/` exists and contains files
+2. If no pending todos: skip to Step 12
+3. If pending todos exist:
+   a. Read the title and description from each pending todo's YAML frontmatter
+   b. Compare each todo against the work just completed (the task description, files changed, commits made)
+   c. If a todo is **clearly satisfied** by the work (the todo's goal matches what was built):
+      - Move it: read the file, update `status: done`, add `completed: {YYYY-MM-DD}`, write to `.planning/todos/done/{filename}`, delete from `pending/` via Bash `rm`
+      - Display: `✓ Auto-closed todo {NNN}: {title} (satisfied by quick task {NNN})`
+   d. If a todo is **partially related** but not fully satisfied: do NOT close it, but mention it:
+      - Display: `ℹ Related pending todo {NNN}: {title} — may be partially addressed`
+   e. If a todo is unrelated: skip silently
+
+**Important:** Only auto-close todos where the match is unambiguous. When in doubt, leave it open — false closures are worse than missed closures.
+
 ### Step 12: Report Results
 
 **Artifact check** — Before reporting, verify all required artifacts exist:
