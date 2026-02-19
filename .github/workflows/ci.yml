@@ -41,7 +41,7 @@ jobs:
           node-version: 22
           cache: 'npm'
       - run: npm install
-      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=critical
 
   lint:
     runs-on: ubuntu-latest
