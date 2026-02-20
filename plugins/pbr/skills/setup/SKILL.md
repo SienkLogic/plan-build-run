@@ -51,9 +51,13 @@ If "No", display: "Run `/pbr:begin` when you're ready to start a project. It inc
 
 If "Yes", create the minimal `.planning/` structure:
 
+**CRITICAL: Create .planning/ directory structure NOW. Do NOT skip this step.**
+
 ```bash
 mkdir -p .planning/phases .planning/todos/pending .planning/todos/done .planning/logs .planning/research
 ```
+
+**CRITICAL: Write .planning/config.json NOW. Do NOT skip this step.**
 
 Create `.planning/config.json` with defaults:
 ```json
@@ -122,6 +126,8 @@ Create `.planning/config.json` with defaults:
   }
 }
 ```
+
+**CRITICAL: Write .planning/STATE.md NOW. Do NOT skip this step.**
 
 Create `.planning/STATE.md`:
 ```markdown
@@ -242,6 +248,8 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 ---
 
 ## Step 5: Verification
+
+**CRITICAL: Run validation checks NOW to confirm setup succeeded. Do NOT skip this step.**
 
 Run a quick health check:
 
