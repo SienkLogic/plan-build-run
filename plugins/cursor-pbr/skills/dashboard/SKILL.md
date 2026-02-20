@@ -4,6 +4,18 @@ description: "Launch the PBR web dashboard for the current project."
 argument-hint: "[--port N]"
 ---
 
+## Step 0 — Immediate Output
+
+**Before ANY tool calls**, display this banner:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PLAN-BUILD-RUN ► DASHBOARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+Then proceed to Step 1.
+
 ## Behavior
 
 1. **Parse arguments**: Extract `--port N` from the user's input. Default to `3000`.

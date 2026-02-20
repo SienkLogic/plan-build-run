@@ -215,6 +215,29 @@ Apply selections:
 
 ---
 
+## Step 4b: CLAUDE.md Integration
+
+Check if a `CLAUDE.md` file exists in the project root.
+
+**If it exists**: Read it. If it does NOT already contain a "Plan-Build-Run" section, append the block below.
+**If it does NOT exist**: Create `CLAUDE.md` with the block below.
+
+Append/create this content:
+
+```markdown
+## Plan-Build-Run
+
+This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run) for structured development.
+
+- Project state: `.planning/STATE.md` (source of truth for current phase and progress)
+- Configuration: `.planning/config.json`
+- Run `/pbr:status` to see current project state and suggested next action.
+
+**After compaction or context recovery**: Read `.planning/STATE.md` (especially the `## Session Continuity` section) before proceeding with any work. The PreCompact hook writes recovery state there automatically.
+```
+
+---
+
 ## Step 5: Verification
 
 Run a quick health check:
