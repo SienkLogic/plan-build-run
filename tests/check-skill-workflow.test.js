@@ -138,7 +138,7 @@ describe('check-skill-workflow.js', () => {
       test('returns null (no rules)', () => {
         const { tmpDir, planningDir } = makeTmpDir();
         const filePath = path.join(tmpDir, 'src', 'index.ts');
-        const result = checkSkillRules('status', filePath, planningDir);
+        const result = checkSkillRules('some-unknown-skill', filePath, planningDir);
         expect(result).toBeNull();
         cleanup(tmpDir);
       });
@@ -311,6 +311,65 @@ describe('check-skill-workflow.js', () => {
         const result = checkSkillRules('scan', filePath, planningDir);
         expect(result).not.toBeNull();
         expect(result.rule).toBe('scan-readonly');
+        cleanup(tmpDir);
+      });
+    });
+
+    describe('newly registered skills', () => {
+      const readOnlySkills = ['note', 'todo', 'health', 'help', 'config', 'continue', 'resume', 'pause', 'status', 'dashboard'];
+
+      readOnlySkills.forEach(skill => {
+        test(`${skill} skill allows writes to .planning/`, () => {
+          const { tmpDir, planningDir } = makeTmpDir();
+          const filePath = path.join(planningDir, 'notes.md');
+          const result = checkSkillRules(skill, filePath, planningDir);
+          expect(result).toBeNull();
+          cleanup(tmpDir);
+        });
+
+        test(`${skill} skill blocks writes outside .planning/`, () => {
+          const { tmpDir, planningDir } = makeTmpDir();
+          const filePath = path.join(tmpDir, 'src', 'index.ts');
+          const result = checkSkillRules(skill, filePath, planningDir);
+          expect(result).not.toBeNull();
+          expect(result.rule).toBe(`${skill}-readonly`);
+          cleanup(tmpDir);
+        });
+      });
+
+      test('do skill shares quick rules - blocks without PLAN.md', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('do', filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe('quick-requires-plan');
+        cleanup(tmpDir);
+      });
+
+      test('do skill shares quick rules - allows with PLAN.md', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const quickDir = path.join(planningDir, 'quick', '001-fix');
+        fs.mkdirSync(quickDir, { recursive: true });
+        fs.writeFileSync(path.join(quickDir, 'PLAN.md'), 'content');
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('do', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('debug skill returns null (intentionally unrestricted)', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('debug', filePath, planningDir);
+        expect(result).toBeNull();
+        cleanup(tmpDir);
+      });
+
+      test('setup skill returns null (intentionally unrestricted)', () => {
+        const { tmpDir, planningDir } = makeTmpDir();
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules('setup', filePath, planningDir);
+        expect(result).toBeNull();
         cleanup(tmpDir);
       });
     });
