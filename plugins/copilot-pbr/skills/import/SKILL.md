@@ -47,11 +47,12 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 1. Parse `$ARGUMENTS` for phase number
 2. Parse optional `--from <filepath>` flag (path to the external document to import)
 3. Parse optional `--skip-checker` flag (skip plan validation step)
-4. Validate:
+4. **CRITICAL: Write .active-skill NOW.** Write the text "import" to `.planning/.active-skill` using the Write tool.
+5. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
-5. If no phase number given, read current phase from `.planning/STATE.md`
-6. Check for existing plans in the phase directory (glob for `*-PLAN.md`)
+6. If no phase number given, read current phase from `.planning/STATE.md`
+7. Check for existing plans in the phase directory (glob for `*-PLAN.md`)
    - If plans exist: ask user via AskUserQuestion: "Phase {N} already has plans. Replace them with imported plans?"
    - If yes: note that existing plans will be overwritten in Step 7
    - If no: stop
@@ -317,7 +318,7 @@ Follow the revision loop with:
 
 ### Step 7: Write PLAN.md Files (inline)
 
-Write each plan to `.planning/phases/{NN}-{slug}/{phase}-{plan_num}-PLAN.md`.
+Write each plan to `.planning/phases/{NN}-{slug}/PLAN-{plan_num}.md`.
 
 If existing plans are being replaced (user confirmed in Step 1):
 - Delete existing `*-PLAN.md` files in the phase directory before writing new ones
@@ -375,7 +376,11 @@ docs({phase}): import plans for phase {N} ({count} plans, {wave_count} waves)
 
 ---
 
-### Step 10: Confirm (inline)
+### Step 10: Cleanup
+
+Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
+
+### Step 11: Confirm (inline)
 
 Present a summary of the import using the branded banner:
 
@@ -423,6 +428,8 @@ Requirements traced: {count}/{total} REQ-IDs covered
 ---
 
 ## Error Handling
+
+**IMPORTANT:** On ALL error exits below, delete `.planning/.active-skill` if it exists before displaying the error message.
 
 ### Phase not found
 If the specified phase does not exist in ROADMAP.md, display:
@@ -492,7 +499,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 
 | File | Purpose | When |
 |------|---------|------|
-| `.planning/phases/{NN}-{slug}/{phase}-{NN}-PLAN.md` | Imported plan files | Step 7 |
+| `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Imported plan files | Step 7 |
 | `.planning/ROADMAP.md` | Plans Complete + Status updated to `planned` | Step 8a |
 | `.planning/STATE.md` | Updated with plan status and import source | Step 8b |
 | `.planning/CONTEXT.md` | Updated if blockers surfaced new locked decisions | Step 8d |
