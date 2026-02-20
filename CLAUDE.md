@@ -14,14 +14,14 @@ Plan-Build-Run is a **Claude Code plugin** that provides a structured developmen
 ## Commands
 
 ```bash
-npm test                                    # Run all Jest tests (~780 tests, 36 suites)
+npm test                                    # Run all Jest tests (~1666 tests, 57 suites)
 npm run lint                                # ESLint on plugins/pbr/scripts/ and tests/
 npm run validate                            # Validate plugin directory structure
 npx jest tests/validate-commit.test.js      # Run a single test file
 npx jest --coverage                         # Run with coverage report
 ```
 
-Coverage thresholds (enforced in `package.json`): 65% statements, 58% branches, 70% functions, 65% lines.
+Coverage thresholds (enforced in `package.json`): 70% statements, 70% branches, 70% functions, 70% lines.
 
 Dashboard (separate dependency tree):
 ```bash
