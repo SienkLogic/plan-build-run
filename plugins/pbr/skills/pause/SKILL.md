@@ -121,6 +121,8 @@ Determine the logical next action (same routing logic as `/pbr:status`):
 
 ### Step 4: Write .continue-here.md
 
+**CRITICAL: Write pause state NOW before displaying confirmation. Do NOT skip this step.**
+
 Write the handoff file to the current phase directory:
 
 **Path:** `.planning/phases/{NN}-{phase-name}/.continue-here.md`
