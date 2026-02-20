@@ -37,7 +37,7 @@ fi
 if command -v copilot &> /dev/null; then
   echo "Found Copilot CLI. Installing plugin via 'copilot plugin install'..."
   echo ""
-  copilot plugin install --local "$PLUGIN_DIR"
+  copilot plugin install "$PLUGIN_DIR"
   echo ""
   echo "Plugin installed successfully via Copilot CLI."
 else
