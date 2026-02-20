@@ -113,6 +113,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
+   **CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase exists in ROADMAP.md
@@ -472,6 +473,8 @@ Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
 
 ### Subcommand: `add`
 
+**CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+
 1. Read `.planning/ROADMAP.md`
 2. Calculate next phase number (last phase + 1)
 3. Ask user: "What's the goal for this new phase?"
@@ -481,10 +484,13 @@ Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
 7. Create phase directory: `.planning/phases/{NN}-{slug}/`
 8. Update STATE.md if needed
 9. Suggest: `/pbr:plan {N}` to plan the new phase
+10. Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `insert <N>`
 
 Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
+
+**CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
 1. Read `.planning/ROADMAP.md`
 2. Calculate decimal phase number:
@@ -496,6 +502,7 @@ Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
 5. Create phase directory: `.planning/phases/{NN.M}-{slug}/`
 6. Update dependencies of subsequent phases if affected
 7. Suggest: `/pbr:plan {N.M}` to plan the new phase
+8. Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `remove <N>`
 
@@ -504,13 +511,15 @@ Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
    - Phase must exist
    - Phase must be in `pending` or `not started` status (cannot remove completed/in-progress phases)
    - No other phases depend on this phase (or user confirms breaking dependencies)
-3. Confirm with user: "Remove Phase {N}: {name}? This will delete the phase directory and renumber subsequent phases."
-4. If confirmed:
+3. **CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+4. Confirm with user: "Remove Phase {N}: {name}? This will delete the phase directory and renumber subsequent phases."
+5. If confirmed:
    - Delete `.planning/phases/{NN}-{slug}/` directory
    - Remove phase from ROADMAP.md
    - Renumber subsequent phases (N+1 becomes N, etc.)
    - Update all `depends_on` references in ROADMAP.md
    - Update STATE.md if needed
+6. Delete `.planning/.active-skill` if it exists.
 
 ---
 
@@ -598,12 +607,16 @@ Present remaining issues and ask user to decide: proceed or intervene.
 | File | Purpose | When |
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
-| `.planning/phases/{NN}-{slug}/{phase}-{NN}-PLAN.md` | Executable plan files | Step 5 |
+| `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
 | `.planning/ROADMAP.md` | Plans Complete + Status -> `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |
 
 ---
+
+## Cleanup
+
+Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
 
 ## Completion
 

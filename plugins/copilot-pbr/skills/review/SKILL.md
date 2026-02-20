@@ -62,6 +62,7 @@ Execute these steps in order.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
 2. Read `.planning/config.json`
+   **CRITICAL: Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -534,6 +535,10 @@ Ask user: "Would you like to proceed with gap-closure plans without root cause a
 | `.planning/STATE.md` | Updated with review status | Step 6 |
 
 ---
+
+## Cleanup
+
+Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
 
 ## Completion
 
