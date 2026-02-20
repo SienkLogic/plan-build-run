@@ -349,6 +349,46 @@ describe('check-subagent-output.js', () => {
     });
   });
 
+  describe('mtime recency checks', () => {
+    test('researcher with recent .md file passes without stale warning', () => {
+      const researchFile = path.join(tmpDir, '.planning', 'research', 'STACK.md');
+      fs.writeFileSync(researchFile, '# Research');
+      // mtime is now by default
+      const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('stale');
+    });
+
+    test('researcher with old .md file returns stale warning', () => {
+      const researchFile = path.join(tmpDir, '.planning', 'research', 'STACK.md');
+      fs.writeFileSync(researchFile, '# Research');
+      // Set mtime to 10 minutes ago
+      const oldTime = new Date(Date.now() - 600000);
+      fs.utimesSync(researchFile, oldTime, oldTime);
+      const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('stale');
+    });
+
+    test('synthesizer with old output returns stale warning', () => {
+      const researchFile = path.join(tmpDir, '.planning', 'research', 'SYNTHESIS.md');
+      fs.writeFileSync(researchFile, '# Synthesis');
+      const oldTime = new Date(Date.now() - 600000);
+      fs.utimesSync(researchFile, oldTime, oldTime);
+      const result = runScript({ tool_input: { subagent_type: 'pbr:synthesizer' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('stale');
+    });
+
+    test('synthesizer with recent output does not get stale warning', () => {
+      const researchFile = path.join(tmpDir, '.planning', 'research', 'SYNTHESIS.md');
+      fs.writeFileSync(researchFile, '# Synthesis');
+      const result = runScript({ tool_input: { subagent_type: 'pbr:synthesizer' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('stale');
+    });
+  });
+
   describe('warning vs noFileExpected', () => {
     test('warning is produced when expected file is missing for non-noFileExpected agent', () => {
       const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });

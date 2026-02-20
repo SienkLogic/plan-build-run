@@ -949,6 +949,134 @@ Status: built
     });
   });
 
+  describe('checkDebuggerAdvisory', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-dbg-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    const { checkDebuggerAdvisory } = require('../plugins/pbr/scripts/validate-task');
+
+    test('returns null when subagent_type is not pbr:debugger', () => {
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('returns null when .active-skill is not debug', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('returns null when .active-skill is debug and .planning/debug/ exists', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+
+    test('returns advisory when .active-skill is debug and .planning/debug/ missing', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+      expect(result).toContain('Debugger advisory');
+      expect(result).toContain('.planning/debug/');
+      process.cwd.mockRestore();
+    });
+
+    test('returns null when .active-skill file does not exist', () => {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      // No .active-skill file
+      jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+      const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+      expect(result).toBeNull();
+      process.cwd.mockRestore();
+    });
+  });
+
+  describe('milestone gate status check', () => {
+    let tmpDir;
+    beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-mss-')); });
+    afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+    const ROADMAP_CONTENT = `# Roadmap
+
+## Milestone: Test Milestone
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+
+### Phase 1: First
+**Goal:** Test
+`;
+
+    const STATE_CONTENT = `---
+version: 2
+current_phase: 1
+total_phases: 1
+phase_slug: "first"
+---
+# State
+
+Phase: 1 of 1 (First)
+Status: built
+`;
+
+    function makeEnv(opts) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE_CONTENT);
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_CONTENT);
+      const pDir = path.join(planningDir, 'phases', '01-first');
+      fs.mkdirSync(pDir, { recursive: true });
+      if (opts.verificationContent) {
+        fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), opts.verificationContent);
+      }
+    }
+
+    function runInDir(toolInput) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, { input, encoding: 'utf8', timeout: 5000, cwd: tmpDir });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('VERIFICATION.md with status: passed allows milestone completion', () => {
+      makeEnv({ verificationContent: '---\nstatus: passed\n---\n# Verification\nAll good.' });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('VERIFICATION.md with status: gaps_found blocks milestone completion', () => {
+      makeEnv({ verificationContent: '---\nstatus: gaps_found\n---\n# Verification\nGaps exist.' });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('gaps_found');
+    });
+
+    test('VERIFICATION.md without frontmatter (unknown status) allows completion', () => {
+      makeEnv({ verificationContent: '# Verification\nNo frontmatter here.' });
+      const result = runInDir({ description: 'Complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     test('handles missing TOOL_INPUT gracefully', () => {
       const input = JSON.stringify({});
