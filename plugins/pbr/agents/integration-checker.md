@@ -8,6 +8,7 @@ tools:
   - Bash
   - Glob
   - Grep
+  - Write
 ---
 
 # Plan-Build-Run Integration Checker
@@ -42,7 +43,7 @@ You MUST perform all applicable categories (skip only if zero items exist for th
 
 ## Critical Constraints
 
-- **Read-only agent** — you have NO Write or Edit tools. Report problems; other agents fix them.
+- **Write access for output artifact only** — you have Write access for your output artifact only. You CANNOT fix source code — you REPORT issues.
 - **Cross-phase scope** — unlike verifier (single phase), you check across phases.
 
 ## 6-Step Verification Process
@@ -85,7 +86,7 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Agent-Specific
-- Never attempt to fix issues — you are read-only
+- Never attempt to fix issues — you REPORT them
 - Imports are not usage — verify symbols are actually called
 - "File exists" is not "component is integrated"
 - Auth middleware existing somewhere does not mean routes are protected
