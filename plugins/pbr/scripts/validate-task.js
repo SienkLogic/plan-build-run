@@ -446,11 +446,19 @@ function checkMilestoneCompleteGate(data) {
             reason: `Milestone complete gate: Phase ${paddedPhase} directory not found. All milestone phases must be verified before completing milestone.`
           };
         }
-        const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
+        const verificationFile = path.join(phasesDir, pDirs[0], 'VERIFICATION.md');
+        const hasVerification = fs.existsSync(verificationFile);
         if (!hasVerification) {
           return {
             block: true,
             reason: `Milestone complete gate: Phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md. All milestone phases must be verified before completing milestone.`
+          };
+        }
+        const verStatus = getVerificationStatus(verificationFile);
+        if (verStatus === 'gaps_found') {
+          return {
+            block: true,
+            reason: `Milestone complete gate: Phase ${paddedPhase} VERIFICATION.md has status: gaps_found. Close all gaps before completing milestone.`
           };
         }
       }
@@ -561,6 +569,45 @@ function checkBuildDependencyGate(data) {
  * spawned, warn if .checkpoint-manifest.json is missing in the phase dir.
  * Returns a warning string or null.
  */
+/**
+ * Parse VERIFICATION.md frontmatter to extract status field.
+ * Returns the status string or 'unknown' if not parseable.
+ */
+function getVerificationStatus(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) return 'unknown';
+    const statusMatch = fmMatch[1].match(/^status:\s*(\S+)/m);
+    return statusMatch ? statusMatch[1] : 'unknown';
+  } catch (_e) {
+    return 'unknown';
+  }
+}
+
+/**
+ * Advisory check: when pbr:debugger is spawned and .active-skill is 'debug',
+ * warn if .planning/debug/ directory does not exist.
+ * Returns a warning string or null.
+ */
+function checkDebuggerAdvisory(data) {
+  const subagentType = data.tool_input?.subagent_type || '';
+  if (subagentType !== 'pbr:debugger') return null;
+  // Only advise when spawned from the debug skill
+  const activeSkillPath = path.join(process.cwd(), '.planning', '.active-skill');
+  try {
+    const activeSkill = fs.readFileSync(activeSkillPath, 'utf8').trim();
+    if (activeSkill !== 'debug') return null;
+  } catch (_e) {
+    return null; // No .active-skill file — skip advisory
+  }
+  const debugDir = path.join(process.cwd(), '.planning', 'debug');
+  if (!fs.existsSync(debugDir)) {
+    return 'Debugger advisory: .planning/debug/ does not exist. Create it before spawning the debugger so output has a target location.';
+  }
+  return null;
+}
+
 function checkCheckpointManifest(data) {
   const toolInput = data.tool_input || {};
   const subagentType = toolInput.subagent_type || '';
@@ -727,6 +774,8 @@ function main() {
       const warnings = checkTask(data);
       const manifestWarning = checkCheckpointManifest(data);
       if (manifestWarning) warnings.push(manifestWarning);
+      const debuggerWarning = checkDebuggerAdvisory(data);
+      if (debuggerWarning) warnings.push(debuggerWarning);
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
 
@@ -747,5 +796,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkActiveSkillIntegrity, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }
