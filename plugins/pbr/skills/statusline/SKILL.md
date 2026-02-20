@@ -78,9 +78,12 @@ If "Install":
 
 **CRITICAL: Use Read tool to read the file, then Write to update it. Do NOT use sed or other text manipulation on JSON files.**
 
+**CRITICAL: Back up settings.json NOW.** Write the original content to `~/.claude/settings.json.bak` before making any changes.
+
 1. Read `~/.claude/settings.json`
-2. Parse the JSON
-3. Set `statusLine` to:
+2. Write the original content to `~/.claude/settings.json.bak`
+3. Parse the JSON
+4. Set `statusLine` to:
    ```json
    {
      "type": "command",
@@ -88,7 +91,7 @@ If "Install":
    }
    ```
    Where `SCRIPT_PATH` is the resolved absolute path from Step 1. Use forward slashes even on Windows.
-4. Write the updated JSON back (preserve all other settings, use 2-space indentation)
+5. Write the updated JSON back (preserve all other settings, use 2-space indentation)
 
 ### Step 4: Verify and confirm
 
@@ -115,8 +118,9 @@ Customize per-project via .planning/config.json:
 
 1. Read `~/.claude/settings.json`
 2. If no `statusLine` key: inform user "No status line configured." and stop
-3. Remove the `statusLine` key from the JSON
-4. Write the updated file
+3. **CRITICAL: Back up settings.json NOW.** Write the original content to `~/.claude/settings.json.bak` before making any changes.
+4. Remove the `statusLine` key from the JSON
+5. Write the updated file
 5. Display: `✓ PBR status line removed. Restart Claude Code to take effect.`
 
 ---
