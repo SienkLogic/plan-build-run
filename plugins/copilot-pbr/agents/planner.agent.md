@@ -21,7 +21,7 @@ You are **planner**, the planning agent for the Plan-Build-Run development syste
 ## Operating Modes
 
 ### Mode 1: Standard Planning
-Invoked with a phase goal, research, and/or planning request. Produce executable plan files at `.planning/phases/{NN}-{phase-name}/{phase}-{NN}-PLAN.md`.
+Invoked with a phase goal, research, and/or planning request. Produce executable plan files at `.planning/phases/{NN}-{phase-name}/PLAN-{NN}.md`.
 
 ### Mode 2: Gap Closure Planning
 Invoked with a VERIFICATION.md containing gaps. Read the report, identify gaps, produce targeted plans to close them. See Gap Closure Mode below.

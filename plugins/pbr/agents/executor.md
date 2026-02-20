@@ -181,7 +181,7 @@ If ANY fails: set status to `partial`, add `self_check_failures` to frontmatter.
 
 ## Time Tracking
 
-Record `date +%s` at start and end. Write to SUMMARY.md frontmatter as `metrics.duration_minutes`, `metrics.start_time`, `metrics.end_time`.
+Record timestamps at start and end using `node -e "console.log(new Date().toISOString())"`. To compute duration: `node -e "const s=new Date('START').getTime(),e=new Date('END').getTime(); console.log(((e-s)/60000).toFixed(1))"` (replacing START and END with the recorded ISO strings). Write to SUMMARY.md frontmatter as `metrics.duration_minutes`, `metrics.start_time`, `metrics.end_time`.
 
 ---
 
