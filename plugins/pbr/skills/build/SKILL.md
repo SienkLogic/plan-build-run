@@ -65,7 +65,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
-4. Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
+4. **CRITICAL: Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 5. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - PLAN.md files exist in the directory
@@ -197,6 +197,8 @@ Validate wave consistency:
 ---
 
 ### Step 5b: Write Checkpoint Manifest (inline)
+
+**CRITICAL: Write .checkpoint-manifest.json NOW before entering the wave loop.**
 
 Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json`:
 
@@ -693,6 +695,8 @@ If triggered:
    ```
 4. Do NOT block on this — use `run_in_background: true` and continue to Step 8a. Report completion in Step 8f if it finishes in time.
 
+**CRITICAL: Update ROADMAP.md progress table NOW. Do NOT skip this step.**
+
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
 **Tooling shortcut**: Use the CLI for atomic ROADMAP.md table updates instead of manual editing:
@@ -708,6 +712,8 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 4. Update the `Plans Complete` column to `{completed}/{total}` (e.g., `2/2` if all plans built successfully)
 5. Update the `Status` column to the final_status determined in Step 8-pre
 6. Save the file — do NOT skip this step
+
+**CRITICAL: Update STATE.md NOW with phase completion status. Do NOT skip this step.**
 
 **8b. Update STATE.md:**
 - Phase status: {final_status from Step 8-pre}

@@ -259,13 +259,19 @@ Archive a completed milestone and prepare for the next one.
 
 5. **Archive milestone documents:**
 
+   **CRITICAL: Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
+
    Create a versioned archive directory and move phase directories into it:
    - `.planning/milestones/{version}/ROADMAP.md` — snapshot of ROADMAP.md at completion
-   - `.planning/milestones/{version}/REQUIREMENTS.md` — snapshot of REQUIREMENTS.md
+   - `.planning/milestones/{version}/REQUIREMENTS.md` — **CRITICAL: Copy REQUIREMENTS.md to archive NOW. Do NOT skip this step.** Snapshot of REQUIREMENTS.md
    - `.planning/milestones/{version}/STATS.md` — milestone statistics
    - `.planning/milestones/{version}/phases/{NN}-{slug}/` — move each milestone phase directory from `.planning/phases/` into the archive
 
+   **CRITICAL: Move phase directories from .planning/phases/ to archive NOW. Do NOT skip this step.**
+
    **Move phases:** For each phase belonging to this milestone, move (not copy) its directory from `.planning/phases/{NN}-{slug}/` to `.planning/milestones/{version}/phases/{NN}-{slug}/`. This keeps the active phases directory clean for the next milestone.
+
+   **CRITICAL: Write STATS.md to .planning/milestones/{version}/STATS.md NOW. Do NOT skip this step.**
 
    **Stats file content:**
 
@@ -286,6 +292,8 @@ Archive a completed milestone and prepare for the next one.
 
    - Move validated requirements from active to completed section
 
+**CRITICAL: Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
+
 7. **Collapse completed phases in ROADMAP.md:**
    Replace detailed phase entries with collapsed summaries:
 
@@ -299,6 +307,8 @@ Archive a completed milestone and prepare for the next one.
    | {N}. {name} | Completed |
    | {N+1}. {name} | Completed |
    ```
+
+**CRITICAL: Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
 7b. **Update STATE.md:**
    - Update `.planning/STATE.md` to mark the milestone as complete
