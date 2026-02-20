@@ -20,7 +20,7 @@ jobs:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -28,7 +28,7 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         run: gh pr merge ${{ fromJSON(steps.release.outputs.pr).number }} --merge --auto --repo ${{ github.repository }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
 
   publish-npm:
     needs: release-please
