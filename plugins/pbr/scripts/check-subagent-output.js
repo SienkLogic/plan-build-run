@@ -21,6 +21,19 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 
+/**
+ * Check if a file was modified recently (within thresholdMs).
+ * Returns false if file doesn't exist or on error.
+ */
+function isRecent(filePath, thresholdMs = 300000) {
+  try {
+    const stat = fs.statSync(filePath);
+    return (Date.now() - stat.mtimeMs) < thresholdMs;
+  } catch (_e) {
+    return false;
+  }
+}
+
 // Agent type → expected output patterns
 const AGENT_OUTPUTS = {
   'pbr:executor': {
@@ -46,9 +59,16 @@ const AGENT_OUTPUTS = {
       const researchDir = path.join(planningDir, 'research');
       if (!fs.existsSync(researchDir)) return [];
       try {
-        return fs.readdirSync(researchDir)
+        const allFiles = fs.readdirSync(researchDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('research', f));
+        if (allFiles.length === 0) return [];
+        const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
+        if (recentFiles.length === 0) {
+          // Files exist but none are recent — return them but flag staleness
+          allFiles._stale = true;
+        }
+        return allFiles;
       } catch (_e) {
         return [];
       }
@@ -61,14 +81,27 @@ const AGENT_OUTPUTS = {
       if (fs.existsSync(researchDir)) {
         try {
           const files = fs.readdirSync(researchDir).filter(f => f.endsWith('.md'));
-          if (files.length > 0) return files.map(f => path.join('research', f));
+          if (files.length > 0) {
+            const allFiles = files.map(f => path.join('research', f));
+            const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
+            if (recentFiles.length === 0) {
+              allFiles._stale = true;
+            }
+            return allFiles;
+          }
         } catch (_e) { /* best-effort */ }
       }
       const contextFile = path.join(planningDir, 'CONTEXT.md');
       if (fs.existsSync(contextFile)) {
         try {
           const stat = fs.statSync(contextFile);
-          if (stat.size > 0) return ['CONTEXT.md'];
+          if (stat.size > 0) {
+            const result = ['CONTEXT.md'];
+            if (!isRecent(contextFile)) {
+              result._stale = true;
+            }
+            return result;
+          }
         } catch (_e) { /* best-effort */ }
       }
       return [];
@@ -255,6 +288,12 @@ function main() {
   // Skill-specific post-completion validation
   const skillWarnings = [];
 
+  // Mtime-based recency check for researcher and synthesizer
+  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+    const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
+    skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
+  }
+
   // GAP-04: Begin planner must produce core files
   if (activeSkill === 'begin' && agentType === 'pbr:planner') {
     const coreFiles = ['REQUIREMENTS.md', 'ROADMAP.md', 'STATE.md'];
@@ -317,5 +356,5 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits };
+module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent };
 if (require.main === module || process.argv[1] === __filename) { main(); }
