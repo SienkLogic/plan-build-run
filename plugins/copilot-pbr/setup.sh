@@ -34,6 +34,7 @@ if [ -f "$PROJECT_DIR/plugins/copilot-pbr/setup.sh" ]; then
 fi
 
 # Strategy 1: Try copilot plugin install (if copilot CLI is available)
+# Note: --local flag was removed — it is not supported by copilot CLI
 if command -v copilot &> /dev/null; then
   echo "Found Copilot CLI. Installing plugin via 'copilot plugin install'..."
   echo ""
