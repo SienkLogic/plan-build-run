@@ -113,6 +113,7 @@ function checkSkillRules(skill, filePath, planningDir) {
 
   switch (skill) {
   case 'quick':
+  case 'do':
     return checkQuickRules(filePath, isInPlanning, planningDir);
   case 'build':
     return checkBuildRules(filePath, isInPlanning, planningDir);
@@ -126,6 +127,16 @@ function checkSkillRules(skill, filePath, planningDir) {
   case 'explore':
   case 'import':
   case 'scan':
+  case 'note':
+  case 'todo':
+  case 'health':
+  case 'help':
+  case 'config':
+  case 'continue':
+  case 'resume':
+  case 'pause':
+  case 'status':
+  case 'dashboard':
     return checkReadOnlySkillRules(skill, filePath, isInPlanning);
   default:
     return null;
