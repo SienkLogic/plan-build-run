@@ -10,6 +10,38 @@ on:
     branches: [main]
 
 jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title follows conventional commit format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Checking PR title: '$PR_TITLE'"
+          # Allow release-please PRs (chore(main): release ...)
+          if echo "$PR_TITLE" | grep -qP '^(feat|fix|refactor|test|docs|chore|wip|perf|ci|build|revert)(\([a-zA-Z0-9_./-]+\))?!?: .+'; then
+            echo "✅ PR title follows conventional commit format"
+          else
+            echo ""
+            echo "❌ PR title does not follow conventional commit format!"
+            echo ""
+            echo "Required format: {type}({scope}): {description}"
+            echo ""
+            echo "  Types: feat, fix, refactor, test, docs, chore, wip, perf, ci, build, revert"
+            echo "  Scope: tools, planning, or a descriptive word (optional but recommended)"
+            echo ""
+            echo "Examples:"
+            echo "  fix(tools): remove --local flag from Copilot install"
+            echo "  feat(tools): add dark mode to dashboard"
+            echo "  docs: update README with new install steps"
+            echo ""
+            echo "WHY: Release-please uses this to generate the changelog."
+            echo "Non-conventional titles are silently ignored and your"
+            echo "change won't appear in any release."
+            exit 1
+          fi
+
   test:
     strategy:
       fail-fast: false
