@@ -235,7 +235,9 @@ Decisions: {count} locked, {count} deferred, {count} discretion
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Plan this phase** — your decisions will be honored
 

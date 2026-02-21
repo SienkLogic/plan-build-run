@@ -817,7 +817,9 @@ Then present the appropriate branded banner:
 {X} plans executed
 Goal verified ✓
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
 
@@ -841,7 +843,9 @@ Goal verified ✓
 {N} phases completed
 All phase goals verified ✓
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Audit milestone** — verify requirements, cross-phase integration, E2E flows
 
@@ -870,7 +874,9 @@ Report: .planning/phases/{phase_dir}/VERIFICATION.md
 
 {Extract gap summaries from VERIFICATION.md}
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Plan gap closure** — create additional plans to complete the phase
 

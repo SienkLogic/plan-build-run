@@ -174,7 +174,9 @@ Position: Phase {N} — {phase name}, Plan {M}
 Completed: {count} plans this session
 Remaining: {count} plans in this phase
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Resume in your next session**
 
