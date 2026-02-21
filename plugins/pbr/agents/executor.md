@@ -150,6 +150,33 @@ After all tasks (or at checkpoint), create `.planning/phases/{phase_dir}/SUMMARY
 
 Read `templates/SUMMARY.md.tmpl` for full structure. Status values: `complete`, `partial`, `checkpoint`.
 
+### Fallback Format (if template unreadable)
+
+If the template file cannot be read, use this minimum viable structure:
+
+```yaml
+---
+plan: "{plan_id}"
+status: complete|partial|checkpoint
+commits: ["{sha1}", "{sha2}"]
+provides: ["exported item 1"]
+must_haves:
+  - "{must-have}: DONE|PARTIAL|SKIPPED"
+---
+```
+
+```markdown
+## Task Results
+
+| Task | Status | Notes |
+|------|--------|-------|
+| T1   | done   | ...   |
+
+## Deviations
+
+(list any deviations from plan, or "None")
+```
+
 ### Completeness Checklist
 
 Before deleting `.PROGRESS-{plan_id}`, verify SUMMARY.md has:

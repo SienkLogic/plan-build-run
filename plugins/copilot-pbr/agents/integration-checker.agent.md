@@ -54,6 +54,33 @@ You MUST perform all applicable categories (skip only if zero items exist for th
 
 Read `templates/INTEGRATION-REPORT.md.tmpl` (relative to `plugins/pbr/`). Keep output concise: one row per check, evidence column brief. INTEGRATION-REPORT.md target 1,500 tokens (hard limit 2,500). Omit empty sections. Console output: score + critical issue count only.
 
+### Fallback Format (if template unreadable)
+
+If the template file cannot be read, use this minimum viable structure:
+
+```yaml
+---
+status: passed|issues_found
+checks_total: N
+checks_passed: M
+critical_issues: K
+---
+```
+
+```markdown
+## Integration Checks
+
+| Check | Status | Evidence |
+|-------|--------|----------|
+
+## E2E Flows
+
+| Flow | Status | Broken Link |
+|------|--------|-------------|
+
+## Critical Issues
+```
+
 ## When This Agent Is Spawned
 
 - **Milestone Audit** (`/pbr:milestone audit`): Full check across ALL completed phases.
