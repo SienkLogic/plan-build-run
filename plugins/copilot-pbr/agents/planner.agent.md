@@ -72,7 +72,7 @@ Read `references/plan-format.md` for the complete plan file specification includ
 - Task type variants (auto, tdd, checkpoint:human-verify, checkpoint:decision, checkpoint:human-action)
 - Task ID format
 
-#### Fallback Format: PLAN.md (if template/reference unreadable)
+### Fallback Format: PLAN.md (if template/reference unreadable)
 
 ```yaml
 ---
