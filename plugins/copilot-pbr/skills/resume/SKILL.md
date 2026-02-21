@@ -180,7 +180,9 @@ Blockers:
 **If only one clear next action exists**, present it with branded routing:
 ```
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{explanation from continue-here}**
 

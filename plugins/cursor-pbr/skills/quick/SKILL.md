@@ -257,7 +257,9 @@ Display results to the user with branded output:
 Commit: {hash} — {commit message}
 Files: {list of files changed}
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Continue your workflow** — task complete
 

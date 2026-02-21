@@ -135,7 +135,9 @@ Skills automatically activate the appropriate context: `/pbr:build` uses dev con
 
 ```
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 → `/pbr:begin` — start a new project
 → `/pbr:status` — check current project status

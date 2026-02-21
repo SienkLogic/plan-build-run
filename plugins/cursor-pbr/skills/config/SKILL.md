@@ -193,7 +193,9 @@ Updated:
   models.executor: inherit → sonnet
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Continue your workflow** — settings saved
 

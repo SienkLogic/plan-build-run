@@ -222,7 +222,9 @@ After creating artifacts (or if user chose "Skip"), display:
 {count} artifacts created: {list of artifact types}
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{Primary route based on what was created}**
 
