@@ -8,9 +8,9 @@ description: "Show current project status and suggest what to do next."
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PROJECT STATUS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PROJECT STATUS                             ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

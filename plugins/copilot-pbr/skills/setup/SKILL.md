@@ -8,9 +8,9 @@ description: "Onboarding wizard. Initialize project, select models, verify setup
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SETUP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SETUP                                      ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -21,14 +21,29 @@ You are running the **setup** skill. This is an interactive onboarding wizard th
 
 ---
 
-## Step 1: Detect Project State
+## Step 1: Detect Project State — Idempotency Guard
 
 Check if `.planning/` directory exists in the current working directory.
 
 **If `.planning/` exists**:
-- Read `.planning/config.json` to check current settings
-- Tell the user: "Existing Plan-Build-Run project detected. This wizard will review your configuration."
-- Skip to Step 3 (model selection)
+- Check for existing core files: `STATE.md`, `ROADMAP.md`, `config.json`
+- If ANY of these exist, present a checkpoint:
+
+  Use AskUserQuestion:
+    question: "Existing project detected with {list of found files}. How should we proceed?"
+    header: "Setup"
+    options:
+      - label: "Resume"       description: "Keep existing .planning/ and review configuration (recommended)"
+      - label: "Reset"        description: "Archive current .planning/ to .planning.bak/ and start fresh"
+      - label: "Abort"        description: "Cancel setup — keep everything as-is"
+
+  - If "Resume": Tell the user: "Keeping existing project. Reviewing configuration." Skip to Step 3 (model selection)
+  - If "Reset": Run `mv .planning .planning.bak` (creating a backup), then proceed with fresh setup below
+  - If "Abort": Display "Setup cancelled. Run `/pbr:status` to see current project state." and stop
+
+- If `.planning/` exists but has NONE of the core files (empty or only has subdirs):
+  - Tell the user: "Found empty .planning/ directory. Proceeding with initialization."
+  - Continue to fresh setup below
 
 **If `.planning/` does NOT exist**:
 - Ask the user:
@@ -252,7 +267,7 @@ Run a quick health check:
 
 1. Verify `.planning/config.json` is valid JSON
 2. Verify `.planning/STATE.md` exists and is parseable
-3. Verify hook scripts are accessible: `node ${CLAUDE_PLUGIN_ROOT}/scripts/progress-tracker.js` from the project directory
+3. Verify hook scripts are accessible: `node ${PLUGIN_ROOT}/scripts/progress-tracker.js` from the project directory
 4. Check that `npm test` works (if package.json exists)
 
 Display results:

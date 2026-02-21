@@ -8,9 +8,9 @@ description: "File-based persistent todos. Add, list, complete — survives sess
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO                                       ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -72,13 +72,13 @@ theme: {inferred-theme}
 
 8. Confirm with branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO ADDED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO ADDED ✓                               ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {description}
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -88,13 +88,13 @@ theme: {inferred-theme}
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:todo list` — see all pending todos
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `list [theme]`
@@ -114,7 +114,7 @@ Pending Todos:
 
 5. Offer actions with branded routing:
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -123,12 +123,12 @@ Pending Todos:
 `/pbr:todo work <NNN>` — start working on a todo
 `/pbr:todo done <NNN>` — mark a todo as complete
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `done <NNN>`
@@ -147,18 +147,33 @@ Todo {NNN} not found in pending todos.
 3. Ensure `.planning/todos/done/` directory exists (create if needed)
 4. Read the pending file content
 5. Update frontmatter in the content: set `status: done` and add `completed: {YYYY-MM-DD}`
+
+**CRITICAL: Write to done/ FIRST, verify it exists, THEN delete from pending/. Do NOT delete pending before confirming done/ write succeeded.**
+
 6. Write the updated content to `.planning/todos/done/{NNN}-{slug}.md`
-7. Delete the original file from `.planning/todos/pending/` (use `rm` via Bash)
+7. Verify the done/ file was written successfully: check that `.planning/todos/done/{NNN}-{slug}.md` exists and has content (use `ls` or Glob)
+   - If the done/ write failed, abort and display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     Failed to write to done/. Pending file preserved.
+
+     **To fix:** Check that `.planning/todos/done/` exists and is writable.
+     ```
+     Do NOT proceed to delete the pending file.
+8. Only THEN delete the original file from `.planning/todos/pending/` (use `rm` via Bash)
 8. Update STATE.md
 9. Confirm with branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO COMPLETED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO COMPLETED ✓                           ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {title}
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -168,13 +183,13 @@ Todo {NNN} not found in pending todos.
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `work <NNN>`
@@ -206,9 +221,9 @@ Which approach?
 
 6. Display branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► WORKING ON TODO {NNN}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► WORKING ON TODO {NNN}                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {title}
 **Routing to:** /pbr:{chosen-skill}
@@ -228,7 +243,7 @@ For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pb
 8. When the skill completes, remind the user:
 
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -236,7 +251,7 @@ For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pb
 
 `/pbr:todo done {NNN}`
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### No arguments

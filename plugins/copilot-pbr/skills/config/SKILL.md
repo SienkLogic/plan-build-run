@@ -8,9 +8,9 @@ description: "Configure settings: depth, model profiles, features, git, and gate
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► CONFIGURATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► CONFIGURATION                              ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -184,15 +184,13 @@ If user types something else (freeform): interpret as a direct setting command a
 
 Update config.json with new values. Show what changed with a branded completion:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► CONFIG UPDATED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► CONFIG UPDATED ✓                           ║
+╚══════════════════════════════════════════════════════════════╝
 
 Updated:
   depth: standard → quick
   models.executor: inherit → sonnet
-
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
@@ -202,13 +200,10 @@ Updated:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
-
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:config` — change more settings
 
-───────────────────────────────────────────────────────────────
 ```
 
 ## Config Schema

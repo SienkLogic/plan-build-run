@@ -9,9 +9,9 @@ argument-hint: "[topic]"
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► EXPLORING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► EXPLORING                                  ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -215,13 +215,12 @@ Create only the approved artifacts. A single explore session can produce multipl
 After creating artifacts (or if user chose "Skip"), display:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► EXPLORATION CAPTURED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► EXPLORATION CAPTURED ✓                     ║
+╚══════════════════════════════════════════════════════════════╝
 
 {count} artifacts created: {list of artifact types}
 
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
@@ -239,14 +238,12 @@ After creating artifacts (or if user chose "Skip"), display:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `/pbr:status` — see project status
 - `/pbr:continue` — execute next logical step
 - `/pbr:milestone new` — start a new milestone with new phases
 
-───────────────────────────────────────────────────────────────
 ```
 
 ---
