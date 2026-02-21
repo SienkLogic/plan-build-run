@@ -424,6 +424,41 @@ describe('cross-plugin compatibility', () => {
     });
   });
 
+  describe('content semantics sync', () => {
+    const HIGH_RISK_SKILLS = ['quick', 'build', 'begin', 'plan', 'review'];
+
+    test.each(HIGH_RISK_SKILLS)('skill "%s" has same CRITICAL marker count across plugins', (skill) => {
+      const pbrContent = fs.readFileSync(
+        path.join(PBR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+      const pbrCriticalCount = (pbrContent.match(/\bCRITICAL\b/g) || []).length;
+
+      for (const { dir } of DERIVATIVES) {
+        const derivContent = fs.readFileSync(
+          path.join(dir, 'skills', skill, 'SKILL.md'), 'utf8'
+        );
+        const derivCriticalCount = (derivContent.match(/\bCRITICAL\b/g) || []).length;
+        expect(derivCriticalCount).toBe(pbrCriticalCount);
+      }
+    });
+
+    test.each(HIGH_RISK_SKILLS)('skill "%s" has same numbered step count across plugins', (skill) => {
+      const pbrContent = fs.readFileSync(
+        path.join(PBR_DIR, 'skills', skill, 'SKILL.md'), 'utf8'
+      );
+      // Count top-level numbered steps: "## Step N" or "**Step N"
+      const pbrSteps = (pbrContent.match(/^#{1,3}\s+Step\s+\d+/gm) || []).length;
+
+      for (const { dir } of DERIVATIVES) {
+        const derivContent = fs.readFileSync(
+          path.join(dir, 'skills', skill, 'SKILL.md'), 'utf8'
+        );
+        const derivSteps = (derivContent.match(/^#{1,3}\s+Step\s+\d+/gm) || []).length;
+        expect(derivSteps).toBe(pbrSteps);
+      }
+    });
+  });
+
   describe('version sync', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
