@@ -65,9 +65,11 @@ Scan `.planning/debug/` for existing debug files:
 ```
 
 Read each file's frontmatter to check status:
-- `status: active` — session is in progress
-- `status: resolved` — session is complete
-- `status: stale` — session was abandoned
+- `status: gathering` — collecting symptoms from user
+- `status: investigating` — testing hypotheses
+- `status: fixing` — applying fix
+- `status: verifying` — confirming fix works
+- `status: resolved` — session complete
 
 **If active sessions found:**
 
@@ -126,7 +128,7 @@ Create `.planning/debug/{NNN}-{slug}.md`:
 ---
 id: "{NNN}"
 title: "{issue title}"
-status: active
+status: gathering
 created: "{ISO date}"
 updated: "{ISO date}"
 severity: "{critical|high|medium|low}"
@@ -401,7 +403,7 @@ Use AskUserQuestion:
     - label: "Escalate"  description: "Save context for manual debugging"
 
 - If "Extend": double the limit and continue
-- If "Wrap up": update debug file status to `stale`, record all findings, suggest next steps
+- If "Wrap up": update debug file `status: resolved` with `resolution: abandoned`, record all findings, suggest next steps
 - If "Escalate": write a detailed handoff document to the debug file with all hypotheses, evidence, and suggested manual investigation steps
 
 ---
@@ -411,15 +413,15 @@ Use AskUserQuestion:
 ### Lifecycle
 
 ```
-active → resolved     (root cause found and fixed)
-active → stale        (abandoned — no updates for 7+ days)
-active → active       (resumed after pause)
+gathering → investigating → fixing → verifying → resolved
+(any non-resolved) → resolved  (with resolution: abandoned, if 7+ days stale)
+(any non-resolved) → (same)    (resumed after pause)
 ```
 
 ### Staleness Detection
 
 When scanning for active sessions, check the `updated` date. If more than 7 days old:
-- Mark as `stale` in status
+- Set `status: resolved` with `resolution: abandoned` in frontmatter
 - Still offer to resume, but warn: "This session is {N} days old. Context may have changed."
 
 ### Cleanup

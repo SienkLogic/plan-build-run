@@ -116,6 +116,8 @@ When you need human input, emit a checkpoint block. Always include `Debug file:`
 
 ## Fixing Protocol
 
+**CRITICAL — DO NOT SKIP steps 5-8. Uncommitted fixes and unupdated debug files cause state corruption on resume.**
+
 **Steps**: Verify root cause → plan minimal fix → predict outcome → implement → verify → check regressions → commit → update debug file.
 
 **Guidelines**: Minimal change (root cause, not symptoms). One atomic commit. No refactoring or features. Test the fix.

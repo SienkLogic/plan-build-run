@@ -134,6 +134,8 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 
 ## Output Format
 
+**CRITICAL — DO NOT SKIP. You MUST write VERIFICATION.md before returning. Without it, the review skill cannot complete and the phase is stuck.**
+
 Write to `.planning/phases/{phase_dir}/VERIFICATION.md`. Read the template from `templates/VERIFICATION-DETAIL.md.tmpl` (relative to `plugins/pbr/`). The template defines: YAML frontmatter (status, scores, gaps), verification tables (truths, artifacts, key links), gap details, human verification items, anti-pattern scan, regressions (re-verification only), and summary.
 
 ### Fallback Format (if template unreadable)
