@@ -77,3 +77,5 @@ Blocked: {short reason}
 ```
 
 This format is used by validate-commit.js and check-dangerous-commands.js. The `decision: "block"` and `reason` fields in the JSON output follow this pattern.
+
+Block reasons should always include a "To fix:" line with actionable guidance so the user or agent knows how to resolve the block.
