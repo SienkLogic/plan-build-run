@@ -1,6 +1,25 @@
 {
   "projectName": "fake-project",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "phases": 6,
-  "currentPhase": 2
+  "currentPhase": 2,
+  "workflow": {
+    "depth": "standard",
+    "auto_continue": false,
+    "parallel_plans": true
+  },
+  "gates": {
+    "confirm_plan": true,
+    "confirm_execute": true,
+    "confirm_review": true
+  },
+  "features": {
+    "auto_continue": false,
+    "context_budget": true,
+    "dependency_tracking": true
+  },
+  "git": {
+    "auto_commit": true,
+    "commit_format": "{type}({scope}): {description}"
+  }
 }
