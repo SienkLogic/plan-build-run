@@ -270,7 +270,9 @@ Based on the project state, suggest the single most logical next action:
 ```
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{brief explanation}**
 

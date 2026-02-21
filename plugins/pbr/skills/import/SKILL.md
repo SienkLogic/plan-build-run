@@ -414,7 +414,9 @@ Requirements traced: {count}/{total} REQ-IDs covered
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Build Phase {N}** — execute these imported plans
 

@@ -172,7 +172,9 @@ Start a new milestone cycle with new phases.
 
 
 
-    ## ▶ Next Up
+    ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
     **Phase {N}: {name}** — start with discussion or planning
 
@@ -380,7 +382,9 @@ Archive a completed milestone and prepare for the next one.
 
 
 
-    ## ▶ Next Up
+    ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
     **Start the next milestone** — plan new features
 
@@ -467,7 +471,9 @@ Verify milestone completion with cross-phase integration checks.
 
 
 
-   ## ▶ Next Up
+   ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
    **Complete the milestone** — archive and tag
 
@@ -496,7 +502,9 @@ Verify milestone completion with cross-phase integration checks.
 
 
 
-   ## ▶ Next Up
+   ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
    **Close the gaps** — create fix phases
 
@@ -523,7 +531,9 @@ Verify milestone completion with cross-phase integration checks.
 
 
 
-   ## ▶ Next Up
+   ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
    **Address tech debt or proceed**
 
@@ -625,7 +635,9 @@ Create phases to close gaps found during an audit.
 
 
 
-   ## ▶ Next Up
+   ╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
    **Plan the first gap-closure phase**
 
