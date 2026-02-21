@@ -224,7 +224,9 @@ After all checks complete, display the branded result:
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Continue your workflow** — planning directory is healthy
 
@@ -251,7 +253,9 @@ After all checks complete, display the branded result:
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Fix the failures** listed above, then re-run
 

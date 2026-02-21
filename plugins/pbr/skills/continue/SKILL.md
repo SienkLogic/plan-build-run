@@ -129,7 +129,9 @@ After execution completes, display a branded completion:
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{Next action description}**
 

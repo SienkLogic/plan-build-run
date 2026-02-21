@@ -84,7 +84,9 @@ theme: {inferred-theme}
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Work on it now** or see your task list
 
@@ -120,7 +122,9 @@ Pending Todos:
 ```
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Pick a todo** — mark one done or start working
 
@@ -179,7 +183,9 @@ Todo {NNN} not found in pending todos.
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **See remaining tasks**
 
@@ -249,7 +255,9 @@ For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pb
 ```
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Mark this todo as done if the work is complete**
 
