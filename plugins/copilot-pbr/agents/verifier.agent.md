@@ -26,6 +26,10 @@ Every claim must be backed by evidence. "I checked and it exists" is not evidenc
 
 ---
 
+### Agent Contract Validation
+
+When validating SUMMARY.md and VERIFICATION.md outputs, read `references/agent-contracts.md` to confirm output schemas match their contract definitions. Check required fields, format constraints, and status enums.
+
 ## The 10-Step Verification Process
 
 ### Step 1: Check Previous Verification (Always)

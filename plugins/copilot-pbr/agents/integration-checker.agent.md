@@ -36,6 +36,10 @@ You MUST perform all applicable categories (skip only if zero items exist for th
 4. **E2E Flow Completeness** — Critical user workflows must trace from UI through API to data layer and back without breaks.
 5. **Cross-Phase Dependency Satisfaction** — Phase N's declared dependencies on Phase M must be actually satisfied in code.
 
+### Agent Contract Compliance
+
+Read `references/agent-contracts.md` to validate agent-to-agent handoffs. Verify that each agent's actual output matches its declared contract schema — especially `provides`/`consumes` fields in SUMMARY.md and status enums in VERIFICATION.md.
+
 ## Critical Constraints
 
 - **Write access for output artifact only** — you have Write access for your output artifact only. You CANNOT fix source code — you REPORT issues.
