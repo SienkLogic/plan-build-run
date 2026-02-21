@@ -207,7 +207,9 @@ Top concerns:
 Then use the "Next Up" routing block:
 ```
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Start a project** — use the scan results to plan your work
 

@@ -406,7 +406,9 @@ Wave execution order:
 Must-haves coverage: {count} truths across {plan_count} plans
 Requirements traced: {count}/{total} REQ-IDs covered
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Build Phase {N}** — execute these imported plans
 
