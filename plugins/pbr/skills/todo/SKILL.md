@@ -12,9 +12,9 @@ argument-hint: "add <description> | list [theme] | done <NNN> | work <NNN>"
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO                                       ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -76,13 +76,13 @@ theme: {inferred-theme}
 
 8. Confirm with branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO ADDED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO ADDED ✓                               ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {description}
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -92,13 +92,13 @@ theme: {inferred-theme}
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:todo list` — see all pending todos
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `list [theme]`
@@ -118,7 +118,7 @@ Pending Todos:
 
 5. Offer actions with branded routing:
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -127,12 +127,12 @@ Pending Todos:
 `/pbr:todo work <NNN>` — start working on a todo
 `/pbr:todo done <NNN>` — mark a todo as complete
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `done <NNN>`
@@ -171,13 +171,13 @@ Todo {NNN} not found in pending todos.
 8. Update STATE.md
 9. Confirm with branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► TODO COMPLETED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► TODO COMPLETED ✓                           ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {title}
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -187,13 +187,13 @@ Todo {NNN} not found in pending todos.
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### `work <NNN>`
@@ -225,9 +225,9 @@ Which approach?
 
 6. Display branded output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► WORKING ON TODO {NNN}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► WORKING ON TODO {NNN}                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Todo {NNN}:** {title}
 **Routing to:** /pbr:{chosen-skill}
@@ -247,7 +247,7 @@ For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pb
 8. When the skill completes, remind the user:
 
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -255,7 +255,7 @@ For `/pbr:plan`, if no phase exists for this work yet, suggest the user run `/pb
 
 `/pbr:todo done {NNN}`
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### No arguments

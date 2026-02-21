@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SCANNING CODEBASE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SCANNING CODEBASE                          ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -180,9 +180,9 @@ Agent that failed: {focus_area} mapper
 Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-formatting.md`:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SCAN COMPLETE ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SCAN COMPLETE ✓                            ║
+╚══════════════════════════════════════════════════════════════╝
 
 Project: {type} ({scale})
 Stack: {primary language} + {framework}
@@ -209,7 +209,7 @@ Top concerns:
 
 Then use the "Next Up" routing block:
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -219,13 +219,13 @@ Then use the "Next Up" routing block:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:milestone new` — create a milestone to address concerns
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ### Step 7: Git Integration

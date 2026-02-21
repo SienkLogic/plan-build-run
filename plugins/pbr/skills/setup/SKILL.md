@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SETUP
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SETUP                                      ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

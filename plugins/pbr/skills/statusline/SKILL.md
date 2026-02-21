@@ -12,9 +12,9 @@ argument-hint: "[install | uninstall | preview]"
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► STATUS LINE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► STATUS LINE                                ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

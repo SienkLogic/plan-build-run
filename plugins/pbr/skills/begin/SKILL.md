@@ -23,9 +23,9 @@ Additionally for this skill:
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► STARTING PROJECT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► STARTING PROJECT                           ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -535,9 +535,9 @@ After all steps complete, present the final summary:
 Use the branded stage banner from `references/ui-formatting.md`:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PROJECT INITIALIZED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PROJECT INITIALIZED ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{name}**
 
@@ -553,7 +553,7 @@ Requirements: {N} committed, {M} deferred, {K} out-of-scope
 
 Then use the "Next Up" routing block:
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -563,7 +563,7 @@ Then use the "Next Up" routing block:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:explore` — open-ended exploration before planning
@@ -571,7 +571,7 @@ Then use the "Next Up" routing block:
 - `/pbr:milestone new` — add a second milestone with new phases
 - `/pbr:config` — adjust workflow settings
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---
