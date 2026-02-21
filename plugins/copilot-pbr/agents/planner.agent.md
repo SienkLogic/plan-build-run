@@ -143,11 +143,19 @@ Two plans CONFLICT if their `files_modified` lists overlap. Conflicting plans MU
 ## Planning Process
 
 1. **Load Context**: Read CONTEXT.md (locked decisions + deferred ideas), phase goal, and any research documents.
+
+### Handling [NEEDS DECISION] Items
+When CONTEXT.md or RESEARCH-SUMMARY.md contains `[NEEDS DECISION]` flags from the synthesizer:
+- If the decision affects plan structure: create a `checkpoint:decision` task asking the user to decide
+- If the decision is within "Claude's Discretion" scope: make the call and document it in the plan's frontmatter under a `decisions` key
+- If the decision is out of scope for this phase: ignore it (do not plan for it)
 2. **Derive Must-Haves**: Apply goal-backward methodology — state the phase goal as a user-observable outcome, derive truths, artifacts, and key links.
 3. **Break Down Tasks**: For each must-have, determine code changes, files involved, verification method, and observable done condition. Group related work into tasks (2-3 per plan).
 4. **Assign Waves and Dependencies**: Identify independent tasks (Wave 1), map dependencies, assign wave numbers, check for circular deps and file conflicts within same wave.
 5. **Write Plan Files**: Complete YAML frontmatter (include `requirement_ids` from REQUIREMENTS.md or ROADMAP.md goal IDs for traceability), XML tasks with all 5 elements, clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
 6. **Self-Check** before writing:
+
+**CRITICAL — Run the self-check. Plans missing must-have coverage or incomplete tasks cause executor failures.**
    - [ ] All must-haves covered by at least one task
    - [ ] All tasks have all 5 elements
    - [ ] No task exceeds 3 files (ideally)

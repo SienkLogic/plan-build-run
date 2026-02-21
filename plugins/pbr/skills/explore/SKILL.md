@@ -178,7 +178,7 @@ Suggest specific outputs with reasoning. Present no more than 4 suggestions — 
 | Phase decision | Clarifies an existing phase | Write/append to phase `CONTEXT.md` |
 | Research question | Needs deeper investigation | `.planning/research/questions.md` |
 | New phase | Big enough for its own phase | Append to `ROADMAP.md` |
-| Note | Not actionable yet, worth remembering | `.planning/notes/{slug}.md` |
+| Note | Not actionable yet, worth remembering | `.planning/notes/{YYYY-MM-DD}-{slug}.md` |
 | Quick capture | One-liner idea, no context needed | Suggest `/pbr:note <text>` to the user |
 | Seed | Idea with trigger conditions | `.planning/seeds/SEED-{NNN}-{slug}.md` |
 
@@ -292,7 +292,7 @@ Append to `.planning/ROADMAP.md` following the existing phase format. Assign the
 
 ### Note
 
-Write to `.planning/notes/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/notes/` for the highest existing number prefix, increment by 1, and zero-pad.
+Write to `.planning/notes/{YYYY-MM-DD}-{slug}.md` where the date prefix is today's date in ISO format. Scan `.planning/notes/` to avoid filename collisions — if a file with the same date and slug exists, append `-2` (or increment).
 
 ```markdown
 ---
