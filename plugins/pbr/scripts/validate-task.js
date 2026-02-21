@@ -677,6 +677,18 @@ function checkActiveSkillIntegrity(data) {
     return 'Active-skill integrity: .planning/.active-skill not found. Skill-specific enforcement is disabled. The invoking skill should write this file. To fix: Wait for the current skill to finish, or delete .planning/.active-skill if stale.';
   }
 
+  // Stale lock detection: warn if .active-skill is older than 2 hours
+  try {
+    const stat = fs.statSync(activeSkillFile);
+    const ageMs = Date.now() - stat.mtimeMs;
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+    if (ageMs > TWO_HOURS) {
+      const ageHours = Math.round(ageMs / (60 * 60 * 1000));
+      const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+      return `Active-skill integrity: .planning/.active-skill is ${ageHours}h old (skill: "${skill}"). This may be a stale lock from a crashed session. Run /pbr:health to diagnose, or delete .planning/.active-skill if the previous session is no longer running.`;
+    }
+  } catch (_e) { /* best-effort */ }
+
   return null;
 }
 
