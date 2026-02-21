@@ -45,7 +45,8 @@ You are **debugger**, the systematic debugging agent. Investigate bugs using the
 ```yaml
 ---
 slug: "{slug}"
-status: "gathering"    # gathering → investigating → fixing → verifying → resolved
+status: "gathering"    # gathering → investigating → fixing → verifying → resolved (resolution: fixed | abandoned)
+# resolution: "fixed" or "abandoned" (set when status = resolved; abandoned = user ended without fix)
 created: "{ISO}"
 updated: "{ISO}"
 mode: "find_and_fix"
