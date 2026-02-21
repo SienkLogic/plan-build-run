@@ -204,6 +204,29 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       expect(result).toContain('status: "built"');
     });
 
+    test('updates Phase line in body', () => {
+      const result = updateStatePosition(stateContent, { phaseLine: '5 of 10 (Deployment)' });
+      expect(result).toContain('Phase: 5 of 10 (Deployment)');
+      // Other lines unchanged
+      expect(result).toContain('Plan: 0 of 2 in current phase');
+    });
+
+    test('updates phase frontmatter fields', () => {
+      const withPhaseFm = stateContent.replace('current_phase: 3', 'current_phase: 3')
+        .replace('total_phases: 10', 'total_phases: 10')
+        .replace('---\n# Project', 'phase_slug: "api-endpoints"\nphase_name: "Api Endpoints"\n---\n# Project');
+      const result = updateStatePosition(withPhaseFm, {
+        fmCurrentPhase: 5,
+        fmTotalPhases: 12,
+        fmPhaseSlug: 'deployment',
+        fmPhaseName: 'Deployment'
+      });
+      expect(result).toContain('current_phase: 5');
+      expect(result).toContain('total_phases: 12');
+      expect(result).toContain('phase_slug: "deployment"');
+      expect(result).toContain('phase_name: "Deployment"');
+    });
+
     test('handles legacy format without frontmatter', () => {
       const legacy = `# Project State
 
@@ -464,6 +487,85 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
         expect(result).not.toBeNull();
         expect(result.output.additionalContext).toContain('STATE.md');
+      });
+
+      test('detects phase mismatch and updates Phase line on SUMMARY write', () => {
+        // Phase dir is 03-api-endpoints, but STATE.md says current_phase: 1
+        fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
+        fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+
+        // Also create another phase dir so totalPhases > 1
+        fs.mkdirSync(path.join(phasesDir, '01-setup'), { recursive: true });
+
+        const state = `---
+version: 2
+current_phase: 1
+total_phases: 2
+phase_slug: "setup"
+phase_name: "Setup"
+status: "building"
+progress_percent: 10
+plans_total: 1
+plans_complete: 0
+last_activity: "2026-02-08"
+---
+# Project State
+
+## Current Position
+Phase: 1 of 2 (Setup)
+Plan: 0 of 1 in current phase
+Status: Building
+Last activity: 2026-02-08 -- Init
+Progress: [██░░░░░░░░░░░░░░░░░░] 10%
+`;
+        fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
+
+        const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+        const result = checkStateSync(data);
+
+        expect(result).not.toBeNull();
+        expect(result.output.additionalContext).toContain('Phase 1');
+        expect(result.output.additionalContext).toContain('3');
+
+        const updated = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+        expect(updated).toContain('Phase: 3 of 2 (Api Endpoints)');
+        expect(updated).toContain('current_phase: 3');
+        expect(updated).toContain('phase_slug: "api-endpoints"');
+        expect(updated).toContain('phase_name: "Api Endpoints"');
+      });
+
+      test('does not update Phase line when phase matches', () => {
+        fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
+        fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+
+        const state = `---
+version: 2
+current_phase: 3
+total_phases: 10
+status: "building"
+progress_percent: 0
+plans_total: 1
+plans_complete: 0
+last_activity: "2026-02-08"
+---
+# Project State
+
+## Current Position
+Phase: 3 of 10 (API Endpoints)
+Plan: 0 of 1 in current phase
+Status: Building
+Last activity: 2026-02-08 -- Init
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
+`;
+        fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
+
+        const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+        checkStateSync(data);
+
+        const updated = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+        // Phase line should remain unchanged
+        expect(updated).toContain('Phase: 3 of 10 (API Endpoints)');
+        expect(updated).toContain('current_phase: 3');
       });
 
       test('handles Windows-style backslash paths', () => {

@@ -161,6 +161,10 @@ function updateStatePosition(content, updates) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    if (updates.phaseLine !== undefined && /^Phase:\s/.test(line)) {
+      lines[i] = `Phase: ${updates.phaseLine}`;
+    }
+
     if (updates.planLine !== undefined && /^Plan:\s/.test(line)) {
       lines[i] = `Plan: ${updates.planLine}`;
     }
@@ -185,6 +189,18 @@ function updateStatePosition(content, updates) {
       let fm = content.substring(0, fmEnd + 3);
       const body = content.substring(fmEnd + 3);
 
+      if (updates.fmCurrentPhase !== undefined) {
+        fm = fm.replace(/^(current_phase:\s*).*/m, `$1${updates.fmCurrentPhase}`);
+      }
+      if (updates.fmTotalPhases !== undefined) {
+        fm = fm.replace(/^(total_phases:\s*).*/m, `$1${updates.fmTotalPhases}`);
+      }
+      if (updates.fmPhaseSlug !== undefined) {
+        fm = fm.replace(/^(phase_slug:\s*).*/m, `$1"${updates.fmPhaseSlug}"`);
+      }
+      if (updates.fmPhaseName !== undefined) {
+        fm = fm.replace(/^(phase_name:\s*).*/m, `$1"${updates.fmPhaseName}"`);
+      }
       if (updates.fmPlansComplete !== undefined) {
         fm = fm.replace(/^(plans_complete:\s*).*/m, `$1${updates.fmPlansComplete}`);
       }
@@ -216,6 +232,9 @@ function updateStatePositionBody(body, updates) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    if (updates.phaseLine !== undefined && /^Phase:\s/.test(line)) {
+      lines[i] = `Phase: ${updates.phaseLine}`;
+    }
     if (updates.planLine !== undefined && /^Plan:\s/.test(line)) {
       lines[i] = `Plan: ${updates.planLine}`;
     }
@@ -323,6 +342,17 @@ function checkStateSync(data) {
   const today = new Date().toISOString().slice(0, 10);
   const messages = [];
 
+  // Derive phase metadata for potential phase-line sync
+  const phaseNumInt = parseInt(phaseNum, 10);
+  const phaseSlug = phaseDirName.replace(/^\d+-/, '');
+  const phaseName = phaseSlug.replace(/-/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+  let totalPhases = 0;
+  try {
+    totalPhases = fs.readdirSync(phasesDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && /^\d+-/.test(e.name)).length;
+  } catch (_e) { /* leave as 0 */ }
+
   if (isSummary) {
     const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
     const allComplete = artifacts.completeSummaries >= artifacts.plans;
@@ -358,6 +388,20 @@ function checkStateSync(data) {
           fmLastActivity: today,
           fmProgressPct: overallPct
         };
+
+        // Detect phase mismatch and add phase updates
+        const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
+          || stateContent.match(/^Phase:\s*(\d+)\s/m);
+        const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
+        if (currentPhase !== null && currentPhase !== phaseNumInt) {
+          stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
+          stateUpdates.fmCurrentPhase = phaseNumInt;
+          stateUpdates.fmTotalPhases = totalPhases;
+          stateUpdates.fmPhaseSlug = phaseSlug;
+          stateUpdates.fmPhaseName = phaseName;
+          messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
+        }
+
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
           atomicWrite(statePath, updatedState);
@@ -422,6 +466,20 @@ function checkStateSync(data) {
           fmLastActivity: today,
           fmProgressPct: overallPct
         };
+
+        // Detect phase mismatch and add phase updates
+        const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
+          || stateContent.match(/^Phase:\s*(\d+)\s/m);
+        const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
+        if (currentPhase !== null && currentPhase !== phaseNumInt) {
+          stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
+          stateUpdates.fmCurrentPhase = phaseNumInt;
+          stateUpdates.fmTotalPhases = totalPhases;
+          stateUpdates.fmPhaseSlug = phaseSlug;
+          stateUpdates.fmPhaseName = phaseName;
+          messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
+        }
+
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
           atomicWrite(statePath, updatedState);
