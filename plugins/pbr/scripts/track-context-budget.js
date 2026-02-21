@@ -67,8 +67,17 @@ function main() {
       const currentSkill = readFileSafe(skillPath);
       let tracker = loadTracker(trackerPath);
 
-      if (tracker.skill !== currentSkill || tracker.files.length > 200) {
+      if (tracker.skill !== currentSkill) {
         tracker = { skill: currentSkill, reads: 0, total_chars: 0, files: [] };
+      } else if (tracker.files.length > 200) {
+        logHook('track-context-budget', 'PostToolUse', 'warn', {
+          reason: 'tracker reset at 200 files',
+          reads: tracker.reads,
+          total_chars: tracker.total_chars,
+          unique_files: tracker.files.length,
+        });
+        const prevCharsTotal = tracker.total_chars;
+        tracker = { skill: currentSkill, reads: 0, total_chars: prevCharsTotal, files: [] };
       }
 
       // Update tracker

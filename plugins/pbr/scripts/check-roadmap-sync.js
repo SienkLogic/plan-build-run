@@ -48,6 +48,10 @@ function main() {
       const stateInfo = parseState(stateContent);
       if (!stateInfo || !stateInfo.phase || !stateInfo.status) {
         logHook('check-roadmap-sync', 'PostToolUse', 'skip', { reason: 'could not parse STATE.md' });
+        const output = {
+          additionalContext: '[Roadmap Sync] Could not parse phase/status from STATE.md — ensure it contains **Phase**: and **Status**: fields.'
+        };
+        process.stdout.write(JSON.stringify(output));
         process.exit(0);
       }
 
@@ -220,7 +224,11 @@ function checkSync(data) {
   const stateInfo = parseState(stateContent);
   if (!stateInfo || !stateInfo.phase || !stateInfo.status) {
     logHook('check-roadmap-sync', 'PostToolUse', 'skip', { reason: 'could not parse STATE.md' });
-    return null;
+    return {
+      output: {
+        additionalContext: '[Roadmap Sync] Could not parse phase/status from STATE.md — ensure it contains **Phase**: and **Status**: fields.'
+      }
+    };
   }
 
   if (!LIFECYCLE_STATUSES.includes(stateInfo.status)) {
