@@ -19,9 +19,9 @@ This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► QUICK TASK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► QUICK TASK                                 ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -250,15 +250,15 @@ Display results to the user with branded output:
 
 **If completed:**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► QUICK TASK COMPLETE ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► QUICK TASK COMPLETE ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Quick Task {NNN}:** {description}
 Commit: {hash} — {commit message}
 Files: {list of files changed}
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -268,13 +268,13 @@ Files: {list of files changed}
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:todo list` — see pending todos
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 **If partial:**

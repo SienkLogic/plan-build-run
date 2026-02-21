@@ -12,9 +12,9 @@ argument-hint: "<phase-number>"
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DISCUSSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DISCUSSION                                 ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -229,15 +229,15 @@ This creates a pointer so `/pbr:resume` and `progress-tracker.js` know that phas
 After writing CONTEXT.md, display branded output:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DISCUSSION CAPTURED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DISCUSSION CAPTURED ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {name}**
 
 Decisions: {count} locked, {count} deferred, {count} discretion
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -247,13 +247,13 @@ Decisions: {count} locked, {count} deferred, {count} discretion
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:status` — see project status
 - `/pbr:explore` — explore ideas further
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---

@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK                               ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -216,13 +216,13 @@ After all checks complete, display the branded result:
 
 **If all checks passed (0 failures):**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK PASSED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK PASSED ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 {N} checks passed, {M} warnings
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -232,24 +232,24 @@ After all checks complete, display the branded result:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:config` — adjust settings
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 **If failures found:**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK FAILED ⚠
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK FAILED ⚠                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 {N} checks passed, {F} failures, {M} warnings
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -257,7 +257,7 @@ After all checks complete, display the branded result:
 
 `/pbr:health`
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---
