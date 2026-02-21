@@ -263,6 +263,26 @@ Archive a completed milestone and prepare for the next one.
 
 5. **Archive milestone documents:**
 
+   **CRITICAL: Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
+
+   Before creating or moving anything, verify the destination is safe:
+   - Check if `.planning/milestones/{version}/` already exists
+   - If it exists AND contains files (phases/, STATS.md, etc.), STOP and display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     Archive destination `.planning/milestones/{version}/` already contains files.
+     Completing this milestone would overwrite the existing archive.
+
+     **To fix:** Run `/pbr:health` or manually inspect `.planning/milestones/{version}/`.
+     Use a different version number (e.g., {version}.1) or remove the existing archive first.
+     ```
+     Ask the user via AskUserQuestion whether to use a different version or abort.
+   - Verify each source phase directory exists before attempting to move it
+   - If any source phase directory is missing, warn but continue with the phases that do exist
+
    **CRITICAL: Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
 
    Create a versioned archive directory and move phase directories into it:
