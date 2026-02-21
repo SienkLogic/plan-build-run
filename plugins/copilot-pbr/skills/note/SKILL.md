@@ -8,9 +8,9 @@ description: "Zero-friction idea capture. Append, list, or promote notes to todo
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► NOTE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► NOTE                                       ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

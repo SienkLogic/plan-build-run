@@ -8,9 +8,9 @@ description: "Talk through a phase before planning. Identifies gray areas and ca
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DISCUSSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DISCUSSION                                 ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -149,17 +149,23 @@ If more than 3 concrete options exist for a gray area, present only the top 3 pl
 
 For each gray area where the user made a decision (not "Let Claude decide"), ask **4 follow-up questions** to fully capture their intent.
 
+**CRITICAL — STOP: Do NOT skip ANY of the 4 follow-up areas below. All 4 MUST be asked for each gray area where the user made a decision.**
+
 **Follow-up question types:**
 
+**CRITICAL — STOP: Do NOT skip this follow-up area.**
 1. **Scope boundary**: "Should {feature} also handle {edge case}?"
    Use the **yes-no** pattern — this is a binary decision.
 
+**CRITICAL — STOP: Do NOT skip this follow-up area.**
 2. **Quality level**: "How polished should this be?"
    Do NOT use AskUserQuestion — this is freeform. Let the user describe their quality expectations in their own words.
 
+**CRITICAL — STOP: Do NOT skip this follow-up area.**
 3. **Integration**: "How should this interact with {existing component}?"
    Do NOT use AskUserQuestion — this is freeform. The answer depends on the specific component and context.
 
+**CRITICAL — STOP: Do NOT skip this follow-up area.**
 4. **Future-proofing**: "Should we design this to support {potential future need}, or keep it simple?"
    Use the **yes-no** pattern:
      question: "Design {feature} to support {future need}, or keep it simple for now?"
@@ -172,6 +178,8 @@ For each gray area where the user made a decision (not "Let Claude decide"), ask
 - Record exact answers (don't paraphrase)
 - If the user gives a short answer, capture it as-is
 - If the user says "you decide" on a follow-up, move that specific sub-decision to Claude's Discretion
+
+**Completion check:** After all follow-up questions for all gray areas, verify that all 4 follow-up areas produced output for each decided gray area. If any area was missed, go back and ask it before proceeding to Step 6.
 
 ### Step 6: Capture Deferred Ideas
 
@@ -217,15 +225,15 @@ This creates a pointer so `/pbr:resume` and `progress-tracker.js` know that phas
 After writing CONTEXT.md, display branded output:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DISCUSSION CAPTURED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DISCUSSION CAPTURED ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {name}**
 
 Decisions: {count} locked, {count} deferred, {count} discretion
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -235,13 +243,13 @@ Decisions: {count} locked, {count} deferred, {count} discretion
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:status` — see project status
 - `/pbr:explore` — explore ideas further
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---

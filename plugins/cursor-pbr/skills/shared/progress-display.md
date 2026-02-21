@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/progress-display.md -->
 # Progress Display Fragment
 
 Standard progress display formats for all skills. Reference `references/ui-formatting.md` for the full brand guide.

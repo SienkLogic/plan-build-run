@@ -24,11 +24,15 @@ These rules prevent context rot -- quality degradation as the context window fil
 8. **Never** read `.planning/logs/` files -- only the health skill reads these.
 9. **Do not** re-read full file contents when frontmatter is sufficient -- frontmatter contains status, key_files, commits, and provides fields.
 
+## Task/Subagent Rules (apply to every skill)
+
+10. **Never** invoke `Skill()` inside a `Task()` subagent -- the Skill tool is not available in subagent contexts. Subagents spawned by `Task()` cannot resolve `/pbr:*` skill prefixes, so `Skill({ skill: "pbr:plan" })` will silently fail. Instead, chain skills at the orchestrator level (return control to the orchestrator, then call `Skill()` from there). For subagent work, use `subagent_type: "pbr:{agent}"` which auto-loads agent definitions.
+
 ## Behavioral Rules (apply to every skill)
 
-10. **Do not** re-litigate decisions that are already locked in CONTEXT.md -- respect locked decisions unconditionally.
-11. **Do not** create artifacts the user did not approve -- always confirm before writing new planning documents.
-12. **Do not** modify files outside the skill's stated scope -- check the "Files Created/Modified" table in each skill.
-13. **Do not** suggest multiple next actions without clear priority -- one primary suggestion, alternatives listed secondary.
-14. **Do not** use `git add .` or `git add -A` -- stage specific files only.
-15. **Do not** include sensitive information (API keys, passwords, tokens) in planning documents or commits.
+11. **Do not** re-litigate decisions that are already locked in CONTEXT.md -- respect locked decisions unconditionally.
+12. **Do not** create artifacts the user did not approve -- always confirm before writing new planning documents.
+13. **Do not** modify files outside the skill's stated scope -- check the "Files Created/Modified" table in each skill.
+14. **Do not** suggest multiple next actions without clear priority -- one primary suggestion, alternatives listed secondary.
+15. **Do not** use `git add .` or `git add -A` -- stage specific files only.
+16. **Do not** include sensitive information (API keys, passwords, tokens) in planning documents or commits.

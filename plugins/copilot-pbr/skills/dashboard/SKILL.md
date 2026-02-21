@@ -8,9 +8,9 @@ description: "Launch the PBR web dashboard for the current project."
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DASHBOARD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DASHBOARD                                  ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

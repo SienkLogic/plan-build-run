@@ -9,9 +9,9 @@ argument-hint: "[issue description]"
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► DEBUGGING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► DEBUGGING                                  ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -232,16 +232,15 @@ Actions:
 3. Report to user with branded output:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► BUG RESOLVED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► BUG RESOLVED ✓                             ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Session #{NNN}:** {title}
 **Root cause:** {cause}
 **Fix:** {description}
 **Commit:** {hash}
 
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
@@ -251,13 +250,11 @@ Actions:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:review {N}` — verify the current phase
 
-───────────────────────────────────────────────────────────────
 ```
 
 #### ROOT CAUSE FOUND (no fix)
@@ -277,7 +274,6 @@ Actions:
 2. Suggest next steps to user:
 
 ```
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
@@ -287,13 +283,11 @@ Actions:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
 
 **Also available:**
 - `/pbr:plan` — for complex fixes that need planning
 - `/pbr:status` — see project status
 
-───────────────────────────────────────────────────────────────
 ```
 
 #### CHECKPOINT

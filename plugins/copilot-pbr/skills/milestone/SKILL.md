@@ -8,9 +8,9 @@ description: "Manage milestones: new, complete, audit, gaps."
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► MILESTONE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► MILESTONE                                  ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -28,9 +28,9 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Never** perform integration checks yourself — delegate to the integration-checker subagent
+- **Never** perform integration checks yourself — delegate to the integration-checker agent
 - **Minimize** reading audit and verification outputs — read only frontmatter and status fields
-- **Delegate** all cross-phase integration analysis to the integration-checker subagent
+- **Delegate** all cross-phase integration analysis to the integration-checker agent
 
 ---
 
@@ -155,9 +155,9 @@ Start a new milestone cycle with new phases.
 
 10. **Confirm** with branded output:
     ```
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     PLAN-BUILD-RUN ► MILESTONE CREATED ✓
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  PLAN-BUILD-RUN ► MILESTONE CREATED ✓                        ║
+    ╚══════════════════════════════════════════════════════════════╝
 
     **Milestone: {name}** — {count} phases
 
@@ -166,7 +166,7 @@ Start a new milestone cycle with new phases.
     {N+1}. {name}
     ...
 
-    ───────────────────────────────────────────────────────────────
+
 
     ## ▶ Next Up
 
@@ -176,13 +176,13 @@ Start a new milestone cycle with new phases.
 
     <sub>`/clear` first → fresh context window</sub>
 
-    ───────────────────────────────────────────────────────────────
+
 
     **Also available:**
     - `/pbr:plan {N}` — skip discussion, plan directly
     - `/pbr:status` — see project status
 
-    ───────────────────────────────────────────────────────────────
+
     ```
 
 ---
@@ -258,6 +258,26 @@ Archive a completed milestone and prepare for the next one.
    - Collect `tech_stack` union
 
 5. **Archive milestone documents:**
+
+   **CRITICAL: Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
+
+   Before creating or moving anything, verify the destination is safe:
+   - Check if `.planning/milestones/{version}/` already exists
+   - If it exists AND contains files (phases/, STATS.md, etc.), STOP and display:
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     Archive destination `.planning/milestones/{version}/` already contains files.
+     Completing this milestone would overwrite the existing archive.
+
+     **To fix:** Run `/pbr:health` or manually inspect `.planning/milestones/{version}/`.
+     Use a different version number (e.g., {version}.1) or remove the existing archive first.
+     ```
+     Ask the user via AskUserQuestion whether to use a different version or abort.
+   - Verify each source phase directory exists before attempting to move it
+   - If any source phase directory is missing, warn but continue with the phases that do exist
 
    **CRITICAL: Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
 
@@ -340,9 +360,9 @@ Archive a completed milestone and prepare for the next one.
 
 10. **Confirm** with branded output:
     ```
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     PLAN-BUILD-RUN ► MILESTONE COMPLETE 🎉
-    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    ╔══════════════════════════════════════════════════════════════╗
+    ║  PLAN-BUILD-RUN ► MILESTONE COMPLETE 🎉                      ║
+    ╚══════════════════════════════════════════════════════════════╝
 
     **{version}**
 
@@ -354,7 +374,7 @@ Archive a completed milestone and prepare for the next one.
     Archived to: .planning/milestones/{version}/
     Git tag: {version}
 
-    ───────────────────────────────────────────────────────────────
+
 
     ## ▶ Next Up
 
@@ -364,13 +384,13 @@ Archive a completed milestone and prepare for the next one.
 
     <sub>`/clear` first → fresh context window</sub>
 
-    ───────────────────────────────────────────────────────────────
+
 
     **Also available:**
     - `/pbr:status` — see project status
     - `/pbr:help` — see all commands
 
-    ───────────────────────────────────────────────────────────────
+
     ```
 
 ---
@@ -394,7 +414,7 @@ Verify milestone completion with cross-phase integration checks.
 
    Display to the user: `◐ Spawning integration checker...`
 
-   Spawn `Task(subagent_type: "pbr:integration-checker")` with:
+   Spawn `Task(agent_type: "pbr:integration-checker")` with:
 
    ```
    You are integration-checker. Perform cross-phase integration verification.
@@ -435,13 +455,13 @@ Verify milestone completion with cross-phase integration checks.
 
    **If PASSED:**
    ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    PLAN-BUILD-RUN ► MILESTONE AUDIT PASSED ✓
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT PASSED ✓                   ║
+   ╚══════════════════════════════════════════════════════════════╝
 
    All phases verified, integration checks passed, requirements covered.
 
-   ───────────────────────────────────────────────────────────────
+
 
    ## ▶ Next Up
 
@@ -451,26 +471,26 @@ Verify milestone completion with cross-phase integration checks.
 
    <sub>`/clear` first → fresh context window</sub>
 
-   ───────────────────────────────────────────────────────────────
+
 
    **Also available:**
    - `/pbr:milestone gaps` — address any minor issues first
    - `/pbr:status` — see project status
 
-   ───────────────────────────────────────────────────────────────
+
    ```
 
    **If GAPS FOUND:**
    ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    PLAN-BUILD-RUN ► MILESTONE AUDIT — GAPS FOUND ⚠
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT — GAPS FOUND ⚠             ║
+   ╚══════════════════════════════════════════════════════════════╝
 
    Found {count} gaps:
    - {gap 1}
    - {gap 2}
 
-   ───────────────────────────────────────────────────────────────
+
 
    ## ▶ Next Up
 
@@ -480,24 +500,24 @@ Verify milestone completion with cross-phase integration checks.
 
    <sub>`/clear` first → fresh context window</sub>
 
-   ───────────────────────────────────────────────────────────────
+
 
    **Also available:**
    - `/pbr:milestone complete` — proceed despite gaps
    - `/pbr:status` — see project status
 
-   ───────────────────────────────────────────────────────────────
+
    ```
 
    **If TECH DEBT:**
    ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    PLAN-BUILD-RUN ► MILESTONE AUDIT — TECH DEBT ⚠
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT — TECH DEBT ⚠              ║
+   ╚══════════════════════════════════════════════════════════════╝
 
    Milestone functional but has {count} tech debt items.
 
-   ───────────────────────────────────────────────────────────────
+
 
    ## ▶ Next Up
 
@@ -508,7 +528,7 @@ Verify milestone completion with cross-phase integration checks.
 
    <sub>`/clear` first → fresh context window</sub>
 
-   ───────────────────────────────────────────────────────────────
+
    ```
 
 ---
@@ -591,15 +611,15 @@ Create phases to close gaps found during an audit.
 
 9. **Confirm** with branded output:
    ```
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    PLAN-BUILD-RUN ► GAP PHASES CREATED ✓
-   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  PLAN-BUILD-RUN ► GAP PHASES CREATED ✓                       ║
+   ╚══════════════════════════════════════════════════════════════╝
 
    Created {count} gap-closure phase(s):
    - Phase {N}: {name}
    - Phase {N+1}: {name}
 
-   ───────────────────────────────────────────────────────────────
+
 
    ## ▶ Next Up
 
@@ -609,12 +629,12 @@ Create phases to close gaps found during an audit.
 
    <sub>`/clear` first → fresh context window</sub>
 
-   ───────────────────────────────────────────────────────────────
+
 
    **Also available:**
    - `/pbr:status` — see project status
 
-   ───────────────────────────────────────────────────────────────
+
    ```
 
 ---

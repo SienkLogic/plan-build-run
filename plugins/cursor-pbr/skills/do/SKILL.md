@@ -13,9 +13,9 @@ You are running the **do** skill. Your job is to analyze freeform text from the 
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► ROUTING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► ROUTING                                    ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
