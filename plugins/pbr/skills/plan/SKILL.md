@@ -24,9 +24,9 @@ Additionally for this skill:
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PLANNING PHASE {N}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PLANNING PHASE {N}                         ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
@@ -662,9 +662,9 @@ After planning completes, present:
 Use the branded stage banner from `references/ui-formatting.md`:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PLANNING PHASE {N} ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PLANNING PHASE {N} ✓                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {name}** — {plan_count} plans created
 
@@ -680,7 +680,7 @@ Wave execution:
 
 Then use the "Next Up" routing block:
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -690,11 +690,11 @@ Then use the "Next Up" routing block:
 
 <sub>/clear first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - /pbr:plan {N} --assumptions — review assumptions first
 - /pbr:discuss {N} — talk through details before building
 
-───────────────────────────────────────────────────────────────
+
 ```

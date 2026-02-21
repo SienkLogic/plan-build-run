@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PAUSING SESSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PAUSING SESSION                            ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -169,15 +169,15 @@ git commit -m "wip(planning): save session state — phase {N} plan {M}"
 Display branded confirmation:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SESSION SAVED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SESSION SAVED ✓                            ║
+╚══════════════════════════════════════════════════════════════╝
 
 Position: Phase {N} — {phase name}, Plan {M}
 Completed: {count} plans this session
 Remaining: {count} plans in this phase
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -187,7 +187,7 @@ Remaining: {count} plans in this phase
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---

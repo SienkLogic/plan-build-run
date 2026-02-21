@@ -11,9 +11,9 @@ allowed-tools: Read, Glob, Grep, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PROJECT STATUS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PROJECT STATUS                             ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -268,7 +268,7 @@ Based on the project state, suggest the single most logical next action:
 **If only one reasonable next action exists**, present it with branded routing:
 
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -278,7 +278,7 @@ Based on the project state, suggest the single most logical next action:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 **If multiple reasonable next actions exist** (2-3 alternatives), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):

@@ -11,9 +11,9 @@ allowed-tools: Read
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► COMMAND REFERENCE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► COMMAND REFERENCE                          ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -137,7 +137,7 @@ Skills automatically activate the appropriate context: `/pbr:build` uses dev con
 ## Getting Started
 
 ```
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -146,7 +146,7 @@ Skills automatically activate the appropriate context: `/pbr:build` uses dev con
 → `/pbr:config` — configure workflow settings
 → `/pbr:help <command>` — detailed help for a specific command
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ## Getting Help
