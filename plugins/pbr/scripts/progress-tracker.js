@@ -91,6 +91,20 @@ function buildContext(planningDir, stateFile) {
     if (continuity) {
       parts.push(`\nLast Session:\n${continuity}`);
     }
+
+    // Detect stale "Building" status — likely a crashed executor
+    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
+    if (statusMatch && statusMatch[1].toLowerCase() === 'building') {
+      try {
+        const stateStat = fs.statSync(stateFile);
+        const ageMs = Date.now() - stateStat.mtimeMs;
+        const ageMinutes = Math.round(ageMs / 60000);
+        if (ageMinutes > 30) {
+          parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
+          logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+        }
+      } catch (_e) { /* best-effort */ }
+    }
   } else {
     parts.push('\nNo STATE.md found. Run /pbr:begin to initialize or /pbr:status to check.');
   }

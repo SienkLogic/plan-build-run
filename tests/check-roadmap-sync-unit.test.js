@@ -100,11 +100,13 @@ describe('checkSync', () => {
     expect(checkSync({ tool_input: { file_path: statePath } })).toBeNull();
   });
 
-  test('returns null when STATE.md has no parseable phase', () => {
+  test('returns advisory warning when STATE.md has no parseable phase', () => {
     const statePath = path.join(planningDir, 'STATE.md');
     fs.writeFileSync(statePath, 'No phase info');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
-    expect(checkSync({ tool_input: { file_path: statePath } })).toBeNull();
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('Could not parse');
   });
 
   test('returns null when status is not a lifecycle status', () => {

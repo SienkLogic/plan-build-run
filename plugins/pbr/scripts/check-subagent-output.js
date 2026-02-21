@@ -312,6 +312,22 @@ function main() {
     }
   }
 
+  // GAP-08: Scan codebase-mapper should produce all 4 focus areas
+  if (activeSkill === 'scan' && agentType === 'pbr:codebase-mapper') {
+    const expectedAreas = ['tech', 'arch', 'quality', 'concerns'];
+    const codebaseDir = path.join(planningDir, 'codebase');
+    if (fs.existsSync(codebaseDir)) {
+      try {
+        const files = fs.readdirSync(codebaseDir).map(f => f.toLowerCase());
+        for (const area of expectedAreas) {
+          if (!files.some(f => f.includes(area))) {
+            skillWarnings.push(`Scan mapper: No output file containing "${area}" found in .planning/codebase/. One of the 4 mappers may have failed.`);
+          }
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  }
+
   // GAP-07: Review verifier should produce meaningful VERIFICATION.md status
   if (activeSkill === 'review' && agentType === 'pbr:verifier') {
     const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
