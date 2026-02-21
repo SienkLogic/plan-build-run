@@ -226,7 +226,9 @@ After creating artifacts (or if user chose "Skip"), display:
 
 
 
-## ▶ Next Up
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{Primary route based on what was created}**
 
