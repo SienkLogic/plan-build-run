@@ -312,6 +312,20 @@ function main() {
     }
   }
 
+  // GAP-07: Review verifier should produce meaningful VERIFICATION.md status
+  if (activeSkill === 'review' && agentType === 'pbr:verifier') {
+    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+    for (const vf of verFiles) {
+      try {
+        const content = fs.readFileSync(vf, 'utf8');
+        const statusMatch = content.match(/^status:\s*(\S+)/mi);
+        if (statusMatch && statusMatch[1] === 'gaps_found') {
+          skillWarnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  }
+
   // GAP-06: Build/quick executor SUMMARY should have commits
   if ((activeSkill === 'build' || activeSkill === 'quick') && agentType === 'pbr:executor') {
     checkSummaryCommits(planningDir, found, skillWarnings);
