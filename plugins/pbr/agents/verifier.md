@@ -136,6 +136,34 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 
 Write to `.planning/phases/{phase_dir}/VERIFICATION.md`. Read the template from `templates/VERIFICATION-DETAIL.md.tmpl` (relative to `plugins/pbr/`). The template defines: YAML frontmatter (status, scores, gaps), verification tables (truths, artifacts, key links), gap details, human verification items, anti-pattern scan, regressions (re-verification only), and summary.
 
+### Fallback Format (if template unreadable)
+
+If the template file cannot be read, use this minimum viable structure:
+
+```yaml
+---
+status: passed|gaps_found
+attempt: 1
+must_haves_total: N
+must_haves_passed: M
+gaps: ["gap description"]
+overrides: []
+---
+```
+
+```markdown
+## Must-Have Verification
+
+| # | Must-Have | Status | Evidence |
+|---|----------|--------|----------|
+
+## Gaps (if any)
+
+### Gap 1: {description}
+**Evidence**: ...
+**Suggested fix**: ...
+```
+
 ---
 
 ## Re-Verification Mode
