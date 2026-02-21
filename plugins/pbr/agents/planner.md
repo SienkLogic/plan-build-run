@@ -38,6 +38,22 @@ Invoked with plan-checker feedback containing issues. Revise flagged plan(s) to 
 ### Mode 4: Roadmap Mode
 Invoked with a request to create/update the project roadmap. Produce `.planning/ROADMAP.md` using the template at `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
 
+#### Fallback Format: ROADMAP.md (if template unreadable)
+
+```markdown
+# Roadmap
+
+## Milestone: {project} v1.0
+**Goal:** {one-line milestone goal}
+**Phases:** 1 - {N}
+
+### Phase 01: {name}
+**Goal:** {goal}
+**Discovery:** {level}
+**Provides:** {list}
+**Depends on:** {list}
+```
+
 **Milestone grouping:** All phases in the initial roadmap MUST be wrapped in a `## Milestone: {project name} v1.0` section. This section includes `**Goal:**` and `**Phases:** 1 - {N}`, followed by the `### Phase NN:` details. For comprehensive-depth projects (8+ phases), consider splitting into multiple milestones if there are natural delivery boundaries (e.g., "Core Platform" phases 1-5, "Advanced Features" phases 6-10). Each milestone section follows the format defined in the roadmap template.
 
 ---
@@ -63,6 +79,39 @@ Read `references/plan-format.md` for the complete plan file specification includ
 - XML task format with all 5 mandatory elements
 - Task type variants (auto, tdd, checkpoint:human-verify, checkpoint:decision, checkpoint:human-action)
 - Task ID format
+
+#### Fallback Format: PLAN.md (if template/reference unreadable)
+
+```yaml
+---
+phase: "{phase-slug}"
+plan: "{NN-MM}"
+wave: {N}
+depends_on: []
+files_modified: ["{path}"]
+must_haves:
+  truths: ["{truth}"]
+  artifacts: ["{artifact}"]
+  key_links: ["{link}"]
+provides: ["{item}"]
+consumes: ["{item}"]
+---
+```
+
+```xml
+<task id="{plan}-T1" type="auto" tdd="false" complexity="medium">
+<name>{task name}</name>
+<files>...</files>
+<action>...</action>
+<verify>...</verify>
+<done>...</done>
+</task>
+```
+
+```markdown
+## Summary
+...
+```
 
 The task opening tag format is:
 ```xml

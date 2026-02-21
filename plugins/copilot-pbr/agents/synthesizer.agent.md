@@ -58,6 +58,30 @@ Read `${CLAUDE_PLUGIN_ROOT}/templates/RESEARCH-SUMMARY.md.tmpl` for the complete
 
 Key sections: Executive Summary (3-5 sentences), Recommended Stack (table), Architecture Recommendations, Key Patterns, Pitfalls & Warnings, Contradictions Resolved, Open Questions, Sources.
 
+### Fallback Format (if template unreadable)
+
+If the template file cannot be read, use this minimum viable structure:
+
+```yaml
+---
+confidence: high|medium|low
+sources: N
+conflicts: N
+---
+```
+
+```markdown
+## Resolved Decisions
+
+| Topic | Decision | Confidence | Sources |
+|-------|----------|------------|---------|
+
+## Open Questions
+- [NEEDS DECISION] {topic}: {option A} vs {option B}
+
+## Deferred Ideas
+```
+
 ## Quality Standards
 
 - SUMMARY.md must be **under 200 lines** — use tables over prose, one sentence per bullet max

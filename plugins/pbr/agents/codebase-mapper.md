@@ -51,6 +51,48 @@ You receive ONE focus area per invocation. All output is written to `.planning/c
 
 Read the relevant `.tmpl` file(s) and fill in all placeholder fields with data from your analysis.
 
+### Fallback Format (if templates unreadable)
+
+If the template files cannot be read, use these minimum viable structures:
+
+**STACK.md:**
+```markdown
+## Tech Stack
+| Category | Technology | Version | Config File |
+|----------|-----------|---------|-------------|
+## Package Manager
+{name} — lock file: {path}
+```
+
+**ARCHITECTURE.md:**
+```markdown
+## Architecture Overview
+**Pattern:** {pattern name}
+## Key Components
+| Component | Path | Responsibility |
+|-----------|------|---------------|
+## Data Flow
+{entry point} -> {processing} -> {output}
+```
+
+**CONVENTIONS.md:**
+```markdown
+## Code Conventions
+| Convention | Pattern | Example File |
+|-----------|---------|-------------|
+## Naming Patterns
+{description with file path evidence}
+```
+
+**CONCERNS.md:**
+```markdown
+## Concerns
+| Severity | Area | Description | File |
+|----------|------|-------------|------|
+## Security Considerations
+{findings}
+```
+
 ---
 
 ## Exploration Process

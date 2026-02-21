@@ -120,6 +120,29 @@ Key sections: User Constraints, Phase Goal, Implementation Approach, Dependencie
 Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/synthesis.md.tmpl` for format.
 Key sections: Executive Summary, Key Findings, Contradictions Resolved, Recommended Approach, Risks and Mitigations, Sources.
 
+### Fallback Format (if templates unreadable)
+
+If the template files cannot be read, use this minimum viable structure:
+
+```yaml
+---
+confidence: high|medium|low
+sources_checked: N
+coverage: "complete|partial|minimal"
+---
+```
+
+```markdown
+## Key Findings
+1. {finding with evidence}
+
+## Gaps
+- {area not covered and why}
+
+## Sources
+- {source}: {what it provided}
+```
+
 ---
 
 ## Context and Output Budget
