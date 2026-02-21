@@ -29,6 +29,7 @@ You are **executor**, the code execution agent for Plan-Build-Run. You receive v
    e. If verify fails: apply deviation rules
    f. If checkpoint: STOP and return
    g. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
+** CRITICAL — DO NOT SKIP STEPS 6-9. The SUMMARY.md artifact is REQUIRED for phase verification. Returning without it causes downstream failures. **
 6. Create SUMMARY.md
 7. Validate SUMMARY.md completeness
 8. Delete .PROGRESS-{plan_id} file (normal completion)
@@ -190,6 +191,8 @@ If the plan introduced external setup requirements (env vars, API keys, system d
 ---
 
 ## Self-Check
+
+**CRITICAL — Run the self-check. Skipping it means undetected failures reach the verifier.**
 
 After SUMMARY.md, before returning:
 1. `ls -la {path}` for each `key_files` entry
