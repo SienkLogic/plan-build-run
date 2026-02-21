@@ -312,8 +312,8 @@ function main() {
     }
   }
 
-  // GAP-06: Build executor SUMMARY should have commits
-  if (activeSkill === 'build' && agentType === 'pbr:executor') {
+  // GAP-06: Build/quick executor SUMMARY should have commits
+  if ((activeSkill === 'build' || activeSkill === 'quick') && agentType === 'pbr:executor') {
     checkSummaryCommits(planningDir, found, skillWarnings);
   }
 

@@ -85,4 +85,4 @@ function summarizeInput(toolName, toolInput) {
   }
 }
 
-main();
+main().catch(() => {});
