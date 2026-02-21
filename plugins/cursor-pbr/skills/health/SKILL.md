@@ -8,9 +8,9 @@ description: "Check planning directory integrity. Find and fix corrupted state."
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK                               ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -19,7 +19,7 @@ Then proceed to Step 1.
 
 You are running the **health** skill. Your job is to validate the integrity of the `.planning/` directory, report problems, and suggest targeted fixes. You never auto-repair anything.
 
-This skill runs **inline** and is **read-only** — it never modifies any files.
+This skill runs **inline**. It is read-only by default, but offers an optional **auto-fix** flow for common corruption patterns (see the Auto-Fix section below).
 
 ---
 
@@ -149,6 +149,58 @@ Glob for `.planning/phases/**/.PROGRESS-*` and `.planning/phases/**/.checkpoint-
 
 ---
 
+## Auto-Fix for Common Corruption Patterns
+
+After running all 10 checks and collecting results, if any of the following auto-fixable issues were found, offer to fix them.
+
+### Auto-Fixable Patterns
+
+| Pattern | Detection | Fix Action |
+|---------|-----------|------------|
+| Missing STATE.md frontmatter | Check 5 finds STATE.md without `---` block | Regenerate frontmatter from ROADMAP.md phase data (current_phase, total_phases, status) |
+| STATE.md phase_slug mismatch | Check 5/7 finds phase_slug doesn't match current phase directory name | Correct phase_slug to match the actual directory name in `.planning/phases/` |
+| Missing config.json | Check 1/2 finds no `.planning/config.json` | Create with default config template (same as `/pbr:setup` defaults) |
+| Orphaned .active-skill file | Check 10 or general scan finds `.planning/.active-skill` older than 1 hour | Delete the stale `.active-skill` file |
+| Empty phases directory | Check 3 finds `.planning/phases/` missing | Create the directory: `mkdir -p .planning/phases` |
+| STATE.md over 150 lines | Check 5 finds STATE.md exceeds 150 lines | Compact the `## Accumulated Context` section, keeping only the last 3 entries |
+
+### Auto-Fix Flow
+
+After displaying health check results, if any auto-fixable issues were detected:
+
+1. Count the auto-fixable issues and present:
+
+   Use AskUserQuestion:
+     question: "Found {N} auto-fixable issues. How should we handle them?"
+     header: "Fix?"
+     options:
+       - label: "Fix all"       description: "Apply all {N} fixes automatically"
+       - label: "Review each"   description: "Show each fix and confirm individually"
+       - label: "Skip"          description: "Do nothing — just report"
+
+2. If "Fix all": Apply all fixes in order, then display a summary:
+   ```
+   Auto-fix results:
+   - Fixed: {description of fix 1}
+   - Fixed: {description of fix 2}
+   ...
+   ```
+
+3. If "Review each": For each fixable issue, display:
+   ```
+   Issue: {description}
+   Fix: {what will be done}
+   ```
+   Then ask via AskUserQuestion (yes/no): "Apply this fix?"
+   - If yes: apply and display `- Fixed: {description}`
+   - If no: skip and display `- Skipped: {description}`
+
+4. If "Skip": Do nothing, continue to the rest of the output.
+
+**Note:** When auto-fix is active, the health skill is no longer strictly read-only. The `allowed-tools` frontmatter must include `Write` and `AskUserQuestion` for auto-fix to work. Update the frontmatter accordingly.
+
+---
+
 ## Bonus: Recent Decisions
 
 After all checks, look for `.planning/logs/decisions.jsonl`. If it exists, display the last 5 entries as `- {date}: {summary} (phase {N})`. If it does not exist, skip silently.
@@ -161,13 +213,13 @@ After all checks complete, display the branded result:
 
 **If all checks passed (0 failures):**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK PASSED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK PASSED ✓                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 {N} checks passed, {M} warnings
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -177,24 +229,24 @@ After all checks complete, display the branded result:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
+
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:config` — adjust settings
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 **If failures found:**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► HEALTH CHECK FAILED ⚠
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► HEALTH CHECK FAILED ⚠                      ║
+╚══════════════════════════════════════════════════════════════╝
 
 {N} checks passed, {F} failures, {M} warnings
 
-───────────────────────────────────────────────────────────────
+
 
 ## ▶ Next Up
 
@@ -202,15 +254,15 @@ After all checks complete, display the branded result:
 
 `/pbr:health`
 
-───────────────────────────────────────────────────────────────
+
 ```
 
 ---
 
 ## Anti-Patterns
 
-1. **DO NOT** modify any files — this is strictly read-only
-2. **DO NOT** auto-repair anything — present fixes and let the user decide
+1. **DO NOT** modify files without user consent — auto-fix requires explicit user approval via AskUserQuestion
+2. **DO NOT** auto-repair anything silently — always present fixes and let the user decide
 3. **DO NOT** skip checks that depend on missing files — report the dependency failure and continue
 4. **DO NOT** treat warnings as failures in the summary count — only count FAIL items
 5. **DO NOT** read full plan/summary contents — frontmatter and existence checks are sufficient

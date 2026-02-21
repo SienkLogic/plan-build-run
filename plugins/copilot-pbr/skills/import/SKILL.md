@@ -8,9 +8,9 @@ description: "Import external plans. Validates context, detects conflicts, gener
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► IMPORTING PLAN
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► IMPORTING PLAN                             ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -385,9 +385,9 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 Present a summary of the import using the branded banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► IMPORT COMPLETE ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► IMPORT COMPLETE ✓                          ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {name}** — {plan_count} plans imported
 
@@ -406,8 +406,6 @@ Wave execution order:
 Must-haves coverage: {count} truths across {plan_count} plans
 Requirements traced: {count}/{total} REQ-IDs covered
 
-───────────────────────────────────────────────────────────────
-
 ## ▶ Next Up
 
 **Build Phase {N}** — execute these imported plans
@@ -416,13 +414,10 @@ Requirements traced: {count}/{total} REQ-IDs covered
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
-
 **Also available:**
 - `/pbr:plan {N}` — re-plan from scratch if import needs rework
 - `/pbr:discuss {N}` — talk through details before building
 
-───────────────────────────────────────────────────────────────
 ```
 
 ---

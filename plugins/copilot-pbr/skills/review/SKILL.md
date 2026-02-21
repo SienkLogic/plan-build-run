@@ -19,9 +19,9 @@ Additionally for this skill:
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► REVIEWING PHASE {N}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► REVIEWING PHASE {N}                        ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
@@ -548,9 +548,9 @@ After review completes, always present a clear next action:
 
 Display the "Phase Complete" banner inline:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PHASE {N} COMPLETE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PHASE {N} COMPLETE                         ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {Name}**
 
@@ -581,9 +581,9 @@ Then the branded "Next Up" block:
 
 **If gaps remain:**
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 **Phase {N}: {name}** — {count} gaps remaining
 
@@ -610,9 +610,9 @@ Then the branded "Next Up" block:
 
 Display the "Milestone Complete" banner inline:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► MILESTONE COMPLETE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► MILESTONE COMPLETE                         ║
+╚══════════════════════════════════════════════════════════════╝
 
 {N} phases completed
 All phase goals verified

@@ -8,9 +8,9 @@ description: "Pick up where you left off. Restores context and suggests next act
 **Before ANY tool calls**, display this banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► RESUMING SESSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► RESUMING SESSION                           ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -144,9 +144,9 @@ Use the selected pause point for the rest of the resume flow.
 3. Display the resume context using the branded banner:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PLAN-BUILD-RUN ► SESSION RESTORED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SESSION RESTORED ✓                         ║
+╚══════════════════════════════════════════════════════════════╝
 
 Resuming session from {pause date}
 
@@ -179,7 +179,6 @@ Blockers:
 
 **If only one clear next action exists**, present it with branded routing:
 ```
-───────────────────────────────────────────────────────────────
 
 ## ▶ Next Up
 
@@ -189,7 +188,6 @@ Blockers:
 
 <sub>`/clear` first → fresh context window</sub>
 
-───────────────────────────────────────────────────────────────
 ```
 
 **If multiple reasonable actions exist** (e.g., the continue-here suggests one thing but the filesystem state suggests another), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
