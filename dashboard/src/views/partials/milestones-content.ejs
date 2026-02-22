@@ -18,26 +18,61 @@
 
 <% if (archived.length > 0) { %>
 <h2>Archived</h2>
-<% archived.forEach(function(m) { %>
 <article>
-  <header>
-    <strong>
-      <a href="/milestones/<%= m.version %>"
-         hx-get="/milestones/<%= m.version %>"
-         hx-target="#main-content"
-         hx-push-url="true">
-        v<%= m.version %> &mdash; <%= m.name %>
-      </a>
-    </strong>
-  </header>
-  <p>
-    <% if (m.date) { %><small>Completed: <%= m.date %></small><% } %>
-    <% if (m.duration) { %><small> &bull; Duration: <%= m.duration %></small><% } %>
-    <br>
-    <small><%= m.files.length %> archived file<%= m.files.length !== 1 ? 's' : '' %></small>
-  </p>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Version</th>
+        <th scope="col">Name</th>
+        <th scope="col">Date</th>
+        <th scope="col">Duration</th>
+        <th scope="col">Phases</th>
+        <th scope="col">Commits</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% archived.forEach(function(m) { %>
+      <tr>
+        <td colspan="6" style="padding:0">
+          <details>
+            <summary style="padding:0.5rem 1rem;cursor:pointer">
+              <span class="grid" style="display:inline-grid;grid-template-columns:repeat(6,1fr);width:100%;text-align:left">
+                <span><a href="/milestones/<%= m.version %>"
+                         hx-get="/milestones/<%= m.version %>"
+                         hx-target="#main-content"
+                         hx-push-url="true">v<%= m.version %></a></span>
+                <span><%= m.name %></span>
+                <span><%= m.date || '—' %></span>
+                <span><%= m.duration || '—' %></span>
+                <span><%= m.stats && m.stats.phaseCount ? m.stats.phaseCount : '—' %></span>
+                <span><%= m.stats && m.stats.commitCount ? m.stats.commitCount : '—' %></span>
+              </span>
+            </summary>
+            <div style="padding:0.5rem 1rem 1rem">
+              <% if (m.stats && m.stats.statsHtml) { %>
+              <div><%= m.stats.statsHtml %></div>
+              <% } %>
+              <% if (m.stats && m.stats.deliverables && m.stats.deliverables.length > 0) { %>
+              <h4>Deliverables</h4>
+              <ul>
+                <% m.stats.deliverables.forEach(function(d) { %>
+                <li><a href="/milestones/<%= m.version %>"
+                       hx-get="/milestones/<%= m.version %>"
+                       hx-target="#main-content"
+                       hx-push-url="true"><%= d %></a></li>
+                <% }); %>
+              </ul>
+              <% } %>
+            </div>
+          </details>
+        </td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  </div>
 </article>
-<% }); %>
 <% } %>
 
 <% if (active.length === 0 && archived.length === 0) { %>
