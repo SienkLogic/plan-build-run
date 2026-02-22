@@ -190,28 +190,28 @@ function updateStatePosition(content, updates) {
       const body = content.substring(fmEnd + 3);
 
       if (updates.fmCurrentPhase !== undefined) {
-        fm = fm.replace(/^(current_phase:\s*).*/m, `$1${updates.fmCurrentPhase}`);
+        fm = fm.replace(/^(current_phase:\s*).*/m, (_, p) => `${p}${updates.fmCurrentPhase}`);
       }
       if (updates.fmTotalPhases !== undefined) {
-        fm = fm.replace(/^(total_phases:\s*).*/m, `$1${updates.fmTotalPhases}`);
+        fm = fm.replace(/^(total_phases:\s*).*/m, (_, p) => `${p}${updates.fmTotalPhases}`);
       }
       if (updates.fmPhaseSlug !== undefined) {
-        fm = fm.replace(/^(phase_slug:\s*).*/m, `$1"${updates.fmPhaseSlug}"`);
+        fm = fm.replace(/^(phase_slug:\s*).*/m, (_, p) => `${p}"${updates.fmPhaseSlug}"`);
       }
       if (updates.fmPhaseName !== undefined) {
-        fm = fm.replace(/^(phase_name:\s*).*/m, `$1"${updates.fmPhaseName}"`);
+        fm = fm.replace(/^(phase_name:\s*).*/m, (_, p) => `${p}"${updates.fmPhaseName}"`);
       }
       if (updates.fmPlansComplete !== undefined) {
-        fm = fm.replace(/^(plans_complete:\s*).*/m, `$1${updates.fmPlansComplete}`);
+        fm = fm.replace(/^(plans_complete:\s*).*/m, (_, p) => `${p}${updates.fmPlansComplete}`);
       }
       if (updates.fmStatus !== undefined) {
-        fm = fm.replace(/^(status:\s*).*/m, `$1"${updates.fmStatus}"`);
+        fm = fm.replace(/^(status:\s*).*/m, (_, p) => `${p}"${updates.fmStatus}"`);
       }
       if (updates.fmLastActivity !== undefined) {
-        fm = fm.replace(/^(last_activity:\s*).*/m, `$1"${updates.fmLastActivity}"`);
+        fm = fm.replace(/^(last_activity:\s*).*/m, (_, p) => `${p}"${updates.fmLastActivity}"`);
       }
       if (updates.fmProgressPct !== undefined) {
-        fm = fm.replace(/^(progress_percent:\s*).*/m, `$1${updates.fmProgressPct}`);
+        fm = fm.replace(/^(progress_percent:\s*).*/m, (_, p) => `${p}${updates.fmProgressPct}`);
       }
 
       // Reconstruct with updated frontmatter + body with line updates

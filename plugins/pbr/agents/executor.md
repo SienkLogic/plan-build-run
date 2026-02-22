@@ -1,7 +1,7 @@
 ---
 name: executor
 description: "Executes plan tasks with atomic commits, deviation handling, checkpoint protocols, TDD support, and self-verification."
-model: inherit
+model: sonnet
 memory: project
 tools:
   - Read
