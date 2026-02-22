@@ -168,6 +168,15 @@ After running all 10 checks and collecting results, if any of the following auto
 
 After displaying health check results, if any auto-fixable issues were detected:
 
+**CRITICAL — Before ANY auto-fix that modifies or regenerates STATE.md (frontmatter regeneration, phase_slug correction, or line compaction), you MUST create a timestamped backup first. DO NOT SKIP THIS STEP.**
+
+```
+mkdir -p .planning/backups
+cp .planning/STATE.md .planning/backups/STATE-$(date +%Y%m%dT%H%M%S).md
+```
+
+This ensures the user can recover the original STATE.md if the fix produces incorrect results.
+
 1. Count the auto-fixable issues and present:
 
    Use AskUserQuestion:
