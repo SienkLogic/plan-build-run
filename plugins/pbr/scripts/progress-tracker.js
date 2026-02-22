@@ -182,6 +182,23 @@ function buildContext(planningDir, stateFile) {
     }
   }
 
+  // Check for stale .active-skill (multi-session conflict detection)
+  const activeSkillFile = path.join(planningDir, '.active-skill');
+  if (fs.existsSync(activeSkillFile)) {
+    try {
+      const stats = fs.statSync(activeSkillFile);
+      const ageMs = Date.now() - stats.mtimeMs;
+      const ageMinutes = Math.floor(ageMs / 60000);
+      if (ageMinutes > 60) {
+        const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+        parts.push(`\nWarning: .active-skill is ${ageMinutes} minutes old (skill: "${skill}"). This may be a stale lock from a crashed session or concurrent session conflict. Run /pbr:health to auto-fix, or delete .planning/.active-skill manually.`);
+        logHook('progress-tracker', 'SessionStart', 'stale-active-skill', { ageMinutes, skill });
+      }
+    } catch (_e) {
+      // Ignore errors
+    }
+  }
+
   // Check for stale .auto-next signal (S>M-9)
   const autoNextFile = path.join(planningDir, '.auto-next');
   if (fs.existsSync(autoNextFile)) {
