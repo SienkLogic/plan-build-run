@@ -124,6 +124,71 @@ aside.sidebar nav a[aria-current="page"] {
   background: var(--color-surface-hover);
 }
 
+/* --- Sidebar: Current Phase Card --- */
+.sidebar-current-phase {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-sm);
+}
+
+.sidebar-current-phase small {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  color: var(--color-text-dim);
+}
+
+.sidebar-current-phase a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  margin-top: var(--space-xs);
+  line-height: 1.4;
+}
+
+.sidebar-current-phase a strong {
+  font-size: 0.875rem;
+  display: block;
+}
+
+.sidebar-current-phase a span {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--color-text-dim);
+}
+
+.sidebar-current-phase .phase-status {
+  font-size: 0.75rem;
+  text-transform: capitalize;
+  color: var(--color-accent);
+  margin-top: 2px;
+}
+
+/* --- Sidebar: Section Details --- */
+aside.sidebar details {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+aside.sidebar details summary {
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-text-dim);
+  padding: var(--space-sm) var(--space-lg);
+  cursor: pointer;
+}
+
+aside.sidebar details[open] summary {
+  color: var(--color-accent);
+}
+
+aside.sidebar details ul {
+  margin: 0;
+}
+
 /* --- Main Content --- */
 .page-wrapper > main {
   grid-area: content;
