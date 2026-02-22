@@ -202,9 +202,14 @@ export async function getPhaseDocument(projectDir, phaseId, planId, docType) {
 
   // Try plan ID-prefixed filename first, then fall back to plain PLAN.md
   // Supports both "01-01-PLAN.md" and "PLAN.md" naming conventions
-  const fileNames = docType === 'plan'
-    ? [`${planId}-PLAN.md`, 'PLAN.md']
-    : [`SUMMARY-${planId}.md`];
+  let fileNames;
+  if (docType === 'plan') {
+    fileNames = [`${planId}-PLAN.md`, 'PLAN.md'];
+  } else if (docType === 'verification') {
+    fileNames = ['VERIFICATION.md'];
+  } else {
+    fileNames = [`SUMMARY-${planId}.md`];
+  }
 
   for (const fileName of fileNames) {
     const filePath = validatePath(phaseFullPath, fileName);

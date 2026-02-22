@@ -71,6 +71,14 @@
             Todos
           </a>
         </li>
+        <li>
+          <a href="/notes"
+             hx-get="/notes"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'notes' ? ' aria-current="page"' : '' %>>
+            Notes
+          </a>
+        </li>
       </ul>
     </details>
 

@@ -1,5 +1,5 @@
 <%
-  var docLabel = docType === 'plan' ? 'Plan' : 'Summary';
+  var docLabel = docType === 'plan' ? 'Plan' : docType === 'verification' ? 'Verification' : 'Summary';
 %>
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= docLabel %> <%= planId %></h1>
