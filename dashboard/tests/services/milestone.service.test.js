@@ -12,7 +12,7 @@ vi.mock('../../src/services/roadmap.service.js', () => ({
   getRoadmapData: vi.fn().mockResolvedValue({ phases: [], milestones: [] })
 }));
 
-const { listArchivedMilestones, getAllMilestones, getMilestoneDetail } = await import(
+const { listArchivedMilestones, getAllMilestones, getMilestoneDetail, cache } = await import(
   '../../src/services/milestone.service.js'
 );
 const { getRoadmapData } = await import('../../src/services/roadmap.service.js');
@@ -20,6 +20,7 @@ const { getRoadmapData } = await import('../../src/services/roadmap.service.js')
 describe('milestone.service', () => {
   beforeEach(() => {
     vol.reset();
+    cache.invalidateAll();
   });
 
   describe('listArchivedMilestones', () => {
