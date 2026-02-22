@@ -1,0 +1,69 @@
+<%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
+
+<h1>Project Analytics</h1>
+
+<% if (typeof analytics !== 'undefined' && analytics.warning) { %>
+<article aria-label="warning" class="pico-background-yellow-100">
+  <strong>Warning:</strong> <%= analytics.warning %>
+</article>
+<% } %>
+
+<% if (typeof analytics !== 'undefined' && analytics.summary) { %>
+<div class="grid">
+  <article>
+    <header>Total Commits</header>
+    <strong style="font-size: 2rem;"><%= analytics.summary.totalCommits %></strong>
+  </article>
+  <article>
+    <header>Total Phases</header>
+    <strong style="font-size: 2rem;"><%= analytics.summary.totalPhases %></strong>
+  </article>
+  <article>
+    <header>Avg Duration</header>
+    <strong style="font-size: 2rem;"><%= analytics.summary.avgDuration %></strong>
+  </article>
+  <article>
+    <header>Lines Changed</header>
+    <strong style="font-size: 2rem;"><%= analytics.summary.totalLinesChanged.toLocaleString() %></strong>
+  </article>
+</div>
+<% } %>
+
+<% if (typeof analytics !== 'undefined' && analytics.phases && analytics.phases.length > 0) { %>
+<article>
+  <header>Per-Phase Metrics</header>
+  <div class="overflow-auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Commits</th>
+          <th>Duration</th>
+          <th>Plans</th>
+          <th>Lines Changed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% analytics.phases.sort((a, b) => a.phaseId.localeCompare(b.phaseId)).forEach(phase => { %>
+        <tr>
+          <td>
+            <a href="/phases/<%= phase.phaseId %>"
+               hx-get="/phases/<%= phase.phaseId %>"
+               hx-target="#main-content"
+               hx-push-url="true">
+              <%= phase.phaseId %> - <%= phase.phaseName %>
+            </a>
+          </td>
+          <td><%= phase.commitCount %></td>
+          <td><%= phase.duration || 'N/A' %></td>
+          <td><%= phase.planCount %></td>
+          <td><%= phase.linesChanged.toLocaleString() %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</article>
+<% } else { %>
+<p>No phase data available.</p>
+<% } %>

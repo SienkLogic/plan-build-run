@@ -41,6 +41,14 @@
             Dependencies
           </a>
         </li>
+        <li>
+          <a href="/analytics"
+             hx-get="/analytics"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'analytics' ? ' aria-current="page"' : '' %>>
+            Analytics
+          </a>
+        </li>
       </ul>
     </details>
 
