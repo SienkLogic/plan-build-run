@@ -1,7 +1,7 @@
 ---
 name: planner
 description: "Creates executable phase plans with task breakdown, dependency analysis, wave assignment, and goal-backward verification. Also creates roadmaps."
-model: inherit
+model: sonnet
 memory: project
 tools:
   - Read

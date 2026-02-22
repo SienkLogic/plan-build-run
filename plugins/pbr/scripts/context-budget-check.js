@@ -80,7 +80,7 @@ function main() {
       // Replace existing section
       content = content.replace(
         /## Session Continuity[\s\S]*?(?=\n## |\n---|\s*$)/,
-        `${continuityHeader}\n${continuityContent}\n`
+        () => `${continuityHeader}\n${continuityContent}\n`
       );
     } else {
       // Append section
