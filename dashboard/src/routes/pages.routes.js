@@ -4,6 +4,7 @@ import { getRoadmapData, generateDependencyMermaid } from '../services/roadmap.s
 import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.service.js';
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
+import { getProjectAnalytics } from '../services/analytics.service.js';
 
 const router = Router();
 
@@ -343,6 +344,27 @@ router.get('/dependencies', async (req, res) => {
     res.render('partials/dependencies-content', templateData);
   } else {
     res.render('dependencies', templateData);
+  }
+});
+
+router.get('/analytics', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const analytics = await getProjectAnalytics(projectDir);
+
+  const templateData = {
+    title: 'Analytics',
+    activePage: 'analytics',
+    currentPath: '/analytics',
+    breadcrumbs: [{ label: 'Analytics' }],
+    analytics
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/analytics-content', templateData);
+  } else {
+    res.render('analytics', templateData);
   }
 });
 
