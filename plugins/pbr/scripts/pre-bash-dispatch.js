@@ -75,6 +75,36 @@ function main() {
         process.exit(commitResult.exitCode);
       }
 
+      // Soft warnings for risky-but-allowed commands
+      const command = data.tool_input?.command || '';
+      if (command) {
+        const warnings = [];
+
+        // Warn about npm publish / deploy commands
+        if (/\bnpm\s+publish\b/.test(command)) {
+          warnings.push('npm publish detected — ensure version is correct before publishing');
+        }
+
+        // Warn about touching production config files
+        if (/\b(production|prod)\b.*\.(json|ya?ml|env|conf|cfg)\b/i.test(command) ||
+            /\.(json|ya?ml|env|conf|cfg)\b.*\b(production|prod)\b/i.test(command)) {
+          warnings.push('command references production config files');
+        }
+
+        // Warn about database operations
+        if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
+          warnings.push('destructive database operation detected — verify target');
+        }
+
+        if (warnings.length > 0) {
+          process.stdout.write(JSON.stringify({
+            decision: 'allow',
+            additionalContext: `[pbr] Advisory: ${warnings.join('; ')}.`
+          }));
+          process.exit(0);
+        }
+      }
+
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
