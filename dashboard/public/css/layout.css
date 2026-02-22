@@ -4,23 +4,7 @@
 
 /* --- Custom Properties --- */
 :root {
-  --sidebar-width: 220px;
-  --header-height: 3.5rem;
   --content-max-width: 960px;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --bg-surface: rgba(255, 255, 255, 0.03);
-  --bg-surface-hover: rgba(255, 255, 255, 0.06);
-  --text-dim: rgba(255, 255, 255, 0.5);
 }
 
 /* --- Typography Override --- */
@@ -41,14 +25,14 @@ h3 { font-size: 1.1rem; font-weight: 600; }
 
 p { line-height: 1.65; }
 
-small { font-size: 0.8125rem; color: var(--text-dim); }
+small { font-size: 0.8125rem; color: var(--color-text-dim); }
 
 /* --- Page Grid Layout --- */
 .page-wrapper {
   display: grid;
   gap: 0;
-  grid-template-columns: var(--sidebar-width) 1fr;
-  grid-template-rows: var(--header-height) 1fr auto;
+  grid-template-columns: var(--size-sidebar) 1fr;
+  grid-template-rows: var(--size-header) 1fr auto;
   grid-template-areas:
     "header  header"
     "sidebar content"
@@ -62,8 +46,8 @@ small { font-size: 0.8125rem; color: var(--text-dim); }
   display: flex;
   align-items: center;
   padding: 0 var(--space-xl);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
@@ -96,11 +80,11 @@ small { font-size: 0.8125rem; color: var(--text-dim); }
 .page-wrapper > aside.sidebar {
   grid-area: sidebar;
   padding: var(--space-lg) 0;
-  border-right: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
   position: sticky;
-  top: var(--header-height);
-  height: calc(100vh - var(--header-height));
+  top: var(--size-header);
+  height: calc(100vh - var(--size-header));
   overflow-y: auto;
 }
 
@@ -123,21 +107,21 @@ aside.sidebar nav a {
   border-left: 3px solid transparent;
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--color-text-dim);
   transition: all 0.15s ease;
 }
 
 aside.sidebar nav a:hover {
   color: var(--pico-color);
-  background: var(--bg-surface-hover);
-  border-left-color: rgba(255, 255, 255, 0.15);
+  background: var(--color-surface-hover);
+  border-left-color: var(--color-border);
 }
 
 aside.sidebar nav a[aria-current="page"] {
   font-weight: 600;
-  color: var(--pico-primary);
-  border-left-color: var(--pico-primary);
-  background: var(--bg-surface-hover);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
+  background: var(--color-surface-hover);
 }
 
 /* --- Main Content --- */
@@ -152,27 +136,27 @@ aside.sidebar nav a[aria-current="page"] {
 .page-wrapper > footer {
   grid-area: footer;
   padding: var(--space-md) var(--space-xl);
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--color-border);
   text-align: center;
 }
 
 .page-wrapper > footer small {
   font-size: 0.75rem;
-  color: var(--text-dim);
+  color: var(--color-text-dim);
 }
 
 /* --- Article Cards --- */
 article {
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--color-surface-raised);
   margin-bottom: var(--space-lg);
 }
 
 article > header {
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--color-border);
   padding: var(--space-md) var(--space-lg);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--color-surface-raised);
   border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
@@ -200,7 +184,7 @@ th {
   font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--text-dim);
+  color: var(--color-text-dim);
   white-space: nowrap;
 }
 
@@ -216,18 +200,18 @@ progress {
 }
 
 progress::-webkit-progress-bar {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-border);
   border-radius: 999px;
 }
 
 progress::-webkit-progress-value {
-  background: var(--pico-primary);
+  background: var(--color-accent);
   border-radius: 999px;
   transition: width 0.4s ease;
 }
 
 progress::-moz-progress-bar {
-  background: var(--pico-primary);
+  background: var(--color-accent);
   border-radius: 999px;
 }
 
@@ -242,7 +226,7 @@ details summary {
   font-weight: 500;
   cursor: pointer;
   padding: var(--space-xs) 0;
-  color: var(--pico-primary);
+  color: var(--color-accent);
 }
 
 details summary:hover {
@@ -264,7 +248,7 @@ details li {
   font-size: 0.8125em;
   padding: 0.15em 0.4em;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-surface-hover);
 }
 
 /* --- Markdown Body (rendered markdown content) --- */
@@ -281,13 +265,13 @@ details li {
 
 .markdown-body th,
 .markdown-body td {
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--color-border);
   padding: var(--space-xs) var(--space-sm);
   text-align: left;
 }
 
 .markdown-body th {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface-hover);
 }
 
 .markdown-body pre {
@@ -305,8 +289,8 @@ details li {
 }
 
 .markdown-body blockquote {
-  border-left: 3px solid var(--pico-primary);
-  background: rgba(255, 255, 255, 0.02);
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-surface-raised);
   margin: var(--space-md) 0;
   padding: var(--space-sm) var(--space-md);
 }
@@ -329,19 +313,19 @@ details li {
 
 .markdown-body hr {
   border: none;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--color-border);
   margin: var(--space-lg) 0;
 }
 
 /* --- Back Link --- */
 main > p:first-of-type > a[href="/"] {
   font-size: 0.875rem;
-  color: var(--text-dim);
+  color: var(--color-text-dim);
   text-decoration: none;
 }
 
 main > p:first-of-type > a[href="/"]:hover {
-  color: var(--pico-primary);
+  color: var(--color-accent);
 }
 
 /* --- SSE Connection Status --- */
@@ -367,7 +351,7 @@ main > p:first-of-type > a[href="/"]:hover {
 .sidebar-toggle {
   display: none;
   background: none;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   color: var(--pico-color);
   font-size: 1.25rem;
@@ -383,7 +367,7 @@ main > p:first-of-type > a[href="/"]:hover {
 /* Tablet: narrower sidebar */
 @media (max-width: 1024px) {
   :root {
-    --sidebar-width: 180px;
+    --size-sidebar: 180px;
   }
 
   .page-wrapper > main {
@@ -395,7 +379,7 @@ main > p:first-of-type > a[href="/"]:hover {
 @media (max-width: 768px) {
   .page-wrapper {
     grid-template-columns: 1fr;
-    grid-template-rows: var(--header-height) auto 1fr auto;
+    grid-template-rows: var(--size-header) auto 1fr auto;
     grid-template-areas:
       "header"
       "sidebar"
@@ -411,7 +395,7 @@ main > p:first-of-type > a[href="/"]:hover {
     position: static;
     height: auto;
     border-right: none;
-    border-bottom: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--color-border);
     padding: 0;
     overflow: visible;
     display: none;
@@ -437,7 +421,7 @@ main > p:first-of-type > a[href="/"]:hover {
 
   aside.sidebar nav a[aria-current="page"] {
     border-left: none;
-    border-bottom-color: var(--pico-primary);
+    border-bottom-color: var(--color-accent);
   }
 
   aside.sidebar nav a:hover {
