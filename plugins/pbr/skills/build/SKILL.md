@@ -1,7 +1,7 @@
 ---
 name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
-allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion, Skill
 argument-hint: "<phase-number> [--gaps-only] [--team]"
 ---
 

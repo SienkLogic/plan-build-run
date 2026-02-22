@@ -1,7 +1,7 @@
 ---
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
-allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
 argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] | add | insert <N> | remove <N>"
 ---
 
