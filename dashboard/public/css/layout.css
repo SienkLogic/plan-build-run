@@ -440,14 +440,13 @@ main > p:first-of-type > a[href="/"]:hover {
   }
 }
 
-/* Mobile: sidebar collapses to top nav */
+/* Mobile: sidebar overlays content */
 @media (max-width: 768px) {
   .page-wrapper {
     grid-template-columns: 1fr;
-    grid-template-rows: var(--size-header) auto 1fr auto;
+    grid-template-rows: var(--size-header) 1fr auto;
     grid-template-areas:
       "header"
-      "sidebar"
       "content"
       "footer";
   }
@@ -457,40 +456,37 @@ main > p:first-of-type > a[href="/"]:hover {
   }
 
   .page-wrapper > aside.sidebar {
-    position: static;
-    height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-    padding: 0;
-    overflow: visible;
-    display: none;
+    position: fixed;
+    top: var(--size-header);
+    left: 0;
+    width: 260px;
+    height: calc(100vh - var(--size-header));
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    display: block;
+    border-right: 1px solid var(--color-border);
+    border-bottom: none;
+    padding: var(--space-lg) 0;
+    overflow-y: auto;
+    background: var(--color-surface-raised);
   }
 
   .page-wrapper > aside.sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    top: var(--size-header);
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 19;
+  }
+
+  .sidebar-backdrop.open {
     display: block;
-  }
-
-  aside.sidebar nav ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-    padding: var(--space-sm) var(--space-md);
-  }
-
-  aside.sidebar nav a {
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    padding: var(--space-sm) var(--space-md);
-    font-size: 0.85rem;
-  }
-
-  aside.sidebar nav a[aria-current="page"] {
-    border-left: none;
-    border-bottom-color: var(--color-accent);
-  }
-
-  aside.sidebar nav a:hover {
-    border-left: none;
   }
 
   .page-wrapper > main {
