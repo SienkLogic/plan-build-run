@@ -5,6 +5,14 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.0...plan-build-run-v2.18.1) (2026-02-22)
+
+
+### Bug Fixes
+
+* **tools:** add Skill tool to 4 PBR skills that use auto-advance chaining ([2be11a4](https://github.com/SienkLogic/plan-build-run/commit/2be11a4dd4fe0ad875787fc65d7f217919f4a662))
+* **tools:** update critical agents to use model: sonnet instead of inherit ([6d66573](https://github.com/SienkLogic/plan-build-run/commit/6d66573b72352a1c412ff7e1e74adee2e1d2b59f))
+
 ## [2.18.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.1...plan-build-run-v2.18.0) (2026-02-22)
 
 
