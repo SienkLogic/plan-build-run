@@ -1,7 +1,7 @@
 ---
 name: debugger
 description: "Systematic debugging using scientific method. Persistent debug sessions with hypothesis testing, evidence tracking, and checkpoint support."
-model: inherit
+model: sonnet
 memory: project
 tools:
   - Read

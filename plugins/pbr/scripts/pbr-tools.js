@@ -823,7 +823,7 @@ function updateLegacyStateField(content, field, value) {
     case 'current_phase': {
       const idx = lines.findIndex(l => /Phase:\s*\d+\s+of\s+\d+/.test(l));
       if (idx !== -1) {
-        lines[idx] = lines[idx].replace(/(Phase:\s*)\d+/, `$1${value}`);
+        lines[idx] = lines[idx].replace(/(Phase:\s*)\d+/, (_, prefix) => `${prefix}${value}`);
       }
       break;
     }
@@ -844,7 +844,7 @@ function updateLegacyStateField(content, field, value) {
     case 'plans_complete': {
       const idx = lines.findIndex(l => /Plan:\s*\d+\s+of\s+\d+/.test(l));
       if (idx !== -1) {
-        lines[idx] = lines[idx].replace(/(Plan:\s*)\d+/, `$1${value}`);
+        lines[idx] = lines[idx].replace(/(Plan:\s*)\d+/, (_, prefix) => `${prefix}${value}`);
       }
       break;
     }
@@ -886,7 +886,7 @@ function updateFrontmatterField(content, field, value) {
 
   const fieldRegex = new RegExp(`^(${field})\\s*:.*$`, 'm');
   if (fieldRegex.test(yaml)) {
-    yaml = yaml.replace(fieldRegex, `${field}: ${formatted}`);
+    yaml = yaml.replace(fieldRegex, () => `${field}: ${formatted}`);
   } else {
     yaml = yaml + `\n${field}: ${formatted}`;
   }
