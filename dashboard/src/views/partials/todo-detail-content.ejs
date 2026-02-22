@@ -31,9 +31,12 @@
   <hr>
   <form method="POST" action="/todos/<%= id %>/done"
         hx-post="/todos/<%= id %>/done"
-        hx-target="#main-content"
+        hx-target="closest article"
+        hx-swap="outerHTML"
+        hx-indicator="#done-spinner"
         style="display:inline;">
     <button type="submit" class="secondary">Mark as Done</button>
+    <span id="done-spinner" class="htmx-indicator" aria-busy="true"></span>
   </form>
   <% } %>
 </article>
