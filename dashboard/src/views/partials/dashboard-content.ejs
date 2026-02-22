@@ -1,73 +1,79 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= projectName %></h1>
 
-<!-- Project Overview Card -->
-<article>
-  <header>
-    <strong>Current Phase</strong>
-  </header>
-  <% if (currentPhase.id > 0) { %>
-    <p>
-      <span class="status-badge" data-status="in-progress">Phase <%= currentPhase.id %></span>
-      <%= currentPhase.name %>
+<!-- Hero Stat Row -->
+<div class="grid">
+  <!-- Current Phase -->
+  <article>
+    <header><strong>Current Phase</strong></header>
+    <% if (currentPhase.id > 0) { %>
+      <p class="stat-value">
+        <a href="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
+           hx-get="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
+           hx-target="#main-content"
+           hx-push-url="true">
+          <span class="status-badge" data-status="in-progress">Phase <%= currentPhase.id %></span>
+          <%= currentPhase.name %>
+        </a>
+      </p>
+    <% } else { %>
+      <p class="stat-value">No active phase</p>
+    <% } %>
+  </article>
+
+  <!-- Progress -->
+  <article>
+    <header><strong>Progress</strong></header>
+    <p class="stat-value"><%= progress %>%</p>
+    <progress value="<%= progress %>" max="100"></progress>
+  </article>
+
+  <!-- Pending Todos -->
+  <article>
+    <header><strong>Pending Todos</strong></header>
+    <p class="stat-value">
+      <a href="/todos"
+         hx-get="/todos"
+         hx-target="#main-content"
+         hx-push-url="true">
+        <%= typeof pendingTodoCount !== 'undefined' ? pendingTodoCount : 0 %>
+      </a>
     </p>
-    <p><small><%= currentPhase.planStatus %></small></p>
-  <% } else { %>
-    <p>No active phase. Project has not started yet.</p>
-  <% } %>
+  </article>
 
-  <% if (lastActivity.date) { %>
-    <p><small>Last activity: <%= lastActivity.date %> &mdash; <%= lastActivity.description %></small></p>
-  <% } %>
-</article>
+  <!-- Last Activity -->
+  <article>
+    <header><strong>Last Activity</strong></header>
+    <% if (lastActivity.date) { %>
+      <p class="stat-value"><%= lastActivity.date %></p>
+      <p><small><%= lastActivity.description %></small></p>
+    <% } else { %>
+      <p class="stat-value">None</p>
+    <% } %>
+  </article>
+</div>
 
-<!-- Overall Progress -->
-<article>
-  <header>
-    <strong>Overall Progress</strong>
-  </header>
-  <progress value="<%= progress %>" max="100"></progress>
-  <p><%= progress %>% complete (<%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases)</p>
-</article>
+<!-- Quick Actions -->
+<div>
+  <% var phaseId = String(currentPhase.id).padStart(2, '0'); %>
+  <a role="button" class="outline"
+     href="/phases/<%= phaseId %>"
+     hx-get="/phases/<%= phaseId %>"
+     hx-target="#main-content"
+     hx-push-url="true">Current Phase</a>
+  <a role="button" class="outline"
+     href="/roadmap"
+     hx-get="/roadmap"
+     hx-target="#main-content"
+     hx-push-url="true">Roadmap</a>
+  <a role="button" class="outline"
+     href="/todos/new"
+     hx-get="/todos/new"
+     hx-target="#main-content"
+     hx-push-url="true">Create Todo</a>
+</div>
 
-<!-- Phase List -->
-<article>
-  <header>
-    <strong>All Phases</strong>
-  </header>
-  <% if (phases.length > 0) { %>
-    <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Phase</th>
-          <th scope="col">Name</th>
-          <th scope="col">Description</th>
-          <th scope="col">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% phases.forEach(function(phase) { %>
-        <tr>
-          <td><%= String(phase.id).padStart(2, '0') %></td>
-          <td><a href="/phases/<%= String(phase.id).padStart(2, '0') %>"><%= phase.name %></a></td>
-          <td><%= phase.description %></td>
-          <td>
-            <span class="status-badge" data-status="<%= phase.status %>">
-              <%= phase.status.replace('-', ' ') %>
-            </span>
-          </td>
-        </tr>
-        <% }); %>
-      </tbody>
-    </table>
-    </div>
-  <% } else { %>
-    <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see phases here.</p>
-  <% } %>
-</article>
-
-<!-- README Content (if available) -->
+<!-- Project Notes (if available) -->
 <% if (content && content !== '<p>No project README found.</p>') { %>
 <article>
   <header>

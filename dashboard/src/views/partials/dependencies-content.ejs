@@ -12,5 +12,37 @@
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script>
-  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
+  (function() {
+    function detectDark() {
+      var explicit = document.documentElement.dataset.theme;
+      if (explicit) return explicit === 'dark';
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    var mermaidTheme = detectDark() ? 'dark' : 'default';
+
+    // Store original source before mermaid processes it
+    document.querySelectorAll('.mermaid').forEach(function(el) {
+      el.dataset.source = el.textContent;
+    });
+
+    mermaid.initialize({ startOnLoad: true, theme: mermaidTheme, securityLevel: 'loose' });
+
+    // Watch for theme changes and re-render
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.attributeName === 'data-theme') {
+          var newTheme = detectDark() ? 'dark' : 'default';
+          mermaid.initialize({ startOnLoad: false, theme: newTheme, securityLevel: 'loose' });
+          document.querySelectorAll('.mermaid').forEach(function(el) {
+            if (el.dataset.source) {
+              el.removeAttribute('data-processed');
+              el.innerHTML = el.dataset.source;
+            }
+          });
+          mermaid.run();
+        }
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  })();
 </script>

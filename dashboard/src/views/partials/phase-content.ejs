@@ -1,7 +1,7 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Phase <%= phaseId %>: <%= phaseName %></h1>
 
-<p><a href="/">&larr; Back to Dashboard</a></p>
+<p><a href="/phases" hx-get="/phases" hx-target="#main-content" hx-push-url="true">&larr; Back to Phases</a></p>
 
 <% if (verification) { %>
 <!-- Verification Summary Card -->
