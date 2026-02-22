@@ -9,7 +9,8 @@
   "scripts": {
     "start": "node bin/cli.js",
     "dev": "node --watch bin/cli.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "plan-build-run",
@@ -28,6 +29,7 @@
     "marked": "^17.0.1"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "memfs": "^4.56.10",
     "supertest": "^7.2.2",
     "vitest": "^3.1.0"
