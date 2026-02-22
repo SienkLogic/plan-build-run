@@ -500,6 +500,15 @@ main > p:first-of-type > a[href="/"]:hover {
   font-size: 0.875rem;
 }
 
+/* --- Stat Values --- */
+.stat-value { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+.stat-unit { font-size: 0.875rem; color: var(--color-dim); margin-left: 0.25rem; }
+
+/* --- Bar Chart --- */
+.bar-chart-row { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+.bar-chart-label { min-width: 160px; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-chart-bar { height: 1.5rem; border-radius: var(--radius-sm); background: var(--pico-primary); color: var(--pico-primary-inverse, #fff); font-size: 0.75rem; display: flex; align-items: center; padding-left: var(--space-sm); min-width: 2rem; transition: width 0.3s ease; }
+
 /* --- Loading Bar --- */
 .loading-bar {
   position: fixed;
