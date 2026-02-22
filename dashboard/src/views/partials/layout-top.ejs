@@ -3,6 +3,7 @@
 <script>(function(){var t=localStorage.getItem('pbr-theme');if(t)document.documentElement.dataset.theme=t})()</script>
 <%- include('head', { title: typeof title !== 'undefined' ? title : 'PBR Dashboard' }) %>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="loading-bar"></div>
   <script>
     document.body.addEventListener('htmx:beforeRequest', function() { document.body.classList.add('htmx-request'); });
