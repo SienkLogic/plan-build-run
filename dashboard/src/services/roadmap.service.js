@@ -139,6 +139,79 @@ function extractMilestones(roadmapContent) {
  * @param {string} projectDir - Absolute path to the project root
  * @returns {Promise<{phases: Array, milestones: Array}>}
  */
+/**
+ * Generate a Mermaid flowchart string from ROADMAP.md phase dependencies.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @returns {Promise<string>} Mermaid flowchart definition
+ */
+export async function generateDependencyMermaid(projectDir) {
+  const { phases, milestones } = await getRoadmapData(projectDir);
+
+  if (phases.length === 0) {
+    return 'graph TD\n  empty["No phases found"]';
+  }
+
+  // Read raw ROADMAP.md for dependencies
+  let dependencyMap = new Map();
+  try {
+    const roadmapPath = join(projectDir, '.planning', 'ROADMAP.md');
+    const rawContent = stripBOM(await readFile(roadmapPath, 'utf-8')).replace(/\r\n/g, '\n');
+    dependencyMap = extractAllDependencies(rawContent);
+  } catch (_err) {
+    // No ROADMAP.md — proceed with no deps
+  }
+
+  // Detect current phase (first non-complete phase, or last phase)
+  const currentPhase = phases.find(p => p.status !== 'Complete') || phases[phases.length - 1];
+
+  const lines = ['graph TD'];
+
+  // Group phases by milestone
+  const phaseById = new Map(phases.map(p => [p.id, p]));
+
+  if (milestones.length > 0) {
+    for (const ms of milestones) {
+      const msPhases = phases.filter(p => p.id >= ms.startPhase && p.id <= ms.endPhase);
+      if (msPhases.length === 0) continue;
+      const safeName = ms.name.replace(/"/g, '#quot;');
+      lines.push(`  subgraph ${safeName}`);
+      for (const p of msPhases) {
+        const label = `Phase ${p.id}: ${p.name}`.replace(/"/g, '#quot;');
+        lines.push(`    P${p.id}["${label}"]`);
+      }
+      lines.push('  end');
+    }
+  } else {
+    for (const p of phases) {
+      const label = `Phase ${p.id}: ${p.name}`.replace(/"/g, '#quot;');
+      lines.push(`  P${p.id}["${label}"]`);
+    }
+  }
+
+  // Add dependency edges
+  for (const [phaseId, deps] of dependencyMap) {
+    if (!phaseById.has(phaseId)) continue;
+    for (const depId of deps) {
+      if (phaseById.has(depId)) {
+        lines.push(`  P${depId} --> P${phaseId}`);
+      }
+    }
+  }
+
+  // Style current phase
+  if (currentPhase) {
+    lines.push(`  style P${currentPhase.id} fill:#4caf50,color:#fff`);
+  }
+
+  // Click handlers
+  for (const p of phases) {
+    lines.push(`  click P${p.id} "/phases/${p.id}"`);
+  }
+
+  return lines.join('\n');
+}
+
 export async function getRoadmapData(projectDir) {
   const { phases: basePhases } = await parseRoadmapFile(projectDir);
 
