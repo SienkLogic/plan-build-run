@@ -1,7 +1,7 @@
 ---
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
-allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion, Skill
 argument-hint: "<phase-number> [--auto-fix] [--teams]"
 ---
 
