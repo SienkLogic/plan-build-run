@@ -2,6 +2,9 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readMarkdownFile } from '../repositories/planning.repository.js';
 import { getRoadmapData } from './roadmap.service.js';
+import { TTLCache } from '../utils/cache.js';
+
+export const cache = new TTLCache(300_000); // 300s TTL
 
 /**
  * Scan .planning/milestones/ for archived milestone files.
@@ -14,6 +17,10 @@ import { getRoadmapData } from './roadmap.service.js';
  * @returns {Promise<Array<{version: string, name: string, date: string, duration: string, files: string[]}>>}
  */
 export async function listArchivedMilestones(projectDir) {
+  const cacheKey = `milestones:${projectDir}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
   const milestonesDir = join(projectDir, '.planning', 'milestones');
 
   let entries;
@@ -122,9 +129,12 @@ export async function listArchivedMilestones(projectDir) {
   }
 
   // Sort by version descending (newest first) — strip internal format field
-  return [...versionMap.values()]
+  const result = [...versionMap.values()]
     .sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }))
     .map(({ format: _f, ...rest }) => rest);
+
+  cache.set(cacheKey, result);
+  return result;
 }
 
 /**
@@ -134,15 +144,22 @@ export async function listArchivedMilestones(projectDir) {
  * @returns {Promise<{active: Array, archived: Array}>}
  */
 export async function getAllMilestones(projectDir) {
+  const allCacheKey = `all-milestones:${projectDir}`;
+  const allCached = cache.get(allCacheKey);
+  if (allCached) return allCached;
+
   const [roadmapData, archived] = await Promise.all([
     getRoadmapData(projectDir),
     listArchivedMilestones(projectDir)
   ]);
 
-  return {
+  const allResult = {
     active: roadmapData.milestones || [],
     archived
   };
+
+  cache.set(allCacheKey, allResult);
+  return allResult;
 }
 
 /**

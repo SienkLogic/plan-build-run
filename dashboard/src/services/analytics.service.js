@@ -2,26 +2,11 @@ import { execFile as execFileCb } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
+import { TTLCache } from '../utils/cache.js';
 
 const execFile = promisify(execFileCb);
 
-// In-memory cache with TTL
-const cache = new Map();
-const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
-
-function cacheGet(key) {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  if (Date.now() > entry.expiry) {
-    cache.delete(key);
-    return null;
-  }
-  return entry.value;
-}
-
-function cacheSet(key, value, ttlMs = DEFAULT_TTL) {
-  cache.set(key, { value, expiry: Date.now() + ttlMs });
-}
+export const cache = new TTLCache(60_000); // 60s TTL
 
 /**
  * Run a git command in the given directory, returning stdout.
@@ -47,7 +32,7 @@ async function git(projectDir, args) {
  */
 export async function getProjectAnalytics(projectDir) {
   const cacheKey = `analytics:${projectDir}`;
-  const cached = cacheGet(cacheKey);
+  const cached = cache.get(cacheKey);
   if (cached) return cached;
 
   const phasesDir = join(projectDir, '.planning', 'phases');
@@ -153,6 +138,6 @@ export async function getProjectAnalytics(projectDir) {
     ...(warning ? { warning } : {})
   };
 
-  cacheSet(cacheKey, result);
+  cache.set(cacheKey, result);
   return result;
 }
