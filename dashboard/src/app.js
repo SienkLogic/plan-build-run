@@ -8,6 +8,7 @@ import pagesRouter from './routes/pages.routes.js';
 import eventsRouter from './routes/events.routes.js';
 import notFoundHandler from './middleware/notFoundHandler.js';
 import errorHandler from './middleware/errorHandler.js';
+import currentPhaseMiddleware from './middleware/current-phase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -62,6 +63,9 @@ export function createApp(config) {
     }
     next();
   });
+
+  // Current phase middleware (populates res.locals.currentPhase for templates)
+  app.use(currentPhaseMiddleware);
 
   // Routes
   app.use('/', indexRouter);
