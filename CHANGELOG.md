@@ -5,6 +5,19 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.18.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.1...plan-build-run-v2.18.0) (2026-02-22)
+
+
+### Features
+
+* **16-01:** redesign dashboard home, fix analytics duration, add bar charts, mermaid dark mode ([9ea3936](https://github.com/SienkLogic/plan-build-run/commit/9ea3936bb5c35305b57250c83e596c4704bc8868))
+* **17-01:** add notes page, verification viewer, milestone progress bars, dynamic footer version ([71625ff](https://github.com/SienkLogic/plan-build-run/commit/71625ff769638be8d75840b48f455a1fe5664b88))
+
+
+### Bug Fixes
+
+* **18-01:** HTMX navigation consistency, SSE tooltip, error page fix, remove deprecated layout ([0f40f3c](https://github.com/SienkLogic/plan-build-run/commit/0f40f3c9de389f7eb33f8eb83c78a0880f485e4e))
+
 ## [2.17.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.0...plan-build-run-v2.17.1) (2026-02-22)
 
 
