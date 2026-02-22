@@ -1,7 +1,7 @@
 <%
   var docLabel = docType === 'plan' ? 'Plan' : 'Summary';
 %>
-
+<%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= docLabel %> <%= planId %></h1>
 
 <p><a href="/phases/<%= phaseId %>">&larr; Back to Phase <%= phaseId %>: <%= phaseName %></a></p>

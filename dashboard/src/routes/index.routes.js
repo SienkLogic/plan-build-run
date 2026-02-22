@@ -16,7 +16,8 @@ router.get('/', async (req, res) => {
     ...homepageData,
     ...dashboardData,
     activePage: 'dashboard',
-    currentPath: '/'
+    currentPath: '/',
+    breadcrumbs: []
   };
 
   res.setHeader('Vary', 'HX-Request');

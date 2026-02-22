@@ -19,7 +19,8 @@ router.get('/phases', async (req, res) => {
     activePage: 'phases',
     currentPath: '/phases',
     phases: derivePhaseStatuses(roadmapData.phases, stateData.currentPhase),
-    milestones: roadmapData.milestones
+    milestones: roadmapData.milestones,
+    breadcrumbs: [{ label: 'Phases' }]
   };
 
   res.setHeader('Vary', 'HX-Request');
@@ -48,6 +49,7 @@ router.get('/phases/:phaseId', async (req, res) => {
     title: `Phase ${phaseId}: ${phaseData.phaseName}`,
     activePage: 'phases',
     currentPath: '/phases/' + phaseId,
+    breadcrumbs: [{ label: 'Phases', url: '/phases' }, { label: 'Phase ' + phaseId }],
     ...phaseData
   };
 
@@ -98,6 +100,7 @@ router.get('/phases/:phaseId/:planId/:docType', async (req, res) => {
     title: `${docLabel} ${planId} — Phase ${phaseId}: ${doc.phaseName}`,
     activePage: 'phases',
     currentPath: `/phases/${phaseId}/${planId}/${docType}`,
+    breadcrumbs: [{ label: 'Phases', url: '/phases' }, { label: 'Phase ' + phaseId, url: '/phases/' + phaseId }, { label: docLabel + ' ' + planId }],
     ...doc
   };
 
@@ -118,6 +121,7 @@ router.get('/todos', async (req, res) => {
     title: 'Todos',
     activePage: 'todos',
     currentPath: '/todos',
+    breadcrumbs: [{ label: 'Todos' }],
     todos
   };
 
@@ -134,7 +138,8 @@ router.get('/todos/new', (req, res) => {
   const templateData = {
     title: 'Create Todo',
     activePage: 'todos',
-    currentPath: '/todos/new'
+    currentPath: '/todos/new',
+    breadcrumbs: [{ label: 'Todos', url: '/todos' }, { label: 'Create' }]
   };
 
   res.setHeader('Vary', 'HX-Request');
@@ -163,6 +168,7 @@ router.get('/todos/:id', async (req, res) => {
     title: `Todo ${todo.id}: ${todo.title}`,
     activePage: 'todos',
     currentPath: '/todos/' + id,
+    breadcrumbs: [{ label: 'Todos', url: '/todos' }, { label: 'Todo ' + id }],
     ...todo
   };
 
@@ -193,6 +199,7 @@ router.post('/todos', async (req, res) => {
       title: `Todo ${todo.id}: ${todo.title}`,
       activePage: 'todos',
       currentPath: '/todos/' + todoId,
+      breadcrumbs: [{ label: 'Todos', url: '/todos' }, { label: 'Todo ' + todoId }],
       ...todo
     });
   } else {
@@ -219,6 +226,7 @@ router.post('/todos/:id/done', async (req, res) => {
       title: 'Todos',
       activePage: 'todos',
       currentPath: '/todos',
+      breadcrumbs: [{ label: 'Todos' }],
       todos
     });
   } else {
@@ -234,6 +242,7 @@ router.get('/milestones', async (req, res) => {
     title: 'Milestones',
     activePage: 'milestones',
     currentPath: '/milestones',
+    breadcrumbs: [{ label: 'Milestones' }],
     ...milestoneData
   };
 
@@ -269,6 +278,7 @@ router.get('/milestones/:version', async (req, res) => {
     title: `Milestone v${version}`,
     activePage: 'milestones',
     currentPath: '/milestones/' + version,
+    breadcrumbs: [{ label: 'Milestones', url: '/milestones' }, { label: 'v' + version }],
     ...detail
   };
 
@@ -293,7 +303,8 @@ router.get('/roadmap', async (req, res) => {
     activePage: 'roadmap',
     currentPath: '/roadmap',
     phases: derivePhaseStatuses(roadmapData.phases, stateData.currentPhase),
-    milestones: roadmapData.milestones
+    milestones: roadmapData.milestones,
+    breadcrumbs: [{ label: 'Roadmap' }]
   };
 
   res.setHeader('Vary', 'HX-Request');
