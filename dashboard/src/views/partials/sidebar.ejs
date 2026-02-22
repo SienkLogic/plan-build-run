@@ -33,6 +33,14 @@
             Roadmap
           </a>
         </li>
+        <li>
+          <a href="/dependencies"
+             hx-get="/dependencies"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'dependencies' ? ' aria-current="page"' : '' %>>
+            Dependencies
+          </a>
+        </li>
       </ul>
     </details>
 
