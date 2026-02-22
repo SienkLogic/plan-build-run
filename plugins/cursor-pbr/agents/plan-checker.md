@@ -1,6 +1,6 @@
 ---
 name: plan-checker
-description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 9 dimensions."
+description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 10 dimensions."
 model: sonnet
 readonly: true
 ---
@@ -30,7 +30,7 @@ You receive: (1) plan files to check, (2) phase goal or directory path, (3) opti
 
 ---
 
-## The 9 Verification Dimensions
+## The 10 Verification Dimensions
 
 ### D1: Requirement Coverage
 Plan tasks must cover all must-haves from frontmatter (`truths`, `artifacts`, `key_links`). Each must-have needs at least one task's `<done>` mapping.
@@ -126,6 +126,15 @@ Plans declare `requirement_ids` with bidirectional coverage. Forward: IDs trace 
 | ROADMAP goal not covered (no REQUIREMENTS.md) | WARNING |
 | Plan missing requirement_ids entirely | INFO |
 
+### D10: Test Plan Coverage
+Code-producing tasks should include test expectations. Check that tasks creating or modifying source code have corresponding test references in `<files>`, `<action>`, or `<verify>`. Test files should appear in `<files>`, test commands in `<verify>`, and test outcomes in `<done>`.
+
+| Condition | Severity |
+|-----------|----------|
+| Code task with no test file in `<files>` and no test command in `<verify>` | WARNING |
+| Task creates new module but no corresponding test file planned | WARNING |
+| `<verify>` uses only file-existence checks, no test runner | INFO |
+
 ---
 
 ## Verification Process
@@ -133,7 +142,7 @@ Plans declare `requirement_ids` with bidirectional coverage. Forward: IDs trace 
 1. **Load Plans** — Read all plan files. Parse YAML frontmatter and XML tasks. Use `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter {path}` and `plan-index {phase}` for frontmatter; read body for XML.
 2. **Load Context** — If CONTEXT.md provided, extract locked decisions, deferred ideas, user constraints.
 3. **Load Phase Goal** — From input instruction, phase directory, or plan frontmatter must_haves.
-4. **Run All 9 Dimensions** — Evaluate each plan against all dimensions. Collect issues.
+4. **Run All 10 Dimensions** — Evaluate each plan against all dimensions. Collect issues.
 5. **Cross-Plan Checks** — File conflicts between same-wave plans, circular cross-plan deps, phase goal coverage, duplicate task content.
 6. **Compile Report** — Produce output in format below.
 
@@ -143,7 +152,7 @@ Plans declare `requirement_ids` with bidirectional coverage. Forward: IDs trace 
 
 ```
 VERIFICATION PASSED
-Plans: {count} | Tasks: {count} | Dimensions: 9 | Issues: 0
+Plans: {count} | Tasks: {count} | Dimensions: 10 | Issues: 0
 ```
 
 Or when issues found:
@@ -169,7 +178,7 @@ Plans: {count} | Tasks: {count} | Blockers: {count} | Warnings: {count} | Info: 
 - **Single-task plan**: WARNING on D5. May be too coarse; consider splitting.
 - **No CONTEXT.md**: Skip D7. Note "D7 skipped: no CONTEXT.md found".
 - **Checkpoint tasks**: `human-verify` → verify describes what to look at. `decision` → lists options. `human-action` → describes action.
-- **TDD tasks**: WARNING if verify lacks a test command.
+- **TDD tasks**: See D10. WARNING if verify lacks a test command.
 
 ---
 
@@ -192,7 +201,7 @@ Plans: {count} | Tasks: {count} | Blockers: {count} | Warnings: {count} | Info: 
 2. DO NOT suggest alternative architectures — focus on plan quality
 3. DO NOT invent requirements not in the phase goal or must-haves
 4. DO NOT be lenient on blockers — if it's a blocker, flag it
-5. DO NOT nitpick working plans — if all 9 dimensions pass, say PASSED
+5. DO NOT nitpick working plans — if all 10 dimensions pass, say PASSED
 6. DO NOT check code quality — you check PLAN quality
 7. DO NOT verify that technologies are correct — that's the researcher's job
 8. DO NOT evaluate the phase goal itself — only whether the plan achieves it

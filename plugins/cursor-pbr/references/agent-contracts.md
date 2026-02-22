@@ -117,7 +117,7 @@ requirement_ids: []
 
 ### Expected Input
 
-Plan-Checker reads plan frontmatter + XML tasks and evaluates across 9 dimensions (D1-D9). Optionally receives CONTEXT.md path.
+Plan-Checker reads plan frontmatter + XML tasks and evaluates across 10 dimensions (D1-D10). Optionally receives CONTEXT.md path.
 
 ### Output Format
 
