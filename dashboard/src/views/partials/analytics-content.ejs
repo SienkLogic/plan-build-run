@@ -64,6 +64,8 @@
     </table>
   </div>
 </article>
+<% } else if (typeof analytics === 'undefined' || !analytics.summary) { %>
+<%- include('empty-state', { icon: '📊', title: 'No analytics data available', action: '' }) %>
 <% } else { %>
 <p>No phase data available.</p>
 <% } %>
