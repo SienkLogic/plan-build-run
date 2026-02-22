@@ -3,6 +3,11 @@
 <script>(function(){var t=localStorage.getItem('pbr-theme');if(t)document.documentElement.dataset.theme=t})()</script>
 <%- include('head', { title: typeof title !== 'undefined' ? title : 'PBR Dashboard' }) %>
 <body>
+  <div class="loading-bar"></div>
+  <script>
+    document.body.addEventListener('htmx:beforeRequest', function() { document.body.classList.add('htmx-request'); });
+    document.body.addEventListener('htmx:afterRequest', function() { document.body.classList.remove('htmx-request'); });
+  </script>
   <div class="page-wrapper">
     <%- include('header') %>
     <%- include('sidebar', { activePage: typeof activePage !== 'undefined' ? activePage : '' }) %>
