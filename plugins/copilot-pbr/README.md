@@ -119,6 +119,13 @@ Copilot CLI supports 6 hook events vs Claude Code's full set. The following hook
 
 **Not available** in Copilot CLI (present in Claude Code/Cursor ports): `SubagentStart`, `SubagentStop`, `TaskCompleted`, `PostToolUseFailure`, `PreCompact`, `Stop`.
 
+**Impact of missing hooks:**
+
+- No auto-continue between skills (`Stop` hook) — you must manually run the next command
+- No tool failure logging (`PostToolUseFailure`) — silent failures won't be recorded to `.planning/logs/`
+- No context budget preservation on compaction (`PreCompact`) — STATE.md won't be auto-preserved when context is compressed
+- No subagent lifecycle tracking (`SubagentStart`/`SubagentStop`/`TaskCompleted`) — agent spawn/completion events aren't logged
+
 ## Cross-Plugin Compatibility
 
 This plugin works alongside the Claude Code and Cursor versions of Plan-Build-Run. All three plugins share the same `.planning/` directory and file formats, so you can switch between tools without losing state. Hook scripts under `plugins/pbr/scripts/` are shared between all plugins via relative paths.
