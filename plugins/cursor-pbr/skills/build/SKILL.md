@@ -513,6 +513,11 @@ Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prom
   - Show the user: "Rolling back to commit {sha} (last verified good state). This will soft-reset {N} commits."
   - Run: `git reset --soft {last_good_commit}`
   - Delete the failed plan's SUMMARY.md file if it was created
+  - **CRITICAL — Invalidate downstream dependencies:**
+    - Check if any plans in later waves depend on the rolled-back plan
+    - For each downstream plan that depends on it: delete its SUMMARY.md (forces re-execution)
+    - Remove ALL downstream dependent plans from `checkpoints_resolved` in the manifest
+    - If downstream phases (outside this build) have `dependency_fingerprints` referencing this phase, warn: "Downstream phases may need re-planning with `/pbr:plan <N>` since Phase {current} was partially rolled back."
   - Update the checkpoint manifest: remove the failed plan from `checkpoints_resolved`
   - Continue to next wave or stop based on user preference
 - If no `last_good_commit`: warn "No rollback point available (this was the first plan). Use abort instead."
