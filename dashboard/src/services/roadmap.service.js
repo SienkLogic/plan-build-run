@@ -35,7 +35,7 @@ async function countPlansForPhase(projectDir, phaseId) {
     if (!phaseDir) return 0;
 
     const phaseFiles = await readdir(join(phasesDir, phaseDir.name));
-    return phaseFiles.filter(f => /^(?:\d{2}-\d{2}-)?PLAN\.md$/.test(f)).length;
+    return phaseFiles.filter(f => /^PLAN(?:-\d{2})?\.md$/.test(f)).length;
   } catch (err) {
     if (err.code === 'ENOENT') return 0;
     throw err;

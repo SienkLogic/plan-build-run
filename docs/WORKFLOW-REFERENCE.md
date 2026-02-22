@@ -1,6 +1,6 @@
 # Workflow Reference
 
-A complete guide to Plan-Build-Run's 21 skills and how they fit together.
+A complete guide to Plan-Build-Run's 25 skills and how they fit together.
 
 ---
 

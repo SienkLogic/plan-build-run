@@ -88,13 +88,35 @@ export async function listArchivedMilestones(projectDir) {
 
     if (statsPath) {
       try {
-        const { frontmatter, html } = await readMarkdownFile(statsPath);
+        const { frontmatter, html, rawContent } = await readMarkdownFile(statsPath);
         milestone.name = frontmatter.milestone || frontmatter.name || `v${version}`;
         milestone.date = frontmatter.completed || frontmatter.date || '';
         milestone.duration = frontmatter.duration || '';
         milestone.stats.phaseCount = frontmatter.phases_completed || frontmatter.phase_count || 0;
         milestone.stats.commitCount = frontmatter.total_commits || frontmatter.commit_count || 0;
         milestone.stats.statsHtml = html || '';
+
+        // Fallback: parse markdown content if frontmatter is empty
+        if (milestone.name === `v${version}` && rawContent) {
+          const nameMatch = rawContent.match(/\*\*Name:\*\*\s*(.+)/);
+          if (nameMatch) milestone.name = nameMatch[1].trim();
+          else {
+            const titleMatch = rawContent.match(/^#\s+.*?:\s*(.+?)(?:\s*\(v[\d.]+\))?$/m);
+            if (titleMatch) milestone.name = titleMatch[1].trim();
+          }
+        }
+        if (!milestone.date && rawContent) {
+          const dateMatch = rawContent.match(/\*\*Completed:\*\*\s*(.+)/);
+          if (dateMatch) milestone.date = dateMatch[1].trim();
+        }
+        if (!milestone.duration && rawContent) {
+          const durMatch = rawContent.match(/\*\*Duration:\*\*\s*(.+)/);
+          if (durMatch) milestone.duration = durMatch[1].trim();
+        }
+        if (!milestone.stats.commitCount && rawContent) {
+          const commitMatch = rawContent.match(/Total commits:\s*(\d+)/i) || rawContent.match(/\*\*Plans\*\*:\s*(\d+)/);
+          if (commitMatch) milestone.stats.commitCount = parseInt(commitMatch[1], 10);
+        }
       } catch (_e) {
         milestone.name = `v${version}`;
       }

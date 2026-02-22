@@ -43,12 +43,12 @@ All plugin code lives under `plugins/pbr/`. Three layers:
 ### Skills (`skills/{name}/SKILL.md`)
 Markdown files with YAML frontmatter defining slash commands (`/pbr:begin`, `/pbr:plan`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
-21 skills: begin, build, config, continue, debug, discuss, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, todo.
+25 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, milestone, note, pause, plan, quick, resume, review, scan, setup, status, statusline, todo.
 
 ### Agents (`agents/{name}.md`)
 Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "pbr:{name}"` — auto-loaded by Claude Code.
 
-10 agents: researcher, planner, plan-checker, executor, verifier, integration-checker, debugger, codebase-mapper, synthesizer, general.
+11 agents: audit, codebase-mapper, debugger, executor, general, integration-checker, plan-checker, planner, researcher, synthesizer, verifier.
 
 ### Scripts (`scripts/*.js`)
 28 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.

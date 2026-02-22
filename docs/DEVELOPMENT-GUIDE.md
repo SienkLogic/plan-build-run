@@ -1987,12 +1987,12 @@ Use AskUserQuestion with the **multi-option-failure** pattern from gate-prompts.
     - label: "Abort"     description: "Stop the entire build"
 ```
 
-**Skills using AskUserQuestion** (17 of 21):
-begin, build, config, debug, discuss, explore, import, milestone, plan, quick,
-resume, review, scan, setup, status, note, todo
+**Skills using AskUserQuestion** (20 of 25):
+audit, begin, build, config, debug, discuss, do, explore, health, import, milestone, plan, quick,
+resume, review, scan, setup, status, statusline, todo
 
-**Skills intentionally excluded** (4 of 21):
-continue (fully automated), health (read-only), help (read-only), pause (no interaction)
+**Skills intentionally excluded** (5 of 25):
+continue (fully automated), dashboard (no interactive decisions), help (read-only), note (lightweight utility), pause (no interaction)
 
 Note: `note` and `todo` list AskUserQuestion in allowed-tools but do not currently
 use it. This is acceptable -- allowed-tools lists capabilities, not requirements.
