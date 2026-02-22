@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
-import { getRoadmapData } from '../services/roadmap.service.js';
+import { getRoadmapData, generateDependencyMermaid } from '../services/roadmap.service.js';
 import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.service.js';
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
@@ -322,6 +322,27 @@ router.get('/milestones/:version', async (req, res) => {
     res.render('partials/milestone-detail-content', templateData);
   } else {
     res.render('milestone-detail', templateData);
+  }
+});
+
+router.get('/dependencies', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const mermaidCode = await generateDependencyMermaid(projectDir);
+
+  const templateData = {
+    title: 'Dependencies',
+    activePage: 'dependencies',
+    currentPath: '/dependencies',
+    breadcrumbs: [{ label: 'Dependencies' }],
+    mermaidCode
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/dependencies-content', templateData);
+  } else {
+    res.render('dependencies', templateData);
   }
 });
 
