@@ -91,13 +91,19 @@ function main() {
       process.exit(0);
     }
 
-    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand });
+    // Extract last_assistant_message for richer continuation context
+    const lastMsg = hookInput.last_assistant_message || '';
+    const msgSuffix = lastMsg
+      ? ` (last message excerpt: ${lastMsg.slice(0, 200)})`
+      : '';
+
+    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand, hasLastMsg: !!lastMsg });
 
     // Block the stop and inject the next command as Claude's continuation reason.
     // Claude Code Stop hooks use { decision: "block", reason: "..." } to keep going.
     const output = {
       decision: 'block',
-      reason: `Auto-continue: execute ${nextCommand}`
+      reason: `Auto-continue: execute ${nextCommand}${msgSuffix}`
     };
     process.stdout.write(JSON.stringify(output));
     process.exit(0);

@@ -140,8 +140,19 @@ function main() {
 
   writeAutoVerifySignal(planningDir, stateInfo.phase);
 
+  // Extract last_assistant_message for verification context hints
+  const lastMsg = data.last_assistant_message || '';
+  let verifyHint = '';
+  if (lastMsg) {
+    // Look for error/failure indicators that might inform verification priority
+    const lowerMsg = lastMsg.toLowerCase();
+    if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('warning')) {
+      verifyHint = ' Note: executor output mentions errors/warnings — verification should pay close attention.';
+    }
+  }
+
   const output = {
-    additionalContext: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.`
+    additionalContext: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.${verifyHint}`
   };
   process.stdout.write(JSON.stringify(output));
   process.exit(0);
