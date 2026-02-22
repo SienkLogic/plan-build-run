@@ -71,9 +71,9 @@ export async function getProjectAnalytics(projectDir) {
     const scopePattern = new RegExp(`\\(${phaseNum}-`);
     const commitCount = allLogLines.filter(line => scopePattern.test(line)).length;
 
-    // Phase duration from git dates
+    // Phase duration from git dates (match commits by scope pattern in message)
     const dateOutput = await git(projectDir, [
-      'log', '--format=%aI', '--', `.planning/phases/${dir.name}/`
+      'log', '--all', `--format=%aI`, `--grep=(${phaseNum}-`
     ]);
     const dates = dateOutput.trim().split('\n').filter(Boolean).map(d => new Date(d));
     let duration = null;
@@ -82,8 +82,6 @@ export async function getProjectAnalytics(projectDir) {
       const latest = new Date(Math.max(...dates));
       const days = Math.round((latest - earliest) / (1000 * 60 * 60 * 24));
       duration = `${days}d`;
-    } else if (dates.length === 1) {
-      duration = '0d';
     }
 
     // Plan count

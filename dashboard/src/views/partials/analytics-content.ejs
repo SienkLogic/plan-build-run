@@ -12,19 +12,23 @@
 <div class="grid">
   <article>
     <header>Total Commits</header>
-    <strong style="font-size: 2rem;"><%= analytics.summary.totalCommits %></strong>
+    <strong class="stat-value"><%= analytics.summary.totalCommits %></strong>
+    <span class="stat-unit">commits</span>
   </article>
   <article>
     <header>Total Phases</header>
-    <strong style="font-size: 2rem;"><%= analytics.summary.totalPhases %></strong>
+    <strong class="stat-value"><%= analytics.summary.totalPhases %></strong>
+    <span class="stat-unit">phases</span>
   </article>
   <article>
     <header>Avg Duration</header>
-    <strong style="font-size: 2rem;"><%= analytics.summary.avgDuration %></strong>
+    <strong class="stat-value"><%= analytics.summary.avgDuration %></strong>
+    <span class="stat-unit">days</span>
   </article>
   <article>
     <header>Lines Changed</header>
-    <strong style="font-size: 2rem;"><%= analytics.summary.totalLinesChanged.toLocaleString() %></strong>
+    <strong class="stat-value"><%= analytics.summary.totalLinesChanged.toLocaleString() %></strong>
+    <span class="stat-unit">lines</span>
   </article>
 </div>
 <% } %>
@@ -62,6 +66,21 @@
         <% }) %>
       </tbody>
     </table>
+  </div>
+</article>
+
+<% const maxCommits = Math.max(...analytics.phases.map(p => p.commitCount), 1); %>
+<article>
+  <header>Commits by Phase</header>
+  <div style="padding: var(--space-md) var(--space-lg);">
+    <% analytics.phases.sort((a, b) => a.phaseId.localeCompare(b.phaseId)).forEach(phase => { %>
+    <div class="bar-chart-row">
+      <span class="bar-chart-label"><%= phase.phaseId %> - <%= phase.phaseName %></span>
+      <div class="bar-chart-bar" style="width: <%= (phase.commitCount / maxCommits * 100) %>%">
+        <%= phase.commitCount %>
+      </div>
+    </div>
+    <% }) %>
   </div>
 </article>
 <% } else if (typeof analytics === 'undefined' || !analytics.summary) { %>
