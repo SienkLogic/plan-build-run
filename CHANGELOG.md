@@ -5,6 +5,30 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.19.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.1...plan-build-run-v2.19.0) (2026-02-22)
+
+
+### Features
+
+* **dashboard:** add responsive mobile layout with sidebar hamburger menu ([5621739](https://github.com/SienkLogic/plan-build-run/commit/5621739b1b1b85bf5854bf52582908251fdeff13))
+* **tools:** add D10 test plan coverage dimension to plan-checker agent ([a4ff196](https://github.com/SienkLogic/plan-build-run/commit/a4ff19664c723861b262f9d6feccdd9e1ef95221))
+* **tools:** add PreToolUse additionalContext soft warnings for risky operations ([1d39406](https://github.com/SienkLogic/plan-build-run/commit/1d394066071959e4abafdcc1e84d472f05584018))
+* **tools:** add STATE.md backup step before health skill auto-fix regeneration ([43a52dd](https://github.com/SienkLogic/plan-build-run/commit/43a52dd36df9afc2f0aa3ddebfd588904b562bcd))
+* **tools:** require user confirmation before debugger agent applies fixes ([5446654](https://github.com/SienkLogic/plan-build-run/commit/544665487093210c6f6e412f7af79e02d33cf19a))
+* **tools:** use last_assistant_message in Stop/SubagentStop hooks ([ab73122](https://github.com/SienkLogic/plan-build-run/commit/ab731222549b6c251d93de123a3a2475b8d41a13))
+
+
+### Bug Fixes
+
+* **dashboard:** handle todo files with H1 title and high/medium/low priority ([9edb601](https://github.com/SienkLogic/plan-build-run/commit/9edb601bdeb974c3f1d47f612697516b67d5aa2e))
+* **dashboard:** show completed milestones on roadmap when all phases archived ([656ec04](https://github.com/SienkLogic/plan-build-run/commit/656ec04120931e5092ee608f23022276c5d79381))
+* **tools:** add commonjs package.json to scripts for ESM project compat ([8ca8780](https://github.com/SienkLogic/plan-build-run/commit/8ca878023ce90257ccb9fe0cdabe5a3040ece9e9))
+
+
+### Documentation
+
+* **tools:** document minimum Claude Code v2.1.47 requirement for Windows hooks ([2ecb231](https://github.com/SienkLogic/plan-build-run/commit/2ecb23172f154e1fe68460c087eb055deea1df94))
+
 ## [2.18.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.0...plan-build-run-v2.18.1) (2026-02-22)
 
 
