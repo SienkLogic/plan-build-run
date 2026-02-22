@@ -76,5 +76,5 @@
 <% } %>
 
 <% if (active.length === 0 && archived.length === 0) { %>
-<p>No milestones found. Use <code>/pbr:milestone new</code> to create one.</p>
+<%- include('empty-state', { icon: '🚩', title: 'No milestones yet', action: '' }) %>
 <% } %>

@@ -90,7 +90,5 @@
   </div>
 </article>
 <% } else { %>
-<article>
-  <p>No pending todos found. Add a todo file to <code>.planning/todos/pending/</code> to see it here.</p>
-</article>
+<%- include('empty-state', { icon: '📋', title: 'No todos found', action: '<p><a href="/todos/new" role="button" hx-get="/todos/new" hx-target="#main-content" hx-push-url="true">Create Todo</a></p>' }) %>
 <% } %>
