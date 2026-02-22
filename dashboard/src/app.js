@@ -9,6 +9,7 @@ import eventsRouter from './routes/events.routes.js';
 import notFoundHandler from './middleware/notFoundHandler.js';
 import errorHandler from './middleware/errorHandler.js';
 import currentPhaseMiddleware from './middleware/current-phase.js';
+import { readFileSync } from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,6 +35,14 @@ export function createApp(config) {
 
   // Store config for access in routes/services
   app.locals.projectDir = config.projectDir;
+
+  // Read dashboard version from package.json for footer display
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'));
+    app.locals.dashboardVersion = pkg.version || '0.0.0';
+  } catch (_e) {
+    app.locals.dashboardVersion = '0.0.0';
+  }
 
   // View engine setup -- all paths use path.join (cross-platform)
   app.set('views', join(__dirname, 'views'));

@@ -5,6 +5,7 @@ import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.servi
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
 import { getProjectAnalytics } from '../services/analytics.service.js';
+import { listNotes } from '../services/notes.service.js';
 
 const router = Router();
 
@@ -81,8 +82,8 @@ router.get('/phases/:phaseId/:planId/:docType', async (req, res) => {
   }
 
   // Validate docType
-  if (docType !== 'plan' && docType !== 'summary') {
-    const err = new Error('Document type must be "plan" or "summary"');
+  if (docType !== 'plan' && docType !== 'summary' && docType !== 'verification') {
+    const err = new Error('Document type must be "plan", "summary", or "verification"');
     err.status = 404;
     throw err;
   }
@@ -91,12 +92,13 @@ router.get('/phases/:phaseId/:planId/:docType', async (req, res) => {
   const doc = await getPhaseDocument(projectDir, phaseId, planId, docType);
 
   if (!doc) {
-    const err = new Error(`${docType === 'plan' ? 'Plan' : 'Summary'} ${planId} not found for phase ${phaseId}`);
+    const labels = { plan: 'Plan', summary: 'Summary', verification: 'Verification' };
+    const err = new Error(`${labels[docType] || docType} ${planId} not found for phase ${phaseId}`);
     err.status = 404;
     throw err;
   }
 
-  const docLabel = docType === 'plan' ? 'Plan' : 'Summary';
+  const docLabel = docType === 'plan' ? 'Plan' : docType === 'verification' ? 'Verification' : 'Summary';
   const templateData = {
     title: `${docLabel} ${planId} — Phase ${phaseId}: ${doc.phaseName}`,
     activePage: 'phases',
@@ -271,13 +273,20 @@ router.post('/todos/:id/done', async (req, res) => {
 
 router.get('/milestones', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
-  const milestoneData = await getAllMilestones(projectDir);
+  const [milestoneData, roadmapData, stateData] = await Promise.all([
+    getAllMilestones(projectDir),
+    getRoadmapData(projectDir),
+    parseStateFile(projectDir)
+  ]);
+
+  const phases = derivePhaseStatuses(roadmapData.phases, stateData.currentPhase);
 
   const templateData = {
     title: 'Milestones',
     activePage: 'milestones',
     currentPath: '/milestones',
     breadcrumbs: [{ label: 'Milestones' }],
+    phases,
     ...milestoneData
   };
 
@@ -365,6 +374,27 @@ router.get('/analytics', async (req, res) => {
     res.render('partials/analytics-content', templateData);
   } else {
     res.render('analytics', templateData);
+  }
+});
+
+router.get('/notes', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const notes = await listNotes(projectDir);
+
+  const templateData = {
+    title: 'Notes',
+    activePage: 'notes',
+    currentPath: '/notes',
+    breadcrumbs: [{ label: 'Notes' }],
+    notes
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/notes-content', templateData);
+  } else {
+    res.render('notes', templateData);
   }
 });
 

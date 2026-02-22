@@ -73,6 +73,9 @@
     <% if (plan.summary) { %>
       &nbsp;|&nbsp; <a href="/phases/<%= phaseId %>/<%= plan.planId %>/summary">View Summary</a>
     <% } %>
+    <% if (verification) { %>
+      &nbsp;|&nbsp; <a href="/phases/<%= phaseId %>/<%= plan.planId %>/verification">View Verification</a>
+    <% } %>
   </p>
 
   <% if (plan.summary) { %>
