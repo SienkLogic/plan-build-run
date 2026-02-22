@@ -442,6 +442,31 @@ main > p:first-of-type > a[href="/"]:hover {
   background-color: var(--status-not-started);
 }
 
+/* --- Skip Link (Accessibility) --- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--pico-primary);
+  color: var(--pico-primary-inverse);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  position: static;
+  display: block;
+  text-align: center;
+}
+
+/* --- Focus Visible --- */
+:focus-visible {
+  outline: 2px solid var(--pico-primary);
+  outline-offset: 2px;
+}
+
 /* --- Empty State --- */
 .empty-state {
   text-align: center;
