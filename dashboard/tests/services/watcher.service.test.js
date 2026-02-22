@@ -46,7 +46,7 @@ describe('watcher.service', () => {
     expect(options.ignoreInitial).toBe(true);
     expect(options.persistent).toBe(true);
     expect(options.awaitWriteFinish).toBeDefined();
-    expect(options.awaitWriteFinish.stabilityThreshold).toBe(2000);
+    expect(options.awaitWriteFinish.stabilityThreshold).toBe(500);
   });
 
   it('should register handlers for add, change, unlink, and error events', () => {
