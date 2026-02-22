@@ -99,6 +99,33 @@ function main() {
         process.exit(sprawlResult.exitCode || 0);
       }
 
+      // Soft warning: writing outside current phase directory
+      // (only when all hard checks passed and we're in a phase)
+      const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+      if (filePath) {
+        const normalized = filePath.replace(/\\/g, '/');
+        // Warn about writes to other phase directories (not blocked, just advisory)
+        const phaseMatch = normalized.match(/\.planning\/phases\/(\d+)-/);
+        if (phaseMatch) {
+          const fs = require('fs');
+          const path = require('path');
+          const statePath = path.join(process.cwd(), '.planning', 'STATE.md');
+          try {
+            const stateContent = fs.readFileSync(statePath, 'utf8');
+            const currentPhase = stateContent.match(/Phase:\s*(\d+)\s+of/);
+            if (currentPhase && parseInt(phaseMatch[1], 10) !== parseInt(currentPhase[1], 10)) {
+              process.stdout.write(JSON.stringify({
+                decision: 'allow',
+                additionalContext: `[pbr] Advisory: writing to phase ${phaseMatch[1]} but current phase is ${currentPhase[1]}. Ensure this cross-phase write is intentional.`
+              }));
+              process.exit(0);
+            }
+          } catch (_e) {
+            // No STATE.md — skip warning
+          }
+        }
+      }
+
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
