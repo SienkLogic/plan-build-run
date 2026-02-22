@@ -382,6 +382,36 @@ details li {
   margin: var(--space-lg) 0;
 }
 
+/* --- Breadcrumbs --- */
+.breadcrumbs {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-md) 0;
+  font-size: 0.85rem;
+  gap: var(--space-xs);
+}
+
+.breadcrumbs li + li::before {
+  content: ">";
+  margin-right: var(--space-xs);
+  color: var(--color-text-dim);
+}
+
+.breadcrumbs a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--color-text-dim);
+  font-weight: 500;
+}
+
 /* --- Back Link --- */
 main > p:first-of-type > a[href="/"] {
   font-size: 0.875rem;
