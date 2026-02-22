@@ -54,16 +54,19 @@ The core workflow follows four steps per phase:
 
 Repeat `plan` / `build` / `review` for each phase in your roadmap.
 
-## Skills (21)
+## Skills (25)
 
 | Skill | Description |
 |-------|-------------|
+| audit | Review past Claude Code sessions for PBR workflow compliance and UX quality. |
 | begin | Start a new project. Deep questioning, research, requirements, and roadmap. |
 | build | Execute all plans in a phase. Spawns agents to build in parallel, commits atomically. |
 | config | Configure settings: depth, model profiles, features, git, and gates. |
 | continue | Execute the next logical step automatically. No prompts, no decisions. |
+| dashboard | Launch the PBR web dashboard for the current project. |
 | debug | Systematic debugging with hypothesis testing. Persistent across sessions. |
 | discuss | Talk through a phase before planning. Identifies gray areas and captures decisions. |
+| do | Route freeform text to the right PBR skill automatically. |
 | explore | Explore ideas, think through approaches, and route insights to the right artifacts. |
 | health | Check planning directory integrity. Find and fix corrupted state. |
 | help | Command reference and workflow guide. |
@@ -78,14 +81,16 @@ Repeat `plan` / `build` / `review` for each phase in your roadmap.
 | scan | Analyze an existing codebase. Maps structure, architecture, conventions, and concerns. |
 | setup | Onboarding wizard. Initialize project, select models, verify setup. |
 | status | Show current project status and suggest what to do next. |
+| statusline | Install or configure the PBR status line in Claude Code. |
 | todo | File-based persistent todos. Add, list, complete — survives sessions. |
 
 Skills live in `skills/{name}/SKILL.md`. Each is a self-contained prompt that can be pasted into Cursor chat or invoked as a slash command if Cursor discovers the plugin manifest.
 
-## Agents (10)
+## Agents (11)
 
 | Agent | Description |
 |-------|-------------|
+| audit | Analyzes Claude Code session logs for PBR workflow compliance and UX quality. |
 | codebase-mapper | Explores codebases and writes structured analysis across four focus areas. |
 | debugger | Systematic debugging using scientific method with hypothesis testing and evidence tracking. |
 | executor | Executes plan tasks with atomic commits, deviation handling, and self-verification. |

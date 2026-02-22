@@ -11,10 +11,10 @@
   </header>
   <%
     // Map verification status to CSS status-badge data-status values
-    var vStatus = verification.status || verification.verdict || 'unknown';
+    var vStatus = verification.result || verification.status || verification.verdict || 'unknown';
     var verificationCssStatus = 'not-started';
-    if (vStatus === 'passed') verificationCssStatus = 'complete';
-    else if (vStatus === 'failed') verificationCssStatus = 'blocked';
+    if (vStatus === 'pass' || vStatus === 'passed') verificationCssStatus = 'complete';
+    else if (vStatus === 'fail' || vStatus === 'failed') verificationCssStatus = 'blocked';
     else if (vStatus === 'partial') verificationCssStatus = 'in-progress';
   %>
   <p>
