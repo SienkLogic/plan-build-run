@@ -6,7 +6,46 @@
       hx-target="#main-content"
       hx-push-url="true">Create Todo</a></p>
 
+<% const f = typeof filters !== 'undefined' ? filters : { priority: '', status: '', q: '' }; %>
+<article>
+  <form hx-get="/todos" hx-target="#main-content" hx-push-url="true">
+    <div class="grid">
+      <label>
+        Priority
+        <select name="priority" onchange="this.form.requestSubmit()">
+          <option value="">All</option>
+          <option value="P0"<%= f.priority === 'P0' ? ' selected' : '' %>>P0</option>
+          <option value="P1"<%= f.priority === 'P1' ? ' selected' : '' %>>P1</option>
+          <option value="P2"<%= f.priority === 'P2' ? ' selected' : '' %>>P2</option>
+          <option value="PX"<%= f.priority === 'PX' ? ' selected' : '' %>>PX</option>
+        </select>
+      </label>
+      <label>
+        Status
+        <select name="status" onchange="this.form.requestSubmit()">
+          <option value="">All</option>
+          <option value="pending"<%= f.status === 'pending' ? ' selected' : '' %>>pending</option>
+        </select>
+      </label>
+      <label>
+        Search
+        <input type="search" name="q" value="<%= f.q %>" placeholder="Search titles..."
+               hx-get="/todos" hx-target="#main-content" hx-push-url="true"
+               hx-trigger="keyup changed delay:300ms, search" hx-include="closest form">
+      </label>
+    </div>
+  </form>
+</article>
+
 <% if (todos.length > 0) { %>
+<p>
+  <button class="secondary"
+          hx-post="/todos/bulk-complete?priority=<%= encodeURIComponent(f.priority) %>&status=<%= encodeURIComponent(f.status) %>&q=<%= encodeURIComponent(f.q) %>"
+          hx-target="#main-content"
+          hx-confirm="Complete all <%= todos.length %> visible todo(s)?">
+    Complete All Visible (<%= todos.length %>)
+  </button>
+</p>
 <article>
   <div class="table-wrap">
   <table>

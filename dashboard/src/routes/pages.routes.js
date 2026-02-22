@@ -115,14 +115,20 @@ router.get('/phases/:phaseId/:planId/:docType', async (req, res) => {
 
 router.get('/todos', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
-  const todos = await listPendingTodos(projectDir);
+  const { priority, status, q } = req.query;
+  const filters = {};
+  if (priority) filters.priority = priority;
+  if (status) filters.status = status;
+  if (q) filters.q = q;
+  const todos = await listPendingTodos(projectDir, filters);
 
   const templateData = {
     title: 'Todos',
     activePage: 'todos',
     currentPath: '/todos',
     breadcrumbs: [{ label: 'Todos' }],
-    todos
+    todos,
+    filters: { priority: priority || '', status: status || '', q: q || '' }
   };
 
   res.setHeader('Vary', 'HX-Request');
@@ -131,6 +137,34 @@ router.get('/todos', async (req, res) => {
     res.render('partials/todos-content', templateData);
   } else {
     res.render('todos', templateData);
+  }
+});
+
+router.post('/todos/bulk-complete', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const { priority, status, q } = req.query;
+  const filters = {};
+  if (priority) filters.priority = priority;
+  if (status) filters.status = status;
+  if (q) filters.q = q;
+
+  const todos = await listPendingTodos(projectDir, filters);
+  for (const todo of todos) {
+    await completeTodo(projectDir, todo.id);
+  }
+
+  if (req.get('HX-Request') === 'true') {
+    const remaining = await listPendingTodos(projectDir);
+    res.render('partials/todos-content', {
+      title: 'Todos',
+      activePage: 'todos',
+      currentPath: '/todos',
+      breadcrumbs: [{ label: 'Todos' }],
+      todos: remaining,
+      filters: { priority: '', status: '', q: '' }
+    });
+  } else {
+    res.redirect('/todos');
   }
 });
 
