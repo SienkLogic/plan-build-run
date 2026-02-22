@@ -1,0 +1,23 @@
+<%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
+<h1>Notes</h1>
+
+<% if (notes.length === 0) { %>
+<%- include('empty-state', { icon: 'N', title: 'No notes yet', action: 'Use /pbr:note to create project notes.' }) %>
+<% } else { %>
+<% notes.forEach(function(note) { %>
+<article>
+  <header>
+    <strong><%= note.title %></strong>
+    <% if (note.promoted) { %>
+      &nbsp; <span class="status-badge" data-status="complete">promoted</span>
+    <% } %>
+    <% if (note.date) { %>
+      <small style="float:right"><%= note.date %></small>
+    <% } %>
+  </header>
+  <div class="markdown-body">
+    <%- note.html %>
+  </div>
+</article>
+<% }); %>
+<% } %>

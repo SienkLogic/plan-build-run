@@ -3,7 +3,11 @@
 
 <% if (active.length > 0) { %>
 <h2>Active</h2>
-<% active.forEach(function(m) { %>
+<% active.forEach(function(m) {
+  var msPhases = (typeof phases !== 'undefined' && phases) ? phases.filter(function(p) { return p.id >= m.startPhase && p.id <= m.endPhase; }) : [];
+  var totalPhases = msPhases.length;
+  var completedPhases = msPhases.filter(function(p) { return p.status === 'complete'; }).length;
+%>
 <article>
   <header>
     <strong><%= m.name %></strong>
@@ -12,6 +16,10 @@
   <p>
     Phases <%= m.startPhase %> &ndash; <%= m.endPhase %>
   </p>
+  <% if (totalPhases > 0) { %>
+  <progress value="<%= completedPhases %>" max="<%= totalPhases %>"></progress>
+  <p><small><%= completedPhases %> of <%= totalPhases %> phases complete</small></p>
+  <% } %>
 </article>
 <% }); %>
 <% } %>
