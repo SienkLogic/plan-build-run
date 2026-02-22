@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.16.0...plan-build-run-v2.17.0) (2026-02-22)
+
+
+### Features
+
+* **tools:** add /pbr:audit skill for session compliance and UX review ([ea9920e](https://github.com/SienkLogic/plan-build-run/commit/ea9920e3ce9d982d222644e8898569b2dbfa71f8))
+
 ## [2.16.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.15.0...plan-build-run-v2.16.0) (2026-02-22)
 
 
