@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.0...plan-build-run-v2.17.1) (2026-02-22)
+
+
+### Bug Fixes
+
+* **dashboard:** plan count regex and mermaid rendering ([204838b](https://github.com/SienkLogic/plan-build-run/commit/204838b8be197cfa0835005e79a288f1d7d3d646))
+
 ## [2.17.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.16.0...plan-build-run-v2.17.0) (2026-02-22)
 
 
