@@ -2572,6 +2572,13 @@ The `/pbr:health` skill checks these invariants.
 
 ---
 
+## Requirements
+
+- **Claude Code v2.1.47+** — Required for reliable Windows hook execution. Starting with v2.1.47, Claude Code uses Git Bash instead of `cmd.exe` on Windows, which fixes MSYS path expansion issues and ensures hooks receive correct `${CLAUDE_PLUGIN_ROOT}` paths. Earlier versions may fail silently on Windows.
+- **Node.js 18+** — CI tests on Node 18, 20, and 22.
+
+---
+
 ## Cross-Platform Compatibility
 
 Plan-Build-Run must work on Windows, macOS, and Linux.
