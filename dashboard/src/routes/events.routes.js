@@ -22,6 +22,11 @@ router.get('/stream', (req, res) => {
   // Send initial connection confirmation
   res.write(': connected\n\n');
 
+  // If client reconnected with a lastEventId, send state-recovery event
+  if (req.query.lastEventId) {
+    res.write(`event: state-recovery\ndata: {"action":"refresh"}\nid: ${Date.now()}\n\n`);
+  }
+
   // Register this client for broadcasts
   addClient(res);
 
