@@ -61,7 +61,7 @@ Works on every Claude Code plan. Use `depth: quick` on Free/Pro, `depth: standar
 
 ### Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 2.1.45+ &nbsp;(`claude --version`)
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) 2.1.47+ &nbsp;(`claude --version`)
 - Node.js 18+
 
 ### Install
