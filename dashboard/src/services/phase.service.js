@@ -112,7 +112,7 @@ export async function getPhaseDetail(projectDir, phaseId) {
   // Supports both naming conventions:
   //   - NN-NN-PLAN.md (plan ID embedded in filename)
   //   - PLAN.md (single plan per phase, ID derived from phase directory)
-  const planRegex = /^(?:\d{2}-\d{2}-)?PLAN\.md$/;
+  const planRegex = /^PLAN(?:-\d{2})?\.md$/;
   const planFiles = phaseFiles
     .filter(f => planRegex.test(f))
     .sort();
@@ -120,8 +120,8 @@ export async function getPhaseDetail(projectDir, phaseId) {
   // Build summary paths and read them in parallel
   // Derive planId from filename (NN-NN-PLAN.md) or phase directory (PLAN.md -> NN-01)
   const summaryPaths = planFiles.map((planFile, index) => {
-    const idMatch = planFile.match(/^(\d{2}-\d{2})-PLAN\.md$/);
-    const planId = idMatch ? idMatch[1] : `${phaseId.padStart(2, '0')}-${String(index + 1).padStart(2, '0')}`;
+    const idMatch = planFile.match(/^PLAN-(\d{2})\.md$/);
+    const planId = idMatch ? `${phaseId.padStart(2, '0')}-${idMatch[1]}` : `${phaseId.padStart(2, '0')}-${String(index + 1).padStart(2, '0')}`;
     return { planId, planFile, summaryPath: join(phaseFullPath, `SUMMARY-${planId}.md`) };
   });
 

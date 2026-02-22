@@ -106,10 +106,14 @@ Display the following reference to the user:
 | `/pbr:import --skip-checker` | Skip plan-checker validation on import. |
 | `/pbr:setup` | Interactive onboarding wizard for new projects. |
 
-### Utilities
+### Analysis & Utilities
 
 | Command | Description |
 |---------|-------------|
+| `/pbr:audit` | Review past sessions for PBR workflow compliance and UX quality. |
+| `/pbr:audit --today` | Audit today's sessions (default). |
+| `/pbr:audit --from DATE --to DATE` | Audit a specific date range. |
+| `/pbr:audit --mode compliance\|ux` | Run compliance-only or UX-only audit. |
 | `/pbr:do <description>` | Route freeform text to the right PBR skill automatically. |
 | `/pbr:dashboard` | Launch the web dashboard for the current project. |
 | `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
