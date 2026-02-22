@@ -1,10 +1,35 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Project Roadmap</h1>
 
-<% if (phases.length === 0) { %>
+<% if (phases.length === 0 && (typeof milestones === 'undefined' || milestones.length === 0)) { %>
 <article>
   <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see the roadmap here.</p>
 </article>
+<% } else if (phases.length === 0 && typeof milestones !== 'undefined' && milestones.length > 0) { %>
+<!-- All milestones completed — show summary -->
+<article>
+  <header><strong>All Milestones Completed</strong></header>
+  <p>All phases have been archived into milestones.</p>
+</article>
+<% milestones.forEach(function(ms) { %>
+<article>
+  <header>
+    <strong><%= ms.name %></strong>
+    <% if (ms.startPhase && ms.endPhase) { %>
+      <small>(Phases <%= String(ms.startPhase).padStart(2, '0') %>&ndash;<%= String(ms.endPhase).padStart(2, '0') %>)</small>
+    <% } %>
+    &mdash;
+    <span class="status-badge" data-status="complete">complete</span>
+  </header>
+  <% if (ms.goal && ms.goal !== 'Completed') { %>
+    <p><small><%= ms.goal %></small></p>
+  <% } %>
+  <p><a href="/milestones"
+        hx-get="/milestones"
+        hx-target="#main-content"
+        hx-push-url="true">View in Milestones</a></p>
+</article>
+<% }); %>
 <% } else { %>
 
 <%

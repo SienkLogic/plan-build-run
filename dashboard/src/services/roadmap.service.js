@@ -94,12 +94,30 @@ function extractMilestones(roadmapContent) {
   // Parse explicit milestones: "## Milestone: Name\n\n**Goal:** ...\n**Phases:** N - M"
   const milestoneRegex = /## Milestone:\s*(.+)\n+\*\*Goal:?\*\*:?\s*(.+)\n\*\*Phases:?\*\*:?\s*(\d+)\s*-\s*(\d+)/g;
   const explicit = [];
+  const seenNames = new Set();
   for (const match of roadmapContent.matchAll(milestoneRegex)) {
+    const name = match[1].trim();
+    seenNames.add(name);
     explicit.push({
-      name: match[1].trim(),
+      name,
       goal: match[2].trim(),
       startPhase: parseInt(match[3], 10),
       endPhase: parseInt(match[4], 10)
+    });
+  }
+
+  // Parse completed/collapsed milestones: "## Milestone: Name -- COMPLETED\n\nPhases N-M completed..."
+  const completedRegex = /## Milestone:\s*(.+?)\s*--\s*COMPLETED\n+Phases\s+(\d+)-(\d+)\s+completed[^\n]*/g;
+  for (const match of roadmapContent.matchAll(completedRegex)) {
+    const name = match[1].trim();
+    if (seenNames.has(name)) continue; // avoid duplicates
+    seenNames.add(name);
+    explicit.push({
+      name: name + ' (Completed)',
+      goal: 'Completed',
+      startPhase: parseInt(match[2], 10),
+      endPhase: parseInt(match[3], 10),
+      completed: true
     });
   }
 
@@ -214,10 +232,6 @@ export async function generateDependencyMermaid(projectDir) {
 
 export async function getRoadmapData(projectDir) {
   const { phases: basePhases } = await parseRoadmapFile(projectDir);
-
-  if (basePhases.length === 0) {
-    return { phases: [], milestones: [] };
-  }
 
   // Read raw ROADMAP.md for dependencies and milestones
   let dependencyMap = new Map();
