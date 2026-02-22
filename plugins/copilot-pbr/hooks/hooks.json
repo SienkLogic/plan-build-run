@@ -125,6 +125,18 @@
             "timeoutSec": 15
           }
         ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" intercept-plan-mode.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') intercept-plan-mode.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
       }
     ],
     "sessionEnd": [
