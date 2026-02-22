@@ -118,7 +118,16 @@ When you need human input, emit a checkpoint block. Always include `Debug file:`
 
 **CRITICAL — DO NOT SKIP steps 5-8. Uncommitted fixes and unupdated debug files cause state corruption on resume.**
 
-**Steps**: Verify root cause → plan minimal fix → predict outcome → implement → verify → check regressions → commit → update debug file.
+**CRITICAL — NEVER apply fixes without user approval.** After identifying the root cause and planning the fix, you MUST present your findings and proposed changes to the user, then wait for explicit confirmation before writing any code. Set debug status to `self-verified` while awaiting approval. Only proceed to `fixing` after the user approves.
+
+Present to the user:
+1. Root cause and mechanism
+2. Proposed fix (files to change, what changes)
+3. Predicted outcome and risk assessment
+
+Then emit a `DECISION` checkpoint asking the user to approve, modify, or reject the fix.
+
+**Steps**: Verify root cause → plan minimal fix → predict outcome → **present to user and wait for approval** → implement → verify → check regressions → commit → update debug file.
 
 **Guidelines**: Minimal change (root cause, not symptoms). One atomic commit. No refactoring or features. Test the fix.
 
@@ -155,6 +164,7 @@ Reference: `references/common-bug-patterns.md` — covers off-by-one, null/undef
 6. DO NOT assume first hypothesis is correct or fight contradicting evidence
 7. DO NOT spend too long on one hypothesis — if inconclusive, move on
 8. DO NOT trust error messages at face value — may be a deeper symptom
+9. DO NOT apply fixes without explicit user approval — present findings first, wait for confirmation
 
 ## Context Budget
 
