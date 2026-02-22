@@ -11,5 +11,6 @@
   </script>
   <div class="page-wrapper">
     <%- include('header') %>
+    <div class="sidebar-backdrop" onclick="closeSidebar()"></div>
     <%- include('sidebar', { activePage: typeof activePage !== 'undefined' ? activePage : '' }) %>
     <main id="main-content">
