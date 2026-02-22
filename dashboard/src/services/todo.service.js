@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import matter from 'gray-matter';
 import { readMarkdownFile } from '../repositories/planning.repository.js';
 
-const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, PX: 3 };
+const PRIORITY_ORDER = { P0: 0, P1: 1, P2: 2, PX: 3, high: 0, medium: 1, low: 2 };
 
 class WriteQueue {
   constructor() {
@@ -105,13 +105,22 @@ export async function listPendingTodos(projectDir, filters = {}) {
   for (let i = 0; i < results.length; i++) {
     if (results[i].status !== 'fulfilled') continue;
 
-    const { frontmatter } = results[i].value;
+    const { frontmatter, rawContent } = results[i].value;
     const { filename, fileId } = mdFiles[i];
 
-    // Skip todos missing required frontmatter fields
-    const title = frontmatter.title;
+    // Derive title: frontmatter > H1 heading in raw markdown > filename slug
+    let title = frontmatter.title;
+    if (!title && rawContent) {
+      const h1Match = rawContent.match(/^#\s+(.+)$/m);
+      if (h1Match) title = h1Match[1].trim();
+    }
+    if (!title) {
+      // Extract from filename: "003-some-slug.md" -> "Some slug"
+      const slugMatch = filename.match(/^\d{3}-(.+)\.md$/);
+      title = slugMatch ? slugMatch[1].replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase()) : 'Untitled';
+    }
     const priority = frontmatter.priority;
-    if (!title || !priority) continue;
+    if (!priority) continue;
 
     todos.push({
       id: frontmatter.id || fileId,
