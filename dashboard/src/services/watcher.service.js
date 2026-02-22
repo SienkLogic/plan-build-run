@@ -22,7 +22,7 @@ export function createWatcher(watchPath, onChange) {
     persistent: true,
     ignoreInitial: true,
     awaitWriteFinish: {
-      stabilityThreshold: 2000,
+      stabilityThreshold: 500,
       pollInterval: 100
     }
   });
