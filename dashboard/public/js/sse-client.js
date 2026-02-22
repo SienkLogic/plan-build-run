@@ -69,6 +69,7 @@
       const dot = document.getElementById('sse-status');
       if (dot) {
         dot.setAttribute('data-connected', String(connected));
+        dot.setAttribute('title', connected ? 'Live updates: connected' : 'Live updates: disconnected');
       }
     }
 
