@@ -1,13 +1,20 @@
 <%- include('partials/layout-top', { title: typeof title !== 'undefined' ? title : 'Error', activePage: '' }) %>
 
-<h1>Error <%= status %></h1>
-<p><%= message %></p>
-<% if (typeof stack !== 'undefined' && stack) { %>
-<details>
-  <summary>Stack Trace (Development Only)</summary>
-  <pre><code><%= stack %></code></pre>
-</details>
-<% } %>
-<p><a href="/">Return to Dashboard</a></p>
+<div class="error-card">
+  <div class="error-card__icon">&#x26A0;</div>
+  <h2>Error <%= status %></h2>
+  <div class="error-card__message">
+    <p><%= message %></p>
+  </div>
+  <% if (typeof stack !== 'undefined' && stack) { %>
+  <details>
+    <summary>Stack Trace (Development Only)</summary>
+    <pre><code><%= stack %></code></pre>
+  </details>
+  <% } %>
+  <div class="error-card__action">
+    <a href="javascript:history.back()">Go back</a> | <a href="/">Return to Dashboard</a>
+  </div>
+</div>
 
 <%- include('partials/layout-bottom') %>
