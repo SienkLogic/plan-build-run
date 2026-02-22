@@ -14,6 +14,9 @@
         Priority
         <select name="priority" onchange="this.form.requestSubmit()">
           <option value="">All</option>
+          <option value="high"<%= f.priority === 'high' ? ' selected' : '' %>>High</option>
+          <option value="medium"<%= f.priority === 'medium' ? ' selected' : '' %>>Medium</option>
+          <option value="low"<%= f.priority === 'low' ? ' selected' : '' %>>Low</option>
           <option value="P0"<%= f.priority === 'P0' ? ' selected' : '' %>>P0</option>
           <option value="P1"<%= f.priority === 'P1' ? ' selected' : '' %>>P1</option>
           <option value="P2"<%= f.priority === 'P2' ? ' selected' : '' %>>P2</option>

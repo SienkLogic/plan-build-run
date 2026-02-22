@@ -2,7 +2,7 @@
 <h1><%= projectName %></h1>
 
 <!-- Hero Stat Row -->
-<div class="grid">
+<div class="hero-stats">
   <!-- Current Phase -->
   <article>
     <header><strong>Current Phase</strong></header>
@@ -54,7 +54,7 @@
 </div>
 
 <!-- Quick Actions -->
-<div>
+<div class="quick-actions">
   <% var phaseId = String(currentPhase.id).padStart(2, '0'); %>
   <a role="button" class="outline"
      href="/phases/<%= phaseId %>"
