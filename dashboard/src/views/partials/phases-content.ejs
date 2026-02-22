@@ -61,7 +61,10 @@
       <tr>
         <td><%= String(phase.id).padStart(2, '0') %></td>
         <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-target="#main-content"
+             hx-push-url="true">
             <%= phase.name %>
           </a>
         </td>
@@ -97,7 +100,10 @@
       <tr>
         <td><%= String(phase.id).padStart(2, '0') %></td>
         <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-target="#main-content"
+             hx-push-url="true">
             <%= phase.name %>
           </a>
         </td>

@@ -67,7 +67,10 @@
       <tr>
         <td><%= String(phase.id).padStart(2, '0') %></td>
         <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-target="#main-content"
+             hx-push-url="true">
             <%= phase.name %>
           </a>
         </td>
@@ -80,7 +83,10 @@
         <td>
           <% if (phase.dependencies && phase.dependencies.length > 0) { %>
             <% phase.dependencies.forEach(function(dep, idx) { %>
-              <a href="/phases/<%= String(dep).padStart(2, '0') %>"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
+              <a href="/phases/<%= String(dep).padStart(2, '0') %>"
+                 hx-get="/phases/<%= String(dep).padStart(2, '0') %>"
+                 hx-target="#main-content"
+                 hx-push-url="true"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
             <% }); %>
           <% } else { %>
             <small>None</small>
@@ -113,7 +119,10 @@
       <tr>
         <td><%= String(phase.id).padStart(2, '0') %></td>
         <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>">
+          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+             hx-target="#main-content"
+             hx-push-url="true">
             <%= phase.name %>
           </a>
         </td>
@@ -126,7 +135,10 @@
         <td>
           <% if (phase.dependencies && phase.dependencies.length > 0) { %>
             <% phase.dependencies.forEach(function(dep, idx) { %>
-              <a href="/phases/<%= String(dep).padStart(2, '0') %>"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
+              <a href="/phases/<%= String(dep).padStart(2, '0') %>"
+                 hx-get="/phases/<%= String(dep).padStart(2, '0') %>"
+                 hx-target="#main-content"
+                 hx-push-url="true"><%= String(dep).padStart(2, '0') %></a><% if (idx < phase.dependencies.length - 1) { %>, <% } %>
             <% }); %>
           <% } else { %>
             <small>None</small>
