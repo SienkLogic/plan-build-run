@@ -64,8 +64,9 @@ export async function listArchivedMilestones(projectDir) {
     versionMap.get(version).files.push(entry.name);
   }
 
-  // Try to parse STATS.md for each version to get name/date/duration
+  // Try to parse STATS.md for each version to get name/date/duration/stats
   for (const [version, milestone] of versionMap) {
+    milestone.stats = { phaseCount: 0, commitCount: 0, deliverables: [] };
     let statsPath;
     if (milestone.format === 'directory') {
       if (milestone.files.includes('STATS.md')) {
@@ -80,15 +81,43 @@ export async function listArchivedMilestones(projectDir) {
 
     if (statsPath) {
       try {
-        const { frontmatter } = await readMarkdownFile(statsPath);
+        const { frontmatter, html } = await readMarkdownFile(statsPath);
         milestone.name = frontmatter.milestone || frontmatter.name || `v${version}`;
         milestone.date = frontmatter.completed || frontmatter.date || '';
         milestone.duration = frontmatter.duration || '';
+        milestone.stats.phaseCount = frontmatter.phases_completed || frontmatter.phase_count || 0;
+        milestone.stats.commitCount = frontmatter.total_commits || frontmatter.commit_count || 0;
+        milestone.stats.statsHtml = html || '';
       } catch (_e) {
         milestone.name = `v${version}`;
       }
     } else {
       milestone.name = `v${version}`;
+    }
+
+    // Try to read deliverables from archived ROADMAP.md
+    if (milestone.format === 'directory' && milestone.files.includes('ROADMAP.md')) {
+      try {
+        const { frontmatter: rmFm } = await readMarkdownFile(join(milestonesDir, `v${version}`, 'ROADMAP.md'));
+        if (Array.isArray(rmFm.phases)) {
+          milestone.stats.deliverables = rmFm.phases.map(p => typeof p === 'string' ? p : (p.name || p.title || ''));
+        }
+      } catch (_e) { /* ignore */ }
+    }
+
+    // Try phases/ subdirectory for deliverables if none found yet
+    if (milestone.format === 'directory' && milestone.stats.deliverables.length === 0) {
+      try {
+        const phasesDir = join(milestonesDir, `v${version}`, 'phases');
+        const phaseDirs = await readdir(phasesDir, { withFileTypes: true });
+        milestone.stats.deliverables = phaseDirs
+          .filter(d => d.isDirectory())
+          .map(d => d.name)
+          .sort();
+        if (milestone.stats.phaseCount === 0) {
+          milestone.stats.phaseCount = milestone.stats.deliverables.length;
+        }
+      } catch (_e) { /* no phases dir */ }
     }
   }
 
