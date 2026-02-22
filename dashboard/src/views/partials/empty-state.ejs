@@ -1,0 +1,7 @@
+<article class="empty-state">
+  <p style="font-size: 2.5rem; margin-bottom: 0;"><%= typeof icon !== 'undefined' ? icon : '' %></p>
+  <h3><%= typeof title !== 'undefined' ? title : 'No data available' %></h3>
+  <% if (typeof action !== 'undefined' && action) { %>
+  <%- action %>
+  <% } %>
+</article>
