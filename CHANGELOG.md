@@ -5,6 +5,43 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.16.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.15.0...plan-build-run-v2.16.0) (2026-02-22)
+
+
+### Features
+
+* **11-01:** create tokens.css with dual-mode design tokens ([53afcc1](https://github.com/SienkLogic/plan-build-run/commit/53afcc1cc84e56d3d98b66a5758591f79af5c725))
+* **11-01:** refactor layout.css to use semantic design tokens ([f0fa53c](https://github.com/SienkLogic/plan-build-run/commit/f0fa53c88ac4345b135033e14dc37b937a65d5dd))
+* **11-02:** add theme toggle button with localStorage persistence ([f84576e](https://github.com/SienkLogic/plan-build-run/commit/f84576ec4596dedc9643b7cb76e55d14865ebffb))
+* **11-02:** pin Pico.css CDN to v2.0.6 ([1e46ef6](https://github.com/SienkLogic/plan-build-run/commit/1e46ef6bd56e12222d735590d9dea3b3c7f1f5b6))
+* **12-01:** add current-phase middleware for sidebar context ([d7d0e16](https://github.com/SienkLogic/plan-build-run/commit/d7d0e16419f692aa9883d9262b119dc514f7e9b0))
+* **12-01:** implement mobile overlay sidebar with backdrop ([3cc59ac](https://github.com/SienkLogic/plan-build-run/commit/3cc59acf55ab90568d4f11c11df43c7a07ca43f4))
+* **12-01:** redesign sidebar with collapsible sections and current phase card ([0b6aa07](https://github.com/SienkLogic/plan-build-run/commit/0b6aa076bfea6fdac3c7c855a6ad522f6d8f50ce))
+* **12-02:** add breadcrumb data to routes and include partial in content templates ([a90684e](https://github.com/SienkLogic/plan-build-run/commit/a90684e7752fcf232bcaee223e392e1dd4a9d52e))
+* **12-02:** create breadcrumbs partial and CSS styles ([82ba448](https://github.com/SienkLogic/plan-build-run/commit/82ba44833b09398d5abec88bf6e6a60032694412))
+* **13-01:** add milestone history expandable table with stats and deliverables ([ccc82d5](https://github.com/SienkLogic/plan-build-run/commit/ccc82d59f28e67b8ab5cb0db803d228e35af8339))
+* **13-01:** add todo filtering by priority, status, and search with bulk complete ([0abbf4c](https://github.com/SienkLogic/plan-build-run/commit/0abbf4c173395bfeda4b5c73f312a3820e86ad67))
+* **13-02:** add dependency graph route, views, and sidebar link ([d7224c2](https://github.com/SienkLogic/plan-build-run/commit/d7224c297dcbd07ac3659e95c4047448e5c6292b))
+* **13-02:** add Mermaid dependency graph generation to roadmap service ([662056b](https://github.com/SienkLogic/plan-build-run/commit/662056b703f4ef4d7910d7afb1f79444be6e11d1))
+* **13-03:** add analytics route, views, and sidebar link ([750562b](https://github.com/SienkLogic/plan-build-run/commit/750562b94287f151d89d7160ab124e2dc3279abc))
+* **13-03:** create analytics service with git-based metrics and TTL cache ([41eb38a](https://github.com/SienkLogic/plan-build-run/commit/41eb38aebf930ec085edaee416913c2319a6d216))
+* **14-01:** add Last-Event-ID state recovery to SSE endpoint ([b41c8dd](https://github.com/SienkLogic/plan-build-run/commit/b41c8ddc0638cd1bd103110ed6aa74a1512ca137))
+* **14-01:** create custom SSE client with exponential backoff ([8d75876](https://github.com/SienkLogic/plan-build-run/commit/8d758765f0465820560a72fdad745481e091f04b))
+* **14-01:** reduce chokidar stability threshold to 500ms ([1ef4dc4](https://github.com/SienkLogic/plan-build-run/commit/1ef4dc49604d98f5b6d9847f6ce835ee909b519f))
+* **14-02:** add hx-indicator spinners to todo complete actions ([a166d94](https://github.com/SienkLogic/plan-build-run/commit/a166d946323255696f46f0550892878eda622ebd))
+* **14-02:** add TTL cache utility and integrate into analytics and milestone services ([123c2d2](https://github.com/SienkLogic/plan-build-run/commit/123c2d25ea7050515e685c05231401de76d4cd7c))
+* **15-01:** add error-card styling, loading indicator, and favicon ([6f3c550](https://github.com/SienkLogic/plan-build-run/commit/6f3c550f79885010af59377a95c7dfd2e53038c3))
+* **15-01:** add skip-to-content link, focus-visible styles, and ARIA labels ([47c3c9b](https://github.com/SienkLogic/plan-build-run/commit/47c3c9bcaf8f2a5e143fe1b5a8ed18e5da9b20ba))
+* **15-01:** create reusable empty-state partial and integrate into views ([48c6807](https://github.com/SienkLogic/plan-build-run/commit/48c6807b9f19fcd4abc8582820155c5ccc73a244))
+* **15-02:** GREEN - analytics, cache, SSE tests pass against existing code ([1f6e3c2](https://github.com/SienkLogic/plan-build-run/commit/1f6e3c2feef7ba601afe66c68e41401aa44568be))
+* **15-02:** GREEN - dependencies and breadcrumbs tests pass ([8fd48fc](https://github.com/SienkLogic/plan-build-run/commit/8fd48fc63e5414cf93bec4d7afadf86b463a6f32))
+
+
+### Bug Fixes
+
+* **14-01:** add missing #sse-status element to header ([b831104](https://github.com/SienkLogic/plan-build-run/commit/b831104feaee62a5f6768ec8060aa2387e82322c))
+* **14-02:** clear milestone cache between tests to prevent stale data ([192b53c](https://github.com/SienkLogic/plan-build-run/commit/192b53cbb4777350950ed8bd0d4993d3229f1630))
+
 ## [2.15.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.14.0...plan-build-run-v2.15.0) (2026-02-22)
 
 
