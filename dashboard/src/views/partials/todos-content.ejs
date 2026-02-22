@@ -42,9 +42,12 @@
   <button class="secondary"
           hx-post="/todos/bulk-complete?priority=<%= encodeURIComponent(f.priority) %>&status=<%= encodeURIComponent(f.status) %>&q=<%= encodeURIComponent(f.q) %>"
           hx-target="#main-content"
+          hx-swap="outerHTML"
+          hx-indicator="#bulk-spinner"
           hx-confirm="Complete all <%= todos.length %> visible todo(s)?">
     Complete All Visible (<%= todos.length %>)
   </button>
+  <span id="bulk-spinner" class="htmx-indicator" aria-busy="true"></span>
 </p>
 <article>
   <div class="table-wrap">
