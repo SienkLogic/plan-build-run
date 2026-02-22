@@ -85,6 +85,7 @@ Display the following reference to the user:
 | `/pbr:status` | Where am I? Shows progress and suggests next action. |
 | `/pbr:health` | Check planning directory integrity. Find and fix corrupted state. |
 | `/pbr:pause` | Save session state for later. |
+| `/pbr:pause --checkpoint` | Save with a named checkpoint for easier resumption. |
 | `/pbr:resume` | Pick up where you left off. |
 
 ### Project Management
@@ -96,10 +97,23 @@ Display the following reference to the user:
 | `/pbr:milestone audit` | Verify milestone completion. |
 | `/pbr:milestone gaps` | Create phases to close audit gaps. |
 | `/pbr:todo add\|list\|done` | Persistent file-based todos. |
+| `/pbr:todo work <NNN>` | Work on a specific todo by ID. |
 | `/pbr:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
+| `/pbr:note --global` | Save note to global notes directory (shared across projects). |
 | `/pbr:config` | Configure workflow settings. |
 | `/pbr:import <N>` | Import external plans (design docs, RFCs) into PBR format. |
+| `/pbr:import --from <path>` | Import from a specific file path. |
+| `/pbr:import --skip-checker` | Skip plan-checker validation on import. |
 | `/pbr:setup` | Interactive onboarding wizard for new projects. |
+
+### Utilities
+
+| Command | Description |
+|---------|-------------|
+| `/pbr:do <description>` | Route freeform text to the right PBR skill automatically. |
+| `/pbr:dashboard` | Launch the web dashboard for the current project. |
+| `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
+| `/pbr:statusline` | Install or configure the PBR status line in Claude Code. |
 
 ## Typical Workflow
 
