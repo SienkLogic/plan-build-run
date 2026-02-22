@@ -10,8 +10,7 @@
 <%- include('empty-state', { icon: '🔗', title: 'No dependency data available', action: '' }) %>
 <% } %>
 
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
-  await mermaid.run();
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: 'default', securityLevel: 'loose' });
 </script>
