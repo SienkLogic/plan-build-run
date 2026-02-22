@@ -75,7 +75,7 @@ function sortTodosByPriority(todos) {
  * @param {string} projectDir - Absolute path to the project root
  * @returns {Promise<Array<{id: string, title: string, priority: string, phase: string, status: string, created: string, filename: string}>>}
  */
-export async function listPendingTodos(projectDir) {
+export async function listPendingTodos(projectDir, filters = {}) {
   const pendingDir = join(projectDir, '.planning', 'todos', 'pending');
 
   let entries;
@@ -124,7 +124,16 @@ export async function listPendingTodos(projectDir) {
     });
   }
 
-  return sortTodosByPriority(todos);
+  sortTodosByPriority(todos);
+
+  // Apply filters
+  const { priority, status, q } = filters;
+  return todos.filter(todo => {
+    if (priority && todo.priority !== priority) return false;
+    if (status && todo.status !== status) return false;
+    if (q && !todo.title.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  });
 }
 
 /**
