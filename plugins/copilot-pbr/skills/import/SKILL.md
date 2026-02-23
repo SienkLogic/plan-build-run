@@ -337,6 +337,8 @@ Perform all state updates in this order:
 5. Update the `Status` column to `planned`
 6. Save the file — do NOT skip this step
 
+**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body with import status.**
+
 **8b. Update STATE.md:**
 - Set current phase plan status to "planned"
 - Note source: "imported from {filepath}" or "imported from user input"

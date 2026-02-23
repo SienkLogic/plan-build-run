@@ -146,6 +146,8 @@ Start a new milestone cycle with new phases.
    - **Status:** In progress
    ```
 
+**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body with new milestone info.**
+
 8. **Update STATE.md:**
    - Set current phase to the first new phase
    - Update milestone info
