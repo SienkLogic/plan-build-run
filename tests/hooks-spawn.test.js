@@ -344,10 +344,10 @@ describe('session-cleanup.js (spawn)', () => {
     const result = await spawnHook('session-cleanup.js', '', { cwd: tmpDir });
     expect(result.exitCode).toBe(0);
 
-    // Session files should be cleaned up
+    // Session files should be cleaned up (except .auto-next which is preserved for Stop hook)
     expect(fs.existsSync(path.join(tmpDir, '.planning', '.active-operation'))).toBe(false);
     expect(fs.existsSync(path.join(tmpDir, '.planning', '.active-skill'))).toBe(false);
-    expect(fs.existsSync(path.join(tmpDir, '.planning', '.auto-next'))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, '.planning', '.auto-next'))).toBe(true);
     cleanup(tmpDir);
   });
 });
