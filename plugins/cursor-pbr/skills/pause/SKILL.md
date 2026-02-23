@@ -130,7 +130,13 @@ Read `skills/pause/templates/continue-here.md.tmpl` for the handoff file format.
 
 ### Step 5: Update STATE.md
 
-Update the Session Continuity section of STATE.md:
+**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body. Both must be updated atomically.**
+
+First, update the STATE.md YAML frontmatter:
+- Set `last_command: "/pbr:pause"`
+- Set `last_activity: {ISO datetime}`
+
+Then update the Session Continuity section of STATE.md:
 
 ```markdown
 ### Session Continuity
