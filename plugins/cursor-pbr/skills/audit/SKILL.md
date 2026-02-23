@@ -86,7 +86,7 @@ find ~/.claude/projects/{encoded-path}/ -name "*.jsonl" -maxdepth 1 \
 
 For each session file found, also check for subagent logs:
 ```bash
-ls ~/.claude/projects/{encoded-path}/{session-id}/subagents/*.jsonl 2>/dev/null
+ls ~/.claude/projects/{encoded-path}/{session-id}/agents/*.jsonl 2>/dev/null
 ```
 
 Display discovery results:
