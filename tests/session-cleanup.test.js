@@ -36,13 +36,14 @@ describe('session-cleanup.js', () => {
     expect(output).toBe('');
   });
 
-  test('removes .auto-next file', () => {
+  test('does NOT remove .auto-next file (consumed by auto-continue Stop hook instead)', () => {
     const filePath = path.join(planningDir, '.auto-next');
     fs.writeFileSync(filePath, '/pbr:build 3');
 
     run();
 
-    expect(fs.existsSync(filePath)).toBe(false);
+    // .auto-next must survive SessionEnd — it is a one-shot signal for the Stop hook
+    expect(fs.existsSync(filePath)).toBe(true);
   });
 
   test('removes .active-operation file', () => {
@@ -63,20 +64,20 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
-  test('removes all three signal files at once', () => {
+  test('removes operation and skill files but preserves .auto-next', () => {
     fs.writeFileSync(path.join(planningDir, '.auto-next'), 'cmd');
     fs.writeFileSync(path.join(planningDir, '.active-operation'), 'op');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'sk');
 
     run();
 
-    expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(false);
+    expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(true);
     expect(fs.existsSync(path.join(planningDir, '.active-operation'))).toBe(false);
     expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
   });
 
   test('logs cleaned decision when files were removed', () => {
-    fs.writeFileSync(path.join(planningDir, '.auto-next'), 'cmd');
+    fs.writeFileSync(path.join(planningDir, '.active-operation'), 'op');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'sk');
 
     run();
@@ -88,8 +89,9 @@ describe('session-cleanup.js', () => {
     expect(entry.hook).toBe('session-cleanup');
     expect(entry.event).toBe('SessionEnd');
     expect(entry.decision).toBe('cleaned');
-    expect(entry.removed).toContain('.auto-next');
+    expect(entry.removed).toContain('.active-operation');
     expect(entry.removed).toContain('.active-skill');
+    expect(entry.removed).not.toContain('.auto-next');
   });
 
   test('logs nothing decision when no files to remove', () => {
