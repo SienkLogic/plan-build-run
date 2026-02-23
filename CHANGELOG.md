@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.20.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.0...plan-build-run-v2.20.0) (2026-02-23)
+
+
+### Features
+
+* **tools:** add worktree isolation, ConfigChange hook, and claude agents docs ([d704f34](https://github.com/SienkLogic/plan-build-run/commit/d704f340c636fa41f988d27a661a1e1918b04c87))
+
 ## [2.19.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.1...plan-build-run-v2.19.0) (2026-02-22)
 
 
