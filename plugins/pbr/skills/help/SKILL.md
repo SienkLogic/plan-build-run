@@ -138,6 +138,7 @@ Display the following reference to the user:
 - **Depth**: `quick` (skip research, ~50% cheaper) | `standard` | `comprehensive` (~2x cost)
 - **State files**: `.planning/STATE.md` (position), `.planning/ROADMAP.md` (phases), `.planning/config.json` (settings)
 - **Configure**: `/pbr:config` to change depth, models, gates, parallelization
+- **List agents**: Run `claude agents` in your terminal to see all registered PBR agents and verify loading
 - **Tip**: Use `/pbr:quick` for creative/visual work where structured planning adds overhead without benefit.
 - **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching: phase`) which squash-merges code-only changes to main.
 - **Seeds**: `/pbr:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
