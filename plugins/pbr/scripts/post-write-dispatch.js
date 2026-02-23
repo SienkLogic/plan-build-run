@@ -18,9 +18,50 @@
  *   0 = always (PostToolUse hooks are advisory)
  */
 
+const path = require('path');
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
+
+// Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
+let validateRoadmap;
+try {
+  const cpf = require('./check-plan-format');
+  validateRoadmap = cpf.validateRoadmap || null;
+} catch (_e) {
+  validateRoadmap = null;
+}
+
+/**
+ * Validate ROADMAP.md writes inside .planning/.
+ * @param {Object} data - Parsed hook input
+ * @returns {null|{output: Object}}
+ */
+function checkRoadmapWrite(data) {
+  const filePath = data.tool_input?.file_path || '';
+  if (!filePath.endsWith('ROADMAP.md')) return null;
+
+  // Only validate ROADMAP.md inside .planning/
+  const normalized = filePath.replace(/\\/g, '/');
+  if (!normalized.includes('.planning/') && !normalized.includes('.planning\\')) return null;
+
+  if (!validateRoadmap) return null;
+
+  const fs = require('fs');
+  if (!fs.existsSync(filePath)) return null;
+
+  const content = fs.readFileSync(filePath, 'utf8');
+  const errors = validateRoadmap(content);
+  if (errors && errors.length > 0) {
+    return {
+      output: {
+        additionalContext: `[ROADMAP Validation] ${errors.join('; ')}`
+      }
+    };
+  }
+
+  return null;
+}
 
 function main() {
   let input = '';
@@ -38,6 +79,13 @@ function main() {
       const planResult = checkPlanWrite(data);
       if (planResult) {
         process.stdout.write(JSON.stringify(planResult.output));
+        process.exit(0);
+      }
+
+      // ROADMAP.md structural validation (before sync checks)
+      const roadmapResult = checkRoadmapWrite(data);
+      if (roadmapResult) {
+        process.stdout.write(JSON.stringify(roadmapResult.output));
         process.exit(0);
       }
 
