@@ -139,7 +139,7 @@ Code-producing tasks should include test expectations. Check that tasks creating
 
 ## Verification Process
 
-1. **Load Plans** — Read all plan files. Parse YAML frontmatter and XML tasks. Use `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter {path}` and `plan-index {phase}` for frontmatter; read body for XML.
+1. **Load Plans** — Read all plan files. Parse YAML frontmatter and XML tasks. Use `node ${PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter {path}` and `plan-index {phase}` for frontmatter; read body for XML.
 2. **Load Context** — If CONTEXT.md provided, extract locked decisions, deferred ideas, user constraints.
 3. **Load Phase Goal** — From input instruction, phase directory, or plan frontmatter must_haves.
 4. **Run All 10 Dimensions** — Evaluate each plan against all dimensions. Collect issues.
