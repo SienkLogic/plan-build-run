@@ -100,8 +100,16 @@ function buildContext(planningDir, stateFile) {
         const ageMs = Date.now() - stateStat.mtimeMs;
         const ageMinutes = Math.round(ageMs / 60000);
         if (ageMinutes > 30) {
-          parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
-          logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+          // Auto-repair: reset stale "Building" status back to "Planned"
+          try {
+            const { stateUpdate } = require('./pbr-tools');
+            stateUpdate(planningDir, { status: 'planned' });
+            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:build to retry.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
+          } catch (_repairErr) {
+            parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+          }
         }
       } catch (_e) { /* best-effort */ }
     }
@@ -191,8 +199,15 @@ function buildContext(planningDir, stateFile) {
       const ageMinutes = Math.floor(ageMs / 60000);
       if (ageMinutes > 60) {
         const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
-        parts.push(`\nWarning: .active-skill is ${ageMinutes} minutes old (skill: "${skill}"). This may be a stale lock from a crashed session or concurrent session conflict. Run /pbr:health to auto-fix, or delete .planning/.active-skill manually.`);
-        logHook('progress-tracker', 'SessionStart', 'stale-active-skill', { ageMinutes, skill });
+        // Auto-cleanup stale .active-skill lock (> 60 minutes = certainly stale)
+        try {
+          fs.unlinkSync(activeSkillFile);
+          parts.push(`\nAuto-cleaned: Stale .active-skill lock removed (skill: "${skill}", age: ${ageMinutes} minutes). Was likely from a crashed or abandoned session.`);
+          logHook('progress-tracker', 'SessionStart', 'stale-active-skill-cleaned', { ageMinutes, skill });
+        } catch (_cleanupErr) {
+          parts.push(`\nWarning: .active-skill is ${ageMinutes} minutes old (skill: "${skill}"). Could not auto-remove — delete .planning/.active-skill manually.`);
+          logHook('progress-tracker', 'SessionStart', 'stale-active-skill', { ageMinutes, skill });
+        }
       }
     } catch (_e) {
       // Ignore errors
