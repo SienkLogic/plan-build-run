@@ -173,7 +173,7 @@ describe('check-config-change', () => {
     });
 
     test('finds .planning dir in current directory', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-'));
+      const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-')));
       const planningDir = path.join(tmpDir, '.planning');
       fs.mkdirSync(planningDir);
       process.chdir(tmpDir);
@@ -184,7 +184,7 @@ describe('check-config-change', () => {
     });
 
     test('returns null when no .planning dir exists', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-'));
+      const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-')));
       process.chdir(tmpDir);
       const result = findPlanningDir();
       process.chdir(originalCwd);
