@@ -146,6 +146,46 @@ describe('pre-write-dispatch.js', () => {
     cleanup(tmpDir);
   });
 
+  describe('agent STATE.md write blocker', () => {
+    test('blocks STATE.md write when active agent is blocked', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
+      const filePath = path.join(tmpDir, '.planning', 'STATE.md');
+      const result = runScript(tmpDir, { file_path: filePath, content: '---\nstatus: "building"\n---' });
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('pbr:executor');
+      cleanup(tmpDir);
+    });
+
+    test('allows STATE.md write when no active agent', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // No .active-agent file — should pass through to other checks
+      const phasesDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 1\nphase_slug: "init"\nstatus: "planning"\n---\nPhase: 1 of 5');
+      const filePath = path.join(tmpDir, '.planning', 'STATE.md');
+      const result = runScript(tmpDir, { file_path: filePath, content: '---\nstatus: "planning"\ncurrent_phase: 1\nphase_slug: "init"\n---' });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('agent blocker takes priority over other checks', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // Set up agent blocker AND skill workflow violation
+      fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:planner');
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+      const filePath = path.join(tmpDir, '.planning', 'STATE.md');
+      const result = runScript(tmpDir, { file_path: filePath, content: '---\nstatus: "building"\n---' });
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      // Should be the agent blocker, not skill workflow
+      expect(parsed.reason).toContain('pbr:planner');
+      cleanup(tmpDir);
+    });
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = makeTmpDir();
     try {
