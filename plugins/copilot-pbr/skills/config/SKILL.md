@@ -133,7 +133,7 @@ After setting depth, the profile is automatically resolved. Show the user the ef
   "Depth set to {value}. Effective profile:"
   Then display the profile summary (research, plan-check, verify, scan mappers, debug rounds, inline verify).
 
-To resolve the profile, run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth`
+To resolve the profile, run: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth`
 
 If the user wants to override a specific profile setting, they can set `depth_profiles.{depth}.{key}` directly.
 For example: to use quick mode but keep plan-checking, the user would set depth to quick and then override:

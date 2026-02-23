@@ -54,7 +54,7 @@ Output to `.planning/research/SUMMARY.md` (or specified path).
 
 ## Output Format
 
-Read `${CLAUDE_PLUGIN_ROOT}/templates/RESEARCH-SUMMARY.md.tmpl` for the complete output format.
+Read `${PLUGIN_ROOT}/templates/RESEARCH-SUMMARY.md.tmpl` for the complete output format.
 
 Key sections: Executive Summary (3-5 sentences), Recommended Stack (table), Architecture Recommendations, Key Patterns, Pitfalls & Warnings, Contradictions Resolved, Open Questions, Sources.
 

@@ -101,15 +101,15 @@ Before writing output, verify: every claim has source attribution, every recomme
 ## Output Formats
 
 ### Project Research
-Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/project-research.md.tmpl` for format.
+Read `${PLUGIN_ROOT}/templates/research-outputs/project-research.md.tmpl` for format.
 Key sections: User Constraints, Executive Summary, Standard Stack, Architecture Patterns, Common Pitfalls, Code Examples, Integration Points, Coverage Assessment, Open Questions, Sources.
 
 ### Phase Research
-Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/phase-research.md.tmpl` for format.
+Read `${PLUGIN_ROOT}/templates/research-outputs/phase-research.md.tmpl` for format.
 Key sections: User Constraints, Phase Goal, Implementation Approach, Dependencies, Pitfalls, Testing Strategy, Coverage Assessment, Sources.
 
 ### Synthesis
-Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/synthesis.md.tmpl` for format.
+Read `${PLUGIN_ROOT}/templates/research-outputs/synthesis.md.tmpl` for format.
 Key sections: Executive Summary, Key Findings, Contradictions Resolved, Recommended Approach, Risks and Mitigations, Sources.
 
 ### Fallback Format (if templates unreadable)

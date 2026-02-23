@@ -48,8 +48,8 @@ Look for an existing `VERIFICATION.md` in the phase directory.
 
 Use `pbr-tools.js` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
 ```
 
 Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for locked decisions and deferred ideas, and ROADMAP.md for the phase goal and dependencies.
@@ -216,7 +216,7 @@ Read `references/stub-patterns.md` for stub detection patterns by technology. Re
 
 ### Verifier-Specific Anti-Patterns
 1. DO NOT trust SUMMARY.md claims without verifying the actual codebase
-2. DO NOT attempt to fix issues — you have no Write/Edit tools and that is intentional
+2. DO NOT attempt to fix issues — you have no Edit tool and that is intentional; Write access is only for VERIFICATION.md output
 3. DO NOT mark stubs as SUBSTANTIVE — if it has a TODO, it's a stub
 4. DO NOT mark orphaned code as WIRED — if nothing imports it, it's orphaned
 5. DO NOT skip Level 2 or Level 3 checks — existence alone is insufficient
