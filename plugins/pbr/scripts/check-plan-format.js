@@ -353,6 +353,12 @@ function checkStateWrite(data) {
     result.warnings.push(bodyFixed.message);
   }
 
+  // Line count advisory
+  const lineCount = content.split('\n').length;
+  if (lineCount > 150) {
+    result.warnings.push(`Advisory: STATE.md exceeds 150 lines (${lineCount} lines). Consider trimming stale session data.`);
+  }
+
   if (result.warnings.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'warn', { file: basename, warnings: result.warnings });
     logEvent('workflow', 'state-validated', { file: basename, status: 'warn', warningCount: result.warnings.length });
