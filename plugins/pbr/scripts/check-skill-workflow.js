@@ -231,18 +231,10 @@ function checkBuildRules(filePath, isInPlanning, planningDir) {
 
 /**
  * /pbr:statusline rules:
- * - Warn when writing settings.json with hardcoded home directory paths
+ * Content check requires full hook data — handled by checkStatuslineContent() in main()
  */
-function checkStatuslineRules(filePath, _isInPlanning, _planningDir) {
-  const normalizedPath = filePath.replace(/\\/g, '/');
-
-  // Only check settings.json writes
-  if (!normalizedPath.endsWith('settings.json')) return null;
-
-  // Check tool_input content isn't available here — we only have filePath.
-  // The hardcoded path check needs content, which we get from the hook data.
-  // This function is called from checkSkillRules which only passes filePath.
-  // We'll check in the wrapper instead. For now, return null (pass).
+function checkStatuslineRules(_filePath, _isInPlanning, _planningDir) {
+  // Content check requires full hook data — handled by checkStatuslineContent() in main()
   return null;
 }
 
