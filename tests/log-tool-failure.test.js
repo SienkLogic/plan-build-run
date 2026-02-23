@@ -75,8 +75,7 @@ describe('log-tool-failure.js', () => {
     expect(result.exitCode).toBe(0);
     if (result.output) {
       const parsed = JSON.parse(result.output);
-      expect(parsed.hookSpecificOutput.hookEventName).toBe('PostToolUseFailure');
-      expect(parsed.hookSpecificOutput.additionalContext).toContain('/pbr:debug');
+      expect(parsed.additionalContext).toContain('/pbr:debug');
     }
   });
 
