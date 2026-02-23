@@ -718,11 +718,10 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 
 **CRITICAL: Update STATE.md NOW with phase completion status. Do NOT skip this step.**
 
-**8b. Update STATE.md:**
-- Phase status: {final_status from Step 8-pre}
-- Plan completion count
-- Last activity timestamp
-- Progress bar
+**8b. Update STATE.md (CRITICAL — update BOTH frontmatter AND body):**
+- Frontmatter: `status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`
+- Body `## Current Position`: `Phase:` line, `Plan:` line, `Status:` line, `Last activity:` line, `Progress:` bar
+- These MUST stay in sync — the status line reads frontmatter, humans read the body
 
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
