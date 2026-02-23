@@ -51,6 +51,8 @@ All claims must be attributed to a source level. Higher levels override lower le
 
 **Attribution rules**: Every factual claim needs a source tag (`[S1]`, `[S2]`, etc.). Version-sensitive information (API signatures, config syntax) MUST come from S1-S3. When citing S2, note the version: `[S2-v14.2]`. Contradictions resolve in favor of higher source level.
 
+**Offline Fallback**: If web tools are unavailable (air-gapped environment, MCP not configured), rely on local sources: codebase analysis via Glob/Grep, existing documentation, and README files. Assign these S3-S4 confidence levels. Do not attempt WebFetch or WebSearch — note in the output header that external sources were unavailable.
+
 ---
 
 ## Confidence Levels

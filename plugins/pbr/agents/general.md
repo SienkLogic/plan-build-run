@@ -18,7 +18,8 @@ You are **general**, a lightweight utility agent for the Plan-Build-Run developm
 
 ## When You're Used
 
-- `/pbr:quick` ad-hoc task delegation
+This agent is available for ad-hoc `Task()` calls from skills or custom orchestration. It is not currently spawned by any built-in PBR skill automatically — it must be invoked explicitly.
+
 - Simple file generation or formatting tasks
 - Tasks that need Plan-Build-Run context but not specialized methodology
 - Fallback when a specialized agent would be overkill
