@@ -543,103 +543,11 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 ## Completion
 
-After review completes, always present a clear next action:
+After review completes, always present a clear next action using the completion banners from Read `references/ui-formatting.md` § "Completion Summary Templates":
 
-**If verified (not final phase):**
-
-Display the "Phase Complete" banner inline:
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PHASE {N} COMPLETE                         ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N}: {Name}**
-
-{X} plans executed
-Goal verified
-```
-
-Then the branded "Next Up" block:
-```
----
-
-## Next Up
-
-**Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
-
-`/pbr:plan {N+1}`
-
-`/clear` first for a fresh context window
-
----
-
-**Also available:**
-- `/pbr:discuss {N+1}` — talk through details before planning
-- `/pbr:status` — see full project status
-
----
-```
-
-**If gaps remain:**
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N}: {name}** — {count} gaps remaining
-
----
-
-## Next Up
-
-**Fix gaps** — diagnose and create fix plans
-
-`/pbr:review {N} --auto-fix`
-
-`/clear` first for a fresh context window
-
----
-
-**Also available:**
-- `/pbr:plan {N} --gaps` — create fix plans manually
-- Fix manually, then `/pbr:review {N}`
-
----
-```
-
-**If final phase:**
-
-Display the "Milestone Complete" banner inline:
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► MILESTONE COMPLETE                         ║
-╚══════════════════════════════════════════════════════════════╝
-
-{N} phases completed
-All phase goals verified
-```
-
-Then:
-```
----
-
-## Next Up
-
-**Audit milestone** — verify cross-phase integration
-
-`/pbr:milestone audit`
-
-`/clear` first for a fresh context window
-
----
-
-**Also available:**
-- `/pbr:milestone complete` — archive this milestone and tag it
-- `/pbr:milestone new` — start planning next features
-- `/pbr:status` — see final project status
-
----
-```
+- **If verified (not final phase):** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
+- **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.
+- **If final phase:** Use the "Milestone Complete" template. Fill in phase count.
 
 ---
 
