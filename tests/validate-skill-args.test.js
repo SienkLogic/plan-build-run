@@ -112,14 +112,14 @@ describe('validate-skill-args', () => {
       const result = checkSkillArgs(data);
       expect(result).not.toBeNull();
       expect(result.exitCode).toBe(2);
-      expect(result.output.additionalContext).toContain('BLOCKED');
+      expect(result.output.reason).toContain('BLOCKED');
     });
 
     test('includes skill suggestion in block message', () => {
       const data = { tool_input: { skill: 'pbr:plan', args: 'fix the bug in login' } };
       const result = checkSkillArgs(data);
-      expect(result.output.additionalContext).toContain('/pbr:debug');
-      expect(result.output.additionalContext).toContain('/pbr:do');
+      expect(result.output.reason).toContain('/pbr:debug');
+      expect(result.output.reason).toContain('/pbr:do');
     });
 
     test('blocks freeform text with phase-like prefix', () => {
@@ -133,7 +133,7 @@ describe('validate-skill-args', () => {
       const longArgs = 'a'.repeat(120);
       const data = { tool_input: { skill: 'pbr:plan', args: longArgs } };
       const result = checkSkillArgs(data);
-      expect(result.output.additionalContext).toContain('...');
+      expect(result.output.reason).toContain('...');
     });
   });
 });
