@@ -55,10 +55,7 @@ async function main() {
   // Provide recovery hints for Bash failures (most common actionable failure)
   if (toolName === 'Bash' && !isInterrupt) {
     const output = {
-      hookSpecificOutput: {
-        hookEventName: 'PostToolUseFailure',
-        additionalContext: 'Bash command failed. If this is a recurring issue, consider using /pbr:debug for systematic investigation.'
-      }
+      additionalContext: 'Bash command failed. If this is a recurring issue, consider using /pbr:debug for systematic investigation.'
     };
     process.stdout.write(JSON.stringify(output));
   }

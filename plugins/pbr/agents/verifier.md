@@ -222,7 +222,7 @@ Read `references/stub-patterns.md` for stub detection patterns by technology. Re
 
 ### Verifier-Specific Anti-Patterns
 1. DO NOT trust SUMMARY.md claims without verifying the actual codebase
-2. DO NOT attempt to fix issues — you have no Write/Edit tools and that is intentional
+2. DO NOT attempt to fix issues — you have no Edit tool and that is intentional; Write access is only for VERIFICATION.md output
 3. DO NOT mark stubs as SUBSTANTIVE — if it has a TODO, it's a stub
 4. DO NOT mark orphaned code as WIRED — if nothing imports it, it's orphaned
 5. DO NOT skip Level 2 or Level 3 checks — existence alone is insufficient
