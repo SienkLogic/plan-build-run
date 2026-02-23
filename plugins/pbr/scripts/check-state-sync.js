@@ -305,11 +305,12 @@ function checkStateSync(data) {
   // Guard: skip STATE.md and ROADMAP.md writes (prevents circular trigger)
   if (basename === 'STATE.md' || basename === 'ROADMAP.md') return null;
 
-  // Determine if this is a SUMMARY or VERIFICATION write
+  // Determine if this is a SUMMARY, VERIFICATION, or PLAN write
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
   const isVerification = basename === 'VERIFICATION.md';
+  const isPlan = basename.endsWith('PLAN.md') && !basename.includes('SUMMARY');
 
-  if (!isSummary && !isVerification) return null;
+  if (!isSummary && !isVerification && !isPlan) return null;
 
   // Guard: must be inside .planning/phases/
   const normalizedPath = filePath.replace(/\\/g, '/');
@@ -501,10 +502,63 @@ function checkStateSync(data) {
     }
   }
 
+  if (isPlan) {
+    // Status ordering: only set Planning if current status is lower
+    const statusOrder = { 'not started': 0, '': 0, 'planning': 1, 'in progress': 2, 'complete': 3, 'needs fixes': 4 };
+
+    if (fs.existsSync(roadmapPath)) {
+      try {
+        const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+        if (!hasProgressTable) {
+          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        } else {
+          // Read current status from the Progress table for this phase
+          const lines = roadmapContent.split('\n');
+          const paddedPhase = phaseNum.padStart(2, '0');
+          let currentStatus = '';
+          let inTable = false;
+          for (const line of lines) {
+            if (!inTable) {
+              if (line.includes('|') && /Plans\s*Complete/i.test(line)) inTable = true;
+              continue;
+            }
+            if (/^\s*\|[\s-:|]+\|\s*$/.test(line)) continue;
+            if (!line.includes('|')) break;
+            const parts = line.split('|');
+            if (parts.length < 5) continue;
+            const phaseCol = (parts[1] || '').trim();
+            const phaseMatch = phaseCol.match(/^(\d+)\./);
+            if (!phaseMatch) continue;
+            if (phaseMatch[1] === paddedPhase || String(parseInt(phaseMatch[1], 10)) === String(parseInt(phaseNum, 10))) {
+              currentStatus = (parts[3] || '').trim().toLowerCase();
+              break;
+            }
+          }
+
+          // Only update to "Planning" if current status is lower
+          const currentOrder = statusOrder[currentStatus] !== undefined ? statusOrder[currentStatus] : 0;
+          const planningOrder = statusOrder['planning'];
+          if (currentOrder < planningOrder) {
+            const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
+            const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
+            if (updatedRoadmap !== roadmapContent) {
+              atomicWrite(roadmapPath, updatedRoadmap);
+              messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
+            }
+          }
+        }
+      } catch (e) {
+        logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });
+      }
+    }
+  }
+
   if (messages.length > 0) {
     const msg = `Auto-synced tracking files: ${messages.join('; ')}`;
     logHook('check-state-sync', 'PostToolUse', 'sync', { phase: phaseNum, updates: messages });
-    logEvent('workflow', 'state-sync', { phase: phaseNum, trigger: isSummary ? 'summary' : 'verification', updates: messages });
+    const trigger = isSummary ? 'summary' : isVerification ? 'verification' : 'plan';
+    logEvent('workflow', 'state-sync', { phase: phaseNum, trigger, updates: messages });
     return { output: { additionalContext: msg } };
   }
 
