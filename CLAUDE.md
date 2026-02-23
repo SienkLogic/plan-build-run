@@ -59,13 +59,13 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 |------------|-------------|-------------|
 | SessionStart | progress-tracker.js | — (injects project state) |
 | PostToolUse (Write\|Edit) | post-write-dispatch.js | check-plan-format.js, check-roadmap-sync.js, check-state-sync.js |
-| PostToolUse (Write\|Edit) | post-write-quality.js | check-doc-sprawl.js, check-skill-workflow.js |
+| PostToolUse (Write\|Edit) | post-write-quality.js | — (autoFormat, typeCheck, detectConsoleLogs) |
 | PostToolUse (Task) | check-subagent-output.js | — (validates agent output) |
 | PostToolUse (Write\|Edit) | suggest-compact.js | — (context budget warnings) |
 | PostToolUse (Read) | track-context-budget.js | — (tracks reads for budget) |
 | PostToolUseFailure | log-tool-failure.js | — (logs failures) |
 | PreToolUse (Bash) | pre-bash-dispatch.js | validate-commit.js, check-dangerous-commands.js, check-phase-boundary.js |
-| PreToolUse (Write\|Edit) | pre-write-dispatch.js | — (write guards) |
+| PreToolUse (Write\|Edit) | pre-write-dispatch.js | check-skill-workflow.js, check-summary-gate.js, check-phase-boundary.js, check-doc-sprawl.js |
 | PreCompact | context-budget-check.js | — (preserves STATE.md) |
 | Stop | auto-continue.js | — (chains next command) |
 | SubagentStart/Stop | log-subagent.js | — (tracks lifecycle) |
