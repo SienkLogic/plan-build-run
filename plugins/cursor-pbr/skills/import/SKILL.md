@@ -360,7 +360,7 @@ If the import process surfaced new locked decisions (from blocker resolutions in
 **8e. Emit workflow event (conditional):**
 If the event-logger script is available:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
 ```
 Falls back silently if the command is not available.
 
