@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, syncStateBody, checkStateWrite } = require('../plugins/pbr/scripts/check-plan-format');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-plan-format.js');
 
@@ -607,6 +607,44 @@ All checks passed.`);
       const result = validateRoadmap(content, 'ROADMAP.md');
       expect(result.errors).toHaveLength(0);
       expect(result.warnings.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('checkStateWrite line count advisory', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-state-lines-'));
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('STATE.md with 100 lines does not trigger line count warning', () => {
+      const lines = ['---', 'version: 2', 'current_phase: 3', 'total_phases: 5', 'phase_slug: "test"', 'status: "building"', '---'];
+      while (lines.length < 100) lines.push('Some content line');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, lines.join('\n'));
+      const result = checkStateWrite({ tool_input: { file_path: filePath } });
+      // Should pass clean (null) or have warnings that don't mention "150 lines"
+      if (result) {
+        const ctx = result.output?.additionalContext || '';
+        expect(ctx).not.toContain('exceeds 150 lines');
+      }
+    });
+
+    test('STATE.md with 160 lines triggers advisory warning mentioning 150 lines', () => {
+      const lines = ['---', 'version: 2', 'current_phase: 3', 'total_phases: 5', 'phase_slug: "test"', 'status: "building"', '---'];
+      while (lines.length < 160) lines.push('Some content line');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, lines.join('\n'));
+      const result = checkStateWrite({ tool_input: { file_path: filePath } });
+      expect(result).not.toBeNull();
+      const ctx = result.output?.additionalContext || '';
+      expect(ctx).toContain('exceeds 150 lines');
+      expect(ctx).toContain('160');
     });
   });
 
