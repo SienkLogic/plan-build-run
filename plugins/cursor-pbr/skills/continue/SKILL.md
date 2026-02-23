@@ -67,10 +67,10 @@ Before proceeding to priority evaluation, check for runaway continue chains:
    - Check `.planning/.active-skill` file — if it contains `continue`, treat as a chained continue
    - Check STATE.md `last_action` field — if it contains `continue`, treat as a chained continue
    - If neither source is available, assume this is the first invocation (do not warn)
-4. **If this is the 3rd consecutive `/pbr:continue` in a row**, display:
+4. **If this is the 6th consecutive `/pbr:continue` in a row**, display:
 
 ```
-WARNING: Context budget warning: 3 consecutive auto-continues detected.
+WARNING: Context budget warning: 6 consecutive auto-continues detected.
 Recommend running /pbr:pause then resuming in a fresh session.
 ```
 
