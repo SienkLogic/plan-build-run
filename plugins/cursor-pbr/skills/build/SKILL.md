@@ -808,91 +808,11 @@ Total files modified: {count}
 Deviations: {count}
 ```
 
-Then present the appropriate branded banner:
+Then present the appropriate branded banner from Read `references/ui-formatting.md` § "Completion Summary Templates":
 
-**If `passed` + more phases:**
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PHASE {N} COMPLETE ✓                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N}: {Name}**
-
-{X} plans executed
-Goal verified ✓
-
-╔══════════════════════════════════════════════════════════════╗
-║  ▶ NEXT UP                                                   ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
-
-`/pbr:plan {N+1}`
-
-<sub>`/clear` first → fresh context window</sub>
-
-**Also available:**
-- `/pbr:review {N}` — manual acceptance testing before continuing
-- `/pbr:discuss {N+1}` — talk through the next phase before planning
-- `/pbr:status` — see full project status
-
-```
-
-**If `passed` + last phase:**
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► MILESTONE COMPLETE 🎉                      ║
-╚══════════════════════════════════════════════════════════════╝
-
-{N} phases completed
-All phase goals verified ✓
-
-╔══════════════════════════════════════════════════════════════╗
-║  ▶ NEXT UP                                                   ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Audit milestone** — verify requirements, cross-phase integration, E2E flows
-
-`/pbr:milestone audit`
-
-<sub>`/clear` first → fresh context window</sub>
-
-**Also available:**
-- `/pbr:review` — manual acceptance testing
-- `/pbr:milestone complete` — archive milestone after audit passes
-
-```
-
-**If `gaps_found`:**
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PHASE {N} GAPS FOUND ⚠                     ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N}: {Name}**
-
-Score: {X}/{Y} must-haves verified
-Report: .planning/phases/{phase_dir}/VERIFICATION.md
-
-### What's Missing
-
-{Extract gap summaries from VERIFICATION.md}
-
-╔══════════════════════════════════════════════════════════════╗
-║  ▶ NEXT UP                                                   ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Plan gap closure** — create additional plans to complete the phase
-
-`/pbr:plan {N} --gaps`
-
-<sub>`/clear` first → fresh context window</sub>
-
-**Also available:**
-- `cat .planning/phases/{phase_dir}/VERIFICATION.md` — see full report
-- `/pbr:review {N}` — manual testing before planning
-
-```
+- **If `passed` + more phases:** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
+- **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.
+- **If `gaps_found`:** Use the "Gaps Found" template. Fill in phase number, name, score, and gap summaries from VERIFICATION.md.
 
 **8g. Display USER-SETUP.md (conditional):**
 
