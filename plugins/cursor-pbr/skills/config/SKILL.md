@@ -23,7 +23,7 @@ Reads and writes `.planning/config.json`. Interactive configuration with AskUser
 
 ## References
 
-- `references/planning-config.md` — Full config.json schema (54 fields, 16 feature toggles, validation rules)
+- `references/config-reference.md` — Full config.json schema (54 fields, 16 feature toggles, validation rules)
 - `references/model-profiles.md` — Model selection guide for agent spawning
 
 ## Flow

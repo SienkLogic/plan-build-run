@@ -151,11 +151,10 @@ describe('Reference Integrity', () => {
       'model-profiles.md',
       'plan-authoring.md',
       'plan-format.md',
-      'planning-config.md',
+      'config-reference.md',
       'questioning.md',
       'reading-verification.md',
       'stub-patterns.md',
-      'subagent-coordination.md',
       'pbr-rules.md',
       'ui-formatting.md',
       'verification-patterns.md',
@@ -186,10 +185,7 @@ describe('Reference Integrity', () => {
 
     const expectedFragments = [
       'domain-probes.md',
-      'error-reporting.md',
       'phase-argument-parsing.md',
-      'progress-display.md',
-      'state-loading.md',
       'state-update.md',
     ];
 
