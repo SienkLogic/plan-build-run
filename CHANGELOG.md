@@ -5,6 +5,21 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.21.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.20.0...plan-build-run-v2.21.0) (2026-02-23)
+
+
+### Features
+
+* **tools:** add help docs, concurrent tests, and discuss requirements surfacing ([02e9cc9](https://github.com/SienkLogic/plan-build-run/commit/02e9cc997d5b7d1aed3fc43cd8f8160c6e08d78b))
+* **tools:** add milestone preview subcommand across all plugins ([fa6dca7](https://github.com/SienkLogic/plan-build-run/commit/fa6dca75d78adc952a5ffffd92baf17d8dd23e8e))
+* **tools:** resolve exploration backlog — fix script bugs, add copilot hooks, improve recovery ([8a956dd](https://github.com/SienkLogic/plan-build-run/commit/8a956dd33a7182c402307d5569e0d8d37dbdaf1c))
+
+
+### Bug Fixes
+
+* **tools:** handle concurrent write corruption in flaky test across platforms ([e4e9b4d](https://github.com/SienkLogic/plan-build-run/commit/e4e9b4d524e5c08665b72a3c99555452f8e09089))
+* **tools:** handle empty string race in concurrent .active-skill test on Windows ([9cb294a](https://github.com/SienkLogic/plan-build-run/commit/9cb294a1c7db67c1fe80d9672d4580c8951011c4))
+
 ## [2.20.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.0...plan-build-run-v2.20.0) (2026-02-23)
 
 
