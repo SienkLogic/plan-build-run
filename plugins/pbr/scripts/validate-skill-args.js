@@ -101,7 +101,8 @@ function checkSkillArgs(data) {
 
   return {
     output: {
-      additionalContext: [
+      decision: 'block',
+      reason: [
         'BLOCKED: /pbr:plan received freeform text instead of a phase number.',
         '',
         'The arguments "' + args.substring(0, 80) + (args.length > 80 ? '...' : '') + '" do not match any valid pattern.',
