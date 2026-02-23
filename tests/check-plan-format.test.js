@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { validatePlan, validateSummary, validateVerification, validateState, syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-plan-format.js');
 
@@ -506,6 +506,107 @@ All checks passed.`);
       const result = runScript(input, tmpDir);
       expect(result.exitCode).toBe(0);
       expect(result.output).toBe('');
+    });
+  });
+
+  describe('validateRoadmap', () => {
+    const validRoadmap = `# Roadmap
+
+## Milestone: v1.0 — Core Features
+
+**Phases:**
+
+### Phase 01: Project Setup
+**Goal:** Set up project scaffolding
+**Provides:** base project structure
+**Depends on:** nothing
+
+### Phase 02: Auth System
+**Goal:** Implement authentication
+**Provides:** auth middleware
+**Depends on:** Phase 01
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 01. Project Setup | 2/2 | Complete | 2026-02-08 |
+| 02. Auth System | 0/3 | Not started | — |
+`;
+
+    test('valid ROADMAP passes with no warnings', () => {
+      const result = validateRoadmap(validRoadmap, 'ROADMAP.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('missing Roadmap heading warns', () => {
+      const content = '## Milestone: v1.0\n**Phases:**\n### Phase 01: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** z\n';
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.warnings.some(w => w.includes('heading'))).toBe(true);
+    });
+
+    test('missing milestone section warns', () => {
+      const content = '# Roadmap\n\nSome content but no milestone\n';
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.warnings.some(w => w.includes('Milestone'))).toBe(true);
+    });
+
+    test('missing Phase Goal warns', () => {
+      const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:**
+
+### Phase 01: Setup
+**Provides:** base
+**Depends on:** nothing
+`;
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.warnings.some(w => w.includes('Goal'))).toBe(true);
+    });
+
+    test('malformed Progress table warns', () => {
+      const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:**
+
+### Phase 01: Setup
+**Goal:** x
+**Provides:** y
+**Depends on:** z
+
+## Progress
+
+| Phase | Plans Complete | Status
+01. Setup  2/2  Complete
+`;
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.warnings.some(w => w.includes('table'))).toBe(true);
+    });
+
+    test('missing Phases line in milestone warns', () => {
+      const content = `# Roadmap
+
+## Milestone: v1.0
+
+### Phase 01: Setup
+**Goal:** x
+**Provides:** y
+**Depends on:** z
+`;
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
+    });
+
+    test('returns only warnings, never errors (advisory)', () => {
+      const content = 'totally invalid content';
+      const result = validateRoadmap(content, 'ROADMAP.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings.length).toBeGreaterThan(0);
     });
   });
 
