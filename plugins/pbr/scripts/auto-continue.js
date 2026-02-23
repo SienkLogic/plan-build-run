@@ -78,10 +78,16 @@ function main() {
         if (attempt === 2) {
           logHook('auto-continue', 'Stop', 'unlink-failed', { error: unlinkErr.message });
         } else {
-          // Exponential backoff: 100ms, 200ms
+          // Exponential backoff: 100ms, 200ms — use Atomics.wait for non-spinning delay
           const delay = 100 * Math.pow(2, attempt);
-          const start = Date.now();
-          while (Date.now() - start < delay) { /* busy-wait */ }
+          try {
+            const buf = new SharedArrayBuffer(4);
+            Atomics.wait(new Int32Array(buf), 0, 0, delay);
+          } catch (_atomicsErr) {
+            // Fallback for environments without SharedArrayBuffer
+            const end = Date.now() + delay;
+            while (Date.now() < end) { /* fallback busy-wait */ }
+          }
         }
       }
     }
