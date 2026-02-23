@@ -113,8 +113,8 @@ When a milestone completes or a phase is verified, archive historical context to
 
 Use `pbr-tools.js history append`:
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "Phase 3 (Auth)" "Verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "v1.0 User Auth" "Phases 1-4. All verified. Core auth flow complete."
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "Phase 3 (Auth)" "Verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "v1.0 User Auth" "Phases 1-4. All verified. Core auth flow complete."
 ```
 
 ### After Archiving

@@ -50,7 +50,7 @@ Check if `.planning/codebase/` directory exists:
 
 First, resolve the depth profile so you know which areas are available:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
 ```
 Read `profile["scan.mapper_areas"]` to determine available areas (quick: tech, arch; standard/comprehensive: tech, arch, quality, concerns).
 
@@ -93,7 +93,7 @@ Refer to the "Reconnaissance Detection Reference" section of `skills/scan/templa
 
 **Resolve mapper configuration:** Before spawning, resolve the depth profile:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
 ```
 
 Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determine how many mappers to spawn and which focus areas to cover.
