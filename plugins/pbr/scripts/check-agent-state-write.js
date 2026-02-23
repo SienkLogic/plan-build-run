@@ -55,7 +55,7 @@ function checkAgentStateWrite(data) {
     exitCode: 2,
     output: {
       decision: 'block',
-      reason: `Agent write blocker: ${agent} is not allowed to write STATE.md. Only skills (orchestrators) and pbr:general may update STATE.md. The agent should return its results and let the calling skill update state.`
+      reason: `Agent write to STATE.md blocked.\n\n${agent} is not allowed to write STATE.md. Only skills (orchestrators) and pbr:general may update this file to prevent state corruption.\n\nReturn results to the calling skill and let it update STATE.md.`
     }
   };
 }
