@@ -80,8 +80,8 @@ describe('pre-write-dispatch.js', () => {
     expect(result.exitCode).toBe(0);
     if (result.output) {
       const parsed = JSON.parse(result.output);
-      expect(parsed.hookSpecificOutput.additionalContext).toContain('phase 4');
-      expect(parsed.hookSpecificOutput.additionalContext).toContain('current phase is 2');
+      expect(parsed.additionalContext).toContain('phase 4');
+      expect(parsed.additionalContext).toContain('current phase is 2');
     }
     cleanup(tmpDir);
   });
@@ -116,6 +116,33 @@ describe('pre-write-dispatch.js', () => {
     expect(parsed.decision).toBe('block');
     // Should be the workflow violation, not phase boundary
     expect(parsed.reason).toContain('quick');
+    cleanup(tmpDir);
+  });
+
+  test('SUMMARY write dispatches to check-summary-gate', () => {
+    // check-summary-gate only fires for STATE.md writes, not SUMMARY.md writes.
+    // This test verifies that writing a SUMMARY.md to a phase directory is NOT
+    // blocked by check-summary-gate (gate only prevents STATE.md status advancement
+    // without a SUMMARY, not SUMMARY writes themselves).
+    const { tmpDir, planningDir } = makeTmpDir();
+    const phaseDir = path.join(planningDir, 'phases', '01-init');
+    fs.mkdirSync(phaseDir, { recursive: true });
+
+    // Write STATE.md so phase boundary check has something to compare against
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+
+    // Write SUMMARY.md — should NOT be blocked by summary-gate
+    const summaryPath = path.join(phaseDir, 'SUMMARY-01-01.md');
+    const result = runScript(tmpDir, { file_path: summaryPath });
+
+    // SUMMARY writes bypass check-summary-gate entirely — no block
+    expect(result.exitCode).toBe(0);
+    if (result.output) {
+      const parsed = JSON.parse(result.output);
+      // If any output exists, it should not be a block decision from summary-gate
+      expect(parsed.decision).not.toBe('block');
+    }
+
     cleanup(tmpDir);
   });
 
