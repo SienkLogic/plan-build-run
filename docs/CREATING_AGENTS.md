@@ -98,7 +98,7 @@ You are **{name}**, the {role} agent for the Plan-Build-Run development system.
 | {output type} | ≤ N tokens | M tokens |
 
 ## Interaction with Other Agents
-Reference: `references/agent-interactions.md`
+Reference: `DEVELOPMENT-GUIDE.md` (repo root) — Agent Interaction Map section
 
 ## Anti-Patterns
 Reference: `references/agent-anti-patterns.md`
@@ -164,5 +164,5 @@ Additionally:
 
 - Agents get a fresh 200k context — they can afford to read more files than the orchestrator
 - Always include an Output Budget table to prevent unbounded responses
-- Reference shared docs (`agent-interactions.md`, `agent-anti-patterns.md`) rather than duplicating
+- Reference shared docs (`agent-anti-patterns.md`, `DEVELOPMENT-GUIDE.md`) rather than duplicating
 - Test cross-platform: use `path.join()` in any Node.js code, avoid hardcoded path separators
