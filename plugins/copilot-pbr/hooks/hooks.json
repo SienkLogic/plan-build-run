@@ -104,6 +104,18 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" check-cross-plugin-sync.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') check-cross-plugin-sync.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit",
         "hooks": [
           {
