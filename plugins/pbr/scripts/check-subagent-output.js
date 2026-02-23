@@ -152,21 +152,76 @@ const AGENT_OUTPUTS = {
   }
 };
 
+/**
+ * Extract current phase number from STATE.md, preferring frontmatter over body.
+ * @param {string} stateContent - Full STATE.md content
+ * @returns {string|null} Phase number string or null
+ */
+function getCurrentPhase(stateContent) {
+  // Prefer frontmatter (always up-to-date)
+  const fmMatch = stateContent.match(/^current_phase:\s*(\d+)/m);
+  if (fmMatch) return fmMatch[1];
+  // Fall back to body text
+  const bodyMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+  return bodyMatch ? bodyMatch[1] : null;
+}
+
+/**
+ * Check if ROADMAP.md is stale after executor/verifier completion.
+ * Detects: (1) no Progress table for current milestone, (2) table exists but
+ * phase row is out of date vs. phase artifacts on disk.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {string|null} Warning message or null if in sync
+ */
+function checkRoadmapStaleness(planningDir) {
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) return null;
+
+  try {
+    const content = fs.readFileSync(roadmapPath, 'utf8');
+
+    // Check if there's a Progress table at all
+    const hasProgressTable = /Plans\s*Complete/i.test(content);
+    if (!hasProgressTable) {
+      return 'ROADMAP.md has no Progress table for the current milestone. The orchestrator should add a Progress table with columns: Phase | Plans Complete | Status | Completed. See skills/shared/state-update.md for format.';
+    }
+
+    // If table exists, check if current phase row is present
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+      const currentPhase = getCurrentPhase(stateContent);
+      if (currentPhase) {
+        const paddedPhase = currentPhase.padStart(2, '0');
+        const phaseInTable = new RegExp(`\\|\\s*${paddedPhase}\\.`).test(content) ||
+          new RegExp(`\\|\\s*${parseInt(currentPhase, 10)}\\.`).test(content);
+        if (!phaseInTable) {
+          return `ROADMAP.md Progress table exists but has no row for Phase ${currentPhase}. Add a row for the current phase.`;
+        }
+      }
+    }
+  } catch (_e) {
+    // best-effort
+  }
+  return null;
+}
+
 function findInPhaseDir(planningDir, pattern) {
   const matches = [];
   const phasesDir = path.join(planningDir, 'phases');
   if (!fs.existsSync(phasesDir)) return matches;
 
   try {
-    // Find the active phase from STATE.md
+    // Find the active phase from STATE.md (prefer frontmatter over body)
     const stateFile = path.join(planningDir, 'STATE.md');
     if (!fs.existsSync(stateFile)) return matches;
 
     const stateContent = fs.readFileSync(stateFile, 'utf8');
-    const phaseMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
-    if (!phaseMatch) return matches;
+    const phaseNum = getCurrentPhase(stateContent);
+    if (!phaseNum) return matches;
 
-    const currentPhase = phaseMatch[1].padStart(2, '0');
+    const currentPhase = phaseNum.padStart(2, '0');
     const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(currentPhase));
     if (dirs.length === 0) return matches;
 
@@ -288,6 +343,23 @@ function main() {
   // Skill-specific post-completion validation
   const skillWarnings = [];
 
+  // ACTIVE-SKILL ENFORCEMENT: Warn when no .active-skill file exists.
+  // Skills are instructed (with CRITICAL markers) to write this file, but LLMs
+  // skip it under cognitive load. This warning reminds the orchestrator.
+  if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
+    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+  }
+
+  // ROADMAP.md SYNC: After executor or verifier completes, check if ROADMAP.md
+  // needs updating. Subagent writes (SUMMARY/VERIFICATION) trigger check-state-sync
+  // in the subagent context, but the main context ROADMAP.md may still be stale.
+  if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {
+    const roadmapWarning = checkRoadmapStaleness(planningDir);
+    if (roadmapWarning) {
+      skillWarnings.push(roadmapWarning);
+    }
+  }
+
   // Mtime-based recency check for researcher and synthesizer
   if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
     const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
@@ -386,5 +458,5 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent };
+module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness };
 if (require.main === module || process.argv[1] === __filename) { main(); }

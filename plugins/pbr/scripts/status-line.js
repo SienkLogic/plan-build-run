@@ -197,6 +197,23 @@ function main() {
   process.exit(0);
 }
 
+/**
+ * Parse YAML frontmatter from STATE.md content.
+ * Returns an object with frontmatter fields, or null if no frontmatter.
+ */
+function parseFrontmatter(content) {
+  if (!content.startsWith('---')) return null;
+  const endIdx = content.indexOf('---', 3);
+  if (endIdx === -1) return null;
+  const fm = content.substring(3, endIdx);
+  const result = {};
+  for (const line of fm.split(/\r?\n/)) {
+    const m = line.match(/^(\w[\w_]*):\s*"?([^"]*)"?\s*$/);
+    if (m) result[m[1]] = m[2];
+  }
+  return result;
+}
+
 function buildStatusLine(content, ctxPercent, cfg, stdinData) {
   const config = cfg || DEFAULTS;
   const sections = config.sections || DEFAULTS.sections;
@@ -205,15 +222,26 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
   const barCfg = config.context_bar || DEFAULTS.context_bar;
   const sd = stdinData || {};
 
+  // Prefer frontmatter (always up-to-date) over body text (may be stale)
+  const fm = parseFrontmatter(content);
+
   const parts = [];
 
   // Phase section (always includes brand text)
   if (sections.includes('phase')) {
+    const fmPhase = fm && fm.current_phase;
+    const fmTotal = fm && fm.total_phases;
+    const fmName = fm && fm.phase_name;
     const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
-    if (phaseMatch) {
-      parts.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseMatch[1]}/${phaseMatch[2]}${c.reset}`);
-      if (phaseMatch[3]) {
-        parts.push(`${c.magenta}${phaseMatch[3]}${c.reset}`);
+
+    const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
+    const phaseTotal = fmTotal || (phaseMatch && phaseMatch[2]);
+    const phaseName = fmName || (phaseMatch && phaseMatch[3]);
+
+    if (phaseNum && phaseTotal) {
+      parts.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseNum}/${phaseTotal}${c.reset}`);
+      if (phaseName) {
+        parts.push(`${c.magenta}${phaseName}${c.reset}`);
       }
     } else {
       parts.push(`${c.boldCyan}${brandText}${c.reset}`);
@@ -222,10 +250,14 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
 
   // Plan section
   if (sections.includes('plan')) {
+    const fmComplete = fm && fm.plans_complete;
+    const fmTotal = fm && fm.plans_total;
     const planMatch = content.match(/Plan:\s*(\d+)\s*of\s*(\d+)/);
-    if (planMatch) {
-      const done = parseInt(planMatch[1], 10);
-      const total = parseInt(planMatch[2], 10);
+
+    const done = fmComplete != null ? parseInt(fmComplete, 10) : (planMatch ? parseInt(planMatch[1], 10) : null);
+    const total = fmTotal != null ? parseInt(fmTotal, 10) : (planMatch ? parseInt(planMatch[2], 10) : null);
+
+    if (done != null && total != null && total > 0) {
       const planColor = done === total ? c.green : c.white;
       parts.push(`${planColor}Plan ${done}/${total}${c.reset}`);
     }
@@ -233,9 +265,10 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
 
   // Status section
   if (sections.includes('status')) {
-    const statusMatch = content.match(/Status:\s*(.+)/);
-    if (statusMatch) {
-      const text = statusMatch[1].trim();
+    const fmStatus = fm && fm.status;
+    const statusMatch = content.match(/^Status:\s*(.+)/m);
+    const text = fmStatus || (statusMatch && statusMatch[1].trim());
+    if (text) {
       const short = text.length > maxLen ? text.slice(0, maxLen - 3) + '...' : text;
       parts.push(`${statusColor(text)}${short}${c.reset}`);
     }
@@ -285,4 +318,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, parseFrontmatter, DEFAULTS };

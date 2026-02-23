@@ -4,12 +4,17 @@ Standard pattern for updating `.planning/STATE.md`. Include this fragment in ski
 
 ---
 
+**CRITICAL: STATE.md has TWO representations — YAML frontmatter AND markdown body. You MUST update BOTH when changing state. The status line reads frontmatter; humans and hooks read the body. If you only update frontmatter, the body goes stale and the status line shows wrong data. Do NOT skip body updates under any circumstances.**
+
+---
+
 ## When to Update STATE.md
 
 | Event | What to Update |
 |-------|---------------|
-| Phase status changes (planned, building, verified) | Current Position section |
-| Plan completes or fails | Plan counter, status, last activity |
+| Phase status changes (planned, building, verified) | Frontmatter fields AND Current Position section |
+| Plan completes or fails | Frontmatter fields AND Plan counter, status, last activity |
+| Phase advances to next phase | Frontmatter fields AND Phase line, Status, Last activity, Progress bar |
 | New decision made | Accumulated Context > Decisions |
 | Blocker discovered or resolved | Accumulated Context > Blockers/Concerns |
 | Session starts or ends | Session Continuity section |
@@ -31,6 +36,9 @@ See: .planning/PROJECT.md (updated {date})
 Update `Current focus` when phase changes.
 
 ### 2. Current Position (lines 9-14)
+
+**CRITICAL: This section MUST match the frontmatter fields above it. When you update `current_phase` or `status` in frontmatter, you MUST also update the corresponding lines below. A hook will auto-fix drift, but do not rely on it.**
+
 ```
 ## Current Position
 Phase: {N} of {total} ({Phase name})

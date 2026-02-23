@@ -24,6 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { atomicWrite } = require('./pbr-tools');
 
 function main() {
   let input = '';
@@ -334,8 +335,18 @@ function checkStateWrite(data) {
   if (basename !== 'STATE.md') return null;
   if (!fs.existsSync(filePath)) return null;
 
-  const content = fs.readFileSync(filePath, 'utf8');
+  let content = fs.readFileSync(filePath, 'utf8');
   const result = validateState(content, filePath);
+
+  // Auto-fix frontmatter/body drift: if frontmatter current_phase differs from
+  // the body's "Phase: X of Y" line, rewrite the body to match frontmatter.
+  // This prevents stale status line display when the LLM updates frontmatter
+  // but skips the body under cognitive load.
+  const bodyFixed = syncStateBody(content, filePath);
+  if (bodyFixed) {
+    content = bodyFixed.content;
+    result.warnings.push(bodyFixed.message);
+  }
 
   if (result.warnings.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'warn', { file: basename, warnings: result.warnings });
@@ -348,5 +359,70 @@ function checkStateWrite(data) {
   return null;
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, checkPlanWrite, checkStateWrite };
+/**
+ * Detect and fix frontmatter/body drift in STATE.md.
+ * When frontmatter current_phase doesn't match the body's "Phase: X of Y",
+ * rewrite the body line and persist.
+ *
+ * @param {string} content - Full STATE.md content
+ * @param {string} filePath - Absolute path to STATE.md
+ * @returns {null|{content: string, message: string}} null if in sync, otherwise the fixed content + message
+ */
+function syncStateBody(content, filePath) {
+  if (!content.startsWith('---')) return null;
+  const fmEnd = content.indexOf('---', 3);
+  if (fmEnd === -1) return null;
+
+  const fm = content.substring(3, fmEnd);
+  const phaseMatch = fm.match(/^current_phase:\s*(\d+)/m);
+  const totalMatch = fm.match(/^total_phases:\s*(\d+)/m);
+  const slugMatch = fm.match(/^phase_name:\s*"?([^"\r\n]+)"?/m);
+  const statusMatch = fm.match(/^status:\s*"?([^"\r\n]+)"?/m);
+
+  if (!phaseMatch) return null;
+
+  const fmPhase = phaseMatch[1];
+  const fmTotal = totalMatch ? totalMatch[1] : null;
+  const fmName = slugMatch ? slugMatch[1] : null;
+  const fmStatus = statusMatch ? statusMatch[1] : null;
+
+  const bodyPhaseMatch = content.match(/^Phase:\s*(\d+)\s*of\s*(\d+)/m);
+  const bodyStatusMatch = content.match(/^Status:\s*(.+)/m);
+
+  let needsFix = false;
+  let updated = content;
+
+  // Fix phase line drift
+  if (bodyPhaseMatch && bodyPhaseMatch[1] !== fmPhase) {
+    const newPhaseLine = fmTotal
+      ? (fmName ? `Phase: ${fmPhase} of ${fmTotal} (${fmName})` : `Phase: ${fmPhase} of ${fmTotal}`)
+      : `Phase: ${fmPhase} of ${bodyPhaseMatch[2]}`;
+    updated = updated.replace(/^Phase:\s*\d+\s*of\s*\d+.*/m, newPhaseLine);
+    needsFix = true;
+  }
+
+  // Fix status line drift (only when phase also drifted — status text is often richer in body)
+  if (needsFix && bodyStatusMatch && fmStatus) {
+    // Capitalize frontmatter status for display
+    const displayStatus = fmStatus.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    updated = updated.replace(/^Status:\s*.+/m, `Status: ${displayStatus}`);
+  }
+
+  if (!needsFix) return null;
+
+  try {
+    atomicWrite(filePath, updated);
+    logHook('check-plan-format', 'PostToolUse', 'body-sync', {
+      fromPhase: bodyPhaseMatch[1], toPhase: fmPhase
+    });
+    return {
+      content: updated,
+      message: `Auto-fixed body drift: Phase ${bodyPhaseMatch[1]} → ${fmPhase} (body now matches frontmatter)`
+    };
+  } catch (_e) {
+    return null;
+  }
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }
