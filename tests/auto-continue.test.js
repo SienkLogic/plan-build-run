@@ -147,4 +147,78 @@ describe('auto-continue.js', () => {
     const output = run();
     expect(output).toBe('');
   });
+
+  describe('pending todos reminder', () => {
+    test('pending todos reminder fires when .auto-next absent but pending/ has items', () => {
+      writeConfig();
+      // Create .planning/todos/pending/ with a pending todo file
+      const pendingDir = path.join(planningDir, 'todos', 'pending');
+      fs.mkdirSync(pendingDir, { recursive: true });
+      fs.writeFileSync(path.join(pendingDir, 'fix-header.md'), '---\ntitle: Fix header\n---\n');
+
+      // .auto-next must NOT exist
+      const signalPath = path.join(planningDir, '.auto-next');
+      expect(fs.existsSync(signalPath)).toBe(false);
+
+      // Run the script and capture stderr (reminder is written to stderr)
+      let stderrOutput = '';
+      try {
+        execSync(`node "${SCRIPT}"`, {
+          cwd: tmpDir,
+          encoding: 'utf8',
+          timeout: 5000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (e) {
+        stderrOutput = e.stderr || '';
+      }
+      // Run again capturing stderr properly
+      const { execSync: execSyncFull } = require('child_process');
+      let stderr = '';
+      try {
+        execSyncFull(`node "${SCRIPT}"`, {
+          cwd: tmpDir,
+          encoding: 'utf8',
+          timeout: 5000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (_) { /* ignore exit code */ }
+      // Read hook log to verify pending-todos was logged
+      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      expect(fs.existsSync(logPath)).toBe(true);
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      const pendingEntry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'pending-todos');
+      expect(pendingEntry).toBeDefined();
+      expect(pendingEntry.count).toBe(1);
+    });
+
+    test('no pending todos reminder when pending/ dir is empty', () => {
+      writeConfig();
+      // Create empty pending/ dir
+      const pendingDir = path.join(planningDir, 'todos', 'pending');
+      fs.mkdirSync(pendingDir, { recursive: true });
+
+      run();
+
+      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      const entries = lines.map(l => JSON.parse(l));
+      // Should not have a pending-todos entry
+      const pendingEntry = entries.find(e => e.decision === 'pending-todos');
+      expect(pendingEntry).toBeUndefined();
+    });
+
+    test('no pending todos reminder when pending/ dir does not exist', () => {
+      writeConfig();
+      // Do NOT create todos/pending/ dir
+
+      run();
+
+      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      const entries = lines.map(l => JSON.parse(l));
+      const pendingEntry = entries.find(e => e.decision === 'pending-todos');
+      expect(pendingEntry).toBeUndefined();
+    });
+  });
 });
