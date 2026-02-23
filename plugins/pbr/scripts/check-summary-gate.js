@@ -29,7 +29,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 
 // Statuses that indicate a phase has been executed
-const ADVANCED_STATUSES = ['built', 'verified', 'complete', 'building'];
+const ADVANCED_STATUSES = ['built', 'verified', 'complete'];
 
 /**
  * Extract YAML frontmatter values from markdown content.
