@@ -258,9 +258,8 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   });
 
   describe('checkStateSync', () => {
-    test('returns null for non-SUMMARY/VERIFICATION files', () => {
+    test('returns null for non-SUMMARY/VERIFICATION/PLAN files', () => {
       expect(checkStateSync({ tool_input: { file_path: '/some/path/README.md' } })).toBeNull();
-      expect(checkStateSync({ tool_input: { file_path: '/some/PLAN.md' } })).toBeNull();
     });
 
     test('returns null for STATE.md write (circular guard)', () => {
@@ -566,6 +565,59 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         // Phase line should remain unchanged
         expect(updated).toContain('Phase: 3 of 10 (API Endpoints)');
         expect(updated).toContain('current_phase: 3');
+      });
+
+      test('triggers ROADMAP sync on PLAN.md write with Planning status', () => {
+        // Write a PLAN.md (the trigger) — but no summaries yet
+        fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
+
+        const roadmap = `# Roadmap
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 03. API Endpoints | 0/0 | Not started | — |
+`;
+        fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+        // The trigger file is the PLAN.md itself
+        const data = { tool_input: { file_path: path.join(phaseDir, '01-PLAN.md') } };
+        const result = checkStateSync(data);
+
+        expect(result).not.toBeNull();
+        expect(result.output.additionalContext).toContain('ROADMAP.md');
+
+        const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+        expect(updated).toContain('Planning');
+      });
+
+      test('does not regress ROADMAP status from Built/Complete to Planning on PLAN.md write', () => {
+        fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
+        fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+
+        const roadmap = `# Roadmap
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 03. API Endpoints | 1/1 | Complete | 2026-02-20 |
+`;
+        fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+        const data = { tool_input: { file_path: path.join(phaseDir, '01-PLAN.md') } };
+        const result = checkStateSync(data);
+
+        // Should not regress — either null or no change to status
+        const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+        expect(updated).toContain('Complete');
+        expect(updated).not.toContain('Planning');
+      });
+
+      test('PLAN.md outside .planning/phases/ is ignored', () => {
+        const data = { tool_input: { file_path: '/some/other/01-PLAN.md' } };
+        expect(checkStateSync(data)).toBeNull();
       });
 
       test('handles Windows-style backslash paths', () => {
