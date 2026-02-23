@@ -568,11 +568,6 @@ function checkBuildDependencyGate(data) {
 }
 
 /**
- * Advisory check: when active skill is "build" and an executor is being
- * spawned, warn if .checkpoint-manifest.json is missing in the phase dir.
- * Returns a warning string or null.
- */
-/**
  * Parse VERIFICATION.md frontmatter to extract status field.
  * Returns the status string or 'unknown' if not parseable.
  */
