@@ -160,8 +160,7 @@ describe('auto-continue.js', () => {
       const signalPath = path.join(planningDir, '.auto-next');
       expect(fs.existsSync(signalPath)).toBe(false);
 
-      // Run the script and capture stderr (reminder is written to stderr)
-      let stderrOutput = '';
+      // Run the script — reminder is logged to hooks.jsonl
       try {
         execSync(`node "${SCRIPT}"`, {
           cwd: tmpDir,
@@ -169,20 +168,7 @@ describe('auto-continue.js', () => {
           timeout: 5000,
           stdio: ['pipe', 'pipe', 'pipe'],
         });
-      } catch (e) {
-        stderrOutput = e.stderr || '';
-      }
-      // Run again capturing stderr properly
-      const { execSync: execSyncFull } = require('child_process');
-      let stderr = '';
-      try {
-        execSyncFull(`node "${SCRIPT}"`, {
-          cwd: tmpDir,
-          encoding: 'utf8',
-          timeout: 5000,
-          stdio: ['pipe', 'pipe', 'pipe'],
-        });
-      } catch (_) { /* ignore exit code */ }
+      } catch (_e) { /* ignore exit code */ }
       // Read hook log to verify pending-todos was logged
       const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
       expect(fs.existsSync(logPath)).toBe(true);
