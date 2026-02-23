@@ -91,6 +91,7 @@ Display the following reference to the user:
 |---------|-------------|
 | `/pbr:milestone new` | Start a new milestone cycle. |
 | `/pbr:milestone complete` | Archive completed milestone. |
+| `/pbr:milestone preview` | Dry-run of complete — show what would happen. |
 | `/pbr:milestone audit` | Verify milestone completion. |
 | `/pbr:milestone gaps` | Create phases to close audit gaps. |
 | `/pbr:todo add\|list\|done` | Persistent file-based todos. |
