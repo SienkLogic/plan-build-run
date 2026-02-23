@@ -530,51 +530,9 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 ## Completion
 
-After all steps complete, present the final summary:
+After all steps complete, present the final summary using the stage banner format from Read `references/ui-formatting.md`:
 
-Use the branded stage banner from `references/ui-formatting.md`:
-
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PROJECT INITIALIZED ✓                      ║
-╚══════════════════════════════════════════════════════════════╝
-
-**{name}**
-
-{core value one-liner}
-
-Roadmap: {N} phases
-  1. {Phase 1 name}
-  2. {Phase 2 name}
-  ...
-
-Requirements: {N} committed, {M} deferred, {K} out-of-scope
-```
-
-Then use the "Next Up" routing block:
-```
-
-
-╔══════════════════════════════════════════════════════════════╗
-║  ▶ NEXT UP                                                   ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase 1: {Name}** — {one-line goal}
-
-`/pbr:discuss 1`
-
-<sub>`/clear` first → fresh context window</sub>
-
-
-
-**Also available:**
-- `/pbr:explore` — open-ended exploration before planning
-- `/pbr:plan 1` — jump straight to planning Phase 1
-- `/pbr:milestone new` — add a second milestone with new phases
-- `/pbr:config` — adjust workflow settings
-
-
-```
+Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-formatting.md) pointing to `/pbr:discuss 1` with alternatives: `/pbr:explore`, `/pbr:plan 1`, `/pbr:milestone new`, `/pbr:config`.
 
 ---
 
