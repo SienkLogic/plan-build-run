@@ -119,11 +119,38 @@ describe('check-summary-gate.js', () => {
   });
 
   describe('ADVANCED_STATUSES', () => {
-    test('includes built, verified, complete, building', () => {
+    test('includes built, verified, complete but not building', () => {
       expect(ADVANCED_STATUSES).toContain('built');
       expect(ADVANCED_STATUSES).toContain('verified');
       expect(ADVANCED_STATUSES).toContain('complete');
-      expect(ADVANCED_STATUSES).toContain('building');
+      expect(ADVANCED_STATUSES).not.toContain('building');
+    });
+  });
+
+  describe('building status', () => {
+    let tmpDir, planningDir;
+    const origCwd = process.cwd();
+
+    beforeEach(() => {
+      ({ tmpDir, planningDir } = makeTmpDir());
+      makePhaseDir(planningDir, '02-rules-port');
+      writeState(planningDir, 2, 'rules-port', 'planning');
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      cleanup(tmpDir);
+    });
+
+    test('allows building status without SUMMARY', () => {
+      const result = checkSummaryGate({
+        tool_input: {
+          file_path: path.join(tmpDir, '.planning', 'STATE.md'),
+          content: '---\nstatus: "building"\ncurrent_phase: 2\nphase_slug: "rules-port"\n---'
+        }
+      });
+      expect(result).toBeNull();
     });
   });
 
