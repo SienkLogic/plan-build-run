@@ -5,6 +5,30 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.21.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.0...plan-build-run-v2.21.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* **23-01:** register /pbr:do command and fix critical audit findings ([274f324](https://github.com/SienkLogic/plan-build-run/commit/274f3247ea32557954c45eb321f5551bc3d8b3de))
+* **23-02:** replace CLAUDE_PLUGIN_ROOT with PLUGIN_ROOT in cursor-pbr ([7fa53be](https://github.com/SienkLogic/plan-build-run/commit/7fa53beafaba95ab4c36499e7fb333ec83c58ecc))
+* **23-03:** replace CLAUDE_PLUGIN_ROOT with PLUGIN_ROOT in copilot-pbr ([071f739](https://github.com/SienkLogic/plan-build-run/commit/071f739eab3854e03a68f6b93ad7de40854c8b72))
+* **23-04:** replace subagents terminology with agents in cursor-pbr ([444765f](https://github.com/SienkLogic/plan-build-run/commit/444765f3277d077fba200c6d5f5fde594abdaf9a))
+* **23-05:** fix subagents terminology in copilot-pbr and sync ROADMAP template ([e019e83](https://github.com/SienkLogic/plan-build-run/commit/e019e832b4c2808cec951eda44f0f57cb8755b8c))
+* **23-07:** strip hookSpecificOutput wrapper from check-phase-boundary and pre-write-dispatch ([61e4e1e](https://github.com/SienkLogic/plan-build-run/commit/61e4e1ec7a7db3bc8ac4184e58c94ab5c324eb38))
+* **23-09:** reorder copilot-pbr hooks.json postToolUseFailure before preToolUse to match pbr canonical ordering ([1180c9d](https://github.com/SienkLogic/plan-build-run/commit/1180c9d4ffb2c1bbbe4bc201a5dab126aee43ded))
+* **23-09:** use decision:block in validate-skill-args.js, remove orphaned JSDoc in validate-task.js ([ec8c1d2](https://github.com/SienkLogic/plan-build-run/commit/ec8c1d24f9436c1dee703ec3509eb065fb2c4c92))
+* **23-10:** correct dispatch table — move check-doc-sprawl and check-skill-workflow to pre-write-dispatch ([c6acc27](https://github.com/SienkLogic/plan-build-run/commit/c6acc2791ba652d5f81da231d301afcc90ab5c57))
+* **23-10:** remove dead body from checkStatuslineRules in check-skill-workflow.js ([5a518ec](https://github.com/SienkLogic/plan-build-run/commit/5a518ec4772de1cf2991201e2657f5737efe2ebd))
+* **23-10:** remove redundant allowed-tools Note from health SKILL.md Auto-Fix section ([7dcd549](https://github.com/SienkLogic/plan-build-run/commit/7dcd549bbd0e11b6eb4177e5ed1d4fd5eddc7d9b))
+* **23-12:** fix remaining subagents terminology in scan SKILL.md derivatives ([67b15e8](https://github.com/SienkLogic/plan-build-run/commit/67b15e881d752ad1eb66bfb31496f634cb3c1768))
+* **23-12:** fix test property paths and heredoc extraction to achieve 70% branch coverage ([4b857fe](https://github.com/SienkLogic/plan-build-run/commit/4b857fe73b8d82e6efe05114a7b09737c65dee12))
+* **23-12:** remove excess tool grants from synthesizer and plan-checker agents ([04432b3](https://github.com/SienkLogic/plan-build-run/commit/04432b35dde761e95d14ca98353091bc936512a6))
+* **quick-001:** fix agent prompt issues from audit (items 4-7) ([2772154](https://github.com/SienkLogic/plan-build-run/commit/27721547694686e2f425e95a7257b9cc48316c86))
+* **quick-001:** fix agent prompt issues from audit (items 8-10) ([1c41a8f](https://github.com/SienkLogic/plan-build-run/commit/1c41a8f29a5069f4bb7cec612875b59dc6a22b22))
+* **quick-001:** fix STATE.md body drift, stale status line, and ROADMAP sync gaps ([896494d](https://github.com/SienkLogic/plan-build-run/commit/896494d1215a7aadb7aa5b28c050db282cdcd784))
+* **tools:** fix CI lint errors and macOS symlink test failure ([e5294a0](https://github.com/SienkLogic/plan-build-run/commit/e5294a0e0eefde674203ef0ed587d5def5c0f865))
+
 ## [2.21.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.20.0...plan-build-run-v2.21.0) (2026-02-23)
 
 
