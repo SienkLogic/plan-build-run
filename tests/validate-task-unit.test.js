@@ -208,7 +208,7 @@ describe('checkPlanExecutorGate', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     const result = checkPlanExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.block).toBe(true);
-    expect(result.reason).toContain('Plan skill should not spawn executors');
+    expect(result.reason).toContain('Plan skill cannot spawn executors');
   });
 
   test('returns null when no .active-skill file', () => {

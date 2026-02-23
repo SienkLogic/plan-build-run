@@ -368,7 +368,7 @@ describe('validate-task.js', () => {
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
       expect(result.exitCode).toBe(2);
-      expect(result.output).toContain('Plan skill should not spawn executors');
+      expect(result.output).toContain('Plan skill cannot spawn executors');
     });
 
     test('passes planner when active skill is plan', () => {
