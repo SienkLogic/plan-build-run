@@ -343,7 +343,7 @@ function checkSync(data) {
       return {
         output: {
           decision: 'block',
-          reason: `ROADMAP.md status regression detected — Phase ${stateInfo.phase} is "${stateInfo.status}" in STATE.md but would regress to "${roadmapStatus}" in ROADMAP.md. This is a high-risk change that could corrupt milestone tracking.`
+          reason: `ROADMAP.md status regression detected for phase ${stateInfo.phase}.\n\nPhase ${stateInfo.phase} is "${stateInfo.status}" in STATE.md but "${roadmapStatus}" in ROADMAP.md. Writing a lower-lifecycle status to ROADMAP.md would corrupt milestone tracking.\n\nUpdate ROADMAP.md to match STATE.md status ("${stateInfo.status}") or fix STATE.md if the regression is intentional.`
         }
       };
     }
@@ -480,7 +480,7 @@ function validatePostMilestone(roadmapContent, completedMilestone) {
     const details = unverified.map(u => `Phase ${u.phase} (${u.status})`).join(', ');
     return {
       decision: 'block',
-      reason: `Cannot complete milestone ${completedMilestone} — unverified phases: ${details}. All phases must be Verified or Archived before milestone completion.`
+      reason: `Cannot complete milestone ${completedMilestone}: unverified phases remain.\n\nThe following phases are not yet Verified or Archived: ${details}. All phases must reach Verified or Archived status before milestone completion.\n\nRun /pbr:review on each unverified phase to advance it to Verified status.`
     };
   }
 
