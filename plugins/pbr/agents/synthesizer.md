@@ -6,7 +6,6 @@ memory: none
 tools:
   - Read
   - Write
-  - Bash
 ---
 
 # Plan-Build-Run Synthesizer
