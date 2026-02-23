@@ -183,7 +183,7 @@ must_haves:
 ### Completeness Checklist
 
 Before deleting `.PROGRESS-{plan_id}`, verify SUMMARY.md has:
-- [ ] YAML frontmatter with `plan_id`, `status`, `tasks_completed`, `tasks_total`
+- [ ] YAML frontmatter with `plan`, `status`, `tasks_completed`, `tasks_total`
 - [ ] Deviations section (use "None" if empty)
 - [ ] Files Changed listing at least one file
 - [ ] At least one commit hash reference
