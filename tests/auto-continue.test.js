@@ -148,6 +148,66 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
   });
 
+  describe('session length guard', () => {
+    test('increments continue count on each continue', () => {
+      writeConfig();
+      writeSignal('/pbr:build 1');
+      run();
+      const countPath = path.join(planningDir, '.continue-count');
+      expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('1');
+
+      // Second continue
+      writeSignal('/pbr:build 2');
+      run();
+      expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('2');
+    });
+
+    test('advisory warning appears after 3 continues', () => {
+      writeConfig();
+      const countPath = path.join(planningDir, '.continue-count');
+      // Set count to 3 so next increment = 4 (> 3)
+      fs.writeFileSync(countPath, '3');
+      writeSignal('/pbr:build 4');
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('Advisory');
+      expect(parsed.reason).toContain('4 consecutive continues');
+    });
+
+    test('no advisory at exactly 3 continues', () => {
+      writeConfig();
+      const countPath = path.join(planningDir, '.continue-count');
+      fs.writeFileSync(countPath, '2');
+      writeSignal('/pbr:build 3');
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).not.toContain('Advisory');
+    });
+
+    test('hard stop (no block output) after 6 continues', () => {
+      writeConfig();
+      const countPath = path.join(planningDir, '.continue-count');
+      fs.writeFileSync(countPath, '6');
+      writeSignal('/pbr:build 7');
+      const output = run();
+      // Should NOT output block decision — just exit silently
+      expect(output).toBe('');
+      // Count should be 7
+      expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('7');
+    });
+
+    test('count resets when no signal file present', () => {
+      writeConfig();
+      const countPath = path.join(planningDir, '.continue-count');
+      fs.writeFileSync(countPath, '5');
+      // No signal file — normal stop
+      run();
+      expect(fs.existsSync(countPath)).toBe(false);
+    });
+  });
+
   describe('pending todos reminder', () => {
     test('pending todos reminder fires when .auto-next absent but pending/ has items', () => {
       writeConfig();

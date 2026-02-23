@@ -63,6 +63,9 @@ function main() {
       } catch (_todoErr) {
         // Ignore errors scanning todos
       }
+      // Reset continue count on normal session stop (no signal)
+      const countPathNoSig = path.join(planningDir, '.continue-count');
+      try { fs.unlinkSync(countPathNoSig); } catch (_e) { /* ignore */ }
       logHook('auto-continue', 'Stop', 'no-signal', {});
       process.exit(0);
     }
@@ -97,19 +100,40 @@ function main() {
       process.exit(0);
     }
 
+    // Track consecutive continues for session length guard
+    const countPath = path.join(planningDir, '.continue-count');
+    let continueCount = 0;
+    try {
+      continueCount = parseInt(fs.readFileSync(countPath, 'utf8').trim(), 10) || 0;
+    } catch (_e) { /* file missing — start at 0 */ }
+    continueCount++;
+    try { fs.writeFileSync(countPath, String(continueCount)); } catch (_e) { /* ignore */ }
+
+    // Hard stop after 6 consecutive continues — context is likely degraded
+    if (continueCount > 6) {
+      logHook('auto-continue', 'Stop', 'hard-stop-session-length', { count: continueCount });
+      process.exit(0);
+    }
+
     // Extract last_assistant_message for richer continuation context
     const lastMsg = hookInput.last_assistant_message || '';
     const msgSuffix = lastMsg
       ? ` (last message excerpt: ${lastMsg.slice(0, 200)})`
       : '';
 
-    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand, hasLastMsg: !!lastMsg });
+    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand, hasLastMsg: !!lastMsg, continueCount });
+
+    // Build reason string with optional advisory
+    let reasonStr = `Auto-continue: execute ${nextCommand}${msgSuffix}`;
+    if (continueCount > 3) {
+      reasonStr += `\n\n[pbr] Advisory: ${continueCount} consecutive continues. Consider /pbr:pause + fresh session to avoid context degradation.`;
+    }
 
     // Block the stop and inject the next command as Claude's continuation reason.
     // Claude Code Stop hooks use { decision: "block", reason: "..." } to keep going.
     const output = {
       decision: 'block',
-      reason: `Auto-continue: execute ${nextCommand}${msgSuffix}`
+      reason: reasonStr
     };
     process.stdout.write(JSON.stringify(output));
     process.exit(0);
