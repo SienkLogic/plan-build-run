@@ -178,6 +178,14 @@ function isGitCommit(command) {
 }
 
 function extractCommitMessage(command) {
+  // Try heredoc first: -m "$(cat <<'EOF'\n...\nEOF\n)" or -m "$(cat <<EOF\n...\nEOF\n)"
+  // Must check before generic -m patterns to avoid capturing heredoc syntax as the message
+  const heredocMatch = command.match(/<<'?EOF'?\s*\n([\s\S]*?)\nEOF/);
+  if (heredocMatch) {
+    // First line of heredoc is the commit message
+    return heredocMatch[1].trim().split('\n')[0].trim();
+  }
+
   // Try -m "message" or -m 'message'
   const mFlagMatch = command.match(/-m\s+["']([^"']+)["']/);
   if (mFlagMatch) return mFlagMatch[1];
@@ -185,13 +193,6 @@ function extractCommitMessage(command) {
   // Try -m "message" with escaped quotes
   const mFlagMatch2 = command.match(/-m\s+"([^"]+)"/);
   if (mFlagMatch2) return mFlagMatch2[1];
-
-  // Try heredoc: -m "$(cat <<'EOF'\n...\nEOF\n)"
-  const heredocMatch = command.match(/<<'?EOF'?\s*\n([\s\S]*?)\nEOF/);
-  if (heredocMatch) {
-    // First line of heredoc is the commit message
-    return heredocMatch[1].trim().split('\n')[0].trim();
-  }
 
   return null;
 }

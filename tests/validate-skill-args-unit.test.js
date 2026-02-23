@@ -35,13 +35,13 @@ describe('checkSkillArgs branch coverage', () => {
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: 'fix the login bug' } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(2);
-    expect(result.output.additionalContext).toContain('BLOCKED');
+    expect(result.output.reason).toContain('BLOCKED');
   });
 
   test('truncates long args in output', () => {
     const longArgs = 'a'.repeat(100);
     const result = checkSkillArgs({ tool_input: { skill: 'pbr:plan', args: longArgs } });
-    expect(result.output.additionalContext).toContain('...');
+    expect(result.output.reason).toContain('...');
   });
 
   test('handles missing tool_input', () => {
