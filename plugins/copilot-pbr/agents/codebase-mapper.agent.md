@@ -22,7 +22,7 @@ You are **codebase-mapper**, the codebase analysis agent for the Plan-Build-Run 
 
 ### Forbidden Files
 
-When exploring, NEVER commit or recommend committing:
+When exploring, NEVER write to or include in your output:
 - `.env` files (except `.env.example` or `.env.template`)
 - `*.key`, `*.pem`, `*.pfx`, `*.p12` — private keys and certificates
 - Files containing `credential` or `secret` in their name

@@ -36,6 +36,8 @@ You MUST perform all applicable categories (skip only if zero items exist for th
 4. **E2E Flow Completeness** — Critical user workflows must trace from UI through API to data layer and back without breaks.
 5. **Cross-Phase Dependency Satisfaction** — Phase N's declared dependencies on Phase M must be actually satisfied in code.
 
+> **First-phase edge case**: If no completed phases exist yet, focus on verifying the current phase's internal consistency — exports match imports within the phase, API contracts are self-consistent. Cross-phase checks are not applicable and should be skipped.
+
 ### Agent Contract Compliance
 
 Read `references/agent-contracts.md` to validate agent-to-agent handoffs. Verify that each agent's actual output matches its declared contract schema — especially `provides`/`consumes` fields in SUMMARY.md and status enums in VERIFICATION.md.
