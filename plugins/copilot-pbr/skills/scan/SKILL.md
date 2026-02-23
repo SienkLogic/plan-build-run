@@ -28,9 +28,9 @@ This skill **spawns 4 parallel Task(subagent_type: "pbr:codebase-mapper")** agen
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Never** analyze the codebase yourself — delegate ALL analysis to the 4 parallel codebase-mapper subagents
+- **Never** analyze the codebase yourself — delegate ALL analysis to the 4 parallel codebase-mapper agents
 - **Minimize** reading mapper outputs — read only frontmatter or first 20 lines of each output document
-- **Delegate** all file reading, pattern analysis, and architecture mapping to the codebase-mapper subagents
+- **Delegate** all file reading, pattern analysis, and architecture mapping to the codebase-mapper agents
 
 ---
 
