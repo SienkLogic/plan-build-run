@@ -20,6 +20,78 @@ const { logEvent } = require('./event-logger');
 
 const LIFECYCLE_STATUSES = ['planned', 'built', 'partial', 'verified'];
 
+/** Ordered lifecycle statuses for regression detection. Higher index = more advanced. */
+const STATUS_ORDER = ['planned', 'partial', 'built', 'verified'];
+
+/**
+ * Determine if a STATE.md → ROADMAP.md mismatch is high-risk.
+ * High-risk scenarios:
+ *   1. Status regression: ROADMAP status is earlier in lifecycle than STATE status
+ *   2. Phase ordering gap: ROADMAP table skips phase numbers (e.g., 01 then 03)
+ *
+ * @param {string} stateContent - Contents of STATE.md
+ * @param {string} roadmapContent - Contents of ROADMAP.md
+ * @returns {boolean}
+ */
+function isHighRisk(stateContent, roadmapContent) {
+  const stateInfo = parseState(stateContent);
+  if (!stateInfo || !stateInfo.phase || !stateInfo.status) return false;
+
+  // Check status regression
+  const roadmapStatus = getRoadmapPhaseStatus(roadmapContent, stateInfo.phase);
+  if (roadmapStatus) {
+    const stateIdx = STATUS_ORDER.indexOf(stateInfo.status);
+    const roadmapIdx = STATUS_ORDER.indexOf(roadmapStatus.toLowerCase());
+    if (stateIdx !== -1 && roadmapIdx !== -1 && roadmapIdx < stateIdx) {
+      return true;
+    }
+  }
+
+  // Check phase ordering gaps
+  const phaseNumbers = getAllRoadmapPhaseNumbers(roadmapContent);
+  if (phaseNumbers.length >= 2) {
+    for (let i = 1; i < phaseNumbers.length; i++) {
+      if (phaseNumbers[i] - phaseNumbers[i - 1] > 1) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Extract all phase numbers from ROADMAP.md table, sorted ascending.
+ * @param {string} content - ROADMAP.md content
+ * @returns {number[]}
+ */
+function getAllRoadmapPhaseNumbers(content) {
+  const lines = content.split('\n');
+  const numbers = [];
+  let inTable = false;
+  let phaseColIndex = -1;
+
+  for (const line of lines) {
+    if (!inTable) {
+      if (line.includes('|') && /Phase/i.test(line) && /Status/i.test(line)) {
+        const cols = splitTableRow(line);
+        phaseColIndex = cols.findIndex(c => /^Phase$/i.test(c));
+        if (phaseColIndex !== -1) inTable = true;
+      }
+      continue;
+    }
+    if (/^\s*\|[\s-:|]+\|\s*$/.test(line)) continue;
+    if (!line.includes('|')) break;
+    const cols = splitTableRow(line);
+    if (cols.length > phaseColIndex) {
+      const num = parseInt(normalizePhaseNum(cols[phaseColIndex]), 10);
+      if (!isNaN(num)) numbers.push(num);
+    }
+  }
+
+  return numbers.sort((a, b) => a - b);
+}
+
 function main() {
   let input = '';
 
@@ -265,6 +337,17 @@ function checkSync(data) {
     logEvent('workflow', 'roadmap-sync', {
       phase: stateInfo.phase, stateStatus: stateInfo.status, roadmapStatus, status: 'out-of-sync'
     });
+
+    // Block on high-risk regressions, advise on non-critical drift
+    if (isHighRisk(stateContent, roadmapContent)) {
+      return {
+        output: {
+          decision: 'block',
+          reason: `ROADMAP.md status regression detected — Phase ${stateInfo.phase} is "${stateInfo.status}" in STATE.md but would regress to "${roadmapStatus}" in ROADMAP.md. This is a high-risk change that could corrupt milestone tracking.`
+        }
+      };
+    }
+
     return {
       output: {
         additionalContext: `CRITICAL: ROADMAP.md out of sync — Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node plugins/pbr/scripts/pbr-tools.js state load\` to check current state.`
@@ -348,5 +431,5 @@ function checkFilesystemDrift(roadmapContent, phasesDir) {
   return warnings;
 }
 
-module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift };
+module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift, isHighRisk };
 if (require.main === module || process.argv[1] === __filename) { main(); }
