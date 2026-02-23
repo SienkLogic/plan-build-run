@@ -95,8 +95,8 @@ describe('check-phase-boundary.js', () => {
       expect(result.exitCode).toBe(0);
       if (result.output) {
         const parsed = JSON.parse(result.output);
-        expect(parsed.hookSpecificOutput.additionalContext).toContain('phase 4');
-        expect(parsed.hookSpecificOutput.additionalContext).toContain('current phase is 2');
+        expect(parsed.additionalContext).toContain('phase 4');
+        expect(parsed.additionalContext).toContain('current phase is 2');
       }
       cleanup(tmpDir);
     });

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { validateConfig } = require('../plugins/pbr/scripts/check-config-change');
+const { validateConfig, findPlanningDir } = require('../plugins/pbr/scripts/check-config-change');
 
 function createTempConfig(configObj) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-config-test-'));
@@ -128,6 +128,22 @@ describe('check-config-change', () => {
       }
     });
 
+    test('no models key skips model check', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2,
+        features: {},
+        gates: {}
+      });
+
+      try {
+        const warnings = validateConfig(configPath);
+        // No models key — no model validation warnings
+        expect(warnings.filter(w => w.includes('Invalid model')).length).toBe(0);
+      } finally {
+        cleanup(tmpDir);
+      }
+    });
+
     test('no parallelization key is fine', () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
@@ -142,6 +158,38 @@ describe('check-config-change', () => {
       } finally {
         cleanup(tmpDir);
       }
+    });
+  });
+
+  describe('findPlanningDir', () => {
+    let originalCwd;
+
+    beforeEach(() => {
+      originalCwd = process.cwd();
+    });
+
+    afterEach(() => {
+      process.chdir(originalCwd);
+    });
+
+    test('finds .planning dir in current directory', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-'));
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir);
+      process.chdir(tmpDir);
+      const result = findPlanningDir();
+      process.chdir(originalCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      expect(result).toBe(planningDir);
+    });
+
+    test('returns null when no .planning dir exists', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-find-test-'));
+      process.chdir(tmpDir);
+      const result = findPlanningDir();
+      process.chdir(originalCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      expect(result).toBeNull();
     });
   });
 });

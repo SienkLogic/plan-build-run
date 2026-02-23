@@ -59,8 +59,8 @@ describe('checkBoundary', () => {
     const result = checkBoundary({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.exitCode).toBe(0);
-    expect(result.output.hookSpecificOutput.additionalContext).toContain('phase 4');
-    expect(result.output.hookSpecificOutput.additionalContext).toContain('current phase is 2');
+    expect(result.output.additionalContext).toContain('phase 4');
+    expect(result.output.additionalContext).toContain('current phase is 2');
   });
 
   test('returns block for cross-phase writes when enforcement is on', () => {
