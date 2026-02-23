@@ -460,6 +460,74 @@ describe('cross-plugin compatibility', () => {
     });
   });
 
+  describe('references/ content identity', () => {
+    test('references/ files are content-identical across all 3 plugins', () => {
+      const pbrRefsDir = path.join(PBR_DIR, 'references');
+      const pbrFiles = fs.readdirSync(pbrRefsDir).filter(f => f.endsWith('.md')).sort();
+
+      for (const file of pbrFiles) {
+        const pbrContent = fs.readFileSync(path.join(pbrRefsDir, file), 'utf8');
+
+        for (const { name, dir: derivDir } of DERIVATIVES) {
+          const derivPath = path.join(derivDir, 'references', file);
+          expect(fs.existsSync(derivPath)).toBe(true);
+          const derivRaw = fs.existsSync(derivPath)
+            ? fs.readFileSync(derivPath, 'utf8')
+            : '';
+          // Strip canonical comment header (first line if it starts with <!-- canonical:)
+          const derivContent = derivRaw.replace(/^<!-- canonical:[^\n]*-->\r?\n/, '');
+          expect(derivContent).toBe(pbrContent);
+          if (derivContent !== pbrContent) {
+            throw new Error(
+              `references/${file} content differs in ${name}: expected content to match plugins/pbr/references/${file}`
+            );
+          }
+        }
+      }
+    });
+  });
+
+  describe('templates/ content identity', () => {
+    function listTemplateFiles(base) {
+      const files = [];
+      function walk(current, prefix) {
+        if (!fs.existsSync(current)) return;
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+          const rel = prefix ? path.join(prefix, entry.name) : entry.name;
+          if (entry.isDirectory()) walk(path.join(current, entry.name), rel);
+          else files.push(rel);
+        }
+      }
+      walk(base, '');
+      return files.sort();
+    }
+
+    test('templates/ files are content-identical across all 3 plugins', () => {
+      const pbrTmplDir = path.join(PBR_DIR, 'templates');
+      const pbrFiles = listTemplateFiles(pbrTmplDir);
+
+      for (const file of pbrFiles) {
+        const pbrContent = fs.readFileSync(path.join(pbrTmplDir, file), 'utf8');
+
+        for (const { name, dir: derivDir } of DERIVATIVES) {
+          const derivPath = path.join(derivDir, 'templates', file);
+          expect(fs.existsSync(derivPath)).toBe(true);
+          const derivRaw = fs.existsSync(derivPath)
+            ? fs.readFileSync(derivPath, 'utf8')
+            : '';
+          // Strip canonical comment header (first line if it starts with <!-- canonical:)
+          const derivContent = derivRaw.replace(/^<!-- canonical:[^\n]*-->\r?\n/, '');
+          expect(derivContent).toBe(pbrContent);
+          if (derivContent !== pbrContent) {
+            throw new Error(
+              `templates/${file} content differs in ${name}: expected content to match plugins/pbr/templates/${file}`
+            );
+          }
+        }
+      }
+    });
+  });
+
   describe('version sync', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
