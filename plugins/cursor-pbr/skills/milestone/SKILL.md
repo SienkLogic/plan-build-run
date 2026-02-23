@@ -53,6 +53,7 @@ Examples:
   "new User Auth"    → subcommand=new, arg="User Auth"
   "complete v1.0"    → subcommand=complete, arg="v1.0"
   "complete 1.0"     → subcommand=complete, arg="v1.0" (auto-prefix v)
+  "preview v1.0"     → subcommand=preview, arg="v1.0"
   "audit v1.0"       → subcommand=audit, arg="v1.0"
   "audit"            → subcommand=audit, arg=current milestone
   "gaps"             → subcommand=gaps, arg=most recent audit
@@ -65,6 +66,7 @@ Usage: /pbr:milestone <subcommand> [version]
 Subcommands:
   new [name]       — Start a new milestone cycle
   complete [ver]   — Archive completed milestone
+  preview [ver]    — Dry-run of complete (show what would happen)
   audit [ver]      — Verify milestone completion
   gaps             — Create phases to close audit gaps
 ```
@@ -187,6 +189,65 @@ Start a new milestone cycle with new phases.
 
 
     ```
+
+---
+
+## Subcommand: `preview`
+
+Dry-run of milestone completion — shows what would happen without making any changes.
+
+### Flow
+
+1. **Determine version:**
+   - Same logic as `complete`: use `$ARGUMENTS` or ask via AskUserQuestion
+
+2. **Identify milestone phases:**
+   - Read ROADMAP.md to find phases belonging to this milestone
+   - List each phase with its current status (from STATE.md or VERIFICATION.md)
+
+3. **Verification status check:**
+   - For each milestone phase, check if VERIFICATION.md exists and its `result` frontmatter
+   - Flag phases that are unverified or have stale verification (SUMMARY.md newer than VERIFICATION.md)
+
+4. **Preview archive structure:**
+   - Show what the archive directory would look like:
+     ```
+     .planning/milestones/v{version}/
+     ├── ROADMAP.md (snapshot)
+     ├── STATS.md (would be generated)
+     ├── REQUIREMENTS.md (snapshot)
+     └── phases/
+         ├── {NN}-{slug}/ (moved from .planning/phases/)
+         │   ├── PLAN-01.md
+         │   ├── SUMMARY.md
+         │   └── VERIFICATION.md
+         └── ...
+     ```
+
+5. **Show what would change:**
+   - Which phase directories would be moved
+   - What ROADMAP.md section would be collapsed
+   - What STATE.md updates would occur
+   - What git tag would be created
+
+6. **Display summary:**
+   ```
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  MILESTONE PREVIEW — v{version}                              ║
+   ╚══════════════════════════════════════════════════════════════╝
+
+   Phases to archive: {count}
+   ✓ Verified: {verified_count}
+   ⚠ Unverified: {unverified_count}
+   ⚠ Stale verification: {stale_count}
+
+   Archive location: .planning/milestones/v{version}/
+   Git tag: v{version}
+
+   Ready to complete? Run: /pbr:milestone complete v{version}
+   ```
+
+**CRITICAL**: This subcommand is READ-ONLY. Do not create directories, move files, modify STATE.md, modify ROADMAP.md, or create git tags. Only read and display.
 
 ---
 
