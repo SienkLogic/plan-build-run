@@ -751,9 +751,9 @@ Chain to the next skill directly within this session. This eliminates manual pha
 |-------------|-------------|-----|
 | Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
 | Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
-| Verification gaps found | **HARD STOP** — present gaps to user | Do NOT auto-advance past failures |
-| Last phase in current milestone | **HARD STOP** — milestone boundary | Suggest `/pbr:milestone audit`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
-| Build errors occurred | **HARD STOP** — errors need human review | Do NOT auto-advance past errors |
+| Verification gaps found | **HARD STOP** — present gaps to user | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:review {N}` before stopping. Do NOT auto-advance past failures. |
+| Last phase in current milestone | **HARD STOP** — milestone boundary | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:milestone complete` before stopping. Suggest `/pbr:milestone audit`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
+| Build errors occurred | **HARD STOP** — errors need human review | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:build {N}` before stopping. Do NOT auto-advance past errors. |
 
 After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review→plan, plan→build) if auto_advance remains true. This creates the full cycle: build→review→plan→build→...
 
