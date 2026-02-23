@@ -77,6 +77,11 @@ function main() {
           unique_files: tracker.files.length,
         });
         const prevCharsTotal = tracker.total_chars;
+        // Emit user-visible warning before resetting (was previously silent)
+        const resetWarning = {
+          additionalContext: `[Context Budget] Tracker reset: ${tracker.files.length} unique files read (~${Math.round(tracker.total_chars / 1000)}k chars). File list cleared but char total preserved. Consider delegating remaining work to a Task() subagent.`
+        };
+        process.stdout.write(JSON.stringify(resetWarning));
         tracker = { skill: currentSkill, reads: 0, total_chars: prevCharsTotal, files: [] };
       }
 

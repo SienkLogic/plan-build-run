@@ -105,7 +105,7 @@ function normalizeAgentName(filename) {
 }
 
 // Hook events that Copilot CLI supports (subset of full set)
-const COPILOT_SUPPORTED_EVENTS = ['sessionStart', 'sessionEnd', 'preToolUse', 'postToolUse', 'configChange', 'userPromptSubmitted', 'errorOccurred'];
+const COPILOT_SUPPORTED_EVENTS = ['sessionStart', 'sessionEnd', 'preToolUse', 'postToolUse', 'postToolUseFailure', 'preCompact', 'stop', 'subagentStart', 'subagentStop', 'taskCompleted', 'configChange', 'userPromptSubmitted', 'errorOccurred'];
 
 // Mapping from PBR/Cursor event names (PascalCase) to Copilot CLI event names (camelCase)
 const EVENT_NAME_MAP = {
@@ -113,13 +113,13 @@ const EVENT_NAME_MAP = {
   SessionEnd: 'sessionEnd',
   PreToolUse: 'preToolUse',
   PostToolUse: 'postToolUse',
-  PreCompact: null,           // not supported in Copilot CLI
-  Stop: null,                 // not supported
-  SubagentStart: null,        // not supported
-  SubagentStop: null,         // not supported
-  TaskCompleted: null,        // not supported
+  PreCompact: 'preCompact',
+  Stop: 'stop',
+  SubagentStart: 'subagentStart',
+  SubagentStop: 'subagentStop',
+  TaskCompleted: 'taskCompleted',
   ConfigChange: 'configChange',
-  PostToolUseFailure: null,   // not supported
+  PostToolUseFailure: 'postToolUseFailure',
 };
 
 describe('cross-plugin compatibility', () => {

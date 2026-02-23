@@ -108,7 +108,12 @@ function main() {
       }
 
       process.exit(0);
-    } catch (_e) {
+    } catch (e) {
+      logHook('check-roadmap-sync', 'PostToolUse', 'error', { reason: 'parse failure in main', error: e.message });
+      const output = {
+        additionalContext: `[Roadmap Sync] Warning: Failed to parse STATE.md or ROADMAP.md — ${e.message}. Run /pbr:health to diagnose.`
+      };
+      process.stdout.write(JSON.stringify(output));
       process.exit(0);
     }
   });
@@ -326,7 +331,8 @@ function checkFilesystemDrift(roadmapContent, phasesDir) {
   let entries;
   try {
     entries = fs.readdirSync(phasesDir, { withFileTypes: true });
-  } catch (_e) {
+  } catch (e) {
+    logHook('check-roadmap-sync', 'PostToolUse', 'error', { reason: 'failed to read phases dir', error: e.message });
     return warnings;
   }
 
