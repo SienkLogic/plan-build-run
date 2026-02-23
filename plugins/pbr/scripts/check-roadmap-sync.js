@@ -431,5 +431,61 @@ function checkFilesystemDrift(roadmapContent, phasesDir) {
   return warnings;
 }
 
-module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift, isHighRisk };
+/**
+ * Validate ROADMAP.md after a milestone is marked complete.
+ * All phases in the roadmap table must be "Verified" or "Archived".
+ * If the milestone section is already collapsed (contains "COMPLETED"), passes.
+ *
+ * @param {string} roadmapContent - ROADMAP.md content
+ * @param {string} completedMilestone - Milestone identifier (e.g., "v1.0")
+ * @returns {null|{decision: string, reason: string}} null if valid, blocking result if not
+ */
+function validatePostMilestone(roadmapContent, completedMilestone) {
+  // If milestone section is already collapsed/completed, pass
+  const collapsedPattern = new RegExp(`##\\s+Milestone\\s+${completedMilestone.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}.*COMPLETED`, 'i');
+  if (collapsedPattern.test(roadmapContent)) return null;
+
+  // Parse all phase statuses from the table
+  const lines = roadmapContent.split('\n');
+  let inTable = false;
+  let phaseColIndex = -1;
+  let statusColIndex = -1;
+  const unverified = [];
+
+  for (const line of lines) {
+    if (!inTable) {
+      if (line.includes('|') && /Phase/i.test(line) && /Status/i.test(line)) {
+        const cols = splitTableRow(line);
+        phaseColIndex = cols.findIndex(c => /^Phase$/i.test(c));
+        statusColIndex = cols.findIndex(c => /^Status$/i.test(c));
+        if (phaseColIndex !== -1 && statusColIndex !== -1) inTable = true;
+      }
+      continue;
+    }
+    if (/^\s*\|[\s-:|]+\|\s*$/.test(line)) continue;
+    if (!line.includes('|')) break;
+
+    const cols = splitTableRow(line);
+    if (cols.length <= Math.max(phaseColIndex, statusColIndex)) continue;
+
+    const phaseNum = normalizePhaseNum(cols[phaseColIndex]);
+    const status = cols[statusColIndex].toLowerCase().trim();
+
+    if (status !== 'verified' && status !== 'archived') {
+      unverified.push({ phase: phaseNum, status });
+    }
+  }
+
+  if (unverified.length > 0) {
+    const details = unverified.map(u => `Phase ${u.phase} (${u.status})`).join(', ');
+    return {
+      decision: 'block',
+      reason: `Cannot complete milestone ${completedMilestone} — unverified phases: ${details}. All phases must be Verified or Archived before milestone completion.`
+    };
+  }
+
+  return null;
+}
+
+module.exports = { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift, isHighRisk, validatePostMilestone };
 if (require.main === module || process.argv[1] === __filename) { main(); }
