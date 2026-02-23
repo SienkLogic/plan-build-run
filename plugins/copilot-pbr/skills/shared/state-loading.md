@@ -42,7 +42,7 @@ Reading order (always this sequence):
    - Do NOT read HISTORY.md for normal build/plan/review operations
    - Read ONLY when: debugging a regression that may trace to a prior phase,
      or when a milestone audit needs historical context
-   - Use: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history load`
+   - Use: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js history load`
    - This returns structured JSON -- do not read the raw file
 ```
 

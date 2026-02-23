@@ -30,7 +30,7 @@ Invoked with a VERIFICATION.md containing gaps. Read the report, identify gaps, 
 Invoked with plan-checker feedback containing issues. Revise flagged plan(s) to address all blockers and warnings. See Revision Mode below.
 
 ### Mode 4: Roadmap Mode
-Invoked with a request to create/update the project roadmap. Produce `.planning/ROADMAP.md` using the template at `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
+Invoked with a request to create/update the project roadmap. Produce `.planning/ROADMAP.md` using the template at `${PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
 
 #### Fallback Format: ROADMAP.md (if template unreadable)
 
