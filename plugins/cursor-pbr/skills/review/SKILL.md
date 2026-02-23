@@ -312,10 +312,10 @@ If all automated checks and UAT items passed:
    4. Update the `Status` column to `verified`
    5. Update the `Completed` column to the current date (YYYY-MM-DD)
    6. Save the file — do NOT skip this step
-2. Update `.planning/STATE.md`:
-   - Phase status: "verified"
-   - Progress updated
-   - Last activity timestamp
+2. Update `.planning/STATE.md` **(CRITICAL — update BOTH frontmatter AND body):**
+   - Frontmatter: `status: "verified"`, `progress_percent`, `last_activity`, `last_command`
+   - Body `## Current Position`: `Status:` line, `Last activity:` line, `Progress:` bar
+   - These MUST stay in sync — see `skills/shared/state-update.md`
    - **STATE.md size limit:** Follow size limit enforcement rules in `skills/shared/state-update.md` (150 lines max).
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:

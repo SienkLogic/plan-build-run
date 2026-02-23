@@ -363,10 +363,15 @@ function checkStateSync(data) {
     if (fs.existsSync(roadmapPath)) {
       try {
         const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
-        if (updatedRoadmap !== roadmapContent) {
-          atomicWrite(roadmapPath, updatedRoadmap);
-          messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
+        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+        if (!hasProgressTable) {
+          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        } else {
+          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
+          if (updatedRoadmap !== roadmapContent) {
+            atomicWrite(roadmapPath, updatedRoadmap);
+            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
+          }
         }
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });
@@ -443,10 +448,15 @@ function checkStateSync(data) {
     if (fs.existsSync(roadmapPath)) {
       try {
         const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
-        if (updatedRoadmap !== roadmapContent) {
-          atomicWrite(roadmapPath, updatedRoadmap);
-          messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
+        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+        if (!hasProgressTable) {
+          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        } else {
+          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
+          if (updatedRoadmap !== roadmapContent) {
+            atomicWrite(roadmapPath, updatedRoadmap);
+            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
+          }
         }
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });

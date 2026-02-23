@@ -492,7 +492,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
-- Update STATE.md: set current phase plan status to "planned"
+- Update STATE.md **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 - **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:build {N}`
 

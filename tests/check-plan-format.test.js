@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { validatePlan, validateSummary, validateVerification, validateState } = require('../plugins/pbr/scripts/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState, syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-plan-format.js');
 
@@ -506,6 +506,109 @@ All checks passed.`);
       const result = runScript(input, tmpDir);
       expect(result.exitCode).toBe(0);
       expect(result.output).toBe('');
+    });
+  });
+
+  describe('syncStateBody', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sync-body-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('fixes body when frontmatter phase differs from body phase', () => {
+      const content = [
+        '---',
+        'current_phase: 23',
+        'total_phases: 23',
+        'phase_name: "Quality & Gap Closure"',
+        'status: "planned"',
+        '---',
+        '# State',
+        '',
+        'Phase: 20 of 23 (Agent Definition Audit)',
+        'Status: Not Started',
+      ].join('\n');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, content);
+
+      const result = syncStateBody(content, filePath);
+      expect(result).not.toBeNull();
+      expect(result.message).toContain('Phase 20');
+      expect(result.message).toContain('23');
+      expect(result.content).toContain('Phase: 23 of 23 (Quality & Gap Closure)');
+      expect(result.content).toContain('Status: Planned');
+      // Verify file was written
+      const ondisk = fs.readFileSync(filePath, 'utf8');
+      expect(ondisk).toContain('Phase: 23 of 23');
+    });
+
+    test('returns null when body matches frontmatter', () => {
+      const content = [
+        '---',
+        'current_phase: 5',
+        'total_phases: 10',
+        'status: "building"',
+        '---',
+        '# State',
+        '',
+        'Phase: 5 of 10 (Setup)',
+        'Status: Building',
+      ].join('\n');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, content);
+
+      const result = syncStateBody(content, filePath);
+      expect(result).toBeNull();
+    });
+
+    test('returns null for content without frontmatter', () => {
+      const content = '# State\nPhase: 5 of 10';
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, content);
+
+      const result = syncStateBody(content, filePath);
+      expect(result).toBeNull();
+    });
+
+    test('returns null when no body phase line exists', () => {
+      const content = [
+        '---',
+        'current_phase: 5',
+        'total_phases: 10',
+        '---',
+        '# State',
+        'No phase line here',
+      ].join('\n');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, content);
+
+      const result = syncStateBody(content, filePath);
+      expect(result).toBeNull();
+    });
+
+    test('preserves total_phases from frontmatter when body has different total', () => {
+      const content = [
+        '---',
+        'current_phase: 12',
+        'total_phases: 15',
+        'phase_name: "Testing"',
+        'status: "building"',
+        '---',
+        '',
+        'Phase: 8 of 10 (Old Phase)',
+        'Status: Not Started',
+      ].join('\n');
+      const filePath = path.join(tmpDir, 'STATE.md');
+      fs.writeFileSync(filePath, content);
+
+      const result = syncStateBody(content, filePath);
+      expect(result).not.toBeNull();
+      expect(result.content).toContain('Phase: 12 of 15 (Testing)');
     });
   });
 });

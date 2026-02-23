@@ -1,4 +1,4 @@
-const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, DEFAULTS } = require('../plugins/pbr/scripts/status-line');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../plugins/pbr/scripts/status-line');
 const { configClearCache } = require('../plugins/pbr/scripts/pbr-tools');
 
 /** Strip ANSI escape codes for readable assertions */
@@ -541,6 +541,69 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase'] };
       const result = strip(buildStatusLine(content, null, cfg));
       expect(result).not.toContain('main');
+    });
+  });
+
+  describe('parseFrontmatter', () => {
+    test('parses standard frontmatter fields', () => {
+      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\nphase_name: "Quality & Gap Closure"\nstatus: "planned"\n---\n# Body';
+      const fm = parseFrontmatter(content);
+      expect(fm.current_phase).toBe('23');
+      expect(fm.total_phases).toBe('23');
+      expect(fm.phase_name).toBe('Quality & Gap Closure');
+      expect(fm.status).toBe('planned');
+    });
+
+    test('returns null for content without frontmatter', () => {
+      expect(parseFrontmatter('# Just a heading')).toBeNull();
+    });
+
+    test('returns null for unclosed frontmatter', () => {
+      expect(parseFrontmatter('---\nfoo: bar\n')).toBeNull();
+    });
+
+    test('handles Windows line endings', () => {
+      const content = '---\r\ncurrent_phase: 5\r\ntotal_phases: 10\r\n---\r\n# Body';
+      const fm = parseFrontmatter(content);
+      expect(fm.current_phase).toBe('5');
+      expect(fm.total_phases).toBe('10');
+    });
+  });
+
+  describe('buildStatusLine prefers frontmatter over body', () => {
+    test('uses frontmatter phase when body is stale', () => {
+      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\nphase_name: "Quality & Gap Closure"\nstatus: "planned"\nplans_complete: 0\nplans_total: 12\n---\n# State\n\nPhase: 20 of 23 (Agent Definition Audit)\nStatus: Not Started';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('Phase 23/23');
+      expect(result).toContain('Quality & Gap Closure');
+      expect(result).not.toContain('Phase 20');
+      expect(result).not.toContain('Agent Definition Audit');
+    });
+
+    test('uses frontmatter status when body is stale', () => {
+      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\nstatus: "planned"\n---\n# State\n\nPhase: 20 of 23\nStatus: Not Started';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('planned');
+    });
+
+    test('uses frontmatter plan counts over body', () => {
+      const content = '---\ncurrent_phase: 5\ntotal_phases: 10\nplans_complete: 3\nplans_total: 5\n---\n# State\n\nPhase: 5 of 10\nPlan: 1 of 2';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('Plan 3/5');
+      expect(result).not.toContain('Plan 1/2');
+    });
+
+    test('falls back to body when no frontmatter', () => {
+      const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('Phase 3/10');
+      expect(result).toContain('Plan 2/4');
+    });
+
+    test('hides plan section when frontmatter plans_total is 0', () => {
+      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\nplans_complete: 0\nplans_total: 0\n---\n# State\n\nPhase: 23 of 23';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).not.toMatch(/Plan \d+\/\d+/);
     });
   });
 

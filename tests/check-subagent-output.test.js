@@ -4,7 +4,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
+const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
 
 let tmpDir;
 let originalCwd;
@@ -394,7 +394,9 @@ describe('check-subagent-output.js', () => {
       const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
       expect(result.exitCode).toBe(0);
       expect(result.output).toContain('Warning');
-      expect(result.output).toContain('may have failed silently');
+      // Output may contain "may have failed silently" (no skill warnings)
+      // or "Skill-specific warnings" (when .active-skill missing triggers a warning)
+      expect(result.output).toMatch(/may have failed silently|Skill-specific warnings/);
     });
 
     test('no warning for missing file on noFileExpected agent', () => {
@@ -438,6 +440,68 @@ describe('check-subagent-output.js', () => {
       expect(result.output).toContain('Skill-specific warnings');
     });
 
+    // Active-skill enforcement: warn when .active-skill is missing
+    test('warns when .active-skill is missing for executor agent', () => {
+      // No .active-skill file written — common cognitive load skip
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-03-01.md'),
+        '---\nstatus: complete\n---\nDone.'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('.active-skill');
+      expect(result.output).toContain('missing');
+    });
+
+    test('no .active-skill warning when file exists', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-03-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\nDone.'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('.active-skill');
+    });
+
+    test('no .active-skill warning for noFileExpected agents', () => {
+      // pbr:general is excluded from .active-skill check
+      const result = runScript({ tool_input: { subagent_type: 'pbr:general' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toBe('');
+    });
+
+    // ROADMAP staleness: warn when no Progress table exists
+    test('warns about missing ROADMAP Progress table after executor', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'ROADMAP.md'),
+        '# Roadmap\n\n## Phase 3: Auth\nGoal: Build auth\n'
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-03-01.md'),
+        '---\nstatus: complete\ncommits: ["abc"]\n---\nDone.'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('Progress table');
+    });
+
+    test('no ROADMAP warning when Progress table exists with phase row', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'ROADMAP.md'),
+        '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|----------|\n| 03. Auth | 0/1 | Pending | — |\n'
+      );
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-03-01.md'),
+        '---\nstatus: complete\ncommits: ["abc"]\n---\nDone.'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('Progress table');
+    });
+
     // GAP-08: scan codebase-mapper produces codebase dir but misses focus areas
     test('GAP-08: scan skill with codebase-mapper missing focus areas triggers warning', () => {
       fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'scan');
@@ -453,6 +517,56 @@ describe('check-subagent-output.js', () => {
       // Should warn about missing 'concerns' focus area
       expect(result.output).toContain('concerns');
       expect(result.output).toContain('Skill-specific warnings');
+    });
+  });
+
+  describe('getCurrentPhase', () => {
+    test('prefers frontmatter over body', () => {
+      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\n---\n# State\nPhase: 20 of 23';
+      expect(getCurrentPhase(content)).toBe('23');
+    });
+
+    test('falls back to body when no frontmatter', () => {
+      const content = '# State\nPhase: 5 of 10 (Setup)';
+      expect(getCurrentPhase(content)).toBe('5');
+    });
+
+    test('returns null when neither exists', () => {
+      expect(getCurrentPhase('# Empty state')).toBeNull();
+    });
+  });
+
+  describe('checkRoadmapStaleness', () => {
+    test('returns warning when no Progress table exists', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'ROADMAP.md'),
+        '# Roadmap\n\n## Phase 3: Auth\nGoal: stuff\n'
+      );
+      const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
+      expect(result).toContain('no Progress table');
+    });
+
+    test('returns warning when Progress table exists but phase row missing', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'ROADMAP.md'),
+        '| Phase | Plans Complete | Status | Completed |\n|---|---|---|---|\n| 01. Setup | 2/2 | Complete | 2026-01-01 |\n'
+      );
+      const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
+      expect(result).toContain('no row for Phase 3');
+    });
+
+    test('returns null when table exists with current phase row', () => {
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'ROADMAP.md'),
+        '| Phase | Plans Complete | Status | Completed |\n|---|---|---|---|\n| 03. Auth | 1/2 | In progress | — |\n'
+      );
+      const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
+      expect(result).toBeNull();
+    });
+
+    test('returns null when no ROADMAP.md exists', () => {
+      const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
+      expect(result).toBeNull();
     });
   });
 });
