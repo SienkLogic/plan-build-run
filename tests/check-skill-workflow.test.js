@@ -1,4 +1,4 @@
-const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent } = require('../plugins/pbr/scripts/check-skill-workflow');
+const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent, checkWorkflow } = require('../plugins/pbr/scripts/check-skill-workflow');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -372,6 +372,56 @@ describe('check-skill-workflow.js', () => {
         expect(result).toBeNull();
         cleanup(tmpDir);
       });
+    });
+  });
+
+  describe('checkWorkflow — STATE.md write path', () => {
+    test('STATE.md write inside .planning/ passes through (not blocked) when build skill active', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // Simulate build skill active
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      // Set up phases dir with a PLAN.md so build skill won't block for other reasons
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'PLAN.md'), 'content');
+
+      // STATE.md path is inside .planning/ — should never be blocked by check-skill-workflow
+      const stateMdPath = path.join(planningDir, 'STATE.md');
+      const data = {
+        tool_input: {
+          file_path: stateMdPath,
+          content: '---\nmissing-required-fields: true\n---\n'
+        }
+      };
+
+      // checkWorkflow reads .active-skill from process.cwd(), so we need to test
+      // via checkSkillRules directly (checkWorkflow uses process.cwd() not planningDir arg)
+      const result = checkSkillRules('build', stateMdPath, planningDir);
+      // STATE.md is inside .planning/ — build skill allows all .planning/ writes
+      expect(result).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('STATE.md write inside .planning/ passes through for read-only skills', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const stateMdPath = path.join(planningDir, 'STATE.md');
+
+      // All read-only skills allow writes inside .planning/
+      const readOnlySkills = ['plan', 'review', 'discuss', 'begin', 'milestone', 'note', 'todo', 'health'];
+      for (const skill of readOnlySkills) {
+        const result = checkSkillRules(skill, stateMdPath, planningDir);
+        expect(result).toBeNull();
+      }
+      cleanup(tmpDir);
+    });
+
+    test('STATE.md path edge case: normalized Windows backslash path is still inside .planning/', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // Simulate Windows-style path with backslashes
+      const windowsStylePath = planningDir.replace(/\//g, '\\') + '\\STATE.md';
+      const result = checkSkillRules('plan', windowsStylePath, planningDir);
+      expect(result).toBeNull();
+      cleanup(tmpDir);
     });
   });
 
