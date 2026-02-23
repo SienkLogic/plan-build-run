@@ -1,4 +1,4 @@
-const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent, checkWorkflow } = require('../plugins/pbr/scripts/check-skill-workflow');
+const { readActiveSkill, checkSkillRules, hasPlanFile, checkStatuslineContent } = require('../plugins/pbr/scripts/check-skill-workflow');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -387,12 +387,6 @@ describe('check-skill-workflow.js', () => {
 
       // STATE.md path is inside .planning/ — should never be blocked by check-skill-workflow
       const stateMdPath = path.join(planningDir, 'STATE.md');
-      const data = {
-        tool_input: {
-          file_path: stateMdPath,
-          content: '---\nmissing-required-fields: true\n---\n'
-        }
-      };
 
       // checkWorkflow reads .active-skill from process.cwd(), so we need to test
       // via checkSkillRules directly (checkWorkflow uses process.cwd() not planningDir arg)
