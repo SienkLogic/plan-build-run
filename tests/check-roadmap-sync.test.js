@@ -467,6 +467,55 @@ and 01-setup is referenced again`;
     });
   });
 
+  describe('validatePostMilestone', () => {
+    const { validatePostMilestone } = require('../plugins/pbr/scripts/check-roadmap-sync');
+
+    test('passes when all phases in milestone are verified', () => {
+      const roadmap = `| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Verified |
+| 02 | Auth | Verified |`;
+      const result = validatePostMilestone(roadmap, 'v1.0');
+      expect(result).toBeNull();
+    });
+
+    test('passes when all phases are archived', () => {
+      const roadmap = `| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Archived |
+| 02 | Auth | Verified |`;
+      const result = validatePostMilestone(roadmap, 'v1.0');
+      expect(result).toBeNull();
+    });
+
+    test('blocks when a phase is not verified', () => {
+      const roadmap = `| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Verified |
+| 02 | Auth | Built |`;
+      const result = validatePostMilestone(roadmap, 'v1.0');
+      expect(result).not.toBeNull();
+      expect(result.decision).toBe('block');
+      expect(result.reason).toContain('Phase 2');
+    });
+
+    test('blocks when a phase is still planned', () => {
+      const roadmap = `| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Planned |`;
+      const result = validatePostMilestone(roadmap, 'v1.0');
+      expect(result).not.toBeNull();
+      expect(result.decision).toBe('block');
+    });
+
+    test('passes with collapsed/COMPLETED milestone section', () => {
+      const roadmap = `## Milestone v1.0 — COMPLETED
+See archive.`;
+      const result = validatePostMilestone(roadmap, 'v1.0');
+      expect(result).toBeNull();
+    });
+  });
+
   describe('main() parse-failure catch block', () => {
     let tmpDir;
 
