@@ -202,11 +202,10 @@ describe('log-tool-failure.js (spawn)', () => {
       tool_input: { command: 'npm test' }
     }, { cwd: tmpDir });
     expect(result.exitCode).toBe(0);
-    // Output wraps additionalContext in hookSpecificOutput
+    // Output contains additionalContext directly
     if (result.stdout) {
       const output = JSON.parse(result.stdout);
-      expect(output.hookSpecificOutput).toBeDefined();
-      expect(output.hookSpecificOutput.additionalContext).toBeDefined();
+      expect(output.additionalContext).toBeDefined();
     }
   });
 

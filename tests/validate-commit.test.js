@@ -256,6 +256,37 @@ describe('validate-commit.js', () => {
     test.todo('sensitive file credentials.json staged triggers block — requires git mock or real staged file');
   });
 
+  describe('checkCommit unit — branch coverage', () => {
+    test('returns null for non-git-commit command', () => {
+      expect(checkCommit({ tool_input: { command: 'npm install' } })).toBeNull();
+    });
+
+    test('returns null for merge commit', () => {
+      expect(checkCommit({ tool_input: { command: "git commit -m \"Merge branch 'feature' into main\"" } })).toBeNull();
+    });
+
+    test('returns null for amend --no-edit (unparseable, let through)', () => {
+      expect(checkCommit({ tool_input: { command: 'git commit --amend --no-edit' } })).toBeNull();
+    });
+
+    test('blocks AI co-author via checkCommit', () => {
+      const result = checkCommit({
+        tool_input: {
+          command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude Opus 4 <noreply@anthropic.com>"'
+        }
+      });
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+      expect(result.output.reason).toContain('AI co-author');
+    });
+
+    test('blocks invalid format via checkCommit', () => {
+      const result = checkCommit({ tool_input: { command: 'git commit -m "add some stuff"' } });
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+    });
+  });
+
   describe('special cases', () => {
     test('merge commit passes through', () => {
       const result = runScript({ command: "git commit -m \"Merge branch 'feature' into main\"" });

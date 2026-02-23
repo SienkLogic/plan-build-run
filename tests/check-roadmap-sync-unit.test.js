@@ -124,6 +124,23 @@ describe('checkSync', () => {
     expect(result).not.toBeNull();
     expect(result.output.additionalContext).toContain('CRITICAL');
   });
+
+  test('warns when roadmap status mismatches STATE.md status', () => {
+    const statePath = path.join(planningDir, 'STATE.md');
+    fs.writeFileSync(statePath, 'Phase: 2 of 5\nStatus: planned');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Name | Plans | Status |\n|---|---|---|---|\n| 2 | API | 1 | built |\n');
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('out of sync');
+  });
+
+  test('returns null when phase status matches', () => {
+    const statePath = path.join(planningDir, 'STATE.md');
+    fs.writeFileSync(statePath, 'Phase: 2 of 5\nStatus: planned');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Name | Plans | Status |\n|---|---|---|---|\n| 2 | API | 1 | planned |\n');
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).toBeNull();
+  });
 });
 
 describe('parseRoadmapPhases', () => {
