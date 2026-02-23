@@ -76,18 +76,14 @@ function main() {
           errorCount: result.errors.length
         });
 
-        const parts = [`${basename} has structural errors that must be fixed:`];
-        parts.push(...result.errors.map(i => `  - ${i}`));
-
-        if (result.warnings.length > 0) {
-          parts.push('');
-          parts.push('Warnings (non-blocking):');
-          parts.push(...result.warnings.map(i => `  - ${i}`));
-        }
+        const summary = `${basename} has structural errors that must be fixed.`;
+        const explanation = result.errors.map(i => `  - ${i}`).join('\n') +
+          (result.warnings.length > 0 ? '\n\nWarnings (non-blocking):\n' + result.warnings.map(i => `  - ${i}`).join('\n') : '');
+        const remediation = 'Fix the listed issues and re-save the file.';
 
         const output = {
           decision: 'block',
-          reason: parts.join('\n')
+          reason: `${summary}\n\n${explanation}\n\n${remediation}`
         };
         process.stdout.write(JSON.stringify(output));
       } else if (result.warnings.length > 0) {
@@ -259,13 +255,11 @@ function checkPlanWrite(data) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
     logEvent('workflow', eventType, { file: basename, status: 'block', errorCount: result.errors.length });
 
-    const parts = [`${basename} has structural errors that must be fixed:`];
-    parts.push(...result.errors.map(i => `  - ${i}`));
-    if (result.warnings.length > 0) {
-      parts.push('', 'Warnings (non-blocking):');
-      parts.push(...result.warnings.map(i => `  - ${i}`));
-    }
-    return { output: { decision: 'block', reason: parts.join('\n') } };
+    const summary = `${basename} has structural errors that must be fixed.`;
+    const explanation = result.errors.map(i => `  - ${i}`).join('\n') +
+      (result.warnings.length > 0 ? '\n\nWarnings (non-blocking):\n' + result.warnings.map(i => `  - ${i}`).join('\n') : '');
+    const remediation = 'Fix the listed issues and re-save the file.';
+    return { output: { decision: 'block', reason: `${summary}\n\n${explanation}\n\n${remediation}` } };
   }
 
   if (result.warnings.length > 0) {

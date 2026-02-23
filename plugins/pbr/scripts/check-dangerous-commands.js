@@ -86,7 +86,7 @@ function checkDangerous(data) {
       return {
         output: {
           decision: 'block',
-          reason: `Dangerous command blocked.\n\n${reason}\n\nCommand: ${command.substring(0, 150)}`
+          reason: `Dangerous command blocked.\n\n${reason} Command: ${command.substring(0, 150)}\n\nUse a safer alternative or ask the user for explicit confirmation before running destructive commands.`
         },
         exitCode: 2
       };
@@ -146,7 +146,7 @@ function checkSkillSpecificBash(command) {
     return {
       output: {
         decision: 'block',
-        reason: 'CRITICAL: Use Read + Write tools for JSON files, not shell text manipulation. Shell tools can corrupt JSON structure.'
+        reason: 'JSON shell manipulation blocked.\n\nShell tools like sed, awk, and perl can corrupt JSON structure. The statusline skill must use structured tools for JSON editing.\n\nUse the Read and Write tools to modify JSON files instead of shell text manipulation.'
       },
       exitCode: 2
     };
