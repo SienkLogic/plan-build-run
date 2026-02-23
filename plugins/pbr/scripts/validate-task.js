@@ -113,9 +113,7 @@ function checkQuickExecutorGate(data) {
   if (!fs.existsSync(quickDir)) {
     return {
       block: true,
-      reason: 'Cannot spawn executor: .planning/quick/ directory does not exist. ' +
-        'You must create the quick task directory and PLAN.md first (Steps 4-6). ' +
-        'To fix: Re-run /pbr:quick to create the quick task directory and PLAN.md.'
+      reason: 'Cannot spawn executor: .planning/quick/ directory does not exist.\n\nThe quick skill must create the task directory and PLAN.md before an executor can run (Steps 4-6).\n\nRe-run /pbr:quick to create the quick task directory and PLAN.md.'
     };
   }
 
@@ -138,16 +136,13 @@ function checkQuickExecutorGate(data) {
     if (!hasPlan) {
       return {
         block: true,
-        reason: 'Cannot spawn executor: no PLAN.md found in any .planning/quick/*/ directory. ' +
-          'You must create .planning/quick/{NNN}-{slug}/PLAN.md first (Steps 4-6). ' +
-          'To fix: Re-run /pbr:quick to create the quick task directory and PLAN.md.'
+        reason: 'Cannot spawn executor: no PLAN.md found in any .planning/quick/*/ directory.\n\nThe quick skill must write a non-empty PLAN.md inside .planning/quick/{NNN}-{slug}/ before an executor can run (Steps 4-6).\n\nRe-run /pbr:quick to create the quick task directory and PLAN.md.'
       };
     }
   } catch (_e) {
     return {
       block: true,
-      reason: 'Cannot spawn executor: failed to read .planning/quick/ directory. ' +
-        'To fix: Re-run /pbr:quick to create the quick task directory and PLAN.md.'
+      reason: 'Cannot spawn executor: failed to read .planning/quick/ directory.\n\nThe directory exists but could not be read, possibly due to a permissions issue or filesystem error.\n\nRe-run /pbr:quick to recreate the quick task directory and PLAN.md.'
     };
   }
 
@@ -190,7 +185,7 @@ function checkBuildExecutorGate(data) {
     if (!fs.existsSync(phasesDir)) {
       return {
         block: true,
-        reason: 'Cannot spawn executor: .planning/phases/ directory does not exist. To fix: Run /pbr:plan {N} to create plans first.'
+        reason: 'Cannot spawn executor: .planning/phases/ directory does not exist.\n\nThe build skill requires a phases directory with at least one PLAN.md before an executor can run.\n\nRun /pbr:plan {N} to create plans first.'
       };
     }
 
@@ -198,7 +193,7 @@ function checkBuildExecutorGate(data) {
     if (dirs.length === 0) {
       return {
         block: true,
-        reason: `Cannot spawn executor: no phase directory found for phase ${currentPhase}. To fix: Run /pbr:plan ${currentPhase} to create plans first.`
+        reason: `Cannot spawn executor: no phase directory found for phase ${currentPhase}.\n\nThe build skill needs a phase directory (e.g., .planning/phases/${currentPhase}-slug/) containing PLAN.md files.\n\nRun /pbr:plan ${currentPhase} to create plans first.`
       };
     }
 
@@ -216,7 +211,7 @@ function checkBuildExecutorGate(data) {
     if (!hasPlan) {
       return {
         block: true,
-        reason: `Cannot spawn executor: no PLAN.md found in .planning/phases/${dirs[0]}/. To fix: Run /pbr:plan ${currentPhase} to create plans first.`
+        reason: `Cannot spawn executor: no PLAN.md found in .planning/phases/${dirs[0]}/.\n\nThe phase directory exists but contains no PLAN.md files. The executor needs at least one non-empty PLAN.md to work from.\n\nRun /pbr:plan ${currentPhase} to create plans first.`
       };
     }
   } catch (_e) {
@@ -251,7 +246,7 @@ function checkPlanExecutorGate(data) {
 
   return {
     block: true,
-    reason: 'Plan skill should not spawn executors. To fix: Run /pbr:build to execute plans. The plan skill creates plans; the build skill executes them.'
+    reason: 'Plan skill cannot spawn executors.\n\nThe plan skill creates plans; the build skill executes them. Spawning an executor from the plan skill violates the separation of concerns.\n\nRun /pbr:build to execute plans instead.'
   };
 }
 
@@ -299,7 +294,7 @@ function checkReviewPlannerGate(data) {
     if (!hasVerification) {
       return {
         block: true,
-        reason: 'Review planner gate: Cannot spawn planner for gap closure without a VERIFICATION.md. To fix: Run /pbr:review {N} to create VERIFICATION.md first.'
+        reason: 'Review planner gate: cannot spawn planner without VERIFICATION.md.\n\nGap closure requires an existing VERIFICATION.md to identify which gaps need closing. Without it, the planner has no input.\n\nRun /pbr:review {N} to create VERIFICATION.md first.'
       };
     }
   } catch (_e) {
@@ -361,7 +356,7 @@ function checkReviewVerifierGate(data) {
     if (!hasSummary) {
       return {
         block: true,
-        reason: 'Review verifier gate: Cannot spawn verifier without SUMMARY.md in phase directory. To fix: Run /pbr:build {N} to create SUMMARY.md first.'
+        reason: 'Review verifier gate: cannot spawn verifier without SUMMARY.md.\n\nThe verifier checks executor output against the plan. Without a SUMMARY.md, there is nothing to verify.\n\nRun /pbr:build {N} to create SUMMARY.md first.'
       };
     }
   } catch (_e) {
@@ -446,7 +441,7 @@ function checkMilestoneCompleteGate(data) {
         if (pDirs.length === 0) {
           return {
             block: true,
-            reason: `Milestone complete gate: Phase ${paddedPhase} directory not found. All milestone phases must be verified before completing milestone. To fix: Run /pbr:review ${paddedPhase} — phase must have status: passed.`
+            reason: `Milestone complete gate: phase ${paddedPhase} directory not found.\n\nAll milestone phases must exist and have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:review ${paddedPhase} to verify the phase (it must reach status: passed).`
           };
         }
         const verificationFile = path.join(phasesDir, pDirs[0], 'VERIFICATION.md');
@@ -454,14 +449,14 @@ function checkMilestoneCompleteGate(data) {
         if (!hasVerification) {
           return {
             block: true,
-            reason: `Milestone complete gate: Phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md. All milestone phases must be verified before completing milestone. To fix: Run /pbr:review ${paddedPhase} — phase must have status: passed.`
+            reason: `Milestone complete gate: phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md.\n\nAll milestone phases must have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:review ${paddedPhase} to verify the phase (it must reach status: passed).`
           };
         }
         const verStatus = getVerificationStatus(verificationFile);
         if (verStatus === 'gaps_found') {
           return {
             block: true,
-            reason: `Milestone complete gate: Phase ${paddedPhase} VERIFICATION.md has status: gaps_found. Close all gaps before completing milestone. To fix: Run /pbr:review ${paddedPhase} — phase must have status: passed.`
+            reason: `Milestone complete gate: phase ${paddedPhase} VERIFICATION.md has status: gaps_found.\n\nAll gaps must be closed before the milestone can be completed. The verifier found issues that need resolution.\n\nRun /pbr:review ${paddedPhase} to close gaps (phase must reach status: passed).`
           };
         }
       }
@@ -549,14 +544,14 @@ function checkBuildDependencyGate(data) {
       if (pDirs.length === 0) {
         return {
           block: true,
-          reason: `Build dependency gate: Dependent phase ${paddedPhase} lacks VERIFICATION.md. To fix: Run /pbr:review on the dependency phase first.`
+          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:review ${paddedPhase} to verify the dependency phase first.`
         };
       }
       const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
       if (!hasVerification) {
         return {
           block: true,
-          reason: `Build dependency gate: Dependent phase ${paddedPhase} lacks VERIFICATION.md. To fix: Run /pbr:review on the dependency phase first.`
+          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:review ${paddedPhase} to verify the dependency phase first.`
         };
       }
     }
