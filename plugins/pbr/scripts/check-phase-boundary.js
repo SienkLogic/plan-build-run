@@ -102,10 +102,7 @@ function main() {
         process.exit(2);
       } else {
         const output = {
-          hookSpecificOutput: {
-            hookEventName: 'PreToolUse',
-            additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
-          }
+          additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
         };
         process.stdout.write(JSON.stringify(output));
       }
@@ -184,10 +181,7 @@ function checkBoundary(data) {
   return {
     exitCode: 0,
     output: {
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
-      }
+      additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
     }
   };
 }

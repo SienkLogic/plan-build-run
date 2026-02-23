@@ -115,7 +115,6 @@ function main() {
             const currentPhase = stateContent.match(/Phase:\s*(\d+)\s+of/);
             if (currentPhase && parseInt(phaseMatch[1], 10) !== parseInt(currentPhase[1], 10)) {
               process.stdout.write(JSON.stringify({
-                decision: 'allow',
                 additionalContext: `[pbr] Advisory: writing to phase ${phaseMatch[1]} but current phase is ${currentPhase[1]}. Ensure this cross-phase write is intentional.`
               }));
               process.exit(0);
