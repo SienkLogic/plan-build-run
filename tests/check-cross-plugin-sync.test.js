@@ -1,5 +1,3 @@
-const path = require('path');
-
 // Mock child_process.execSync before requiring the module
 const mockExecSync = jest.fn();
 jest.mock('child_process', () => ({ execSync: mockExecSync }));
