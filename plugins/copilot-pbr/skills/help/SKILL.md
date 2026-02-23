@@ -117,6 +117,23 @@ Display the following reference to the user:
 | `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
 | `/pbr:statusline` | Install or configure the PBR status line in Claude Code. |
 
+## Choose Your Command
+
+Not sure which command to use? Follow this guide:
+
+| I want to... | Command |
+|--------------|---------|
+| Start a new project | `/pbr:begin` |
+| Fix a bug or investigate an error | `/pbr:debug` |
+| Think through an idea or approach | `/pbr:explore` |
+| Do a small task (≤3 files) | `/pbr:quick` |
+| Plan a complex change (4+ files) | `/pbr:plan <N>` |
+| See where I am and what's next | `/pbr:status` |
+| Auto-execute the next step | `/pbr:continue` |
+| Describe something and let PBR route it | `/pbr:do <description>` |
+| Lock decisions for a specific phase | `/pbr:discuss <N>` |
+| Check project health | `/pbr:health` |
+
 ## Typical Workflow
 
 ```

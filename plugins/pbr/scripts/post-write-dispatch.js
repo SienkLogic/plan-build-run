@@ -21,6 +21,7 @@
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
+const { checkQuality } = require('./post-write-quality');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -106,6 +107,13 @@ function main() {
       const stateSyncResult = checkStateSync(data);
       if (stateSyncResult) {
         process.stdout.write(JSON.stringify(stateSyncResult.output));
+        process.exit(0);
+      }
+
+      // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
+      const qualityResult = checkQuality(data);
+      if (qualityResult) {
+        process.stdout.write(JSON.stringify(qualityResult.output));
         process.exit(0);
       }
 
