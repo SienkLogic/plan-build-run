@@ -4,7 +4,6 @@
  * SessionEnd cleanup hook.
  *
  * Removes stale planning artifacts that shouldn't persist across sessions:
- *   - .planning/.auto-next (prevents confusion on next session start)
  *   - .planning/.active-operation (stale operation lock)
  *   - .planning/.active-skill (stale skill tracking)
  *
@@ -213,9 +212,9 @@ function main() {
 
   const cleaned = [];
 
-  if (tryRemove(path.join(planningDir, '.auto-next'))) {
-    cleaned.push('.auto-next');
-  }
+  // NOTE: .auto-next is intentionally NOT cleaned here — it is a one-shot
+  // signal consumed by auto-continue.js (Stop hook). SessionEnd cleanup
+  // races with the Stop hook and would delete the signal before it is read.
   if (tryRemove(path.join(planningDir, '.active-operation'))) {
     cleaned.push('.active-operation');
   }
