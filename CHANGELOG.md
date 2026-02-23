@@ -5,6 +5,41 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.1...plan-build-run-v2.22.0) (2026-02-23)
+
+
+### Features
+
+* **24-01:** add check-agent-state-write.js module ([b73ab69](https://github.com/SienkLogic/plan-build-run/commit/b73ab69d8893970595d538a6289d8183b7b08b2b))
+* **24-01:** wire agent state write blocker into pre-write-dispatch ([9f46053](https://github.com/SienkLogic/plan-build-run/commit/9f460530d21e4c3f37389f0bd2731ad0fd99e593))
+* **24-02:** add .auto-next fallback writes to auto_advance hard stops in build skill ([9d59fc1](https://github.com/SienkLogic/plan-build-run/commit/9d59fc13b494cacdbe71e4e236d89bba0724a412))
+* **25-01:** add ROADMAP.md read to continue skill for milestone boundary detection ([49482c2](https://github.com/SienkLogic/plan-build-run/commit/49482c2a7c0fbe49a39b215bf9070381295daa1c))
+* **25-01:** GREEN - add validateRoadmap and ROADMAP.md validation to check-plan-format ([73256de](https://github.com/SienkLogic/plan-build-run/commit/73256dea9ea9c86a55dbd63fe057678e9757a798))
+* **25-01:** GREEN - PLAN.md writes trigger ROADMAP Planning status without regression ([e8e028a](https://github.com/SienkLogic/plan-build-run/commit/e8e028ae3528a856a8c406a3b508802550e0f75f))
+* **25-02:** GREEN - add checkRoadmapWrite routing to post-write-dispatch ([c7db2e0](https://github.com/SienkLogic/plan-build-run/commit/c7db2e0a4433a962a4f499941b29927a16583425))
+* **25-02:** GREEN - implement isHighRisk with status regression and phase gap detection ([cea48b4](https://github.com/SienkLogic/plan-build-run/commit/cea48b4ccce2554a7c698af280e2725a233e69cb))
+* **25-02:** GREEN - implement validatePostMilestone for milestone completion checks ([c666de8](https://github.com/SienkLogic/plan-build-run/commit/c666de84530eb7a6310a8def7744cec4ff5f8358))
+* **26-02:** GREEN - add 150-line advisory warning to checkStateWrite ([9374009](https://github.com/SienkLogic/plan-build-run/commit/937400997580e9666f9efa18b4e0a80c5fe3b668))
+* **26-02:** GREEN - add cross-plugin sync advisory hook ([a55ad12](https://github.com/SienkLogic/plan-build-run/commit/a55ad1273a7193cc521cd6e953ea185f51e7af50))
+* **27-01:** add PreToolUse Read hook to block SKILL.md self-reads ([afe6acd](https://github.com/SienkLogic/plan-build-run/commit/afe6acd8a55a0807e28266b35b2f4fe961c9ecf5))
+* **27-01:** add session length guard to auto-continue with warn at 3, hard-stop at 6 ([fd394d8](https://github.com/SienkLogic/plan-build-run/commit/fd394d893f2e7d93ad4a4bb29acd0a889da3fd67))
+
+
+### Bug Fixes
+
+* **24-01:** remove building from ADVANCED_STATUSES gate ([6e1fdf7](https://github.com/SienkLogic/plan-build-run/commit/6e1fdf7fb3897efdb1dca2ef77dbab78bab13ed2))
+* **24-02:** raise consecutive-continue guard threshold from 3 to 6 ([918394c](https://github.com/SienkLogic/plan-build-run/commit/918394c34356f84772a4454061b312601f8ca26d))
+* **24-02:** remove .auto-next cleanup from session-cleanup to prevent race with Stop hook ([d86e39e](https://github.com/SienkLogic/plan-build-run/commit/d86e39e48b51a3765e42c2807ee7ef277f8d3a5d))
+* **25-02:** remove unused path import and result variable (lint) ([f84764a](https://github.com/SienkLogic/plan-build-run/commit/f84764ae3b4a5fce09a7d126624bb1719c57c10b))
+* **26-01:** add CRITICAL dual-update markers to import Step 8b and milestone new Step 8 ([36bd68c](https://github.com/SienkLogic/plan-build-run/commit/36bd68c42d2fc556581de8f2f23a7b9d6447392b))
+* **26-01:** add CRITICAL frontmatter update marker to pause skill STATE.md step ([ec35f3b](https://github.com/SienkLogic/plan-build-run/commit/ec35f3b529c1fe2b2928bb8ef97d768b101f2f0b))
+* **26-02:** sync cross-plugin-sync hook to cursor-pbr and copilot-pbr hooks.json ([2083a1d](https://github.com/SienkLogic/plan-build-run/commit/2083a1d11c1ced3c7f2b4dc83df2c2a4ed684529))
+
+
+### Documentation
+
+* **27-01:** add no-reread anti-pattern to executor agents across all plugins ([8b572fa](https://github.com/SienkLogic/plan-build-run/commit/8b572fa6f43dfc3fe1a0ae8caf167ce2351f46f9))
+
 ## [2.21.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.21.0...plan-build-run-v2.21.1) (2026-02-23)
 
 
