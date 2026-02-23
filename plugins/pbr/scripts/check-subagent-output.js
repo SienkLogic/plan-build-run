@@ -333,7 +333,7 @@ function main() {
     const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
     for (const vf of verFiles) {
       try {
-        const content = fs.readFileSync(vf, 'utf8');
+        const content = fs.readFileSync(path.join(planningDir, vf), 'utf8');
         const statusMatch = content.match(/^status:\s*(\S+)/mi);
         if (statusMatch && statusMatch[1] === 'gaps_found') {
           skillWarnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');

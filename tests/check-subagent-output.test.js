@@ -403,4 +403,56 @@ describe('check-subagent-output.js', () => {
       expect(result.output).toBe('');
     });
   });
+
+  describe('combined warning path and skill-specific gaps', () => {
+    // Combined path: genericMissing=true AND skillWarnings.length > 0
+    test('combined path: genericMissing AND skillWarnings produces merged warning', () => {
+      // begin skill + planner agent: no PLAN.md (genericMissing) AND
+      // GAP-04 fires because REQUIREMENTS.md is missing (skillWarnings)
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'begin');
+      // No PLAN.md written → genericMissing=true
+      // No REQUIREMENTS.md written → GAP-04 skill warning fires
+      const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result.exitCode).toBe(0);
+      // Should contain generic file-missing warning
+      expect(result.output).toContain('Warning');
+      expect(result.output).toContain('PLAN');
+      // Should also contain the skill-specific warning about REQUIREMENTS.md
+      expect(result.output).toContain('REQUIREMENTS.md');
+      // Both should appear in one merged additionalContext block
+      expect(result.output).toContain('Skill-specific warnings');
+    });
+
+    // GAP-07: review verifier produces VERIFICATION.md with gaps_found status
+    test('GAP-07: review skill with verifier gaps_found status triggers warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'review');
+      // Write VERIFICATION.md with gaps_found status so it's found by findInPhaseDir
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'VERIFICATION.md'),
+        '---\nstatus: gaps_found\nphase: 03-auth\n---\nGaps were found.'
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:verifier' } });
+      expect(result.exitCode).toBe(0);
+      // Should warn about gaps_found status
+      expect(result.output).toContain('gaps_found');
+      expect(result.output).toContain('Skill-specific warnings');
+    });
+
+    // GAP-08: scan codebase-mapper produces codebase dir but misses focus areas
+    test('GAP-08: scan skill with codebase-mapper missing focus areas triggers warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'scan');
+      const codebaseDir = path.join(tmpDir, '.planning', 'codebase');
+      fs.mkdirSync(codebaseDir, { recursive: true });
+      // Provide only 3 of the 4 required focus areas (missing 'concerns')
+      fs.writeFileSync(path.join(codebaseDir, 'tech-stack.md'), '# Tech');
+      fs.writeFileSync(path.join(codebaseDir, 'arch-overview.md'), '# Arch');
+      fs.writeFileSync(path.join(codebaseDir, 'quality-report.md'), '# Quality');
+      // 'concerns' file is deliberately absent
+      const result = runScript({ tool_input: { subagent_type: 'pbr:codebase-mapper' } });
+      expect(result.exitCode).toBe(0);
+      // Should warn about missing 'concerns' focus area
+      expect(result.output).toContain('concerns');
+      expect(result.output).toContain('Skill-specific warnings');
+    });
+  });
 });

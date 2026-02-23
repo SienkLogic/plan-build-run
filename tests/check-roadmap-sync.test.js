@@ -1,7 +1,24 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execSync } = require('child_process');
 const { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift } = require('../plugins/pbr/scripts/check-roadmap-sync');
+
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-roadmap-sync.js');
+
+function runScript(input, cwd) {
+  try {
+    const result = execSync(`node "${SCRIPT}"`, {
+      input: typeof input === 'string' ? input : JSON.stringify(input),
+      encoding: 'utf8',
+      timeout: 5000,
+      cwd: cwd || process.cwd(),
+    });
+    return { exitCode: 0, output: result };
+  } catch (e) {
+    return { exitCode: e.status || 1, output: e.stdout || '' };
+  }
+}
 
 describe('check-roadmap-sync.js', () => {
   describe('parseState', () => {
@@ -344,6 +361,37 @@ and 01-setup is referenced again`;
 
       const warnings = checkFilesystemDrift(roadmap, phasesDir);
       expect(warnings).toEqual([]);
+    });
+  });
+
+  describe('main() parse-failure catch block', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-rsync-main-'));
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('malformed stdin emits additionalContext and exits 0', () => {
+      // Passing invalid JSON triggers the catch block in main()
+      const result = runScript('{ not valid json !!!', tmpDir);
+      expect(result.exitCode).toBe(0);
+      // Parse failure emits an additionalContext warning
+      expect(result.output).toContain('additionalContext');
+    });
+
+    test('valid STATE.md path but file points to non-STATE.md exits 0 silently', () => {
+      // The main() exits 0 when filePath doesn't end in STATE.md
+      const input = JSON.stringify({
+        tool_input: { file_path: path.join(tmpDir, '.planning', 'PLAN.md') }
+      });
+      const result = runScript(input, tmpDir);
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toBe('');
     });
   });
 });

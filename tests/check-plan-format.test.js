@@ -1,4 +1,24 @@
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
 const { validatePlan, validateSummary, validateVerification, validateState } = require('../plugins/pbr/scripts/check-plan-format');
+
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-plan-format.js');
+
+function runScript(input, cwd) {
+  try {
+    const result = execSync(`node "${SCRIPT}"`, {
+      input: typeof input === 'string' ? input : JSON.stringify(input),
+      encoding: 'utf8',
+      timeout: 5000,
+      cwd: cwd || process.cwd(),
+    });
+    return { exitCode: 0, output: result };
+  } catch (e) {
+    return { exitCode: e.status || 1, output: e.stdout || '' };
+  }
+}
 
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
@@ -393,6 +413,99 @@ Body`;
       const content = '---\nversion: 2\ncurrent_phase: 3\n';
       const result = validateState(content, '/fake/STATE.md');
       expect(result.warnings).toContain('Unclosed YAML frontmatter');
+    });
+  });
+
+  describe('validateSummary key_files path-existence warning', () => {
+    test('key_files path that does not exist produces a warning, not an error', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+status: complete
+provides: [auth]
+requires: []
+key_files:
+  - /absolutely/nonexistent/path/missing-file.ts
+deferred: []
+---
+Body`;
+      const result = validateSummary(content, 'SUMMARY-01.md');
+      // Should be in warnings, not errors
+      const pathWarning = result.warnings.find(w => w.includes('not found on disk'));
+      expect(pathWarning).toBeDefined();
+      expect(pathWarning).toContain('missing-file.ts');
+      const pathError = result.errors.find(e => e.includes('not found on disk'));
+      expect(pathError).toBeUndefined();
+    });
+
+    test('key_files entry with relative path that exists on disk does not produce a warning', () => {
+      // Use process.cwd() so the relative path resolves correctly regardless of platform
+      const origCwd = process.cwd();
+      const tmpExistsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-kf-exists-'));
+      const existingFile = path.join(tmpExistsDir, 'real-file.ts');
+      fs.writeFileSync(existingFile, '// real');
+      try {
+        // chdir so the relative path works
+        process.chdir(tmpExistsDir);
+        const content = `---
+phase: 03-auth
+plan: 01
+status: complete
+provides: [auth]
+requires: []
+key_files:
+  - real-file.ts
+deferred: []
+---
+Body`;
+        const result = validateSummary(content, 'SUMMARY-01.md');
+        const pathWarning = result.warnings.find(w => w.includes('not found on disk'));
+        expect(pathWarning).toBeUndefined();
+      } finally {
+        process.chdir(origCwd);
+        fs.rmSync(tmpExistsDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('VERIFICATION.md standalone write triggers validation via main()', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cpf-main-'));
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('malformed VERIFICATION.md written via main() produces block decision', () => {
+      const verPath = path.join(tmpDir, 'VERIFICATION.md');
+      fs.writeFileSync(verPath, '# No frontmatter here');
+      const input = JSON.stringify({ tool_input: { file_path: verPath } });
+      const result = runScript(input, tmpDir);
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('Missing YAML frontmatter');
+    });
+
+    test('valid VERIFICATION.md written via main() produces no output', () => {
+      const verPath = path.join(tmpDir, 'VERIFICATION.md');
+      fs.writeFileSync(verPath, `---
+status: passed
+phase: 03-auth
+checked_at: 2026-02-23T00:00:00Z
+must_haves_checked: 3
+must_haves_passed: 3
+must_haves_failed: 0
+---
+All checks passed.`);
+      const input = JSON.stringify({ tool_input: { file_path: verPath } });
+      const result = runScript(input, tmpDir);
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toBe('');
     });
   });
 });
