@@ -135,6 +135,7 @@ Display the following reference to the user:
 - **Depth**: `quick` (skip research, ~50% cheaper) | `standard` | `comprehensive` (~2x cost)
 - **State files**: `.planning/STATE.md` (position), `.planning/ROADMAP.md` (phases), `.planning/config.json` (settings)
 - **Configure**: `/pbr:config` to change depth, models, gates, parallelization
+- **List agents**: Run `claude agents` in your terminal to see all registered PBR agents and verify loading
 - **Tip**: Use `/pbr:quick` for creative/visual work where structured planning adds overhead without benefit.
 - **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching: phase`) which squash-merges code-only changes to main.
 - **Seeds**: `/pbr:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
@@ -148,6 +149,27 @@ Plan-Build-Run includes three behavioral contexts in `contexts/` that adjust how
 - **review** — Code review: read thoroughly, prioritize by severity, report don't fix
 
 Skills automatically activate the appropriate context: `/pbr:build` uses dev context, `/pbr:discuss` uses research context, `/pbr:review` uses review context.
+
+## When to Use Quick vs Plan+Build
+
+| Use `/pbr:quick` when... | Use `/pbr:plan` + `/pbr:build` when... |
+|--------------------------|----------------------------------------|
+| Change touches ≤3 files | Change touches 4+ files |
+| ≤100 lines of code | 100+ lines of code |
+| Single subsystem | Multiple subsystems or cross-cutting |
+| No architectural decisions | Requires design choices |
+| Bug fix, small feature, docs | New feature, refactor, migration |
+
+## Setup vs Begin
+
+- **`/pbr:begin`** — Use this to start a new project. It handles everything: questioning, research, requirements, roadmap, AND config initialization. This is the standard entry point.
+- **`/pbr:setup`** — Use this only to reconfigure an existing project's settings (model profiles, gates, depth, parallelization) without re-running the full begin flow.
+
+If you're unsure, start with `/pbr:begin`. It will detect existing config and offer to reuse or overwrite.
+
+## Team Discussions
+
+The `features.team_discussions` config flag (and `/pbr:build --team`) enables **Agent Teams** for complex builds. When enabled, executor agents can coordinate with each other during parallel wave execution — sharing context about what they've built, resolving interface conflicts, and avoiding duplicate work. Best for phases where multiple plans have shared dependencies. Configure via `/pbr:config`.
 
 ## Getting Started
 

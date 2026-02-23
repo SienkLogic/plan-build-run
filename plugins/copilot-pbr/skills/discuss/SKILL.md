@@ -78,7 +78,7 @@ Read the following files to understand what this phase needs to accomplish:
    - What patterns have been established (`patterns` field)
    - What decisions were already made (`key_decisions` field)
 
-3. **REQUIREMENTS.md** (if exists) — Read project requirements relevant to this phase
+3. **REQUIREMENTS.md** (if exists) — Read project requirements relevant to this phase. **CRITICAL**: After reading, display to the user which specific requirements map to this phase. Flag any requirements that could constrain decisions. If the user's discussion decisions later contradict a stated requirement, surface the contradiction immediately — don't wait until planning.
 
 4. **CONTEXT.md** (if exists in the phase directory) — Check if a prior discussion already happened
    - If CONTEXT.md exists, inform the user and use the **context-handling** pattern from `skills/shared/gate-prompts.md`:
