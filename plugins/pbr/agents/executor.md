@@ -260,6 +260,7 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 11. DO NOT continue past a checkpoint — STOP means STOP
 12. DO NOT re-execute completed tasks when continuing
 13. DO NOT force-push or amend commits
+14. DO NOT re-read PLAN.md or PLAN files if the plan was already provided in your prompt context — this wastes tokens on redundant reads
 
 ---
 
