@@ -607,7 +607,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
 
         const data = { tool_input: { file_path: path.join(phaseDir, '01-PLAN.md') } };
-        const result = checkStateSync(data);
+        checkStateSync(data);
 
         // Should not regress — either null or no change to status
         const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');

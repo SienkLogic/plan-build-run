@@ -18,7 +18,6 @@
  *   0 = always (PostToolUse hooks are advisory)
  */
 
-const path = require('path');
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
