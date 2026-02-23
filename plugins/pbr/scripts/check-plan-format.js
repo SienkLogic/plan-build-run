@@ -42,10 +42,10 @@ function main() {
       const basename = path.basename(filePath);
       const isPlan = basename.endsWith('PLAN.md');
       const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
-
       const isVerification = basename === 'VERIFICATION.md';
+      const isRoadmap = basename === 'ROADMAP.md';
 
-      if (!isPlan && !isSummary && !isVerification) {
+      if (!isPlan && !isSummary && !isVerification && !isRoadmap) {
         process.exit(0);
       }
 
@@ -58,9 +58,11 @@ function main() {
         ? validatePlan(content, filePath)
         : isVerification
           ? validateVerification(content, filePath)
-          : validateSummary(content, filePath);
+          : isRoadmap
+            ? validateRoadmap(content, filePath)
+            : validateSummary(content, filePath);
 
-      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -237,8 +239,9 @@ function checkPlanWrite(data) {
   const isPlan = basename.endsWith('PLAN.md');
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
   const isVerification = basename === 'VERIFICATION.md';
+  const isRoadmap = basename === 'ROADMAP.md';
 
-  if (!isPlan && !isSummary && !isVerification) return null;
+  if (!isPlan && !isSummary && !isVerification && !isRoadmap) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -246,9 +249,11 @@ function checkPlanWrite(data) {
     ? validatePlan(content, filePath)
     : isVerification
       ? validateVerification(content, filePath)
+      : isRoadmap
+        ? validateRoadmap(content, filePath)
         : validateSummary(content, filePath);
 
-  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -424,5 +429,88 @@ function syncStateBody(content, filePath) {
   }
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, checkPlanWrite, checkStateWrite, syncStateBody };
+/**
+ * Validate ROADMAP.md structure. Returns advisory warnings only (never blocking errors).
+ *
+ * Checks:
+ * - Has a # Roadmap heading
+ * - Has at least one ## Milestone: section
+ * - Each milestone has **Phases:** line
+ * - Each ### Phase NN: has **Goal:**, **Provides:**, **Depends on:**
+ * - Progress table (if present) has valid markdown table syntax
+ *
+ * @param {string} content - Full ROADMAP.md content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateRoadmap(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  // Check for # Roadmap heading
+  if (!/^#\s+(Roadmap|ROADMAP)/m.test(content)) {
+    warnings.push('Missing "# Roadmap" heading');
+  }
+
+  // Check for at least one ## Milestone: section
+  const milestoneMatches = content.match(/^##\s+Milestone:/gm);
+  if (!milestoneMatches || milestoneMatches.length === 0) {
+    warnings.push('No "## Milestone:" sections found');
+  } else {
+    // Check each milestone has **Phases:** line
+    // Split content by milestone sections
+    const milestoneBlocks = content.split(/^##\s+Milestone:/m).slice(1);
+    milestoneBlocks.forEach((block, idx) => {
+      if (!/\*\*Phases:\*\*/.test(block)) {
+        warnings.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
+      }
+    });
+  }
+
+  // Check each ### Phase NN: has Goal, Provides, Depends on
+  const phaseRegex = /^###\s+Phase\s+\d+:/gm;
+  const phaseMatches = content.match(phaseRegex);
+  if (phaseMatches) {
+    const phaseBlocks = content.split(/^###\s+Phase\s+\d+:/m).slice(1);
+    phaseBlocks.forEach((block, idx) => {
+      // Only check up to the next ### or ## heading
+      const nextHeading = block.search(/^#{2,3}\s+/m);
+      const section = nextHeading !== -1 ? block.substring(0, nextHeading) : block;
+
+      if (!/\*\*Goal:\*\*/.test(section)) {
+        warnings.push(`Phase ${idx + 1}: missing "**Goal:**"`);
+      }
+      if (!/\*\*Provides:\*\*/.test(section)) {
+        warnings.push(`Phase ${idx + 1}: missing "**Provides:**"`);
+      }
+      if (!/\*\*Depends on:\*\*/.test(section)) {
+        warnings.push(`Phase ${idx + 1}: missing "**Depends on:**"`);
+      }
+    });
+  }
+
+  // Check Progress table syntax if present
+  const progressMatch = content.match(/^##\s+Progress/m);
+  if (progressMatch) {
+    const afterProgress = content.substring(progressMatch.index);
+    const headerLine = afterProgress.split('\n').find(l => l.includes('|') && /Plans\s*Complete/i.test(l));
+    if (headerLine) {
+      // Check for separator row after header
+      const lines = afterProgress.split('\n');
+      const headerIdx = lines.findIndex(l => l.includes('|') && /Plans\s*Complete/i.test(l));
+      if (headerIdx >= 0 && headerIdx + 1 < lines.length) {
+        const sepLine = lines[headerIdx + 1];
+        if (!/^\s*\|[\s-:|]+\|\s*$/.test(sepLine)) {
+          warnings.push('Progress table: missing or malformed separator row (expected |---|---|...)');
+        }
+      }
+    } else {
+      warnings.push('Progress table: header row with "Plans Complete" column not found');
+    }
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }
