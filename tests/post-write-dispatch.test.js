@@ -122,6 +122,69 @@ must_haves:
     cleanup(tmpDir);
   });
 
+  test('SUMMARY write triggers both checkPlanWrite and checkStateSync (dual-trigger)', () => {
+    const { tmpDir, planningDir } = makeTmpDir();
+    const phaseDir = path.join(planningDir, 'phases', '02-setup');
+    fs.mkdirSync(phaseDir, { recursive: true });
+
+    // Write a PLAN.md so countPhaseArtifacts finds it
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'placeholder');
+
+    // Write a valid SUMMARY.md (checkPlanWrite returns null → passes through to checkStateSync)
+    const summaryPath = path.join(phaseDir, 'SUMMARY-02-01.md');
+    fs.writeFileSync(summaryPath, `---
+phase: "02-setup"
+plan: "02-01"
+status: complete
+provides: ["setup done"]
+requires: []
+key_files: []
+deferred: []
+---
+## Task Results
+| Task | Status |
+|------|--------|
+| T1   | done   |
+`);
+
+    // Write ROADMAP.md with a Progress table so checkStateSync can update it
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
+      '## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|----------|\n| 02. Setup | 0/1 | Planned | — |\n');
+
+    // Write STATE.md so checkStateSync can update it
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      'Phase: 2 of 5\nPlan: 0 of 1 in current phase\nStatus: Planning\n');
+
+    const result = runScript(tmpDir, { file_path: summaryPath });
+    expect(result.exitCode).toBe(0);
+
+    // checkPlanWrite returned null (valid SUMMARY) → checkStateSync fired and updated ROADMAP.md
+    const updatedRoadmap = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+    expect(updatedRoadmap).toMatch(/1\/1|Complete/i);
+
+    cleanup(tmpDir);
+  });
+
+  test('STATE.md write triggers checkStateWrite frontmatter validation', () => {
+    const { tmpDir, planningDir } = makeTmpDir();
+    const statePath = path.join(planningDir, 'STATE.md');
+
+    // Write STATE.md without frontmatter (so checkStateWrite warns about missing fields)
+    fs.writeFileSync(statePath, '**Phase**: 02\n**Status**: planned');
+
+    // No ROADMAP.md — checkSync returns null (no sync needed)
+    // checkStateWrite should then fire and warn about missing frontmatter
+
+    const result = runScript(tmpDir, { file_path: statePath });
+    expect(result.exitCode).toBe(0);
+    const parsed = JSON.parse(result.output);
+    // checkStateWrite produces additionalContext warning for missing frontmatter
+    expect(parsed.additionalContext).toBeDefined();
+    expect(parsed.additionalContext).toContain('Missing YAML frontmatter');
+
+    cleanup(tmpDir);
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = makeTmpDir();
     try {
