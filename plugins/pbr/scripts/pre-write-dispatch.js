@@ -57,6 +57,7 @@
  *   2 = blocked (workflow violation or phase boundary enforcement)
  */
 
+const { checkAgentStateWrite } = require('./check-agent-state-write');
 const { checkWorkflow } = require('./check-skill-workflow');
 const { checkSummaryGate } = require('./check-summary-gate');
 const { checkBoundary } = require('./check-phase-boundary');
@@ -71,7 +72,14 @@ function main() {
     try {
       const data = JSON.parse(input);
 
-      // Skill workflow check first — can block
+      // Agent STATE.md write blocker — most fundamental check
+      const agentResult = checkAgentStateWrite(data);
+      if (agentResult) {
+        process.stdout.write(JSON.stringify(agentResult.output));
+        process.exit(agentResult.exitCode || 0);
+      }
+
+      // Skill workflow check — can block
       const workflowResult = checkWorkflow(data);
       if (workflowResult) {
         process.stdout.write(JSON.stringify(workflowResult.output));
