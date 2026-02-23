@@ -1,6 +1,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const os = require('os');
+const { checkCommit } = require('../plugins/pbr/scripts/validate-commit');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-commit.js');
 
@@ -210,6 +211,49 @@ describe('validate-commit.js', () => {
       });
       expect(result.exitCode).toBe(2);
     });
+  });
+
+  describe('heredoc commit message extraction', () => {
+    test('heredoc commit message is extracted and validated correctly (valid format)', () => {
+      // Use <<EOF (no quotes) to avoid the -m "..." regex matching single quotes
+      const heredocCommand = 'git commit -m "$(cat <<EOF\nfeat(01-01): add feature\nEOF\n)"';
+      const result = runScript({ command: heredocCommand });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('heredoc commit message with invalid format is blocked', () => {
+      const heredocCommand = 'git commit -m "$(cat <<EOF\nadd feature without type\nEOF\n)"';
+      const result = runScript({ command: heredocCommand });
+      expect(result.exitCode).toBe(2);
+    });
+
+    test('heredoc extraction via checkCommit module — first line is used as message', () => {
+      // Tests extractCommitMessage logic directly via the exported checkCommit function.
+      // Multi-line heredoc: first line is the commit subject, rest is body.
+      const command = 'git commit -m "$(cat <<EOF\nfeat(02-03): implement login\n\nCo-Authored-By: Human Dev <dev@example.com>\nEOF\n)"';
+      const result = checkCommit({ tool_input: { command } });
+      // First line "feat(02-03): implement login" is valid — should not block
+      expect(result).toBeNull();
+    });
+
+    test('heredoc fix commit passes format check', () => {
+      const heredocCommand = 'git commit -m "$(cat <<EOF\nfix(03-02): resolve null pointer\nEOF\n)"';
+      const result = runScript({ command: heredocCommand });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('sensitive file blocking', () => {
+    test('sensitive file check function exists and runs without crash', () => {
+      // checkCommit calls checkSensitiveFilesResult() internally, which runs git diff --cached
+      // In a test environment without staged sensitive files, it should not block
+      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(01-01): add feature"' } });
+      // Should be null (no block) since no sensitive files are staged
+      expect(result).toBeNull();
+    });
+
+    test.todo('sensitive file .env staged triggers block — requires git mock or real staged file');
+    test.todo('sensitive file credentials.json staged triggers block — requires git mock or real staged file');
   });
 
   describe('special cases', () => {
