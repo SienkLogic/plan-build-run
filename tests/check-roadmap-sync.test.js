@@ -221,7 +221,7 @@ and 01-setup is referenced again`;
       return statePath;
     }
 
-    test('mismatch warning includes CRITICAL prefix', () => {
+    test('regression mismatch returns blocking decision', () => {
       const statePath = setupFiles(
         '**Phase**: 01\n**Status**: built',
         '| Phase | Name | Status |\n|---|---|---|\n| 01 | Setup | planned |'
@@ -231,11 +231,9 @@ and 01-setup is referenced again`;
         process.chdir(tmpDir);
         const result = checkSync({ tool_input: { file_path: statePath } });
         expect(result).not.toBeNull();
-        expect(result.output.additionalContext).toMatch(/^CRITICAL:/);
-        expect(result.output.additionalContext).toContain('Phase 1');
-        expect(result.output.additionalContext).toContain('"planned"');
-        expect(result.output.additionalContext).toContain('"built"');
-        expect(result.output.additionalContext).toContain('Update the ROADMAP.md Progress table NOW');
+        expect(result.output.decision).toBe('block');
+        expect(result.output.reason).toContain('regression');
+        expect(result.output.reason).toContain('Phase 1');
       } finally {
         process.chdir(origCwd);
       }
@@ -361,6 +359,111 @@ and 01-setup is referenced again`;
 
       const warnings = checkFilesystemDrift(roadmap, phasesDir);
       expect(warnings).toEqual([]);
+    });
+  });
+
+  describe('isHighRisk', () => {
+    const { isHighRisk } = require('../plugins/pbr/scripts/check-roadmap-sync');
+
+    test('returns true when verified phase regresses to planned in ROADMAP', () => {
+      const state = '**Phase**: 03\n**Status**: verified';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 03 | planned |';
+      expect(isHighRisk(state, roadmap)).toBe(true);
+    });
+
+    test('returns true when verified phase regresses to built', () => {
+      const state = '**Phase**: 02\n**Status**: verified';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 02 | built |';
+      expect(isHighRisk(state, roadmap)).toBe(true);
+    });
+
+    test('returns true when built phase regresses to planned', () => {
+      const state = '**Phase**: 01\n**Status**: built';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |';
+      expect(isHighRisk(state, roadmap)).toBe(true);
+    });
+
+    test('returns false when status advances (planned -> built)', () => {
+      const state = '**Phase**: 01\n**Status**: planned';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 01 | built |';
+      expect(isHighRisk(state, roadmap)).toBe(false);
+    });
+
+    test('returns false when statuses match', () => {
+      const state = '**Phase**: 01\n**Status**: built';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 01 | built |';
+      expect(isHighRisk(state, roadmap)).toBe(false);
+    });
+
+    test('returns false when state cannot be parsed', () => {
+      expect(isHighRisk('no phase here', '| Phase | Status |\n|---|---|\n| 01 | built |')).toBe(false);
+    });
+
+    test('returns true when phase ordering skips a number', () => {
+      const state = '**Phase**: 01\n**Status**: planned';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |\n| 03 | planned |';
+      expect(isHighRisk(state, roadmap)).toBe(true);
+    });
+
+    test('returns false for consecutive phase ordering', () => {
+      const state = '**Phase**: 01\n**Status**: planned';
+      const roadmap = '| Phase | Status |\n|---|---|\n| 01 | planned |\n| 02 | planned |';
+      expect(isHighRisk(state, roadmap)).toBe(false);
+    });
+  });
+
+  describe('checkSync blocking for high-risk', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-highrisk-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function setupFiles(stateContent, roadmapContent) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      const statePath = path.join(planningDir, 'STATE.md');
+      fs.writeFileSync(statePath, stateContent);
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmapContent);
+      return statePath;
+    }
+
+    test('returns blocking decision for status regression', () => {
+      const statePath = setupFiles(
+        '**Phase**: 03\n**Status**: verified',
+        '| Phase | Status |\n|---|---|\n| 03 | planned |'
+      );
+      const origCwd = process.cwd();
+      try {
+        process.chdir(tmpDir);
+        const result = checkSync({ tool_input: { file_path: statePath } });
+        expect(result).not.toBeNull();
+        expect(result.output.decision).toBe('block');
+        expect(result.output.reason).toContain('regression');
+      } finally {
+        process.chdir(origCwd);
+      }
+    });
+
+    test('returns advisory for non-regression mismatch', () => {
+      const statePath = setupFiles(
+        '**Phase**: 01\n**Status**: planned',
+        '| Phase | Status |\n|---|---|\n| 01 | built |'
+      );
+      const origCwd = process.cwd();
+      try {
+        process.chdir(tmpDir);
+        const result = checkSync({ tool_input: { file_path: statePath } });
+        expect(result).not.toBeNull();
+        expect(result.output.additionalContext).toBeDefined();
+        expect(result.output.decision).toBeUndefined();
+      } finally {
+        process.chdir(origCwd);
+      }
     });
   });
 
