@@ -48,6 +48,12 @@ Read `.planning/STATE.md` and determine current position:
 - Current plan progress
 - Phase status (planning, building, reviewing, complete)
 
+Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
+- Find which `## Milestone:` section contains the current phase
+- Determine if the current phase is the **last phase** in that milestone section
+- If this is the last phase and it is verified/complete, warn: "This is the final phase of milestone {name}. After verification, run `/pbr:milestone` to complete it."
+- If the current phase's `Depends on` references a phase from the **previous** milestone that is not yet complete, warn: "Cross-milestone dependency: Phase {N} depends on Phase {M} from milestone {prev}, which is not yet complete."
+
 If STATE.md doesn't exist, display:
 ```
 ERROR
