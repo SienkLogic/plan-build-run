@@ -209,8 +209,6 @@ This ensures the user can recover the original STATE.md if the fix produces inco
 
 4. If "Skip": Do nothing, continue to the rest of the output.
 
-**Note:** When auto-fix is active, the health skill is no longer strictly read-only. The `allowed-tools` frontmatter must include `Write` and `AskUserQuestion` for auto-fix to work. Update the frontmatter accordingly.
-
 ---
 
 ## Bonus: Recent Decisions
