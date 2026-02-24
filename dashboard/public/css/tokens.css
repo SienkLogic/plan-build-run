@@ -1,42 +1,56 @@
 /* ============================================
-   Towline Dashboard — Design Tokens
-   Single source of truth for colors, spacing,
-   typography, and sizing across all CSS files.
+   PBR Dashboard — Design Tokens
+   Semantic CSS variables backed by Open Props.
+   Open Props must be loaded before this file.
    ============================================ */
 
 /* --- Light Mode (Default) --- */
 :root {
-  /* Colors */
-  --color-surface: #ffffff;
-  --color-surface-raised: #f8f9fa;
-  --color-surface-hover: rgba(0, 0, 0, 0.04);
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-text-dim: rgba(0, 0, 0, 0.5);
-  --color-text: #1a1a2e;
-  --color-accent: var(--tblr-primary, #0054a6);
+  /* Surface colors */
+  --color-surface: var(--gray-0);
+  --color-surface-raised: var(--gray-1);
+  --color-surface-hover: var(--gray-2);
+  --color-border: var(--gray-3);
 
-  /* Spacing */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
+  /* Text colors */
+  --color-text: var(--gray-9);
+  --color-text-dim: var(--gray-6);
+  --color-text-muted: var(--gray-5);
 
-  /* Radii */
-  --radius-sm: 0.375rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
+  /* Accent */
+  --color-accent: var(--blue-6);
+  --color-accent-hover: var(--blue-7);
+
+  /* Spacing — mapped from Open Props size scale */
+  --space-xs: var(--size-1);
+  --space-sm: var(--size-2);
+  --space-md: var(--size-4);
+  --space-lg: var(--size-6);
+  --space-xl: var(--size-8);
+  --space-2xl: var(--size-10);
+
+  /* Border radii */
+  --radius-sm: var(--radius-2);
+  --radius-md: var(--radius-3);
+  --radius-lg: var(--radius-4);
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-sm: var(--shadow-2);
+  --shadow-md: var(--shadow-4);
+
+  /* Typography */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Layout dimensions */
+  --size-sidebar: 220px;
+  --size-header: 3.5rem;
 
   /* Transitions */
-  --transition-fast: 0.12s ease;
-  --transition-base: 0.2s ease;
+  --transition-fast: var(--ease-3) 0.12s;
+  --transition-base: var(--ease-3) 0.2s;
 
-  /* Cards */
+  /* Component tokens — derived from semantic tokens above */
   --card-bg: var(--color-surface-raised);
   --card-border: var(--color-border);
   --card-radius: var(--radius-md);
@@ -44,52 +58,44 @@
   --card-padding: var(--space-md);
   --card-header-padding: var(--space-sm) var(--space-lg);
 
-  /* Tables */
   --table-cell-padding: var(--space-xs) var(--space-sm);
-  --table-cell-padding-y: var(--space-xs);
-  --table-cell-padding-x: var(--space-sm);
 
-  /* Badges */
   --badge-padding-sm: 0.1rem 0.4rem;
   --badge-padding-base: 0.15rem 0.55rem;
   --badge-padding-lg: 0.25rem 0.75rem;
   --badge-font-size-sm: 0.6875rem;
   --badge-font-size-base: 0.75rem;
   --badge-font-size-lg: 0.8125rem;
-
-  /* Typography */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
-
-  /* Overlays & Modals */
-  --overlay-bg: rgba(0, 0, 0, 0.3);
-  --overlay-bg-heavy: rgba(0, 0, 0, 0.7);
-  --color-dark-surface: #1a1a2e;
-  --transition-transform: transform 0.25s ease;
-
-  /* Sizing */
-  --size-sidebar: 220px;
-  --size-header: 3.5rem;
 }
 
-/* --- Dark Mode (explicit attribute) --- */
-[data-bs-theme="dark"] {
-  --color-surface: #13131a;
-  --color-surface-raised: rgba(255, 255, 255, 0.03);
-  --color-surface-hover: rgba(255, 255, 255, 0.06);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text-dim: rgba(255, 255, 255, 0.5);
-  --color-text: #e8e8f0;
+/* --- Dark Mode (explicit [data-theme="dark"] attribute) --- */
+[data-theme="dark"] {
+  --color-surface: var(--gray-9);
+  --color-surface-raised: var(--gray-8);
+  --color-surface-hover: var(--gray-7);
+  --color-border: var(--gray-7);
+
+  --color-text: var(--gray-0);
+  --color-text-dim: var(--gray-4);
+  --color-text-muted: var(--gray-5);
+
+  --color-accent: var(--blue-4);
+  --color-accent-hover: var(--blue-3);
 }
 
 /* --- Dark Mode (system preference, unless light forced) --- */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-bs-theme="light"]) {
-    --color-surface: #13131a;
-    --color-surface-raised: rgba(255, 255, 255, 0.03);
-    --color-surface-hover: rgba(255, 255, 255, 0.06);
-    --color-border: rgba(255, 255, 255, 0.08);
-    --color-text-dim: rgba(255, 255, 255, 0.5);
-    --color-text: #e8e8f0;
+  :root:not([data-theme="light"]) {
+    --color-surface: var(--gray-9);
+    --color-surface-raised: var(--gray-8);
+    --color-surface-hover: var(--gray-7);
+    --color-border: var(--gray-7);
+
+    --color-text: var(--gray-0);
+    --color-text-dim: var(--gray-4);
+    --color-text-muted: var(--gray-5);
+
+    --color-accent: var(--blue-4);
+    --color-accent-hover: var(--blue-3);
   }
 }
