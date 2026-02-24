@@ -704,7 +704,7 @@ describe('status-line.js', () => {
       jest.restoreAllMocks();
     });
 
-    test('shows LLM stats on second line when metrics exist', () => {
+    test('shows lifetime-only when no session duration in stdinData', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 2,
@@ -722,9 +722,70 @@ describe('status-line.js', () => {
       expect(lines[1]).toContain('Local LLM');
       expect(lines[1]).toContain('42 calls');
       expect(lines[1]).toContain('85.0K saved');
+      expect(lines[1]).not.toContain('lifetime');
     });
 
-    test('uses green color for Local LLM label and saved count', () => {
+    test('shows session stats and lifetime when duration is available', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 42,
+        fallback_count: 2,
+        avg_latency_ms: 150,
+        tokens_saved: 85_000,
+        cost_saved_usd: 0.26,
+        by_operation: {}
+      });
+      jest.spyOn(llmMetricsModule, 'readSessionMetrics').mockReturnValue([
+        { tokens_saved_frontier: 5000, latency_ms: 100, fallback_used: false },
+        { tokens_saved_frontier: 7000, latency_ms: 120, fallback_used: false }
+      ]);
+      jest.spyOn(llmMetricsModule, 'summarizeMetrics').mockReturnValue({
+        total_calls: 2,
+        fallback_count: 0,
+        avg_latency_ms: 110,
+        tokens_saved: 12_000,
+        cost_saved_usd: 0.04
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const sd = { cost: { total_duration_ms: 300000 } };
+      const result = strip(buildStatusLine(content, null, cfg, sd, '/fake/.planning'));
+      const lines = result.split('\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toContain('Local LLM');
+      expect(lines[1]).toContain('2 calls');
+      expect(lines[1]).toContain('12.0K saved');
+      expect(lines[1]).toContain('85.0K lifetime');
+    });
+
+    test('falls back to lifetime-only when session has zero calls', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 42,
+        fallback_count: 0,
+        avg_latency_ms: 150,
+        tokens_saved: 85_000,
+        cost_saved_usd: 0.26,
+        by_operation: {}
+      });
+      jest.spyOn(llmMetricsModule, 'readSessionMetrics').mockReturnValue([]);
+      jest.spyOn(llmMetricsModule, 'summarizeMetrics').mockReturnValue({
+        total_calls: 0,
+        fallback_count: 0,
+        avg_latency_ms: 0,
+        tokens_saved: 0,
+        cost_saved_usd: 0
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const sd = { cost: { total_duration_ms: 60000 } };
+      const result = strip(buildStatusLine(content, null, cfg, sd, '/fake/.planning'));
+      const lines = result.split('\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toContain('42 calls');
+      expect(lines[1]).toContain('85.0K saved');
+      expect(lines[1]).not.toContain('lifetime');
+    });
+
+    test('uses green color for Local LLM label', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 10,
         fallback_count: 0,
@@ -737,7 +798,6 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const raw = buildStatusLine(content, null, cfg, {}, '/fake/.planning');
       expect(raw).toContain('\x1b[32mLocal LLM\x1b[0m');
-      expect(raw).toContain('\x1b[32m5.0K saved\x1b[0m');
     });
 
     test('omits LLM line when no calls', () => {
@@ -813,6 +873,34 @@ describe('status-line.js', () => {
       expect(lines).toHaveLength(2);
       expect(lines[1]).toContain('200 calls');
       expect(lines[1]).toContain('2.5M saved');
+    });
+
+    test('shows session + lifetime with M suffix formatting', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 200,
+        fallback_count: 5,
+        avg_latency_ms: 200,
+        tokens_saved: 2_500_000,
+        cost_saved_usd: 7.50,
+        by_operation: {}
+      });
+      jest.spyOn(llmMetricsModule, 'readSessionMetrics').mockReturnValue([
+        { tokens_saved_frontier: 500000, latency_ms: 100, fallback_used: false }
+      ]);
+      jest.spyOn(llmMetricsModule, 'summarizeMetrics').mockReturnValue({
+        total_calls: 1,
+        fallback_count: 0,
+        avg_latency_ms: 100,
+        tokens_saved: 500_000,
+        cost_saved_usd: 1.50
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const sd = { cost: { total_duration_ms: 120000 } };
+      const result = strip(buildStatusLine(content, null, cfg, sd, '/fake/.planning'));
+      const lines = result.split('\n');
+      expect(lines[1]).toContain('500.0K saved');
+      expect(lines[1]).toContain('2.5M lifetime');
     });
   });
 

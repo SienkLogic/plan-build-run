@@ -329,12 +329,30 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   let output = parts.join(` ${c.dim}\u2502${c.reset} `);
 
   // LLM offload section — renders on a second line below the main status
+  // Shows session stats + lifetime total when both are available
   if (sections.includes('llm') && planningDir) {
     try {
-      const llmMetrics = llmMetricsModule.computeLifetimeMetrics(planningDir);
-      if (llmMetrics && llmMetrics.total_calls > 0) {
-        const savedStr = formatTokens(llmMetrics.tokens_saved);
-        output += `\n${c.green}Local LLM${c.reset} ${c.dim}${llmMetrics.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${savedStr} saved${c.reset}`;
+      const lifetime = llmMetricsModule.computeLifetimeMetrics(planningDir);
+      if (lifetime && lifetime.total_calls > 0) {
+        // Try to get session-scoped metrics using duration from stdin
+        let sessionPart = '';
+        const durationMs = sd.cost && sd.cost.total_duration_ms;
+        if (durationMs != null && durationMs > 0) {
+          const sessionStart = new Date(Date.now() - durationMs);
+          const sessionEntries = llmMetricsModule.readSessionMetrics(planningDir, sessionStart);
+          const session = llmMetricsModule.summarizeMetrics(sessionEntries);
+          if (session.total_calls > 0) {
+            sessionPart = `${c.dim}${session.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${formatTokens(session.tokens_saved)} saved${c.reset}`;
+          }
+        }
+
+        const lifetimePart = `${c.dim}${formatTokens(lifetime.tokens_saved)} lifetime${c.reset}`;
+
+        if (sessionPart) {
+          output += `\n${c.green}Local LLM${c.reset} ${sessionPart} ${c.dim}\u2502${c.reset} ${lifetimePart}`;
+        } else {
+          output += `\n${c.green}Local LLM${c.reset} ${c.dim}${lifetime.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${formatTokens(lifetime.tokens_saved)} saved${c.reset}`;
+        }
       }
     } catch (_e) {
       // No metrics available — skip silently
