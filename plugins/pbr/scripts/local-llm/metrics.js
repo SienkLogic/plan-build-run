@@ -29,6 +29,15 @@ function logMetric(planningDir, entry) {
     const logFile = path.join(logsDir, 'local-llm-metrics.jsonl');
 
     fs.mkdirSync(logsDir, { recursive: true });
+
+    // Update lifetime totals BEFORE appending to JSONL so seeding
+    // (which reads the JSONL) doesn't double-count this entry
+    try {
+      updateLifetimeTotals(logsDir, entry);
+    } catch (_) {
+      // Totals update failure is non-fatal
+    }
+
     fs.appendFileSync(logFile, JSON.stringify(entry) + '\n', 'utf8');
 
     // Rotate if over MAX_ENTRIES
@@ -45,6 +54,63 @@ function logMetric(planningDir, entry) {
   } catch (_) {
     // Swallow all errors silently
   }
+}
+
+/**
+ * Atomically increments the lifetime-totals.json running counters.
+ * This file persists across JSONL log rotations so lifetime metrics never plateau.
+ *
+ * @param {string} logsDir - path to the .planning/logs directory
+ * @param {object} entry - the metric entry being logged
+ */
+function updateLifetimeTotals(logsDir, entry) {
+  const totalsFile = path.join(logsDir, 'lifetime-totals.json');
+  let totals = null;
+
+  try {
+    totals = JSON.parse(fs.readFileSync(totalsFile, 'utf8'));
+  } catch (_) {
+    // File doesn't exist yet or is corrupt — seed from existing JSONL
+    totals = seedTotalsFromJsonl(logsDir);
+  }
+
+  totals.total_calls = (totals.total_calls || 0) + 1;
+  totals.fallback_count = (totals.fallback_count || 0) + (entry.fallback_used ? 1 : 0);
+  totals.tokens_saved = (totals.tokens_saved || 0) + (entry.tokens_saved_frontier || 0);
+  totals.total_latency_ms = (totals.total_latency_ms || 0) + (entry.latency_ms || 0);
+
+  fs.writeFileSync(totalsFile, JSON.stringify(totals) + '\n', 'utf8');
+}
+
+/**
+ * Seeds lifetime totals by scanning the existing JSONL log.
+ * Called once when lifetime-totals.json doesn't exist yet (migration from pre-totals installs).
+ * Returns the accumulated totals from whatever entries remain in the JSONL.
+ *
+ * @param {string} logsDir - path to the .planning/logs directory
+ * @returns {{ total_calls: number, fallback_count: number, tokens_saved: number, total_latency_ms: number }}
+ */
+function seedTotalsFromJsonl(logsDir) {
+  const seed = { total_calls: 0, fallback_count: 0, tokens_saved: 0, total_latency_ms: 0 };
+  try {
+    const logFile = path.join(logsDir, 'local-llm-metrics.jsonl');
+    const contents = fs.readFileSync(logFile, 'utf8');
+    const lines = contents.split(/\r?\n/).filter((l) => l.trim() !== '');
+    for (const line of lines) {
+      try {
+        const e = JSON.parse(line);
+        seed.total_calls += 1;
+        seed.fallback_count += e.fallback_used ? 1 : 0;
+        seed.tokens_saved += e.tokens_saved_frontier || 0;
+        seed.total_latency_ms += e.latency_ms || 0;
+      } catch (_) {
+        // Skip malformed lines
+      }
+    }
+  } catch (_) {
+    // No JSONL file — start at zero
+  }
+  return seed;
 }
 
 /**
@@ -131,46 +197,68 @@ function computeLifetimeMetrics(planningDir, frontierTokenRate) {
   };
 
   try {
-    const logFile = path.join(planningDir, 'logs', 'local-llm-metrics.jsonl');
-    let contents;
-    try {
-      contents = fs.readFileSync(logFile, 'utf8');
-    } catch (_) {
-      return zero;
-    }
-
-    const entries = contents
-      .split(/\r?\n/)
-      .filter((l) => l.trim() !== '')
-      .map((l) => {
-        try {
-          return JSON.parse(l);
-        } catch (_) {
-          return null;
-        }
-      })
-      .filter((e) => e !== null);
-
-    if (entries.length === 0) return zero;
-
     const rate = frontierTokenRate != null ? frontierTokenRate : 3.0;
-    const total_calls = entries.length;
-    const fallback_count = entries.filter((e) => e.fallback_used).length;
-    const totalLatency = entries.reduce((sum, e) => sum + (e.latency_ms || 0), 0);
-    const avg_latency_ms = total_calls > 0 ? totalLatency / total_calls : 0;
-    const tokens_saved = entries.reduce((sum, e) => sum + (e.tokens_saved_frontier || 0), 0);
-    const cost_saved_usd = tokens_saved * (rate / 1_000_000);
+    const logsDir = path.join(planningDir, 'logs');
+    const totalsFile = path.join(logsDir, 'lifetime-totals.json');
 
-    const by_operation = {};
-    for (const e of entries) {
-      const op = e.operation || 'unknown';
-      if (!by_operation[op]) {
-        by_operation[op] = { calls: 0, fallbacks: 0, tokens_saved: 0 };
-      }
-      by_operation[op].calls += 1;
-      if (e.fallback_used) by_operation[op].fallbacks += 1;
-      by_operation[op].tokens_saved += e.tokens_saved_frontier || 0;
+    // Primary path: read from lifetime-totals.json (survives log rotation)
+    let totals = null;
+    try {
+      totals = JSON.parse(fs.readFileSync(totalsFile, 'utf8'));
+    } catch (_) {
+      // No totals file — fall back to JSONL scan (migration path for existing installs)
     }
+
+    // Build by_operation from the JSONL (only covers recent entries, but still useful)
+    const by_operation = {};
+    const logFile = path.join(logsDir, 'local-llm-metrics.jsonl');
+    try {
+      const contents = fs.readFileSync(logFile, 'utf8');
+      const entries = contents
+        .split(/\r?\n/)
+        .filter((l) => l.trim() !== '')
+        .map((l) => {
+          try {
+            return JSON.parse(l);
+          } catch (_) {
+            return null;
+          }
+        })
+        .filter((e) => e !== null);
+
+      for (const e of entries) {
+        const op = e.operation || 'unknown';
+        if (!by_operation[op]) {
+          by_operation[op] = { calls: 0, fallbacks: 0, tokens_saved: 0 };
+        }
+        by_operation[op].calls += 1;
+        if (e.fallback_used) by_operation[op].fallbacks += 1;
+        by_operation[op].tokens_saved += e.tokens_saved_frontier || 0;
+      }
+
+      // If no totals file, compute from JSONL (legacy/migration path)
+      if (!totals) {
+        if (entries.length === 0) return zero;
+        const total_calls = entries.length;
+        const fallback_count = entries.filter((e) => e.fallback_used).length;
+        const totalLatency = entries.reduce((sum, e) => sum + (e.latency_ms || 0), 0);
+        const avg_latency_ms = total_calls > 0 ? totalLatency / total_calls : 0;
+        const tokens_saved = entries.reduce((sum, e) => sum + (e.tokens_saved_frontier || 0), 0);
+        const cost_saved_usd = tokens_saved * (rate / 1_000_000);
+        return { total_calls, fallback_count, avg_latency_ms, tokens_saved, cost_saved_usd, by_operation };
+      }
+    } catch (_) {
+      // No JSONL file — if we have totals, continue; otherwise return zero
+      if (!totals) return zero;
+    }
+
+    // Use lifetime totals for the headline numbers
+    const total_calls = totals.total_calls || 0;
+    const fallback_count = totals.fallback_count || 0;
+    const tokens_saved = totals.tokens_saved || 0;
+    const total_latency_ms = totals.total_latency_ms || 0;
+    const avg_latency_ms = total_calls > 0 ? total_latency_ms / total_calls : 0;
+    const cost_saved_usd = tokens_saved * (rate / 1_000_000);
 
     return { total_calls, fallback_count, avg_latency_ms, tokens_saved, cost_saved_usd, by_operation };
   } catch (_) {
@@ -249,4 +337,4 @@ function logAgreement(planningDir, entry) {
   }
 }
 
-module.exports = { logMetric, readSessionMetrics, summarizeMetrics, computeLifetimeMetrics, formatSessionSummary, logAgreement };
+module.exports = { logMetric, readSessionMetrics, summarizeMetrics, computeLifetimeMetrics, formatSessionSummary, logAgreement, updateLifetimeTotals, seedTotalsFromJsonl };
