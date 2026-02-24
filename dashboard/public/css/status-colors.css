@@ -23,9 +23,9 @@
 .status-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.55rem;
+  padding: var(--badge-padding-base);
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: var(--badge-font-size-base);
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.5;
@@ -95,4 +95,16 @@
   background: rgba(129, 140, 248, 0.12);
   color: #a5b4fc;
   border-color: rgba(129, 140, 248, 0.2);
+}
+
+/* Size variants */
+.status-badge--sm {
+  padding: var(--badge-padding-sm);
+  font-size: var(--badge-font-size-sm);
+}
+
+.status-badge--lg {
+  padding: var(--badge-padding-lg);
+  font-size: var(--badge-font-size-lg);
+  font-weight: 700;
 }
