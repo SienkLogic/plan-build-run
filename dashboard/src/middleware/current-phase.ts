@@ -1,6 +1,4 @@
 import type { MiddlewareHandler } from 'hono';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore — dashboard.service.js is plain ESM with no type declarations
 import { parseStateFile } from '../services/dashboard.service.js';
 
 export const currentPhaseMiddleware: MiddlewareHandler = async (c, next) => {
