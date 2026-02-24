@@ -20,9 +20,9 @@
   <div class="card-header">
     <strong><%= ms.name %></strong>
     <% if (ms.startPhase && ms.endPhase) { %>
-      <small>(Phases <%= String(ms.startPhase).padStart(2, '0') %>&ndash;<%= String(ms.endPhase).padStart(2, '0') %>)</small>
+      <small class="ms-1">(Phases <%= String(ms.startPhase).padStart(2, '0') %>&ndash;<%= String(ms.endPhase).padStart(2, '0') %>)</small>
     <% } %>
-    &mdash;
+    &nbsp;&mdash;&nbsp;
     <span class="status-badge" data-status="complete">complete</span>
   </div>
   <div class="card-body">
@@ -75,9 +75,9 @@
   <div class="card-header">
     <strong><%= group.name %></strong>
     <% if (group.startPhase && group.endPhase < 9999) { %>
-      <small>(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
+      <small class="ms-1">(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
     <% } %>
-    &mdash;
+    &nbsp;&mdash;&nbsp;
     <%
       const gc = group.phases.filter(p => p.status === 'complete').length;
       const gt = group.phases.length;
