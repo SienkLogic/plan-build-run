@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.28.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.27.2...plan-build-run-v2.28.0) (2026-02-24)
+
+
+### Features
+
+* **38-01:** rebuild dashboard foundation with Hono + JSX + Open Props ([56596f6](https://github.com/SienkLogic/plan-build-run/commit/56596f6fe25e59d3051838bad2c8894a25754a3b))
+
 ## [2.27.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.27.1...plan-build-run-v2.27.2) (2026-02-24)
 
 
