@@ -30,7 +30,7 @@
           <label for="cfg-mode" class="col-sm-3 col-form-label">Mode</label>
           <div class="col-sm-9">
             <select id="cfg-mode" name="mode" class="form-select">
-              <% ['normal', 'strict', 'relaxed'].forEach(opt => { %>
+              <% ['normal', 'autonomous', 'strict', 'relaxed'].forEach(opt => { %>
                 <option value="<%= opt %>" <%= config.mode === opt ? 'selected' : '' %>><%= opt %></option>
               <% }); %>
             </select>

@@ -42,8 +42,8 @@
 <div class="card mb-3">
   <div class="card-header">
     <strong><%= group.name %></strong>
-    <small>(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
-    &mdash;
+    <small class="ms-1">(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
+    &nbsp;&mdash;&nbsp;
     <%
       const groupComplete = group.phases.filter(p => p.status === 'complete').length;
       const groupTotal = group.phases.length;
