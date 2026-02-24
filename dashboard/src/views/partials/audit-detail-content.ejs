@@ -1,12 +1,14 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= title %></h1>
 
-<p><a href="/audits">&larr; Back to Audit Reports</a></p>
+<p><a href="/audits" class="btn btn-outline-secondary">&larr; Back to Audit Reports</a></p>
 
 <% if (typeof date !== 'undefined' && date) { %>
 <p><small>Date: <%= date %></small></p>
 <% } %>
 
-<article class="markdown-body">
-  <%- html %>
-</article>
+<div class="card mb-3">
+  <div class="card-body markdown-body">
+    <%- html %>
+  </div>
+</div>
