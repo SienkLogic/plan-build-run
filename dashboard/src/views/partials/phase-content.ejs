@@ -1,7 +1,34 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Phase <%= phaseId %>: <%= phaseName %></h1>
 
-<p><a href="/phases" hx-get="/phases" hx-target="#main-content" hx-push-url="true">&larr; Back to Phases</a></p>
+<nav class="phase-nav" aria-label="Phase navigation">
+  <% if (typeof prevPhase !== 'undefined' && prevPhase) { %>
+    <a href="/phases/<%= String(prevPhase.id).padStart(2, '0') %>"
+       hx-get="/phases/<%= String(prevPhase.id).padStart(2, '0') %>"
+       hx-target="#main-content"
+       hx-push-url="true">
+      &larr; Phase <%= String(prevPhase.id).padStart(2, '0') %>: <%= prevPhase.name %>
+    </a>
+  <% } else { %>
+    <span></span>
+  <% } %>
+
+  <a href="/phases"
+     hx-get="/phases"
+     hx-target="#main-content"
+     hx-push-url="true">All Phases</a>
+
+  <% if (typeof nextPhase !== 'undefined' && nextPhase) { %>
+    <a href="/phases/<%= String(nextPhase.id).padStart(2, '0') %>"
+       hx-get="/phases/<%= String(nextPhase.id).padStart(2, '0') %>"
+       hx-target="#main-content"
+       hx-push-url="true">
+      Phase <%= String(nextPhase.id).padStart(2, '0') %>: <%= nextPhase.name %> &rarr;
+    </a>
+  <% } else { %>
+    <span></span>
+  <% } %>
+</nav>
 
 <% if (verification) { %>
 <!-- Verification Summary Card -->

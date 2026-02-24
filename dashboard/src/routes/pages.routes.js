@@ -48,13 +48,26 @@ router.get('/phases/:phaseId', async (req, res) => {
   }
 
   const projectDir = req.app.locals.projectDir;
-  const phaseData = await getPhaseDetail(projectDir, phaseId);
+  const [phaseData, roadmapData] = await Promise.all([
+    getPhaseDetail(projectDir, phaseId),
+    getRoadmapData(projectDir)
+  ]);
+
+  const phaseIdNum = parseInt(phaseId, 10);
+  const allPhases = roadmapData.phases || [];
+  const currentIdx = allPhases.findIndex(p => String(p.id) === String(phaseIdNum));
+  const prevPhase = currentIdx > 0 ? allPhases[currentIdx - 1] : null;
+  const nextPhase = currentIdx >= 0 && currentIdx < allPhases.length - 1
+    ? allPhases[currentIdx + 1]
+    : null;
 
   const templateData = {
     title: `Phase ${phaseId}: ${phaseData.phaseName}`,
     activePage: 'phases',
     currentPath: '/phases/' + phaseId,
     breadcrumbs: [{ label: 'Phases', url: '/phases' }, { label: 'Phase ' + phaseId }],
+    prevPhase,
+    nextPhase,
     ...phaseData
   };
 

@@ -422,6 +422,26 @@ details li {
   font-weight: 500;
 }
 
+/* Phase Navigation */
+.phase-nav {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  font-size: 0.875rem;
+}
+
+.phase-nav > a:first-child,
+.phase-nav > span:first-child {
+  text-align: left;
+}
+
+.phase-nav > a:last-child,
+.phase-nav > span:last-child {
+  text-align: right;
+}
+
 /* --- Back Link --- */
 main > p:first-of-type > a[href="/"] {
   font-size: 0.875rem;
