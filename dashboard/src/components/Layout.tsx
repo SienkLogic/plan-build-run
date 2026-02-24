@@ -48,6 +48,8 @@ export function Layout({ title, children, currentView }: LayoutProps) {
             }
           })();
         </script>`}
+        <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" defer></script>
+        {html`<script>document.addEventListener('DOMContentLoaded', function() { mermaid.initialize({ startOnLoad: false, theme: 'neutral' }); });</script>`}
       </head>
       <body>
         <a href="#main-content" class="skip-link">Skip to content</a>
