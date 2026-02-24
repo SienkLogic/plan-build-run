@@ -5,6 +5,49 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.26.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.25.0...plan-build-run-v2.26.0) (2026-02-24)
+
+
+### Features
+
+* **36-01:** add .status-badge--sm and .status-badge--lg variants; tokenize base badge sizing ([2ed3a85](https://github.com/SienkLogic/plan-build-run/commit/2ed3a85de91fa359705dc0eb1ab231531aa4bbfd))
+* **36-02:** create phase-timeline.ejs and activity-feed.ejs partials ([cfcad33](https://github.com/SienkLogic/plan-build-run/commit/cfcad33824ea291be101ad0cb3b288e53b6064ec))
+* **36-02:** GREEN - add getRecentActivity and deriveQuickActions to dashboard.service.js ([9d8f55f](https://github.com/SienkLogic/plan-build-run/commit/9d8f55f68c7825245248ac70bd07e09e91d7109b))
+* **36-02:** rework dashboard-content.ejs with status cards, timeline, activity feed, and quick actions ([7d8d735](https://github.com/SienkLogic/plan-build-run/commit/7d8d735f4d8e05c67a9f70190f402e3fc450ab0d))
+* **36-03:** add prev/next phase navigation to phase detail view ([91b8bd5](https://github.com/SienkLogic/plan-build-run/commit/91b8bd5323ffaf9128dc66adeb74a0a8ccfa0da5))
+* **36-04:** enrich getPhaseDetail with planTitle, taskCount, and mustHaves ([2ce86bb](https://github.com/SienkLogic/plan-build-run/commit/2ce86bb63cbbda0c6a6ede905936302a51e59e8b))
+* **36-04:** overhaul plan cards to use .card component with wave, task count, and status ([ea963b8](https://github.com/SienkLogic/plan-build-run/commit/ea963b89b40a7f3c6b61d3ef0f6e19fd6deeee39))
+* **36-04:** replace commit history table with visual .commit-timeline in phase-content.ejs ([a12d57e](https://github.com/SienkLogic/plan-build-run/commit/a12d57ef85852867bfcd33f171a3514a3151bd12))
+* **36-05:** add config page CSS to layout.css ([687ee05](https://github.com/SienkLogic/plan-build-run/commit/687ee05be2acd543144267f0192adb71539a370a))
+* **36-05:** add config shell page, hybrid form partial, and config CSS ([6827673](https://github.com/SienkLogic/plan-build-run/commit/68276734806efdbd3dd869f44e2283ae5b00ea18))
+* **36-05:** add config.service with readConfig, writeConfig, validateConfig (TDD) ([26cf43a](https://github.com/SienkLogic/plan-build-run/commit/26cf43a08962d312deea31a2af51d0714be35a48))
+* **36-05:** add GET /config and POST /api/config routes ([363348a](https://github.com/SienkLogic/plan-build-run/commit/363348adb75e83644d9accf0c401ef97d68be5da))
+* **36-06:** add GET /research and GET /research/:slug routes with HTMX support ([a3ef246](https://github.com/SienkLogic/plan-build-run/commit/a3ef24633f865356a1ec591c3cd5c339eba14b0d))
+* **36-06:** add research list and detail EJS templates with card layout and HTMX navigation ([4295545](https://github.com/SienkLogic/plan-build-run/commit/4295545d2feaa610034b728bdfd868f274e61d6f))
+* **36-06:** GREEN - implement research.service with listResearchDocs, listCodebaseDocs, getResearchDocBySlug ([c1d2c1f](https://github.com/SienkLogic/plan-build-run/commit/c1d2c1fdd1b663b71388631a1e76554f06c01494))
+* **36-07:** add GET /requirements route and EJS templates ([48d6d82](https://github.com/SienkLogic/plan-build-run/commit/48d6d8228250c17184abb5b7810d512b6a1b2f82))
+* **36-07:** GREEN - implement getRequirementsData service ([016e0bc](https://github.com/SienkLogic/plan-build-run/commit/016e0bc1b22cef9f153bff0e8d2a4b692b57648d))
+* **36-08:** add GET /logs route and GET /logs/stream SSE endpoint ([e5cdca5](https://github.com/SienkLogic/plan-build-run/commit/e5cdca5f9603de9973a41e1ef37b37630a527460))
+* **36-08:** create logs EJS templates with SSE live-tail and filter controls ([c164794](https://github.com/SienkLogic/plan-build-run/commit/c1647944c9f8ef37be4b30df30ce18c702dee827))
+* **36-08:** GREEN - implement log.service with listLogFiles, readLogPage, tailLogFile ([5827bd4](https://github.com/SienkLogic/plan-build-run/commit/5827bd4c9e0edce022784e14986b764b2970d229))
+* **quick-004:** add local LLM token counter to statusline ([f5f5d4c](https://github.com/SienkLogic/plan-build-run/commit/f5f5d4c907a7a96e9d835c6e5b342fab7be86aad))
+* **quick-004:** show session + lifetime LLM stats using stdin duration ([ef2512f](https://github.com/SienkLogic/plan-build-run/commit/ef2512fe1214eb9c0483253c67c8eb144643dcef))
+
+
+### Bug Fixes
+
+* **36-01:** replace hardcoded CSS values with design tokens and expand config.service.js ([68e9261](https://github.com/SienkLogic/plan-build-run/commit/68e9261456f5e3d9f23b58dbfc7b55ca85036b11))
+* **36-02:** add typeof guard for quickActions in dashboard template ([2d19f72](https://github.com/SienkLogic/plan-build-run/commit/2d19f72015945291ecb73cb8dbcfe01f6654fa5c))
+* **quick-004:** render LLM stats on second line with explicit Local LLM label ([16509b3](https://github.com/SienkLogic/plan-build-run/commit/16509b3f85805592580f80355e6258a0bee3e4b7))
+* **quick-006:** bump vitest to ^4.0.18 to match @vitest/coverage-v8 peer dep ([4f5b172](https://github.com/SienkLogic/plan-build-run/commit/4f5b172d4f83fed7b04ff972e7848ce5762edb71))
+* **quick-007:** correct todo test to match title fallback behavior (H1 heading recovery) ([50397bb](https://github.com/SienkLogic/plan-build-run/commit/50397bb16f17cfd253ab919bb83d52afa5aee9ad))
+
+
+### Documentation
+
+* **quick-005:** add Local LLM nav link and mention in feature highlights ([56784d8](https://github.com/SienkLogic/plan-build-run/commit/56784d800131df024aedc8d5ee6c8ddc81795e03))
+* **quick-005:** add Local LLM Offload section and update stats across README and Getting Started ([264c891](https://github.com/SienkLogic/plan-build-run/commit/264c891e9aebc696f9194efd45428788606fecb3))
+
 ## [2.25.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.24.0...plan-build-run-v2.25.0) (2026-02-24)
 
 
