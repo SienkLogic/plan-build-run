@@ -147,6 +147,19 @@ Not sure which command to use? Follow this guide:
 /pbr:milestone complete ← Archive when done
 ```
 
+**Shortcut**: After `/pbr:begin`, run `/pbr:continue` repeatedly — it auto-advances through plan → build → review → next phase, stopping at milestones and errors.
+
+## status vs continue vs do
+
+| | `/pbr:status` | `/pbr:continue` | `/pbr:do <text>` |
+|-|---------------|-----------------|-------------------|
+| **Purpose** | Dashboard — show progress, suggest next | Auto-execute the next logical step | Route freeform text to a skill |
+| **Reads state?** | Yes (full scan) | Yes (minimal) | No |
+| **Modifies files?** | Never | Yes (via delegation) | Depends on routed skill |
+| **Asks questions?** | If multiple options | Never — fully automatic | Only if ambiguous |
+| **Use when...** | You want to see where you are before deciding | You trust PBR to pick and run the next step | You'd rather describe a task in plain English |
+| **Hard stops** | N/A | Milestones, checkpoints, errors, verification gaps | N/A |
+
 ## Quick Reference
 
 - **Context strategy**: `aggressive` (delegate everything) | `balanced` | `minimal` (run inline)

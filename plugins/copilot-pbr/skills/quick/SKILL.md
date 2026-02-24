@@ -275,7 +275,10 @@ Files: {list of files changed}
 
 **If partial:**
 ```
-⚠ Quick Task {NNN}: {description}
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► QUICK TASK {NNN} PARTIAL ⚠                ║
+╚══════════════════════════════════════════════════════════════╝
+
 Completed: {N} of {M} tasks
 Failed task: {task name} — {failure reason}
 
