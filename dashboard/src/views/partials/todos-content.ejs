@@ -2,7 +2,7 @@
 <h1>Todos</h1>
 
 <p>
-  <a href="/todos/new" role="button"
+  <a href="/todos/new" class="btn btn-primary"
       hx-get="/todos/new"
       hx-target="#main-content"
       hx-push-url="true">Create Todo</a>
@@ -14,12 +14,12 @@
 </p>
 
 <% const f = typeof filters !== 'undefined' ? filters : { priority: '', status: '', q: '' }; %>
-<article>
-  <form hx-get="/todos" hx-target="#main-content" hx-push-url="true">
-    <div class="grid">
-      <label>
-        Priority
-        <select name="priority" onchange="this.form.requestSubmit()">
+<form hx-get="/todos" hx-target="#main-content" hx-push-url="true" class="card mb-3">
+  <div class="card-body">
+    <div class="row g-2">
+      <div class="col-auto">
+        <label class="form-label">Priority</label>
+        <select name="priority" class="form-select" onchange="this.form.requestSubmit()">
           <option value="">All</option>
           <option value="high"<%= f.priority === 'high' ? ' selected' : '' %>>High</option>
           <option value="medium"<%= f.priority === 'medium' ? ' selected' : '' %>>Medium</option>
@@ -29,27 +29,28 @@
           <option value="P2"<%= f.priority === 'P2' ? ' selected' : '' %>>P2</option>
           <option value="PX"<%= f.priority === 'PX' ? ' selected' : '' %>>PX</option>
         </select>
-      </label>
-      <label>
-        Status
-        <select name="status" onchange="this.form.requestSubmit()">
+      </div>
+      <div class="col-auto">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select" onchange="this.form.requestSubmit()">
           <option value="">All</option>
           <option value="pending"<%= f.status === 'pending' ? ' selected' : '' %>>pending</option>
         </select>
-      </label>
-      <label>
-        Search
+      </div>
+      <div class="col-auto">
+        <label class="form-label">Search</label>
         <input type="search" name="q" value="<%= f.q %>" placeholder="Search titles..."
+               class="form-control"
                hx-get="/todos" hx-target="#main-content" hx-push-url="true"
                hx-trigger="keyup changed delay:300ms, search" hx-include="closest form">
-      </label>
+      </div>
     </div>
-  </form>
-</article>
+  </div>
+</form>
 
 <% if (todos.length > 0) { %>
 <p>
-  <button class="secondary"
+  <button class="btn btn-outline-secondary"
           hx-post="/todos/bulk-complete?priority=<%= encodeURIComponent(f.priority) %>&status=<%= encodeURIComponent(f.status) %>&q=<%= encodeURIComponent(f.q) %>"
           hx-target="#main-content"
           hx-swap="outerHTML"
@@ -57,51 +58,53 @@
           hx-confirm="Complete all <%= todos.length %> visible todo(s)?">
     Complete All Visible (<%= todos.length %>)
   </button>
-  <span id="bulk-spinner" class="htmx-indicator" aria-busy="true"></span>
+  <span id="bulk-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status"></span>
 </p>
-<article>
-  <div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">ID</th>
-        <th scope="col">Title</th>
-        <th scope="col">Priority</th>
-        <th scope="col">Phase</th>
-        <th scope="col">Status</th>
-        <th scope="col">Created</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% todos.forEach(function(todo) { %>
-      <tr>
-        <td><%= todo.id %></td>
-        <td>
-          <a href="/todos/<%= todo.id %>"
-             hx-get="/todos/<%= todo.id %>"
-             hx-target="#main-content"
-             hx-push-url="true">
-            <%= todo.title %>
-          </a>
-        </td>
-        <td>
-          <span class="status-badge" data-priority="<%= todo.priority %>">
-            <%= todo.priority %>
-          </span>
-        </td>
-        <td><%= todo.phase || '—' %></td>
-        <td>
-          <span class="status-badge" data-status="<%= todo.status %>">
-            <%= todo.status %>
-          </span>
-        </td>
-        <td><%= todo.created ? new Date(todo.created).toISOString().slice(0, 10) : '—' %></td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-vcenter table-hover card-table">
+      <thead>
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Title</th>
+          <th scope="col">Priority</th>
+          <th scope="col">Phase</th>
+          <th scope="col">Status</th>
+          <th scope="col">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% todos.forEach(function(todo) { %>
+        <tr>
+          <td><%= todo.id %></td>
+          <td>
+            <a href="/todos/<%= todo.id %>"
+               hx-get="/todos/<%= todo.id %>"
+               hx-target="#main-content"
+               hx-push-url="true">
+              <%= todo.title %>
+            </a>
+          </td>
+          <td>
+            <span class="status-badge" data-priority="<%= todo.priority %>">
+              <%= todo.priority %>
+            </span>
+          </td>
+          <td><%= todo.phase || '—' %></td>
+          <td>
+            <span class="status-badge" data-status="<%= todo.status %>">
+              <%= todo.status %>
+            </span>
+          </td>
+          <td><%= todo.created ? new Date(todo.created).toISOString().slice(0, 10) : '—' %></td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    </div>
   </div>
-</article>
+</div>
 <% } else { %>
-<%- include('empty-state', { icon: '📋', title: 'No todos found', action: '<p><a href="/todos/new" role="button" hx-get="/todos/new" hx-target="#main-content" hx-push-url="true">Create Todo</a></p>' }) %>
+<%- include('empty-state', { icon: '📋', title: 'No todos found', action: '<p><a href="/todos/new" class="btn btn-primary" hx-get="/todos/new" hx-target="#main-content" hx-push-url="true">Create Todo</a></p>' }) %>
 <% } %>
