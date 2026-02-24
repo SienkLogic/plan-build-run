@@ -5,6 +5,20 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.31.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.30.0...plan-build-run-v2.31.0) (2026-02-24)
+
+
+### Features
+
+* **41-01:** create timeline routes, wire into app, link timeline CSS in Layout ([ffc71c6](https://github.com/SienkLogic/plan-build-run/commit/ffc71c6ff32f72cf09894585e96cfd47d9ebad93))
+* **41-01:** create timeline.service.js with event aggregation and filtering ([f585c2b](https://github.com/SienkLogic/plan-build-run/commit/f585c2b28a35ca028a0dfd6fb98fc3f717b0e42d))
+* **41-01:** create TimelinePage component, EventStreamFragment, and timeline CSS ([105b3d3](https://github.com/SienkLogic/plan-build-run/commit/105b3d3e1fc3ea1f0f71c80301056e7a5ec0b125))
+* **41-02:** add analytics and dependency-graph routes; refactor TimelinePage with section tabs ([4998f40](https://github.com/SienkLogic/plan-build-run/commit/4998f4093097953ca1e1e880413be60e07da08b4))
+* **41-02:** add analytics/graph CSS sections and Mermaid CDN to Layout ([95d8853](https://github.com/SienkLogic/plan-build-run/commit/95d88536e406894021e454bb874d9dcc17abd179))
+* **41-02:** add AnalyticsPanel and DependencyGraph components ([5bb080b](https://github.com/SienkLogic/plan-build-run/commit/5bb080bb363a3e2b56f5e2f2054c15e80dc6be23))
+* **42-01:** create SettingsPage shell and ConfigEditor component (form + raw JSON modes) ([98caf06](https://github.com/SienkLogic/plan-build-run/commit/98caf0651314b4185b9c0e851d1607889956cb7f))
+* **quick-008:** inject PBR workflow directive into SessionStart and PreCompact hooks ([c07574e](https://github.com/SienkLogic/plan-build-run/commit/c07574e32365c18e8c9239b8e4398330ba441182))
+
 ## [2.30.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.29.0...plan-build-run-v2.30.0) (2026-02-24)
 
 
