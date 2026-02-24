@@ -20,6 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyError } = require('./local-llm/operations/classify-error');
 
 /**
  * Check if a file was modified recently (within thresholdMs).
@@ -310,7 +312,17 @@ function readStdin() {
   return {};
 }
 
-function main() {
+function loadLocalLlmConfig(cwd) {
+  try {
+    const configPath = path.join(cwd, '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_) {
+    return resolveConfig(undefined);
+  }
+}
+
+async function main() {
   const data = readStdin();
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
@@ -426,8 +438,22 @@ function main() {
       agent_type: agentType,
       warnings: skillWarnings
     });
+    // LLM error classification — advisory enrichment
+    let llmCategoryNote = '';
+    try {
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (errorText) {
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
+        if (llmResult && llmResult.category) {
+          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+        }
+      }
+    } catch (_llmErr) {
+      // Never propagate
+    }
     const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
-      skillWarnings.map(w => `- ${w}`).join('\n');
+      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
     process.stdout.write(JSON.stringify({ additionalContext: msg }));
   } else if (genericMissing) {
     logHook('check-subagent-output', 'PostToolUse', 'warning', {
@@ -435,8 +461,22 @@ function main() {
       expected: outputSpec.description,
       found: 'none'
     });
+    // LLM error classification — advisory enrichment
+    let llmCategoryNote = '';
+    try {
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (errorText) {
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
+        if (llmResult && llmResult.category) {
+          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+        }
+      }
+    } catch (_llmErr) {
+      // Never propagate
+    }
     const output = {
-      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.`
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
     };
     process.stdout.write(JSON.stringify(output));
   } else if (skillWarnings.length > 0) {

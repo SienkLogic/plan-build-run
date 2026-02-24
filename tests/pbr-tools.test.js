@@ -788,6 +788,60 @@ next_top_level: something`;
     });
   });
 
+  describe('llm subcommands', () => {
+    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
+    const { execFileSync } = require('child_process');
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-llm-test-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function runTool(args) {
+      try {
+        const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+          encoding: 'utf8',
+          timeout: 10000,
+          cwd: tmpDir,
+        });
+        return { status: 0, stdout, stderr: '' };
+      } catch (e) {
+        return { status: e.status || 1, stdout: e.stdout || '', stderr: e.stderr || '' };
+      }
+    }
+
+    test('llm status returns JSON with enabled field', () => {
+      const result = runTool(['llm', 'status']);
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      expect(json).toHaveProperty('enabled');
+      expect(json).toHaveProperty('model');
+      expect(json).toHaveProperty('features');
+    });
+
+    test('llm classify exits with error when no args', () => {
+      const result = runTool(['llm', 'classify']);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toMatch(/Usage|fileType/i);
+    });
+
+    test('llm classify PLAN returns null result when LLM disabled', () => {
+      // Write a minimal PLAN.md to tmp dir
+      const tmpPlan = path.join(tmpDir, 'TEST-PLAN.md');
+      fs.writeFileSync(tmpPlan, '---\nphase: test\n---\n# Test\n');
+      const result = runTool(['llm', 'classify', 'PLAN', tmpPlan]);
+      // Should exit 0 and return JSON (null classification when disabled)
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      // When LLM is disabled (default), classification is null
+      expect(json).toHaveProperty('classification');
+    });
+  });
+
   describe('configClearCache', () => {
     test('resets cache so next configLoad reads fresh data', () => {
       const tmpDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache1-'));
