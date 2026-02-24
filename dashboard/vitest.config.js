@@ -1,6 +1,13 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js', '.jsx', '.json']
+  },
+  esbuild: {
+    jsx: 'automatic',
+    jsxImportSource: 'hono/jsx'
+  },
   test: {
     globals: false,
     environment: 'node',

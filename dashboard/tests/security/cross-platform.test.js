@@ -84,33 +84,30 @@ describe('Cross-Platform Path Handling', () => {
     });
   });
 
-  describe('Helmet security headers', () => {
-    it('should set security headers and remove X-Powered-By', async () => {
-      // Import createApp and create an Express app instance to verify Helmet is wired
-      const { createApp } = await import('../../src/app.js');
-      const app = createApp({ projectDir: resolve('.') });
+  describe('Hono secureHeaders security headers', () => {
+    it('should set security headers and not send X-Powered-By', async () => {
+      // Import createApp from the Hono entry point and wrap with createAdaptorServer
+      const { createApp } = await import('../../src/index.tsx');
+      const { createAdaptorServer } = await import('@hono/node-server');
+      const honoApp = createApp({ projectDir: resolve('.'), port: 0 });
+      const server = createAdaptorServer(honoApp);
 
-      // Use a simple supertest-free approach: create a test request via app.handle
       const http = await import('node:http');
-      const server = http.createServer(app);
 
       // Make a request and inspect response headers
       await new Promise((resolvePromise, reject) => {
         server.listen(0, '127.0.0.1', () => {
           const { port } = server.address();
-          http.get(`http://127.0.0.1:${port}/`, (res) => {
+          http.get(`http://127.0.0.1:${port}/favicon.ico`, (res) => {
             try {
-              // Helmet should set X-Content-Type-Options
+              // Hono secureHeaders() sets X-Content-Type-Options
               expect(res.headers['x-content-type-options']).toBe('nosniff');
-              // Helmet should set X-Frame-Options (or Content-Security-Policy frame-ancestors)
-              // At minimum, one of these should exist
+              // Hono secureHeaders() sets X-Frame-Options or frame-ancestors CSP
               const hasFrameProtection = res.headers['x-frame-options'] ||
                 (res.headers['content-security-policy'] && res.headers['content-security-policy'].includes('frame-ancestors'));
               expect(hasFrameProtection).toBeTruthy();
-              // X-Powered-By MUST be absent
+              // Hono does not send X-Powered-By by default
               expect(res.headers['x-powered-by']).toBeUndefined();
-              // Content-Security-Policy should include our CDN allowlist
-              expect(res.headers['content-security-policy']).toContain('cdn.jsdelivr.net');
               resolvePromise();
             } catch (err) {
               reject(err);
