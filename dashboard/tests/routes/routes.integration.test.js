@@ -121,6 +121,12 @@ describe('GET /phases/:phaseId', () => {
     expect(res.status).toBe(200);
   });
 
+  it('includes phase navigation data', async () => {
+    const res = await request(app).get('/phases/01');
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('All Phases');
+  });
+
   it('returns 404 for invalid phase ID format', async () => {
     const res = await request(app).get('/phases/abc');
     expect(res.status).toBe(404);
