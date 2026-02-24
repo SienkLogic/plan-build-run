@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { computeLifetimeMetrics, formatSessionSummary } = require('../plugins/pbr/scripts/local-llm/metrics');
+const { logMetric, computeLifetimeMetrics, formatSessionSummary, seedTotalsFromJsonl } = require('../plugins/pbr/scripts/local-llm/metrics');
 
 // --- helpers ---
 
@@ -116,6 +116,156 @@ describe('computeLifetimeMetrics', () => {
     writeMetrics(dir, [makeEntry({ tokens_saved_frontier: 1_000_000 })]);
     const result = computeLifetimeMetrics(dir, 5.0);
     expect(result.cost_saved_usd).toBeCloseTo(5.0);
+  });
+
+  test('prefers lifetime-totals.json over JSONL scan when present', () => {
+    const dir = makePlanningDir();
+    // Write a JSONL with 2 entries
+    writeMetrics(dir, [
+      makeEntry({ tokens_saved_frontier: 100 }),
+      makeEntry({ tokens_saved_frontier: 200 })
+    ]);
+    // Write a totals file with higher numbers (simulating accumulated history)
+    const totalsFile = path.join(dir, 'logs', 'lifetime-totals.json');
+    fs.writeFileSync(totalsFile, JSON.stringify({
+      total_calls: 500,
+      fallback_count: 10,
+      tokens_saved: 50000,
+      total_latency_ms: 25000
+    }) + '\n', 'utf8');
+
+    const result = computeLifetimeMetrics(dir, 3.0);
+    expect(result.total_calls).toBe(500);
+    expect(result.tokens_saved).toBe(50000);
+    expect(result.fallback_count).toBe(10);
+    expect(result.avg_latency_ms).toBe(50);
+    // by_operation still comes from the JSONL (recent window)
+    expect(result.by_operation.classify).toBeDefined();
+  });
+
+  test('falls back to JSONL scan when lifetime-totals.json missing', () => {
+    const dir = makePlanningDir();
+    writeMetrics(dir, [
+      makeEntry({ tokens_saved_frontier: 100 }),
+      makeEntry({ tokens_saved_frontier: 200 })
+    ]);
+    // No totals file — should behave like before
+    const result = computeLifetimeMetrics(dir, 3.0);
+    expect(result.total_calls).toBe(2);
+    expect(result.tokens_saved).toBe(300);
+  });
+});
+
+// --- logMetric + lifetime totals integration tests ---
+
+describe('logMetric lifetime totals', () => {
+  test('creates lifetime-totals.json on first call with no prior JSONL', () => {
+    const dir = makePlanningDir();
+    logMetric(dir, makeEntry({ tokens_saved_frontier: 500, latency_ms: 100, fallback_used: false }));
+
+    const totalsFile = path.join(dir, 'logs', 'lifetime-totals.json');
+    expect(fs.existsSync(totalsFile)).toBe(true);
+
+    const totals = JSON.parse(fs.readFileSync(totalsFile, 'utf8'));
+    // 1 call: the one we just logged (no prior JSONL to seed from since
+    // the JSONL was also just created by logMetric above)
+    expect(totals.total_calls).toBe(1);
+    expect(totals.tokens_saved).toBe(500);
+    expect(totals.total_latency_ms).toBe(100);
+    expect(totals.fallback_count).toBe(0);
+  });
+
+  test('seeds from existing JSONL when lifetime-totals.json is missing', () => {
+    const dir = makePlanningDir();
+    // Pre-populate JSONL with 5 entries (simulating a pre-upgrade install)
+    writeMetrics(dir, [
+      makeEntry({ tokens_saved_frontier: 100, latency_ms: 50, fallback_used: false }),
+      makeEntry({ tokens_saved_frontier: 200, latency_ms: 60, fallback_used: true }),
+      makeEntry({ tokens_saved_frontier: 300, latency_ms: 70, fallback_used: false }),
+      makeEntry({ tokens_saved_frontier: 400, latency_ms: 80, fallback_used: false }),
+      makeEntry({ tokens_saved_frontier: 500, latency_ms: 90, fallback_used: true })
+    ]);
+    // No lifetime-totals.json — logMetric should seed from JSONL + add new entry
+    logMetric(dir, makeEntry({ tokens_saved_frontier: 50, latency_ms: 10, fallback_used: false }));
+
+    const totalsFile = path.join(dir, 'logs', 'lifetime-totals.json');
+    const totals = JSON.parse(fs.readFileSync(totalsFile, 'utf8'));
+    // 5 seeded + 1 new = 6
+    expect(totals.total_calls).toBe(6);
+    // 100+200+300+400+500 + 50 = 1550
+    expect(totals.tokens_saved).toBe(1550);
+    // 2 fallbacks from seed + 0 from new
+    expect(totals.fallback_count).toBe(2);
+  });
+
+  test('accumulates across multiple logMetric calls', () => {
+    const dir = makePlanningDir();
+    logMetric(dir, makeEntry({ tokens_saved_frontier: 200, latency_ms: 100, fallback_used: false }));
+    logMetric(dir, makeEntry({ tokens_saved_frontier: 300, latency_ms: 150, fallback_used: true }));
+    logMetric(dir, makeEntry({ tokens_saved_frontier: 100, latency_ms: 50, fallback_used: false }));
+
+    const totalsFile = path.join(dir, 'logs', 'lifetime-totals.json');
+    const totals = JSON.parse(fs.readFileSync(totalsFile, 'utf8'));
+    expect(totals.total_calls).toBe(3);
+    expect(totals.tokens_saved).toBe(600);
+    expect(totals.total_latency_ms).toBe(300);
+    expect(totals.fallback_count).toBe(1);
+  });
+
+  test('lifetime totals survive JSONL rotation', () => {
+    const dir = makePlanningDir();
+    // Log 210 entries to trigger rotation (MAX_ENTRIES = 200)
+    for (let i = 0; i < 210; i++) {
+      logMetric(dir, makeEntry({ tokens_saved_frontier: 10, latency_ms: 5 }));
+    }
+
+    // JSONL should be rotated to 200 entries
+    const logFile = path.join(dir, 'logs', 'local-llm-metrics.jsonl');
+    const lines = fs.readFileSync(logFile, 'utf8').split(/\r?\n/).filter((l) => l.trim());
+    expect(lines.length).toBe(200);
+
+    // But lifetime totals should reflect all 210 calls
+    const result = computeLifetimeMetrics(dir, 3.0);
+    expect(result.total_calls).toBe(210);
+    expect(result.tokens_saved).toBe(2100); // 210 * 10
+  });
+});
+
+// --- seedTotalsFromJsonl tests ---
+
+describe('seedTotalsFromJsonl', () => {
+  test('returns zero when no JSONL exists', () => {
+    const dir = makePlanningDir();
+    const result = seedTotalsFromJsonl(path.join(dir, 'logs'));
+    expect(result).toEqual({ total_calls: 0, fallback_count: 0, tokens_saved: 0, total_latency_ms: 0 });
+  });
+
+  test('sums all entries from existing JSONL', () => {
+    const dir = makePlanningDir();
+    writeMetrics(dir, [
+      makeEntry({ tokens_saved_frontier: 100, latency_ms: 50, fallback_used: false }),
+      makeEntry({ tokens_saved_frontier: 200, latency_ms: 60, fallback_used: true })
+    ]);
+    const result = seedTotalsFromJsonl(path.join(dir, 'logs'));
+    expect(result.total_calls).toBe(2);
+    expect(result.tokens_saved).toBe(300);
+    expect(result.total_latency_ms).toBe(110);
+    expect(result.fallback_count).toBe(1);
+  });
+
+  test('skips malformed lines during seeding', () => {
+    const dir = makePlanningDir();
+    const logFile = path.join(dir, 'logs', 'local-llm-metrics.jsonl');
+    const content = [
+      JSON.stringify(makeEntry({ tokens_saved_frontier: 100 })),
+      'not-valid-json',
+      JSON.stringify(makeEntry({ tokens_saved_frontier: 200 }))
+    ].join('\n') + '\n';
+    fs.writeFileSync(logFile, content, 'utf8');
+
+    const result = seedTotalsFromJsonl(path.join(dir, 'logs'));
+    expect(result.total_calls).toBe(2);
+    expect(result.tokens_saved).toBe(300);
   });
 });
 
