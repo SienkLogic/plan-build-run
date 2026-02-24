@@ -25,7 +25,10 @@ function resolveConfig(rawConfig) {
         plan_adequacy: false,
         gap_detection: false,
         context_summarization: false,
-        source_scoring: false
+        source_scoring: false,
+        commit_classification: true,
+        test_triage: true,
+        file_intent_classification: true
       },
       (rawConfig && rawConfig.features) || {}
     ),

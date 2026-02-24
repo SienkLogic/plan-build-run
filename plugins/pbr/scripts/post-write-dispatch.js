@@ -18,10 +18,14 @@
  *   0 = always (PostToolUse hooks are advisory)
  */
 
+const fs = require('fs');
+const path = require('path');
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -115,6 +119,46 @@ function main() {
       if (qualityResult) {
         process.stdout.write(JSON.stringify(qualityResult.output));
         process.exit(0);
+      }
+
+      // LLM file intent classification — advisory enrichment for non-planning files
+      // Skipped for .planning/ files (already handled by plan format / state checks above)
+      const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+      const normalizedPath = filePath.replace(/\\/g, '/');
+      if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
+        try {
+          const cwd = process.cwd();
+          const planningDir = path.join(cwd, '.planning');
+          const llmConfig = (() => {
+            try {
+              const configPath = path.join(planningDir, 'config.json');
+              const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+              return resolveConfig(parsed.local_llm);
+            } catch (_e) {
+              return resolveConfig(undefined);
+            }
+          })();
+
+          let contentSnippet = '';
+          try {
+            const content = data.tool_input?.content || data.tool_input?.new_string || '';
+            contentSnippet = content.slice(0, 400);
+          } catch (_e) {
+            // No content available
+          }
+
+          if (contentSnippet) {
+            const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
+            if (llmResult && llmResult.file_type) {
+              process.stdout.write(JSON.stringify({
+                additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
+              }));
+              process.exit(0);
+            }
+          }
+        } catch (_llmErr) {
+          // Never propagate LLM errors
+        }
       }
 
       process.exit(0);

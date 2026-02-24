@@ -17,10 +17,13 @@
  *   2 = invalid commit message format (blocks the tool)
  */
 
+const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyCommit } = require('./local-llm/operations/classify-commit');
 
 const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip'];
 
@@ -149,12 +152,64 @@ function checkCommit(data) {
   return null;
 }
 
+/**
+ * Load and resolve the local_llm config block from .planning/config.json.
+ * Returns a resolved config (always safe to use — disabled by default on error).
+ */
+function loadLocalLlmConfig(cwd) {
+  try {
+    const configPath = path.join(cwd || process.cwd(), '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_e) {
+    return resolveConfig(undefined);
+  }
+}
+
+/**
+ * Async LLM enrichment for commit messages. Returns an advisory string or null.
+ * Called after checkCommit passes (valid format) to provide semantic classification.
+ *
+ * @param {object} data - parsed hook data
+ * @returns {Promise<string|null>}
+ */
+async function enrichCommitLlm(data) {
+  try {
+    const command = data.tool_input?.command || '';
+    const message = extractCommitMessage(command);
+    if (!message) return null;
+
+    const cwd = process.cwd();
+    const llmConfig = loadLocalLlmConfig(cwd);
+    const planningDir = path.join(cwd, '.planning');
+
+    // Get staged files for scope validation
+    let stagedFiles = [];
+    try {
+      const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+      stagedFiles = output.trim().split('\n').filter(Boolean);
+    } catch (_e) {
+      // Not in a git repo — skip staged files context
+    }
+
+    const llmResult = await classifyCommit(llmConfig, planningDir, message, stagedFiles, data.session_id);
+    if (llmResult && llmResult.classification !== 'correct') {
+      return 'LLM commit advisory: ' + llmResult.classification +
+        ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)';
+    }
+    return null;
+  } catch (_llmErr) {
+    // Never propagate LLM errors
+    return null;
+  }
+}
+
 function main() {
   let input = '';
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
       const result = checkCommit(data);
@@ -162,6 +217,15 @@ function main() {
         process.stdout.write(JSON.stringify(result.output));
         process.exit(result.exitCode);
       }
+
+      // LLM semantic classification — advisory only (after format validation passes)
+      const llmAdvisory = await enrichCommitLlm(data);
+      if (llmAdvisory) {
+        process.stdout.write(JSON.stringify({
+          additionalContext: '[pbr] ' + llmAdvisory
+        }));
+      }
+
       process.exit(0);
     } catch (_e) {
       // Parse error - don't block
@@ -197,5 +261,5 @@ function extractCommitMessage(command) {
   return null;
 }
 
-module.exports = { checkCommit };
+module.exports = { checkCommit, enrichCommitLlm };
 if (require.main === module || process.argv[1] === __filename) { main(); }

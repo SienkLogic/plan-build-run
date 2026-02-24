@@ -273,7 +273,10 @@
             "plan_adequacy": { "type": "boolean" },
             "gap_detection": { "type": "boolean" },
             "context_summarization": { "type": "boolean" },
-            "source_scoring": { "type": "boolean" }
+            "source_scoring": { "type": "boolean" },
+            "commit_classification": { "type": "boolean" },
+            "test_triage": { "type": "boolean" },
+            "file_intent_classification": { "type": "boolean" }
           },
           "additionalProperties": false
         },
