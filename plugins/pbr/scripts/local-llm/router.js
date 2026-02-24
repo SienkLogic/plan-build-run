@@ -1,5 +1,7 @@
 'use strict';
 
+const { runShadow } = require('./shadow');
+
 const COMPLEXITY_HIGH_THRESHOLD = 0.65;
 
 /**
@@ -46,9 +48,14 @@ function extractConfidence(logprobsData) {
  * @param {string} operationType - operation identifier
  * @param {function(boolean): Promise<{content: string, logprobsData: Array|null}>} callLocalFn
  *   Async function accepting a logprobs boolean, returns the local LLM result object.
+ * @param {string} [planningDir] - path to .planning directory; when provided enables shadow mode
+ * @param {Function} [frontierResultFn] - async function that calls the frontier model;
+ *   NOTE: parameter inversion vs shadow.js — here LOCAL has already run (it's the primary result)
+ *   and FRONTIER is the shadow. We pass frontierResultFn as shadow.js arg 4 (localResultFn slot)
+ *   so shadow.js calls it, and result.content as arg 5 (frontierResult slot, the committed result).
  * @returns {Promise<{content: string, logprobsData: Array|null}|null>}
  */
-async function route(config, prompt, operationType, callLocalFn) {
+async function route(config, prompt, operationType, callLocalFn, planningDir, frontierResultFn) {
   try {
     const routingStrategy = (config && config.routing_strategy) || 'local_first';
     const confidenceThreshold = (config && config.advanced && config.advanced.confidence_threshold) || 0.9;
@@ -57,6 +64,9 @@ async function route(config, prompt, operationType, callLocalFn) {
       const score = scoreComplexity(prompt);
       if (score >= 0.3) return null;
       const result = await callLocalFn(false);
+      if (result !== null && planningDir && frontierResultFn) {
+        runShadow(config, planningDir, operationType, frontierResultFn, result.content);
+      }
       return result;
     }
 
@@ -66,6 +76,9 @@ async function route(config, prompt, operationType, callLocalFn) {
       const result = await callLocalFn(true);
       const confidence = extractConfidence(result && result.logprobsData);
       if (confidence === null || confidence < 0.75) return null;
+      if (result !== null && planningDir && frontierResultFn) {
+        runShadow(config, planningDir, operationType, frontierResultFn, result.content);
+      }
       return result;
     }
 
@@ -75,6 +88,9 @@ async function route(config, prompt, operationType, callLocalFn) {
     const result = await callLocalFn(true);
     const confidence = extractConfidence(result && result.logprobsData);
     if (confidence === null || confidence < confidenceThreshold) return null;
+    if (result !== null && planningDir && frontierResultFn) {
+      runShadow(config, planningDir, operationType, frontierResultFn, result.content);
+    }
     return result;
   } catch (_) {
     return null;
