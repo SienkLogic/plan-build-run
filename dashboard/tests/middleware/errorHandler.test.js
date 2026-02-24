@@ -186,7 +186,7 @@ describe('errorHandler', () => {
     errorHandler(err, req, res, next);
 
     const sentHtml = res.send.mock.calls[0][0];
-    expect(sentHtml).not.toContain('onerror=');
+    expect(sentHtml).not.toContain('<img src=x onerror=');
     expect(sentHtml).toContain('&lt;img');
   });
 
