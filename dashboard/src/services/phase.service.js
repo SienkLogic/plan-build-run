@@ -159,7 +159,9 @@ export async function getPhaseDetail(projectDir, phaseId) {
     const oldMatch = planFile.match(/^(\d{2}-\d{2})-PLAN\.md$/);
     const newMatch = planFile.match(/^PLAN-(\d{2})\.md$/);
     const planId = oldMatch ? oldMatch[1] : newMatch ? `${phaseId.padStart(2, '0')}-${newMatch[1]}` : `${phaseId.padStart(2, '0')}-${String(index + 1).padStart(2, '0')}`;
-    return { planId, planFile, summaryPath: join(phaseFullPath, `SUMMARY-${planId}.md`) };
+    // Summary files use just the sequence number for PLAN-NN.md format (SUMMARY-NN.md)
+    const summaryName = newMatch ? `SUMMARY-${newMatch[1]}.md` : `SUMMARY-${planId}.md`;
+    return { planId, planFile, summaryPath: join(phaseFullPath, summaryName) };
   });
 
   const summaryResults = await Promise.allSettled(
@@ -257,7 +259,9 @@ export async function getPhaseDocument(projectDir, phaseId, planId, docType) {
   } else if (docType === 'verification') {
     fileNames = ['VERIFICATION.md'];
   } else {
-    fileNames = [`SUMMARY-${planId}.md`];
+    // Try both formats: SUMMARY-NN.md (sequence only) and SUMMARY-{planId}.md (full ID)
+    const seqMatch = planId.match(/^\d{2}-(\d{2})$/);
+    fileNames = seqMatch ? [`SUMMARY-${seqMatch[1]}.md`, `SUMMARY-${planId}.md`] : [`SUMMARY-${planId}.md`];
   }
 
   for (const fileName of fileNames) {

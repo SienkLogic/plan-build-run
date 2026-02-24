@@ -44,9 +44,9 @@ describe('breadcrumbs partial', () => {
 
   it('renders home icon link', async () => {
     const html = await renderBreadcrumbs([{ label: 'Test' }]);
-    // Home icon (&#8962;) with link to /
+    // Home icon SVG with link to /
     expect(html).toContain('href="/"');
-    expect(html).toContain('&#8962;');
+    expect(html).toContain('<svg');
   });
 
   it('escapes special characters in labels', async () => {
