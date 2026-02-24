@@ -5,28 +5,25 @@
 <%- include('empty-state', { icon: 'L', title: 'No log files found', action: 'Log files appear in .planning/logs/ when PBR hooks run with local LLM routing enabled.' }) %>
 <% } else { %>
 
-<div class="logs-layout" style="display:flex;gap:var(--spacing-md);align-items:flex-start">
+<div class="d-flex gap-3 align-items-start">
 
   <%# File browser sidebar %>
   <aside style="min-width:220px;max-width:260px;flex-shrink:0">
-    <article>
-      <header><strong>Log Files</strong></header>
-      <ul style="list-style:none;padding:0;margin:0">
+    <div class="card">
+      <div class="card-header"><strong>Log Files</strong></div>
+      <div class="list-group list-group-flush">
         <% logFiles.forEach(function(lf) { %>
-        <li style="padding:0.25rem 0;border-bottom:1px solid var(--card-border)">
-          <a href="/logs?file=<%= lf.name %>"
-             hx-get="/logs?file=<%= lf.name %>"
-             hx-target="#main-content"
-             hx-push-url="true"
-             <% if (selectedFile === lf.name) { %>aria-current="page"<% } %>>
-            <%= lf.name %>
-          </a>
-          <br>
-          <small><%= Math.round(lf.size / 1024) %> KB &middot; <%= lf.modified ? lf.modified.slice(0,10) : '' %></small>
-        </li>
+        <a href="/logs?file=<%= lf.name %>"
+           hx-get="/logs?file=<%= lf.name %>"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="list-group-item list-group-item-action<% if (selectedFile === lf.name) { %> active<% } %>">
+          <%= lf.name %>
+          <br><small class="text-muted"><%= Math.round(lf.size / 1024) %> KB &middot; <%= lf.modified ? lf.modified.slice(0,10) : '' %></small>
+        </a>
         <% }); %>
-      </ul>
-    </article>
+      </div>
+    </div>
   </aside>
 
   <%# Main log viewer %>
@@ -37,27 +34,27 @@
     <form hx-get="/logs"
           hx-target="#main-content"
           hx-push-url="true"
-          style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:var(--spacing-sm)">
+          class="d-flex flex-wrap gap-2 mb-2">
       <input type="hidden" name="file" value="<%= selectedFile %>">
       <input type="text" name="type" placeholder="Type filter (e.g. tool_use)"
              value="<%= typeof filters !== 'undefined' ? filters.type : '' %>"
-             style="width:200px">
+             class="form-control" style="width:200px">
       <input type="search" name="q" placeholder="Search entries..."
              value="<%= typeof filters !== 'undefined' ? filters.q : '' %>"
-             style="flex:1;min-width:160px">
-      <button type="submit">Filter</button>
+             class="form-control flex-grow-1" style="min-width:160px">
+      <button type="submit" class="btn btn-outline-secondary">Filter</button>
       <% if (typeof filters !== 'undefined' && (filters.type || filters.q)) { %>
       <a href="/logs?file=<%= selectedFile %>"
          hx-get="/logs?file=<%= selectedFile %>"
          hx-target="#main-content"
          hx-push-url="true"
-         role="button" class="secondary">Clear</a>
+         class="btn btn-outline-secondary">Clear</a>
       <% } %>
     </form>
 
     <%# Auto-scroll toggle + live indicator %>
-    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:var(--spacing-sm)">
-      <label style="display:flex;align-items:center;gap:0.4rem;cursor:pointer">
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <label class="d-flex align-items-center gap-2" style="cursor:pointer">
         <input type="checkbox" id="auto-scroll-toggle" checked style="margin:0">
         <small>Auto-scroll</small>
       </label>
@@ -77,14 +74,14 @@
 
     <%# Pagination %>
     <% if (logData && logData.total > logData.pageSize) { %>
-    <nav style="display:flex;gap:0.5rem;margin-top:var(--spacing-sm);align-items:center">
+    <nav class="d-flex gap-2 mt-2 align-items-center">
       <% const totalPages = Math.ceil(logData.total / logData.pageSize); %>
       <% if (logData.page > 1) { %>
       <a href="/logs?file=<%= selectedFile %>&page=<%= logData.page - 1 %>&type=<%= (filters || {}).type || '' %>&q=<%= (filters || {}).q || '' %>"
          hx-get="/logs?file=<%= selectedFile %>&page=<%= logData.page - 1 %>&type=<%= (filters || {}).type || '' %>&q=<%= (filters || {}).q || '' %>"
          hx-target="#main-content"
          hx-push-url="true"
-         role="button" class="secondary">&larr; Prev</a>
+         class="btn btn-outline-secondary">&larr; Prev</a>
       <% } %>
       <small>Page <%= logData.page %> of <%= totalPages %> (<%= logData.total %> entries)</small>
       <% if (logData.page < totalPages) { %>
@@ -92,14 +89,14 @@
          hx-get="/logs?file=<%= selectedFile %>&page=<%= logData.page + 1 %>&type=<%= (filters || {}).type || '' %>&q=<%= (filters || {}).q || '' %>"
          hx-target="#main-content"
          hx-push-url="true"
-         role="button" class="secondary">Next &rarr;</a>
+         class="btn btn-outline-secondary">Next &rarr;</a>
       <% } %>
     </nav>
     <% } %>
 
     <% } else { %>
-    <div style="text-align:center;padding:var(--space-xl) var(--space-md);color:var(--color-text-dim)">
-      <p style="font-size:1.5rem;margin-bottom:var(--space-sm)">&#8592;</p>
+    <div class="text-center py-4 text-muted">
+      <p style="font-size:1.5rem;margin-bottom:0.5rem">&#8592;</p>
       <p>Select a log file from the list to view entries.</p>
     </div>
     <% } %>
