@@ -7,9 +7,11 @@ import { getAllMilestones, getMilestoneDetail } from '../services/milestone.serv
 import { getProjectAnalytics } from '../services/analytics.service.js';
 import { getLlmMetrics } from '../services/local-llm-metrics.service.js';
 import { listNotes, getNoteBySlug } from '../services/notes.service.js';
+import { listResearchDocs, listCodebaseDocs, getResearchDocBySlug } from '../services/research.service.js';
 import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
 import { listAuditReports, getAuditReport } from '../services/audit.service.js';
 import { readConfig, writeConfig } from '../services/config.service.js';
+import { getRequirementsData } from '../services/requirements.service.js';
 
 /**
  * Merge flat HTML form fields back into a nested config object.
@@ -527,6 +529,88 @@ router.get('/notes/:slug', async (req, res) => {
     res.render('partials/note-detail-content', templateData);
   } else {
     res.render('note-detail', templateData);
+  }
+});
+
+router.get('/research', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const [researchDocs, codebaseDocs] = await Promise.all([
+    listResearchDocs(projectDir),
+    listCodebaseDocs(projectDir)
+  ]);
+
+  const templateData = {
+    title: 'Research',
+    activePage: 'research',
+    currentPath: '/research',
+    breadcrumbs: [{ label: 'Research' }],
+    researchDocs,
+    codebaseDocs
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/research-content', templateData);
+  } else {
+    res.render('research', templateData);
+  }
+});
+
+router.get('/research/:slug', async (req, res) => {
+  const { slug } = req.params;
+
+  // Validate slug: lowercase alphanumeric, dashes, and dots only
+  if (!/^[a-z0-9._-]+$/.test(slug)) {
+    const err = new Error('Invalid research document slug format');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const doc = await getResearchDocBySlug(projectDir, slug);
+
+  if (!doc) {
+    const err = new Error(`Research document "${slug}" not found`);
+    err.status = 404;
+    throw err;
+  }
+
+  const templateData = {
+    title: doc.title,
+    activePage: 'research',
+    currentPath: '/research/' + slug,
+    breadcrumbs: [{ label: 'Research', url: '/research' }, { label: doc.title }],
+    ...doc
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/research-detail-content', templateData);
+  } else {
+    res.render('research-detail', templateData);
+  }
+});
+
+router.get('/requirements', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const { sections, totalCount, coveredCount } = await getRequirementsData(projectDir);
+
+  const templateData = {
+    title: 'Requirements',
+    activePage: 'requirements',
+    currentPath: '/requirements',
+    breadcrumbs: [{ label: 'Requirements' }],
+    sections,
+    totalCount,
+    coveredCount,
+    uncoveredCount: totalCount - coveredCount
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/requirements-content', templateData);
+  } else {
+    res.render('requirements', templateData);
   }
 });
 
