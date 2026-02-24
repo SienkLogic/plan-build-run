@@ -423,36 +423,6 @@ details li {
   margin: var(--space-lg) 0;
 }
 
-/* --- Breadcrumbs --- */
-.breadcrumbs {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 var(--space-md) 0;
-  font-size: 0.85rem;
-  gap: var(--space-xs);
-}
-
-.breadcrumbs li + li::before {
-  content: ">";
-  margin-right: var(--space-xs);
-  color: var(--color-text-dim);
-}
-
-.breadcrumbs a {
-  color: var(--color-accent);
-  text-decoration: none;
-}
-
-.breadcrumbs a:hover {
-  text-decoration: underline;
-}
-
-.breadcrumbs [aria-current="page"] {
-  color: var(--color-text-dim);
-  font-weight: 500;
-}
-
 /* --- Phase Timeline (homepage) --- */
 .phase-timeline {
   list-style: none;
@@ -602,17 +572,6 @@ main > p:first-of-type > a[href="/"]:hover {
 :focus-visible {
   outline: 2px solid var(--pico-primary);
   outline-offset: 2px;
-}
-
-/* --- Empty State --- */
-.empty-state {
-  text-align: center;
-  padding: var(--space-2xl) var(--space-lg);
-}
-
-.empty-state h3 {
-  color: var(--color-text-dim);
-  font-weight: 500;
 }
 
 /* --- Error Card --- */

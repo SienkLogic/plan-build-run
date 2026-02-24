@@ -97,6 +97,13 @@
   border-color: rgba(129, 140, 248, 0.2);
 }
 
+/* Tabler .badge compatibility shim */
+.badge.status-badge {
+  font-size: var(--badge-font-size-base);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 /* Size variants */
 .status-badge--sm {
   padding: var(--badge-padding-sm);
