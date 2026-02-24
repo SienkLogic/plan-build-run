@@ -25,13 +25,29 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { atomicWrite } = require('./pbr-tools');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
 
-function main() {
+/**
+ * Load and resolve the local_llm config block from .planning/config.json.
+ * Returns a resolved config (always safe to use — disabled by default on error).
+ */
+function loadLocalLlmConfig() {
+  try {
+    const configPath = path.join(process.cwd(), '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_e) {
+    return resolveConfig(undefined);
+  }
+}
+
+async function main() {
   let input = '';
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
 
@@ -61,6 +77,22 @@ function main() {
           : isRoadmap
             ? validateRoadmap(content, filePath)
             : validateSummary(content, filePath);
+
+      // LLM advisory enrichment — advisory only, never blocks
+      if ((isPlan || isSummary) && result.errors.length === 0) {
+        try {
+          const llmConfig = loadLocalLlmConfig();
+          const planningDir = path.join(process.cwd(), '.planning');
+          const fileType = isPlan ? 'PLAN' : 'SUMMARY';
+          const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, undefined);
+          if (llmResult && llmResult.classification) {
+            const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
+            result.warnings.push(llmNote);
+          }
+        } catch (_llmErr) {
+          // Never propagate LLM errors
+        }
+      }
 
       const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
 
@@ -227,9 +259,9 @@ function validateSummary(content, _filePath) {
 /**
  * Core plan/summary check logic for use by dispatchers.
  * @param {Object} data - Parsed hook input (tool_input, etc.)
- * @returns {null|{output: Object}} null if pass or not applicable, result otherwise
+ * @returns {Promise<null|{output: Object}>} null if pass or not applicable, result otherwise
  */
-function checkPlanWrite(data) {
+async function checkPlanWrite(data) {
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const basename = path.basename(filePath);
   const isPlan = basename.endsWith('PLAN.md');
@@ -248,6 +280,22 @@ function checkPlanWrite(data) {
       : isRoadmap
         ? validateRoadmap(content, filePath)
         : validateSummary(content, filePath);
+
+  // LLM advisory enrichment — advisory only, never blocks
+  if ((isPlan || isSummary) && result.errors.length === 0) {
+    try {
+      const llmConfig = loadLocalLlmConfig();
+      const planningDir = path.join(process.cwd(), '.planning');
+      const fileType = isPlan ? 'PLAN' : 'SUMMARY';
+      const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, undefined);
+      if (llmResult && llmResult.classification) {
+        const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
+        result.warnings.push(llmNote);
+      }
+    } catch (_llmErr) {
+      // Never propagate LLM errors
+    }
+  }
 
   const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
 

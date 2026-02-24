@@ -1124,4 +1124,10 @@ Status: built
       }
     });
   });
+
+  describe('LLM integration smoke test', () => {
+    test('validate-task module loads with LLM requires', () => {
+      expect(() => require('../plugins/pbr/scripts/validate-task.js')).not.toThrow();
+    });
+  });
 });

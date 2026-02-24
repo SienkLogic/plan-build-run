@@ -20,26 +20,26 @@ afterEach(() => {
 });
 
 describe('checkPlanWrite', () => {
-  test('returns null for non-plan/summary files', () => {
-    const result = checkPlanWrite({ tool_input: { file_path: path.join(tmpDir, 'src', 'index.ts') } });
+  test('returns null for non-plan/summary files', async () => {
+    const result = await checkPlanWrite({ tool_input: { file_path: path.join(tmpDir, 'src', 'index.ts') } });
     expect(result).toBeNull();
   });
 
-  test('returns null when file does not exist', () => {
-    const result = checkPlanWrite({ tool_input: { file_path: path.join(tmpDir, 'PLAN.md') } });
+  test('returns null when file does not exist', async () => {
+    const result = await checkPlanWrite({ tool_input: { file_path: path.join(tmpDir, 'PLAN.md') } });
     expect(result).toBeNull();
   });
 
-  test('returns block output for PLAN.md with errors', () => {
+  test('returns block output for PLAN.md with errors', async () => {
     const filePath = path.join(tmpDir, 'PLAN.md');
     fs.writeFileSync(filePath, '# Plan without frontmatter\nNo tasks');
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.decision).toBe('block');
     expect(result.output.reason).toContain('Missing YAML frontmatter');
   });
 
-  test('returns null for valid PLAN.md', () => {
+  test('returns null for valid PLAN.md', async () => {
     const filePath = path.join(tmpDir, 'test-PLAN.md');
     fs.writeFileSync(filePath, `---
 phase: 01-setup
@@ -57,11 +57,11 @@ must_haves:
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).toBeNull();
   });
 
-  test('returns warning output for SUMMARY.md with deferred missing', () => {
+  test('returns warning output for SUMMARY.md with deferred missing', async () => {
     const filePath = path.join(tmpDir, 'SUMMARY-01.md');
     fs.writeFileSync(filePath, `---
 phase: 01
@@ -73,32 +73,32 @@ key_files:
   - package.json
 ---
 Body`);
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.additionalContext).toContain('deferred');
   });
 
-  test('returns block for SUMMARY.md missing required fields', () => {
+  test('returns block for SUMMARY.md missing required fields', async () => {
     const filePath = path.join(tmpDir, 'SUMMARY.md');
     fs.writeFileSync(filePath, `---
 phase: 01
 ---
 Body`);
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.decision).toBe('block');
   });
 
-  test('handles VERIFICATION.md', () => {
+  test('handles VERIFICATION.md', async () => {
     const filePath = path.join(tmpDir, 'VERIFICATION.md');
     fs.writeFileSync(filePath, '# No frontmatter');
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.decision).toBe('block');
     expect(result.output.reason).toContain('Missing YAML frontmatter');
   });
 
-  test('returns null for valid VERIFICATION.md', () => {
+  test('returns null for valid VERIFICATION.md', async () => {
     const filePath = path.join(tmpDir, 'VERIFICATION.md');
     fs.writeFileSync(filePath, `---
 status: passed
@@ -109,22 +109,22 @@ must_haves_passed: 3
 must_haves_failed: 0
 ---
 All good`);
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).toBeNull();
   });
 
-  test('includes warnings alongside errors for PLAN.md', () => {
+  test('includes warnings alongside errors for PLAN.md', async () => {
     // Plans currently don't have warnings, but we test the code path
     const filePath = path.join(tmpDir, 'PLAN.md');
     fs.writeFileSync(filePath, '# No frontmatter\nNo tasks');
-    const result = checkPlanWrite({ tool_input: { file_path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result.output.decision).toBe('block');
   });
 
-  test('uses path field when file_path is absent', () => {
+  test('uses path field when file_path is absent', async () => {
     const filePath = path.join(tmpDir, 'PLAN.md');
     fs.writeFileSync(filePath, '# No frontmatter');
-    const result = checkPlanWrite({ tool_input: { path: filePath } });
+    const result = await checkPlanWrite({ tool_input: { path: filePath } });
     expect(result).not.toBeNull();
   });
 });
