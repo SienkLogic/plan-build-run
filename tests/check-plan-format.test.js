@@ -750,4 +750,17 @@ All checks passed.`);
       expect(result.content).toContain('Phase: 12 of 15 (Testing)');
     });
   });
-});
+
+  describe('LLM integration smoke test', () => {
+    test('check-plan-format module loads with LLM requires', () => {
+      // If classifyArtifact require fails, this will throw
+      expect(() => require('../plugins/pbr/scripts/check-plan-format.js')).not.toThrow();
+    });
+
+    test('validatePlan still returns structural errors without LLM', () => {
+      const { validatePlan } = require('../plugins/pbr/scripts/check-plan-format.js');
+      const result = validatePlan('no frontmatter', '/fake/PLAN.md');
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
+});

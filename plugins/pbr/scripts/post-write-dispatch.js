@@ -68,7 +68,7 @@ function main() {
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
 
@@ -76,7 +76,7 @@ function main() {
       // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
       // check below. The plan format check validates frontmatter structure, while
       // state-sync auto-updates ROADMAP.md and STATE.md tracking fields.
-      const planResult = checkPlanWrite(data);
+      const planResult = await checkPlanWrite(data);
       if (planResult) {
         process.stdout.write(JSON.stringify(planResult.output));
         process.exit(0);
