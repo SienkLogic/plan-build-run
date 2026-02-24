@@ -88,12 +88,12 @@ function main() {
         // Warn about touching production config files
         if (/\b(production|prod)\b.*\.(json|ya?ml|env|conf|cfg)\b/i.test(command) ||
             /\.(json|ya?ml|env|conf|cfg)\b.*\b(production|prod)\b/i.test(command)) {
-          warnings.push('command references production config files');
+          warnings.push('command references production config files — verify you are not in a live environment');
         }
 
         // Warn about database operations
         if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
-          warnings.push('destructive database operation detected — verify target');
+          warnings.push('destructive database operation (DROP/TRUNCATE/DELETE/ALTER) — verify correct database is targeted and a backup exists');
         }
 
         if (warnings.length > 0) {

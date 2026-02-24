@@ -49,7 +49,7 @@ function checkTask(data) {
 
   // Check description exists and is non-empty
   if (!description || (typeof description === 'string' && !description.trim())) {
-    warnings.push('Task() called without a description. Descriptions help track agent purpose.');
+    warnings.push('Task() called without a description. Descriptions are required for audit logging and skill enforcement. Add a short description (3-5 words), e.g.: "Build phase 3 executor".');
   } else if (typeof description === 'string') {
     // Check description length
     if (description.length > MAX_DESCRIPTION_LENGTH) {
