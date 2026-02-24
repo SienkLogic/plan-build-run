@@ -10,13 +10,15 @@
 <p><small><%= date %></small></p>
 <% } %>
 
-<article>
-  <div class="markdown-body">
-    <%- html %>
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="markdown-body">
+      <%- html %>
+    </div>
   </div>
-</article>
+</div>
 
-<p><a href="/notes"
+<p><a href="/notes" class="btn btn-outline-secondary"
       hx-get="/notes"
       hx-target="#main-content"
       hx-push-url="true">Back to Notes</a></p>

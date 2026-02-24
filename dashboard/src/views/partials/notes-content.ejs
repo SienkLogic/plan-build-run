@@ -6,8 +6,8 @@
 <% } else { %>
 <% notes.forEach(function(note) { %>
 <% const noteSlug = note.filename.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\.md$/, ''); %>
-<article class="card">
-  <header class="card__header">
+<div class="card mb-2">
+  <div class="card-header">
     <strong>
       <a href="/notes/<%= noteSlug %>"
          hx-get="/notes/<%= noteSlug %>"
@@ -22,7 +22,7 @@
         <small style="color:var(--color-text-dim)"><%= typeof note.date === 'object' ? note.date.toISOString().slice(0, 10) : String(note.date).slice(0, 10) %></small>
       <% } %>
     </span>
-  </header>
-</article>
+  </div>
+</div>
 <% }); %>
 <% } %>

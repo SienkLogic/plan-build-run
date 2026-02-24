@@ -1,54 +1,59 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Create Todo</h1>
 
-<p><a href="/todos">&larr; Back to Todos</a></p>
+<p><a href="/todos" class="btn btn-outline-secondary">&larr; Back to Todos</a></p>
 
-<article>
-  <form method="POST" action="/todos"
-        hx-post="/todos"
-        hx-target="#main-content">
-    <label>
-      Title
-      <input
-        type="text"
-        name="title"
-        placeholder="Todo title"
-        required
-        maxlength="200"
-      />
-    </label>
+<div class="card">
+  <div class="card-body">
+    <form method="POST" action="/todos"
+          hx-post="/todos"
+          hx-target="#main-content">
+      <div class="mb-3">
+        <label class="form-label">Title</label>
+        <input
+          type="text"
+          name="title"
+          placeholder="Todo title"
+          required
+          maxlength="200"
+          class="form-control"
+        />
+      </div>
 
-    <label>
-      Priority
-      <select name="priority" required>
-        <option value="">Select priority...</option>
-        <option value="P0">P0 - Critical</option>
-        <option value="P1">P1 - High</option>
-        <option value="P2">P2 - Medium</option>
-        <option value="PX">PX - Low</option>
-      </select>
-    </label>
+      <div class="mb-3">
+        <label class="form-label">Priority</label>
+        <select name="priority" required class="form-select">
+          <option value="">Select priority...</option>
+          <option value="P0">P0 - Critical</option>
+          <option value="P1">P1 - High</option>
+          <option value="P2">P2 - Medium</option>
+          <option value="PX">PX - Low</option>
+        </select>
+      </div>
 
-    <label>
-      Phase (optional)
-      <input
-        type="text"
-        name="phase"
-        placeholder="e.g., 09-todo-write-operations"
-      />
-      <small>Format: 01-phase-name</small>
-    </label>
+      <div class="mb-3">
+        <label class="form-label">Phase (optional)</label>
+        <input
+          type="text"
+          name="phase"
+          placeholder="e.g., 09-todo-write-operations"
+          class="form-control"
+        />
+        <small class="form-text text-muted">Format: 01-phase-name</small>
+      </div>
 
-    <label>
-      Description
-      <textarea
-        name="description"
-        rows="10"
-        required
-        placeholder="Markdown content..."
-      ></textarea>
-    </label>
+      <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea
+          name="description"
+          rows="10"
+          required
+          placeholder="Markdown content..."
+          class="form-control"
+        ></textarea>
+      </div>
 
-    <button type="submit">Create Todo</button>
-  </form>
-</article>
+      <button type="submit" class="btn btn-primary">Create Todo</button>
+    </form>
+  </div>
+</div>
