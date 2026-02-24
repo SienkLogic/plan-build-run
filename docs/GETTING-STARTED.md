@@ -6,13 +6,13 @@ This guide walks you through installing Plan-Build-Run and completing your first
 
 ## Prerequisites
 
-- **Claude Code** 2.1.45 or later ([installation guide](https://docs.anthropic.com/en/docs/claude-code))
+- **Claude Code** 2.1.47 or later ([installation guide](https://docs.anthropic.com/en/docs/claude-code))
 - **Node.js** 18 or later
 
 Verify both are installed:
 
 ```bash
-claude --version    # Should be 2.1.45+
+claude --version    # Should be 2.1.47+
 node --version      # Should be v18+
 ```
 
@@ -190,6 +190,35 @@ Toggle specific workflow features:
 /pbr:config feature tdd_mode on            # Use TDD workflow (red/green/refactor commits)
 ```
 
+### Local LLM Offload (Optional)
+
+Plan-Build-Run can offload lightweight hook-level inference (artifact classification, commit scope, error triage) to a local model, saving frontier tokens and API costs. The frontier model still handles all planning, execution, and verification.
+
+**Setup:**
+
+1. Install [Ollama](https://ollama.com/download) for your platform
+2. Pull the recommended model:
+
+```bash
+ollama pull qwen2.5-coder:7b
+```
+
+3. Enable it in your project:
+
+```
+/pbr:config local_llm.enabled true
+```
+
+4. Verify connectivity:
+
+```bash
+node /path/to/plugins/pbr/scripts/pbr-tools.js llm health
+```
+
+That's it. PBR automatically routes low-complexity tasks to the local model and falls back to Claude when confidence is low. You'll see token savings reported in `/pbr:status` and the dashboard analytics page.
+
+**Hardware**: GPU with 6+ GB VRAM recommended. CPU-only works but adds latency. See the [config reference](../plugins/pbr/references/config-reference.md#local_llm) for advanced settings, routing strategies, and Windows-specific notes.
+
 ---
 
 ## Useful Commands to Know
@@ -241,7 +270,7 @@ This directory is the source of truth. You can kill your terminal, reboot, come 
 
 ## Next Steps
 
-- [Workflow Reference](WORKFLOW-REFERENCE.md) -- All 21 commands with descriptions and common workflows
+- [Workflow Reference](WORKFLOW-REFERENCE.md) -- All 26 commands with descriptions and common workflows
 - [Creating Skills](CREATING-SKILLS.md) -- Extend Plan-Build-Run with custom slash commands
 - [Creating Agents](CREATING-AGENTS.md) -- Add specialized agents for your domain
 - [Full Documentation](DOCS.md) -- Comprehensive reference for every skill, agent, and config option

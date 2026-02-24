@@ -26,7 +26,7 @@
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/plan-build-run?style=for-the-badge" alt="License" /></a>
   <a href="https://www.npmjs.com/package/@sienklogic/plan-build-run"><img src="https://img.shields.io/npm/v/@sienklogic/plan-build-run?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
-  <img src="https://img.shields.io/badge/Tests-1213_passing-brightgreen?style=for-the-badge" alt="1213 Tests" />
+  <img src="https://img.shields.io/badge/Tests-2153_passing-brightgreen?style=for-the-badge" alt="2153 Tests" />
 </p>
 
 ---
@@ -218,7 +218,7 @@ Set `depth: quick` in `/pbr:config` to reduce agent spawns across all workflows.
 | `/pbr:build <N>` | Build a phase: parallel execution in waves, atomic commits | 2-4 (quick: 1-2) |
 | `/pbr:review <N>` | Verify a phase: automated 3-layer checks + conversational UAT | 1 |
 
-See **[Commands](https://github.com/SienkLogic/plan-build-run/wiki/Commands)** for all 22 commands with flags, cost-by-depth tables, and detailed descriptions.
+See **[Commands](https://github.com/SienkLogic/plan-build-run/wiki/Commands)** for all 26 commands with flags, cost-by-depth tables, and detailed descriptions.
 
 ---
 
@@ -240,13 +240,60 @@ See **[Architecture](https://github.com/SienkLogic/plan-build-run/wiki/Architect
 
 ---
 
+## Local LLM Offload
+
+Plan-Build-Run can offload lightweight inference tasks to a local model running on your machine, saving frontier tokens and reducing API costs — without sacrificing quality on complex operations.
+
+**This is a novel capability.** Other AI coding frameworks use local LLMs as the primary model or not at all. PBR operates at the **sub-session level**: hook scripts that fire on every tool call use a local model for fast classification tasks (artifact type, commit scope, error category, file intent) while the frontier model handles planning, execution, and verification. You get the cost savings of local inference where it matters, with automatic fallback to Claude when confidence is low.
+
+### How it works
+
+```
+Hook fires (e.g., PostToolUse:Write)
+  │
+  ├─ Complexity scorer evaluates the prompt
+  │   └─ High complexity? → Route to frontier (Claude)
+  │   └─ Low complexity? ↓
+  │
+  ├─ Local LLM classifies (Ollama, ~50-200ms)
+  │   └─ Confidence below threshold? → Fallback to frontier
+  │   └─ Confidence OK? → Use local result ✓
+  │
+  └─ Metrics logged to .planning/logs/local-llm-metrics.jsonl
+```
+
+### Key features
+
+- **3 routing strategies**: `local_first` (default), `balanced`, `quality_first` — control the cost/quality tradeoff
+- **8 offloadable operations**: artifact classification, task validation, commit classification, error classification, file intent, test triage, source scoring, context summarization
+- **Shadow mode**: Run local and frontier in parallel, compare results, but always use frontier output — safe way to validate local accuracy before trusting it
+- **Adaptive threshold tuning**: Analyzes shadow logs to suggest confidence threshold adjustments per operation
+- **Circuit breaker**: Automatically disables local routing after consecutive failures — no cascading slowdowns
+- **Session metrics**: See tokens saved, cost reduction, and per-operation breakdowns via `/pbr:status` or the dashboard
+
+### Quick setup
+
+```bash
+# 1. Install Ollama (ollama.com/download)
+# 2. Pull the recommended model
+ollama pull qwen2.5-coder:7b
+
+# 3. Enable in your project config
+/pbr:config local_llm.enabled true
+```
+
+Requires a GPU with 6+ GB VRAM for best performance. CPU-only works but adds latency. See **[Configuration](https://github.com/SienkLogic/plan-build-run/wiki/Configuration#local_llm)** for full setup details, hardware requirements, and Windows-specific notes.
+
+---
+
 ## Deep Dive
 
 | Topic | Description |
 |-------|-------------|
-| **[Agents](https://github.com/SienkLogic/plan-build-run/wiki/Agents)** | 10 specialized agents with configurable model profiles and file-based communication |
-| **[Configuration](https://github.com/SienkLogic/plan-build-run/wiki/Configuration)** | 12 config keys, depth/model profiles, 16+ feature toggles |
-| **[Hooks](https://github.com/SienkLogic/plan-build-run/wiki/Hooks)** | 15 lifecycle hooks that enforce discipline at zero token cost |
+| **[Agents](https://github.com/SienkLogic/plan-build-run/wiki/Agents)** | 12 specialized agents with configurable model profiles and file-based communication |
+| **[Configuration](https://github.com/SienkLogic/plan-build-run/wiki/Configuration)** | 13 config keys, depth/model profiles, 16+ feature toggles, local LLM settings |
+| **[Hooks](https://github.com/SienkLogic/plan-build-run/wiki/Hooks)** | 38 hook scripts that enforce discipline at zero token cost |
+| **[Local LLM](https://github.com/SienkLogic/plan-build-run/wiki/Configuration#local_llm)** | Offload hook-level inference to Ollama for token savings with automatic fallback |
 | **[Project Structure](https://github.com/SienkLogic/plan-build-run/wiki/Project-Structure)** | The `.planning/` directory layout, key files, and file ownership |
 | **[Dashboard](https://github.com/SienkLogic/plan-build-run/wiki/Dashboard)** | Web UI with live updates for browsing project state |
 | **[Cursor IDE](https://github.com/SienkLogic/plan-build-run/wiki/Cursor-IDE)** | Cursor plugin installation and cross-IDE workflow |
@@ -264,7 +311,7 @@ git clone https://github.com/SienkLogic/plan-build-run.git
 cd plan-build-run
 npm install
 
-# Run tests (1213 tests, 44 suites)
+# Run tests (2153 tests, 73 suites)
 npm test
 
 # Lint
@@ -285,13 +332,14 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 
 | Metric | Count |
 |--------|-------|
-| Skills (slash commands) | 22 |
-| Specialized agents | 10 |
-| Hook scripts | 28 |
+| Skills (slash commands) | 26 |
+| Specialized agents | 12 |
+| Hook scripts | 38 |
+| Local LLM operations | 8 |
 | Supported platforms | 3 (Claude Code, Cursor, Copilot CLI) |
-| Tests | 1213 |
-| Test suites | 44 |
-| Config toggles | 12 top-level keys |
+| Tests | 2153 |
+| Test suites | 73 |
+| Config keys | 13 top-level (62+ properties) |
 
 ---
 
