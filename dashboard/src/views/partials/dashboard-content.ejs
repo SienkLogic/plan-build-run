@@ -8,68 +8,77 @@
 <h1><%= dashboardTitle %></h1>
 
 <!-- Status Cards -->
-<div class="status-cards">
+<div class="row row-cards mb-3">
   <!-- Current Phase Card -->
-  <article class="status-card">
-    <header><strong>Current Phase</strong></header>
-    <% if (currentPhase.id > 0) { %>
-      <p>
-        <a href="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
-           hx-get="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
-           hx-target="#main-content"
-           hx-push-url="true">
-          <span class="status-badge" data-status="<%= currentPhase.status %>">Phase <%= currentPhase.id %></span>
-          <%= currentPhase.name %>
-        </a>
-      </p>
-    <% } else { %>
-      <p>No active phase</p>
-    <% } %>
-    <footer><small><%= currentPhase.planStatus %></small></footer>
-  </article>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-header"><strong>Current Phase</strong></div>
+      <div class="card-body">
+        <% if (currentPhase.id > 0) { %>
+          <a href="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
+             hx-get="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
+             hx-target="#main-content"
+             hx-push-url="true">
+            <span class="status-badge" data-status="<%= currentPhase.status %>">Phase <%= currentPhase.id %></span>
+            <%= currentPhase.name %>
+          </a>
+        <% } else { %>
+          <p>No active phase</p>
+        <% } %>
+      </div>
+      <div class="card-footer"><small class="text-muted"><%= currentPhase.planStatus %></small></div>
+    </div>
+  </div>
 
   <!-- Milestone Progress Card -->
-  <article class="status-card">
-    <header><strong>Milestone Progress</strong></header>
-    <p>
-      <progress value="<%= progress %>" max="100"></progress>
-      <span><%= progress %>%</span>
-    </p>
-    <footer>
-      <small>
-        <% if (phases && phases.length > 0) { %>
-          <%= phases.filter(function(p) { return p.status === 'complete'; }).length %> of <%= phases.length %> phases complete
-        <% } else { %>
-          &mdash;
-        <% } %>
-      </small>
-    </footer>
-  </article>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-header"><strong>Milestone Progress</strong></div>
+      <div class="card-body">
+        <div class="progress mb-2" style="height:0.5rem">
+          <div class="progress-bar" role="progressbar" style="width:<%= progress %>%" aria-valuenow="<%= progress %>" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <span class="text-muted small"><%= progress %>%</span>
+      </div>
+      <div class="card-footer">
+        <small class="text-muted">
+          <% if (phases && phases.length > 0) { %>
+            <%= phases.filter(function(p) { return p.status === 'complete'; }).length %> of <%= phases.length %> phases complete
+          <% } else { %>&mdash;<% } %>
+        </small>
+      </div>
+    </div>
+  </div>
 
   <!-- Pending Todos Card -->
-  <article class="status-card">
-    <header><strong>Pending Todos</strong></header>
-    <p>
-      <a href="/todos"
-         hx-get="/todos"
-         hx-target="#main-content"
-         hx-push-url="true">
-        <%= typeof pendingTodoCount !== 'undefined' ? pendingTodoCount : 0 %>
-      </a>
-    </p>
-    <footer><small>P0/P1 items need attention</small></footer>
-  </article>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-header"><strong>Pending Todos</strong></div>
+      <div class="card-body">
+        <a href="/todos"
+           hx-get="/todos"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="h2 mb-0"><%= typeof pendingTodoCount !== 'undefined' ? pendingTodoCount : 0 %></a>
+      </div>
+      <div class="card-footer"><small class="text-muted">P0/P1 items need attention</small></div>
+    </div>
+  </div>
 
   <!-- Last Activity Card -->
-  <article class="status-card">
-    <header><strong>Last Activity</strong></header>
-    <% if (lastActivity.date) { %>
-      <p><%= lastActivity.date %></p>
-      <footer><small><%= lastActivity.description %></small></footer>
-    <% } else { %>
-      <p>&mdash;</p>
-    <% } %>
-  </article>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card">
+      <div class="card-header"><strong>Last Activity</strong></div>
+      <div class="card-body">
+        <% if (lastActivity.date) { %>
+          <p class="mb-0"><%= lastActivity.date %></p>
+        <% } else { %>
+          <p class="mb-0">&mdash;</p>
+        <% } %>
+      </div>
+      <% if (lastActivity.description) { %><div class="card-footer"><small class="text-muted"><%= lastActivity.description %></small></div><% } %>
+    </div>
+  </div>
 </div>
 
 <!-- Phase Timeline -->
@@ -85,10 +94,10 @@
 </section>
 
 <!-- Quick Actions -->
-<div class="quick-actions">
+<div class="d-flex flex-wrap gap-2 mb-3">
   <% if (typeof quickActions !== 'undefined' && quickActions && quickActions.length > 0) { %>
     <% quickActions.forEach(function(action) { %>
-      <a role="button" class="<%= action.primary ? '' : 'outline' %>"
+      <a class="btn <%= action.primary ? 'btn-primary' : 'btn-outline-secondary' %>"
          href="<%= action.href %>"
          hx-get="<%= action.href %>"
          hx-target="#main-content"
@@ -96,17 +105,17 @@
     <% }); %>
   <% } else { %>
     <% var phaseId = String(currentPhase.id).padStart(2, '0'); %>
-    <a role="button" class="outline"
+    <a class="btn btn-outline-secondary"
        href="/phases/<%= phaseId %>"
        hx-get="/phases/<%= phaseId %>"
        hx-target="#main-content"
        hx-push-url="true">Current Phase</a>
-    <a role="button" class="outline"
+    <a class="btn btn-outline-secondary"
        href="/roadmap"
        hx-get="/roadmap"
        hx-target="#main-content"
        hx-push-url="true">Roadmap</a>
-    <a role="button" class="outline"
+    <a class="btn btn-outline-secondary"
        href="/todos/new"
        hx-get="/todos/new"
        hx-target="#main-content"
