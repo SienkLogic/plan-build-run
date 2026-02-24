@@ -94,9 +94,28 @@ Verify the artifact is imported AND used by other parts of the system (functions
 | Yes | Yes | No | UNWIRED |
 | Yes | Yes | Yes | PASSED |
 
+> **Note:** WIRED status (Level 3) requires correct arguments, not just correct function names. A call that passes `undefined` for a parameter available in scope is `ARGS_WRONG`, not `WIRED`.
+
 ### Step 6: Verify Key Links (Always)
 
 For each key_link: identify source and target components, verify the import path resolves, verify the imported symbol is actually called/used, and verify call signatures match. Watch for: wrong import paths, imported-but-never-called symbols, defined-but-never-applied middleware, registered-but-never-triggered event handlers.
+
+### Step 6b: Argument-Level Spot Checks (Always)
+
+Beyond verifying that calls exist, spot-check that **arguments passed to cross-boundary calls carry the correct values**. A call with the right function but wrong arguments is effectively UNWIRED.
+
+**Focus on:** IDs (session, user, request), config objects, auth tokens, and context data that originate from external boundaries (stdin, env, disk).
+
+**Method:**
+1. For each key_link verified in Step 6, grep the call site and inspect the arguments
+2. Compare each argument against the data source available in the calling scope
+3. Flag any argument that passes `undefined`, `null`, or a hardcoded placeholder when the calling scope has the real value available (e.g., `data.session_id` is in scope but `undefined` is passed)
+
+**Classification:**
+- `WIRED` requires both correct function AND correct arguments
+- `ARGS_WRONG` = correct function called but one or more arguments are incorrect/missing — this is a key link gap
+
+**Example:** A hook script receives `data` from stdin containing `session_id`. If it calls `logMetric(planningDir, { session_id: undefined })` instead of `logMetric(planningDir, { session_id: data.session_id })`, that is an `ARGS_WRONG` gap even though the call itself exists.
 
 ### Step 7: Check Requirements Coverage (Always)
 
@@ -225,3 +244,4 @@ Read `references/stub-patterns.md` for stub detection patterns by technology. Re
 9. DO NOT give PASSED status if ANY must-have fails at ANY level
 10. DO NOT count deferred items as gaps — they are intentionally not implemented
 11. DO NOT be lenient — your job is to find problems, not to be encouraging
+12. DO NOT mark a call as WIRED if it passes hardcoded `undefined`/`null` for parameters that have a known source in scope — check arguments, not just function names
