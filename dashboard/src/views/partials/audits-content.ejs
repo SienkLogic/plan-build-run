@@ -2,33 +2,35 @@
 <h1>Audit Reports</h1>
 
 <% if (typeof reports !== 'undefined' && reports.length > 0) { %>
-<article>
-  <div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">Date</th>
-        <th scope="col">Report</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% reports.forEach(function(report) { %>
-      <tr>
-        <td><%= report.date || '—' %></td>
-        <td>
-          <a href="/audits/<%= report.filename %>"
-             hx-get="/audits/<%= report.filename %>"
-             hx-target="#main-content"
-             hx-push-url="true">
-            <%= report.title %>
-          </a>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th scope="col">Date</th>
+          <th scope="col">Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% reports.forEach(function(report) { %>
+        <tr>
+          <td><%= report.date || '—' %></td>
+          <td>
+            <a href="/audits/<%= report.filename %>"
+               hx-get="/audits/<%= report.filename %>"
+               hx-target="#main-content"
+               hx-push-url="true">
+              <%= report.title %>
+            </a>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    </div>
   </div>
-</article>
+</div>
 <% } else { %>
 <%- include('empty-state', { icon: '🔍', title: 'No audit reports found', action: 'Run /pbr:audit to generate a session audit report.' }) %>
 <% } %>

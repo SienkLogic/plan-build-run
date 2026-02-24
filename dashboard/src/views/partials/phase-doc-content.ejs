@@ -4,15 +4,13 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= docLabel %> <%= planId %></h1>
 
-<p><a href="/phases/<%= phaseId %>">&larr; Back to Phase <%= phaseId %>: <%= phaseName %></a></p>
+<p><a href="/phases/<%= phaseId %>" class="btn btn-outline-secondary">&larr; Back to Phase <%= phaseId %>: <%= phaseName %></a></p>
 
 <% if (frontmatter && Object.keys(frontmatter).length > 0) { %>
-<article>
-  <header>
-    <strong>Metadata</strong>
-  </header>
-  <div class="table-wrap">
-  <table>
+<div class="card mb-3">
+  <div class="card-header"><strong>Metadata</strong></div>
+  <div class="table-responsive">
+  <table class="table table-vcenter">
     <tbody>
       <% Object.entries(frontmatter).forEach(function([key, val]) { %>
         <% if (typeof val !== 'object' || val === null) { %>
@@ -25,14 +23,14 @@
     </tbody>
   </table>
   </div>
-</article>
+</div>
 <% } %>
 
-<article>
-  <header>
-    <strong>Content</strong>
-  </header>
-  <div class="markdown-body">
-    <%- html %>
+<div class="card mb-3">
+  <div class="card-header"><strong>Content</strong></div>
+  <div class="card-body">
+    <div class="markdown-body">
+      <%- html %>
+    </div>
   </div>
-</article>
+</div>
