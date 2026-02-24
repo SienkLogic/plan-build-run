@@ -7,6 +7,7 @@ import { getAllMilestones, getMilestoneDetail } from '../services/milestone.serv
 import { getProjectAnalytics } from '../services/analytics.service.js';
 import { getLlmMetrics } from '../services/local-llm-metrics.service.js';
 import { listNotes } from '../services/notes.service.js';
+import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
 
 const router = Router();
 
@@ -425,6 +426,63 @@ router.get('/roadmap', async (req, res) => {
     res.render('partials/roadmap-content', templateData);
   } else {
     res.render('roadmap', templateData);
+  }
+});
+
+router.get('/quick', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const tasks = await listQuickTasks(projectDir);
+
+  const templateData = {
+    title: 'Quick Tasks',
+    activePage: 'quick',
+    currentPath: '/quick',
+    breadcrumbs: [{ label: 'Quick Tasks' }],
+    tasks
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/quick-content', templateData);
+  } else {
+    res.render('quick', templateData);
+  }
+});
+
+router.get('/quick/:id', async (req, res) => {
+  const { id } = req.params;
+
+  // Validate ID format: must be exactly three digits
+  if (!/^\d{3}$/.test(id)) {
+    const err = new Error('Quick Task ID must be a three-digit number (e.g., 001, 005, 042)');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const task = await getQuickTask(projectDir, id);
+
+  if (!task) {
+    const err = new Error(`Quick task ${id} not found`);
+    err.status = 404;
+    throw err;
+  }
+
+  const templateData = {
+    title: `Quick Task ${task.id}: ${task.title}`,
+    activePage: 'quick',
+    currentPath: '/quick/' + id,
+    breadcrumbs: [{ label: 'Quick Tasks', url: '/quick' }, { label: 'Task ' + id }],
+    ...task
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/quick-detail-content', templateData);
+  } else {
+    res.render('quick-detail', templateData);
   }
 });
 
