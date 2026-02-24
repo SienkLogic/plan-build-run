@@ -22,7 +22,8 @@ describe('check-config-change', () => {
         features: { structured_planning: true },
         models: { researcher: 'sonnet', planner: 'sonnet' },
         gates: { confirm_plan: true },
-        parallelization: { enabled: true, max_concurrent_agents: 3 }
+        parallelization: { enabled: true, max_concurrent_agents: 3 },
+        local_llm: { enabled: false }
       });
 
       try {
@@ -149,7 +150,8 @@ describe('check-config-change', () => {
         version: 2,
         features: {},
         models: {},
-        gates: {}
+        gates: {},
+        local_llm: { enabled: false }
       });
 
       try {

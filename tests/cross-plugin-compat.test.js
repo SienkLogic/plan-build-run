@@ -528,6 +528,50 @@ describe('cross-plugin compatibility', () => {
     });
   });
 
+  describe('local LLM cross-plugin sync', () => {
+    const LOCAL_LLM_AGENTS = ['researcher', 'debugger', 'synthesizer'];
+
+    const LOCAL_LLM_HINT_HEADINGS = {
+      researcher: 'Local LLM Source Scoring',
+      debugger: 'Local LLM Error Classification',
+      synthesizer: 'Local LLM Context Summarization'
+    };
+
+    // Verify PBR canonical agents have the hint sections
+    for (const agentName of LOCAL_LLM_AGENTS) {
+      test(`pbr ${agentName}.md contains local LLM hint section`, () => {
+        const agentPath = path.join(PBR_DIR, 'agents', agentName + '.md');
+        const content = fs.readFileSync(agentPath, 'utf8');
+        expect(content).toMatch(LOCAL_LLM_HINT_HEADINGS[agentName]);
+      });
+    }
+
+    // Verify cursor-pbr derivative agents have matching hint sections
+    for (const agentName of LOCAL_LLM_AGENTS) {
+      test(`cursor-pbr ${agentName}.md contains local LLM hint section`, () => {
+        const agentPath = path.join(CURSOR_DIR, 'agents', agentName + '.md');
+        const content = fs.readFileSync(agentPath, 'utf8');
+        expect(content).toMatch(LOCAL_LLM_HINT_HEADINGS[agentName]);
+      });
+    }
+
+    // Verify copilot-pbr derivative agents have matching hint sections
+    for (const agentName of LOCAL_LLM_AGENTS) {
+      test(`copilot-pbr ${agentName}.agent.md contains local LLM hint section`, () => {
+        const agentPath = path.join(COPILOT_DIR, 'agents', agentName + '.agent.md');
+        const content = fs.readFileSync(agentPath, 'utf8');
+        expect(content).toMatch(LOCAL_LLM_HINT_HEADINGS[agentName]);
+      });
+    }
+
+    // Verify config-reference.md exists and has local_llm section in pbr
+    test('pbr config-reference.md has local_llm section', () => {
+      const refPath = path.join(PBR_DIR, 'references', 'config-reference.md');
+      const content = fs.readFileSync(refPath, 'utf8');
+      expect(content).toMatch(/##\s+local_llm/i);
+    });
+  });
+
   describe('version sync', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 

@@ -44,7 +44,8 @@ function resolveConfig(rawConfig) {
         max_input_tokens: 2000,
         keep_alive: '30m',
         num_ctx: 4096,
-        disable_after_failures: 3
+        disable_after_failures: 3,
+        shadow_mode: false
       },
       (rawConfig && rawConfig.advanced) || {}
     )
