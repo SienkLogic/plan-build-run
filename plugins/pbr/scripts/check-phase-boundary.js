@@ -102,7 +102,7 @@ function main() {
         process.exit(2);
       } else {
         const output = {
-          additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
+          additionalContext: `[Advisory] Cross-phase edit: modifying phase ${filePhase} file while current phase is ${currentPhase}. If unintentional: check STATE.md to confirm correct phase. If intentional (e.g. backfilling docs): no action needed. To suppress: set safety.enforce_phase_boundaries: false in config.json.`
         };
         process.stdout.write(JSON.stringify(output));
       }
@@ -181,7 +181,7 @@ function checkBoundary(data) {
   return {
     exitCode: 0,
     output: {
-      additionalContext: `Warning: editing phase ${filePhase} file but current phase is ${currentPhase}. Ensure this cross-phase edit is intentional.`
+      additionalContext: `[Advisory] Cross-phase edit: modifying phase ${filePhase} file while current phase is ${currentPhase}. If unintentional: check STATE.md to confirm correct phase. If intentional (e.g. backfilling docs): no action needed. To suppress: set safety.enforce_phase_boundaries: false in config.json.`
     }
   };
 }

@@ -121,7 +121,7 @@ function main() {
       if (!stateInfo || !stateInfo.phase || !stateInfo.status) {
         logHook('check-roadmap-sync', 'PostToolUse', 'skip', { reason: 'could not parse STATE.md' });
         const output = {
-          additionalContext: '[Roadmap Sync] Could not parse phase/status from STATE.md — ensure it contains **Phase**: and **Status**: fields.'
+          additionalContext: '[Roadmap Sync — WARN] Could not parse STATE.md: missing **Phase**: or **Status**: fields. Expected format: "**Phase**: 3 of 8" and "**Status**: Planning". To fix: run /pbr:health for a guided repair, or manually add the missing fields to .planning/STATE.md.'
         };
         process.stdout.write(JSON.stringify(output));
         process.exit(0);

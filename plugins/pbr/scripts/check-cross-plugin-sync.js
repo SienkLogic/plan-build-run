@@ -65,7 +65,7 @@ function checkCrossPluginSync(data) {
     return null;
   }
 
-  const msg = `Advisory: Cross-plugin sync may be needed. Changed pbr files without cursor-pbr/copilot-pbr counterparts:\n${missingCounterparts.map(f => `  - ${f}`).join('\n')}`;
+  const msg = `[Advisory] Cross-plugin sync required. These pbr files were changed without matching cursor-pbr/copilot-pbr updates:\n${missingCounterparts.map(f => `  - ${f}`).join('\n')}\nTo fix: copy each changed file to the matching path in plugins/cursor-pbr/ and plugins/copilot-pbr/, applying plugin-specific adjustments. Run: npm test -- tests/cross-plugin-compat.test.js to verify.`;
   logHook('check-cross-plugin-sync', 'PreToolUse', 'warn', { missingCounterparts });
 
   return { additionalContext: msg };
