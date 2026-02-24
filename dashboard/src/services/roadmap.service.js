@@ -1,17 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseRoadmapFile } from './dashboard.service.js';
-
-/**
- * Strip UTF-8 BOM from file content.
- * Duplicated intentionally -- this service reads raw text, not via the repository layer.
- *
- * @param {string} content - Raw file content
- * @returns {string} Content without BOM
- */
-function stripBOM(content) {
-  return content.replace(/^\uFEFF/, '');
-}
+import { stripBOM } from '../utils/strip-bom.js';
 
 /**
  * Count the number of PLAN.md files in a phase directory.

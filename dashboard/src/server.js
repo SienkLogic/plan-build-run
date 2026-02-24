@@ -1,6 +1,8 @@
 import { createApp } from './app.js';
 import { createWatcher } from './services/watcher.service.js';
 import { broadcast } from './services/sse.service.js';
+import { cache as milestoneCache } from './services/milestone.service.js';
+import { cache as analyticsCache } from './services/analytics.service.js';
 
 export function startServer(config) {
   const app = createApp(config);
@@ -8,6 +10,8 @@ export function startServer(config) {
 
   // Start file watcher for live updates
   const watcher = createWatcher(projectDir, (event) => {
+    milestoneCache.invalidateAll();
+    analyticsCache.invalidateAll();
     broadcast('file-change', event);
   });
 

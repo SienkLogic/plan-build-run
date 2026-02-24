@@ -1,17 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
-/**
- * Strip UTF-8 BOM from file content.
- * Duplicated from planning.repository.js intentionally --
- * this service reads raw text, not via the repository layer.
- *
- * @param {string} content - Raw file content
- * @returns {string} Content without BOM
- */
-function stripBOM(content) {
-  return content.replace(/^\uFEFF/, '');
-}
+import { stripBOM } from '../utils/strip-bom.js';
 
 /**
  * Parse STATE.md to extract project status information.
