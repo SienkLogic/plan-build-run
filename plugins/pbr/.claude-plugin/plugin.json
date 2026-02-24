@@ -1,6 +1,6 @@
 {
   "name": "pbr",
-  "version": "2.23.0",
+  "version": "2.24.0",
   "description": "Plan-Build-Run — Structured development workflow for Claude Code. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
   "author": {
     "name": "SienkLogic",
