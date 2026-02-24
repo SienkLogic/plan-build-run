@@ -6,7 +6,7 @@
 
   <% if (!config || !config.version) { %>
     <div class="card">
-      <div class="card__body">
+      <div class="card-body">
         <p>No <code>.planning/config.json</code> found for this project.</p>
       </div>
     </div>
@@ -19,53 +19,55 @@
     id="config-form"
   >
     <%# ── Common Settings ─────────────────────────────────────────── %>
-    <details class="card config-section" open>
-      <summary class="card__header"><h2>Common Settings</h2></summary>
-      <div class="card__body">
+    <details class="card mb-3" open>
+      <summary class="card-header" style="cursor:pointer;list-style:none">
+        <h2 class="card-title mb-0">Common Settings</h2>
+      </summary>
+      <div class="card-body">
 
         <%# Mode & Depth %>
-        <div class="config-row">
-          <label for="cfg-mode">Mode</label>
-          <select id="cfg-mode" name="mode">
-            <% ['normal', 'strict', 'relaxed'].forEach(opt => { %>
-              <option value="<%= opt %>" <%= config.mode === opt ? 'selected' : '' %>><%= opt %></option>
-            <% }); %>
-          </select>
+        <div class="mb-3 row">
+          <label for="cfg-mode" class="col-sm-3 col-form-label">Mode</label>
+          <div class="col-sm-9">
+            <select id="cfg-mode" name="mode" class="form-select">
+              <% ['normal', 'strict', 'relaxed'].forEach(opt => { %>
+                <option value="<%= opt %>" <%= config.mode === opt ? 'selected' : '' %>><%= opt %></option>
+              <% }); %>
+            </select>
+          </div>
         </div>
 
-        <div class="config-row">
-          <label for="cfg-depth">Depth</label>
-          <select id="cfg-depth" name="depth">
-            <% ['minimal', 'standard', 'comprehensive'].forEach(opt => { %>
-              <option value="<%= opt %>" <%= config.depth === opt ? 'selected' : '' %>><%= opt %></option>
-            <% }); %>
-          </select>
+        <div class="mb-3 row">
+          <label for="cfg-depth" class="col-sm-3 col-form-label">Depth</label>
+          <div class="col-sm-9">
+            <select id="cfg-depth" name="depth" class="form-select">
+              <% ['minimal', 'standard', 'comprehensive'].forEach(opt => { %>
+                <option value="<%= opt %>" <%= config.depth === opt ? 'selected' : '' %>><%= opt %></option>
+              <% }); %>
+            </select>
+          </div>
         </div>
 
-        <div class="config-row">
-          <label for="cfg-context-strategy">Context Strategy</label>
-          <select id="cfg-context-strategy" name="context_strategy">
-            <% ['conservative', 'balanced', 'aggressive'].forEach(opt => { %>
-              <option value="<%= opt %>" <%= config.context_strategy === opt ? 'selected' : '' %>><%= opt %></option>
-            <% }); %>
-          </select>
+        <div class="mb-3 row">
+          <label for="cfg-context-strategy" class="col-sm-3 col-form-label">Context Strategy</label>
+          <div class="col-sm-9">
+            <select id="cfg-context-strategy" name="context_strategy" class="form-select">
+              <% ['conservative', 'balanced', 'aggressive'].forEach(opt => { %>
+                <option value="<%= opt %>" <%= config.context_strategy === opt ? 'selected' : '' %>><%= opt %></option>
+              <% }); %>
+            </select>
+          </div>
         </div>
 
         <%# Features toggles %>
         <% if (config.features && typeof config.features === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Features</legend>
           <% for (const [key, val] of Object.entries(config.features)) { %>
-          <div class="config-toggle-row">
-            <label>
-              <input
-                type="checkbox"
-                role="switch"
-                name="features.<%= key %>"
-                value="on"
-                <%= val ? 'checked' : '' %>
-              />
-              <%= key %>
+          <div class="mb-2">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="features.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <span class="form-check-label"><%= key %></span>
             </label>
           </div>
           <% } %>
@@ -74,19 +76,13 @@
 
         <%# Gates toggles %>
         <% if (config.gates && typeof config.gates === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Gates</legend>
           <% for (const [key, val] of Object.entries(config.gates)) { %>
-          <div class="config-toggle-row">
-            <label>
-              <input
-                type="checkbox"
-                role="switch"
-                name="gates.<%= key %>"
-                value="on"
-                <%= val ? 'checked' : '' %>
-              />
-              <%= key %>
+          <div class="mb-2">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="gates.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <span class="form-check-label"><%= key %></span>
             </label>
           </div>
           <% } %>
@@ -95,19 +91,13 @@
 
         <%# Safety toggles %>
         <% if (config.safety && typeof config.safety === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Safety</legend>
           <% for (const [key, val] of Object.entries(config.safety)) { %>
-          <div class="config-toggle-row">
-            <label>
-              <input
-                type="checkbox"
-                role="switch"
-                name="safety.<%= key %>"
-                value="on"
-                <%= val ? 'checked' : '' %>
-              />
-              <%= key %>
+          <div class="mb-2">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="safety.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <span class="form-check-label"><%= key %></span>
             </label>
           </div>
           <% } %>
@@ -116,17 +106,20 @@
 
         <%# Model selections %>
         <% if (config.models && typeof config.models === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Models</legend>
           <% for (const [key, val] of Object.entries(config.models)) { %>
-          <div class="config-row">
-            <label for="cfg-model-<%= key %>"><%= key %></label>
-            <input
-              id="cfg-model-<%= key %>"
-              type="text"
-              name="models.<%= key %>"
-              value="<%= val %>"
-            />
+          <div class="mb-3 row">
+            <label for="cfg-model-<%= key %>" class="col-sm-3 col-form-label"><%= key %></label>
+            <div class="col-sm-9">
+              <input
+                id="cfg-model-<%= key %>"
+                type="text"
+                name="models.<%= key %>"
+                value="<%= val %>"
+                class="form-control"
+              />
+            </div>
           </div>
           <% } %>
         </fieldset>
@@ -134,25 +127,29 @@
 
         <%# Parallelization inputs (toggles for booleans, number for numbers) %>
         <% if (config.parallelization && typeof config.parallelization === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Parallelization</legend>
           <% for (const [key, val] of Object.entries(config.parallelization)) { %>
           <% if (typeof val === 'boolean') { %>
-          <div class="config-toggle-row">
-            <label>
-              <input type="checkbox" role="switch" name="parallelization.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
-              <%= key %>
+          <div class="mb-2">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="parallelization.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <span class="form-check-label"><%= key %></span>
             </label>
           </div>
           <% } else if (typeof val === 'number') { %>
-          <div class="config-row">
-            <label for="cfg-par-<%= key %>"><%= key %></label>
-            <input id="cfg-par-<%= key %>" type="number" name="parallelization.<%= key %>" value="<%= val %>" min="1" />
+          <div class="mb-3 row">
+            <label for="cfg-par-<%= key %>" class="col-sm-3 col-form-label"><%= key %></label>
+            <div class="col-sm-9">
+              <input id="cfg-par-<%= key %>" type="number" name="parallelization.<%= key %>" value="<%= val %>" min="1" class="form-control" />
+            </div>
           </div>
           <% } else { %>
-          <div class="config-row">
-            <label for="cfg-par-<%= key %>"><%= key %></label>
-            <input id="cfg-par-<%= key %>" type="text" name="parallelization.<%= key %>" value="<%= val %>" />
+          <div class="mb-3 row">
+            <label for="cfg-par-<%= key %>" class="col-sm-3 col-form-label"><%= key %></label>
+            <div class="col-sm-9">
+              <input id="cfg-par-<%= key %>" type="text" name="parallelization.<%= key %>" value="<%= val %>" class="form-control" />
+            </div>
           </div>
           <% } %>
           <% } %>
@@ -161,43 +158,49 @@
 
         <%# Planning inputs (toggles for booleans, number for numbers) %>
         <% if (config.planning && typeof config.planning === 'object') { %>
-        <fieldset class="config-fieldset">
+        <fieldset class="mb-3 p-3 border rounded">
           <legend>Planning</legend>
           <% for (const [key, val] of Object.entries(config.planning)) { %>
           <% if (typeof val === 'boolean') { %>
-          <div class="config-toggle-row">
-            <label>
-              <input type="checkbox" role="switch" name="planning.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
-              <%= key %>
+          <div class="mb-2">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="planning.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <span class="form-check-label"><%= key %></span>
             </label>
           </div>
           <% } else if (typeof val === 'number') { %>
-          <div class="config-row">
-            <label for="cfg-plan-<%= key %>"><%= key %></label>
-            <input id="cfg-plan-<%= key %>" type="number" name="planning.<%= key %>" value="<%= val %>" />
+          <div class="mb-3 row">
+            <label for="cfg-plan-<%= key %>" class="col-sm-3 col-form-label"><%= key %></label>
+            <div class="col-sm-9">
+              <input id="cfg-plan-<%= key %>" type="number" name="planning.<%= key %>" value="<%= val %>" class="form-control" />
+            </div>
           </div>
           <% } else { %>
-          <div class="config-row">
-            <label for="cfg-plan-<%= key %>"><%= key %></label>
-            <input id="cfg-plan-<%= key %>" type="text" name="planning.<%= key %>" value="<%= val %>" />
+          <div class="mb-3 row">
+            <label for="cfg-plan-<%= key %>" class="col-sm-3 col-form-label"><%= key %></label>
+            <div class="col-sm-9">
+              <input id="cfg-plan-<%= key %>" type="text" name="planning.<%= key %>" value="<%= val %>" class="form-control" />
+            </div>
           </div>
           <% } %>
           <% } %>
         </fieldset>
         <% } %>
 
-      </div><%# end card__body %>
+      </div><%# end card-body %>
     </details>
 
     <%# ── Advanced (raw JSON) ─────────────────────────────────────── %>
-    <details class="card config-section">
-      <summary class="card__header"><h2>Advanced (Raw JSON)</h2></summary>
-      <div class="card__body">
+    <details class="card mb-3">
+      <summary class="card-header" style="cursor:pointer;list-style:none">
+        <h2 class="card-title mb-0">Advanced (Raw JSON)</h2>
+      </summary>
+      <div class="card-body">
         <p class="config-hint">Edit the full config as JSON. On save, this value overrides the form above.</p>
         <textarea
           id="cfg-raw-json"
           name="rawJson"
-          class="config-raw-json"
+          class="form-control config-raw-json font-monospace"
           rows="24"
           spellcheck="false"
         ><%= JSON.stringify(config, null, 2) %></textarea>
@@ -206,7 +209,7 @@
     </details>
 
     <div class="config-actions">
-      <button type="submit">Save Config</button>
+      <button type="submit" class="btn btn-primary">Save Config</button>
       <span id="config-feedback"></span>
     </div>
 
