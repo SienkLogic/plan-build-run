@@ -1,0 +1,194 @@
+/* Settings page styles */
+
+/* Tab bar */
+.settings-tabs {
+  display: flex;
+  gap: var(--size-2);
+  border-bottom: 2px solid var(--surface-3, #e2e8f0);
+  margin-bottom: var(--size-5);
+  padding-bottom: 0;
+}
+
+/* Mode toggle (Form / Raw JSON) */
+.config-mode-toggle {
+  display: flex;
+  gap: var(--size-2);
+  margin-bottom: var(--size-4);
+}
+
+/* Tab buttons — shared by settings-tabs and config-mode-toggle */
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--size-2) var(--size-4);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  color: var(--text-2, #64748b);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -2px;
+}
+
+.tab-btn:hover {
+  color: var(--text-1, #1e293b);
+}
+
+.tab-btn.active {
+  color: var(--link, #2563eb);
+  border-bottom-color: var(--link, #2563eb);
+}
+
+/* Config section card */
+.config-section {
+  border: 1px solid var(--surface-3, #e2e8f0);
+  border-radius: var(--radius-2);
+  padding: var(--size-4);
+  margin-bottom: var(--size-4);
+  background: var(--surface-1, #f8fafc);
+}
+
+.config-section--nested {
+  margin-top: var(--size-4);
+  background: var(--surface-2, #f1f5f9);
+}
+
+/* Section heading */
+.config-section__title {
+  font-size: var(--font-size-1);
+  font-weight: 600;
+  color: var(--text-1, #1e293b);
+  margin: 0 0 var(--size-3) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Individual field row */
+.config-field {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3);
+  padding: var(--size-1) 0;
+  font-size: var(--font-size-1);
+  color: var(--text-1, #1e293b);
+  cursor: pointer;
+}
+
+.config-field--check {
+  flex-direction: row;
+}
+
+.config-field__label {
+  min-width: 12rem;
+  color: var(--text-2, #64748b);
+  font-size: var(--font-size-0);
+}
+
+.config-field input[type='text'],
+.config-field input[type='number'],
+.config-field select {
+  flex: 1;
+  padding: var(--size-1) var(--size-2);
+  border: 1px solid var(--surface-3, #e2e8f0);
+  border-radius: var(--radius-1);
+  font-size: var(--font-size-0);
+  background: var(--surface-1, #fff);
+  color: var(--text-1, #1e293b);
+}
+
+.config-field input[readonly] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.config-field input[type='checkbox'] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--link, #2563eb);
+  cursor: pointer;
+}
+
+/* Raw JSON textarea */
+.config-raw-json {
+  width: 100%;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: var(--font-size-0);
+  padding: var(--size-3);
+  border: 1px solid var(--surface-3, #e2e8f0);
+  border-radius: var(--radius-2);
+  background: var(--surface-1, #f8fafc);
+  color: var(--text-1, #1e293b);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* Config actions row */
+.config-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--size-3);
+}
+
+/* Inline feedback */
+.config-feedback {
+  min-height: 1.5rem;
+  margin-top: var(--size-2);
+  font-size: var(--font-size-0);
+}
+
+.feedback--success {
+  color: var(--green-7, #15803d);
+  font-weight: 500;
+}
+
+.feedback--error {
+  color: var(--red-7, #b91c1c);
+  font-weight: 500;
+}
+
+/* Empty state */
+.config-empty {
+  font-size: var(--font-size-0);
+  color: var(--text-2, #64748b);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Primary button (consistent with other pages) */
+.btn--primary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+  padding: var(--size-2) var(--size-5);
+  background: var(--link, #2563eb);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-1);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn--primary:hover {
+  background: var(--blue-7, #1d4ed8);
+}
+
+/* Dark theme overrides */
+[data-theme='dark'] .config-section {
+  background: var(--surface-2, #1e2535);
+  border-color: var(--surface-3, #2d3748);
+}
+
+[data-theme='dark'] .config-section--nested {
+  background: var(--surface-1, #161e2d);
+}
+
+[data-theme='dark'] .config-raw-json,
+[data-theme='dark'] .config-field input[type='text'],
+[data-theme='dark'] .config-field input[type='number'],
+[data-theme='dark'] .config-field select {
+  background: var(--surface-2, #1e2535);
+  border-color: var(--surface-3, #2d3748);
+  color: var(--text-1, #e2e8f0);
+}
