@@ -1,6 +1,36 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { execFile as execFileCb } from 'node:child_process';
+import { promisify } from 'node:util';
 import { stripBOM } from '../utils/strip-bom.js';
+
+const execFile = promisify(execFileCb);
+
+// Plain-object cache for getRecentActivity: keyed by projectDir
+// Each entry: { data: Array, expiresAt: number }
+const _activityCache = new Map();
+const ACTIVITY_CACHE_TTL_MS = 30_000;
+
+/** Clear activity cache — exported for testing only */
+export function _clearActivityCache() {
+  _activityCache.clear();
+}
+
+/**
+ * Run a git command in the given directory, returning stdout.
+ * Returns empty string on failure.
+ */
+async function git(projectDir, args) {
+  try {
+    const { stdout } = await execFile('git', args, {
+      cwd: projectDir,
+      maxBuffer: 10 * 1024 * 1024
+    });
+    return stdout;
+  } catch {
+    return '';
+  }
+}
 
 /**
  * Parse STATE.md to extract project status information.
@@ -241,13 +271,6 @@ export async function parseRoadmapFile(projectDir) {
 }
 
 /**
- * Get combined dashboard data by parsing both STATE.md and ROADMAP.md.
- * Orchestrates both parsers in parallel and derives in-progress status.
- *
- * @param {string} projectDir - Absolute path to the project root
- * @returns {Promise<{projectName: string, currentPhase: object, lastActivity: object, progress: number, phases: Array}>}
- */
-/**
  * Derive phase statuses by combining roadmap phases with STATE.md context.
  * Phases before the current phase are marked complete.
  * The current phase gets its status from STATE.md.
@@ -274,10 +297,114 @@ export function derivePhaseStatuses(phases, currentPhase) {
   });
 }
 
+/**
+ * Get recent .planning/ file activity from git log.
+ * Returns up to 10 deduplicated entries (most recent occurrence per path).
+ * Results are cached for 30 seconds.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @returns {Promise<Array<{path: string, timestamp: string, type: string}>>}
+ */
+export async function getRecentActivity(projectDir) {
+  const cached = _activityCache.get(projectDir);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
+  try {
+    const output = await git(projectDir, [
+      'log',
+      '--name-only',
+      '--format=COMMIT:%ai',
+      '-n', '40',
+      '--',
+      '.planning/'
+    ]);
+
+    if (!output || !output.trim()) {
+      return [];
+    }
+
+    // Parse output: lines starting with "COMMIT:" set the current timestamp,
+    // non-empty lines that don't start with "COMMIT:" are file paths.
+    const seen = new Map(); // path -> { timestamp, type }
+    let currentTimestamp = '';
+
+    for (const line of output.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('COMMIT:')) {
+        currentTimestamp = trimmed.slice('COMMIT:'.length).trim();
+      } else if (trimmed && currentTimestamp) {
+        // Only record first occurrence per path (git log is newest-first)
+        if (!seen.has(trimmed)) {
+          seen.set(trimmed, { timestamp: currentTimestamp, type: 'commit' });
+        }
+      }
+    }
+
+    const data = [...seen.entries()]
+      .slice(0, 10)
+      .map(([path, meta]) => ({ path, timestamp: meta.timestamp, type: meta.type }));
+
+    _activityCache.set(projectDir, { data, expiresAt: Date.now() + ACTIVITY_CACHE_TTL_MS });
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Derive contextual quick-action buttons based on current phase status.
+ * Pure function — no I/O.
+ *
+ * @param {{ status: string, id: number }} currentPhase
+ * @returns {Array<{label: string, href: string, primary: boolean}>}
+ */
+export function deriveQuickActions(currentPhase) {
+  const id = String(currentPhase.id).padStart(2, '0');
+  const status = currentPhase.status || '';
+
+  switch (status) {
+    case 'building':
+    case 'in-progress':
+      return [
+        { label: 'Continue Building', href: `/phases/${id}`, primary: true },
+        { label: 'View Roadmap', href: '/roadmap', primary: false }
+      ];
+
+    case 'planning':
+    case 'planned':
+      return [
+        { label: 'View Plans', href: `/phases/${id}`, primary: true },
+        { label: 'Roadmap', href: '/roadmap', primary: false }
+      ];
+
+    case 'complete':
+    case 'verified':
+      return [
+        { label: 'View Phase', href: `/phases/${id}`, primary: false },
+        { label: 'Roadmap', href: '/roadmap', primary: true }
+      ];
+
+    default:
+      return [
+        { label: 'Get Started', href: '/roadmap', primary: true }
+      ];
+  }
+}
+
+/**
+ * Get combined dashboard data by parsing both STATE.md and ROADMAP.md.
+ * Orchestrates both parsers in parallel and derives in-progress status.
+ *
+ * @param {string} projectDir - Absolute path to the project root
+ * @returns {Promise<{projectName: string, currentPhase: object, lastActivity: object, progress: number, phases: Array, recentActivity: Array, quickActions: Array}>}
+ */
 export async function getDashboardData(projectDir) {
-  const [stateData, roadmapData] = await Promise.all([
+  const [stateData, roadmapData, recentActivity] = await Promise.all([
     parseStateFile(projectDir),
-    parseRoadmapFile(projectDir)
+    parseRoadmapFile(projectDir),
+    getRecentActivity(projectDir)
   ]);
 
   const phases = derivePhaseStatuses(roadmapData.phases, stateData.currentPhase);
@@ -288,11 +415,15 @@ export async function getDashboardData(projectDir) {
     ? Math.ceil((completedPhases / phases.length) * 100)
     : stateData.progress;
 
+  const quickActions = deriveQuickActions(stateData.currentPhase);
+
   return {
     projectName: stateData.projectName,
     currentPhase: stateData.currentPhase,
     lastActivity: stateData.lastActivity,
     progress,
-    phases
+    phases,
+    recentActivity,
+    quickActions
   };
 }
