@@ -9,7 +9,7 @@ vi.mock('node:fs/promises', async () => {
 });
 
 // Import AFTER mock is set up
-const { getPhaseDetail, parseTaskResultsTable } = await import('../../src/services/phase.service.js');
+const { getPhaseDetail, parseTaskResultsTable, extractPlanMeta, enrichVerification } = await import('../../src/services/phase.service.js');
 
 const VALID_SUMMARY_FM = `---
 phase: "04-dashboard-landing-page"
@@ -374,5 +374,126 @@ Details here.`;
     expect(result).toHaveLength(2);
     expect(result[0].hash).toBe('aaa1111');
     expect(result[1].hash).toBe('bbb2222');
+  });
+});
+
+describe('extractPlanMeta', () => {
+  it('should return planTitle and taskCount from a valid PLAN body', () => {
+    const raw = `---
+phase: "36-dashboard-visual-overhaul"
+plan: "36-04"
+---
+
+## Summary
+
+**Plan 36-04**: Phase detail overhaul — enrich plan cards with rich metadata.
+
+<task id="36-04-T1" type="tdd">
+<name>Enrich getPhaseDetail</name>
+</task>
+
+<task id="36-04-T2" type="auto">
+<name>Overhaul plan cards</name>
+</task>
+`;
+    const result = extractPlanMeta(raw);
+    expect(result.planTitle).toBe('Phase detail overhaul — enrich plan cards with rich metadata.');
+    expect(result.taskCount).toBe(2);
+  });
+
+  it('should return null planTitle when no Summary pattern found', () => {
+    const raw = `---
+plan: "36-04"
+---
+
+No summary line here.
+
+<task id="36-04-T1">
+</task>
+`;
+    const result = extractPlanMeta(raw);
+    expect(result.planTitle).toBeNull();
+    expect(result.taskCount).toBe(1);
+  });
+
+  it('should return taskCount 0 when no <task  tags present', () => {
+    const raw = `## Summary\n\n**Plan 36-01**: Some title\n\nNo tasks here.`;
+    const result = extractPlanMeta(raw);
+    expect(result.planTitle).toBe('Some title');
+    expect(result.taskCount).toBe(0);
+  });
+
+  it('should return defaults for null input', () => {
+    expect(extractPlanMeta(null)).toEqual({ planTitle: null, taskCount: 0 });
+  });
+
+  it('should return defaults for empty string input', () => {
+    expect(extractPlanMeta('')).toEqual({ planTitle: null, taskCount: 0 });
+  });
+});
+
+describe('enrichVerification', () => {
+  it('should return the original object unchanged when must_haves is absent', () => {
+    const fm = { result: 'pass', score: { total_must_haves: 3 } };
+    const result = enrichVerification(fm);
+    expect(result).toEqual(fm);
+    expect(result.mustHaves).toBeUndefined();
+  });
+
+  it('should return null/undefined unchanged', () => {
+    expect(enrichVerification(null)).toBeNull();
+    expect(enrichVerification(undefined)).toBeUndefined();
+  });
+
+  it('should flatten must_haves into mustHaves array with passed=true when result is pass', () => {
+    const fm = {
+      result: 'pass',
+      must_haves: {
+        truths: ['Each plan card shows name', 'Verification shows must-haves'],
+        artifacts: ['phase-content.ejs uses .card component']
+      }
+    };
+    const result = enrichVerification(fm);
+    expect(result.mustHaves).toHaveLength(3);
+    expect(result.mustHaves.every(mh => mh.passed)).toBe(true);
+    expect(result.mustHaves[0]).toEqual({ category: 'truths', text: 'Each plan card shows name', passed: true });
+    expect(result.mustHaves[2].category).toBe('artifacts');
+  });
+
+  it('should mark items as passed=false when text appears in gaps array', () => {
+    const fm = {
+      result: 'fail',
+      gaps: ['Each plan card shows name — not found'],
+      must_haves: {
+        truths: ['Each plan card shows name', 'Verification shows must-haves']
+      }
+    };
+    const result = enrichVerification(fm);
+    // "Each plan card shows name" — first 30 chars appear in the gap string
+    expect(result.mustHaves[0].passed).toBe(false);
+    // "Verification shows must-haves" — not in gaps, so passed=true
+    expect(result.mustHaves[1].passed).toBe(true);
+  });
+
+  it('should mark all items passed when result is passed (synonym)', () => {
+    const fm = {
+      result: 'passed',
+      must_haves: { truths: ['item 1', 'item 2'] }
+    };
+    const result = enrichVerification(fm);
+    expect(result.mustHaves.every(mh => mh.passed)).toBe(true);
+  });
+
+  it('should preserve all original frontmatter fields', () => {
+    const fm = {
+      result: 'pass',
+      score: { total_must_haves: 2, verified: 2 },
+      verified: '2026-02-24T12:00:00Z',
+      must_haves: { truths: ['item 1'] }
+    };
+    const result = enrichVerification(fm);
+    expect(result.result).toBe('pass');
+    expect(result.score.total_must_haves).toBe(2);
+    expect(result.verified).toBe('2026-02-24T12:00:00Z');
   });
 });
