@@ -5,6 +5,21 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.24.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.23.0...plan-build-run-v2.24.0) (2026-02-24)
+
+
+### Features
+
+* **35-05:** add Audit Reports view with /audits and /audits/:filename routes ([33dfae7](https://github.com/SienkLogic/plan-build-run/commit/33dfae7fff02cbba93e250211e54b26d565f4f76))
+* **35-05:** GREEN - implement audit.service.js with listAuditReports and getAuditReport ([c79179a](https://github.com/SienkLogic/plan-build-run/commit/c79179a75a386096e74589f13fea4a56174b1870))
+* **quick-003:** add data-flow to plan-format reference, verification template, and integration report template ([e73a31e](https://github.com/SienkLogic/plan-build-run/commit/e73a31e0c1eb9535014de4b60924bd98ced2f8cb))
+* **quick-003:** add data-flow verification to planner, verifier, and integration-checker agents ([e37e192](https://github.com/SienkLogic/plan-build-run/commit/e37e19297e038c38aecd7d04e93c007928242f0f))
+
+
+### Bug Fixes
+
+* **quick-003:** pass data.session_id to LLM operations instead of undefined ([df4d168](https://github.com/SienkLogic/plan-build-run/commit/df4d1682b50935b53ddcc665b8dcdc394b8b277e))
+
 ## [2.23.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.22.2...plan-build-run-v2.23.0) (2026-02-24)
 
 
