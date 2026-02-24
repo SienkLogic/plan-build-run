@@ -3,6 +3,42 @@ import { join } from 'node:path';
 import { readMarkdownFile, validatePath } from '../repositories/planning.repository.js';
 
 /**
+ * Extract plan title and task count from raw PLAN.md content.
+ *
+ * @param {string|null} rawContent - Raw PLAN.md file content
+ * @returns {{ planTitle: string|null, taskCount: number }}
+ */
+export function extractPlanMeta(rawContent) {
+  if (!rawContent) return { planTitle: null, taskCount: 0 };
+  const titleMatch = rawContent.match(/\*\*Plan \d{2}-\d{2}\*\*:\s*(.+)/);
+  const planTitle = titleMatch ? titleMatch[1].trim() : null;
+  const taskCount = (rawContent.match(/<task /g) || []).length;
+  return { planTitle, taskCount };
+}
+
+/**
+ * Normalise VERIFICATION.md frontmatter to include a flat mustHaves array.
+ * Each entry has { category, text, passed }.
+ *
+ * @param {object|null|undefined} frontmatter - Parsed VERIFICATION.md frontmatter
+ * @returns {object|null|undefined} - Original frontmatter extended with mustHaves array, or unchanged
+ */
+export function enrichVerification(frontmatter) {
+  if (!frontmatter || !frontmatter.must_haves) return frontmatter;
+  const allPassed = frontmatter.result === 'pass' || frontmatter.result === 'passed';
+  const gaps = Array.isArray(frontmatter.gaps) ? frontmatter.gaps : [];
+  const mustHaves = [];
+  for (const [category, items] of Object.entries(frontmatter.must_haves)) {
+    if (!Array.isArray(items)) continue;
+    for (const text of items) {
+      const inGap = gaps.some(g => g.includes(text.slice(0, 30)));
+      mustHaves.push({ category, text, passed: allPassed || !inGap });
+    }
+  }
+  return { ...frontmatter, mustHaves };
+}
+
+/**
  * Format a phase directory name into a human-readable title.
  * Strips the numeric prefix and title-cases each word.
  *
@@ -130,30 +166,43 @@ export async function getPhaseDetail(projectDir, phaseId) {
     summaryPaths.map(({ summaryPath }) => readMarkdownFile(summaryPath))
   );
 
+  // Read raw PLAN.md content for each plan to extract metadata
+  const planRawResults = await Promise.allSettled(
+    summaryPaths.map(({ planFile }) => readMarkdownFile(join(phaseFullPath, planFile)))
+  );
+
   // Map results to plan objects
   const plans = summaryPaths.map(({ planId, planFile }, index) => {
-    const result = summaryResults[index];
-    if (result.status === 'fulfilled') {
+    const summaryResult = summaryResults[index];
+    const planRawResult = planRawResults[index];
+
+    // Extract planTitle and taskCount from raw PLAN.md content
+    const rawPlanContent = planRawResult.status === 'fulfilled' ? planRawResult.value.rawContent : null;
+    const { planTitle, taskCount } = extractPlanMeta(rawPlanContent);
+
+    if (summaryResult.status === 'fulfilled') {
       return {
         planId,
         planFile,
-        summary: result.value.frontmatter,
-        content: result.value.html,
-        commits: parseTaskResultsTable(result.value.rawContent)
+        planTitle,
+        taskCount,
+        summary: summaryResult.value.frontmatter,
+        content: summaryResult.value.html,
+        commits: parseTaskResultsTable(summaryResult.value.rawContent)
       };
     }
-    if (result.reason && result.reason.code === 'ENOENT') {
-      return { planId, planFile, summary: null, content: null, commits: [] };
+    if (summaryResult.reason && summaryResult.reason.code === 'ENOENT') {
+      return { planId, planFile, planTitle, taskCount, summary: null, content: null, commits: [] };
     }
     // Unexpected error -- re-throw
-    throw result.reason;
+    throw summaryResult.reason;
   });
 
   // Read VERIFICATION.md
   let verification = null;
   try {
     const verDoc = await readMarkdownFile(join(phaseFullPath, 'VERIFICATION.md'));
-    verification = verDoc.frontmatter;
+    verification = enrichVerification(verDoc.frontmatter);
   } catch (error) {
     if (error.code !== 'ENOENT') {
       throw error;
