@@ -7,6 +7,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { Layout } from './components/Layout';
 import { indexRouter } from './routes/index.routes';
 import { commandCenterRouter } from './routes/command-center.routes';
+import { explorerRouter } from './routes/explorer.routes';
 import { sseHandler } from './sse-handler';
 import { startWatcher } from './watcher-setup';
 import { currentPhaseMiddleware } from './middleware/current-phase';
@@ -68,6 +69,7 @@ function createApp(config: ServerConfig) {
   // Routes
   app.route('/', indexRouter);
   app.route('/api/command-center', commandCenterRouter);
+  app.route('/', explorerRouter);
 
   // SSE endpoint — real streamSSE handler with multi-client broadcast
   app.get('/api/events/stream', sseHandler);
