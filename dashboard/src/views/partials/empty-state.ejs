@@ -1,7 +1,12 @@
-<article class="empty-state">
-  <p style="font-size: 2.5rem; margin-bottom: 0;"><%= typeof icon !== 'undefined' ? icon : '' %></p>
-  <h3><%= typeof title !== 'undefined' ? title : 'No data available' %></h3>
-  <% if (typeof action !== 'undefined' && action) { %>
-  <%- action %>
+<div class="empty">
+  <% if (typeof icon !== 'undefined' && icon) { %>
+  <div class="empty-icon"><%= icon %></div>
   <% } %>
-</article>
+  <p class="empty-title"><%= typeof title !== 'undefined' ? title : 'No data available' %></p>
+  <% if (typeof subtitle !== 'undefined' && subtitle) { %>
+  <p class="empty-subtitle text-muted"><%= subtitle %></p>
+  <% } %>
+  <% if (typeof action !== 'undefined' && action) { %>
+  <div class="empty-action"><%- action %></div>
+  <% } %>
+</div>
