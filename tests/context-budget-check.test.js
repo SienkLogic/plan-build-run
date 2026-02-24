@@ -236,9 +236,10 @@ Implement JWT authentication middleware
       expect(result).toContain('STATE.md');
     });
 
-    test('returns empty string when no meaningful context', () => {
+    test('returns PBR workflow directive even when no other meaningful context', () => {
       const result = buildRecoveryContext('', '', '', '');
-      expect(result).toBe('');
+      expect(result).toContain('PBR WORKFLOW REQUIRED');
+      expect(result).toContain('/pbr:quick');
     });
 
     test('includes partial context', () => {

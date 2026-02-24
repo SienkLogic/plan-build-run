@@ -196,6 +196,11 @@ describe('check-doc-sprawl.js', () => {
     test('blocks doc sprawl through dispatcher', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
+      // Disable PBR workflow enforcement so it doesn't short-circuit before doc-sprawl
+      const configPath = path.join(planningDir, 'config.json');
+      const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
+      config.workflow = { enforce_pbr_skills: 'off' };
+      fs.writeFileSync(configPath, JSON.stringify(config));
       const filePath = path.join(tmpDir, 'unwanted-notes.md');
       const input = JSON.stringify({ tool_input: { file_path: filePath } });
 
@@ -218,7 +223,9 @@ describe('check-doc-sprawl.js', () => {
     });
 
     test('allows doc creation when blockDocSprawl is disabled', () => {
-      const { tmpDir } = makeTmpDir();
+      const { tmpDir, planningDir } = makeTmpDir();
+      // Disable PBR workflow enforcement so it doesn't produce advisory output
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ workflow: { enforce_pbr_skills: 'off' } }));
       const filePath = path.join(tmpDir, 'unwanted-notes.md');
       const input = JSON.stringify({ tool_input: { file_path: filePath } });
 

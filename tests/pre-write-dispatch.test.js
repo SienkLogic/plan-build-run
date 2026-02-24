@@ -34,11 +34,12 @@ function runScript(tmpDir, toolInput) {
 }
 
 describe('pre-write-dispatch.js', () => {
-  test('exits 0 for ordinary file writes (no active skill, no phase file)', () => {
+  test('exits 0 with advisory for source writes without active skill (PBR enforcement)', () => {
     const { tmpDir } = makeTmpDir();
     const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'index.ts') });
     expect(result.exitCode).toBe(0);
-    expect(result.output).toBe('');
+    const parsed = JSON.parse(result.output);
+    expect(parsed.additionalContext).toContain('PBR workflow required');
     cleanup(tmpDir);
   });
 
