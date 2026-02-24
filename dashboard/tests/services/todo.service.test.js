@@ -154,7 +154,7 @@ priority: P1
     expect(result).toEqual([]);
   });
 
-  it('should skip todos missing required frontmatter fields', async () => {
+  it('should skip todos missing priority and recover title from H1 heading', async () => {
     vol.fromJSON({
       '/project/.planning/todos/pending/001-audit-logging.md': TODO_P1,
       '/project/.planning/todos/pending/004-no-title.md': TODO_NO_TITLE,
@@ -163,8 +163,14 @@ priority: P1
 
     const result = await listPendingTodos('/project');
 
-    expect(result.length).toBe(1);
-    expect(result[0].id).toBe('001');
+    // TODO_NO_TITLE has priority but no frontmatter title — service recovers title from H1 heading
+    // TODO_NO_PRIORITY has no priority — service skips it (priority is the only required field)
+    expect(result.length).toBe(2);
+    expect(result.map(t => t.id)).toContain('001');
+    expect(result.map(t => t.id)).toContain('004');
+    // Verify the H1 fallback title was extracted
+    const noTitleTodo = result.find(t => t.id === '004');
+    expect(noTitleTodo.title).toBe('Missing title in frontmatter');
   });
 
   it('should skip files not matching NNN-*.md filename pattern', async () => {
