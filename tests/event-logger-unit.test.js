@@ -72,6 +72,49 @@ describe('logEvent branch coverage', () => {
     expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', 'events.jsonl'))).toBe(true);
   });
 
+  test('CLI main: logs event via process.argv', () => {
+    const { execSync } = require('child_process');
+    const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
+    const result = execSync(`node "${script}" testcat testevent '{"foo":"bar"}'`, {
+      encoding: 'utf8',
+      timeout: 5000,
+      cwd: tmpDir,
+    });
+    const parsed = JSON.parse(result);
+    expect(parsed.logged).toBe(true);
+    expect(parsed.category).toBe('testcat');
+    expect(parsed.event).toBe('testevent');
+    // Verify the event was actually written
+    const logContent = fs.readFileSync(path.join(tmpDir, '.planning', 'logs', 'events.jsonl'), 'utf8');
+    expect(logContent).toContain('testevent');
+  });
+
+  test('CLI main: exits 1 when missing args', () => {
+    const { execSync } = require('child_process');
+    const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
+    try {
+      execSync(`node "${script}"`, { encoding: 'utf8', timeout: 5000, cwd: tmpDir });
+      throw new Error('should have exited with code 1');
+    } catch (e) {
+      expect(e.status).toBe(1);
+      expect(e.stdout).toContain('Usage');
+    }
+  });
+
+  test('CLI main: handles non-JSON details as raw string', () => {
+    const { execSync } = require('child_process');
+    const script = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
+    const result = execSync(`node "${script}" cat evt "not-json"`, {
+      encoding: 'utf8',
+      timeout: 5000,
+      cwd: tmpDir,
+    });
+    const parsed = JSON.parse(result);
+    expect(parsed.logged).toBe(true);
+    const logContent = fs.readFileSync(path.join(tmpDir, '.planning', 'logs', 'events.jsonl'), 'utf8');
+    expect(logContent).toContain('"raw":"not-json"');
+  });
+
   test('default details is empty object', () => {
     logEvent('cat', 'evt');
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'logs', 'events.jsonl'), 'utf8');

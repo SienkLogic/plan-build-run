@@ -98,6 +98,12 @@ describe('classifyArtifact', () => {
     expect(route).not.toHaveBeenCalled();
   });
 
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM down'));
+    const result = await classifyArtifact(makeConfig(), PLANNING_DIR, 'content', 'PLAN');
+    expect(result).toBeNull();
+  });
+
   test('happy path SUMMARY: returns classification object', async () => {
     route.mockResolvedValue({
       content: '{"classification":"substantive","confidence":0.88,"reason":"has artifacts"}',
@@ -205,6 +211,12 @@ describe('classifyError', () => {
     expect(route).not.toHaveBeenCalled();
   });
 
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM crash'));
+    const result = await classifyError(makeConfig(), PLANNING_DIR, 'some error', 'pbr:executor');
+    expect(result).toBeNull();
+  });
+
   test('ERROR_CATEGORIES is a non-empty array', () => {
     expect(Array.isArray(ERROR_CATEGORIES)).toBe(true);
     expect(ERROR_CATEGORIES.length).toBeGreaterThan(0);
@@ -245,6 +257,32 @@ describe('scoreSource', () => {
     expect(SOURCE_LEVELS.length).toBeGreaterThan(0);
     expect(SOURCE_LEVELS).toContain('S0');
     expect(SOURCE_LEVELS).toContain('S6');
+  });
+
+  test('returns null when features.source_scoring is false', async () => {
+    const config = makeConfig({ features: { source_scoring: false } });
+    const result = await scoreSource(config, PLANNING_DIR, 'content', 'https://example.com');
+    expect(result).toBeNull();
+  });
+
+  test('returns null when isDisabled returns true', async () => {
+    const { isDisabled } = require('../plugins/pbr/scripts/local-llm/client');
+    isDisabled.mockReturnValueOnce(true);
+    const result = await scoreSource(makeConfig(), PLANNING_DIR, 'content', 'https://example.com');
+    expect(result).toBeNull();
+    isDisabled.mockReturnValue(false); // restore
+  });
+
+  test('returns null when route returns null', async () => {
+    route.mockResolvedValue(null);
+    const result = await scoreSource(makeConfig(), PLANNING_DIR, 'content', 'https://example.com');
+    expect(result).toBeNull();
+  });
+
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('network error'));
+    const result = await scoreSource(makeConfig(), PLANNING_DIR, 'content', 'https://example.com');
+    expect(result).toBeNull();
   });
 
   test('falls back to S6 when LLM returns unknown level', async () => {
@@ -303,6 +341,12 @@ describe('summarizeContext', () => {
 
     const result = await summarizeContext(makeConfig(), PLANNING_DIR, 'context text');
 
+    expect(result).toBeNull();
+  });
+
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM crash'));
+    const result = await summarizeContext(makeConfig(), PLANNING_DIR, 'context text');
     expect(result).toBeNull();
   });
 });

@@ -188,6 +188,20 @@ describe('hook-logger.js', () => {
     expect(entry.duration_ms).toBeUndefined();
   });
 
+  test('handles empty existing log file', () => {
+    const logsDir = path.join(planningDir, 'logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), '');
+
+    const { logHook } = getLogger();
+    logHook('after-empty', 'PreToolUse', 'allow');
+
+    const lines = fs.readFileSync(path.join(logsDir, 'hooks.jsonl'), 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]);
+    expect(entry.hook).toBe('after-empty');
+  });
+
   test('auto-creates logs/ directory when only .planning/ exists', () => {
     // .planning/ exists from beforeEach but logs/ does not
     const logsDir = path.join(planningDir, 'logs');

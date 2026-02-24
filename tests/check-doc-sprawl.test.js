@@ -65,6 +65,20 @@ describe('check-doc-sprawl.js', () => {
       cleanup(tmpDir);
     });
 
+    test('uses process.cwd() when cwd argument is omitted', () => {
+      const { tmpDir } = makeTmpDir();
+      const originalCwd = process.cwd();
+      process.chdir(tmpDir);
+      try {
+        // No config = disabled, so should return null regardless
+        const result = checkDocSprawl({ tool_input: { file_path: path.join(tmpDir, 'random-doc.md') } });
+        expect(result).toBeNull();
+      } finally {
+        process.chdir(originalCwd);
+        cleanup(tmpDir);
+      }
+    });
+
     test('returns null for existing files (edit, not create)', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       enableBlockDocSprawl(planningDir);
