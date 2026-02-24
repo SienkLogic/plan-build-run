@@ -1,4 +1,4 @@
-const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../plugins/pbr/scripts/status-line');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../plugins/pbr/scripts/status-line');
 const { configClearCache } = require('../plugins/pbr/scripts/pbr-tools');
 
 /** Strip ANSI escape codes for readable assertions */
@@ -188,8 +188,8 @@ describe('status-line.js', () => {
         expect(DEFAULTS.context_bar).toHaveProperty('chars');
       });
 
-      test('default sections include phase, plan, status, git, context', () => {
-        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'git', 'context']);
+      test('default sections include phase, plan, status, git, context, llm', () => {
+        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'git', 'context', 'llm']);
       });
 
       test('default brand text is diamond Plan-Build-Run', () => {
@@ -668,6 +668,146 @@ describe('status-line.js', () => {
       const sd = { cost: { total_cost_usd: 7.00 } };
       const raw = buildStatusLine(content, null, cfg, sd);
       expect(raw).toContain('\x1b[31m$7.00');
+    });
+  });
+
+  describe('formatTokens', () => {
+    test('formats millions with M suffix', () => {
+      expect(formatTokens(1_500_000)).toBe('1.5M');
+    });
+
+    test('formats thousands with K suffix', () => {
+      expect(formatTokens(12_300)).toBe('12.3K');
+    });
+
+    test('formats exact million', () => {
+      expect(formatTokens(1_000_000)).toBe('1.0M');
+    });
+
+    test('formats exact thousand', () => {
+      expect(formatTokens(1_000)).toBe('1.0K');
+    });
+
+    test('formats small numbers without suffix', () => {
+      expect(formatTokens(500)).toBe('500');
+    });
+
+    test('formats zero', () => {
+      expect(formatTokens(0)).toBe('0');
+    });
+  });
+
+  describe('buildStatusLine with llm section', () => {
+    const llmMetricsModule = require('../plugins/pbr/scripts/local-llm/metrics');
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('shows LLM stats when metrics exist', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 42,
+        fallback_count: 2,
+        avg_latency_ms: 150,
+        tokens_saved: 85_000,
+        cost_saved_usd: 0.26,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
+      expect(result).toContain('LLM 42x 85.0K saved');
+    });
+
+    test('uses green color for LLM stats', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 10,
+        fallback_count: 0,
+        avg_latency_ms: 100,
+        tokens_saved: 5_000,
+        cost_saved_usd: 0.02,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const raw = buildStatusLine(content, null, cfg, {}, '/fake/.planning');
+      expect(raw).toContain('\x1b[32mLLM 10x 5.0K saved');
+    });
+
+    test('omits LLM section when no calls', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 0,
+        fallback_count: 0,
+        avg_latency_ms: 0,
+        tokens_saved: 0,
+        cost_saved_usd: 0,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
+      expect(result).not.toContain('LLM');
+    });
+
+    test('omits LLM section when computeLifetimeMetrics throws', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockImplementation(() => {
+        throw new Error('no log file');
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
+      expect(result).not.toContain('LLM');
+    });
+
+    test('omits LLM section when not in sections array', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 42,
+        fallback_count: 0,
+        avg_latency_ms: 100,
+        tokens_saved: 50_000,
+        cost_saved_usd: 0.15,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'context'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
+      expect(result).not.toContain('LLM');
+    });
+
+    test('omits LLM section when planningDir is not provided', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 42,
+        fallback_count: 0,
+        avg_latency_ms: 100,
+        tokens_saved: 50_000,
+        cost_saved_usd: 0.15,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}));
+      expect(result).not.toContain('LLM');
+    });
+
+    test('formats large token counts with M suffix', () => {
+      jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
+        total_calls: 200,
+        fallback_count: 5,
+        avg_latency_ms: 200,
+        tokens_saved: 2_500_000,
+        cost_saved_usd: 7.50,
+        by_operation: {}
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
+      expect(result).toContain('LLM 200x 2.5M saved');
+    });
+  });
+
+  describe('DEFAULTS includes llm section', () => {
+    test('default sections include llm', () => {
+      expect(DEFAULTS.sections).toContain('llm');
     });
   });
 });
