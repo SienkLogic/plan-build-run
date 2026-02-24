@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.29.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.28.0...plan-build-run-v2.29.0) (2026-02-24)
+
+
+### Features
+
+* **39-01:** add Command Center view with live-updating dashboard components ([7520c7f](https://github.com/SienkLogic/plan-build-run/commit/7520c7fd592beae5739cfd96aa73fd354047896d))
+
 ## [2.28.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.27.2...plan-build-run-v2.28.0) (2026-02-24)
 
 
