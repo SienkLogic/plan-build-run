@@ -436,7 +436,7 @@ function main() {
       found: 'none'
     });
     const output = {
-      additionalContext: `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found. The agent may have failed silently. Check agent output for errors.`
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.`
     };
     process.stdout.write(JSON.stringify(output));
   } else if (skillWarnings.length > 0) {

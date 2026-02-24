@@ -55,7 +55,7 @@ async function main() {
   // Provide recovery hints for Bash failures (most common actionable failure)
   if (toolName === 'Bash' && !isInterrupt) {
     const output = {
-      additionalContext: 'Bash command failed. If this is a recurring issue, consider using /pbr:debug for systematic investigation.'
+      additionalContext: '[Tool Failure] Bash command failed. To investigate: check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.'
     };
     process.stdout.write(JSON.stringify(output));
   }
