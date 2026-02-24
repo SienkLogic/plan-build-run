@@ -29,7 +29,6 @@
     "sanitize-html": "^2.13.0"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.57.1",
     "@vitest/coverage-v8": "^4.0.18",
     "memfs": "^4.56.10",
     "supertest": "^7.2.2",
