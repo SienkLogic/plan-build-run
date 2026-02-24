@@ -2,6 +2,7 @@
 
 const { complete, tryParseJSON, isDisabled } = require('../client');
 const { logMetric } = require('../metrics');
+const { route } = require('../router');
 
 /**
  * Classifies a PLAN.md or SUMMARY.md artifact using the local LLM.
@@ -34,7 +35,10 @@ async function classifyArtifact(config, planningDir, content, fileType, sessionI
   }
 
   try {
-    const result = await complete(config, prompt, 'artifact-classification');
+    const result = await route(config, prompt, 'artifact-classification', (logprobs) =>
+      complete(config, prompt, 'artifact-classification', { logprobs })
+    );
+    if (result === null) return null;
     const parsed = tryParseJSON(result.content);
     if (!parsed.ok) return null;
 
