@@ -12,8 +12,8 @@ describe('SSE reconnection behavior', () => {
     clearClients();
   });
 
-  it('client can disconnect and reconnect', () => {
-    const client = { write: vi.fn() };
+  it('client can disconnect and reconnect', async () => {
+    const client = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
     addClient(client);
     expect(getClientCount()).toBe(1);
 
@@ -24,56 +24,59 @@ describe('SSE reconnection behavior', () => {
     addClient(client);
     expect(getClientCount()).toBe(1);
 
-    broadcast('test', { msg: 'after-reconnect' });
-    expect(client.write).toHaveBeenCalledOnce();
+    await broadcast('test', { msg: 'after-reconnect' });
+    expect(client.writeSSE).toHaveBeenCalledOnce();
   });
 
-  it('broadcast sends to all connected clients', () => {
-    const clients = Array.from({ length: 5 }, () => ({ write: vi.fn() }));
+  it('broadcast sends to all connected clients', async () => {
+    const clients = Array.from({ length: 5 }, () => ({
+      writeSSE: vi.fn().mockResolvedValue(undefined),
+      aborted: false
+    }));
     clients.forEach(c => addClient(c));
 
-    broadcast('update', { key: 'value' });
+    await broadcast('update', { key: 'value' });
 
     clients.forEach(c => {
-      expect(c.write).toHaveBeenCalledOnce();
-      expect(c.write.mock.calls[0][0]).toContain('event: update');
+      expect(c.writeSSE).toHaveBeenCalledOnce();
+      expect(c.writeSSE.mock.calls[0][0].event).toBe('update');
     });
   });
 
-  it('failed client is removed without affecting others', () => {
-    const good = { write: vi.fn() };
-    const bad = { write: vi.fn(() => { throw new Error('broken pipe'); }) };
+  it('failed client is removed without affecting others', async () => {
+    const good = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
+    const bad = { writeSSE: vi.fn().mockRejectedValue(new Error('broken pipe')), aborted: false };
 
     addClient(good);
     addClient(bad);
     expect(getClientCount()).toBe(2);
 
-    broadcast('test', {});
+    await broadcast('test', {});
 
     expect(getClientCount()).toBe(1);
-    expect(good.write).toHaveBeenCalledOnce();
+    expect(good.writeSSE).toHaveBeenCalledOnce();
   });
 
-  it('adding same client twice does not duplicate', () => {
-    const client = { write: vi.fn() };
+  it('adding same client twice does not duplicate', async () => {
+    const client = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
     addClient(client);
     addClient(client);
     expect(getClientCount()).toBe(1);
 
-    broadcast('test', {});
-    expect(client.write).toHaveBeenCalledOnce();
+    await broadcast('test', {});
+    expect(client.writeSSE).toHaveBeenCalledOnce();
   });
 
-  it('broadcast includes event name, JSON data, and id', () => {
-    const client = { write: vi.fn() };
+  it('broadcast includes event name, JSON data, and id', async () => {
+    const client = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
     addClient(client);
 
-    broadcast('file-change', { path: '/test.md' });
+    await broadcast('file-change', { path: '/test.md' });
 
-    const msg = client.write.mock.calls[0][0];
-    expect(msg).toContain('event: file-change');
-    expect(msg).toContain('"path":"/test.md"');
-    expect(msg).toMatch(/id: \d+/);
-    expect(msg).toMatch(/\n\n$/);
+    const call = client.writeSSE.mock.calls[0][0];
+    expect(call.event).toBe('file-change');
+    expect(call.data).toContain('"path":"/test.md"');
+    expect(call.id).toBeDefined();
+    expect(call.id).toMatch(/^\d+$/);
   });
 });
