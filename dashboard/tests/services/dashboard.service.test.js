@@ -493,4 +493,57 @@ COMMIT:2026-02-23T09:00:00+00:00
       expect(result[0].href).toBe('/phases/01');
     });
   });
+
+  describe('parseStateFile nextAction', () => {
+    it('returns /pbr:plan when status is planning', async () => {
+      vol.fromJSON({
+        '/project/.planning/STATE.md': [
+          '---',
+          'status: planning',
+          '---',
+          '',
+          '# Project State',
+          ''
+        ].join('\n')
+      });
+
+      const result = await parseStateFile('/project');
+
+      expect(result.nextAction).toBe('/pbr:plan');
+    });
+
+    it('returns /pbr:review when status is built', async () => {
+      vol.fromJSON({
+        '/project/.planning/STATE.md': [
+          '---',
+          'status: built',
+          '---',
+          '',
+          '# Project State',
+          ''
+        ].join('\n')
+      });
+
+      const result = await parseStateFile('/project');
+
+      expect(result.nextAction).toBe('/pbr:review');
+    });
+
+    it('returns null for unknown status', async () => {
+      vol.fromJSON({
+        '/project/.planning/STATE.md': [
+          '---',
+          'status: unknown-xyz',
+          '---',
+          '',
+          '# Project State',
+          ''
+        ].join('\n')
+      });
+
+      const result = await parseStateFile('/project');
+
+      expect(result.nextAction).toBeNull();
+    });
+  });
 });
