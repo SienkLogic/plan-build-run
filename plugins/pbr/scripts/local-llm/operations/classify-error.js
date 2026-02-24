@@ -2,6 +2,7 @@
 
 const { complete, tryParseJSON, isDisabled } = require('../client');
 const { logMetric } = require('../metrics');
+const { route } = require('../router');
 
 const ERROR_CATEGORIES = [
   'connection_refused',
@@ -35,7 +36,10 @@ async function classifyError(config, planningDir, errorText, agentType, sessionI
     truncatedError;
 
   try {
-    const result = await complete(config, prompt, 'error-classification');
+    const result = await route(config, prompt, 'error-classification', (logprobs) =>
+      complete(config, prompt, 'error-classification', { logprobs })
+    );
+    if (result === null) return null;
     const parsed = tryParseJSON(result.content);
     if (!parsed.ok) return null;
 
