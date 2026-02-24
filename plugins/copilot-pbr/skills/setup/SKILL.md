@@ -273,18 +273,29 @@ Run a quick health check:
 Display results:
 
 ```
-Setup Complete!
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► SETUP COMPLETE ✓                           ║
+╚══════════════════════════════════════════════════════════════╝
 
 Project: {cwd basename}
 Model profile: {balanced/quality/budget}
 Depth: {quick/standard/comprehensive}
 Features: {list of enabled non-default features}
 
-Next steps:
-  /pbr:begin  — Full project setup with requirements and roadmap
-  /pbr:scan   — Analyze existing codebase (if adding to existing project)
-  /pbr:help   — Command reference
-  /pbr:config — Fine-tune individual settings
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Start your project** — define requirements and create a roadmap
+
+`/pbr:begin`
+
+<sub>`/clear` first → fresh context window</sub>
+
+**Also available:**
+- `/pbr:scan` — analyze existing codebase (if adding to existing project)
+- `/pbr:config` — fine-tune individual settings
+- `/pbr:help` — command reference
 ```
 
 ---

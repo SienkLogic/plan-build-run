@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill
 
 # /pbr:continue — Action-Oriented Resumption
 
-You are running the **continue** skill. Unlike `/pbr:resume` which shows status and suggests actions, `/pbr:continue` determines and EXECUTES the next logical step automatically.
+You are running the **continue** skill. Unlike `/pbr:status` which shows the dashboard and suggests the next action, `/pbr:continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
 
 This skill runs **inline** and may delegate to other skills via Task().
 
