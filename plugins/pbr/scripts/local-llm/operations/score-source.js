@@ -21,6 +21,7 @@ const SOURCE_LEVELS = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
  */
 async function scoreSource(config, planningDir, sourceText, sourceUrl, sessionId) {
   if (!config.enabled) return null;
+  if (!config.features || !config.features.source_scoring) return null;
   if (isDisabled('source-scoring', config.advanced.disable_after_failures)) return null;
 
   const maxChars = (config.advanced.max_input_tokens || 1024) * 4;
