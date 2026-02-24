@@ -3,41 +3,79 @@
 <h1>Project Analytics</h1>
 
 <% if (typeof analytics !== 'undefined' && analytics.warning) { %>
-<article aria-label="warning" class="pico-background-yellow-100">
-  <strong>Warning:</strong> <%= analytics.warning %>
-</article>
+<div class="alert alert-warning" role="alert"><strong>Warning:</strong> <%= analytics.warning %></div>
 <% } %>
 
 <% if (typeof analytics !== 'undefined' && analytics.summary) { %>
-<div class="grid">
-  <article>
-    <header>Total Commits</header>
-    <strong class="stat-value"><%= analytics.summary.totalCommits %></strong>
-    <span class="stat-unit">commits</span>
-  </article>
-  <article>
-    <header>Total Phases</header>
-    <strong class="stat-value"><%= analytics.summary.totalPhases %></strong>
-    <span class="stat-unit">phases</span>
-  </article>
-  <article>
-    <header>Avg Duration</header>
-    <strong class="stat-value"><%= analytics.summary.avgDuration %></strong>
-    <span class="stat-unit">days</span>
-  </article>
-  <article>
-    <header>Lines Changed</header>
-    <strong class="stat-value"><%= analytics.summary.totalLinesChanged.toLocaleString() %></strong>
-    <span class="stat-unit">lines</span>
-  </article>
+<div class="row row-cards mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col">
+            <div class="font-weight-medium">Total Commits</div>
+            <div class="text-muted small">commits</div>
+          </div>
+          <div class="col-auto">
+            <strong class="stat-value"><%= analytics.summary.totalCommits %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col">
+            <div class="font-weight-medium">Total Phases</div>
+            <div class="text-muted small">phases</div>
+          </div>
+          <div class="col-auto">
+            <strong class="stat-value"><%= analytics.summary.totalPhases %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col">
+            <div class="font-weight-medium">Avg Duration</div>
+            <div class="text-muted small">days</div>
+          </div>
+          <div class="col-auto">
+            <strong class="stat-value"><%= analytics.summary.avgDuration %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card card-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col">
+            <div class="font-weight-medium">Lines Changed</div>
+            <div class="text-muted small">lines</div>
+          </div>
+          <div class="col-auto">
+            <strong class="stat-value"><%= analytics.summary.totalLinesChanged.toLocaleString() %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 <% } %>
 
 <% if (typeof analytics !== 'undefined' && analytics.phases && analytics.phases.length > 0) { %>
-<article>
-  <header>Per-Phase Metrics</header>
-  <div class="overflow-auto">
-    <table>
+<div class="card mb-4">
+  <div class="card-header">Per-Phase Metrics</div>
+  <div class="card-body table-responsive">
+    <table class="table table-vcenter">
       <thead>
         <tr>
           <th>Phase</th>
@@ -67,12 +105,12 @@
       </tbody>
     </table>
   </div>
-</article>
+</div>
 
 <% const maxCommits = Math.max(...analytics.phases.map(p => p.commitCount), 1); %>
-<article>
-  <header>Commits by Phase</header>
-  <div style="padding: var(--space-md) var(--space-lg);">
+<div class="card mb-4">
+  <div class="card-header">Commits by Phase</div>
+  <div class="card-body">
     <% analytics.phases.sort((a, b) => a.phaseId.localeCompare(b.phaseId)).forEach(phase => { %>
     <div class="bar-chart-row">
       <span class="bar-chart-label"><%= phase.phaseId %> - <%= phase.phaseName %></span>
@@ -82,7 +120,7 @@
     </div>
     <% }) %>
   </div>
-</article>
+</div>
 <% } else if (typeof analytics === 'undefined' || !analytics.summary) { %>
 <%- include('empty-state', { icon: '📊', title: 'No analytics data available', action: '' }) %>
 <% } else { %>
@@ -90,62 +128,114 @@
 <% } %>
 
 <% if (typeof llmMetrics !== 'undefined' && llmMetrics) { %>
-<article>
-  <header>Local LLM Offload</header>
-  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-    <article>
-      <header>Total Calls</header>
-      <strong class="stat-value"><%= llmMetrics.summary.total_calls %></strong>
-      <span class="stat-unit">calls</span>
-    </article>
-    <article>
-      <header>Tokens Saved</header>
-      <strong class="stat-value"><%= llmMetrics.summary.tokens_saved.toLocaleString() %></strong>
-      <span class="stat-unit">frontier tokens</span>
-    </article>
-    <article>
-      <header>Cost Saved</header>
-      <strong class="stat-value">$<%= llmMetrics.summary.cost_saved_usd.toFixed(4) %></strong>
-      <span class="stat-unit">at $3/M tokens</span>
-    </article>
-    <article>
-      <header>Fallbacks</header>
-      <strong class="stat-value"><%= llmMetrics.summary.fallback_rate_pct %>%</strong>
-      <span class="stat-unit"><%= llmMetrics.summary.fallback_count %> fallbacks</span>
-    </article>
-    <article>
-      <header>Latency</header>
-      <strong class="stat-value"><%= llmMetrics.summary.avg_latency_ms %></strong>
-      <span class="stat-unit">ms/call</span>
-    </article>
+<div class="card mb-4">
+  <div class="card-header">Local LLM Offload</div>
+  <div class="card-body">
+    <div class="row row-cards mb-3">
+      <div class="col-6 col-lg">
+        <div class="card card-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="font-weight-medium">Total Calls</div>
+                <div class="text-muted small">calls</div>
+              </div>
+              <div class="col-auto">
+                <strong class="stat-value"><%= llmMetrics.summary.total_calls %></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card card-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="font-weight-medium">Tokens Saved</div>
+                <div class="text-muted small">frontier tokens</div>
+              </div>
+              <div class="col-auto">
+                <strong class="stat-value"><%= llmMetrics.summary.tokens_saved.toLocaleString() %></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card card-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="font-weight-medium">Cost Saved</div>
+                <div class="text-muted small">at $3/M tokens</div>
+              </div>
+              <div class="col-auto">
+                <strong class="stat-value">$<%= llmMetrics.summary.cost_saved_usd.toFixed(4) %></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card card-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="font-weight-medium">Fallbacks</div>
+                <div class="text-muted small"><%= llmMetrics.summary.fallback_count %> fallbacks</div>
+              </div>
+              <div class="col-auto">
+                <strong class="stat-value"><%= llmMetrics.summary.fallback_rate_pct %>%</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg">
+        <div class="card card-sm">
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col">
+                <div class="font-weight-medium">Latency</div>
+                <div class="text-muted small">ms/call</div>
+              </div>
+              <div class="col-auto">
+                <strong class="stat-value"><%= llmMetrics.summary.avg_latency_ms %></strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% if (llmMetrics.byOperation && llmMetrics.byOperation.length > 0) { %>
+    <div class="table-responsive">
+      <table class="table table-vcenter">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Calls</th>
+            <th>Fallbacks</th>
+            <th>Tokens Saved</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% llmMetrics.byOperation.forEach(op => { %>
+          <tr>
+            <td><%= op.operation %></td>
+            <td><%= op.calls %></td>
+            <td><%= op.fallbacks %></td>
+            <td><%= op.tokens_saved.toLocaleString() %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
   </div>
-  <% if (llmMetrics.byOperation && llmMetrics.byOperation.length > 0) { %>
-  <div class="overflow-auto" style="margin-top: var(--space-md);">
-    <table>
-      <thead>
-        <tr>
-          <th>Operation</th>
-          <th>Calls</th>
-          <th>Fallbacks</th>
-          <th>Tokens Saved</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% llmMetrics.byOperation.forEach(op => { %>
-        <tr>
-          <td><%= op.operation %></td>
-          <td><%= op.calls %></td>
-          <td><%= op.fallbacks %></td>
-          <td><%= op.tokens_saved.toLocaleString() %></td>
-        </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
-  <% } %>
-  <footer style="color: var(--pico-muted-color); font-size: 0.85em;">
+  <div class="card-footer text-muted small">
     Baseline estimate: each local call replaced ~<%= llmMetrics.baseline.estimated_frontier_tokens_without_local.toLocaleString() %> frontier tokens total.
     Advisory only — no data collected when local LLM is disabled.
-  </footer>
-</article>
+  </div>
+</div>
 <% } %>
