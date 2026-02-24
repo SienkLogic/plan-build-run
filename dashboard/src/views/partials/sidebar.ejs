@@ -15,8 +15,8 @@
 
   <% if (typeof currentPhase !== 'undefined' && currentPhase && currentPhase.nextAction) { %>
   <div class="sidebar-next-action">
-    <small>Suggested next:</small>
-    <code><%= currentPhase.nextAction %></code>
+    <small>Suggested next</small>
+    <code class="sidebar-next-action__cmd"><%= currentPhase.nextAction %></code>
   </div>
   <% } %>
 

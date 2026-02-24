@@ -23,8 +23,7 @@
 <article>
   <header><strong>Summary</strong></header>
   <p>
-    <%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases complete
-    across <%= milestoneGroups.length %> milestone<%= milestoneGroups.length !== 1 ? 's' : '' %>.
+    <%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases complete<%= milestoneGroups.length > 0 ? ' across ' + milestoneGroups.length + ' milestone' + (milestoneGroups.length !== 1 ? 's' : '') : '' %>.
   </p>
   <progress value="<%= phases.filter(p => p.status === 'complete').length %>" max="<%= phases.length %>"></progress>
 </article>
