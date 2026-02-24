@@ -9,6 +9,61 @@ import { getLlmMetrics } from '../services/local-llm-metrics.service.js';
 import { listNotes, getNoteBySlug } from '../services/notes.service.js';
 import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
 import { listAuditReports, getAuditReport } from '../services/audit.service.js';
+import { readConfig, writeConfig } from '../services/config.service.js';
+
+/**
+ * Merge flat HTML form fields back into a nested config object.
+ * Form field names use dot-notation: "features.autoVerify", "models.default".
+ * Boolean checkboxes arrive as "on"/"off" or are absent when unchecked.
+ * @param {object} existing - current config object from disk
+ * @param {object} form - req.body from express.urlencoded
+ * @returns {object}
+ */
+function mergeFormIntoConfig(existing, form) {
+  const result = JSON.parse(JSON.stringify(existing)); // deep clone
+  for (const [key, value] of Object.entries(form)) {
+    const parts = key.split('.');
+    let target = result;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (target[parts[i]] == null || typeof target[parts[i]] !== 'object') {
+        target[parts[i]] = {};
+      }
+      target = target[parts[i]];
+    }
+    const leaf = parts[parts.length - 1];
+    // Coerce booleans: checkboxes send "on", absent means false
+    if (typeof existing?.[parts[0]]?.[leaf] === 'boolean' || (parts.length === 2 && typeof (existing?.[parts[0]] ?? {})[leaf] === 'boolean')) {
+      target[leaf] = value === 'on' || value === 'true';
+    } else if (typeof target[leaf] === 'number') {
+      target[leaf] = Number(value);
+    } else {
+      target[leaf] = value;
+    }
+  }
+  // Uncheck all feature booleans not present in form (unchecked checkboxes are absent)
+  if (result.features && typeof result.features === 'object') {
+    for (const k of Object.keys(result.features)) {
+      if (typeof result.features[k] === 'boolean' && !(`features.${k}` in form)) {
+        result.features[k] = false;
+      }
+    }
+  }
+  if (result.gates && typeof result.gates === 'object') {
+    for (const k of Object.keys(result.gates)) {
+      if (typeof result.gates[k] === 'boolean' && !(`gates.${k}` in form)) {
+        result.gates[k] = false;
+      }
+    }
+  }
+  if (result.safety && typeof result.safety === 'object') {
+    for (const k of Object.keys(result.safety)) {
+      if (typeof result.safety[k] === 'boolean' && !(`safety.${k}` in form)) {
+        result.safety[k] = false;
+      }
+    }
+  }
+  return result;
+}
 
 const router = Router();
 
@@ -611,6 +666,54 @@ router.get('/audits/:filename', async (req, res) => {
     res.render('partials/audit-detail-content', templateData);
   } else {
     res.render('audit-detail', templateData);
+  }
+});
+
+router.get('/config', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const config = await readConfig(projectDir);
+
+  const templateData = {
+    title: 'Config',
+    activePage: 'config',
+    currentPath: '/config',
+    breadcrumbs: [{ label: 'Config' }],
+    config: config ?? {}
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/config-content', templateData);
+  } else {
+    res.render('config', templateData);
+  }
+});
+
+router.post('/api/config', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+
+  // Accept either JSON body (raw editor) or form-encoded (hybrid form)
+  let incoming = req.body;
+
+  // If the request carries a `rawJson` field, parse it as the full config
+  if (typeof incoming.rawJson === 'string') {
+    try {
+      incoming = JSON.parse(incoming.rawJson);
+    } catch {
+      return res.status(400).send('<span class="config-feedback config-feedback--error">Invalid JSON</span>');
+    }
+  } else {
+    // Merge form fields into existing config to avoid clobbering unrendered keys
+    const existing = await readConfig(projectDir) ?? {};
+    incoming = mergeFormIntoConfig(existing, incoming);
+  }
+
+  try {
+    await writeConfig(projectDir, incoming);
+    res.send('<span class="config-feedback config-feedback--success">Saved</span>');
+  } catch (err) {
+    res.status(400).send(`<span class="config-feedback config-feedback--error">${err.message}</span>`);
   }
 });
 
