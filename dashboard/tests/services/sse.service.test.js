@@ -8,75 +8,75 @@ import {
 } from '../../src/services/sse.service.js';
 
 describe('sse.service', () => {
-  let mockRes;
+  let mockStream;
 
   beforeEach(() => {
     clearClients();
-    mockRes = { write: vi.fn() };
+    mockStream = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
   });
 
   it('should add a client and report correct count', () => {
-    addClient(mockRes);
+    addClient(mockStream);
     expect(getClientCount()).toBe(1);
   });
 
   it('should remove a client and report correct count', () => {
-    addClient(mockRes);
-    removeClient(mockRes);
+    addClient(mockStream);
+    removeClient(mockStream);
     expect(getClientCount()).toBe(0);
   });
 
   it('should not error when removing a client that was never added', () => {
-    removeClient(mockRes);
+    removeClient(mockStream);
     expect(getClientCount()).toBe(0);
   });
 
-  it('should broadcast event to all connected clients', () => {
-    const mockRes1 = { write: vi.fn() };
-    const mockRes2 = { write: vi.fn() };
+  it('should broadcast event to all connected clients', async () => {
+    const mock1 = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
+    const mock2 = { writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false };
 
-    addClient(mockRes1);
-    addClient(mockRes2);
+    addClient(mock1);
+    addClient(mock2);
 
-    broadcast('file-change', { path: '.planning/STATE.md', type: 'change' });
+    await broadcast('file-change', { path: '.planning/STATE.md', type: 'change' });
 
-    expect(mockRes1.write).toHaveBeenCalledOnce();
-    expect(mockRes2.write).toHaveBeenCalledOnce();
+    expect(mock1.writeSSE).toHaveBeenCalledOnce();
+    expect(mock2.writeSSE).toHaveBeenCalledOnce();
 
-    const written1 = mockRes1.write.mock.calls[0][0];
-    expect(written1).toContain('event: file-change');
-    expect(written1).toContain('"path":".planning/STATE.md"');
-    expect(written1).toContain('"type":"change"');
-    expect(written1).toMatch(/id: \d+/);
-    expect(written1).toMatch(/\n\n$/);
+    const call1 = mock1.writeSSE.mock.calls[0][0];
+    expect(call1.event).toBe('file-change');
+    expect(call1.data).toContain('"path":".planning/STATE.md"');
+    expect(call1.data).toContain('"type":"change"');
+    expect(call1.id).toBeDefined();
   });
 
-  it('should not broadcast to clients after they are removed', () => {
-    addClient(mockRes);
-    removeClient(mockRes);
+  it('should not broadcast to clients after they are removed', async () => {
+    addClient(mockStream);
+    removeClient(mockStream);
 
-    broadcast('file-change', { path: 'test.md', type: 'change' });
+    await broadcast('file-change', { path: 'test.md', type: 'change' });
 
-    expect(mockRes.write).not.toHaveBeenCalled();
+    expect(mockStream.writeSSE).not.toHaveBeenCalled();
   });
 
-  it('should remove client automatically if write throws', () => {
-    const failingRes = {
-      write: vi.fn(() => { throw new Error('connection reset'); })
+  it('should remove client automatically if write throws', async () => {
+    const failingStream = {
+      writeSSE: vi.fn().mockRejectedValue(new Error('connection reset')),
+      aborted: false
     };
 
-    addClient(failingRes);
+    addClient(failingStream);
     expect(getClientCount()).toBe(1);
 
-    broadcast('file-change', { path: 'test.md', type: 'change' });
+    await broadcast('file-change', { path: 'test.md', type: 'change' });
 
     expect(getClientCount()).toBe(0);
   });
 
   it('should clear all clients', () => {
-    addClient({ write: vi.fn() });
-    addClient({ write: vi.fn() });
-    addClient({ write: vi.fn() });
+    addClient({ writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false });
+    addClient({ writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false });
+    addClient({ writeSSE: vi.fn().mockResolvedValue(undefined), aborted: false });
 
     expect(getClientCount()).toBe(3);
 
