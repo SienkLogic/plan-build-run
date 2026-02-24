@@ -8,6 +8,16 @@ import { getRoadmapData } from '../services/roadmap.service.js';
 import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
 import { listPendingTodos, listDoneTodos, createTodo, completeTodo } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
+import { ResearchTab, researchDocHtml } from '../components/explorer/tabs/ResearchTab';
+import { RequirementsTab } from '../components/explorer/tabs/RequirementsTab';
+import { NotesTab, noteDetailHtml } from '../components/explorer/tabs/NotesTab';
+import { AuditsTab, auditDetailHtml } from '../components/explorer/tabs/AuditsTab';
+import { QuickTab, quickTaskDetailHtml } from '../components/explorer/tabs/QuickTab';
+import { listResearchDocs, listCodebaseDocs, getResearchDocBySlug } from '../services/research.service.js';
+import { getRequirementsData } from '../services/requirements.service.js';
+import { listNotes, getNoteBySlug } from '../services/notes.service.js';
+import { listAuditReports, getAuditReport } from '../services/audit.service.js';
+import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
 
 type Env = { Variables: { projectDir: string } };
 
@@ -142,14 +152,75 @@ router.get('/api/explorer/milestones/:version', async (c) => {
   return c.html(milestoneDetailHtml(detail));
 });
 
-// ---- Stub endpoints for tabs implemented in later plans ----
+// ---- Research tab routes ----
 
-const STUB_TABS = ['research', 'requirements', 'notes', 'audits', 'quick'] as const;
+router.get('/api/explorer/research', async (c) => {
+  const projectDir = c.get('projectDir');
+  const [researchDocs, codebaseDocs] = await Promise.all([
+    listResearchDocs(projectDir).catch(() => []),
+    listCodebaseDocs(projectDir).catch(() => []),
+  ]);
+  return c.html(<ResearchTab researchDocs={researchDocs as any[]} codebaseDocs={codebaseDocs as any[]} />);
+});
 
-for (const tab of STUB_TABS) {
-  router.get(`/api/explorer/${tab}`, (c) =>
-    c.html(<div class="explorer__loading">Coming soon...</div>)
-  );
-}
+router.get('/api/explorer/research/:slug', async (c) => {
+  const projectDir = c.get('projectDir');
+  const { slug } = c.req.param();
+  const doc = await getResearchDocBySlug(projectDir, slug).catch(() => null);
+  return c.html(researchDocHtml(doc));
+});
+
+// ---- Requirements tab routes ----
+
+router.get('/api/explorer/requirements', async (c) => {
+  const projectDir = c.get('projectDir');
+  const data = await getRequirementsData(projectDir).catch(() => ({ sections: [], totalCount: 0, coveredCount: 0 }));
+  return c.html(<RequirementsTab data={data} />);
+});
+
+// ---- Notes tab routes ----
+
+router.get('/api/explorer/notes', async (c) => {
+  const projectDir = c.get('projectDir');
+  const notes = await listNotes(projectDir).catch(() => []);
+  return c.html(<NotesTab notes={notes as any[]} />);
+});
+
+router.get('/api/explorer/notes/:slug', async (c) => {
+  const projectDir = c.get('projectDir');
+  const { slug } = c.req.param();
+  const note = await getNoteBySlug(projectDir, slug).catch(() => null);
+  return c.html(noteDetailHtml(note));
+});
+
+// ---- Audits tab routes ----
+
+router.get('/api/explorer/audits', async (c) => {
+  const projectDir = c.get('projectDir');
+  const reports = await listAuditReports(projectDir).catch(() => []);
+  return c.html(<AuditsTab reports={reports as any[]} />);
+});
+
+router.get('/api/explorer/audits/:filename', async (c) => {
+  const projectDir = c.get('projectDir');
+  const { filename } = c.req.param();
+  const report = await getAuditReport(projectDir, filename).catch(() => null);
+  return c.html(auditDetailHtml(report));
+});
+
+// ---- Quick Tasks tab routes ----
+
+router.get('/api/explorer/quick', async (c) => {
+  const projectDir = c.get('projectDir');
+  const tasks = await listQuickTasks(projectDir).catch(() => []);
+  return c.html(<QuickTab tasks={tasks as any[]} />);
+});
+
+router.get('/api/explorer/quick/:id', async (c) => {
+  const projectDir = c.get('projectDir');
+  const { id } = c.req.param();
+  const task = await getQuickTask(projectDir, id).catch(() => null);
+  return c.html(quickTaskDetailHtml(task));
+});
 
 export { router as explorerRouter };
