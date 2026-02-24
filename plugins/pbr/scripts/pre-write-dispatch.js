@@ -62,6 +62,7 @@ const { checkWorkflow } = require('./check-skill-workflow');
 const { checkSummaryGate } = require('./check-summary-gate');
 const { checkBoundary } = require('./check-phase-boundary');
 const { checkDocSprawl } = require('./check-doc-sprawl');
+const { checkUnmanagedSourceWrite } = require('./enforce-pbr-workflow');
 
 function main() {
   let input = '';
@@ -71,6 +72,15 @@ function main() {
   process.stdin.on('end', () => {
     try {
       const data = JSON.parse(input);
+
+      // Unmanaged source write check — runs first as the most fundamental
+      // workflow enforcement: warn/block when source code is edited without
+      // an active PBR skill managing the session.
+      const unmanagedResult = checkUnmanagedSourceWrite(data);
+      if (unmanagedResult) {
+        process.stdout.write(JSON.stringify(unmanagedResult.output));
+        process.exit(unmanagedResult.exitCode || 0);
+      }
 
       // Agent STATE.md write blocker — most fundamental check
       const agentResult = checkAgentStateWrite(data);

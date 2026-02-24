@@ -49,6 +49,7 @@
 const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
 const { checkCommit, enrichCommitLlm } = require('./validate-commit');
+const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
 
 function main() {
   let input = '';
@@ -95,6 +96,12 @@ function main() {
         if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
           warnings.push('destructive database operation (DROP/TRUNCATE/DELETE/ALTER) — verify correct database is targeted and a backup exists');
         }
+      }
+
+      // Unmanaged commit advisory — warn when git commit runs without PBR skill
+      const unmanagedCommitResult = checkUnmanagedCommit(data);
+      if (unmanagedCommitResult) {
+        warnings.push(unmanagedCommitResult.output.additionalContext);
       }
 
       // LLM commit semantic classification — advisory only
