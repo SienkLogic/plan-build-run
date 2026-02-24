@@ -5,6 +5,14 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.25.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.24.0...plan-build-run-v2.25.0) (2026-02-24)
+
+
+### Features
+
+* **36-01:** expand tokens.css with card, shadow, transition, table, and badge tokens ([75df300](https://github.com/SienkLogic/plan-build-run/commit/75df3000ecf3d44ed8c57f0528e719a9cc4b7c06))
+* **tools:** add 3 local LLM operations — classify-commit, triage-test-output, classify-file-intent ([f456048](https://github.com/SienkLogic/plan-build-run/commit/f4560480888b916826f7c7e5ca6a091001779ab6))
+
 ## [2.24.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.23.0...plan-build-run-v2.24.0) (2026-02-24)
 
 
