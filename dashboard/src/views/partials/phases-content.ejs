@@ -2,9 +2,11 @@
 <h1>Phases</h1>
 
 <% if (phases.length === 0) { %>
-<article>
-  <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see phases here.</p>
-</article>
+<div class="card mb-3">
+  <div class="card-body">
+    <p>No phases found. Add a ROADMAP.md file to your .planning/ directory to see phases here.</p>
+  </div>
+</div>
 <% } else { %>
 
 <%
@@ -20,17 +22,25 @@
 %>
 
 <!-- Summary -->
-<article>
-  <header><strong>Summary</strong></header>
-  <p>
-    <%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases complete<%= milestoneGroups.length > 0 ? ' across ' + milestoneGroups.length + ' milestone' + (milestoneGroups.length !== 1 ? 's' : '') : '' %>.
-  </p>
-  <progress value="<%= phases.filter(p => p.status === 'complete').length %>" max="<%= phases.length %>"></progress>
-</article>
+<div class="card mb-3">
+  <div class="card-header"><strong>Summary</strong></div>
+  <div class="card-body">
+    <p>
+      <%= phases.filter(p => p.status === 'complete').length %> of <%= phases.length %> phases complete<%= milestoneGroups.length > 0 ? ' across ' + milestoneGroups.length + ' milestone' + (milestoneGroups.length !== 1 ? 's' : '') : '' %>.
+    </p>
+    <div class="progress" style="height:0.5rem">
+      <div class="progress-bar" role="progressbar"
+           style="width:<%= phases.filter(p => p.status === 'complete').length / phases.length * 100 %>%"
+           aria-valuenow="<%= phases.filter(p => p.status === 'complete').length %>"
+           aria-valuemin="0" aria-valuemax="<%= phases.length %>">
+      </div>
+    </div>
+  </div>
+</div>
 
 <% milestoneGroups.forEach(function(group) { %>
-<article>
-  <header>
+<div class="card mb-3">
+  <div class="card-header">
     <strong><%= group.name %></strong>
     <small>(Phases <%= String(group.startPhase).padStart(2, '0') %>&ndash;<%= String(group.endPhase).padStart(2, '0') %>)</small>
     &mdash;
@@ -41,83 +51,87 @@
     <span class="status-badge" data-status="<%= groupComplete === groupTotal ? 'complete' : (groupComplete > 0 ? 'in-progress' : 'not-started') %>">
       <%= groupComplete %>/<%= groupTotal %>
     </span>
-  </header>
-  <% if (group.goal) { %>
-    <p><small><%= group.goal %></small></p>
-  <% } %>
-  <div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">Phase</th>
-        <th scope="col">Name</th>
-        <th scope="col">Plans</th>
-        <th scope="col">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% group.phases.forEach(function(phase) { %>
-      <tr>
-        <td><%= String(phase.id).padStart(2, '0') %></td>
-        <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
-             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
-             hx-target="#main-content"
-             hx-push-url="true">
-            <%= phase.name %>
-          </a>
-        </td>
-        <td><%= phase.planCount %></td>
-        <td>
-          <span class="status-badge" data-status="<%= phase.status %>">
-            <%= phase.status.replace('-', ' ') %>
-          </span>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
   </div>
-</article>
+  <div class="card-body">
+    <% if (group.goal) { %>
+      <p><small><%= group.goal %></small></p>
+    <% } %>
+    <div class="table-responsive">
+    <table class="table table-vcenter table-hover">
+      <thead>
+        <tr>
+          <th scope="col">Phase</th>
+          <th scope="col">Name</th>
+          <th scope="col">Plans</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% group.phases.forEach(function(phase) { %>
+        <tr>
+          <td><%= String(phase.id).padStart(2, '0') %></td>
+          <td>
+            <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+               hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+               hx-target="#main-content"
+               hx-push-url="true">
+              <%= phase.name %>
+            </a>
+          </td>
+          <td><%= phase.planCount %></td>
+          <td>
+            <span class="status-badge" data-status="<%= phase.status %>">
+              <%= phase.status.replace('-', ' ') %>
+            </span>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
 <% }); %>
 
 <% if (ungrouped.length > 0) { %>
-<article>
-  <header><strong>Other Phases</strong></header>
-  <div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">Phase</th>
-        <th scope="col">Name</th>
-        <th scope="col">Plans</th>
-        <th scope="col">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% ungrouped.forEach(function(phase) { %>
-      <tr>
-        <td><%= String(phase.id).padStart(2, '0') %></td>
-        <td>
-          <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
-             hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
-             hx-target="#main-content"
-             hx-push-url="true">
-            <%= phase.name %>
-          </a>
-        </td>
-        <td><%= phase.planCount %></td>
-        <td>
-          <span class="status-badge" data-status="<%= phase.status %>">
-            <%= phase.status.replace('-', ' ') %>
-          </span>
-        </td>
-      </tr>
-      <% }); %>
-    </tbody>
-  </table>
+<div class="card mb-3">
+  <div class="card-header"><strong>Other Phases</strong></div>
+  <div class="card-body">
+    <div class="table-responsive">
+    <table class="table table-vcenter table-hover">
+      <thead>
+        <tr>
+          <th scope="col">Phase</th>
+          <th scope="col">Name</th>
+          <th scope="col">Plans</th>
+          <th scope="col">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% ungrouped.forEach(function(phase) { %>
+        <tr>
+          <td><%= String(phase.id).padStart(2, '0') %></td>
+          <td>
+            <a href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+               hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+               hx-target="#main-content"
+               hx-push-url="true">
+              <%= phase.name %>
+            </a>
+          </td>
+          <td><%= phase.planCount %></td>
+          <td>
+            <span class="status-badge" data-status="<%= phase.status %>">
+              <%= phase.status.replace('-', ' ') %>
+            </span>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+    </div>
   </div>
-</article>
+</div>
 <% } %>
 
 <% } %>

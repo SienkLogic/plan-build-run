@@ -39,13 +39,13 @@
   else if (vStatus === 'partial') verificationCssStatus = 'in-progress';
 %>
 <div class="card">
-  <div class="card__header">
+  <div class="card-header">
     <strong>Verification Status</strong>
     <span style="float:right;">
       <span class="status-badge" data-status="<%= verificationCssStatus %>"><%= vStatus.toUpperCase() %></span>
     </span>
   </div>
-  <div class="card__body">
+  <div class="card-body">
     <% if (verification.verified) { %>
       <p style="margin:0 0 var(--space-sm);">Verified: <%= new Date(verification.verified).toLocaleString() %></p>
     <% } %>
@@ -83,9 +83,7 @@
 
 <% if (plans.length === 0) { %>
 <!-- Empty State -->
-<article>
-  <p>No plans found for this phase. This phase may not have been planned yet.</p>
-</article>
+<%- include('empty-state', { title: 'No plans found for this phase.' }) %>
 <% } else { %>
 
 <h2>Plans (<%= plans.length %>)</h2>
@@ -103,7 +101,7 @@
   var planTitle = plan.planTitle || ('Plan ' + plan.planId);
 %>
 <div class="card">
-  <div class="card__header">
+  <div class="card-header">
     <span><strong><%= planTitle %></strong></span>
     <span style="display:inline-flex;gap:var(--space-xs);align-items:center;float:right;">
       <% if (wave) { %>
@@ -115,7 +113,7 @@
       <span class="status-badge" data-status="<%= planCssStatus %>"><%= planStatus.replace(/-/g, ' ').toUpperCase() %></span>
     </span>
   </div>
-  <div class="card__body">
+  <div class="card-body">
     <p style="margin:0 0 var(--space-sm);">
       <a href="/phases/<%= phaseId %>/<%= plan.planId %>/plan"
          hx-get="/phases/<%= phaseId %>/<%= plan.planId %>/plan"
@@ -203,7 +201,7 @@
 <h2>Commit History (<%= allCommits.length %>)</h2>
 
 <% if (allCommits.length === 0) { %>
-<div class="card"><div class="card__body"><p><em>No commits yet for this phase.</em></p></div></div>
+<div class="card"><div class="card-body"><p><em>No commits yet for this phase.</em></p></div></div>
 <% } else { %>
 <ol class="commit-timeline">
   <% allCommits.forEach(function(entry) { %>
