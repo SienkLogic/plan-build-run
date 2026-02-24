@@ -88,3 +88,64 @@
 <% } else { %>
 <p>No phase data available.</p>
 <% } %>
+
+<% if (typeof llmMetrics !== 'undefined' && llmMetrics) { %>
+<article>
+  <header>Local LLM Offload</header>
+  <div class="grid">
+    <article>
+      <header>Total Calls</header>
+      <strong class="stat-value"><%= llmMetrics.summary.total_calls %></strong>
+      <span class="stat-unit">calls</span>
+    </article>
+    <article>
+      <header>Tokens Saved</header>
+      <strong class="stat-value"><%= llmMetrics.summary.tokens_saved.toLocaleString() %></strong>
+      <span class="stat-unit">frontier tokens</span>
+    </article>
+    <article>
+      <header>Est. Cost Saved</header>
+      <strong class="stat-value">$<%= llmMetrics.summary.cost_saved_usd.toFixed(4) %></strong>
+      <span class="stat-unit">at $3/M tokens</span>
+    </article>
+    <article>
+      <header>Fallback Rate</header>
+      <strong class="stat-value"><%= llmMetrics.summary.fallback_rate_pct %>%</strong>
+      <span class="stat-unit"><%= llmMetrics.summary.fallback_count %> fallbacks</span>
+    </article>
+    <article>
+      <header>Avg Latency</header>
+      <strong class="stat-value"><%= llmMetrics.summary.avg_latency_ms %></strong>
+      <span class="stat-unit">ms/call</span>
+    </article>
+  </div>
+  <% if (llmMetrics.byOperation && llmMetrics.byOperation.length > 0) { %>
+  <div class="overflow-auto" style="margin-top: var(--space-md);">
+    <table>
+      <thead>
+        <tr>
+          <th>Operation</th>
+          <th>Calls</th>
+          <th>Fallbacks</th>
+          <th>Tokens Saved</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% llmMetrics.byOperation.forEach(op => { %>
+        <tr>
+          <td><%= op.operation %></td>
+          <td><%= op.calls %></td>
+          <td><%= op.fallbacks %></td>
+          <td><%= op.tokens_saved.toLocaleString() %></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+  <footer style="color: var(--pico-muted-color); font-size: 0.85em;">
+    Baseline estimate: each local call replaced ~<%= llmMetrics.baseline.estimated_frontier_tokens_without_local.toLocaleString() %> frontier tokens total.
+    Advisory only — no data collected when local LLM is disabled.
+  </footer>
+</article>
+<% } %>

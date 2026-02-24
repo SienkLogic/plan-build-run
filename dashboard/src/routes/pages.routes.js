@@ -5,6 +5,7 @@ import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.servi
 import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
 import { getProjectAnalytics } from '../services/analytics.service.js';
+import { getLlmMetrics } from '../services/local-llm-metrics.service.js';
 import { listNotes } from '../services/notes.service.js';
 
 const router = Router();
@@ -358,14 +359,18 @@ router.get('/dependencies', async (req, res) => {
 
 router.get('/analytics', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
-  const analytics = await getProjectAnalytics(projectDir);
+  const [analytics, llmMetrics] = await Promise.all([
+    getProjectAnalytics(projectDir),
+    getLlmMetrics(projectDir)
+  ]);
 
   const templateData = {
     title: 'Analytics',
     activePage: 'analytics',
     currentPath: '/analytics',
     breadcrumbs: [{ label: 'Analytics' }],
-    analytics
+    analytics,
+    llmMetrics
   };
 
   res.setHeader('Vary', 'HX-Request');
