@@ -1,0 +1,44 @@
+<%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
+<h1>Requirements</h1>
+
+<% if (totalCount === 0) { %>
+<%- include('empty-state', { icon: 'R', title: 'No requirements found', action: 'Add a REQUIREMENTS.md file to your .planning/ directory.' }) %>
+<% } else { %>
+<p class="requirements-summary">
+  <strong><%= coveredCount %> / <%= totalCount %></strong> requirements covered by plans.
+  <% if (uncoveredCount > 0) { %>
+  <span class="status-badge" data-status="warning"><%= uncoveredCount %> uncovered</span>
+  <% } else { %>
+  <span class="status-badge" data-status="verified">All covered</span>
+  <% } %>
+</p>
+
+<% sections.forEach(function(section) { %>
+<section class="requirements-section">
+  <h2><%= section.sectionTitle %></h2>
+  <% section.requirements.forEach(function(req) { %>
+  <article class="card requirements-card" data-covered="<%= req.covered %>">
+    <header class="card__header">
+      <code class="req-id"><%= req.id %></code>
+      <% if (req.covered) { %>
+      <span class="status-badge" data-status="verified">covered</span>
+      <% } else { %>
+      <span class="status-badge" data-status="warning">uncovered</span>
+      <% } %>
+    </header>
+    <div class="card__body">
+      <p><%= req.text %></p>
+      <% if (req.planRefs.length > 0) { %>
+      <p class="req-plan-refs">
+        <small>Plans: </small>
+        <% req.planRefs.forEach(function(planId) { %>
+        <code class="req-plan-ref"><%= planId %></code>
+        <% }); %>
+      </p>
+      <% } %>
+    </div>
+  </article>
+  <% }); %>
+</section>
+<% }); %>
+<% } %>
