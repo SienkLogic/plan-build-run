@@ -5,9 +5,15 @@
 <%- include('empty-state', { icon: 'N', title: 'No notes yet', action: 'Use /pbr:note to create project notes.' }) %>
 <% } else { %>
 <% notes.forEach(function(note) { %>
+<% const noteSlug = note.filename.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\.md$/, ''); %>
 <article>
   <header>
-    <strong><%= note.title %></strong>
+    <strong>
+      <a href="/notes/<%= noteSlug %>"
+         hx-get="/notes/<%= noteSlug %>"
+         hx-target="#main-content"
+         hx-push-url="true"><%= note.title %></a>
+    </strong>
     <% if (note.promoted) { %>
       &nbsp; <span class="status-badge" data-status="complete">promoted</span>
     <% } %>
