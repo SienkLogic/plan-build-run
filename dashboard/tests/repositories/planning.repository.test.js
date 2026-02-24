@@ -125,6 +125,26 @@ describe('PlanningRepository', () => {
       expect(result.html).toContain('<table>');
       expect(result.html).toContain('<td>A</td>');
     });
+
+    it('strips script tags from rendered markdown', async () => {
+      vol.fromJSON({
+        '/project/xss.md': '# Hello\n\n<script>alert(1)</script>'
+      });
+
+      const result = await readMarkdownFile('/project/xss.md');
+
+      expect(result.html).not.toContain('<script>');
+    });
+
+    it('strips onerror event attributes from rendered markdown', async () => {
+      vol.fromJSON({
+        '/project/xss2.md': '<img src=x onerror="alert(1)">'
+      });
+
+      const result = await readMarkdownFile('/project/xss2.md');
+
+      expect(result.html).not.toContain('onerror');
+    });
   });
 
   describe('readMarkdownFiles', () => {
