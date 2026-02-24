@@ -19,9 +19,9 @@ code, pre, kbd, samp {
   font-size: 0.875em;
 }
 
-h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; margin-bottom: var(--space-sm); }
-h2 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; margin-top: var(--space-2xl); margin-bottom: var(--space-md); }
-h3 { font-size: 1.1rem; font-weight: 600; }
+h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.2; margin-bottom: var(--space-sm); }
+h2 { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; margin-top: var(--space-2xl); margin-bottom: var(--space-md); }
+h3 { font-size: 1.1rem; font-weight: 600; line-height: 1.4; }
 
 p { line-height: 1.65; }
 
@@ -108,7 +108,7 @@ aside.sidebar nav a {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--color-text-dim);
-  transition: all 0.15s ease;
+  transition: all var(--transition-fast);
 }
 
 aside.sidebar nav a:hover {
@@ -210,24 +210,32 @@ aside.sidebar details ul {
   color: var(--color-text-dim);
 }
 
-/* --- Article Cards --- */
+/* --- Card Component --- */
+.card,
 article {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-raised);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
   margin-bottom: var(--space-lg);
 }
 
+.card__header,
 article > header {
-  border-bottom: 1px solid var(--color-border);
-  padding: var(--space-md) var(--space-lg);
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom: 1px solid var(--card-border);
+  padding: var(--card-header-padding);
+  background: var(--card-bg);
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
 }
 
+.card__header strong,
 article > header strong {
   font-size: 0.95rem;
   font-weight: 600;
+}
+
+.card__body {
+  padding: var(--card-padding) var(--space-lg);
 }
 
 /* --- Tables --- */
@@ -251,11 +259,13 @@ th {
   letter-spacing: 0.04em;
   color: var(--color-text-dim);
   white-space: nowrap;
+  padding: var(--table-cell-padding);
 }
 
 td {
   vertical-align: top;
   line-height: 1.5;
+  padding: var(--table-cell-padding);
 }
 
 /* --- Progress Bar --- */
@@ -272,7 +282,7 @@ progress::-webkit-progress-bar {
 progress::-webkit-progress-value {
   background: var(--color-accent);
   border-radius: 999px;
-  transition: width 0.4s ease;
+  transition: width var(--transition-base);
 }
 
 progress::-moz-progress-bar {
@@ -331,7 +341,7 @@ details li {
 .markdown-body th,
 .markdown-body td {
   border: 1px solid var(--color-border);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--table-cell-padding);
   text-align: left;
 }
 
@@ -431,7 +441,7 @@ main > p:first-of-type > a[href="/"]:hover {
   border-radius: 50%;
   margin-left: var(--space-sm);
   vertical-align: middle;
-  transition: background-color 0.3s ease;
+  transition: background-color var(--transition-base);
 }
 
 #sse-status[data-connected="true"] {
@@ -522,7 +532,7 @@ main > p:first-of-type > a[href="/"]:hover {
 /* --- Bar Chart --- */
 .bar-chart-row { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
 .bar-chart-label { min-width: 160px; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bar-chart-bar { height: 1.5rem; border-radius: var(--radius-sm); background: var(--pico-primary); color: var(--pico-primary-inverse, #fff); font-size: 0.75rem; display: flex; align-items: center; padding-left: var(--space-sm); min-width: 2rem; transition: width 0.3s ease; }
+.bar-chart-bar { height: 1.5rem; border-radius: var(--radius-sm); background: var(--pico-primary); color: var(--pico-primary-inverse, #fff); font-size: 0.75rem; display: flex; align-items: center; padding-left: var(--space-sm); min-width: 2rem; transition: width var(--transition-base); }
 
 /* --- Loading Bar --- */
 .loading-bar {
