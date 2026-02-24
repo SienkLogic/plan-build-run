@@ -1,152 +1,98 @@
-<aside class="sidebar">
-  <% if (typeof currentPhase !== 'undefined' && currentPhase) { %>
-  <div class="sidebar-current-phase">
-    <small>Current Phase</small>
-    <a href="/phases/<%= currentPhase.number %>"
-       hx-get="/phases/<%= currentPhase.number %>"
-       hx-target="#main-content"
-       hx-push-url="true">
-      <strong>Phase <%= currentPhase.number %></strong>
-      <span><%= currentPhase.name %></span>
-      <span class="phase-status"><%= currentPhase.status %></span>
-    </a>
+<aside class="navbar navbar-vertical navbar-expand-md" id="sidebar">
+  <div class="container-fluid">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="sidebar-menu">
+      <% if (typeof currentPhase !== 'undefined' && currentPhase) { %>
+      <div class="navbar-brand mb-2">
+        <div class="small text-muted text-uppercase fw-bold" style="font-size:0.65rem;letter-spacing:.06em;">Current Phase</div>
+        <a href="/phases/<%= currentPhase.number %>"
+           hx-get="/phases/<%= currentPhase.number %>"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="d-block text-decoration-none mt-1">
+          <strong>Phase <%= currentPhase.number %></strong>
+          <span class="d-block text-muted small"><%= currentPhase.name %></span>
+          <span class="d-block small text-primary"><%= currentPhase.status %></span>
+        </a>
+      </div>
+      <% } %>
+      <% if (typeof currentPhase !== 'undefined' && currentPhase && currentPhase.nextAction) { %>
+      <div class="navbar-brand mb-2 border-top pt-2">
+        <div class="small text-muted text-uppercase fw-bold" style="font-size:0.65rem;letter-spacing:.06em;">Suggested next</div>
+        <code class="small d-block text-truncate mt-1"><%= currentPhase.nextAction %></code>
+      </div>
+      <% } %>
+      <ul class="navbar-nav pt-lg-3">
+        <%# Project section %>
+        <li class="nav-item dropdown">
+          <a href="#navbar-project" class="nav-link dropdown-toggle" data-bs-toggle="collapse" role="button" aria-expanded="true">
+            <span class="nav-link-title">Project</span>
+          </a>
+          <div class="dropdown-menu show" id="navbar-project">
+            <div class="dropdown-menu-columns">
+              <div class="dropdown-menu-column">
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? ' active' : '' %>" href="/" hx-get="/" hx-target="#main-content" hx-push-url="true">Dashboard</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'roadmap' ? ' active' : '' %>" href="/roadmap" hx-get="/roadmap" hx-target="#main-content" hx-push-url="true">Roadmap</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'phases' ? ' active' : '' %>" href="/phases" hx-get="/phases" hx-target="#main-content" hx-push-url="true">Phases</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'dependencies' ? ' active' : '' %>" href="/dependencies" hx-get="/dependencies" hx-target="#main-content" hx-push-url="true">Dependencies</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <%# Planning section %>
+        <li class="nav-item dropdown">
+          <a href="#navbar-planning" class="nav-link dropdown-toggle" data-bs-toggle="collapse" role="button" aria-expanded="true">
+            <span class="nav-link-title">Planning</span>
+          </a>
+          <div class="dropdown-menu show" id="navbar-planning">
+            <div class="dropdown-menu-columns">
+              <div class="dropdown-menu-column">
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'config' ? ' active' : '' %>" href="/config" hx-get="/config" hx-target="#main-content" hx-push-url="true">Config</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'research' ? ' active' : '' %>" href="/research" hx-get="/research" hx-target="#main-content" hx-push-url="true">Research</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'requirements' ? ' active' : '' %>" href="/requirements" hx-get="/requirements" hx-target="#main-content" hx-push-url="true">Requirements</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <%# Work section %>
+        <li class="nav-item dropdown">
+          <a href="#navbar-work" class="nav-link dropdown-toggle" data-bs-toggle="collapse" role="button" aria-expanded="true">
+            <span class="nav-link-title">Work</span>
+          </a>
+          <div class="dropdown-menu show" id="navbar-work">
+            <div class="dropdown-menu-columns">
+              <div class="dropdown-menu-column">
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'todos' ? ' active' : '' %>" href="/todos" hx-get="/todos" hx-target="#main-content" hx-push-url="true">Todos</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'quick' ? ' active' : '' %>" href="/quick" hx-get="/quick" hx-target="#main-content" hx-push-url="true">Quick Tasks</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'notes' ? ' active' : '' %>" href="/notes" hx-get="/notes" hx-target="#main-content" hx-push-url="true">Notes</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <%# History section %>
+        <li class="nav-item dropdown">
+          <a href="#navbar-history" class="nav-link dropdown-toggle" data-bs-toggle="collapse" role="button" aria-expanded="false">
+            <span class="nav-link-title">History</span>
+          </a>
+          <div class="dropdown-menu" id="navbar-history">
+            <div class="dropdown-menu-columns">
+              <div class="dropdown-menu-column">
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'milestones' ? ' active' : '' %>" href="/milestones" hx-get="/milestones" hx-target="#main-content" hx-push-url="true">Milestones</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'analytics' ? ' active' : '' %>" href="/analytics" hx-get="/analytics" hx-target="#main-content" hx-push-url="true">Analytics</a>
+                <a class="dropdown-item<%= typeof activePage !== 'undefined' && activePage === 'audits' ? ' active' : '' %>" href="/audits" hx-get="/audits" hx-target="#main-content" hx-push-url="true">Audit Reports</a>
+              </div>
+            </div>
+          </div>
+        </li>
+        <%# Logs %>
+        <li class="nav-item">
+          <a class="nav-link<%= typeof activePage !== 'undefined' && activePage === 'logs' ? ' active' : '' %>" href="/logs" hx-get="/logs" hx-target="#main-content" hx-push-url="true">
+            <span class="nav-link-title">Logs</span>
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
-  <% } %>
-
-  <% if (typeof currentPhase !== 'undefined' && currentPhase && currentPhase.nextAction) { %>
-  <div class="sidebar-next-action">
-    <small>Suggested next</small>
-    <code class="sidebar-next-action__cmd"><%= currentPhase.nextAction %></code>
-  </div>
-  <% } %>
-
-  <nav aria-label="Main navigation">
-    <details open>
-      <summary>Project</summary>
-      <ul>
-        <li>
-          <a href="/"
-             hx-get="/"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? ' aria-current="page"' : '' %>>
-            Dashboard
-          </a>
-        </li>
-        <li>
-          <a href="/roadmap"
-             hx-get="/roadmap"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'roadmap' ? ' aria-current="page"' : '' %>>
-            Roadmap
-          </a>
-        </li>
-        <li>
-          <a href="/phases"
-             hx-get="/phases"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'phases' ? ' aria-current="page"' : '' %>>
-            Phases
-          </a>
-        </li>
-        <li>
-          <a href="/dependencies"
-             hx-get="/dependencies"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'dependencies' ? ' aria-current="page"' : '' %>>
-            Dependencies
-          </a>
-        </li>
-      </ul>
-    </details>
-
-    <details open>
-      <summary>Planning</summary>
-      <ul>
-        <li>
-          <a href="/config"
-             hx-get="/config"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'config' ? ' aria-current="page"' : '' %>>
-            Config
-          </a>
-        </li>
-        <li>
-          <a href="/research"
-             hx-get="/research"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'research' ? ' aria-current="page"' : '' %>>
-            Research
-          </a>
-        </li>
-        <li>
-          <a href="/requirements"
-             hx-get="/requirements"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'requirements' ? ' aria-current="page"' : '' %>>
-            Requirements
-          </a>
-        </li>
-      </ul>
-    </details>
-
-    <details open>
-      <summary>Work</summary>
-      <ul>
-        <li>
-          <a href="/todos"
-             hx-get="/todos"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'todos' ? ' aria-current="page"' : '' %>>
-            Todos
-          </a>
-        </li>
-        <li>
-          <a href="/quick"
-             hx-get="/quick"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'quick' ? ' aria-current="page"' : '' %>>
-            Quick Tasks
-          </a>
-        </li>
-        <li>
-          <a href="/notes"
-             hx-get="/notes"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'notes' ? ' aria-current="page"' : '' %>>
-            Notes
-          </a>
-        </li>
-      </ul>
-    </details>
-
-    <details>
-      <summary>History</summary>
-      <ul>
-        <li>
-          <a href="/milestones"
-             hx-get="/milestones"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'milestones' ? ' aria-current="page"' : '' %>>
-            Milestones
-          </a>
-        </li>
-        <li>
-          <a href="/analytics"
-             hx-get="/analytics"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'analytics' ? ' aria-current="page"' : '' %>>
-            Analytics
-          </a>
-        </li>
-        <li>
-          <a href="/audits"
-             hx-get="/audits"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'audits' ? ' aria-current="page"' : '' %>>
-            Audit Reports
-          </a>
-        </li>
-      </ul>
-    </details>
-  </nav>
 </aside>
