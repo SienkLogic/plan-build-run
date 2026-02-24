@@ -20,12 +20,14 @@
  *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
  *   history append <type> <title> [body] — Append record to HISTORY.md
  *   history load                         — Load all HISTORY.md records as JSON
+ *   llm metrics [--session <ISO>]        — Lifetime or session-scoped LLM usage metrics
  */
 
 const fs = require('fs');
 const path = require('path');
 const { resolveConfig, checkHealth } = require('./local-llm/health');
 const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
+const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
 
 const cwd = process.cwd();
 const planningDir = path.join(cwd, '.planning');
@@ -334,8 +336,23 @@ async function main() {
       const llmConfig = resolveConfig(rawConfig.local_llm);
       const result = await classifyArtifact(llmConfig, planningDir, content, upperType, undefined);
       output(result || { classification: null, reason: 'LLM disabled or unavailable' });
+    } else if (command === 'llm' && subcommand === 'metrics') {
+      const sessionFlag = args[2]; // '--session'
+      const sessionStart = args[3]; // ISO timestamp
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* defaults */ }
+      const rate = rawConfig.local_llm && rawConfig.local_llm.metrics && rawConfig.local_llm.metrics.frontier_token_rate
+        ? rawConfig.local_llm.metrics.frontier_token_rate : 3.0;
+      if (sessionFlag === '--session' && sessionStart) {
+        const entries = readSessionMetrics(planningDir, sessionStart);
+        const summary = summarizeMetrics(entries, rate);
+        output({ scope: 'session', session_start: sessionStart, ...summary });
+      } else {
+        const lifetime = computeLifetimeMetrics(planningDir, rate);
+        output({ scope: 'lifetime', ...lifetime });
+      }
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|metrics [--session <ISO>]`);
     }
   } catch (e) {
     error(e.message);
