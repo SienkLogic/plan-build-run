@@ -77,6 +77,20 @@ jobs:
       - run: npm install
       - run: npm audit --audit-level=critical
 
+  dashboard-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm install
+      - name: Install dashboard dependencies
+        run: npm --prefix dashboard install
+      - name: Run dashboard tests
+        run: npm --prefix dashboard test
+
   lint:
     runs-on: ubuntu-latest
     steps:
