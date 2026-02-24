@@ -1,0 +1,120 @@
+/**
+ * timeline.css — Timeline page styles
+ * Depends on tokens.css for design tokens (--space-*, --color-*, --radius-*, --font-mono)
+ */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-lg);
+  max-width: 1200px;
+}
+
+.timeline__filters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  border: 1px solid var(--color-border);
+}
+
+.timeline__filters label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.timeline__stream {
+  position: relative;
+}
+
+.timeline__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timeline__event {
+  display: grid;
+  grid-template-columns: 1rem 10rem 9rem 1fr auto;
+  align-items: start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline__event-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  margin-top: 0.35rem;
+}
+
+.timeline__event--commit .timeline__event-dot {
+  background: var(--color-info, #3b82f6);
+}
+
+.timeline__event--todo-completion .timeline__event-dot {
+  background: var(--color-success, #22c55e);
+}
+
+.timeline__event--phase-transition .timeline__event-dot {
+  background: var(--color-warning, #f59e0b);
+}
+
+.timeline__event-time {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.timeline__event-type {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  white-space: nowrap;
+}
+
+.timeline__event-title {
+  font-size: 0.9rem;
+}
+
+.timeline__event-author {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.timeline__loading {
+  color: var(--color-text-dim);
+  padding: var(--space-md);
+}
+
+.timeline__empty {
+  color: var(--color-text-dim);
+  padding: var(--space-lg);
+  text-align: center;
+}
+
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
