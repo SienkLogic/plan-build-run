@@ -87,6 +87,14 @@
             Quick Tasks
           </a>
         </li>
+        <li>
+          <a href="/audits"
+             hx-get="/audits"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'audits' ? ' aria-current="page"' : '' %>>
+            Audit Reports
+          </a>
+        </li>
       </ul>
     </details>
 

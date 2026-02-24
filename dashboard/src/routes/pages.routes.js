@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { getPhaseDetail, getPhaseDocument } from '../services/phase.service.js';
 import { getRoadmapData, generateDependencyMermaid } from '../services/roadmap.service.js';
 import { parseStateFile, derivePhaseStatuses } from '../services/dashboard.service.js';
-import { listPendingTodos, getTodoDetail, createTodo, completeTodo } from '../services/todo.service.js';
+import { listPendingTodos, getTodoDetail, createTodo, completeTodo, listDoneTodos } from '../services/todo.service.js';
 import { getAllMilestones, getMilestoneDetail } from '../services/milestone.service.js';
 import { getProjectAnalytics } from '../services/analytics.service.js';
 import { getLlmMetrics } from '../services/local-llm-metrics.service.js';
-import { listNotes } from '../services/notes.service.js';
+import { listNotes, getNoteBySlug } from '../services/notes.service.js';
 import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
+import { listAuditReports, getAuditReport } from '../services/audit.service.js';
 
 const router = Router();
 
@@ -187,6 +188,27 @@ router.get('/todos/new', (req, res) => {
     res.render('partials/todo-create-content', templateData);
   } else {
     res.render('todo-create', templateData);
+  }
+});
+
+router.get('/todos/done', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const todos = await listDoneTodos(projectDir);
+
+  const templateData = {
+    title: 'Completed Todos',
+    activePage: 'todos',
+    currentPath: '/todos/done',
+    breadcrumbs: [{ label: 'Todos', url: '/todos' }, { label: 'Completed' }],
+    todos
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/todos-done-content', templateData);
+  } else {
+    res.render('todos-done', templateData);
   }
 });
 
@@ -404,6 +426,42 @@ router.get('/notes', async (req, res) => {
   }
 });
 
+router.get('/notes/:slug', async (req, res) => {
+  const { slug } = req.params;
+
+  // Validate slug: lowercase alphanumeric and dashes only
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    const err = new Error('Invalid note slug format');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const note = await getNoteBySlug(projectDir, slug);
+
+  if (!note) {
+    const err = new Error(`Note "${slug}" not found`);
+    err.status = 404;
+    throw err;
+  }
+
+  const templateData = {
+    title: note.title,
+    activePage: 'notes',
+    currentPath: '/notes/' + slug,
+    breadcrumbs: [{ label: 'Notes', url: '/notes' }, { label: note.title }],
+    ...note
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/note-detail-content', templateData);
+  } else {
+    res.render('note-detail', templateData);
+  }
+});
+
 router.get('/roadmap', async (req, res) => {
   const projectDir = req.app.locals.projectDir;
   const [roadmapData, stateData] = await Promise.all([
@@ -483,6 +541,63 @@ router.get('/quick/:id', async (req, res) => {
     res.render('partials/quick-detail-content', templateData);
   } else {
     res.render('quick-detail', templateData);
+  }
+});
+
+router.get('/audits', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const reports = await listAuditReports(projectDir);
+
+  const templateData = {
+    title: 'Audit Reports',
+    activePage: 'audits',
+    currentPath: '/audits',
+    breadcrumbs: [{ label: 'Audit Reports' }],
+    reports
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/audits-content', templateData);
+  } else {
+    res.render('audits', templateData);
+  }
+});
+
+router.get('/audits/:filename', async (req, res) => {
+  const { filename } = req.params;
+
+  // Validate filename: safe characters only, must end in .md
+  if (!/^[\w.-]+\.md$/.test(filename)) {
+    const err = new Error('Invalid audit report filename');
+    err.status = 404;
+    throw err;
+  }
+
+  const projectDir = req.app.locals.projectDir;
+  const report = await getAuditReport(projectDir, filename);
+
+  if (!report) {
+    const err = new Error(`Audit report "${filename}" not found`);
+    err.status = 404;
+    throw err;
+  }
+
+  const templateData = {
+    title: report.title,
+    activePage: 'audits',
+    currentPath: '/audits/' + filename,
+    breadcrumbs: [{ label: 'Audit Reports', url: '/audits' }, { label: report.title }],
+    ...report
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+
+  if (req.get('HX-Request') === 'true') {
+    res.render('partials/audit-detail-content', templateData);
+  } else {
+    res.render('audit-detail', templateData);
   }
 });
 
