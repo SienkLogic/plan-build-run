@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.27.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.27.0...plan-build-run-v2.27.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **tools:** prevent lifetime LLM metrics from plateauing at 200 entries ([2cbdaa4](https://github.com/SienkLogic/plan-build-run/commit/2cbdaa4b4402110cc4bb0f6505d034f2162aa782))
+
 ## [2.27.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.2...plan-build-run-v2.27.0) (2026-02-24)
 
 
