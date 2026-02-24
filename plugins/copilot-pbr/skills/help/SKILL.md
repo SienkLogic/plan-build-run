@@ -210,10 +210,10 @@ The `features.team_discussions` config flag (and `/pbr:build --team`) enables **
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
-→ `/pbr:begin` — start a new project
-→ `/pbr:status` — check current project status
-→ `/pbr:config` — configure workflow settings
-→ `/pbr:help <command>` — detailed help for a specific command
+- `/pbr:begin` — start a new project
+- `/pbr:status` — check current project status
+- `/pbr:config` — configure workflow settings
+- `/pbr:help <command>` — detailed help for a specific command
 
 ```
 
