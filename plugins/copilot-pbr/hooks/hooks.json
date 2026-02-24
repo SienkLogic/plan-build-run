@@ -53,6 +53,18 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" post-bash-triage.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') post-bash-triage.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {

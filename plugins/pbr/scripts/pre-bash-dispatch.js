@@ -48,14 +48,14 @@
 
 const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
-const { checkCommit } = require('./validate-commit');
+const { checkCommit, enrichCommitLlm } = require('./validate-commit');
 
 function main() {
   let input = '';
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
 
@@ -77,9 +77,9 @@ function main() {
 
       // Soft warnings for risky-but-allowed commands
       const command = data.tool_input?.command || '';
-      if (command) {
-        const warnings = [];
+      const warnings = [];
 
+      if (command) {
         // Warn about npm publish / deploy commands
         if (/\bnpm\s+publish\b/.test(command)) {
           warnings.push('npm publish detected — ensure version is correct before publishing');
@@ -95,14 +95,20 @@ function main() {
         if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
           warnings.push('destructive database operation (DROP/TRUNCATE/DELETE/ALTER) — verify correct database is targeted and a backup exists');
         }
+      }
 
-        if (warnings.length > 0) {
-          process.stdout.write(JSON.stringify({
-            decision: 'allow',
-            additionalContext: `[pbr] Advisory: ${warnings.join('; ')}.`
-          }));
-          process.exit(0);
-        }
+      // LLM commit semantic classification — advisory only
+      const llmAdvisory = await enrichCommitLlm(data);
+      if (llmAdvisory) {
+        warnings.push(llmAdvisory);
+      }
+
+      if (warnings.length > 0) {
+        process.stdout.write(JSON.stringify({
+          decision: 'allow',
+          additionalContext: `[pbr] Advisory: ${warnings.join('; ')}.`
+        }));
+        process.exit(0);
       }
 
       process.exit(0);
