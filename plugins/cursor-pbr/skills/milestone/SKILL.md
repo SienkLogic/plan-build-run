@@ -235,7 +235,7 @@ Dry-run of milestone completion — shows what would happen without making any c
 6. **Display summary:**
    ```
    ╔══════════════════════════════════════════════════════════════╗
-   ║  MILESTONE PREVIEW — v{version}                              ║
+   ║  PLAN-BUILD-RUN ► MILESTONE PREVIEW — v{version}             ║
    ╚══════════════════════════════════════════════════════════════╝
 
    Phases to archive: {count}
