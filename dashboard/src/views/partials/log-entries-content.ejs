@@ -1,0 +1,17 @@
+<div id="log-entries"
+     style="max-height:60vh;overflow-y:auto;font-family:var(--font-mono,monospace);font-size:0.78rem;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--card-radius);padding:0.5rem">
+  <% if (typeof logData !== 'undefined' && logData && logData.entries.length > 0) { %>
+    <% logData.entries.forEach(function(entry) { %>
+    <div class="log-entry" style="padding:0.2rem 0;border-bottom:1px solid var(--card-border);word-break:break-all">
+      <span style="color:var(--muted-fg,#888)"><%= entry.timestamp ? String(entry.timestamp).slice(0,19).replace('T',' ') : '' %></span>
+      <% if (entry.type) { %><span class="status-badge status-badge--sm" data-status="<%= entry.type %>"><%= entry.type %></span><% } %>
+      <% if (entry.tool) { %><strong><%= entry.tool %></strong><% } %>
+      <% if (entry.message) { %><span><%= String(entry.message).slice(0,200) %></span><% } %>
+    </div>
+    <% }); %>
+  <% } else if (typeof logData !== 'undefined' && logData) { %>
+    <p style="padding:0.5rem;margin:0;color:var(--muted-fg,#888)">No entries match the current filter.</p>
+  <% } else { %>
+    <p style="padding:0.5rem;margin:0;color:var(--muted-fg,#888)">Waiting for live entries...</p>
+  <% } %>
+</div>
