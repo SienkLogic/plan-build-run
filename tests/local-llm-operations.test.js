@@ -28,6 +28,9 @@ const { validateTask } = require('../plugins/pbr/scripts/local-llm/operations/va
 const { classifyError, ERROR_CATEGORIES } = require('../plugins/pbr/scripts/local-llm/operations/classify-error');
 const { scoreSource, SOURCE_LEVELS } = require('../plugins/pbr/scripts/local-llm/operations/score-source');
 const { summarizeContext } = require('../plugins/pbr/scripts/local-llm/operations/summarize-context');
+const { classifyCommit, VALID_CLASSIFICATIONS } = require('../plugins/pbr/scripts/local-llm/operations/classify-commit');
+const { triageTestOutput, VALID_CATEGORIES } = require('../plugins/pbr/scripts/local-llm/operations/triage-test-output');
+const { classifyFileIntent, VALID_FILE_TYPES, VALID_INTENTS } = require('../plugins/pbr/scripts/local-llm/operations/classify-file-intent');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -348,5 +351,323 @@ describe('summarizeContext', () => {
     route.mockRejectedValue(new Error('LLM crash'));
     const result = await summarizeContext(makeConfig(), PLANNING_DIR, 'context text');
     expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// classifyCommit
+// ---------------------------------------------------------------------------
+
+describe('classifyCommit', () => {
+  const commitConfig = (overrides = {}) => makeConfig({
+    features: { commit_classification: true, artifact_classification: true, task_validation: true, context_summarization: true, source_scoring: true },
+    ...overrides
+  });
+
+  test('happy path: returns classification object', async () => {
+    route.mockResolvedValue({
+      content: '{"classification":"correct","confidence":0.95}',
+      latency_ms: 100,
+      tokens: 10,
+      logprobsData: null
+    });
+
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat(tools): add retry logic', ['src/api.js'], 'sess-1');
+
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('correct');
+    expect(result.confidence).toBe(0.95);
+    expect(result.latency_ms).toBe(100);
+    expect(result.fallback_used).toBe(false);
+  });
+
+  test('returns null when config.enabled = false', async () => {
+    const result = await classifyCommit(commitConfig({ enabled: false }), PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when features.commit_classification = false', async () => {
+    const config = commitConfig({ features: { commit_classification: false } });
+    const result = await classifyCommit(config, PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when route returns null', async () => {
+    route.mockResolvedValue(null);
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+  });
+
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM crash'));
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+  });
+
+  test('returns null for invalid classification value', async () => {
+    route.mockResolvedValue({
+      content: '{"classification":"invalid_value","confidence":0.9}',
+      latency_ms: 50,
+      tokens: 5,
+      logprobsData: null
+    });
+
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+  });
+
+  test('detects type_mismatch classification', async () => {
+    route.mockResolvedValue({
+      content: '{"classification":"type_mismatch","confidence":0.8}',
+      latency_ms: 80,
+      tokens: 8,
+      logprobsData: null
+    });
+
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'fix: add new auth system', ['src/auth.js']);
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('type_mismatch');
+  });
+
+  test('returns null when isDisabled returns true', async () => {
+    const { isDisabled } = require('../plugins/pbr/scripts/local-llm/client');
+    isDisabled.mockReturnValueOnce(true);
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    expect(result).toBeNull();
+    isDisabled.mockReturnValue(false);
+  });
+
+  test('VALID_CLASSIFICATIONS is a non-empty array', () => {
+    expect(Array.isArray(VALID_CLASSIFICATIONS)).toBe(true);
+    expect(VALID_CLASSIFICATIONS.length).toBeGreaterThan(0);
+    expect(VALID_CLASSIFICATIONS).toContain('correct');
+    expect(VALID_CLASSIFICATIONS).toContain('type_mismatch');
+  });
+
+  test('includes staged files in prompt when provided', async () => {
+    route.mockResolvedValue({
+      content: '{"classification":"correct","confidence":0.9}',
+      latency_ms: 50,
+      tokens: 5,
+      logprobsData: null
+    });
+
+    await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something', ['a.js', 'b.js']);
+    expect(route).toHaveBeenCalled();
+    const prompt = route.mock.calls[0][1];
+    expect(prompt).toContain('a.js');
+    expect(prompt).toContain('b.js');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// triageTestOutput
+// ---------------------------------------------------------------------------
+
+describe('triageTestOutput', () => {
+  const triageConfig = (overrides = {}) => makeConfig({
+    features: { test_triage: true, artifact_classification: true, task_validation: true, context_summarization: true, source_scoring: true },
+    ...overrides
+  });
+
+  test('happy path: returns category and file_hint', async () => {
+    route.mockResolvedValue({
+      content: '{"category":"assertion","file_hint":"tests/foo.test.js:42","confidence":0.95}',
+      latency_ms: 150,
+      tokens: 15,
+      logprobsData: null
+    });
+
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'FAIL tests/foo.test.js\nExpected: 1\nReceived: 2', 'jest', 'sess-1');
+
+    expect(result).not.toBeNull();
+    expect(result.category).toBe('assertion');
+    expect(result.file_hint).toBe('tests/foo.test.js:42');
+    expect(result.confidence).toBe(0.95);
+    expect(result.fallback_used).toBe(false);
+  });
+
+  test('returns null when config.enabled = false', async () => {
+    const result = await triageTestOutput(triageConfig({ enabled: false }), PLANNING_DIR, 'test output');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when features.test_triage = false', async () => {
+    const config = triageConfig({ features: { test_triage: false } });
+    const result = await triageTestOutput(config, PLANNING_DIR, 'test output');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when route returns null', async () => {
+    route.mockResolvedValue(null);
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'test output');
+    expect(result).toBeNull();
+  });
+
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM crash'));
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'test output');
+    expect(result).toBeNull();
+  });
+
+  test('falls back to unknown for invalid category', async () => {
+    route.mockResolvedValue({
+      content: '{"category":"invalid_cat","file_hint":null,"confidence":0.7}',
+      latency_ms: 80,
+      tokens: 8,
+      logprobsData: null
+    });
+
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'test output');
+    expect(result).not.toBeNull();
+    expect(result.category).toBe('unknown');
+  });
+
+  test('handles null file_hint gracefully', async () => {
+    route.mockResolvedValue({
+      content: '{"category":"timeout","confidence":0.9}',
+      latency_ms: 60,
+      tokens: 6,
+      logprobsData: null
+    });
+
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'test output');
+    expect(result).not.toBeNull();
+    expect(result.file_hint).toBeNull();
+  });
+
+  test('VALID_CATEGORIES is a non-empty array', () => {
+    expect(Array.isArray(VALID_CATEGORIES)).toBe(true);
+    expect(VALID_CATEGORIES.length).toBeGreaterThan(0);
+    expect(VALID_CATEGORIES).toContain('assertion');
+    expect(VALID_CATEGORIES).toContain('timeout');
+    expect(VALID_CATEGORIES).toContain('unknown');
+  });
+
+  test('returns null when isDisabled returns true', async () => {
+    const { isDisabled } = require('../plugins/pbr/scripts/local-llm/client');
+    isDisabled.mockReturnValueOnce(true);
+    const result = await triageTestOutput(triageConfig(), PLANNING_DIR, 'test output');
+    expect(result).toBeNull();
+    isDisabled.mockReturnValue(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// classifyFileIntent
+// ---------------------------------------------------------------------------
+
+describe('classifyFileIntent', () => {
+  const fileConfig = (overrides = {}) => makeConfig({
+    features: { file_intent_classification: true, artifact_classification: true, task_validation: true, context_summarization: true, source_scoring: true },
+    ...overrides
+  });
+
+  test('happy path: returns file_type and intent', async () => {
+    route.mockResolvedValue({
+      content: '{"file_type":"code","intent":"create","confidence":0.92}',
+      latency_ms: 120,
+      tokens: 12,
+      logprobsData: null
+    });
+
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'src/api.js', 'const express = require("express");', 'sess-1');
+
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('code');
+    expect(result.intent).toBe('create');
+    expect(result.confidence).toBe(0.92);
+    expect(result.fallback_used).toBe(false);
+  });
+
+  test('returns null when config.enabled = false', async () => {
+    const result = await classifyFileIntent(fileConfig({ enabled: false }), PLANNING_DIR, 'file.js', 'content');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when features.file_intent_classification = false', async () => {
+    const config = fileConfig({ features: { file_intent_classification: false } });
+    const result = await classifyFileIntent(config, PLANNING_DIR, 'file.js', 'content');
+    expect(result).toBeNull();
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('returns null when route returns null', async () => {
+    route.mockResolvedValue(null);
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    expect(result).toBeNull();
+  });
+
+  test('returns null when route throws', async () => {
+    route.mockRejectedValue(new Error('LLM crash'));
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    expect(result).toBeNull();
+  });
+
+  test('falls back to other/update for unknown values', async () => {
+    route.mockResolvedValue({
+      content: '{"file_type":"unknown_type","intent":"unknown_intent","confidence":0.6}',
+      latency_ms: 70,
+      tokens: 7,
+      logprobsData: null
+    });
+
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('other');
+    expect(result.intent).toBe('update');
+  });
+
+  test('classifies test files correctly', async () => {
+    route.mockResolvedValue({
+      content: '{"file_type":"test","intent":"create","confidence":0.95}',
+      latency_ms: 80,
+      tokens: 8,
+      logprobsData: null
+    });
+
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'tests/foo.test.js', "describe('foo', () => {");
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('test');
+  });
+
+  test('VALID_FILE_TYPES and VALID_INTENTS are non-empty arrays', () => {
+    expect(Array.isArray(VALID_FILE_TYPES)).toBe(true);
+    expect(VALID_FILE_TYPES.length).toBeGreaterThan(0);
+    expect(VALID_FILE_TYPES).toContain('code');
+    expect(VALID_FILE_TYPES).toContain('test');
+    expect(Array.isArray(VALID_INTENTS)).toBe(true);
+    expect(VALID_INTENTS.length).toBeGreaterThan(0);
+    expect(VALID_INTENTS).toContain('create');
+    expect(VALID_INTENTS).toContain('update');
+  });
+
+  test('returns null when isDisabled returns true', async () => {
+    const { isDisabled } = require('../plugins/pbr/scripts/local-llm/client');
+    isDisabled.mockReturnValueOnce(true);
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    expect(result).toBeNull();
+    isDisabled.mockReturnValue(false);
+  });
+
+  test('truncates long content snippets', async () => {
+    route.mockResolvedValue({
+      content: '{"file_type":"code","intent":"update","confidence":0.9}',
+      latency_ms: 50,
+      tokens: 5,
+      logprobsData: null
+    });
+
+    const longContent = 'x'.repeat(2000);
+    await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', longContent);
+    expect(route).toHaveBeenCalled();
+    const prompt = route.mock.calls[0][1];
+    // Content should be truncated to 800 chars
+    expect(prompt.length).toBeLessThan(2000);
   });
 });
