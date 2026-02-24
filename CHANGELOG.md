@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.26.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.0...plan-build-run-v2.26.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **tools:** remove platform-specific rollup dep from dashboard devDependencies ([91bb4a8](https://github.com/SienkLogic/plan-build-run/commit/91bb4a8a384bb48b6eb93806257213e9eb40abeb))
+
 ## [2.26.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.25.0...plan-build-run-v2.26.0) (2026-02-24)
 
 
