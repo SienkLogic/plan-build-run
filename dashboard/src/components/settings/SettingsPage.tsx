@@ -1,7 +1,7 @@
 import { ConfigEditor } from './ConfigEditor';
 
 interface SettingsPageProps {
-  config: object;
+  config: Record<string, unknown>;
   activeTab?: 'config' | 'logs';
 }
 

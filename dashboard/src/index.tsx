@@ -9,6 +9,7 @@ import { indexRouter } from './routes/index.routes';
 import { commandCenterRouter } from './routes/command-center.routes';
 import { explorerRouter } from './routes/explorer.routes';
 import { timelineRouter } from './routes/timeline.routes';
+import { settingsRouter } from './routes/settings.routes';
 import { sseHandler } from './sse-handler';
 import { startWatcher } from './watcher-setup';
 import { currentPhaseMiddleware } from './middleware/current-phase';
@@ -72,6 +73,7 @@ function createApp(config: ServerConfig) {
   app.route('/api/command-center', commandCenterRouter);
   app.route('/', explorerRouter);
   app.route('/', timelineRouter);
+  app.route('/', settingsRouter);
 
   // SSE endpoint — real streamSSE handler with multi-client broadcast
   app.get('/api/events/stream', sseHandler);
