@@ -118,3 +118,123 @@
 .htmx-request.htmx-indicator {
   opacity: 1;
 }
+
+/* ---- Section tabs ---- */
+.timeline__section-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-lg);
+}
+
+.timeline__section-tab {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-dim);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+
+.timeline__section-tab:hover { color: var(--color-text); }
+
+.timeline__section-tab[aria-selected="true"] {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* ---- Analytics panel ---- */
+.analytics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.analytics-panel__section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.analytics-panel__section h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-md);
+}
+
+.analytics-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.analytics-panel__stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 8rem;
+}
+
+.analytics-panel__stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--color-accent);
+}
+
+.analytics-panel__stat-label {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.analytics-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.analytics-panel__table th,
+.analytics-panel__table td {
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.analytics-panel__table th {
+  color: var(--color-text-dim);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analytics-panel__empty,
+.analytics-panel__loading {
+  color: var(--color-text-dim);
+  padding: var(--space-md);
+}
+
+/* ---- Dependency graph ---- */
+.dep-graph {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  overflow-x: auto;
+}
+
+.dep-graph__container {
+  min-height: 12rem;
+}
+
+.dep-graph__loading {
+  color: var(--color-text-dim);
+  padding: var(--space-md);
+}
