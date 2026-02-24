@@ -25,40 +25,49 @@
   var totalPhases = msPhases.length;
   var completedPhases = msPhases.filter(function(p) { return p.status === 'complete'; }).length;
 %>
-<article>
-  <header>
+<div class="card mb-3">
+  <div class="card-header">
     <strong><%= m.name %></strong>
     <% if (m.goal) { %><small> &mdash; <%= m.goal %></small><% } %>
-  </header>
-  <p>
-    Phases <%= m.startPhase %> &ndash; <%= m.endPhase %>
-  </p>
-  <% if (totalPhases > 0) { %>
-  <progress value="<%= completedPhases %>" max="<%= totalPhases %>"></progress>
-  <p><small><%= completedPhases %> of <%= totalPhases %> phases complete</small></p>
-  <% } %>
-</article>
+  </div>
+  <div class="card-body">
+    <p>
+      Phases <%= m.startPhase %> &ndash; <%= m.endPhase %>
+    </p>
+    <% if (totalPhases > 0) { %>
+    <div class="progress mb-2" style="height:0.5rem">
+      <div class="progress-bar" role="progressbar"
+           style="width:<%= completedPhases / totalPhases * 100 %>%"
+           aria-valuenow="<%= completedPhases %>" aria-valuemin="0" aria-valuemax="<%= totalPhases %>">
+      </div>
+    </div>
+    <p><small><%= completedPhases %> of <%= totalPhases %> phases complete</small></p>
+    <% } %>
+  </div>
+</div>
 <% }); %>
 <% } %>
 
 <% if (completedNotArchived.length > 0) { %>
 <h2>Completed (Pending Archive)</h2>
 <% completedNotArchived.forEach(function(m) { %>
-<article>
-  <header>
+<div class="card mb-3">
+  <div class="card-header">
     <strong><%= m.name %></strong>
     <span class="status-badge status-badge--sm" data-status="complete" style="float:right">completed</span>
-  </header>
-  <p>Phases <%= m.startPhase %> &ndash; <%= m.endPhase %></p>
-</article>
+  </div>
+  <div class="card-body">
+    <p>Phases <%= m.startPhase %> &ndash; <%= m.endPhase %></p>
+  </div>
+</div>
 <% }); %>
 <% } %>
 
 <% if (archived.length > 0) { %>
 <h2>Archived</h2>
-<article>
-  <div class="table-wrap">
-  <table>
+<div class="card mb-3">
+  <div class="table-responsive">
+  <table class="table table-vcenter">
     <thead>
       <tr>
         <th scope="col">Version</th>
@@ -75,17 +84,17 @@
         <td colspan="6" style="padding:0">
           <details>
             <summary style="padding:0.5rem 1rem;cursor:pointer">
-              <span class="grid" style="display:inline-grid;grid-template-columns:60px 2fr 1fr 1fr 60px 60px;width:100%;text-align:left;gap:var(--space-sm)">
-                <span><a href="/milestones/<%= m.version %>"
-                         hx-get="/milestones/<%= m.version %>"
-                         hx-target="#main-content"
-                         hx-push-url="true">v<%= m.version %></a></span>
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= m.name %></span>
-                <span><%= m.date || '—' %></span>
-                <span><%= m.duration || '—' %></span>
-                <span><%= m.stats && m.stats.phaseCount ? m.stats.phaseCount : '—' %></span>
-                <span><%= m.stats && m.stats.commitCount ? m.stats.commitCount : '—' %></span>
-              </span>
+              <div class="row g-2" style="width:100%">
+                <div class="col-auto" style="min-width:60px"><a href="/milestones/<%= m.version %>"
+                     hx-get="/milestones/<%= m.version %>"
+                     hx-target="#main-content"
+                     hx-push-url="true">v<%= m.version %></a></div>
+                <div class="col" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= m.name %></div>
+                <div class="col-auto"><%= m.date || '—' %></div>
+                <div class="col-auto"><%= m.duration || '—' %></div>
+                <div class="col-auto"><%= m.stats && m.stats.phaseCount ? m.stats.phaseCount : '—' %></div>
+                <div class="col-auto"><%= m.stats && m.stats.commitCount ? m.stats.commitCount : '—' %></div>
+              </div>
             </summary>
             <div style="padding:0.5rem 1rem 1rem">
               <% if (m.stats && m.stats.statsHtml) { %>
@@ -110,7 +119,7 @@
     </tbody>
   </table>
   </div>
-</article>
+</div>
 <% } %>
 
 <% if (active.length === 0 && archived.length === 0) { %>
