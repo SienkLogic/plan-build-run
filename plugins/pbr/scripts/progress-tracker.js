@@ -15,8 +15,9 @@ const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad } = require('./pbr-tools');
+const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
 
-function main() {
+async function main() {
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const stateFile = path.join(planningDir, 'STATE.md');
@@ -38,9 +39,34 @@ function main() {
     tryLaunchDashboard(config.dashboard.port || 3000, planningDir, cwd);
   }
 
+  // Write session-start timestamp for local-llm metrics correlation
+  const sessionStartFile = path.join(planningDir, '.session-start');
+  try {
+    fs.writeFileSync(sessionStartFile, new Date().toISOString(), 'utf8');
+  } catch (_e) { /* non-fatal */ }
+
+  // Local LLM health check (advisory only — never blocks SessionStart)
+  let llmContext = '';
+  try {
+    const rawLlmConfig = config && config.local_llm;
+    const llmConfig = resolveConfig(rawLlmConfig);
+    if (llmConfig.enabled) {
+      const health = await checkHealth(llmConfig);
+      if (health.available) {
+        llmContext = `\nLocal LLM: ${llmConfig.model} (${health.warm ? 'warm' : 'cold start'})`;
+        if (!health.warm) {
+          // Fire warm-up without awaiting — 23s cold start must not block hook
+          warmUp(llmConfig);
+        }
+      } else if (health.reason !== 'disabled') {
+        llmContext = `\nLocal LLM: unavailable — ${health.detail || health.reason}`;
+      }
+    }
+  } catch (_e) { /* graceful degradation — never surface to user */ }
+
   if (context) {
     const output = {
-      additionalContext: context
+      additionalContext: context + llmContext
     };
     process.stdout.write(JSON.stringify(output));
     logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });
@@ -373,4 +399,4 @@ function tryLaunchDashboard(port, _planningDir, projectDir) {
 // Exported for testing
 module.exports = { getHookHealthSummary, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard };
 
-main();
+main().catch(() => {});
