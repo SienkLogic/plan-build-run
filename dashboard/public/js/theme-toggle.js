@@ -1,11 +1,11 @@
-/* theme-toggle.js — Toggle light/dark theme via data-theme attribute + localStorage */
+/* theme-toggle.js — Toggle light/dark theme via data-bs-theme attribute + localStorage */
 (function () {
   'use strict';
 
   var STORAGE_KEY = 'pbr-theme';
 
   function getEffectiveTheme() {
-    var explicit = document.documentElement.dataset.theme;
+    var explicit = document.documentElement.dataset.bsTheme;
     if (explicit === 'light' || explicit === 'dark') return explicit;
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
@@ -23,7 +23,7 @@
     // Apply stored theme (also done in layout-top inline script for flash prevention)
     var stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      document.documentElement.dataset.theme = stored;
+      document.documentElement.dataset.bsTheme = stored;
     }
 
     updateIcon(btn, getEffectiveTheme());
@@ -31,7 +31,7 @@
     btn.addEventListener('click', function () {
       var current = getEffectiveTheme();
       var next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
+      document.documentElement.dataset.bsTheme = next;
       localStorage.setItem(STORAGE_KEY, next);
       updateIcon(btn, next);
     });
