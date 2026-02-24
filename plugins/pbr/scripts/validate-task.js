@@ -805,7 +805,7 @@ function main() {
       try {
         const llmConfig = loadLocalLlmConfig(process.cwd());
         const planningDir = path.join(process.cwd(), '.planning');
-        const llmResult = await llmValidateTask(llmConfig, planningDir, data.tool_input || {}, undefined);
+        const llmResult = await llmValidateTask(llmConfig, planningDir, data.tool_input || {}, data.session_id);
         if (llmResult && !llmResult.coherent) {
           warnings.push('LLM task coherence advisory: ' + (llmResult.issue || 'Task description may not match intended operation.') + ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)');
         }

@@ -444,7 +444,7 @@ async function main() {
       const llmConfig = loadLocalLlmConfig(cwd);
       const errorText = (data.tool_output || '').substring(0, 500);
       if (errorText) {
-        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
         if (llmResult && llmResult.category) {
           llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
         }
@@ -467,7 +467,7 @@ async function main() {
       const llmConfig = loadLocalLlmConfig(cwd);
       const errorText = (data.tool_output || '').substring(0, 500);
       if (errorText) {
-        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
         if (llmResult && llmResult.category) {
           llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
         }

@@ -84,7 +84,7 @@ async function main() {
           const llmConfig = loadLocalLlmConfig();
           const planningDir = path.join(process.cwd(), '.planning');
           const fileType = isPlan ? 'PLAN' : 'SUMMARY';
-          const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, undefined);
+          const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
           if (llmResult && llmResult.classification) {
             const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
             result.warnings.push(llmNote);
@@ -287,7 +287,7 @@ async function checkPlanWrite(data) {
       const llmConfig = loadLocalLlmConfig();
       const planningDir = path.join(process.cwd(), '.planning');
       const fileType = isPlan ? 'PLAN' : 'SUMMARY';
-      const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, undefined);
+      const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
       if (llmResult && llmResult.classification) {
         const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
         result.warnings.push(llmNote);
