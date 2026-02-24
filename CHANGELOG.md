@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.32.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.32.0...plan-build-run-v2.32.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **43-02:** use tsx runtime with absolute static path for cross-cwd dashboard launch ([b19d7d5](https://github.com/SienkLogic/plan-build-run/commit/b19d7d5267632eed82760257df7f50592a71f139))
+
 ## [2.32.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.31.0...plan-build-run-v2.32.0) (2026-02-24)
 
 
