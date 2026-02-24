@@ -31,46 +31,54 @@
 </nav>
 
 <% if (verification) { %>
-<!-- Verification Summary Card -->
-<article>
-  <header>
+<%
+  var vStatus = verification.result || verification.status || verification.verdict || 'unknown';
+  var verificationCssStatus = 'not-started';
+  if (vStatus === 'pass' || vStatus === 'passed') verificationCssStatus = 'complete';
+  else if (vStatus === 'fail' || vStatus === 'failed') verificationCssStatus = 'blocked';
+  else if (vStatus === 'partial') verificationCssStatus = 'in-progress';
+%>
+<div class="card">
+  <div class="card__header">
     <strong>Verification Status</strong>
-  </header>
-  <%
-    // Map verification status to CSS status-badge data-status values
-    var vStatus = verification.result || verification.status || verification.verdict || 'unknown';
-    var verificationCssStatus = 'not-started';
-    if (vStatus === 'pass' || vStatus === 'passed') verificationCssStatus = 'complete';
-    else if (vStatus === 'fail' || vStatus === 'failed') verificationCssStatus = 'blocked';
-    else if (vStatus === 'partial') verificationCssStatus = 'in-progress';
-  %>
-  <p>
-    <span class="status-badge" data-status="<%= verificationCssStatus %>">
-      <%= vStatus.toUpperCase() %>
+    <span style="float:right;">
+      <span class="status-badge" data-status="<%= verificationCssStatus %>"><%= vStatus.toUpperCase() %></span>
     </span>
+  </div>
+  <div class="card__body">
     <% if (verification.verified) { %>
-      &nbsp; Verified: <%= new Date(verification.verified).toLocaleString() %>
+      <p style="margin:0 0 var(--space-sm);">Verified: <%= new Date(verification.verified).toLocaleString() %></p>
     <% } %>
-  </p>
-  <% if (verification.score) { %>
-    <p>
-      Score: <%= verification.score.verified %>/<%= verification.score.total_must_haves %> must-haves verified
-    </p>
-    <% if (verification.score.failed > 0) { %>
-      <p><strong><%= verification.score.failed %> must-haves FAILED</strong></p>
+    <% if (verification.score) { %>
+      <p style="margin:0 0 var(--space-sm);">
+        Score: <%= verification.score.verified %>/<%= verification.score.total_must_haves %> must-haves verified
+        <% if (verification.score.failed > 0) { %>
+          &nbsp; <strong><%= verification.score.failed %> FAILED</strong>
+        <% } %>
+      </p>
     <% } %>
-  <% } %>
-  <% if (verification.gaps && verification.gaps.length > 0) { %>
-    <details>
-      <summary>Verification Gaps (<%= verification.gaps.length %>)</summary>
-      <ul>
-        <% verification.gaps.forEach(function(gap) { %>
-          <li><%= gap %></li>
-        <% }); %>
-      </ul>
-    </details>
-  <% } %>
-</article>
+    <% if (verification.mustHaves && verification.mustHaves.length > 0) { %>
+      <details>
+        <summary>Must-Haves (<%= verification.mustHaves.length %>)</summary>
+        <ul style="list-style:none;padding:0;margin:var(--space-sm) 0 0;">
+          <% verification.mustHaves.forEach(function(mh) { %>
+          <li style="display:flex;gap:var(--space-xs);align-items:flex-start;padding:var(--space-xs) 0;border-bottom:1px solid var(--color-border);">
+            <span class="status-badge status-badge--sm" data-status="<%= mh.passed ? 'complete' : 'blocked' %>">
+              <%= mh.passed ? 'PASS' : 'FAIL' %>
+            </span>
+            <span style="flex:1;font-size:0.875rem;"><%= mh.text %></span>
+          </li>
+          <% }); %>
+        </ul>
+      </details>
+    <% } else if (verification.gaps && verification.gaps.length > 0) { %>
+      <details>
+        <summary>Verification Gaps (<%= verification.gaps.length %>)</summary>
+        <ul><% verification.gaps.forEach(function(gap) { %><li><%= gap %></li><% }); %></ul>
+      </details>
+    <% } %>
+  </div>
+</div>
 <% } %>
 
 <% if (plans.length === 0) { %>
@@ -84,87 +92,86 @@
 
 <!-- Plan Cards -->
 <% plans.forEach(function(plan) { %>
-<article>
-  <header>
-    <strong>Plan <%= plan.planId %></strong>
-    <% if (plan.summary && plan.summary.status) { %>
-      &nbsp;
-      <span class="status-badge" data-status="<%= plan.summary.status %>">
-        <%= plan.summary.status.replace('-', ' ') %>
-      </span>
-    <% } %>
-  </header>
+<%
+  var planStatus = (plan.summary && plan.summary.status) ? plan.summary.status : 'planned';
+  var planCssStatus = planStatus === 'built' ? 'complete'
+    : planStatus === 'building' ? 'in-progress'
+    : planStatus === 'blocked' ? 'blocked'
+    : 'not-started';
+  var wave = (plan.summary && plan.summary.wave) ? plan.summary.wave : null;
+  var taskCount = plan.taskCount || 0;
+  var planTitle = plan.planTitle || ('Plan ' + plan.planId);
+%>
+<div class="card">
+  <div class="card__header">
+    <span><strong><%= planTitle %></strong></span>
+    <span style="display:inline-flex;gap:var(--space-xs);align-items:center;float:right;">
+      <% if (wave) { %>
+        <span class="status-badge status-badge--sm" data-status="not-started" title="Wave <%= wave %>">W<%= wave %></span>
+      <% } %>
+      <% if (taskCount > 0) { %>
+        <span class="status-badge status-badge--sm" data-status="not-started"><%= taskCount %> task<%= taskCount !== 1 ? 's' : '' %></span>
+      <% } %>
+      <span class="status-badge" data-status="<%= planCssStatus %>"><%= planStatus.replace(/-/g, ' ').toUpperCase() %></span>
+    </span>
+  </div>
+  <div class="card__body">
+    <p style="margin:0 0 var(--space-sm);">
+      <a href="/phases/<%= phaseId %>/<%= plan.planId %>/plan"
+         hx-get="/phases/<%= phaseId %>/<%= plan.planId %>/plan"
+         hx-target="#main-content" hx-push-url="true">View Plan</a>
+      <% if (plan.summary) { %>
+        &nbsp;|&nbsp;
+        <a href="/phases/<%= phaseId %>/<%= plan.planId %>/summary"
+           hx-get="/phases/<%= phaseId %>/<%= plan.planId %>/summary"
+           hx-target="#main-content" hx-push-url="true">View Summary</a>
+      <% } %>
+      <% if (verification) { %>
+        &nbsp;|&nbsp;
+        <a href="/phases/<%= phaseId %>/<%= plan.planId %>/verification"
+           hx-get="/phases/<%= phaseId %>/<%= plan.planId %>/verification"
+           hx-target="#main-content" hx-push-url="true">View Verification</a>
+      <% } %>
+    </p>
 
-  <p>
-    <a href="/phases/<%= phaseId %>/<%= plan.planId %>/plan">View Plan</a>
     <% if (plan.summary) { %>
-      &nbsp;|&nbsp; <a href="/phases/<%= phaseId %>/<%= plan.planId %>/summary">View Summary</a>
+      <% if (plan.summary.subsystem) { %>
+        <p><strong>Subsystem:</strong> <%= plan.summary.subsystem %></p>
+      <% } %>
+      <% if (plan.summary.key_decisions && plan.summary.key_decisions.length > 0) { %>
+        <details>
+          <summary>Key Decisions (<%= plan.summary.key_decisions.length %>)</summary>
+          <ul><% plan.summary.key_decisions.forEach(function(d) { %><li><%= d %></li><% }); %></ul>
+        </details>
+      <% } %>
+      <% if (plan.summary.key_files && plan.summary.key_files.length > 0) { %>
+        <details>
+          <summary>Key Files (<%= plan.summary.key_files.length %>)</summary>
+          <ul><% plan.summary.key_files.forEach(function(f) { %><li><code><%= f %></code></li><% }); %></ul>
+        </details>
+      <% } %>
+      <% if (plan.summary.deferred && plan.summary.deferred.length > 0) { %>
+        <details>
+          <summary>Deferred Items (<%= plan.summary.deferred.length %>)</summary>
+          <ul><% plan.summary.deferred.forEach(function(item) { %><li><%= item %></li><% }); %></ul>
+        </details>
+      <% } %>
+      <% if (plan.summary.metrics) { %>
+        <p style="margin-top:var(--space-sm);">
+          <small>
+            <% if (plan.summary.metrics.duration_minutes != null) { %>Duration: <%= plan.summary.metrics.duration_minutes %> min<% } %>
+            <% if (plan.summary.metrics.commits != null) { %> | Commits: <%= plan.summary.metrics.commits %><% } %>
+            <% if (plan.summary.metrics.files_created != null || plan.summary.metrics.files_modified != null) { %>
+               | Files: <%= plan.summary.metrics.files_created || 0 %> created, <%= plan.summary.metrics.files_modified || 0 %> modified
+            <% } %>
+          </small>
+        </p>
+      <% } %>
+    <% } else { %>
+      <p><em>Plan file exists but has not been executed yet. No summary available.</em></p>
     <% } %>
-    <% if (verification) { %>
-      &nbsp;|&nbsp; <a href="/phases/<%= phaseId %>/<%= plan.planId %>/verification">View Verification</a>
-    <% } %>
-  </p>
-
-  <% if (plan.summary) { %>
-
-    <% if (plan.summary.subsystem) { %>
-      <p><strong>Subsystem:</strong> <%= plan.summary.subsystem %></p>
-    <% } %>
-
-    <% if (plan.summary.key_decisions && plan.summary.key_decisions.length > 0) { %>
-      <details>
-        <summary>Key Decisions (<%= plan.summary.key_decisions.length %>)</summary>
-        <ul>
-          <% plan.summary.key_decisions.forEach(function(decision) { %>
-            <li><%= decision %></li>
-          <% }); %>
-        </ul>
-      </details>
-    <% } %>
-
-    <% if (plan.summary.key_files && plan.summary.key_files.length > 0) { %>
-      <details>
-        <summary>Key Files (<%= plan.summary.key_files.length %>)</summary>
-        <ul>
-          <% plan.summary.key_files.forEach(function(file) { %>
-            <li><code><%= file %></code></li>
-          <% }); %>
-        </ul>
-      </details>
-    <% } %>
-
-    <% if (plan.summary.deferred && plan.summary.deferred.length > 0) { %>
-      <details>
-        <summary>Deferred Items (<%= plan.summary.deferred.length %>)</summary>
-        <ul>
-          <% plan.summary.deferred.forEach(function(item) { %>
-            <li><%= item %></li>
-          <% }); %>
-        </ul>
-      </details>
-    <% } %>
-
-    <% if (plan.summary.metrics) { %>
-      <p>
-        <small>
-          <% if (plan.summary.metrics.duration_minutes != null) { %>
-            Duration: <%= plan.summary.metrics.duration_minutes %> min
-          <% } %>
-          <% if (plan.summary.metrics.commits != null) { %>
-            | Commits: <%= plan.summary.metrics.commits %>
-          <% } %>
-          <% if (plan.summary.metrics.files_created != null || plan.summary.metrics.files_modified != null) { %>
-            | Files: <%= plan.summary.metrics.files_created || 0 %> created, <%= plan.summary.metrics.files_modified || 0 %> modified
-          <% } %>
-        </small>
-      </p>
-    <% } %>
-
-  <% } else { %>
-    <!-- Plan exists but not executed yet -->
-    <p><em>Plan file exists but has not been executed yet. No summary available.</em></p>
-  <% } %>
-</article>
+  </div>
+</div>
 <% }); %>
 
 <% } %>
