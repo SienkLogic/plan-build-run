@@ -417,3 +417,42 @@
   flex-direction: column;
   gap: var(--space-md);
 }
+
+/* ---- Requirements traceability table ---- */
+
+.explorer-req-section {
+  margin-bottom: var(--space-lg);
+}
+
+.explorer-req-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.explorer-req-table th {
+  text-align: left;
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 2px solid var(--color-border);
+  font-weight: 600;
+  color: var(--color-text-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.explorer-req-table td {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.explorer-req-table tr:hover td {
+  background: var(--color-surface-hover);
+}
+
+.explorer-req-id {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  color: var(--color-text-dim);
+}
