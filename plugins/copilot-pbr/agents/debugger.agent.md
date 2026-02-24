@@ -138,6 +138,21 @@ Then emit a `DECISION` checkpoint asking the user to approve, modify, or reject 
 
 **Commit format**: `fix({scope}): {description}` with body: `Root cause: ...` and `Debug session: .planning/debug/{slug}.md`
 
+## Local LLM Error Classification (Optional)
+
+When you receive an error message or stack trace, you MAY use the local LLM to classify it before starting hypothesis generation. This is advisory — skip it if unavailable.
+
+```bash
+# Write the error to a temp file, then classify:
+echo "Error text here" > /tmp/debug-error.txt
+node "${PLUGIN_ROOT}/scripts/pbr-tools.js" llm classify-error /tmp/debug-error.txt debugger 2>/dev/null
+# Returns: {"category":"missing_output","confidence":0.91,"latency_ms":1840,"fallback_used":false}
+```
+
+Categories: `connection_refused`, `timeout`, `missing_output`, `wrong_output_format`, `permission_error`, `unknown`.
+
+If classification succeeds, use the returned category to bias your initial hypothesis ranking. If it returns null or fails, proceed with manual hypothesis generation as normal.
+
 ## Common Bug Patterns
 
 Reference: `references/common-bug-patterns.md` — covers off-by-one, null/undefined, async/timing, state management, import/module, environment, and data shape patterns.
