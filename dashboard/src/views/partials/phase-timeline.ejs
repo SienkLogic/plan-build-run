@@ -1,0 +1,16 @@
+<% if (!phases || phases.length === 0) { %>
+  <p class="muted">No phases found.</p>
+<% } else { %>
+<ol class="phase-timeline">
+  <% phases.forEach(function(phase) { %>
+  <li class="phase-step" data-status="<%= phase.status %>"<% if (currentPhase && phase.id === currentPhase.id) { %> aria-current="step"<% } %>>
+    <span class="step-indicator"></span>
+    <a class="step-label"
+       href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+       hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+       hx-target="#main-content"
+       hx-push-url="true">Phase <%= phase.id %></a>
+  </li>
+  <% }); %>
+</ol>
+<% } %>

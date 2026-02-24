@@ -1,0 +1,12 @@
+<% if (!recentActivity || recentActivity.length === 0) { %>
+  <p class="muted">No recent activity.</p>
+<% } else { %>
+<ul class="activity-feed">
+  <% recentActivity.forEach(function(item) { %>
+  <li class="activity-item">
+    <span class="activity-path"><%= item.path %></span>
+    <time class="activity-time" datetime="<%= item.timestamp %>"><%= item.timestamp %></time>
+  </li>
+  <% }); %>
+</ul>
+<% } %>
