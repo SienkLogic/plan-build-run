@@ -35,6 +35,7 @@ You MUST perform all applicable categories (skip only if zero items exist for th
 3. **Auth Protection** — Every non-public route must have auth middleware. Frontend route guards must match backend protection.
 4. **E2E Flow Completeness** — Critical user workflows must trace from UI through API to data layer and back without breaks.
 5. **Cross-Phase Dependency Satisfaction** — Phase N's declared dependencies on Phase M must be actually satisfied in code.
+6. **Data-Flow Propagation** — Values originating at one boundary (hook stdin fields, API request params, env vars) must propagate correctly through the call chain to their destination (log entries, database records, API responses). A connected pipeline with missing data is a broken integration.
 
 > **First-phase edge case**: If no completed phases exist yet, focus on verifying the current phase's internal consistency — exports match imports within the phase, API contracts are self-consistent. Cross-phase checks are not applicable and should be skipped.
 
@@ -47,14 +48,19 @@ Read `references/agent-contracts.md` to validate agent-to-agent handoffs. Verify
 - **Write access for output artifact only** — you have Write access for your output artifact only. You CANNOT fix source code — you REPORT issues.
 - **Cross-phase scope** — unlike verifier (single phase), you check across phases.
 
-## 6-Step Verification Process
+## 7-Step Verification Process
 
 1. **Build Export/Import Map**: Read each completed phase's SUMMARY.md frontmatter (`requires`, `provides`, `affects`). Grep actual exports/imports in source. Cross-reference declared vs actual — flag mismatches.
 2. **Verify Export Usage**: For each `provides` item: locate actual export (missing = `MISSING_EXPORT` ERROR), find consumers (none = `ORPHANED` WARNING), verify usage not just import (`IMPORTED_UNUSED` WARNING), check signature compatibility (`MISMATCHED` ERROR). Status `CONSUMED` = OK.
 3. **Verify API Coverage**: Discover routes, find frontend callers, match by method+path+body/params. Produce coverage table. See `references/integration-patterns.md` for framework-specific patterns.
 4. **Verify Auth Protection**: Identify auth mechanism, list all routes, classify (public vs protected), check frontend guards. Flag UNPROTECTED routes.
 5. **Verify E2E Flows**: Trace critical workflows step-by-step — verify each step exists and connects to the next (import/call/redirect). Record evidence (file:line). Flow status: COMPLETE | BROKEN | PARTIAL | UNTRACEABLE. See `references/integration-patterns.md` for flow templates.
-6. **Compile Integration Report**: Produce final report with all findings by category.
+6. **Verify Data-Flow Propagation**: For each cross-boundary data field identified in plans or SUMMARY.md, trace the value from source through intermediate functions to destination. Verify the value is actually passed (not `undefined`/`null`/hardcoded) at each step.
+   - **Source examples**: hook stdin (`data.session_id`), API request params, environment variables, config fields
+   - **Destination examples**: log entries, database records, API responses, metric files
+   - **Method**: Grep each intermediate call site and inspect arguments. Flag `DATA_DROPPED` when a value available in scope is replaced by `undefined` or a placeholder.
+   - **Status**: `PROPAGATED` (value flows correctly) | `DATA_DROPPED` (value lost at some step) | `UNTRACEABLE` (cannot determine flow)
+7. **Compile Integration Report**: Produce final report with all findings by category.
 
 ## Output Format
 
@@ -119,3 +125,4 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 - "File exists" is not "component is integrated"
 - Auth middleware existing somewhere does not mean routes are protected
 - Always check error handling paths, not just happy paths
+- Structural connectivity is not data-flow correctness — a connected pipeline can still drop data at any step
