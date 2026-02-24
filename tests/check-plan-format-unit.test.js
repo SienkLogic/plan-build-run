@@ -4,6 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Mock the LLM classify-artifact module so advisory enrichment doesn't fire in tests
+jest.mock('../plugins/pbr/scripts/local-llm/operations/classify-artifact', () => ({
+  classifyArtifact: jest.fn().mockResolvedValue(null)
+}));
+
 const { checkPlanWrite, checkStateWrite, validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format');
 
 let tmpDir;
@@ -189,6 +194,198 @@ wave: 1
 describe('validateSummary additional paths', () => {
   test('unclosed frontmatter is an error', () => {
     const result = validateSummary('---\nphase: 01\n', 'SUMMARY.md');
+    expect(result.errors).toContain('Unclosed YAML frontmatter');
+  });
+});
+
+describe('checkPlanWrite — ROADMAP.md path', () => {
+  test('returns warnings for ROADMAP.md missing heading', async () => {
+    const filePath = path.join(tmpDir, 'ROADMAP.md');
+    fs.writeFileSync(filePath, '## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n');
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('Roadmap');
+  });
+
+  test('returns null for valid ROADMAP.md', async () => {
+    const filePath = path.join(tmpDir, 'ROADMAP.md');
+    fs.writeFileSync(filePath, '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n');
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
+    expect(result).toBeNull();
+  });
+});
+
+describe('validateRoadmap branch coverage', () => {
+  const { validateRoadmap } = require('../plugins/pbr/scripts/check-plan-format');
+
+  test('warns when no milestone sections exist', () => {
+    const result = validateRoadmap('# Roadmap\nSome text but no milestones', 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('No "## Milestone:"'))).toBe(true);
+  });
+
+  test('warns when milestone missing Phases line', () => {
+    const result = validateRoadmap('# Roadmap\n## Milestone: v1\nNo phases line here\n', 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('missing "**Phases:**"'))).toBe(true);
+  });
+
+  test('warns when phase missing Provides', () => {
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Depends on:** none\n';
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('missing "**Provides:**"'))).toBe(true);
+  });
+
+  test('warns when phase missing Depends on', () => {
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n';
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('missing "**Depends on:**"'))).toBe(true);
+  });
+
+  test('warns on progress table missing separator row', () => {
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n## Progress\n| Phase | Plans Complete |\n| data | data |\n';
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('separator row'))).toBe(true);
+  });
+
+  test('warns on progress table missing header row', () => {
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n## Progress\nSome text but no table header\n';
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('Plans Complete'))).toBe(true);
+  });
+
+  test('valid progress table passes', () => {
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 1 | yes |\n';
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.length).toBe(0);
+  });
+});
+
+describe('checkPlanWrite — LLM enrichment branch', () => {
+  test('adds LLM classification warning when classifyArtifact returns result', async () => {
+    const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
+    classifyArtifact.mockResolvedValueOnce({ classification: 'good', confidence: 0.95, reason: 'looks solid' });
+
+    const filePath = path.join(tmpDir, 'test-PLAN.md');
+    fs.writeFileSync(filePath, `---
+phase: 01-setup
+plan: 01
+wave: 1
+must_haves:
+  truths: ["works"]
+  artifacts: ["file.ts"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do it</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`);
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
+    // With LLM result, should return a warning
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('Local LLM');
+    expect(result.output.additionalContext).toContain('95%');
+  });
+
+  test('LLM classification without reason omits reason suffix', async () => {
+    const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
+    classifyArtifact.mockResolvedValueOnce({ classification: 'ok', confidence: 0.8 });
+
+    const filePath = path.join(tmpDir, 'test2-PLAN.md');
+    fs.writeFileSync(filePath, `---
+phase: 01-setup
+plan: 01
+wave: 1
+must_haves:
+  truths: ["works"]
+  artifacts: ["file.ts"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do it</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`);
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).not.toContain(' — ');
+  });
+
+  test('LLM error is silently ignored', async () => {
+    const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
+    classifyArtifact.mockRejectedValueOnce(new Error('LLM down'));
+
+    const filePath = path.join(tmpDir, 'test3-PLAN.md');
+    fs.writeFileSync(filePath, `---
+phase: 01-setup
+plan: 01
+wave: 1
+must_haves:
+  truths: ["works"]
+  artifacts: ["file.ts"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do it</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`);
+    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
+    // Should be null — no warnings since LLM error is swallowed
+    expect(result).toBeNull();
+  });
+});
+
+describe('checkStateWrite — syncStateBody branch', () => {
+  const { syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
+
+  test('returns null when no frontmatter', () => {
+    expect(syncStateBody('# State\nNo frontmatter', '/tmp/STATE.md')).toBeNull();
+  });
+
+  test('returns null when unclosed frontmatter', () => {
+    expect(syncStateBody('---\ncurrent_phase: 1\n', '/tmp/STATE.md')).toBeNull();
+  });
+
+  test('returns null when no current_phase in frontmatter', () => {
+    expect(syncStateBody('---\nversion: 2\n---\n# State', '/tmp/STATE.md')).toBeNull();
+  });
+
+  test('returns null when body phase matches frontmatter', () => {
+    const content = '---\ncurrent_phase: 2\ntotal_phases: 5\n---\nPhase: 2 of 5\nStatus: Building';
+    expect(syncStateBody(content, '/tmp/STATE.md')).toBeNull();
+  });
+
+  test('detects and fixes body phase drift', () => {
+    const filePath = path.join(tmpDir, 'STATE.md');
+    const content = '---\ncurrent_phase: 3\ntotal_phases: 5\nphase_name: "auth"\nstatus: "building"\n---\nPhase: 2 of 5\nStatus: Planning';
+    fs.writeFileSync(filePath, content);
+    const result = syncStateBody(content, filePath);
+    expect(result).not.toBeNull();
+    expect(result.message).toContain('Auto-fixed body drift');
+    expect(result.content).toContain('Phase: 3 of 5');
+  });
+
+  test('checkStateWrite warns on long STATE.md', () => {
+    const filePath = path.join(tmpDir, 'STATE.md');
+    const longContent = '---\nversion: 2\ncurrent_phase: 1\ntotal_phases: 3\nphase_slug: "test"\nstatus: "planned"\n---\n' + 'line\n'.repeat(200);
+    fs.writeFileSync(filePath, longContent);
+    const result = checkStateWrite({ tool_input: { file_path: filePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('exceeds 150 lines');
+  });
+});
+
+describe('validateVerification branch coverage', () => {
+  const { validateVerification } = require('../plugins/pbr/scripts/check-plan-format');
+
+  test('unclosed frontmatter is an error', () => {
+    const result = validateVerification('---\nstatus: passed\n', 'VERIFICATION.md');
     expect(result.errors).toContain('Unclosed YAML frontmatter');
   });
 });

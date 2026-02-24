@@ -145,6 +145,61 @@ describe('check-config-change', () => {
       }
     });
 
+    test('local_llm.enabled non-boolean warns', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2, features: {}, models: {}, gates: {},
+        local_llm: { enabled: 'yes' }
+      });
+      try {
+        const warnings = validateConfig(configPath);
+        expect(warnings.some(w => w.includes('local_llm.enabled must be a boolean'))).toBe(true);
+      } finally { cleanup(tmpDir); }
+    });
+
+    test('local_llm.provider non-ollama warns', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2, features: {}, models: {}, gates: {},
+        local_llm: { enabled: false, provider: 'openai' }
+      });
+      try {
+        const warnings = validateConfig(configPath);
+        expect(warnings.some(w => w.includes('not supported'))).toBe(true);
+      } finally { cleanup(tmpDir); }
+    });
+
+    test('local_llm.timeout_ms too low warns', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2, features: {}, models: {}, gates: {},
+        local_llm: { enabled: false, timeout_ms: 100 }
+      });
+      try {
+        const warnings = validateConfig(configPath);
+        expect(warnings.some(w => w.includes('timeout_ms must be a number >= 500'))).toBe(true);
+      } finally { cleanup(tmpDir); }
+    });
+
+    test('local_llm.advanced.num_ctx non-4096 warns', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2, features: {}, models: {}, gates: {},
+        local_llm: { enabled: false, advanced: { num_ctx: 8192 } }
+      });
+      try {
+        const warnings = validateConfig(configPath);
+        expect(warnings.some(w => w.includes('num_ctx'))).toBe(true);
+      } finally { cleanup(tmpDir); }
+    });
+
+    test('local_llm.advanced.disable_after_failures invalid warns', () => {
+      const { tmpDir, configPath } = createTempConfig({
+        version: 2, features: {}, models: {}, gates: {},
+        local_llm: { enabled: false, advanced: { disable_after_failures: 0 } }
+      });
+      try {
+        const warnings = validateConfig(configPath);
+        expect(warnings.some(w => w.includes('disable_after_failures must be a number >= 1'))).toBe(true);
+      } finally { cleanup(tmpDir); }
+    });
+
     test('no parallelization key is fine', () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,

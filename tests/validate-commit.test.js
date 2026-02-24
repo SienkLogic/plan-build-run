@@ -287,6 +287,24 @@ describe('validate-commit.js', () => {
     });
   });
 
+  describe('extractCommitMessage edge cases', () => {
+    test('returns null for commit without -m flag', () => {
+      // git commit without -m should return null (unparseable)
+      const result = checkCommit({ tool_input: { command: 'git commit' } });
+      expect(result).toBeNull(); // let through as unparseable
+    });
+
+    test('extracts message from -m with escaped quotes', () => {
+      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(01-01): add feature"' } });
+      expect(result).toBeNull();
+    });
+
+    test('handles empty tool_input command', () => {
+      const result = checkCommit({ tool_input: {} });
+      expect(result).toBeNull();
+    });
+  });
+
   describe('special cases', () => {
     test('merge commit passes through', () => {
       const result = runScript({ command: "git commit -m \"Merge branch 'feature' into main\"" });
