@@ -104,7 +104,7 @@ export function TodoCreateForm() {
       hx-post="/api/explorer/todos"
       hx-target="#todos-pending-list"
       hx-swap="innerHTML"
-      hx-on:htmx:after-request="this.reset(); $dispatch('close-create')"
+      hx-on--htmx-after-request="this.reset()"
       class="explorer-form"
     >
       <div class="explorer-form__row">
