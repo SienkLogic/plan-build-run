@@ -111,6 +111,34 @@ function extractMilestones(roadmapContent) {
     });
   }
 
+  // Parse milestones that use ### Phase NN: format instead of **Phases:** N - M
+  // Format: "## Milestone: Name\n\nDescription\n\n### Phase NN: ..."
+  const sectionRegex = /## Milestone:\s*([^\n]+?)(?:\s*\{[^}]*\})?\s*\n([\s\S]*?)(?=\n## |\n---|\n$)/g;
+  for (const match of roadmapContent.matchAll(sectionRegex)) {
+    const rawName = match[1].trim();
+    // Skip already-seen (explicit or completed formats)
+    if (seenNames.has(rawName)) continue;
+    // Skip collapsed "-- COMPLETED" entries (already handled above)
+    if (/--\s*COMPLETED/i.test(rawName)) continue;
+    const body = match[2];
+    // Find ### Phase NN: lines within this milestone section
+    const phaseLines = [...body.matchAll(/### Phase\s+(\d+):/g)];
+    if (phaseLines.length > 0) {
+      const phaseIds = phaseLines.map(m => parseInt(m[1], 10));
+      const startPhase = Math.min(...phaseIds);
+      const endPhase = Math.max(...phaseIds);
+      // Extract goal from first paragraph (before first ### heading)
+      const goalText = body.split(/### /)[0].trim();
+      seenNames.add(rawName);
+      explicit.push({
+        name: rawName,
+        goal: goalText || '',
+        startPhase,
+        endPhase
+      });
+    }
+  }
+
   // Sort explicit milestones by start phase
   explicit.sort((a, b) => a.startPhase - b.startPhase);
 

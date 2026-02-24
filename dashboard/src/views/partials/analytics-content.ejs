@@ -92,7 +92,7 @@
 <% if (typeof llmMetrics !== 'undefined' && llmMetrics) { %>
 <article>
   <header>Local LLM Offload</header>
-  <div class="grid">
+  <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
     <article>
       <header>Total Calls</header>
       <strong class="stat-value"><%= llmMetrics.summary.total_calls %></strong>
@@ -104,17 +104,17 @@
       <span class="stat-unit">frontier tokens</span>
     </article>
     <article>
-      <header>Est. Cost Saved</header>
+      <header>Cost Saved</header>
       <strong class="stat-value">$<%= llmMetrics.summary.cost_saved_usd.toFixed(4) %></strong>
       <span class="stat-unit">at $3/M tokens</span>
     </article>
     <article>
-      <header>Fallback Rate</header>
+      <header>Fallbacks</header>
       <strong class="stat-value"><%= llmMetrics.summary.fallback_rate_pct %>%</strong>
       <span class="stat-unit"><%= llmMetrics.summary.fallback_count %> fallbacks</span>
     </article>
     <article>
-      <header>Avg Latency</header>
+      <header>Latency</header>
       <strong class="stat-value"><%= llmMetrics.summary.avg_latency_ms %></strong>
       <span class="stat-unit">ms/call</span>
     </article>

@@ -1,9 +1,26 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Milestones</h1>
 
-<% if (active.length > 0) { %>
+<%
+  // Filter out milestones that the parser already flagged as completed (collapsed in ROADMAP.md)
+  var nonCollapsed = active.filter(function(m) { return !m.completed; });
+
+  // From non-collapsed, separate truly active from ones whose phases are all complete
+  var trulyActive = nonCollapsed.filter(function(m) {
+    var msPhases = (typeof phases !== 'undefined' && phases) ? phases.filter(function(p) { return p.id >= m.startPhase && p.id <= m.endPhase; }) : [];
+    var completedPhases = msPhases.filter(function(p) { return p.status === 'complete'; }).length;
+    return msPhases.length === 0 || completedPhases < msPhases.length;
+  });
+  var completedNotArchived = nonCollapsed.filter(function(m) {
+    var msPhases = (typeof phases !== 'undefined' && phases) ? phases.filter(function(p) { return p.id >= m.startPhase && p.id <= m.endPhase; }) : [];
+    var completedPhases = msPhases.filter(function(p) { return p.status === 'complete'; }).length;
+    return msPhases.length > 0 && completedPhases >= msPhases.length;
+  });
+%>
+
+<% if (trulyActive.length > 0) { %>
 <h2>Active</h2>
-<% active.forEach(function(m) {
+<% trulyActive.forEach(function(m) {
   var msPhases = (typeof phases !== 'undefined' && phases) ? phases.filter(function(p) { return p.id >= m.startPhase && p.id <= m.endPhase; }) : [];
   var totalPhases = msPhases.length;
   var completedPhases = msPhases.filter(function(p) { return p.status === 'complete'; }).length;
@@ -20,6 +37,19 @@
   <progress value="<%= completedPhases %>" max="<%= totalPhases %>"></progress>
   <p><small><%= completedPhases %> of <%= totalPhases %> phases complete</small></p>
   <% } %>
+</article>
+<% }); %>
+<% } %>
+
+<% if (completedNotArchived.length > 0) { %>
+<h2>Completed (Pending Archive)</h2>
+<% completedNotArchived.forEach(function(m) { %>
+<article>
+  <header>
+    <strong><%= m.name %></strong>
+    <span class="status-badge status-badge--sm" data-status="complete" style="float:right">completed</span>
+  </header>
+  <p>Phases <%= m.startPhase %> &ndash; <%= m.endPhase %></p>
 </article>
 <% }); %>
 <% } %>
@@ -45,12 +75,12 @@
         <td colspan="6" style="padding:0">
           <details>
             <summary style="padding:0.5rem 1rem;cursor:pointer">
-              <span class="grid" style="display:inline-grid;grid-template-columns:repeat(6,1fr);width:100%;text-align:left">
+              <span class="grid" style="display:inline-grid;grid-template-columns:60px 2fr 1fr 1fr 60px 60px;width:100%;text-align:left;gap:var(--space-sm)">
                 <span><a href="/milestones/<%= m.version %>"
                          hx-get="/milestones/<%= m.version %>"
                          hx-target="#main-content"
                          hx-push-url="true">v<%= m.version %></a></span>
-                <span><%= m.name %></span>
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= m.name %></span>
                 <span><%= m.date || '—' %></span>
                 <span><%= m.duration || '—' %></span>
                 <span><%= m.stats && m.stats.phaseCount ? m.stats.phaseCount : '—' %></span>

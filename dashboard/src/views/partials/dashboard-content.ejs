@@ -1,5 +1,11 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
-<h1><%= projectName %></h1>
+<%
+  // Show just the phase name as h1, not the full focus description
+  var dashboardTitle = (typeof currentPhase !== 'undefined' && currentPhase && currentPhase.name)
+    ? currentPhase.name
+    : (typeof projectName !== 'undefined' ? projectName.split(/\s*[—–-]\s*/)[0] : 'Dashboard');
+%>
+<h1><%= dashboardTitle %></h1>
 
 <!-- Status Cards -->
 <div class="status-cards">
