@@ -290,3 +290,130 @@
   color: #fca5a5;
   border: 1px solid rgba(248, 113, 113, 0.2);
 }
+
+/* ---- Todos + Milestones tab toolbar ---- */
+
+.explorer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.explorer-search {
+  flex: 1;
+  min-width: 200px;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.explorer-create-form {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.explorer-section-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--space-md) 0 var(--space-sm);
+}
+
+/* ---- Button system ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: white;
+  border-color: var(--color-accent);
+}
+
+.btn--ghost {
+  background: none;
+  color: var(--color-text-dim);
+  border-color: var(--color-border);
+}
+
+.btn--sm {
+  padding: 2px var(--space-xs);
+  font-size: 0.8rem;
+}
+
+.btn--danger {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* ---- Priority badge modifiers ---- */
+
+.explorer-badge--high {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.explorer-badge--medium {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.explorer-badge--low {
+  background: var(--color-surface-raised);
+  color: var(--color-text-dim);
+}
+
+/* ---- Create form ---- */
+
+.explorer-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.explorer-form__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.explorer-form__label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-text-dim);
+}
+
+.explorer-form__actions {
+  display: flex;
+  gap: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+/* ---- Milestone detail ---- */
+
+.explorer-milestone-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
