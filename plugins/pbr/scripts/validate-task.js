@@ -20,6 +20,23 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { resolveConfig } = require('./local-llm/health');
+const { validateTask: llmValidateTask } = require('./local-llm/operations/validate-task');
+
+/**
+ * Load and resolve the local_llm config block from .planning/config.json.
+ * Returns a resolved config (always safe to use — disabled by default on error).
+ * @param {string} cwd - working directory to resolve .planning/config.json from
+ */
+function loadLocalLlmConfig(cwd) {
+  try {
+    const configPath = path.join(cwd, '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_e) {
+    return resolveConfig(undefined);
+  }
+}
 
 const KNOWN_AGENTS = [
   'researcher',
@@ -687,7 +704,7 @@ function main() {
 
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
-  process.stdin.on('end', () => {
+  process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
 
@@ -783,6 +800,18 @@ function main() {
       if (debuggerWarning) warnings.push(debuggerWarning);
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
+
+      // LLM task coherence check — advisory only
+      try {
+        const llmConfig = loadLocalLlmConfig(process.cwd());
+        const planningDir = path.join(process.cwd(), '.planning');
+        const llmResult = await llmValidateTask(llmConfig, planningDir, data.tool_input || {}, undefined);
+        if (llmResult && !llmResult.coherent) {
+          warnings.push('LLM task coherence advisory: ' + (llmResult.issue || 'Task description may not match intended operation.') + ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)');
+        }
+      } catch (_llmErr) {
+        // Never propagate LLM errors
+      }
 
       if (warnings.length > 0) {
         for (const warning of warnings) {

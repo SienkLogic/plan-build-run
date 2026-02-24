@@ -25,6 +25,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveConfig, checkHealth } = require('./local-llm/health');
+const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
 
 const cwd = process.cwd();
 const planningDir = path.join(cwd, '.planning');
@@ -299,8 +300,42 @@ async function main() {
       const llmConfig = resolveConfig(rawConfig.local_llm);
       const health = await checkHealth(llmConfig);
       output(health);
+    } else if (command === 'llm' && subcommand === 'status') {
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      output({
+        enabled: llmConfig.enabled,
+        model: llmConfig.model,
+        endpoint: llmConfig.endpoint,
+        features: llmConfig.features,
+        metrics_file: path.join(planningDir, 'logs', 'local-llm-metrics.jsonl'),
+        timeout_ms: llmConfig.timeout_ms,
+        disable_after_failures: llmConfig.advanced.disable_after_failures
+      });
+    } else if (command === 'llm' && subcommand === 'classify') {
+      const fileType = args[2];
+      const filePath = args[3];
+      if (!fileType || !filePath) {
+        error('Usage: pbr-tools.js llm classify <PLAN|SUMMARY> <filepath>');
+      }
+      const upperType = fileType.toUpperCase();
+      if (upperType !== 'PLAN' && upperType !== 'SUMMARY') {
+        error('llm classify: fileType must be PLAN or SUMMARY');
+      }
+      let content = '';
+      try {
+        content = fs.readFileSync(filePath, 'utf8');
+      } catch (_e) {
+        error('llm classify: cannot read file: ' + filePath);
+      }
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const result = await classifyArtifact(llmConfig, planningDir, content, upperType, undefined);
+      output(result || { classification: null, reason: 'LLM disabled or unavailable' });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify`);
     }
   } catch (e) {
     error(e.message);
