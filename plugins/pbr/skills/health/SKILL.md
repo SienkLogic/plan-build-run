@@ -130,7 +130,7 @@ Read `.planning/config.json` and check for fields referenced by skills:
 - PASS: All expected fields present with correct types
 - WARN (missing fields): Report each missing field and which skill uses it — "Run `/pbr:config` to set all options."
 
-### Check 10: Orphaned Crash Recovery Files
+### Check 10: Orphaned Crash Recovery & Lock Files
 
 The executor creates `.PROGRESS-{plan_id}` files as crash recovery breadcrumbs during builds and deletes them after `SUMMARY.md` is written. Similarly, `.checkpoint-manifest.json` files track checkpoint state during execution. If the executor crashes mid-build, these files remain and could confuse future runs.
 
@@ -149,6 +149,13 @@ Glob for `.planning/phases/**/.PROGRESS-*` and `.planning/phases/**/.checkpoint-
   - .planning/phases/02-auth/.checkpoint-manifest.json (stale build checkpoint)
   ```
   Fix suggestion: "Checkpoint manifests are leftover from interrupted builds. Safe to delete if no `/pbr:build` is currently running. Remove with `rm <path>`."
+
+Also check for `.planning/.active-skill`:
+
+- If the file does not exist: no action needed (PASS for this sub-check)
+- If the file exists, check its age by comparing the file modification time to the current time:
+  - If older than 1 hour: WARN with fix suggestion: "Stale .active-skill lock file detected (set {age} ago). No PBR skill appears to be running. Safe to delete with `rm .planning/.active-skill`."
+  - If younger than 1 hour: INFO: "Active skill lock exists ({content}). A PBR skill may be running."
 
 ---
 
