@@ -294,7 +294,8 @@
             "max_input_tokens": { "type": "integer", "minimum": 100 },
             "keep_alive": { "type": "string" },
             "num_ctx": { "type": "integer", "minimum": 512 },
-            "disable_after_failures": { "type": "integer", "minimum": 1 }
+            "disable_after_failures": { "type": "integer", "minimum": 1 },
+            "shadow_mode": { "type": "boolean" }
           },
           "additionalProperties": false
         }

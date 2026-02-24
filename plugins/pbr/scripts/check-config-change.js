@@ -64,6 +64,18 @@ function validateConfig(configPath) {
     }
   }
 
+  // Advisory: suggest local_llm defaults if the key is absent
+  if (!config.local_llm) {
+    warnings.push(
+      'local_llm config missing. To enable local LLM offload, add to config.json:\n' +
+      '"local_llm": {\n' +
+      '  "enabled": false,\n' +
+      '  "model": "qwen2.5-coder:7b",\n' +
+      '  "endpoint": "http://localhost:11434"\n' +
+      '} (set enabled: true after running: ollama pull qwen2.5-coder:7b)'
+    );
+  }
+
   // Check version
   if (config.version && config.version < 2) {
     warnings.push(`Config version ${config.version} is outdated — expected version 2+`);

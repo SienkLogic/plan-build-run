@@ -212,4 +212,41 @@ function formatSessionSummary(summary, model) {
   return `Local LLM: ${total_calls} calls, ~${tokens_saved} frontier tokens saved${costStr}, avg ${avgMs}ms${fallbackStr}${modelStr}`;
 }
 
-module.exports = { logMetric, readSessionMetrics, summarizeMetrics, computeLifetimeMetrics, formatSessionSummary };
+/**
+ * Appends a shadow comparison entry to the shadow JSONL log file.
+ * Rotates to keep only the last 200 entries. Swallows all errors silently.
+ *
+ * @param {string} planningDir - path to the .planning directory
+ * @param {object} entry - shadow comparison entry object
+ * @param {string} entry.timestamp
+ * @param {string} entry.operation
+ * @param {string} entry.session_id
+ * @param {boolean} entry.agrees
+ * @param {string|null} entry.local_result
+ * @param {string} entry.frontier_result
+ */
+function logAgreement(planningDir, entry) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    const logFile = path.join(logsDir, 'local-llm-shadow.jsonl');
+
+    fs.mkdirSync(logsDir, { recursive: true });
+    fs.appendFileSync(logFile, JSON.stringify(entry) + '\n', 'utf8');
+
+    // Rotate if over MAX_ENTRIES
+    try {
+      const contents = fs.readFileSync(logFile, 'utf8');
+      const lines = contents.split(/\r?\n/).filter((l) => l.trim() !== '');
+      if (lines.length > MAX_ENTRIES) {
+        const trimmed = lines.slice(lines.length - MAX_ENTRIES);
+        fs.writeFileSync(logFile, trimmed.join('\n') + '\n', 'utf8');
+      }
+    } catch (_) {
+      // Rotation failure is non-fatal
+    }
+  } catch (_) {
+    // Swallow all errors silently
+  }
+}
+
+module.exports = { logMetric, readSessionMetrics, summarizeMetrics, computeLifetimeMetrics, formatSessionSummary, logAgreement };
