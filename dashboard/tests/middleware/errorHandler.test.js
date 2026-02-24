@@ -156,6 +156,40 @@ describe('errorHandler', () => {
     expect(res.setHeader).toHaveBeenCalledWith('Vary', 'HX-Request');
   });
 
+  it('HTMX error response escapes HTML in message', () => {
+    const err = new Error('<script>alert(1)</script>');
+    err.status = 500;
+    const req = createMockReq({
+      get: vi.fn((header) => header === 'HX-Request' ? 'true' : null)
+    });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    errorHandler(err, req, res, next);
+
+    const sentHtml = res.send.mock.calls[0][0];
+    expect(sentHtml).not.toContain('<script>alert');
+    expect(sentHtml).toContain('&lt;script&gt;');
+  });
+
+  it('HTMX error response escapes HTML in stack trace', () => {
+    process.env.NODE_ENV = 'development';
+    const err = new Error('error with stack');
+    err.status = 500;
+    err.stack = '<img src=x onerror="alert(1)">';
+    const req = createMockReq({
+      get: vi.fn((header) => header === 'HX-Request' ? 'true' : null)
+    });
+    const res = createMockRes();
+    const next = vi.fn();
+
+    errorHandler(err, req, res, next);
+
+    const sentHtml = res.send.mock.calls[0][0];
+    expect(sentHtml).not.toContain('onerror=');
+    expect(sentHtml).toContain('&lt;img');
+  });
+
   it('should set Vary header for normal requests', () => {
     const err = new Error('Server error');
     err.status = 500;
