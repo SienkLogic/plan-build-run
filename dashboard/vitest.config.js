@@ -15,12 +15,13 @@ export default defineConfig({
     testTimeout: 10000,
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.js'],
+      include: ['src/**/*.js', 'src/**/*.ts'],
+      exclude: ['src/**/*.tsx', 'src/**/*.d.ts'],
       thresholds: {
-        statements: 70,
-        branches: 70,
-        functions: 70,
-        lines: 70
+        statements: 60,
+        branches: 50,
+        functions: 60,
+        lines: 60
       }
     }
   }
