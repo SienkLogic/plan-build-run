@@ -31,6 +31,7 @@ const { scoreSource } = require('./local-llm/operations/score-source');
 const { classifyError } = require('./local-llm/operations/classify-error');
 const { summarizeContext } = require('./local-llm/operations/summarize-context');
 const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
+const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
 
 const cwd = process.cwd();
 const planningDir = path.join(cwd, '.planning');
@@ -399,8 +400,17 @@ async function main() {
         const lifetime = computeLifetimeMetrics(planningDir, rate);
         output({ scope: 'lifetime', ...lifetime });
       }
+    } else if (command === 'llm' && subcommand === 'adjust-thresholds') {
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const currentThreshold = llmConfig.advanced.confidence_threshold;
+      const suggestions = computeThresholdAdjustments(planningDir, currentThreshold);
+      output(suggestions.length > 0
+        ? { suggestions }
+        : { suggestions: [], message: 'Not enough shadow samples yet (need >= 20 per operation)' });
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
     }
   } catch (e) {
     error(e.message);
