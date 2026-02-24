@@ -5,6 +5,33 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.23.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.22.2...plan-build-run-v2.23.0) (2026-02-24)
+
+
+### Features
+
+* **28-01:** add local LLM foundation — client, health, metrics, config schema, hook integrations, tests ([44b5a77](https://github.com/SienkLogic/plan-build-run/commit/44b5a773fbb22d77ac0dbf3325201980dd1e9635))
+* **29-01:** integrate local LLM into hooks — artifact classification, task validation, error classification, CLI ([785a708](https://github.com/SienkLogic/plan-build-run/commit/785a708039b0c363589e7151c40df989bb2a7959))
+* **30-01:** add metrics display — session summaries, status skill, CLI, dashboard analytics ([d4ae4a4](https://github.com/SienkLogic/plan-build-run/commit/d4ae4a400932a324f61872169c1dae73cc2923ce))
+* **30-03:** add local-llm-metrics.service.js with getLlmMetrics and Vitest tests ([fc1dd8f](https://github.com/SienkLogic/plan-build-run/commit/fc1dd8f6fbada707543dea848e7355ff52896667))
+* **30-03:** wire getLlmMetrics into /analytics route and add Local LLM Offload section to EJS template ([5fcb61e](https://github.com/SienkLogic/plan-build-run/commit/5fcb61e25848395a4d59f4c555bbb8cf913efb72))
+* **31-01:** add adaptive router — complexity heuristic, confidence gate, 3 routing strategies ([7905462](https://github.com/SienkLogic/plan-build-run/commit/7905462a5dc11063813c1c31400a17f4d2314a23))
+* **32-01:** add agent support — source scoring, error classification, context summarization, prompt injection ([3693660](https://github.com/SienkLogic/plan-build-run/commit/36936609200596fe04cbf27f6eff41566733a74e))
+* **33-01:** add shadow mode, threshold tuner, comprehensive tests, docs, cross-plugin sync ([dbacfed](https://github.com/SienkLogic/plan-build-run/commit/dbacfed98bd6819babad2f07df588cf545d5b99c))
+* **34-01:** add config.features.source_scoring feature flag guard to score-source.js ([a0945a2](https://github.com/SienkLogic/plan-build-run/commit/a0945a2ffd1067ab3644063a8deee4e06a42ea9e))
+* **34-01:** wire runShadow() into router.js post-call path for all 3 routing strategies ([f233948](https://github.com/SienkLogic/plan-build-run/commit/f23394810ab0f647f8eb1ba1d8f78a5eb7d048d8))
+* **35-01:** GREEN - add escapeHtml helper and use it in HTMX error handler path ([a1830c9](https://github.com/SienkLogic/plan-build-run/commit/a1830c9230ba7ab1ea693a7ff2d36e786d5878d3))
+* **35-01:** GREEN - add sanitize-html post-processing to planning.repository ([6d8122b](https://github.com/SienkLogic/plan-build-run/commit/6d8122b83cf1ed62101a3e9fc2f436caf6b0858e))
+* **35-03:** add Quick Tasks view with /quick and /quick/:id routes ([22abe29](https://github.com/SienkLogic/plan-build-run/commit/22abe29e3951ea8e4fbd045116f6216326ee3907))
+
+
+### Documentation
+
+* **34-01:** mark all LLM-01 through LLM-34 traceability entries as Verified ([4311497](https://github.com/SienkLogic/plan-build-run/commit/4311497e1e91f55a575da4468924d21903457cdf))
+* **quick-002:** add .active-skill stale detection to health Check 10 ([3f95b16](https://github.com/SienkLogic/plan-build-run/commit/3f95b16461478bf4271ef4f7ce94582188869bae))
+* **quick-002:** fix NEXT UP banner indentation in milestone SKILL.md ([2983000](https://github.com/SienkLogic/plan-build-run/commit/2983000bd4df5e95c63cdc8f79601c7894883dbb))
+* **quick-002:** replace arrow-list with bullet style in help SKILL.md ([ad78663](https://github.com/SienkLogic/plan-build-run/commit/ad7866375c6f7fd7dda3e195413df95f3ee191bc))
+
 ## [2.22.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.22.1...plan-build-run-v2.22.2) (2026-02-24)
 
 
