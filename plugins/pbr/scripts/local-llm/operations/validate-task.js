@@ -2,6 +2,7 @@
 
 const { complete, tryParseJSON, isDisabled } = require('../client');
 const { logMetric } = require('../metrics');
+const { route } = require('../router');
 
 /**
  * Validates a Task() call for coherence using the local LLM.
@@ -21,7 +22,10 @@ async function validateTask(config, planningDir, taskInput, sessionId) {
     JSON.stringify({ description: taskInput.description, subagent_type: taskInput.subagent_type });
 
   try {
-    const result = await complete(config, prompt, 'task-validation');
+    const result = await route(config, prompt, 'task-validation', (logprobs) =>
+      complete(config, prompt, 'task-validation', { logprobs })
+    );
+    if (result === null) return null;
     const parsed = tryParseJSON(result.content);
     if (!parsed.ok) return null;
     if (typeof parsed.data.coherent !== 'boolean') return null;
