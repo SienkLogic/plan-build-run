@@ -12,7 +12,8 @@ export default async function currentPhaseMiddleware(req, res, next) {
       res.locals.currentPhase = {
         number: cp.id,
         name: cp.name,
-        status: cp.status
+        status: cp.status,
+        nextAction: state.nextAction || null,
       };
     } else {
       res.locals.currentPhase = null;

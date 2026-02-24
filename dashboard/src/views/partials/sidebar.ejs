@@ -13,9 +13,16 @@
   </div>
   <% } %>
 
+  <% if (typeof currentPhase !== 'undefined' && currentPhase && currentPhase.nextAction) { %>
+  <div class="sidebar-next-action">
+    <small>Suggested next:</small>
+    <code><%= currentPhase.nextAction %></code>
+  </div>
+  <% } %>
+
   <nav aria-label="Main navigation">
     <details open>
-      <summary>Overview</summary>
+      <summary>Project</summary>
       <ul>
         <li>
           <a href="/"
@@ -34,6 +41,14 @@
           </a>
         </li>
         <li>
+          <a href="/phases"
+             hx-get="/phases"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'phases' ? ' aria-current="page"' : '' %>>
+            Phases
+          </a>
+        </li>
+        <li>
           <a href="/dependencies"
              hx-get="/dependencies"
              hx-target="#main-content"
@@ -41,12 +56,34 @@
             Dependencies
           </a>
         </li>
+      </ul>
+    </details>
+
+    <details open>
+      <summary>Planning</summary>
+      <ul>
         <li>
-          <a href="/analytics"
-             hx-get="/analytics"
+          <a href="/config"
+             hx-get="/config"
              hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'analytics' ? ' aria-current="page"' : '' %>>
-            Analytics
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'config' ? ' aria-current="page"' : '' %>>
+            Config
+          </a>
+        </li>
+        <li>
+          <a href="/research"
+             hx-get="/research"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'research' ? ' aria-current="page"' : '' %>>
+            Research
+          </a>
+        </li>
+        <li>
+          <a href="/requirements"
+             hx-get="/requirements"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'requirements' ? ' aria-current="page"' : '' %>>
+            Requirements
           </a>
         </li>
       </ul>
@@ -56,27 +93,11 @@
       <summary>Work</summary>
       <ul>
         <li>
-          <a href="/phases"
-             hx-get="/phases"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'phases' ? ' aria-current="page"' : '' %>>
-            Phases
-          </a>
-        </li>
-        <li>
           <a href="/todos"
              hx-get="/todos"
              hx-target="#main-content"
              hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'todos' ? ' aria-current="page"' : '' %>>
             Todos
-          </a>
-        </li>
-        <li>
-          <a href="/notes"
-             hx-get="/notes"
-             hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'notes' ? ' aria-current="page"' : '' %>>
-            Notes
           </a>
         </li>
         <li>
@@ -88,17 +109,17 @@
           </a>
         </li>
         <li>
-          <a href="/audits"
-             hx-get="/audits"
+          <a href="/notes"
+             hx-get="/notes"
              hx-target="#main-content"
-             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'audits' ? ' aria-current="page"' : '' %>>
-            Audit Reports
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'notes' ? ' aria-current="page"' : '' %>>
+            Notes
           </a>
         </li>
       </ul>
     </details>
 
-    <details open>
+    <details>
       <summary>History</summary>
       <ul>
         <li>
@@ -107,6 +128,22 @@
              hx-target="#main-content"
              hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'milestones' ? ' aria-current="page"' : '' %>>
             Milestones
+          </a>
+        </li>
+        <li>
+          <a href="/analytics"
+             hx-get="/analytics"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'analytics' ? ' aria-current="page"' : '' %>>
+            Analytics
+          </a>
+        </li>
+        <li>
+          <a href="/audits"
+             hx-get="/audits"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'audits' ? ' aria-current="page"' : '' %>>
+            Audit Reports
           </a>
         </li>
       </ul>
