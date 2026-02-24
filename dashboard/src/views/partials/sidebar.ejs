@@ -79,6 +79,14 @@
             Notes
           </a>
         </li>
+        <li>
+          <a href="/quick"
+             hx-get="/quick"
+             hx-target="#main-content"
+             hx-push-url="true"<%= typeof activePage !== 'undefined' && activePage === 'quick' ? ' aria-current="page"' : '' %>>
+            Quick Tasks
+          </a>
+        </li>
       </ul>
     </details>
 
