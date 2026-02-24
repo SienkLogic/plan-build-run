@@ -732,3 +732,57 @@ main > p:first-of-type > a[href="/"]:hover {
     text-align: center;
   }
 }
+
+/* --- Commit Timeline --- */
+.commit-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--space-lg);
+  border-left: 2px solid var(--color-border);
+  padding-left: var(--space-md);
+}
+
+.commit-timeline__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+.commit-timeline__item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--space-md) - 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+}
+
+.commit-timeline__hash {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.commit-timeline__task {
+  flex: 1;
+  font-size: 0.875rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-timeline__meta {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
