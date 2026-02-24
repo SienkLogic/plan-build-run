@@ -35,6 +35,7 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         <link rel="stylesheet" href="/css/layout.css" />
         <link rel="stylesheet" href="/css/status-colors.css" />
         <link rel="stylesheet" href="/css/command-center.css" />
+        <link rel="stylesheet" href="/css/explorer.css" />
 
         {/* Prevent flash of wrong theme */}
         {html`<script>
