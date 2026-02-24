@@ -9,12 +9,12 @@
 </p>
 
 <% sections.forEach(function(section) { %>
-<article>
-  <header>
+<div class="card mb-3">
+  <div class="card-header">
     <strong><%= section.type %></strong>
-  </header>
-  <div class="markdown-body">
+  </div>
+  <div class="card-body markdown-body">
     <%- section.html %>
   </div>
-</article>
+</div>
 <% }); %>
