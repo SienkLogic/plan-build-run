@@ -3,9 +3,11 @@
 <h1>Phase Dependencies</h1>
 
 <% if (typeof mermaidCode !== 'undefined' && mermaidCode && mermaidCode.trim()) { %>
-<article>
-  <pre class="mermaid"><%= mermaidCode %></pre>
-</article>
+<div class="card mb-3">
+  <div class="card-body">
+    <pre class="mermaid"><%= mermaidCode %></pre>
+  </div>
+</div>
 <% } else { %>
 <%- include('empty-state', { icon: '🔗', title: 'No dependency data available', action: '' }) %>
 <% } %>

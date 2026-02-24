@@ -1,29 +1,30 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= title %></h1>
 
-<p><a href="/quick">&larr; Back to Quick Tasks</a></p>
+<p><a href="/quick" class="btn btn-outline-secondary">&larr; Back to Quick Tasks</a></p>
 
-<article>
-  <header>
+<div class="card mb-3">
+  <div class="card-header">
     <strong>Quick Task <%= id %></strong>
     &nbsp;
     <span class="status-badge" data-status="<%= status %>">
       <%= status %>
     </span>
-  </header>
+  </div>
+  <div class="card-body">
+    <% if (planHtml) { %>
+    <section>
+      <h2>Plan</h2>
+      <%- planHtml %>
+    </section>
+    <% } %>
 
-  <% if (planHtml) { %>
-  <section>
-    <h2>Plan</h2>
-    <%- planHtml %>
-  </section>
-  <% } %>
-
-  <% if (summaryHtml) { %>
-  <hr>
-  <section>
-    <h2>Summary</h2>
-    <%- summaryHtml %>
-  </section>
-  <% } %>
-</article>
+    <% if (summaryHtml) { %>
+    <hr>
+    <section>
+      <h2>Summary</h2>
+      <%- summaryHtml %>
+    </section>
+    <% } %>
+  </div>
+</div>

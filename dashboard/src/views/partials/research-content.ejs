@@ -6,17 +6,17 @@
 <%- include('empty-state', { icon: 'R', title: 'No research documents', action: 'Run /pbr:explore or /pbr:scan to generate research.' }) %>
 <% } else { %>
 <% researchDocs.forEach(function(doc) { %>
-<article class="card">
-  <header class="card__header">
+<div class="card mb-2">
+  <div class="card-header">
     <strong>
       <a href="/research/<%= doc.slug %>"
          hx-get="/research/<%= doc.slug %>"
          hx-target="#main-content"
          hx-push-url="true"><%= doc.title %></a>
     </strong>
-    <% if (doc.date) { %><small style="float:right"><%= doc.date %></small><% } %>
-  </header>
-  <div class="card__body">
+    <% if (doc.date) { %><small class="ms-auto text-muted"><%= doc.date %></small><% } %>
+  </div>
+  <div class="card-body">
     <% if (doc.topic) { %><p><strong>Topic:</strong> <%= doc.topic %></p><% } %>
     <% if (doc.confidence || doc.coverage) { %>
     <p>
@@ -25,10 +25,10 @@
     </p>
     <% } %>
     <% if (!doc.topic && !doc.confidence && !doc.coverage) { %>
-    <p class="muted"><small>Click to view full document</small></p>
+    <p class="text-muted mb-0"><small>Click to view full document</small></p>
     <% } %>
   </div>
-</article>
+</div>
 <% }); %>
 <% } %>
 
@@ -37,20 +37,20 @@
 <%- include('empty-state', { icon: 'C', title: 'No codebase documents', action: 'Run /pbr:scan to generate codebase analysis.' }) %>
 <% } else { %>
 <% codebaseDocs.forEach(function(doc) { %>
-<article class="card">
-  <header class="card__header">
+<div class="card mb-2">
+  <div class="card-header">
     <strong>
       <a href="/research/<%= doc.slug %>"
          hx-get="/research/<%= doc.slug %>"
          hx-target="#main-content"
          hx-push-url="true"><%= doc.title %></a>
     </strong>
-    <% if (doc.date) { %><small style="float:right"><%= doc.date %></small><% } %>
-  </header>
-  <div class="card__body">
-    <% if (doc.focus) { %><p><strong>Focus:</strong> <%= doc.focus %></p><% } %>
-    <% if (!doc.focus) { %><p class="muted"><small>Click to view full document</small></p><% } %>
+    <% if (doc.date) { %><small class="ms-auto text-muted"><%= doc.date %></small><% } %>
   </div>
-</article>
+  <div class="card-body">
+    <% if (doc.focus) { %><p><strong>Focus:</strong> <%= doc.focus %></p><% } %>
+    <% if (!doc.focus) { %><p class="text-muted mb-0"><small>Click to view full document</small></p><% } %>
+  </div>
+</div>
 <% }); %>
 <% } %>
