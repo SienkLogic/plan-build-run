@@ -324,22 +324,24 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     parts.push(`${bar} ${c.dim}${ctxPercent}%${c.reset}`);
   }
 
-  // LLM offload section — shows lifetime token savings from local LLM
+  if (parts.length === 0) return null;
+
+  let output = parts.join(` ${c.dim}\u2502${c.reset} `);
+
+  // LLM offload section — renders on a second line below the main status
   if (sections.includes('llm') && planningDir) {
     try {
       const llmMetrics = llmMetricsModule.computeLifetimeMetrics(planningDir);
       if (llmMetrics && llmMetrics.total_calls > 0) {
         const savedStr = formatTokens(llmMetrics.tokens_saved);
-        parts.push(`${c.green}LLM ${llmMetrics.total_calls}x ${savedStr} saved${c.reset}`);
+        output += `\n${c.green}Local LLM${c.reset} ${c.dim}${llmMetrics.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${savedStr} saved${c.reset}`;
       }
     } catch (_e) {
       // No metrics available — skip silently
     }
   }
 
-  if (parts.length === 0) return null;
-
-  return parts.join(` ${c.dim}\u2502${c.reset} `);
+  return output;
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }

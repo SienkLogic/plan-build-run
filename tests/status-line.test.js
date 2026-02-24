@@ -704,7 +704,7 @@ describe('status-line.js', () => {
       jest.restoreAllMocks();
     });
 
-    test('shows LLM stats when metrics exist', () => {
+    test('shows LLM stats on second line when metrics exist', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 2,
@@ -716,10 +716,15 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
-      expect(result).toContain('LLM 42x 85.0K saved');
+      const lines = result.split('\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[0]).toContain('Phase 1/5');
+      expect(lines[1]).toContain('Local LLM');
+      expect(lines[1]).toContain('42 calls');
+      expect(lines[1]).toContain('85.0K saved');
     });
 
-    test('uses green color for LLM stats', () => {
+    test('uses green color for Local LLM label and saved count', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 10,
         fallback_count: 0,
@@ -731,10 +736,11 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const raw = buildStatusLine(content, null, cfg, {}, '/fake/.planning');
-      expect(raw).toContain('\x1b[32mLLM 10x 5.0K saved');
+      expect(raw).toContain('\x1b[32mLocal LLM\x1b[0m');
+      expect(raw).toContain('\x1b[32m5.0K saved\x1b[0m');
     });
 
-    test('omits LLM section when no calls', () => {
+    test('omits LLM line when no calls', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 0,
         fallback_count: 0,
@@ -746,20 +752,22 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
-      expect(result).not.toContain('LLM');
+      expect(result).not.toContain('Local LLM');
+      expect(result).not.toContain('\n');
     });
 
-    test('omits LLM section when computeLifetimeMetrics throws', () => {
+    test('omits LLM line when computeLifetimeMetrics throws', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockImplementation(() => {
         throw new Error('no log file');
       });
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
-      expect(result).not.toContain('LLM');
+      expect(result).not.toContain('Local LLM');
+      expect(result).not.toContain('\n');
     });
 
-    test('omits LLM section when not in sections array', () => {
+    test('omits LLM line when not in sections array', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 0,
@@ -771,10 +779,10 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'context'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
-      expect(result).not.toContain('LLM');
+      expect(result).not.toContain('Local LLM');
     });
 
-    test('omits LLM section when planningDir is not provided', () => {
+    test('omits LLM line when planningDir is not provided', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 42,
         fallback_count: 0,
@@ -786,10 +794,10 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
-      expect(result).not.toContain('LLM');
+      expect(result).not.toContain('Local LLM');
     });
 
-    test('formats large token counts with M suffix', () => {
+    test('formats large token counts with M suffix on second line', () => {
       jest.spyOn(llmMetricsModule, 'computeLifetimeMetrics').mockReturnValue({
         total_calls: 200,
         fallback_count: 5,
@@ -801,7 +809,10 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'llm'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, '/fake/.planning'));
-      expect(result).toContain('LLM 200x 2.5M saved');
+      const lines = result.split('\n');
+      expect(lines).toHaveLength(2);
+      expect(lines[1]).toContain('200 calls');
+      expect(lines[1]).toContain('2.5M saved');
     });
   });
 
