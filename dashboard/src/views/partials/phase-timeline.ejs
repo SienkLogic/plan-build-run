@@ -1,20 +1,27 @@
 <% if (!phases || phases.length === 0) { %>
-  <p class="muted">No phases found.</p>
+  <%- include('empty-state', { title: 'No phases found' }) %>
 <% } else { %>
-<ol class="phase-timeline">
+<div class="list-group list-group-flush">
   <% phases.forEach(function(phase) { %>
-  <li class="phase-step" data-status="<%= phase.status %>"<% if (currentPhase && phase.id === currentPhase.id) { %> aria-current="step"<% } %>>
-    <span class="step-indicator"></span>
-    <a class="step-label"
-       href="/phases/<%= String(phase.id).padStart(2, '0') %>"
-       hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
-       hx-target="#main-content"
-       hx-push-url="true">
-      <strong>Phase <%= phase.id %></strong>
-      <span class="step-name"><%= phase.name %></span>
-    </a>
-    <span class="status-badge status-badge--sm" data-status="<%= phase.status %>"><%= phase.status %></span>
-  </li>
+  <div class="list-group-item<%= currentPhase && phase.id === currentPhase.id ? ' active' : '' %>"
+       data-status="<%= phase.status %>"
+       <% if (currentPhase && phase.id === currentPhase.id) { %> aria-current="step"<% } %>>
+    <div class="row align-items-center">
+      <div class="col">
+        <a class="text-decoration-none"
+           href="/phases/<%= String(phase.id).padStart(2, '0') %>"
+           hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
+           hx-target="#main-content"
+           hx-push-url="true">
+          <strong class="me-2">Phase <%= phase.id %></strong>
+          <span class="text-muted small"><%= phase.name %></span>
+        </a>
+      </div>
+      <div class="col-auto">
+        <span class="status-badge status-badge--sm" data-status="<%= phase.status %>"><%= phase.status %></span>
+      </div>
+    </div>
+  </div>
   <% }); %>
-</ol>
+</div>
 <% } %>
