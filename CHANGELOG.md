@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.27.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.2...plan-build-run-v2.27.0) (2026-02-24)
+
+
+### Features
+
+* **tools:** add local LLM skill-level fallbacks and platform compatibility docs ([d6d1242](https://github.com/SienkLogic/plan-build-run/commit/d6d1242d79eb924525761e0bc6ac65e1a2d51375))
+
 ## [2.26.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.1...plan-build-run-v2.26.2) (2026-02-24)
 
 
