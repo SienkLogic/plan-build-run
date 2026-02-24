@@ -268,7 +268,10 @@ function readConfigHighlights(planningDir) {
 }
 
 function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents) {
-  const parts = ['[Post-Compaction Recovery] Context was auto-compacted. Key state preserved:'];
+  const parts = [
+    '[Post-Compaction Recovery] Context was auto-compacted. Key state preserved:',
+    '[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan N\n- Build from a plan → /pbr:build N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.'
+  ];
 
   if (activeOp) parts.push(`Active operation: ${activeOp}`);
   if (currentPlan) parts.push(`Current plan: ${currentPlan}`);

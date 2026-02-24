@@ -262,7 +262,7 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\n${hookHealth}`);
   }
 
-  parts.push('\nAvailable commands: /pbr:status, /pbr:plan, /pbr:build, /pbr:review, /pbr:help');
+  parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan N\n- Build from a plan → /pbr:build N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
 }
