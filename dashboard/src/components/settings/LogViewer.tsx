@@ -84,7 +84,6 @@ export function LogViewer({
                   class="log-tail-indicator"
                   x-data={`logTail({ file: '${selectedFile}' })`}
                   x-init="start()"
-                  x-on:beforeunload.window="stop()"
                 >
                   <span class="tail-dot" x-bind:class="{ 'tail-dot--active': connected }"></span>
                   <span x-text="connected ? 'Live' : 'Connecting...'"></span>
@@ -119,6 +118,7 @@ function logTail({ file }) {
       });
       this.es.onopen = () => { this.connected = true; };
       this.es.onerror = () => { this.connected = false; };
+      window.addEventListener('beforeunload', () => this.stop());
     },
     stop() { if (this.es) this.es.close(); }
   };
