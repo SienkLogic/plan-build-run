@@ -11,10 +11,19 @@
 
 html {
   font-family: var(--font-sans);
-  font-size: 15px;
-  letter-spacing: -0.01em;
+  font-size: var(--font-size-base, 14px);
+  line-height: var(--line-height-base, 1.5);
+  letter-spacing: -0.011em;
   background: var(--color-surface);
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  line-height: var(--line-height-mono, 1.6);
 }
 
 body {

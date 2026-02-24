@@ -21,6 +21,11 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title} — PBR Dashboard</title>
 
+        {/* Google Fonts: Inter + JetBrains Mono */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
         {/* Open Props */}
         <link rel="stylesheet" href="https://unpkg.com/open-props" />
         <link rel="stylesheet" href="https://unpkg.com/open-props/normalize.min.css" />
@@ -29,6 +34,7 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         <link rel="stylesheet" href="/css/tokens.css" />
         <link rel="stylesheet" href="/css/layout.css" />
         <link rel="stylesheet" href="/css/status-colors.css" />
+        <link rel="stylesheet" href="/css/command-center.css" />
 
         {/* Prevent flash of wrong theme */}
         {html`<script>

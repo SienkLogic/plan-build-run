@@ -38,9 +38,12 @@
   --shadow-sm: var(--shadow-2);
   --shadow-md: var(--shadow-4);
 
-  /* Typography */
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  /* Typography — Inter + JetBrains Mono (loaded via Google Fonts CDN) */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', 'Courier New', monospace;
+  --font-size-base: 14px;
+  --line-height-base: 1.5;
+  --line-height-mono: 1.6;
 
   /* Layout dimensions */
   --size-sidebar: 220px;
