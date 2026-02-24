@@ -230,6 +230,36 @@ export async function createTodo(projectDir, todoData) {
   });
 }
 
+export async function listDoneTodos(projectDir) {
+  const doneDir = join(projectDir, '.planning', 'todos', 'done');
+  let files;
+  try {
+    files = await readdir(doneDir);
+  } catch (err) {
+    if (err.code === 'ENOENT') return [];
+    throw err;
+  }
+  const mdFiles = files.filter(f => f.endsWith('.md')).sort().reverse();
+  const todos = [];
+  for (const filename of mdFiles) {
+    const match = filename.match(/^(\d{3})-(.+)\.md$/);
+    if (!match) continue;
+    const [, id, slugPart] = match;
+    try {
+      const raw = await readFile(join(doneDir, filename), 'utf-8');
+      const { data } = matter(raw);
+      todos.push({
+        id, filename,
+        title: data.title || slugPart,
+        priority: data.priority || '',
+        phase: data.phase || '',
+        completedAt: data.completed_at || null
+      });
+    } catch { /* skip */ }
+  }
+  return todos;
+}
+
 export async function completeTodo(projectDir, todoId) {
   return writeQueue.enqueue(async () => {
     const pendingDir = join(projectDir, '.planning', 'todos', 'pending');

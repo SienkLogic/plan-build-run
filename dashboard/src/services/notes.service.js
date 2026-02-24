@@ -48,3 +48,19 @@ export async function listNotes(projectDir) {
 
   return notes;
 }
+
+export async function getNoteBySlug(projectDir, slug) {
+  const notesDir = join(projectDir, '.planning', 'notes');
+  let entries;
+  try {
+    entries = await readdir(notesDir);
+  } catch (err) {
+    if (err.code === 'ENOENT') return null;
+    throw err;
+  }
+  const filename = entries.find(f => f.endsWith('.md') && f.replace(/^\d{4}-\d{2}-\d{2}-/, '').replace(/\.md$/, '') === slug);
+  if (!filename) return null;
+  const { frontmatter, html } = await readMarkdownFile(join(notesDir, filename));
+  const title = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return { filename, slug, title, date: frontmatter.date || null, promoted: !!frontmatter.promoted, html };
+}
