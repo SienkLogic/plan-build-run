@@ -132,36 +132,56 @@
         </fieldset>
         <% } %>
 
-        <%# Parallelization number inputs %>
+        <%# Parallelization inputs (toggles for booleans, number for numbers) %>
         <% if (config.parallelization && typeof config.parallelization === 'object') { %>
         <fieldset class="config-fieldset">
           <legend>Parallelization</legend>
           <% for (const [key, val] of Object.entries(config.parallelization)) { %>
+          <% if (typeof val === 'boolean') { %>
+          <div class="config-toggle-row">
+            <label>
+              <input type="checkbox" role="switch" name="parallelization.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <%= key %>
+            </label>
+          </div>
+          <% } else if (typeof val === 'number') { %>
           <div class="config-row">
             <label for="cfg-par-<%= key %>"><%= key %></label>
-            <% if (typeof val === 'number') { %>
             <input id="cfg-par-<%= key %>" type="number" name="parallelization.<%= key %>" value="<%= val %>" min="1" />
-            <% } else { %>
-            <input id="cfg-par-<%= key %>" type="text" name="parallelization.<%= key %>" value="<%= val %>" />
-            <% } %>
           </div>
+          <% } else { %>
+          <div class="config-row">
+            <label for="cfg-par-<%= key %>"><%= key %></label>
+            <input id="cfg-par-<%= key %>" type="text" name="parallelization.<%= key %>" value="<%= val %>" />
+          </div>
+          <% } %>
           <% } %>
         </fieldset>
         <% } %>
 
-        <%# Planning number/text inputs %>
+        <%# Planning inputs (toggles for booleans, number for numbers) %>
         <% if (config.planning && typeof config.planning === 'object') { %>
         <fieldset class="config-fieldset">
           <legend>Planning</legend>
           <% for (const [key, val] of Object.entries(config.planning)) { %>
+          <% if (typeof val === 'boolean') { %>
+          <div class="config-toggle-row">
+            <label>
+              <input type="checkbox" role="switch" name="planning.<%= key %>" value="on" <%= val ? 'checked' : '' %> />
+              <%= key %>
+            </label>
+          </div>
+          <% } else if (typeof val === 'number') { %>
           <div class="config-row">
             <label for="cfg-plan-<%= key %>"><%= key %></label>
-            <% if (typeof val === 'number') { %>
             <input id="cfg-plan-<%= key %>" type="number" name="planning.<%= key %>" value="<%= val %>" />
-            <% } else { %>
-            <input id="cfg-plan-<%= key %>" type="text" name="planning.<%= key %>" value="<%= val %>" />
-            <% } %>
           </div>
+          <% } else { %>
+          <div class="config-row">
+            <label for="cfg-plan-<%= key %>"><%= key %></label>
+            <input id="cfg-plan-<%= key %>" type="text" name="planning.<%= key %>" value="<%= val %>" />
+          </div>
+          <% } %>
           <% } %>
         </fieldset>
         <% } %>

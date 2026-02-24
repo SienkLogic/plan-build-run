@@ -9,7 +9,11 @@
        href="/phases/<%= String(phase.id).padStart(2, '0') %>"
        hx-get="/phases/<%= String(phase.id).padStart(2, '0') %>"
        hx-target="#main-content"
-       hx-push-url="true">Phase <%= phase.id %></a>
+       hx-push-url="true">
+      <strong>Phase <%= phase.id %></strong>
+      <span class="step-name"><%= phase.name %></span>
+    </a>
+    <span class="status-badge status-badge--sm" data-status="<%= phase.status %>"><%= phase.status %></span>
   </li>
   <% }); %>
 </ol>

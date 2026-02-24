@@ -89,13 +89,13 @@
             <%= todo.priority %>
           </span>
         </td>
-        <td><%= todo.phase %></td>
+        <td><%= todo.phase || '—' %></td>
         <td>
           <span class="status-badge" data-status="<%= todo.status %>">
             <%= todo.status %>
           </span>
         </td>
-        <td><%= todo.created %></td>
+        <td><%= todo.created ? new Date(todo.created).toISOString().slice(0, 10) : '—' %></td>
       </tr>
       <% }); %>
     </tbody>

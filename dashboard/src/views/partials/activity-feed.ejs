@@ -3,9 +3,16 @@
 <% } else { %>
 <ul class="activity-feed">
   <% recentActivity.forEach(function(item) { %>
+  <%
+    // Format path: strip .planning/ prefix for brevity
+    var displayPath = item.path.replace(/^\.planning\//, '');
+    // Format timestamp: show just date+time, no timezone
+    var ts = item.timestamp || '';
+    var dateOnly = ts.replace(/\s+[-+]\d{4}$/, '').replace(/:\d{2}$/, '');
+  %>
   <li class="activity-item">
-    <span class="activity-path"><%= item.path %></span>
-    <time class="activity-time" datetime="<%= item.timestamp %>"><%= item.timestamp %></time>
+    <span class="activity-path"><%= displayPath %></span>
+    <time class="activity-time" datetime="<%= ts %>"><%= dateOnly %></time>
   </li>
   <% }); %>
 </ul>

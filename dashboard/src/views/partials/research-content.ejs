@@ -24,6 +24,9 @@
       <% if (doc.coverage) { %><small>Coverage: <%= doc.coverage %></small><% } %>
     </p>
     <% } %>
+    <% if (!doc.topic && !doc.confidence && !doc.coverage) { %>
+    <p class="muted"><small>Click to view full document</small></p>
+    <% } %>
   </div>
 </article>
 <% }); %>
@@ -44,6 +47,10 @@
     </strong>
     <% if (doc.date) { %><small style="float:right"><%= doc.date %></small><% } %>
   </header>
+  <div class="card__body">
+    <% if (doc.focus) { %><p><strong>Focus:</strong> <%= doc.focus %></p><% } %>
+    <% if (!doc.focus) { %><p class="muted"><small>Click to view full document</small></p><% } %>
+  </div>
 </article>
 <% }); %>
 <% } %>
