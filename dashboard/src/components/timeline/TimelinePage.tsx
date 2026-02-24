@@ -1,49 +1,90 @@
+import { AnalyticsPanel } from './AnalyticsPanel';
+import { DependencyGraph } from './DependencyGraph';
+
 export function TimelinePage() {
   return (
-    <div>
-      <div class="timeline__filters">
-        <label>
-          <input type="checkbox" name="types" value="commit" />
-          Commits
-        </label>
-        <label>
-          <input type="checkbox" name="types" value="phase-transition" />
-          Phase Transitions
-        </label>
-        <label>
-          <input type="checkbox" name="types" value="todo-completion" />
-          Todo Completions
-        </label>
-
-        <select name="phase">
-          <option value="">All phases</option>
-        </select>
-
-        <input type="date" name="dateFrom" aria-label="From date" />
-        <input type="date" name="dateTo" aria-label="To date" />
-
+    <div class="timeline" x-data="{ activeSection: 'events' }">
+      <h1 class="page-title">Timeline</h1>
+      <div class="timeline__section-tabs" role="tablist">
         <button
-          type="button"
-          hx-get="/api/timeline/events"
-          hx-include="closest .timeline__filters"
-          hx-target="#timeline-stream"
-          hx-swap="innerHTML"
-          hx-indicator="#timeline-loading"
+          role="tab"
+          x-bind:aria-selected="activeSection === 'events'"
+          x-on:click="activeSection = 'events'"
+          class="timeline__section-tab"
         >
-          Apply Filters
+          Event Stream
+        </button>
+        <button
+          role="tab"
+          x-bind:aria-selected="activeSection === 'analytics'"
+          x-on:click="activeSection = 'analytics'"
+          class="timeline__section-tab"
+        >
+          Analytics
+        </button>
+        <button
+          role="tab"
+          x-bind:aria-selected="activeSection === 'graph'"
+          x-on:click="activeSection = 'graph'"
+          class="timeline__section-tab"
+        >
+          Dependency Graph
         </button>
       </div>
 
-      <div id="timeline-loading" class="timeline__loading htmx-indicator">Refreshing...</div>
+      <div x-show="activeSection === 'events'">
+        <div class="timeline__filters">
+          <label>
+            <input type="checkbox" name="types" value="commit" />
+            Commits
+          </label>
+          <label>
+            <input type="checkbox" name="types" value="phase-transition" />
+            Phase Transitions
+          </label>
+          <label>
+            <input type="checkbox" name="types" value="todo-completion" />
+            Todo Completions
+          </label>
 
-      <div
-        id="timeline-stream"
-        class="timeline__stream"
-        hx-get="/api/timeline/events"
-        hx-trigger="load"
-        hx-swap="innerHTML"
-      >
-        <div class="timeline__loading">Loading events...</div>
+          <select name="phase">
+            <option value="">All phases</option>
+          </select>
+
+          <input type="date" name="dateFrom" aria-label="From date" />
+          <input type="date" name="dateTo" aria-label="To date" />
+
+          <button
+            type="button"
+            hx-get="/api/timeline/events"
+            hx-include="closest .timeline__filters"
+            hx-target="#timeline-stream"
+            hx-swap="innerHTML"
+            hx-indicator="#timeline-loading"
+          >
+            Apply Filters
+          </button>
+        </div>
+
+        <div id="timeline-loading" class="timeline__loading htmx-indicator">Refreshing...</div>
+
+        <div
+          id="timeline-stream"
+          class="timeline__stream"
+          hx-get="/api/timeline/events"
+          hx-trigger="load"
+          hx-swap="innerHTML"
+        >
+          <div class="timeline__loading">Loading events...</div>
+        </div>
+      </div>
+
+      <div x-show="activeSection === 'analytics'">
+        <AnalyticsPanel />
+      </div>
+
+      <div x-show="activeSection === 'graph'">
+        <DependencyGraph />
       </div>
     </div>
   );
