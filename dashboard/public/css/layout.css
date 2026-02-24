@@ -786,3 +786,26 @@ main > p:first-of-type > a[href="/"]:hover {
   align-items: center;
   gap: var(--space-xs);
 }
+
+/* Config page */
+.config-section { margin-bottom: var(--spacing-md); }
+.config-section summary { cursor: pointer; list-style: none; }
+.config-section summary::-webkit-details-marker { display: none; }
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+.config-row label { min-width: 160px; font-weight: 500; }
+.config-row input[type="text"],
+.config-row input[type="number"],
+.config-row select { flex: 1; }
+.config-fieldset { border: 1px solid var(--card-border); border-radius: var(--radius); padding: var(--spacing-md); margin-bottom: var(--spacing-md); }
+.config-toggle-row { display: flex; align-items: center; margin-bottom: var(--spacing-xs); }
+.config-toggle-row label { display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer; }
+.config-raw-json { width: 100%; font-family: var(--font-mono, monospace); font-size: 0.85rem; }
+.config-actions { display: flex; align-items: center; gap: var(--spacing-md); margin-top: var(--spacing-lg); }
+.config-hint { color: var(--muted); font-size: 0.85rem; margin-bottom: var(--spacing-sm); }
+.config-feedback--success { color: var(--color-success, green); font-weight: 500; }
+.config-feedback--error { color: var(--color-error, red); font-weight: 500; }
