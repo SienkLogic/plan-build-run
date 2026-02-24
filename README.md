@@ -14,6 +14,7 @@
   <a href="#getting-started">Getting Started</a> &bull;
   <a href="#commands">Commands</a> &bull;
   <a href="#how-it-works">How It Works</a> &bull;
+  <a href="#local-llm-offload">Local LLM</a> &bull;
   <a href="https://github.com/SienkLogic/plan-build-run/wiki">Wiki</a> &bull;
   <a href=".github/CONTRIBUTING.md">Contributing</a>
 </p>
@@ -47,7 +48,7 @@ Plan-Build-Run takes a different approach: **structured context isolation**. Ins
   <img src="./assets/pbr-demo.gif" alt="Plan-Build-Run workflow: begin → plan → build → review" width="800" />
 </p>
 
-Goal-backward verification, lifecycle hooks, wave-based parallelism, kill-safe state, and more. See **[What Sets It Apart](https://github.com/SienkLogic/plan-build-run/wiki/What-Sets-It-Apart)** for the full comparison and differentiators.
+Goal-backward verification, lifecycle hooks, wave-based parallelism, kill-safe state, and **[local LLM offloading](#local-llm-offload)** to cut frontier token costs on routine tasks. See **[What Sets It Apart](https://github.com/SienkLogic/plan-build-run/wiki/What-Sets-It-Apart)** for the full comparison and differentiators.
 
 > **When to use Plan-Build-Run:** Multi-phase projects where quality matters. New features spanning 5+ files, large refactors, greenfield builds, anything that would take more than one Claude Code session to complete. Use `depth: quick` or `depth: standard` to control agent spawn count per phase.
 >
