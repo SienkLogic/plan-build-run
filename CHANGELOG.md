@@ -5,6 +5,24 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.30.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.29.0...plan-build-run-v2.30.0) (2026-02-24)
+
+
+### Features
+
+* **40-01:** add Explorer view shell with phases tab and Alpine.js tabs ([f6d4fb3](https://github.com/SienkLogic/plan-build-run/commit/f6d4fb391cbd6eebe13ee6c381556404f4ad1faf))
+* **40-02:** add MilestonesTab component and milestone.service type declarations ([420572b](https://github.com/SienkLogic/plan-build-run/commit/420572bb0009b52e0e761baf66097980758b981e))
+* **40-02:** add TodosTab component with TodoListFragment and TodoCreateForm ([0cca669](https://github.com/SienkLogic/plan-build-run/commit/0cca669f39079a69fe5376d7460135a0fd496f07))
+* **40-02:** wire todos and milestones routes into explorer.routes.tsx ([83e2963](https://github.com/SienkLogic/plan-build-run/commit/83e2963fc1d7bbc061df23c3f5c80c326bd2f16e))
+* **40-03:** add NotesTab, AuditsTab, and QuickTab components ([e3edd64](https://github.com/SienkLogic/plan-build-run/commit/e3edd647a9db251527f50ed2264540acbc1974ff))
+* **40-03:** add ResearchTab and RequirementsTab components with requirements CSS ([3102ff7](https://github.com/SienkLogic/plan-build-run/commit/3102ff735a0be217f013fa01199c1823cf2cfae5))
+* **40-03:** wire research, requirements, notes, audits, quick routes; add service .d.ts files ([a45fcd9](https://github.com/SienkLogic/plan-build-run/commit/a45fcd906d06fc0da866ed6492c116bc9e80ab76))
+
+
+### Bug Fixes
+
+* **40-02:** use JSX-compatible hx-on attribute syntax in TodoCreateForm ([70e6822](https://github.com/SienkLogic/plan-build-run/commit/70e6822c5ec72ef25ee290ba7453065637f3c828))
+
 ## [2.29.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.28.0...plan-build-run-v2.29.0) (2026-02-24)
 
 
