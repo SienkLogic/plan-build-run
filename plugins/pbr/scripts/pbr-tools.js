@@ -27,6 +27,9 @@ const fs = require('fs');
 const path = require('path');
 const { resolveConfig, checkHealth } = require('./local-llm/health');
 const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
+const { scoreSource } = require('./local-llm/operations/score-source');
+const { classifyError } = require('./local-llm/operations/classify-error');
+const { summarizeContext } = require('./local-llm/operations/summarize-context');
 const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
 
 const cwd = process.cwd();
@@ -336,6 +339,51 @@ async function main() {
       const llmConfig = resolveConfig(rawConfig.local_llm);
       const result = await classifyArtifact(llmConfig, planningDir, content, upperType, undefined);
       output(result || { classification: null, reason: 'LLM disabled or unavailable' });
+    } else if (command === 'llm' && subcommand === 'score-source') {
+      const sourceUrl = args[2];
+      const filePath = args[3];
+      if (!sourceUrl || !filePath) {
+        error('Usage: pbr-tools.js llm score-source <url> <file-path>');
+      }
+      if (!fs.existsSync(filePath)) {
+        error('File not found: ' + filePath);
+      }
+      const content = fs.readFileSync(filePath, 'utf8');
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const result = await scoreSource(llmConfig, planningDir, content, sourceUrl, undefined);
+      output(result || { level: null, reason: 'LLM disabled or unavailable' });
+    } else if (command === 'llm' && subcommand === 'classify-error') {
+      const filePath = args[2];
+      const agentType = args[3] || 'unknown';
+      if (!filePath) {
+        error('Usage: pbr-tools.js llm classify-error <file-path> [agent-type]');
+      }
+      if (!fs.existsSync(filePath)) {
+        error('File not found: ' + filePath);
+      }
+      const errorText = fs.readFileSync(filePath, 'utf8');
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const result = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
+      output(result || { category: null, reason: 'LLM disabled or unavailable' });
+    } else if (command === 'llm' && subcommand === 'summarize') {
+      const filePath = args[2];
+      const maxWords = args[3] ? parseInt(args[3], 10) : undefined;
+      if (!filePath) {
+        error('Usage: pbr-tools.js llm summarize <file-path> [max-words]');
+      }
+      if (!fs.existsSync(filePath)) {
+        error('File not found: ' + filePath);
+      }
+      const contextText = fs.readFileSync(filePath, 'utf8');
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const result = await summarizeContext(llmConfig, planningDir, contextText, maxWords, undefined);
+      output(result || { summary: null, reason: 'LLM disabled or unavailable' });
     } else if (command === 'llm' && subcommand === 'metrics') {
       const sessionFlag = args[2]; // '--session'
       const sessionStart = args[3]; // ISO timestamp
@@ -352,7 +400,7 @@ async function main() {
         output({ scope: 'lifetime', ...lifetime });
       }
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|metrics [--session <ISO>]`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]`);
     }
   } catch (e) {
     error(e.message);
