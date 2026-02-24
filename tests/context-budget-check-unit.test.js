@@ -223,8 +223,10 @@ describe('readRecentAgents', () => {
 });
 
 describe('buildRecoveryContext', () => {
-  test('returns empty when no meaningful data', () => {
-    expect(buildRecoveryContext('', '', '', '', [], [])).toBe('');
+  test('returns PBR workflow directive even when no other meaningful data', () => {
+    const result = buildRecoveryContext('', '', '', '', [], []);
+    expect(result).toContain('PBR WORKFLOW REQUIRED');
+    expect(result).toContain('/pbr:quick');
   });
 
   test('includes all provided sections', () => {

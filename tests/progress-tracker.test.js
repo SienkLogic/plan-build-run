@@ -154,13 +154,15 @@ describe('progress-tracker.js', () => {
     expect(parsed.additionalContext).not.toContain('Stale .auto-next');
   });
 
-  test('includes available commands', () => {
+  test('includes PBR workflow directive', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
 
     const output = run();
     const parsed = JSON.parse(output);
-    expect(parsed.additionalContext).toContain('/pbr:status');
-    expect(parsed.additionalContext).toContain('/pbr:help');
+    expect(parsed.additionalContext).toContain('PBR WORKFLOW REQUIRED');
+    expect(parsed.additionalContext).toContain('/pbr:quick');
+    expect(parsed.additionalContext).toContain('/pbr:build');
+    expect(parsed.additionalContext).toContain('/pbr:do');
   });
 
   test('counts project notes', () => {

@@ -3,33 +3,35 @@
 /**
  * PreToolUse dispatcher for Write|Edit hooks.
  *
- * Consolidates check-skill-workflow.js, check-phase-boundary.js,
- * and check-doc-sprawl.js into a single process, reading stdin once
- * and running all checks sequentially.
+ * Consolidates all PreToolUse Write|Edit checks into a single process,
+ * reading stdin once and running all checks sequentially.
  *
  * ── Dispatch Order & Rationale ──────────────────────────────────
  *
- *   1. check-skill-workflow  — Enforces planning-phase rules (e.g. no
- *      code writes during the plan phase). Runs first because workflow
- *      violations are the most fundamental: if the write shouldn't
- *      happen at all in the current workflow state, there's no point
- *      evaluating boundary or sprawl rules. Can block (exit 2).
+ *   1. enforce-pbr-workflow  — Warns or blocks source code writes that
+ *      happen without an active PBR skill. Runs first because this is
+ *      the most fundamental enforcement: if no PBR skill is managing
+ *      the session, all other skill-specific checks are moot.
+ *      Can block (exit 2) or advise (exit 0). Config-driven.
  *
- *   2. check-summary-gate    — Blocks STATE.md status advancement
+ *   2. check-agent-state-write — Blocks subagents from writing STATE.md
+ *      directly (except pbr:general). Runs before skill-specific checks
+ *      because agent isolation is a hard invariant. Can block (exit 2).
+ *
+ *   3. check-skill-workflow  — Enforces planning-phase rules (e.g. no
+ *      code writes during the plan phase). Can block (exit 2).
+ *
+ *   4. check-summary-gate    — Blocks STATE.md status advancement
  *      (to built/verified/complete) unless a SUMMARY file exists for
- *      the current phase. Prevents inconsistent state where a phase
- *      appears complete but has no build receipt. Can block (exit 2).
+ *      the current phase. Can block (exit 2).
  *
- *   3. check-phase-boundary  — Guards against writes that target files
- *      outside the current phase directory. Runs second because once
- *      we know the write is allowed by workflow rules, we need to
- *      verify it's scoped to the correct phase. Can block (exit 2)
+ *   5. check-phase-boundary  — Guards against writes that target files
+ *      outside the current phase directory. Can block (exit 2)
  *      or warn (exit 0 with message).
  *
- *   4. check-doc-sprawl      — Prevents creation of new .md/.txt files
+ *   6. check-doc-sprawl      — Prevents creation of new .md/.txt files
  *      outside a known allowlist (when enabled in config). Runs last
- *      because it's the most granular check — only relevant for new
- *      documentation files, not all writes. Can block (exit 2).
+ *      because it's the most granular check. Can block (exit 2).
  *
  * ── Short-Circuit Behavior ──────────────────────────────────────
  *

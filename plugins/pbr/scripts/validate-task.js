@@ -49,7 +49,9 @@ const KNOWN_AGENTS = [
   'debugger',
   'codebase-mapper',
   'synthesizer',
-  'general'
+  'general',
+  'audit',
+  'dev-sync'
 ];
 
 const MAX_DESCRIPTION_LENGTH = 100;
