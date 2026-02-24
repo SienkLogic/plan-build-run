@@ -20,8 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { tailLines } = require('./pbr-tools');
-const { readSessionMetrics, summarizeMetrics } = require('./local-llm/metrics');
+const { tailLines, configLoad } = require('./pbr-tools');
+const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
 
 function readStdin() {
   try {
@@ -240,6 +240,7 @@ function main() {
   writeSessionHistory(planningDir, data);
 
   // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
+  let llmAdditionalContext = null;
   try {
     const sessionStartFile = path.join(planningDir, '.session-start');
     if (fs.existsSync(sessionStartFile)) {
@@ -254,6 +255,14 @@ function main() {
           tokens_saved: summary.tokens_saved,
           cost_saved_usd: summary.cost_saved_usd
         });
+        if (summary.total_calls > 0) {
+          let modelName = null;
+          try {
+            const rawConfig = configLoad(planningDir) || {};
+            modelName = (rawConfig.local_llm && rawConfig.local_llm.model) || null;
+          } catch (_e) { /* config read failure is non-fatal */ }
+          llmAdditionalContext = formatSessionSummary(summary, modelName);
+        }
       }
       // Clean up session-start file
       try { fs.unlinkSync(sessionStartFile); } catch (_e) { /* non-fatal */ }
@@ -267,6 +276,10 @@ function main() {
     log_rotated: rotated,
     orphaned_progress_files: orphans.length > 0 ? orphans : undefined
   });
+
+  if (llmAdditionalContext) {
+    process.stdout.write(JSON.stringify({ additionalContext: llmAdditionalContext }) + '\n');
+  }
 
   process.exit(0);
 }
