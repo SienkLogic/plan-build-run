@@ -13,7 +13,7 @@
   --color-border: rgba(0, 0, 0, 0.1);
   --color-text-dim: rgba(0, 0, 0, 0.5);
   --color-text: #1a1a2e;
-  --color-accent: var(--pico-primary);
+  --color-accent: var(--tblr-primary, #0054a6);
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -73,7 +73,7 @@
 }
 
 /* --- Dark Mode (explicit attribute) --- */
-[data-theme="dark"] {
+[data-bs-theme="dark"] {
   --color-surface: #13131a;
   --color-surface-raised: rgba(255, 255, 255, 0.03);
   --color-surface-hover: rgba(255, 255, 255, 0.06);
@@ -84,7 +84,7 @@
 
 /* --- Dark Mode (system preference, unless light forced) --- */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-bs-theme="light"]) {
     --color-surface: #13131a;
     --color-surface-raised: rgba(255, 255, 255, 0.03);
     --color-surface-hover: rgba(255, 255, 255, 0.06);
