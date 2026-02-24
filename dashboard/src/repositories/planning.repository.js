@@ -2,6 +2,7 @@ import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve, relative, normalize } from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 
 marked.setOptions({ gfm: true, breaks: false });
 
@@ -76,9 +77,30 @@ export async function readMarkdownFile(filePath) {
 
   const html = marked.parse(content);
 
+  const sanitizedHtml = sanitizeHtml(html, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'img', 'details', 'summary', 'del', 'ins',
+      'sup', 'sub', 'abbr', 'kbd', 'mark'
+    ]),
+    allowedAttributes: {
+      ...sanitizeHtml.defaults.allowedAttributes,
+      'a': ['href', 'name', 'target', 'rel'],
+      'img': ['src', 'alt', 'title', 'width', 'height'],
+      'code': ['class'],
+      'pre': ['class'],
+      'span': ['class'],
+      'div': ['class'],
+      'td': ['align'],
+      'th': ['align', 'scope'],
+      'h1': ['id'], 'h2': ['id'], 'h3': ['id'],
+      'h4': ['id'], 'h5': ['id'], 'h6': ['id']
+    }
+  });
+
   return {
     frontmatter: data,
-    html,
+    html: sanitizedHtml,
     rawContent: content
   };
 }
