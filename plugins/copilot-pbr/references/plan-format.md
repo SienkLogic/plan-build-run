@@ -71,6 +71,28 @@ requirement_ids:
 | `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
 | `requirement_ids` | NO | array | Requirement IDs from REQUIREMENTS.md or ROADMAP.md goal IDs that this plan addresses. Enables bidirectional traceability between plans and requirements/goals. |
 | `dependency_fingerprints` | NO | object | Hashes of dependency phase SUMMARY.md files at plan-creation time. Used to detect stale plans. |
+| `data_contracts` | NO | array | Cross-boundary parameter mappings for calls where arguments originate from external boundaries. Format: `"param: source (context) [fallback]"` |
+
+### Data Contracts
+
+When a task's `<action>` includes calls across module boundaries where arguments come from external sources (hook stdin, env vars, API params, config files), document the parameter-to-source mapping in `data_contracts` frontmatter and in the `<action>` step itself.
+
+Example frontmatter:
+
+```yaml
+data_contracts:
+  - "sessionId: data.session_id (hook stdin) [undefined in CLI context]"
+  - "config: configLoad(planningDir) (disk) [resolveConfig(undefined)]"
+```
+
+Example in `<action>`:
+
+```
+3. Call classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id)
+   Data contract: sessionId ← data.session_id from hook stdin (undefined in CLI context)
+```
+
+**When to apply:** Any call where caller and callee are in different modules AND at least one argument originates from an external boundary. Internal helper calls within the same module do not need contracts.
 
 ---
 
