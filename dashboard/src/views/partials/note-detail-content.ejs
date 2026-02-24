@@ -1,0 +1,22 @@
+<%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
+<h1>
+  <%= title %>
+  <% if (promoted) { %>
+    &nbsp;<span class="status-badge" data-status="complete">promoted</span>
+  <% } %>
+</h1>
+
+<% if (date) { %>
+<p><small><%= date %></small></p>
+<% } %>
+
+<article>
+  <div class="markdown-body">
+    <%- html %>
+  </div>
+</article>
+
+<p><a href="/notes"
+      hx-get="/notes"
+      hx-target="#main-content"
+      hx-push-url="true">Back to Notes</a></p>

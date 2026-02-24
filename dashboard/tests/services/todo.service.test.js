@@ -8,7 +8,7 @@ vi.mock('node:fs/promises', async () => {
 });
 
 // Import AFTER mock is set up
-const { listPendingTodos, getTodoDetail, createTodo, completeTodo } = await import(
+const { listPendingTodos, getTodoDetail, createTodo, completeTodo, listDoneTodos } = await import(
   '../../src/services/todo.service.js'
 );
 
@@ -592,5 +592,68 @@ describe('completeTodo', () => {
 
     const content = vol.readFileSync('/project/.planning/todos/done/001-test-todo.md', 'utf-8');
     expect(content).toContain('Hook scripts currently have no audit trail.');
+  });
+});
+
+describe('listDoneTodos', () => {
+  it('listDoneTodos returns empty array when done dir missing', async () => {
+    vol.fromJSON({
+      '/project/package.json': '{}',
+    });
+
+    const result = await listDoneTodos('/project');
+
+    expect(result).toEqual([]);
+  });
+
+  it('listDoneTodos returns done todos sorted by id descending', async () => {
+    vol.fromJSON({
+      '/project/.planning/todos/done/001-foo.md': `---
+title: "Foo task"
+priority: P1
+status: done
+---
+
+# Foo
+`,
+      '/project/.planning/todos/done/003-bar.md': `---
+title: "Bar task"
+priority: P0
+status: done
+---
+
+# Bar
+`,
+    });
+
+    const result = await listDoneTodos('/project');
+
+    expect(result.length).toBe(2);
+    expect(result[0].id).toBe('003');
+    expect(result[1].id).toBe('001');
+  });
+
+  it('listDoneTodos parses frontmatter fields correctly', async () => {
+    vol.fromJSON({
+      '/project/.planning/todos/done/007-done-item.md': `---
+title: "Done item title"
+priority: P2
+phase: "05"
+completed_at: "2026-02-20"
+status: done
+---
+
+# Done item
+`,
+    });
+
+    const result = await listDoneTodos('/project');
+
+    expect(result.length).toBe(1);
+    expect(result[0].id).toBe('007');
+    expect(result[0].title).toBe('Done item title');
+    expect(result[0].priority).toBe('P2');
+    expect(result[0].phase).toBe('05');
+    expect(result[0].completedAt).toBe('2026-02-20');
   });
 });
