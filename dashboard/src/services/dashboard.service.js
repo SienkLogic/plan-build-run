@@ -117,6 +117,19 @@ export async function parseStateFile(projectDir) {
         ? 'in-progress'
         : fmStatus || 'unknown';
 
+    // Map STATE.md status to suggested next PBR command
+    const nextActionMap = {
+      'planning':    '/pbr:plan',
+      'planned':     '/pbr:build',
+      'building':    '/pbr:build',
+      'built':       '/pbr:review',
+      'in-progress': '/pbr:build',
+      'verified':    '/pbr:review',
+      'complete':    '/pbr:milestone',
+      'discussing':  '/pbr:plan',
+    };
+    const nextAction = nextActionMap[fmStatus] || null;
+
     return {
       projectName,
       currentPhase: {
@@ -130,7 +143,8 @@ export async function parseStateFile(projectDir) {
         date: activityDate,
         description: activityDescription
       },
-      progress
+      progress,
+      nextAction
     };
   } catch (error) {
     if (error.code === 'ENOENT') {
