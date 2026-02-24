@@ -107,9 +107,11 @@ function resetCircuit(operationType) {
  * @param {object} config - local_llm config block (resolved)
  * @param {string} prompt - user message to send
  * @param {string} operationType - operation identifier for circuit breaker tracking
- * @returns {Promise<{ content: string, latency_ms: number, tokens: number }>}
+ * @param {object} [options={}] - optional parameters
+ * @param {boolean} [options.logprobs] - if true, request logprobs from the API
+ * @returns {Promise<{ content: string, latency_ms: number, tokens: number, logprobsData: Array<{token: string, logprob: number}>|null }>}
  */
-async function complete(config, prompt, operationType) {
+async function complete(config, prompt, operationType, options = {}) {
   const endpoint = config.endpoint || 'http://localhost:11434';
   const model = config.model || 'qwen2.5-coder:7b';
   const timeoutMs = config.timeout_ms || 3000;
@@ -124,7 +126,7 @@ async function complete(config, prompt, operationType) {
     throw err;
   }
 
-  const body = JSON.stringify({
+  const bodyObj = {
     model,
     messages: [
       {
@@ -139,7 +141,12 @@ async function complete(config, prompt, operationType) {
     max_tokens: 200,
     keep_alive: keepAlive,
     num_ctx: numCtx
-  });
+  };
+  if (options.logprobs === true) {
+    bodyObj.logprobs = true;
+    bodyObj.top_logprobs = 3;
+  }
+  const body = JSON.stringify(bodyObj);
 
   const url = endpoint + '/v1/chat/completions';
   const totalAttempts = maxRetries + 1;
@@ -164,8 +171,11 @@ async function complete(config, prompt, operationType) {
       const content = json.choices[0].message.content;
       const completionTokens = (json.usage && json.usage.completion_tokens) || 0;
       const latency_ms = performance.now() - start;
+      const logprobsData = (options.logprobs && json.choices[0].logprobs)
+        ? json.choices[0].logprobs.content
+        : null;
 
-      return { content, latency_ms, tokens: completionTokens };
+      return { content, latency_ms, tokens: completionTokens, logprobsData };
     } catch (err) {
       lastErr = err;
       const isConnRefused =
