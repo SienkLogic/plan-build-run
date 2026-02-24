@@ -3,7 +3,8 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import request from 'supertest';
-import { createApp } from '../../src/app.js';
+import { createAdaptorServer } from '@hono/node-server';
+import { createApp } from '../../src/index.tsx';
 
 let app;
 let projectDir;
@@ -13,8 +14,6 @@ beforeAll(async () => {
   const planningDir = join(projectDir, '.planning');
   await mkdir(planningDir, { recursive: true });
   await mkdir(join(planningDir, 'phases', '01-setup'), { recursive: true });
-  await mkdir(join(planningDir, 'todos', 'pending'), { recursive: true });
-  await mkdir(join(planningDir, 'milestones'), { recursive: true });
 
   await writeFile(join(planningDir, 'STATE.md'), [
     '---', 'phase: 1', 'status: Planning', '---', '', '**Phase**: 1', ''
@@ -29,45 +28,58 @@ beforeAll(async () => {
     workflow: { depth: 'standard' }, features: {}
   }));
 
-  app = createApp({ projectDir });
+  const honoApp = createApp({ projectDir, port: 0 });
+  app = createAdaptorServer(honoApp);
 });
 
 afterAll(async () => {
   await rm(projectDir, { recursive: true, force: true });
 });
 
-describe('GET /dependencies', () => {
+describe('GET /', () => {
   it('returns 200 with HTML', async () => {
-    const res = await request(app).get('/dependencies');
+    const res = await request(app).get('/');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
   });
 
-  it('returns partial content for HX-Request', async () => {
+  it('returns HTML for HX-Request', async () => {
     const res = await request(app)
-      .get('/dependencies')
+      .get('/')
       .set('HX-Request', 'true');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/html/);
-    expect(res.headers['vary']).toBe('HX-Request');
   });
 
-  it('handles missing ROADMAP.md gracefully', async () => {
-    // Create a separate project dir without ROADMAP.md
+  it('handles missing STATE.md gracefully', async () => {
+    // Create a separate project dir without STATE.md
     const emptyDir = await mkdtemp(join(tmpdir(), 'pbr-deps-empty-'));
     const pd = join(emptyDir, '.planning');
     await mkdir(pd, { recursive: true });
     await mkdir(join(pd, 'phases'), { recursive: true });
-    await mkdir(join(pd, 'todos', 'pending'), { recursive: true });
-    await mkdir(join(pd, 'milestones'), { recursive: true });
-    await writeFile(join(pd, 'STATE.md'), '---\nphase: 1\nstatus: Planning\n---\n');
+    await writeFile(join(pd, 'ROADMAP.md'), '# Roadmap\n');
     await writeFile(join(pd, 'config.json'), '{}');
 
-    const emptyApp = createApp({ projectDir: emptyDir });
-    const res = await request(emptyApp).get('/dependencies');
+    const emptyHonoApp = createApp({ projectDir: emptyDir, port: 0 });
+    const emptyApp = createAdaptorServer(emptyHonoApp);
+    const res = await request(emptyApp).get('/');
     // Should not crash - either 200 with empty state or a handled error
     expect([200, 500].includes(res.status)).toBe(true);
 
     await rm(emptyDir, { recursive: true, force: true });
+  });
+});
+
+describe('GET /explorer', () => {
+  it('returns 200', async () => {
+    const res = await request(app).get('/explorer');
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('GET /timeline', () => {
+  it('returns 200', async () => {
+    const res = await request(app).get('/timeline');
+    expect(res.status).toBe(200);
   });
 });
