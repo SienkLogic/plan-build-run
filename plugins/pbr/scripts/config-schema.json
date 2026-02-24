@@ -254,6 +254,18 @@
       },
       "additionalProperties": false
     },
+    "workflow": {
+      "type": "object",
+      "properties": {
+        "enforce_pbr_skills": {
+          "type": "string",
+          "enum": ["advisory", "block", "off"],
+          "default": "advisory",
+          "description": "Enforcement level for PBR workflow compliance"
+        }
+      },
+      "additionalProperties": false
+    },
     "local_llm": {
       "type": "object",
       "properties": {

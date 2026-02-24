@@ -22,6 +22,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { resolveConfig } = require('./local-llm/health');
 const { validateTask: llmValidateTask } = require('./local-llm/operations/validate-task');
+const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
@@ -800,6 +801,8 @@ function main() {
       if (debuggerWarning) warnings.push(debuggerWarning);
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
+      const nonPbrAgentResult = checkNonPbrAgent(data);
+      if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
 
       // LLM task coherence check — advisory only
       try {
