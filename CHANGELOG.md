@@ -5,6 +5,20 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.32.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.31.0...plan-build-run-v2.32.0) (2026-02-24)
+
+
+### Features
+
+* **42-01:** create settings routes, CSS, wire into app, and add config.service.d.ts ([3c4f953](https://github.com/SienkLogic/plan-build-run/commit/3c4f9531de93acc4e47b4ab6a94f962972c3f6ab))
+* **42-02:** add log viewer routes (page, entries, SSE tail) and CSS ([cbcb47c](https://github.com/SienkLogic/plan-build-run/commit/cbcb47ce31b2e06481e329bfd01597bcc644a4a8))
+* **42-02:** add LogFileList, LogEntryList, and LogViewer components ([3101c12](https://github.com/SienkLogic/plan-build-run/commit/3101c129dbf5e6535b720188be2a49a583008303))
+
+
+### Bug Fixes
+
+* **42-02:** move beforeunload cleanup to addEventListener for JSX compatibility ([e582a51](https://github.com/SienkLogic/plan-build-run/commit/e582a51ef628e7596bb42e352dbf8df861d67e07))
+
 ## [2.31.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.30.0...plan-build-run-v2.31.0) (2026-02-24)
 
 
