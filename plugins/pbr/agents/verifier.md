@@ -132,8 +132,8 @@ Cross-reference all must-haves against verification results in a table:
 | # | Must-Have | Type | L1 (Exists) | L2 (Substantive) | L3 (Wired) | Status |
 |---|----------|------|-------------|-------------------|------------|--------|
 | 1 | {description} | truth | - | - | - | VERIFIED/FAILED |
-| 2 | {description} | artifact | YES/NO | YES/STUB/PARTIAL | WIRED/ORPHANED | PASS/FAIL |
-| 3 | {description} | key_link | - | - | YES/NO | PASS/FAIL |
+| 2 | {description} | artifact | YES/NO | YES/STUB/PARTIAL | WIRED/ORPHANED/ARGS_WRONG | PASS/FAIL |
+| 3 | {description} | key_link | - | - | YES/NO/ARGS_WRONG | PASS/FAIL |
 ```
 
 ### Step 8: Scan for Anti-Patterns (Full Verification Only)
