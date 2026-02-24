@@ -30,7 +30,7 @@
     "test": "jest",
     "lint": "eslint plugins/pbr/scripts/ tests/",
     "validate": "node plugins/pbr/scripts/validate-plugin-structure.js",
-    "dashboard": "node dashboard/bin/cli.js",
+    "dashboard": "npx --prefix dashboard tsx --tsconfig dashboard/tsconfig.json dashboard/bin/cli.js",
     "dashboard:install": "npm install --prefix dashboard"
   },
   "devDependencies": {
