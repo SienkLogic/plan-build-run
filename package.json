@@ -1,6 +1,6 @@
 {
   "name": "@sienklogic/plan-build-run",
-  "version": "2.26.2",
+  "version": "2.27.0",
   "description": "Plan it, Build it, Run it — structured development workflow for Claude Code",
   "keywords": [
     "claude-code",
