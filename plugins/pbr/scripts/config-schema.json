@@ -253,6 +253,53 @@
         }
       },
       "additionalProperties": false
+    },
+    "local_llm": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "provider": { "type": "string", "enum": ["ollama"] },
+        "endpoint": { "type": "string", "format": "uri" },
+        "model": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 500 },
+        "max_retries": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "fallback": { "type": "string", "enum": ["frontier", "skip"] },
+        "routing_strategy": { "type": "string", "enum": ["local_first", "frontier_first"] },
+        "features": {
+          "type": "object",
+          "properties": {
+            "artifact_classification": { "type": "boolean" },
+            "task_validation": { "type": "boolean" },
+            "plan_adequacy": { "type": "boolean" },
+            "gap_detection": { "type": "boolean" },
+            "context_summarization": { "type": "boolean" },
+            "source_scoring": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "log_file": { "type": "string" },
+            "show_session_summary": { "type": "boolean" },
+            "frontier_token_rate": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "advanced": {
+          "type": "object",
+          "properties": {
+            "confidence_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+            "max_input_tokens": { "type": "integer", "minimum": 100 },
+            "keep_alive": { "type": "string" },
+            "num_ctx": { "type": "integer", "minimum": 512 },
+            "disable_after_failures": { "type": "integer", "minimum": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

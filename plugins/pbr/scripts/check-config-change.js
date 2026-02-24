@@ -90,6 +90,27 @@ function validateConfig(configPath) {
     }
   }
 
+  // Validate local_llm block
+  if (config.local_llm !== undefined) {
+    const llm = config.local_llm;
+    if (llm.enabled !== undefined && typeof llm.enabled !== 'boolean') {
+      warnings.push('local_llm.enabled must be a boolean');
+    }
+    if (llm.provider !== undefined && llm.provider !== 'ollama') {
+      warnings.push(`local_llm.provider "${llm.provider}" is not supported — use "ollama"`);
+    }
+    if (llm.timeout_ms !== undefined && (typeof llm.timeout_ms !== 'number' || llm.timeout_ms < 500)) {
+      warnings.push('local_llm.timeout_ms must be a number >= 500');
+    }
+    if (llm.advanced && llm.advanced.num_ctx !== undefined && llm.advanced.num_ctx !== 4096) {
+      warnings.push(`local_llm.advanced.num_ctx is ${llm.advanced.num_ctx} — strongly recommend 4096 to avoid GPU memory issues on Windows`);
+    }
+    if (llm.advanced && llm.advanced.disable_after_failures !== undefined &&
+        (typeof llm.advanced.disable_after_failures !== 'number' || llm.advanced.disable_after_failures < 1)) {
+      warnings.push('local_llm.advanced.disable_after_failures must be a number >= 1');
+    }
+  }
+
   return warnings;
 }
 

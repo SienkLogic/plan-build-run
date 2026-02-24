@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { tailLines } = require('./pbr-tools');
+const { readSessionMetrics, summarizeMetrics } = require('./local-llm/metrics');
 
 function readStdin() {
   try {
@@ -237,6 +238,27 @@ function main() {
 
   // Write session history log
   writeSessionHistory(planningDir, data);
+
+  // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
+  try {
+    const sessionStartFile = path.join(planningDir, '.session-start');
+    if (fs.existsSync(sessionStartFile)) {
+      const sessionStartTime = fs.readFileSync(sessionStartFile, 'utf8').trim();
+      const entries = readSessionMetrics(planningDir, sessionStartTime);
+      if (entries.length > 0) {
+        const summary = summarizeMetrics(entries);
+        logHook('session-cleanup', 'SessionEnd', 'llm-metrics', {
+          total_calls: summary.total_calls,
+          fallback_count: summary.fallback_count,
+          avg_latency_ms: summary.avg_latency_ms,
+          tokens_saved: summary.tokens_saved,
+          cost_saved_usd: summary.cost_saved_usd
+        });
+      }
+      // Clean up session-start file
+      try { fs.unlinkSync(sessionStartFile); } catch (_e) { /* non-fatal */ }
+    }
+  } catch (_e) { /* metrics never crash the hook */ }
 
   const decision = cleaned.length > 0 ? 'cleaned' : 'nothing';
   logHook('session-cleanup', 'SessionEnd', decision, {
