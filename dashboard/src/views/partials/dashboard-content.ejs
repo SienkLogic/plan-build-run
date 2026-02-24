@@ -80,7 +80,7 @@
 
 <!-- Quick Actions -->
 <div class="quick-actions">
-  <% if (quickActions && quickActions.length > 0) { %>
+  <% if (typeof quickActions !== 'undefined' && quickActions && quickActions.length > 0) { %>
     <% quickActions.forEach(function(action) { %>
       <a role="button" class="<%= action.primary ? '' : 'outline' %>"
          href="<%= action.href %>"
