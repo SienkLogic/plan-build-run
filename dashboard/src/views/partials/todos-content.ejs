@@ -1,10 +1,17 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1>Todos</h1>
 
-<p><a href="/todos/new" role="button"
+<p>
+  <a href="/todos/new" role="button"
       hx-get="/todos/new"
       hx-target="#main-content"
-      hx-push-url="true">Create Todo</a></p>
+      hx-push-url="true">Create Todo</a>
+  &nbsp;
+  <a href="/todos/done"
+      hx-get="/todos/done"
+      hx-target="#main-content"
+      hx-push-url="true">View Completed Todos</a>
+</p>
 
 <% const f = typeof filters !== 'undefined' ? filters : { priority: '', status: '', q: '' }; %>
 <article>
@@ -70,7 +77,10 @@
       <tr>
         <td><%= todo.id %></td>
         <td>
-          <a href="/todos/<%= todo.id %>">
+          <a href="/todos/<%= todo.id %>"
+             hx-get="/todos/<%= todo.id %>"
+             hx-target="#main-content"
+             hx-push-url="true">
             <%= todo.title %>
           </a>
         </td>

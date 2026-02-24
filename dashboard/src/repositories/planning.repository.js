@@ -3,19 +3,9 @@ import { join, resolve, relative, normalize } from 'node:path';
 import matter from 'gray-matter';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
+import { stripBOM } from '../utils/strip-bom.js';
 
 marked.setOptions({ gfm: true, breaks: false });
-
-/**
- * Strip UTF-8 BOM (Byte Order Mark) if present.
- * Windows editors (Notepad, older VS Code) may prepend BOM to UTF-8 files.
- * gray-matter will fail to detect frontmatter delimiters if BOM is present.
- * @param {string} content - Raw file content
- * @returns {string} Content without BOM
- */
-function stripBOM(content) {
-  return content.replace(/^\uFEFF/, '');
-}
 
 /**
  * Validate that a resolved path stays within the base directory.
