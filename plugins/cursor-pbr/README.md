@@ -113,6 +113,26 @@ Plan-Build-Run stores all state in a `.planning/` directory at your project root
 
 Run `/pbr:config` to interactively adjust settings like depth, model profiles, and gate behavior.
 
+## Hook Compatibility
+
+Cursor's plugin hooks.json is configured with all 14 hook events matching Claude Code. However, **whether Cursor IDE actually fires these hooks is unverified** — no integration testing has confirmed hook execution in real Cursor sessions.
+
+**If hooks DO fire**, Cursor gets the full hook experience identical to Claude Code:
+- Commit format enforcement (PreToolUse)
+- PLAN/SUMMARY quality classification via local LLM (PostToolUse)
+- Test failure triage (PostToolUse)
+- Context budget tracking (PostToolUse)
+- Auto-continue between skills (Stop)
+
+**If hooks do NOT fire**, the following are unavailable:
+- Commit format enforcement — commits won't be validated automatically
+- Automatic local LLM classification on writes — but skills include explicit `pbr-tools.js llm` fallback calls for plan quality (build Step 6a), task validation (quick Step 6b), and verification quality (review Step 3b)
+- Context budget tracking — no automatic warnings when context is filling up
+- Auto-continue — you must manually run the next command
+- Subagent lifecycle logging — agent spawn/completion events aren't tracked
+
+**Local LLM via CLI (always works):** Regardless of hook support, skills and agents can call `pbr-tools.js llm` commands directly via Bash. The `/pbr:status` skill displays local LLM metrics, and agents (debugger, researcher, synthesizer) use CLI commands for error classification, source scoring, and summarization.
+
 ## Cross-Plugin Compatibility
 
 This plugin works alongside the Claude Code version of Plan-Build-Run. Both plugins share the same `.planning/` directory and file formats, so you can switch between Cursor and Claude Code without losing state. Hook scripts under `plugins/pbr/scripts/` are shared between both plugins via relative paths.

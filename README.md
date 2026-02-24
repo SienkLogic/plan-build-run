@@ -304,6 +304,35 @@ Requires a GPU with 6+ GB VRAM for best performance. CPU-only works but adds lat
 
 ---
 
+## Platform Compatibility
+
+Plan-Build-Run works across three platforms with varying levels of hook support. Hooks are the mechanism that fires validation scripts on every tool call — they power local LLM offloading, commit format enforcement, context budget tracking, and workflow gates.
+
+| Feature | Claude Code | Copilot CLI | Cursor IDE |
+|---------|:-----------:|:-----------:|:----------:|
+| Skills (slash commands) | All 26 | All 26 | All 26 |
+| Agents (subagent delegation) | All 12 | All 12 | All 12 |
+| `.planning/` state management | Full | Full | Full |
+| **Hook support** | **Full (14 events)** | **Partial (4 events)** | **Unverified** |
+| Commit format enforcement | Hook-enforced | Hook-enforced | Manual |
+| PLAN/SUMMARY quality classification | Hook + skill fallback | Hook + skill fallback | Skill fallback only |
+| Test failure triage | Automatic (hook) | Automatic (hook) | Not available |
+| Context budget tracking | Automatic (hook) | Not available | Not available |
+| Auto-continue between skills | Automatic (hook) | Not available | Not available |
+| Subagent lifecycle logging | Automatic (hook) | Not available | Not available |
+| **Local LLM offloading** | **Full (8 operations)** | **Mostly (6-7 operations)** | **CLI only** |
+| `pbr-tools.js llm` CLI commands | Full | Full | Full |
+
+**Key differences:**
+
+- **Claude Code** has full hook support — all local LLM operations fire automatically on every tool call
+- **Copilot CLI** supports `sessionStart`, `preToolUse`, `postToolUse`, and `sessionEnd` — covers most validation hooks but misses lifecycle events (`SubagentStop`, `PreCompact`, `Stop`)
+- **Cursor IDE** hook support is unverified — hooks.json is configured but whether Cursor actually fires them is unknown. Skills include `pbr-tools.js llm` fallback calls for key operations (plan quality, verification quality) so local LLM classification is available even without hooks
+
+All platforms share the same scripts via relative paths — no code duplication. See the [Copilot CLI](plugins/copilot-pbr/README.md) and [Cursor IDE](plugins/cursor-pbr/README.md) READMEs for platform-specific details.
+
+---
+
 ## Local Development
 
 ```bash
