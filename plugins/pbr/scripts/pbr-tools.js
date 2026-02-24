@@ -24,6 +24,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { resolveConfig, checkHealth } = require('./local-llm/health');
 
 const cwd = process.cwd();
 const planningDir = path.join(cwd, '.planning');
@@ -207,7 +208,7 @@ function resolveDepthProfile(config) {
   return { depth, profile };
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
   const subcommand = args[1];
@@ -292,8 +293,14 @@ function main() {
       const { logEvent } = require('./event-logger');
       logEvent(category, event, details);
       output({ logged: true, category, event });
+    } else if (command === 'llm' && subcommand === 'health') {
+      let rawConfig = {};
+      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
+      const llmConfig = resolveConfig(rawConfig.local_llm);
+      const health = await checkHealth(llmConfig);
+      output(health);
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health`);
     }
   } catch (e) {
     error(e.message);
@@ -1374,5 +1381,5 @@ function atomicWrite(filePath, content) {
   }
 }
 
-if (require.main === module || process.argv[1] === __filename) { main(); }
+if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
 module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition };
