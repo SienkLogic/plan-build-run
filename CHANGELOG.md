@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.26.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.1...plan-build-run-v2.26.2) (2026-02-24)
+
+
+### Bug Fixes
+
+* **36-08:** improve dashboard UX across 12 pages with 16 visual fixes ([3e0d715](https://github.com/SienkLogic/plan-build-run/commit/3e0d715bb93c7fa18d93960e7ca322c14a1c9deb))
+
 ## [2.26.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.26.0...plan-build-run-v2.26.1) (2026-02-24)
 
 
