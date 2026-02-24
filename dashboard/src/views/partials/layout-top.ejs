@@ -1,16 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-<script>(function(){var t=localStorage.getItem('pbr-theme');if(t)document.documentElement.dataset.theme=t})()</script>
+<script>(function(){var t=localStorage.getItem('pbr-theme');if(t)document.documentElement.dataset.bsTheme=t})()</script>
 <%- include('head', { title: typeof title !== 'undefined' ? title : 'PBR Dashboard' }) %>
-<body>
+<body class="antialiased">
   <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="loading-bar"></div>
   <script>
     document.body.addEventListener('htmx:beforeRequest', function() { document.body.classList.add('htmx-request'); });
     document.body.addEventListener('htmx:afterRequest', function() { document.body.classList.remove('htmx-request'); });
   </script>
-  <div class="page-wrapper">
+  <div class="wrapper">
     <%- include('header') %>
-    <div class="sidebar-backdrop" onclick="closeSidebar()"></div>
     <%- include('sidebar', { activePage: typeof activePage !== 'undefined' ? activePage : '' }) %>
-    <main id="main-content">
+    <div class="page-wrapper">
+      <div class="page-body">
+        <div class="container-xl" id="main-content">
