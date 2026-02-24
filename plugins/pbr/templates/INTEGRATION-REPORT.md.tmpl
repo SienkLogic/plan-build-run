@@ -111,7 +111,22 @@ Phase 03 (Core)  ──provides──→ Phase 04 (Frontend)
 ### Flow 2: {Flow Name} - {STATUS}
 ...
 
-## 5. Integration Issues Summary
+## 5. Data-Flow Propagation
+
+### Cross-Boundary Data Flows
+
+| Data Field | Source | Intermediate Steps | Destination | Status |
+|------------|--------|-------------------|-------------|--------|
+| {field name} | {origin, e.g., hook stdin `data.session_id`} | {module1:L12 → module2:L45} | {dest, e.g., metrics.jsonl `session_id`} | PROPAGATED |
+| {field name} | {origin} | {module1:L12 → module2:L45} | {dest} | DATA_DROPPED |
+
+### Data-Flow Issues
+
+| Field | Dropped At | Available In Scope | Passed Instead | Fix |
+|-------|-----------|-------------------|----------------|-----|
+| {field} | {file:line} | `data.session_id` | `undefined` | Pass `data.session_id` |
+
+## 6. Integration Issues Summary
 
 ### Critical Issues (system cannot function)
 
@@ -130,7 +145,7 @@ Phase 03 (Core)  ──provides──→ Phase 04 (Frontend)
 1. **{Issue}**: {description}
    - Fix: {recommended action}
 
-## 6. Integration Score
+## 7. Integration Score
 
 | Category | Items Checked | Passed | Failed | Score |
 |----------|--------------|--------|--------|-------|
@@ -138,6 +153,7 @@ Phase 03 (Core)  ──provides──→ Phase 04 (Frontend)
 | API coverage | {n} | {n} | {n} | {%} |
 | Auth protection | {n} | {n} | {n} | {%} |
 | E2E flows | {n} | {n} | {n} | {%} |
+| Data-flow propagation | {n} | {n} | {n} | {%} |
 | **Overall** | {n} | {n} | {n} | **{%}** |
 
 ## Recommendations

@@ -53,8 +53,9 @@ anti_patterns:
 
 | # | Link Description | Source | Target | Status | Evidence |
 |---|-----------------|--------|--------|--------|----------|
-| 1 | {what connects to what} | `{source_file}` | `{target_file}` | WIRED | Import at L12, called at L45 |
+| 1 | {what connects to what} | `{source_file}` | `{target_file}` | WIRED | Import at L12, called at L45, args correct |
 | 2 | {what connects to what} | `{source_file}` | `{target_file}` | BROKEN | Imported but never called |
+| 3 | {what connects to what} | `{source_file}` | `{target_file}` | ARGS_WRONG | Called at L45 but passes undefined for sessionId (data.session_id in scope) |
 
 ## Gaps Found
 
