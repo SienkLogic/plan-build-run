@@ -1,6 +1,8 @@
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 import { compress } from 'hono/compress';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
@@ -33,6 +35,10 @@ type Env = {
   };
 };
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const publicDir = join(__dirname, '..', 'public');
+
 function createApp(config: ServerConfig) {
   const app = new Hono<Env>();
 
@@ -62,8 +68,8 @@ function createApp(config: ServerConfig) {
     c.header('Vary', 'Accept');
   });
 
-  // Static file serving from public/
-  app.use('*', serveStatic({ root: './public' }));
+  // Static file serving from public/ (absolute path for cross-cwd compatibility)
+  app.use('*', serveStatic({ root: publicDir }));
 
   // Current phase middleware — populates c.var.currentPhase for all routes
   app.use('*', currentPhaseMiddleware);
