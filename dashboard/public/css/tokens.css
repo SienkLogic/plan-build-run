@@ -61,6 +61,12 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
 
+  /* Overlays & Modals */
+  --overlay-bg: rgba(0, 0, 0, 0.3);
+  --overlay-bg-heavy: rgba(0, 0, 0, 0.7);
+  --color-dark-surface: #1a1a2e;
+  --transition-transform: transform 0.25s ease;
+
   /* Sizing */
   --size-sidebar: 220px;
   --size-header: 3.5rem;
