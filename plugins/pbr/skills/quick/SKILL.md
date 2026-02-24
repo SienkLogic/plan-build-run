@@ -148,6 +148,18 @@ Before proceeding to Step 7, confirm these exist on disk:
 
 If either check fails, you have skipped steps. Go back and complete Steps 4-6. Do NOT proceed to spawning an executor.
 
+### Step 6b: Local LLM Task Validation (optional, advisory)
+
+If `config.local_llm.enabled` is `true`, run a quick scope validation before spawning:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/quick/{NNN}-{slug}/PLAN.md"
+```
+
+- If classification is `"stub"` with confidence >= 0.7: warn `"⚠ Plan looks like a stub — executor may struggle. Consider adding more detail to task descriptions."`
+- If the command fails or returns null: skip silently (local LLM unavailable)
+- This is advisory only — never block on the result
+
 ### Step 7: Spawn Executor
 
 **Pre-spawn check** — Verify `.planning/quick/{NNN}-{slug}/PLAN.md` exists and contains at least one `<task>` block. If missing, STOP and complete Steps 4-6 first.

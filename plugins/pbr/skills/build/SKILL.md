@@ -244,6 +244,18 @@ For each wave, in order (Wave 1, then Wave 2, etc.):
 
 For each plan in the current wave (excluding skipped plans):
 
+**Local LLM plan quality check (optional, advisory):**
+
+Before spawning executors for this wave, if `config.local_llm.enabled` is `true`, run a quick classification on each plan to catch stubs before wasting an executor spawn:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+```
+
+- If classification is `"stub"` or `"partial"` with confidence >= 0.7: warn the user before spawning: `"⚠ Plan {plan_id} classified as {classification} (confidence {conf}) — consider refining before building."`
+- If the command fails or returns null: skip silently (local LLM unavailable — not an error)
+- This is advisory only — never block on the result
+
 **Present plan narrative before spawning:**
 
 Display to the user before spawning:
