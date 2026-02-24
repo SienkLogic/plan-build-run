@@ -75,6 +75,31 @@ describe('runShadow', () => {
     expect(result).toBe(frontier);
   });
 
+  test('handles string frontierResult and string localResultFn return', async () => {
+    const frontier = 'string-frontier';
+    const config = makeConfig({ advanced: { shadow_mode: true, disable_after_failures: 3 } });
+    const localFn = jest.fn().mockResolvedValue('string-local');
+
+    const result = runShadow(config, PLANNING_DIR, 'artifact-classification', localFn, frontier);
+    expect(result).toBe(frontier);
+
+    // Allow async background work to settle
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(localFn).toHaveBeenCalled();
+  });
+
+  test('handles object localResultFn return (non-string)', async () => {
+    const frontier = { classification: 'x' };
+    const config = makeConfig({ advanced: { shadow_mode: true, disable_after_failures: 3 } });
+    const localFn = jest.fn().mockResolvedValue({ classification: 'y' });
+
+    const result = runShadow(config, PLANNING_DIR, 'artifact-classification', localFn, frontier);
+    expect(result).toBe(frontier);
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(localFn).toHaveBeenCalled();
+  });
+
   test('does not throw when localResultFn throws', async () => {
     const frontier = { classification: 'stub' };
     const config = makeConfig({ advanced: { shadow_mode: true, disable_after_failures: 3 } });
@@ -104,6 +129,28 @@ describe('computeThresholdAdjustments', () => {
 
   test('is available (module loaded successfully)', () => {
     expect(typeof computeThresholdAdjustments).toBe('function');
+  });
+
+  test('returns [] when shadow log file does not exist', () => {
+    fs.existsSync.mockReturnValue(false);
+    const result = computeThresholdAdjustments(PLANNING_DIR, CURRENT_THRESHOLD);
+    expect(result).toEqual([]);
+  });
+
+  test('skips entries with no operation field', () => {
+    const lines = Array(25).fill(0).map(() => JSON.stringify({ agrees: true }) + '\n').join('');
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(lines);
+    const result = computeThresholdAdjustments(PLANNING_DIR, CURRENT_THRESHOLD);
+    expect(result).toEqual([]);
+  });
+
+  test('skips non-object parsed JSON lines', () => {
+    const lines = Array(25).fill(0).map(() => '"just a string"\n').join('');
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(lines);
+    const result = computeThresholdAdjustments(PLANNING_DIR, CURRENT_THRESHOLD);
+    expect(result).toEqual([]);
   });
 
   test('returns [] when fs.readFileSync throws (no file)', () => {

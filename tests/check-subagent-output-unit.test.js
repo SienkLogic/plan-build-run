@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits } = require('../plugins/pbr/scripts/check-subagent-output');
+const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness } = require('../plugins/pbr/scripts/check-subagent-output');
 
 let tmpDir;
 let planningDir;
@@ -355,5 +355,57 @@ describe('checkSummaryCommits additional branches', () => {
     const warnings = [];
     checkSummaryCommits(planningDir, ['phases/nonexistent/SUMMARY.md'], warnings);
     expect(warnings).toHaveLength(0);
+  });
+});
+
+describe('isRecent', () => {
+  test('returns true for recently created file', () => {
+    const filePath = path.join(tmpDir, 'recent.txt');
+    fs.writeFileSync(filePath, 'data');
+    expect(isRecent(filePath)).toBe(true);
+  });
+
+  test('returns false for nonexistent file', () => {
+    expect(isRecent(path.join(tmpDir, 'nope.txt'))).toBe(false);
+  });
+});
+
+describe('getCurrentPhase', () => {
+  test('extracts from frontmatter', () => {
+    expect(getCurrentPhase('---\ncurrent_phase: 5\n---\nPhase: 3 of 10')).toBe('5');
+  });
+
+  test('falls back to body text', () => {
+    expect(getCurrentPhase('# State\nPhase: 7 of 10')).toBe('7');
+  });
+
+  test('returns null when no phase info', () => {
+    expect(getCurrentPhase('# No phase info')).toBeNull();
+  });
+});
+
+describe('checkRoadmapStaleness', () => {
+  test('returns null when no ROADMAP.md', () => {
+    expect(checkRoadmapStaleness(planningDir)).toBeNull();
+  });
+
+  test('warns when no Progress table', () => {
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Milestone: v1\n');
+    const result = checkRoadmapStaleness(planningDir);
+    expect(result).toContain('no Progress table');
+  });
+
+  test('warns when current phase not in Progress table', () => {
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 01. Setup | yes |\n');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\nPhase: 3 of 5');
+    const result = checkRoadmapStaleness(planningDir);
+    expect(result).toContain('no row for Phase 3');
+  });
+
+  test('returns null when current phase is in Progress table', () => {
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 02. Auth | yes |\n');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 2\n---\nPhase: 2 of 5');
+    const result = checkRoadmapStaleness(planningDir);
+    expect(result).toBeNull();
   });
 });
