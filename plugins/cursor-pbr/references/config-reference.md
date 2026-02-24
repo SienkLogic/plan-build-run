@@ -440,3 +440,92 @@ Run validation with: `node plugins/pbr/scripts/pbr-tools.js config validate`
 | `tdd_mode: true` + `depth: quick` | quick depth skips verification, which conflicts with TDD's verify-first approach |
 | `git.mode: disabled` + `atomic_commits: true` | atomic_commits has no effect when git is disabled |
 | `git.branching: phase` + `git.mode: disabled` | Branching settings are ignored when git is disabled |
+
+---
+
+## local_llm
+
+Offloads selected PBR inference tasks to a locally running Ollama instance, reducing frontier model usage and latency for fast classification calls. The key `enabled` defaults to `false`, so users without Ollama see no change — all LLM calls continue routing to Claude as normal. When enabled, PBR uses a `local_first` routing strategy: fast tasks (artifact classification, task validation) go to the local model; complex tasks (planning, execution) stay on the frontier model.
+
+### Quick setup
+
+1. Install Ollama:
+   - **Linux/macOS**: `curl -fsSL https://ollama.com/install.sh | sh`
+   - **Windows**: Download from [ollama.com/download](https://ollama.com/download) and run the installer
+2. Pull the recommended model: `ollama pull qwen2.5-coder:7b`
+3. Add to `.planning/config.json`:
+
+   ```json
+   "local_llm": {
+     "enabled": true,
+     "model": "qwen2.5-coder:7b"
+   }
+   ```
+
+4. Verify connectivity: `node /path/to/plugins/pbr/scripts/pbr-tools.js llm health`
+
+### Field reference
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `local_llm.enabled` | boolean | `false` | Enable local LLM offloading; `false` = all calls use frontier |
+| `local_llm.provider` | string | `"ollama"` | Backend provider; only `"ollama"` is supported |
+| `local_llm.endpoint` | string | `"http://localhost:11434"` | Ollama API base URL |
+| `local_llm.model` | string | `"qwen2.5-coder:7b"` | Model tag to use for local inference |
+| `local_llm.timeout_ms` | integer | `3000` | Per-request timeout in milliseconds; >= 500 |
+| `local_llm.max_retries` | integer | `1` | Number of retry attempts on failure before falling back |
+| `local_llm.fallback` | string | `"frontier"` | What to use when local LLM fails: `"frontier"` or `"skip"` |
+| `local_llm.routing_strategy` | string | `"local_first"` | `"local_first"` sends fast tasks local; `"always_local"` routes everything |
+
+### features sub-table
+
+Controls which PBR tasks are eligible for local LLM offloading.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `artifact_classification` | `true` | Classify artifact types (PLAN, SUMMARY, VERIFICATION) locally |
+| `task_validation` | `true` | Validate task scope and completeness locally |
+| `context_summarization` | `false` | Summarize context windows locally (higher token demand) |
+| `source_scoring` | `false` | Score source files by relevance locally |
+
+### advanced sub-table
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `confidence_threshold` | `0.9` | Minimum confidence (0–1) for local output to be accepted; below this, falls back to frontier |
+| `shadow_mode` | `false` | Run local LLM in parallel with frontier but discard local results — useful for tuning confidence thresholds without affecting output |
+| `max_input_tokens` | `2000` | Truncate inputs longer than this before sending to local model |
+| `keep_alive` | `"30m"` | How long Ollama keeps the model loaded between requests (Ollama format: `"5m"`, `"1h"`) |
+| `num_ctx` | `4096` | Context window size passed to Ollama; **must be 4096 on Windows** (see Windows gotchas) |
+| `disable_after_failures` | `3` | Automatically disable local LLM for the session after this many consecutive failures |
+
+### Hardware requirements
+
+| Tier | Hardware | Notes |
+|------|----------|-------|
+| Recommended | RTX 3060+ with 8 GB VRAM | Full GPU acceleration; qwen2.5-coder:7b loads entirely in VRAM |
+| Functional | GTX 1660+ with 6 GB VRAM | GPU acceleration with slight layer offload to RAM |
+| Marginal | CPU only, 32 GB RAM | Works but adds 5-20s latency per call; disable context-heavy features |
+
+For GPU acceleration, ensure NVIDIA drivers are 520+ and CUDA 11.8+ is installed. AMD GPU support is available via ROCm on Linux only.
+
+### Windows gotchas
+
+- **Smart App Control**: May block `ollama_llama_server.exe` on first run. Allow it via Security settings or disable Smart App Control.
+- **Windows Defender**: Add an exclusion for `%LOCALAPPDATA%\Programs\Ollama\ollama_llama_server.exe` to prevent Defender from scanning inference calls in real time.
+- **`num_ctx` must be 4096**: Higher values cause GPU memory fragmentation on Windows and result in OOM errors mid-session. Always set `advanced.num_ctx: 4096` in your config.
+- **Firewall**: Ollama listens on `localhost:11434` by default. If you see connection refused errors, check that Windows Firewall is not blocking loopback connections.
+
+### Viewing metrics
+
+After enabling local LLM, PBR logs per-call metrics to `.planning/logs/local-llm-metrics.jsonl`. Use the built-in subcommands to inspect them:
+
+```bash
+# Show session summary (calls routed, latency, token savings)
+node plugins/pbr/scripts/pbr-tools.js llm metrics
+
+# Suggest routing threshold adjustments based on recent accuracy
+node plugins/pbr/scripts/pbr-tools.js llm adjust-thresholds
+```
+
+Metrics include: routing decision, model used, latency ms, confidence score, whether the frontier fallback was triggered, and estimated tokens saved.
