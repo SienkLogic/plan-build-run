@@ -26,7 +26,8 @@
     "express": "^5.1.0",
     "gray-matter": "^4.0.3",
     "helmet": "^8.1.0",
-    "marked": "^17.0.1"
+    "marked": "^17.0.1",
+    "sanitize-html": "^2.13.0"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",
