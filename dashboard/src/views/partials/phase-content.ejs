@@ -178,7 +178,6 @@
 
 <!-- Commit History Section -->
 <%
-  // Collect all commits across all plans, tagged with their planId
   var allCommits = [];
   plans.forEach(function(plan) {
     if (plan.commits && plan.commits.length > 0) {
@@ -187,41 +186,43 @@
       });
     }
   });
+
+  // Extract commit type from task string: "NN-NN-T1: feat(scope): msg" -> "feat"
+  function commitType(entry) {
+    var m = entry.commit.task && entry.commit.task.match(/\b(feat|fix|refactor|test|docs|chore|wip|perf)\b/i);
+    return m ? m[1].toLowerCase() : 'chore';
+  }
+
+  var typeStatusMap = {
+    feat: 'complete', fix: 'in-progress', refactor: 'not-started',
+    test: 'not-started', docs: 'not-started', chore: 'not-started',
+    wip: 'in-progress', perf: 'complete'
+  };
 %>
 
 <h2>Commit History (<%= allCommits.length %>)</h2>
 
 <% if (allCommits.length === 0) { %>
-<article>
-  <p><em>No commits yet for this phase.</em></p>
-</article>
+<div class="card"><div class="card__body"><p><em>No commits yet for this phase.</em></p></div></div>
 <% } else { %>
-<div class="table-wrap">
-<table>
-  <thead>
-    <tr>
-      <th>Commit</th>
-      <th>Task</th>
-      <th>Plan</th>
-      <th>Files</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% allCommits.forEach(function(entry) { %>
-    <tr>
-      <td><code><%= entry.commit.hash %></code></td>
-      <td><%= entry.commit.task %></td>
-      <td><%= entry.planId %></td>
-      <td><%= entry.commit.files %></td>
-      <td>
-        <span class="status-badge" data-status="<%= entry.commit.verify === 'passed' ? 'complete' : (entry.commit.verify === 'failed' ? 'blocked' : 'in-progress') %>">
-          <%= entry.commit.verify %>
-        </span>
-      </td>
-    </tr>
-    <% }); %>
-  </tbody>
-</table>
-</div>
+<ol class="commit-timeline">
+  <% allCommits.forEach(function(entry) { %>
+  <%
+    var ctype = commitType(entry);
+    var cStatus = typeStatusMap[ctype] || 'not-started';
+    var verifyStatus = entry.commit.verify === 'passed' ? 'complete'
+      : entry.commit.verify === 'failed' ? 'blocked' : 'in-progress';
+  %>
+  <li class="commit-timeline__item">
+    <span class="status-badge status-badge--sm" data-status="<%= cStatus %>" title="<%= ctype %>"><%= ctype %></span>
+    <code class="commit-timeline__hash"><%= entry.commit.hash %></code>
+    <span class="commit-timeline__task"><%= entry.commit.task %></span>
+    <span class="commit-timeline__meta">
+      plan <strong><%= entry.planId %></strong>
+      &middot; <%= entry.commit.files %> file<%= entry.commit.files !== 1 ? 's' : '' %>
+      &middot; <span class="status-badge status-badge--sm" data-status="<%= verifyStatus %>"><%= entry.commit.verify %></span>
+    </span>
+  </li>
+  <% }); %>
+</ol>
 <% } %>
