@@ -66,6 +66,23 @@ Each must-have maps to one or more tasks. Every task exists to make a must-have 
 
 ---
 
+## Data Contracts for Cross-Boundary Parameters
+
+When a function signature includes parameters that flow across module boundaries — session IDs from hook stdin, config objects from disk, auth tokens from environment — the plan **MUST** specify the **source** for each argument, not just the type.
+
+For every cross-boundary call in a task's `<action>`, document:
+
+| Parameter | Source | Context | Fallback |
+|-----------|--------|---------|----------|
+| `sessionId` | `data.session_id` (hook stdin) | Hook scripts only | `undefined` (CLI context) |
+| `config` | `configLoad(planningDir)` | All callers | `resolveConfig(undefined)` |
+
+**When to apply:** Any function call where the caller and callee live in different modules AND at least one argument originates from an external boundary (stdin, env, disk, network). Internal helper calls within the same module do not need contracts.
+
+**Why this matters:** Without explicit source mapping, executors will use the type-correct but value-wrong default (e.g., `undefined` instead of `data.session_id`). The plan is the single source of truth for how data flows — if the plan says `undefined`, the executor will faithfully implement `undefined`.
+
+---
+
 ## Plan Structure
 
 Read `references/plan-format.md` for the complete plan file specification including:
@@ -165,6 +182,7 @@ When CONTEXT.md or RESEARCH-SUMMARY.md contains `[NEEDS DECISION]` flags from th
    - [ ] Dependencies are acyclic, no file conflicts within same wave
    - [ ] Locked decisions honored, no deferred ideas included
    - [ ] Verify commands are actually executable
+   - [ ] Cross-boundary parameters have documented sources (data contracts)
 
 ---
 
@@ -238,3 +256,4 @@ One-line task descriptions in `<name>`. File paths in `<files>`, not explanation
 9. DO NOT plan for features outside the current phase goal
 10. DO NOT assume research is done — check discovery level
 11. DO NOT leave done conditions vague — they must be observable
+12. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
