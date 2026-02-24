@@ -15,6 +15,7 @@ const path = require('path');
 const cp = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./pbr-tools');
+const llmMetricsModule = require('./local-llm/metrics');
 
 // ANSI color codes
 const c = {
@@ -36,7 +37,7 @@ const c = {
 
 // Default status_line config — works out of the box with zero config
 const DEFAULTS = {
-  sections: ['phase', 'plan', 'status', 'git', 'context'],
+  sections: ['phase', 'plan', 'status', 'git', 'context', 'llm'],
   brand_text: '\u25C6 Plan-Build-Run',
   max_status_length: 50,
   context_bar: {
@@ -170,6 +171,17 @@ function formatDuration(ms) {
   return `${minutes}m`;
 }
 
+/**
+ * Format a token count with K/M suffixes for compact display.
+ * @param {number} tokens
+ * @returns {string}
+ */
+function formatTokens(tokens) {
+  if (tokens >= 1_000_000) return (tokens / 1_000_000).toFixed(1) + 'M';
+  if (tokens >= 1_000) return (tokens / 1_000).toFixed(1) + 'K';
+  return String(tokens);
+}
+
 function main() {
   const stdinData = readStdin();
   const cwd = process.cwd();
@@ -184,7 +196,7 @@ function main() {
     const slConfig = loadStatusLineConfig(planningDir);
     const content = fs.readFileSync(stateFile, 'utf8');
     const ctxPercent = getContextPercent(stdinData);
-    const status = buildStatusLine(content, ctxPercent, slConfig, stdinData);
+    const status = buildStatusLine(content, ctxPercent, slConfig, stdinData, planningDir);
 
     if (status) {
       process.stdout.write(status);
@@ -214,7 +226,7 @@ function parseFrontmatter(content) {
   return result;
 }
 
-function buildStatusLine(content, ctxPercent, cfg, stdinData) {
+function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   const config = cfg || DEFAULTS;
   const sections = config.sections || DEFAULTS.sections;
   const brandText = config.brand_text || DEFAULTS.brand_text;
@@ -312,10 +324,23 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData) {
     parts.push(`${bar} ${c.dim}${ctxPercent}%${c.reset}`);
   }
 
+  // LLM offload section — shows lifetime token savings from local LLM
+  if (sections.includes('llm') && planningDir) {
+    try {
+      const llmMetrics = llmMetricsModule.computeLifetimeMetrics(planningDir);
+      if (llmMetrics && llmMetrics.total_calls > 0) {
+        const savedStr = formatTokens(llmMetrics.tokens_saved);
+        parts.push(`${c.green}LLM ${llmMetrics.total_calls}x ${savedStr} saved${c.reset}`);
+      }
+    } catch (_e) {
+      // No metrics available — skip silently
+    }
+  }
+
   if (parts.length === 0) return null;
 
   return parts.join(` ${c.dim}\u2502${c.reset} `);
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
