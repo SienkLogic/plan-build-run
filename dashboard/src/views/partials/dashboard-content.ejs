@@ -1,37 +1,49 @@
 <%- include('breadcrumbs', { breadcrumbs: typeof breadcrumbs !== 'undefined' ? breadcrumbs : [] }) %>
 <h1><%= projectName %></h1>
 
-<!-- Hero Stat Row -->
-<div class="hero-stats">
-  <!-- Current Phase -->
-  <article>
+<!-- Status Cards -->
+<div class="status-cards">
+  <!-- Current Phase Card -->
+  <article class="status-card">
     <header><strong>Current Phase</strong></header>
     <% if (currentPhase.id > 0) { %>
-      <p class="stat-value">
+      <p>
         <a href="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
            hx-get="/phases/<%= String(currentPhase.id).padStart(2, '0') %>"
            hx-target="#main-content"
            hx-push-url="true">
-          <span class="status-badge" data-status="in-progress">Phase <%= currentPhase.id %></span>
+          <span class="status-badge" data-status="<%= currentPhase.status %>">Phase <%= currentPhase.id %></span>
           <%= currentPhase.name %>
         </a>
       </p>
     <% } else { %>
-      <p class="stat-value">No active phase</p>
+      <p>No active phase</p>
     <% } %>
+    <footer><small><%= currentPhase.planStatus %></small></footer>
   </article>
 
-  <!-- Progress -->
-  <article>
-    <header><strong>Progress</strong></header>
-    <p class="stat-value"><%= progress %>%</p>
-    <progress value="<%= progress %>" max="100"></progress>
+  <!-- Milestone Progress Card -->
+  <article class="status-card">
+    <header><strong>Milestone Progress</strong></header>
+    <p>
+      <progress value="<%= progress %>" max="100"></progress>
+      <span><%= progress %>%</span>
+    </p>
+    <footer>
+      <small>
+        <% if (phases && phases.length > 0) { %>
+          <%= phases.filter(function(p) { return p.status === 'complete'; }).length %> of <%= phases.length %> phases complete
+        <% } else { %>
+          &mdash;
+        <% } %>
+      </small>
+    </footer>
   </article>
 
-  <!-- Pending Todos -->
-  <article>
+  <!-- Pending Todos Card -->
+  <article class="status-card">
     <header><strong>Pending Todos</strong></header>
-    <p class="stat-value">
+    <p>
       <a href="/todos"
          hx-get="/todos"
          hx-target="#main-content"
@@ -39,46 +51,59 @@
         <%= typeof pendingTodoCount !== 'undefined' ? pendingTodoCount : 0 %>
       </a>
     </p>
+    <footer><small>P0/P1 items need attention</small></footer>
   </article>
 
-  <!-- Last Activity -->
-  <article>
+  <!-- Last Activity Card -->
+  <article class="status-card">
     <header><strong>Last Activity</strong></header>
     <% if (lastActivity.date) { %>
-      <p class="stat-value"><%= lastActivity.date %></p>
-      <p><small><%= lastActivity.description %></small></p>
+      <p><%= lastActivity.date %></p>
+      <footer><small><%= lastActivity.description %></small></footer>
     <% } else { %>
-      <p class="stat-value">None</p>
+      <p>&mdash;</p>
     <% } %>
   </article>
 </div>
 
+<!-- Phase Timeline -->
+<section class="section-timeline">
+  <h2>Phase Timeline</h2>
+  <%- include('phase-timeline', { phases: phases, currentPhase: currentPhase }) %>
+</section>
+
+<!-- Activity Feed -->
+<section class="section-activity">
+  <h2>Recent Activity</h2>
+  <%- include('activity-feed', { recentActivity: typeof recentActivity !== 'undefined' ? recentActivity : [] }) %>
+</section>
+
 <!-- Quick Actions -->
 <div class="quick-actions">
-  <% var phaseId = String(currentPhase.id).padStart(2, '0'); %>
-  <a role="button" class="outline"
-     href="/phases/<%= phaseId %>"
-     hx-get="/phases/<%= phaseId %>"
-     hx-target="#main-content"
-     hx-push-url="true">Current Phase</a>
-  <a role="button" class="outline"
-     href="/roadmap"
-     hx-get="/roadmap"
-     hx-target="#main-content"
-     hx-push-url="true">Roadmap</a>
-  <a role="button" class="outline"
-     href="/todos/new"
-     hx-get="/todos/new"
-     hx-target="#main-content"
-     hx-push-url="true">Create Todo</a>
+  <% if (quickActions && quickActions.length > 0) { %>
+    <% quickActions.forEach(function(action) { %>
+      <a role="button" class="<%= action.primary ? '' : 'outline' %>"
+         href="<%= action.href %>"
+         hx-get="<%= action.href %>"
+         hx-target="#main-content"
+         hx-push-url="true"><%= action.label %></a>
+    <% }); %>
+  <% } else { %>
+    <% var phaseId = String(currentPhase.id).padStart(2, '0'); %>
+    <a role="button" class="outline"
+       href="/phases/<%= phaseId %>"
+       hx-get="/phases/<%= phaseId %>"
+       hx-target="#main-content"
+       hx-push-url="true">Current Phase</a>
+    <a role="button" class="outline"
+       href="/roadmap"
+       hx-get="/roadmap"
+       hx-target="#main-content"
+       hx-push-url="true">Roadmap</a>
+    <a role="button" class="outline"
+       href="/todos/new"
+       hx-get="/todos/new"
+       hx-target="#main-content"
+       hx-push-url="true">Create Todo</a>
+  <% } %>
 </div>
-
-<!-- Project Notes (if available) -->
-<% if (content && content !== '<p>No project README found.</p>') { %>
-<article>
-  <header>
-    <strong>Project Notes</strong>
-  </header>
-  <%- content %>
-</article>
-<% } %>
