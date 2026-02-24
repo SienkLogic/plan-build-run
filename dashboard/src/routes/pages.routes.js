@@ -12,6 +12,7 @@ import { listQuickTasks, getQuickTask } from '../services/quick.service.js';
 import { listAuditReports, getAuditReport } from '../services/audit.service.js';
 import { readConfig, writeConfig } from '../services/config.service.js';
 import { getRequirementsData } from '../services/requirements.service.js';
+import { listLogFiles, readLogPage } from '../services/log.service.js';
 
 /**
  * Merge flat HTML form fields back into a nested config object.
@@ -771,6 +772,54 @@ router.get('/config', async (req, res) => {
     res.render('partials/config-content', templateData);
   } else {
     res.render('config', templateData);
+  }
+});
+
+router.get('/logs', async (req, res) => {
+  const projectDir = req.app.locals.projectDir;
+  const { file, page, type, q } = req.query;
+
+  const logFiles = await listLogFiles(projectDir);
+
+  // Determine selected file (first in list if not specified)
+  const selectedFile = file || (logFiles.length > 0 ? logFiles[0].name : null);
+
+  let logData = null;
+  if (selectedFile) {
+    // Validate: no path traversal, must be a .jsonl filename
+    if (/^[\w.-]+\.jsonl$/.test(selectedFile)) {
+      const { join } = await import('node:path');
+      const filePath = join(projectDir, '.planning', 'logs', selectedFile);
+      logData = await readLogPage(filePath, {
+        page: parseInt(page, 10) || 1,
+        pageSize: 100,
+        typeFilter: type || '',
+        q: q || ''
+      });
+    }
+  }
+
+  const templateData = {
+    title: 'Logs',
+    activePage: 'logs',
+    currentPath: '/logs',
+    breadcrumbs: [{ label: 'Logs' }],
+    logFiles,
+    selectedFile,
+    logData,
+    filters: { type: type || '', q: q || '', page: parseInt(page, 10) || 1 }
+  };
+
+  res.setHeader('Vary', 'HX-Request');
+  if (req.get('HX-Request') === 'true') {
+    // If the request is for a different file/filter, re-render only the entries fragment
+    if (req.query.fragment === 'entries') {
+      res.render('partials/log-entries-content', templateData);
+    } else {
+      res.render('partials/logs-content', templateData);
+    }
+  } else {
+    res.render('logs', templateData);
   }
 });
 
