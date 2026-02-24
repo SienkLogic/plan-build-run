@@ -68,6 +68,31 @@ Read the following files (skip any that don't exist):
 5. **`.planning/REQUIREMENTS.md`** — Requirements (if exists)
    - Extract: requirement completion status if tracked
 
+### Step 1b: Read Local LLM Stats (advisory — skip on any error)
+
+After loading config.json, check `local_llm.enabled`. If `true`:
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js llm status
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics
+```
+
+Parse both JSON responses. Capture:
+
+- `status.model` — model name
+- `metrics.total_calls` — lifetime total calls
+- `metrics.tokens_saved` — lifetime frontier tokens saved
+- `metrics.cost_saved_usd` — lifetime cost estimate
+- `metrics.avg_latency_ms` — lifetime average latency
+
+Also run session-scoped metrics if `.planning/.session-start` exists:
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics --session <content-of-.session-start>
+```
+
+If `local_llm.enabled` is `false` or commands fail, skip this step silently.
+
 ### Step 2: Scan Phase Directories
 
 For each phase listed in ROADMAP.md:
@@ -191,7 +216,17 @@ Todos: {count} pending. Run `/pbr:todo list` to see them.
 
 {If notes exist:}
 Notes: {count} quick capture(s). `/pbr:note list` to review.
+
+{If local_llm.enabled AND total_calls > 0:}
+Local LLM: enabled ({model}, avg {avg_ms}ms)
+This session: {session_calls} calls, ~{session_tokens} frontier tokens saved
+Lifetime: {total_calls} calls, ~{tokens_saved} tokens saved (~{cost_str} at $3/M)
+
+{If local_llm.enabled AND total_calls == 0:}
+Local LLM: enabled ({model}) — no calls yet this session
 ```
+
+The Local LLM block is **advisory only** — it never affects the routing decision or Next Up suggestion.
 
 ### Progress Bar
 
@@ -342,9 +377,10 @@ This skill should be fast. It's a status check, not an analysis.
 - Cache nothing (always read fresh state)
 
 **DO NOT:**
+
 - Read full SUMMARY.md contents (frontmatter is enough)
 - Read plan file contents (just check existence)
-- Run any Bash commands
+- Run Bash commands except for Step 1b (2-3 `pbr-tools` calls only when `local_llm.enabled: true`, skipped entirely otherwise)
 - Modify any files
 - Invoke any agents
 
