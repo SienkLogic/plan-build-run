@@ -5,6 +5,25 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.35.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.34.0...plan-build-run-v2.35.0) (2026-02-25)
+
+
+### Features
+
+* **44-01:** add inline SVG icons to sidebar nav and brand area ([5232e3d](https://github.com/SienkLogic/plan-build-run/commit/5232e3d6ee7770f1dc0cfb4971a5e0ae3b23bd54))
+* **44-01:** create StatCardGrid component and stat-card CSS system ([2797422](https://github.com/SienkLogic/plan-build-run/commit/279742287c3e0f4d41e4814c1c3bed5332cd945f))
+* **44-01:** wire StatCardGrid into command-center route replacing StatusHeader+ProgressRing ([4c13326](https://github.com/SienkLogic/plan-build-run/commit/4c13326b90f36935f9e02815f3def61abcd9e5f3))
+* **44-02:** add empty-state CSS component and apply to AttentionPanel and QuickActions ([a0e27b5](https://github.com/SienkLogic/plan-build-run/commit/a0e27b53ad7a6a9316c2067444fa462520d3c87b))
+* **44-02:** enhance Explorer phases rows and add status/priority filter selects to todos toolbar ([036b356](https://github.com/SienkLogic/plan-build-run/commit/036b356f511ba2e4180f32c5ea418e6ec0a36ca3))
+* **44-02:** restructure Command Center into 2-column cc-two-col grid layout ([2838fc4](https://github.com/SienkLogic/plan-build-run/commit/2838fc4fe9895ef67b9ac3f2c501e70135fe6a78))
+* **44-03:** consolidate btn system into layout.css, add card hover shadow and cursor:pointer ([b525d2c](https://github.com/SienkLogic/plan-build-run/commit/b525d2cd20fd11454fdfb131003d07ae29d54911))
+* **44-03:** unify section label typography via --section-label-* tokens ([8da1997](https://github.com/SienkLogic/plan-build-run/commit/8da1997d1e34ab7b1ebfb590adbf8c6e360cfef9))
+
+
+### Bug Fixes
+
+* **quick-012:** remove unrecognized 'platform' key from marketplace.json ([ffeaa5e](https://github.com/SienkLogic/plan-build-run/commit/ffeaa5e12e5f45a6e05778e459a2c74f18c680c0))
+
 ## [2.34.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.33.1...plan-build-run-v2.34.0) (2026-02-25)
 
 
