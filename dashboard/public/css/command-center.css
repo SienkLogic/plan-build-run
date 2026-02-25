@@ -5,6 +5,83 @@
    All values use tokens from tokens.css.
    ============================================ */
 
+/* --- Stat Card Grid --- */
+.stat-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  padding: var(--stat-card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  transition: box-shadow var(--transition-fast);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card--accent {
+  border-left: 3px solid var(--color-accent);
+}
+
+.stat-card__label {
+  font-size: var(--stat-card-label-size);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+.stat-card__value {
+  font-size: var(--stat-card-value-size);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.stat-card__sub {
+  font-size: var(--stat-card-sub-size);
+  color: var(--color-text-dim);
+  line-height: 1.4;
+}
+
+.stat-card__mini-bar {
+  height: 4px;
+  border-radius: var(--radius-lg);
+  background: var(--color-border);
+  overflow: hidden;
+  margin-top: var(--space-xs);
+}
+
+.stat-card__mini-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent);
+  transition: width var(--transition-base);
+}
+
+@media (max-width: 900px) {
+  .stat-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- Command Center Layout --- */
 .command-center {
   display: flex;
