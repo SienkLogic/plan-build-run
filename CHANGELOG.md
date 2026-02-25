@@ -5,6 +5,21 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.34.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.33.1...plan-build-run-v2.34.0) (2026-02-25)
+
+
+### Features
+
+* **quick-011:** add mobile responsive sidebar with hamburger toggle ([2958c60](https://github.com/SienkLogic/plan-build-run/commit/2958c605a2d9c876d297872d8b823e560679e3da))
+* **quick-011:** fix status badge data-status attrs and mermaid dark mode ([8359c8c](https://github.com/SienkLogic/plan-build-run/commit/8359c8c001e676d8f776ad274b52b4b251cefe5a))
+
+
+### Bug Fixes
+
+* **quick-009:** fix dashboard UX across milestones, timeline, logs, todos, and layout ([3529d9e](https://github.com/SienkLogic/plan-build-run/commit/3529d9ebad8bac7f58b0780107a36eadbd5f66e7))
+* **quick-010:** use lockedFileUpdate for atomic writes, fix shell injection, add writeActiveSkill ([1cefb13](https://github.com/SienkLogic/plan-build-run/commit/1cefb132ff1aa1ab07be252695dec43f1397f689))
+* **quick-011:** move hamburger button outside sidebar for correct fixed positioning ([65054c3](https://github.com/SienkLogic/plan-build-run/commit/65054c337c8adc812669976ae5c14d3c150c452f))
+
 ## [2.33.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.33.0...plan-build-run-v2.33.1) (2026-02-25)
 
 
