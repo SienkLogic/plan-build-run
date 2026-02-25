@@ -258,11 +258,11 @@
 }
 
 .card__header {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--section-label-size);
+  font-weight: var(--section-label-weight);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  letter-spacing: var(--section-label-spacing);
+  color: var(--section-label-color);
   padding-bottom: var(--space-sm);
   border-bottom: 1px solid var(--color-border);
   margin-bottom: var(--space-md);
@@ -342,11 +342,11 @@
 }
 
 .phase-timeline__label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--section-label-size);
+  font-weight: var(--section-label-weight);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  letter-spacing: var(--section-label-spacing);
+  color: var(--section-label-color);
   margin-bottom: var(--space-sm);
 }
 
@@ -453,11 +453,11 @@
 }
 
 .quick-actions__label {
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: var(--section-label-size);
+  font-weight: var(--section-label-weight);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  letter-spacing: var(--section-label-spacing);
+  color: var(--section-label-color);
 }
 
 .quick-actions__buttons {

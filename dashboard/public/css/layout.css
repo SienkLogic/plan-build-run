@@ -325,6 +325,15 @@ article > header strong {
   font-weight: 600;
 }
 
+/* Reusable section label — same treatment as card headers */
+.section-label {
+  font-size: var(--section-label-size);
+  font-weight: var(--section-label-weight);
+  text-transform: uppercase;
+  letter-spacing: var(--section-label-spacing);
+  color: var(--section-label-color);
+}
+
 .card__body {
   padding: var(--card-padding) var(--space-lg);
 }
