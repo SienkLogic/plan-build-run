@@ -418,6 +418,54 @@
   gap: var(--space-md);
 }
 
+/* ---- Todo cards ---- */
+
+.todo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  border-left-width: 4px;
+  padding: var(--space-sm) var(--space-md);
+  overflow: hidden;
+}
+
+.todo-card--high {
+  border-left-color: var(--color-error, #ef4444);
+}
+
+.todo-card--medium {
+  border-left-color: var(--color-warning, #f59e0b);
+}
+
+.todo-card--low {
+  border-left-color: var(--color-border);
+}
+
+.todo-card__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.todo-card__main .explorer-item__title {
+  flex: 1;
+}
+
+.todo-card__meta {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  padding-left: calc(var(--space-sm) + 60px);
+}
+
+.todo-card__meta:empty {
+  display: none;
+}
+
 /* ---- Requirements traceability table ---- */
 
 .explorer-req-section {

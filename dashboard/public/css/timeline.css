@@ -46,7 +46,7 @@
 
 .timeline__event {
   display: grid;
-  grid-template-columns: 1rem 10rem 9rem 1fr auto;
+  grid-template-columns: 1rem auto 5rem 1fr auto;
   align-items: start;
   gap: var(--space-sm);
   padding: var(--space-sm) 0;
@@ -91,6 +91,7 @@
 
 .timeline__event-title {
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .timeline__event-author {

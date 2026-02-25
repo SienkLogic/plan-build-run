@@ -14,7 +14,7 @@ function sanitizeType(t: unknown): string {
 }
 
 function getTimestamp(entry: Record<string, unknown>): string {
-  const raw = entry['timestamp'] ?? entry['ts'] ?? entry['time'];
+  const raw = entry['timestamp'] ?? entry['ts'] ?? entry['time'] ?? entry['start'] ?? entry['end'];
   if (!raw) return '—';
   try {
     return new Date(raw as string).toLocaleString();
@@ -23,15 +23,53 @@ function getTimestamp(entry: Record<string, unknown>): string {
   }
 }
 
+function getType(entry: Record<string, unknown>): string {
+  if (typeof entry['type'] === 'string' && entry['type']) return entry['type'];
+  if (typeof entry['event'] === 'string' && entry['event']) return entry['event'];
+  if (typeof entry['hook'] === 'string' && entry['hook']) return 'hook';
+  if (typeof entry['action'] === 'string' && entry['action']) return entry['action'];
+  return '';
+}
+
 function getSummary(entry: Record<string, unknown>): string {
-  const { type: _type, timestamp: _ts, ts: _ts2, time: _time, ...rest } = entry;
-  const str = JSON.stringify(rest);
-  return str.length > 120 ? str.slice(0, 117) + '...' : str;
+  // Session log entry: has start/end/duration_minutes
+  if (entry['duration_minutes'] != null || (entry['start'] && entry['end'])) {
+    const parts: string[] = [];
+    if (entry['duration_minutes'] != null) parts.push(`Duration: ${entry['duration_minutes']}m`);
+    if (entry['reason']) parts.push(`Reason: ${entry['reason']}`);
+    if (entry['agents'] != null) parts.push(`Agents: ${entry['agents']}`);
+    if (parts.length > 0) return parts.join(', ');
+  }
+
+  // Hook log entry: has hook/script fields
+  if (entry['hook'] || entry['script']) {
+    const parts: string[] = [];
+    if (entry['hook']) parts.push(`Hook: ${entry['hook']}`);
+    if (entry['script']) parts.push(`Script: ${entry['script']}`);
+    if (entry['result']) parts.push(`Result: ${entry['result']}`);
+    if (parts.length > 0) return parts.join(', ');
+  }
+
+  // Event/action entry
+  if (entry['event'] || entry['action']) {
+    const parts: string[] = [];
+    if (entry['event']) parts.push(`Event: ${entry['event']}`);
+    if (entry['action']) parts.push(`Action: ${entry['action']}`);
+    if (parts.length > 0) return parts.join(', ');
+  }
+
+  // Fallback: first 3 meaningful key-value pairs
+  const skip = new Set(['type', 'timestamp', 'ts', 'time', 'start', 'end']);
+  const pairs = Object.entries(entry)
+    .filter(([k, v]) => !skip.has(k) && v != null && typeof v !== 'object')
+    .slice(0, 3)
+    .map(([k, v]) => `${k}: ${v}`);
+  return pairs.length > 0 ? pairs.join(', ') : '—';
 }
 
 export function LogEntryRow({ entry }: { entry: object }) {
   const e = entry as Record<string, unknown>;
-  const type = typeof e['type'] === 'string' ? e['type'] : '';
+  const type = getType(e);
   const badge = sanitizeType(type);
   const timestamp = getTimestamp(e);
   const summary = getSummary(e);
