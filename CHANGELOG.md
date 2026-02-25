@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.35.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.35.0...plan-build-run-v2.35.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* **quick-012:** remove cursor-pbr from Claude Code marketplace listing ([159372d](https://github.com/SienkLogic/plan-build-run/commit/159372ddb4f30bbdfbbac0822be676eb39901185))
+
 ## [2.35.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.34.0...plan-build-run-v2.35.0) (2026-02-25)
 
 
