@@ -103,6 +103,32 @@
   }
 }
 
+/* --- Command Center Two-Column Layout --- */
+.cc-two-col {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.cc-col-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.cc-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+@media (max-width: 900px) {
+  .cc-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* --- Status Header --- */
 .status-header {
   display: flex;
