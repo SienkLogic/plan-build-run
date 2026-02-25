@@ -1,8 +1,7 @@
 import { Hono } from 'hono';
 import { getDashboardData } from '../services/dashboard.service.js';
 import { listPendingTodos } from '../services/todo.service.js';
-import { StatusHeader } from '../components/partials/StatusHeader';
-import { ProgressRing } from '../components/partials/ProgressRing';
+import { StatCardGrid } from '../components/partials/StatCardGrid';
 import { CurrentPhaseCard } from '../components/partials/CurrentPhaseCard';
 import { AttentionPanel } from '../components/partials/AttentionPanel';
 import { PhaseTimeline } from '../components/partials/PhaseTimeline';
@@ -29,16 +28,18 @@ async function fetchAllData(projectDir: string) {
 router.get('/status', async (c) => {
   const projectDir = c.get('projectDir');
   const { data, completed } = await fetchAllData(projectDir);
+  const plansComplete = (data.phases as any[]).reduce((sum: number, p: any) => sum + (p.plansComplete || 0), 0);
+  const plansTotal = (data.phases as any[]).reduce((sum: number, p: any) => sum + (p.plansTotal || 0), 0);
   return c.html(
     <div id="cc-status">
-      <StatusHeader
-        projectName={data.projectName}
+      <StatCardGrid
         currentPhase={data.currentPhase}
-        completedCount={completed}
-        totalCount={(data.phases as any[]).length}
+        plansComplete={plansComplete}
+        plansTotal={plansTotal}
         progress={data.progress}
+        completedPhases={completed}
+        totalPhases={(data.phases as any[]).length}
       />
-      <ProgressRing percent={data.progress} />
     </div>
   );
 });

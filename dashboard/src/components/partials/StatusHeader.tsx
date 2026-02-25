@@ -1,3 +1,4 @@
+/** @deprecated Replaced by StatCardGrid in Phase 44. Kept for test compatibility. */
 import type { FC } from 'hono/jsx';
 
 interface StatusHeaderProps {
