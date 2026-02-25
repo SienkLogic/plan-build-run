@@ -121,7 +121,7 @@ ul, ol {
   cursor: pointer;
 }
 
-.sidebar--open ~ .main-content::before {
+body.sidebar-visible .main-content::before {
   content: '';
   position: fixed;
   inset: 0;
