@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.33.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.33.0...plan-build-run-v2.33.1) (2026-02-25)
+
+
+### Bug Fixes
+
+* **quick-008:** propagate block exit code from checkNonPbrAgent in validate-task dispatcher ([4e8fbf6](https://github.com/SienkLogic/plan-build-run/commit/4e8fbf6796789c2a73d879d32c748df89261a17b))
+
 ## [2.33.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.32.1...plan-build-run-v2.33.0) (2026-02-25)
 
 
