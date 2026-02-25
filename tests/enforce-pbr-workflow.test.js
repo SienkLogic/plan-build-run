@@ -355,26 +355,28 @@ describe('checkNonPbrAgent', () => {
     expect(result).toBeNull();
   });
 
-  test('never returns exitCode 2 (Task checks are advisory only)', () => {
+  test('returns exitCode 2 (block) when config level is "block"', () => {
+    writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const nonPbrTypes = ['Explore', 'general-purpose', 'Plan', 'Bash'];
     for (const subagent_type of nonPbrTypes) {
       const data = { tool_input: { subagent_type } };
       const result = checkNonPbrAgent(data);
-      if (result !== null) {
-        expect(result.exitCode).not.toBe(2);
-      }
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toHaveProperty('decision', 'block');
     }
   });
 
-  test('returns advisory even when config is "block" (Task is never blocked)', () => {
+  test('block result includes PBR agent suggestion and reason', () => {
     writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'block' } });
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
-    // Should still advise (not block) — blocking Task is too disruptive
     expect(result).not.toBeNull();
-    expect(result.exitCode).toBe(0);
-    expect(result.output).toHaveProperty('additionalContext');
-    expect(result.output).not.toHaveProperty('decision');
+    expect(result.exitCode).toBe(2);
+    expect(result.output).toHaveProperty('decision', 'block');
+    expect(result.output).toHaveProperty('reason');
+    expect(result.output.reason).toMatch(/pbr:researcher|pbr:codebase-mapper/);
+    expect(result.output).not.toHaveProperty('additionalContext');
   });
 });
 
