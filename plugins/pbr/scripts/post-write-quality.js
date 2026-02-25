@@ -20,7 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 
 const JS_TS_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']);
@@ -132,7 +132,7 @@ function runPrettier(filePath, cwd) {
   if (!bin) return null;
 
   try {
-    execSync(`"${bin}" --write "${filePath}"`, {
+    execFileSync(bin, ['--write', filePath], {
       cwd,
       timeout: 15000,
       stdio: 'pipe',
@@ -154,7 +154,7 @@ function runTypeCheck(filePath, cwd) {
   if (!fs.existsSync(path.join(cwd, 'tsconfig.json'))) return null;
 
   try {
-    execSync(`"${bin}" --noEmit`, {
+    execFileSync(bin, ['--noEmit'], {
       cwd,
       timeout: 30000,
       stdio: 'pipe',

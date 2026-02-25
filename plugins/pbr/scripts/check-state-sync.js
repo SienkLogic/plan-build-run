@@ -26,7 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { atomicWrite } = require('./pbr-tools');
+const { lockedFileUpdate } = require('./pbr-tools');
 
 /**
  * Extract phase number from a phase directory name.
@@ -370,7 +370,7 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            atomicWrite(roadmapPath, updatedRoadmap);
+            lockedFileUpdate(roadmapPath, () => updatedRoadmap);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
           }
         }
@@ -410,7 +410,7 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          atomicWrite(statePath, updatedState);
+          lockedFileUpdate(statePath, () => updatedState);
           messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
         }
       } catch (e) {
@@ -455,7 +455,7 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            atomicWrite(roadmapPath, updatedRoadmap);
+            lockedFileUpdate(roadmapPath, () => updatedRoadmap);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
           }
         }
@@ -493,7 +493,7 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          atomicWrite(statePath, updatedState);
+          lockedFileUpdate(statePath, () => updatedState);
           messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
         }
       } catch (e) {
@@ -543,7 +543,7 @@ function checkStateSync(data) {
             const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
             const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
             if (updatedRoadmap !== roadmapContent) {
-              atomicWrite(roadmapPath, updatedRoadmap);
+              lockedFileUpdate(roadmapPath, () => updatedRoadmap);
               messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
             }
           }

@@ -1491,5 +1491,80 @@ function atomicWrite(filePath, content) {
   }
 }
 
+/**
+ * Write .active-skill with OS-level mutual exclusion.
+ * Uses a .active-skill.lock file with exclusive create (O_EXCL) to prevent
+ * two sessions from racing on the same file.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {string} skillName - Skill name to write
+ * @returns {{success: boolean, warning?: string}} Result
+ */
+function writeActiveSkill(planningDir, skillName) {
+  const skillFile = path.join(planningDir, '.active-skill');
+  const lockFile = skillFile + '.lock';
+  const staleThresholdMs = 60 * 60 * 1000; // 60 minutes
+
+  let lockFd = null;
+  try {
+    // Try exclusive create of lock file
+    lockFd = fs.openSync(lockFile, 'wx');
+    fs.writeSync(lockFd, `${process.pid}`);
+    fs.closeSync(lockFd);
+    lockFd = null;
+
+    // Check for existing .active-skill from another session
+    let warning = null;
+    if (fs.existsSync(skillFile)) {
+      try {
+        const stats = fs.statSync(skillFile);
+        const ageMs = Date.now() - stats.mtimeMs;
+        if (ageMs < staleThresholdMs) {
+          const existing = fs.readFileSync(skillFile, 'utf8').trim();
+          warning = `.active-skill already set to "${existing}" (${Math.round(ageMs / 60000)}min ago). Overwriting — possible concurrent session.`;
+        }
+      } catch (_e) {
+        // File disappeared between exists and stat — fine
+      }
+    }
+
+    // Write the skill name
+    fs.writeFileSync(skillFile, skillName, 'utf8');
+
+    // Release lock
+    try { fs.unlinkSync(lockFile); } catch (_e) { /* best effort */ }
+
+    return { success: true, warning };
+  } catch (e) {
+    // Close fd if still open
+    try { if (lockFd !== null) fs.closeSync(lockFd); } catch (_e) { /* ignore */ }
+
+    if (e.code === 'EEXIST') {
+      // Lock held by another process — check staleness
+      try {
+        const lockStats = fs.statSync(lockFile);
+        const lockAgeMs = Date.now() - lockStats.mtimeMs;
+        if (lockAgeMs > staleThresholdMs) {
+          // Stale lock — force remove and retry once
+          fs.unlinkSync(lockFile);
+          return writeActiveSkill(planningDir, skillName);
+        }
+      } catch (_statErr) {
+        // Lock disappeared — retry once
+        return writeActiveSkill(planningDir, skillName);
+      }
+      return { success: false, warning: `.active-skill.lock held by another process. Another PBR session may be active.` };
+    }
+
+    // Other error — write without lock as fallback
+    try {
+      fs.writeFileSync(skillFile, skillName, 'utf8');
+      return { success: true, warning: `Lock failed (${e.code}), wrote without lock` };
+    } catch (writeErr) {
+      return { success: false, warning: `Failed to write .active-skill: ${writeErr.message}` };
+    }
+  }
+}
+
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition };
+module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill };
