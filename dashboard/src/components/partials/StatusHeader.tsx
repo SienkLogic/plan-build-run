@@ -26,7 +26,7 @@ export const StatusHeader: FC<StatusHeaderProps> = ({
       <span class="status-header__phase">
         Phase {currentPhase.id}: {currentPhase.name}
       </span>
-      <span class={`badge status-badge status-badge--${currentPhase.status}`}>
+      <span class={`badge status-badge status-badge--${currentPhase.status}`} data-status={currentPhase.status}>
         {currentPhase.status}
       </span>
       <div class="milestone-bar">

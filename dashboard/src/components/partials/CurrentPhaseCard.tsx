@@ -25,7 +25,7 @@ export const CurrentPhaseCard: FC<CurrentPhaseCardProps> = ({
       <h2 class="card__title">
         Phase {currentPhase.id}: {currentPhase.name}
       </h2>
-      <span class={`badge status-badge status-badge--${currentPhase.status}`}>
+      <span class={`badge status-badge status-badge--${currentPhase.status}`} data-status={currentPhase.status}>
         {currentPhase.status}
       </span>
       <p class="card__meta">Plans: {currentPhase.planStatus}</p>
