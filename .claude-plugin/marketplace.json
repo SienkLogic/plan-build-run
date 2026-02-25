@@ -16,14 +16,6 @@
       "version": "2.0.0",
       "category": "development",
       "homepage": "https://github.com/SienkLogic/plan-build-run"
-    },
-    {
-      "name": "cursor-pbr",
-      "source": "./plugins/cursor-pbr",
-      "description": "Plan-Build-Run — Structured development workflow for Cursor. Solves context rot through disciplined subagent delegation, structured planning, atomic execution, and goal-backward verification.",
-      "version": "2.0.0",
-      "category": "development",
-      "homepage": "https://github.com/SienkLogic/plan-build-run"
     }
   ]
 }
