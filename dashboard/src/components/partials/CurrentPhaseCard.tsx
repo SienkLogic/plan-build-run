@@ -21,30 +21,32 @@ export const CurrentPhaseCard: FC<CurrentPhaseCardProps> = ({
 }) => {
   return (
     <div class="card current-phase-card">
-      <div class="card__header">Current Phase</div>
-      <h2 class="card__title">
-        Phase {currentPhase.id}: {currentPhase.name}
-      </h2>
-      <span class={`badge status-badge status-badge--${currentPhase.status}`} data-status={currentPhase.status}>
-        {currentPhase.status}
-      </span>
-      <p class="card__meta">Plans: {currentPhase.planStatus}</p>
-      <p class="card__meta">
-        Last activity: {lastActivity.date || 'N/A'} — {lastActivity.description}
-      </p>
-      {nextAction && (
-        <div class="next-action">
-          <span class="next-action__label">Next</span>
-          <code class="next-action__cmd">{nextAction}</code>
-          <button
-            class="btn btn--ghost btn--sm"
-            type="button"
-            onclick={`navigator.clipboard.writeText('${nextAction}')`}
-          >
-            Copy
-          </button>
-        </div>
-      )}
+      <div class="card__header">CURRENT PHASE</div>
+      <div class="card__body">
+        <h2 class="card__title">
+          Phase {currentPhase.id}: {currentPhase.name}
+        </h2>
+        <span class={`badge status-badge status-badge--${currentPhase.status}`} data-status={currentPhase.status}>
+          {currentPhase.status}
+        </span>
+        <p class="card__meta">Plans: {currentPhase.planStatus}</p>
+        <p class="card__meta">
+          Last activity: {lastActivity.date || 'N/A'} — {lastActivity.description}
+        </p>
+        {nextAction && (
+          <div class="next-action">
+            <span class="next-action__label">Next</span>
+            <code class="next-action__cmd">{nextAction}</code>
+            <button
+              class="btn btn--ghost btn--sm"
+              type="button"
+              onclick={`navigator.clipboard.writeText('${nextAction}')`}
+            >
+              Copy
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
