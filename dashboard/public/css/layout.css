@@ -42,6 +42,10 @@ a:hover {
   text-decoration: underline;
 }
 
+button, [role="button"], summary, label[for] {
+  cursor: pointer;
+}
+
 code, pre, kbd, samp {
   font-family: var(--font-mono);
   font-size: 0.875em;
@@ -301,6 +305,71 @@ body.sidebar-visible .main-content::before {
   text-align: center;
 }
 
+/* --- Button System (single source of truth) --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.btn--primary:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: #fff;
+  text-decoration: none;
+}
+
+.btn--secondary {
+  background: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.btn--secondary:hover {
+  background: var(--color-surface-hover);
+  text-decoration: none;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-dim);
+  border-color: transparent;
+}
+
+.btn--ghost:hover {
+  background: var(--color-surface-hover);
+}
+
+.btn--sm {
+  padding: 2px var(--space-sm);
+  font-size: 0.75rem;
+}
+
+.btn--danger {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
 /* --- Card Component --- */
 .card,
 article {
@@ -309,6 +378,12 @@ article {
   background: var(--card-bg);
   box-shadow: var(--card-shadow);
   margin-bottom: var(--space-lg);
+  transition: box-shadow var(--transition-fast);
+}
+
+.card:hover,
+article:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .card__header,
