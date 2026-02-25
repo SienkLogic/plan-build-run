@@ -109,7 +109,7 @@ ul, ol {
   padding: var(--space-lg) var(--space-xl);
   min-height: 100vh;
   background: var(--color-surface);
-  max-width: 100%;
+  max-width: 1400px;
 }
 
 /* --- Sidebar Brand --- */

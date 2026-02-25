@@ -1,6 +1,10 @@
 interface Milestone {
   version: string;
   name?: string;
+  goal?: string;
+  startPhase?: string | number;
+  endPhase?: string | number;
+  completed?: boolean;
   date?: string;
   duration?: string;
 }
@@ -27,9 +31,21 @@ export function MilestonesTab({ active, archived }: MilestonesTabProps) {
       {active.length === 0 && <p class="explorer__loading">No active milestones.</p>}
       <div class="explorer-list">
         {active.map((ms) => (
-          <div class="explorer-item" key={ms.version}>
+          <div class="explorer-item" key={ms.name || ms.version}>
             <div class="explorer-item__header">
-              <span class="explorer-item__title">v{ms.version}</span>
+              <span class="explorer-item__title">
+                {ms.name || `v${ms.version}`}
+              </span>
+              {ms.startPhase != null && ms.endPhase != null && (
+                <span class="explorer-item__meta">
+                  Phase {ms.startPhase}–{ms.endPhase}
+                </span>
+              )}
+              {ms.goal && (
+                <span class="explorer-item__meta" style="flex:1; text-align:right; white-space:normal;">
+                  {ms.goal}
+                </span>
+              )}
               <span class="explorer-badge explorer-badge--building">active</span>
             </div>
           </div>
