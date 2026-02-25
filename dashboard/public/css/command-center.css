@@ -129,6 +129,42 @@
   }
 }
 
+/* --- Empty State --- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+  gap: var(--space-sm);
+}
+
+.empty-state__icon {
+  font-size: 2rem;
+  color: var(--color-text-muted);
+  line-height: 1;
+  margin-bottom: var(--space-xs);
+}
+
+.empty-state__heading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.empty-state__body {
+  font-size: 0.875rem;
+  color: var(--color-text-dim);
+  margin: 0;
+  max-width: 240px;
+}
+
+.empty-state__action {
+  margin-top: var(--space-xs);
+}
+
 /* --- Status Header --- */
 .status-header {
   display: flex;
