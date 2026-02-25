@@ -795,6 +795,14 @@ function main() {
         return;
       }
 
+      // Blocking/advisory gate: non-PBR agent enforcement
+      const nonPbrAgentResult = checkNonPbrAgent(data);
+      if (nonPbrAgentResult && nonPbrAgentResult.exitCode === 2) {
+        process.stdout.write(JSON.stringify(nonPbrAgentResult.output));
+        process.exit(2);
+        return;
+      }
+
       // Advisory warnings
       const warnings = checkTask(data);
       const manifestWarning = checkCheckpointManifest(data);
@@ -803,7 +811,6 @@ function main() {
       if (debuggerWarning) warnings.push(debuggerWarning);
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
-      const nonPbrAgentResult = checkNonPbrAgent(data);
       if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
 
       // LLM task coherence check — advisory only
