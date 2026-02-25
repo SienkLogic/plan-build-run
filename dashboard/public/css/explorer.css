@@ -338,11 +338,11 @@
 }
 
 .explorer-section-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-dim);
+  font-size: var(--section-label-size);
+  font-weight: var(--section-label-weight);
+  color: var(--section-label-color);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--section-label-spacing);
   margin: var(--space-md) 0 var(--space-sm);
 }
 
