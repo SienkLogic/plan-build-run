@@ -76,6 +76,12 @@
   --stat-card-label-size: 0.6875rem;
   --stat-card-sub-size: 0.8125rem;
   --sidebar-icon-size: 16px;
+
+  /* Section label tokens */
+  --section-label-size: 0.6875rem;
+  --section-label-weight: 600;
+  --section-label-spacing: 0.08em;
+  --section-label-color: var(--color-text-muted);
 }
 
 /* --- Dark Mode (explicit [data-theme="dark"] attribute) --- */
