@@ -24,7 +24,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { atomicWrite } = require('./pbr-tools');
+const { lockedFileUpdate } = require('./pbr-tools');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
 
@@ -464,7 +464,7 @@ function syncStateBody(content, filePath) {
   if (!needsFix) return null;
 
   try {
-    atomicWrite(filePath, updated);
+    lockedFileUpdate(filePath, () => updated);
     logHook('check-plan-format', 'PostToolUse', 'body-sync', {
       fromPhase: bodyPhaseMatch[1], toPhase: fmPhase
     });

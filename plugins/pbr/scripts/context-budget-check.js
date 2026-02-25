@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { atomicWrite, configLoad, tailLines } = require('./pbr-tools');
+const { configLoad, tailLines, lockedFileUpdate } = require('./pbr-tools');
 
 function main() {
   const cwd = process.cwd();
@@ -87,7 +87,7 @@ function main() {
       content = content.trimEnd() + `\n\n${continuityHeader}\n${continuityContent}\n`;
     }
 
-    atomicWrite(stateFile, content);
+    lockedFileUpdate(stateFile, () => content);
 
     // Output additionalContext for post-compaction recovery
     const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents);
