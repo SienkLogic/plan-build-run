@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.33.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.32.1...plan-build-run-v2.33.0) (2026-02-25)
+
+
+### Features
+
+* **quick-008:** add block mode to checkNonPbrAgent for stronger enforcement ([57b2117](https://github.com/SienkLogic/plan-build-run/commit/57b2117bda206fd88f7bbf4b89895b6feec422eb))
+
 ## [2.32.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.32.0...plan-build-run-v2.32.1) (2026-02-24)
 
 
