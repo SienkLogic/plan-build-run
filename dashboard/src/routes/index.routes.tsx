@@ -51,42 +51,45 @@ router.get('/', async (c) => {
         <ProgressRing percent={data.progress} />
       </div>
 
-      <div class="command-center__grid">
-        <CurrentPhaseCard
-          currentPhase={data.currentPhase}
-          lastActivity={data.lastActivity}
-          nextAction={(data as any).nextAction ?? null}
-        />
-
-        <div
-          id="attention-panel-wrapper"
-          hx-get="/api/command-center/attention"
-          hx-trigger="sse:file-change"
-          hx-swap="outerHTML"
-          hx-ext="sse"
-        >
-          <AttentionPanel
-            todos={todos}
+      <div class="cc-two-col">
+        <div class="cc-col-main">
+          <CurrentPhaseCard
+            currentPhase={data.currentPhase}
+            lastActivity={data.lastActivity}
+            nextAction={(data as any).nextAction ?? null}
+          />
+          <PhaseTimeline
             phases={data.phases as any[]}
             currentPhaseId={data.currentPhase.id}
           />
         </div>
 
-        <QuickActions actions={data.quickActions} />
+        <div class="cc-col-side">
+          <div
+            id="attention-panel-wrapper"
+            hx-get="/api/command-center/attention"
+            hx-trigger="sse:file-change"
+            hx-swap="outerHTML"
+            hx-ext="sse"
+          >
+            <AttentionPanel
+              todos={todos}
+              phases={data.phases as any[]}
+              currentPhaseId={data.currentPhase.id}
+            />
+          </div>
 
-        <PhaseTimeline
-          phases={data.phases as any[]}
-          currentPhaseId={data.currentPhase.id}
-        />
+          <QuickActions actions={data.quickActions} />
 
-        <div
-          id="activity-stream-wrapper"
-          hx-get="/api/command-center/activity"
-          hx-trigger="sse:file-change"
-          hx-swap="outerHTML"
-          hx-ext="sse"
-        >
-          <ActivityStream activity={data.recentActivity} />
+          <div
+            id="activity-stream-wrapper"
+            hx-get="/api/command-center/activity"
+            hx-trigger="sse:file-change"
+            hx-swap="outerHTML"
+            hx-ext="sse"
+          >
+            <ActivityStream activity={data.recentActivity} />
+          </div>
         </div>
       </div>
     </main>
