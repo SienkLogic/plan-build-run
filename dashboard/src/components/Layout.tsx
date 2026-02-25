@@ -68,6 +68,9 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         <a href="#main-content" class="skip-link">Skip to content</a>
 
         <nav class="sidebar" aria-label="Main navigation">
+          <button id="sidebar-toggle" class="sidebar__toggle" type="button" aria-label="Toggle navigation">
+            <span aria-hidden="true">☰</span>
+          </button>
           <div class="sidebar__brand">
             <span class="sidebar__brand-name">PBR</span>
             <span class="sidebar__brand-subtitle">Dashboard</span>
@@ -111,6 +114,7 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         {/* Local scripts */}
         <script src="/js/theme-toggle.js"></script>
         <script src="/js/sse-client.js" defer></script>
+        <script src="/js/sidebar-toggle.js" defer></script>
       </body>
     </html>
   );
