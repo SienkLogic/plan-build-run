@@ -7,10 +7,30 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { href: '/', label: 'Command Center', view: 'home' },
-  { href: '/explorer', label: 'Explorer', view: 'explorer' },
-  { href: '/timeline', label: 'Timeline', view: 'timeline' },
-  { href: '/settings', label: 'Settings', view: 'settings' },
+  {
+    href: '/',
+    label: 'Command Center',
+    view: 'home',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+  },
+  {
+    href: '/explorer',
+    label: 'Explorer',
+    view: 'explorer',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+  },
+  {
+    href: '/timeline',
+    label: 'Timeline',
+    view: 'timeline',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
+  },
+  {
+    href: '/settings',
+    label: 'Settings',
+    view: 'settings',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>',
+  },
 ];
 
 export function Layout({ title, children, currentView }: LayoutProps) {
@@ -73,8 +93,13 @@ export function Layout({ title, children, currentView }: LayoutProps) {
 
         <nav class="sidebar" aria-label="Main navigation">
           <div class="sidebar__brand">
-            <span class="sidebar__brand-name">PBR</span>
-            <span class="sidebar__brand-subtitle">Dashboard</span>
+            <span class="sidebar__brand-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <div class="sidebar__brand-text">
+              <span class="sidebar__brand-name">PBR</span>
+              <span class="sidebar__brand-subtitle">Dashboard</span>
+            </div>
           </div>
 
           <ul class="sidebar__nav" role="list">
@@ -88,6 +113,7 @@ export function Layout({ title, children, currentView }: LayoutProps) {
                     class={`sidebar__nav-link${isActive ? ' sidebar__nav-link--active' : ''}`}
                     aria-current={isActive ? 'page' : undefined}
                   >
+                    <span class="sidebar__nav-icon" aria-hidden="true" dangerouslySetInnerHTML={{ __html: item.icon }} />
                     {item.label}
                   </a>
                 </li>
