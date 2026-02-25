@@ -346,43 +346,7 @@
   margin: var(--space-md) 0 var(--space-sm);
 }
 
-/* ---- Button system ---- */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
-  transition: all 0.15s;
-}
-
-.btn--primary {
-  background: var(--color-accent);
-  color: white;
-  border-color: var(--color-accent);
-}
-
-.btn--ghost {
-  background: none;
-  color: var(--color-text-dim);
-  border-color: var(--color-border);
-}
-
-.btn--sm {
-  padding: 2px var(--space-xs);
-  font-size: 0.8rem;
-}
-
-.btn--danger {
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  border-color: var(--color-error);
-}
+/* .btn system — defined in layout.css */
 
 /* ---- Priority badge modifiers ---- */
 
