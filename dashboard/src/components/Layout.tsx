@@ -67,10 +67,11 @@ export function Layout({ title, children, currentView }: LayoutProps) {
       <body>
         <a href="#main-content" class="skip-link">Skip to content</a>
 
+        <button id="sidebar-toggle" class="sidebar__toggle" type="button" aria-label="Toggle navigation">
+          <span aria-hidden="true">☰</span>
+        </button>
+
         <nav class="sidebar" aria-label="Main navigation">
-          <button id="sidebar-toggle" class="sidebar__toggle" type="button" aria-label="Toggle navigation">
-            <span aria-hidden="true">☰</span>
-          </button>
           <div class="sidebar__brand">
             <span class="sidebar__brand-name">PBR</span>
             <span class="sidebar__brand-subtitle">Dashboard</span>
