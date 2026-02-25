@@ -50,7 +50,19 @@ export function Layout({ title, children, currentView }: LayoutProps) {
           })();
         </script>`}
         <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" defer></script>
-        {html`<script>document.addEventListener('DOMContentLoaded', function() { mermaid.initialize({ startOnLoad: false, theme: 'neutral' }); });</script>`}
+        {html`<script>
+          document.addEventListener('DOMContentLoaded', function() {
+            function initMermaid() {
+              var isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+                (!document.documentElement.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+              mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'neutral' });
+            }
+            initMermaid();
+            new MutationObserver(function(mutations) {
+              mutations.forEach(function(m) { if (m.attributeName === 'data-theme') initMermaid(); });
+            }).observe(document.documentElement, { attributes: true });
+          });
+        </script>`}
       </head>
       <body>
         <a href="#main-content" class="skip-link">Skip to content</a>
