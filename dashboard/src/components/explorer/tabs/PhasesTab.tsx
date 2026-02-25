@@ -3,6 +3,9 @@ interface Phase {
   name: string;
   status: string;
   planCount?: number;
+  plansComplete?: number;
+  plansTotal?: number;
+  lastActivity?: string | null;
 }
 
 interface Plan {
@@ -74,8 +77,15 @@ function PhaseItem({ phase }: { phase: Phase }) {
         </span>
         <span class={statusBadgeClass(phase.status)}>{phase.status}</span>
         <span class="explorer-item__meta">
-          {phase.planCount != null ? `${phase.planCount} plan${phase.planCount !== 1 ? 's' : ''}` : ''}
+          {(phase.plansComplete != null && phase.plansTotal != null)
+            ? (phase.plansComplete === 0 && phase.plansTotal === 0
+              ? '—'
+              : `${phase.plansComplete}/${phase.plansTotal} plans`)
+            : (phase.planCount != null
+              ? `${phase.planCount} plan${phase.planCount !== 1 ? 's' : ''}`
+              : '')}
         </span>
+        <span class="explorer-item__meta">{phase.lastActivity || '—'}</span>
       </div>
 
       {/* Body is only shown when open. The inner div fires hx-get on load (once the body is visible). */}
