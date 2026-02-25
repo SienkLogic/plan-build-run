@@ -312,6 +312,23 @@
   font-size: 0.9rem;
 }
 
+.explorer-filter-select {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.explorer-filter-select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
 .explorer-create-form {
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);

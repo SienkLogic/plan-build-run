@@ -19,7 +19,7 @@ interface TodoListFragmentProps {
 
 export function TodosTab({ todos }: TodosTabProps) {
   return (
-    <div x-data="{ showCreate: false, showDone: false, search: '' }">
+    <div x-data="{ showCreate: false, showDone: false, search: '', statusFilter: '', priorityFilter: '', applyFilters() {} }">
       {/* Search + filters row */}
       <div class="explorer-toolbar">
         <input
@@ -29,6 +29,22 @@ export function TodosTab({ todos }: TodosTabProps) {
           class="explorer-search"
           aria-label="Filter todos by title"
         />
+        <select class="explorer-filter-select" aria-label="Filter by status"
+          x-model="statusFilter"
+          x-on:change="applyFilters()">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="in-progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        <select class="explorer-filter-select" aria-label="Filter by priority"
+          x-model="priorityFilter"
+          x-on:change="applyFilters()">
+          <option value="">All priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
         <button x-on:click="showCreate = !showCreate" class="btn btn--primary btn--sm">
           + New Todo
         </button>
@@ -76,7 +92,7 @@ export function TodoListFragment({ todos }: TodoListFragmentProps) {
         <li
           class={`todo-card todo-card--${todo.priority}`}
           key={todo.id}
-          x-show={`!search || '${todo.title.toLowerCase()}'.includes(search.toLowerCase())`}
+          x-show={`(!search || '${todo.title.toLowerCase()}'.includes(search.toLowerCase())) && (!priorityFilter || priorityFilter === '${todo.priority}') && (!statusFilter || statusFilter === '${todo.status || ''}')`}
         >
           <div class="todo-card__main">
             <span class={`explorer-badge explorer-badge--${todo.priority}`}>{todo.priority}</span>
