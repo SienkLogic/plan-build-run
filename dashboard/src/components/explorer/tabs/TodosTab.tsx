@@ -74,16 +74,15 @@ export function TodoListFragment({ todos }: TodoListFragmentProps) {
       {todos.length === 0 && <li class="explorer__loading">No pending todos.</li>}
       {todos.map((todo) => (
         <li
-          class="explorer-item"
+          class={`todo-card todo-card--${todo.priority}`}
           key={todo.id}
           x-show={`!search || '${todo.title.toLowerCase()}'.includes(search.toLowerCase())`}
         >
-          <div class="explorer-item__header">
+          <div class="todo-card__main">
             <span class={`explorer-badge explorer-badge--${todo.priority}`}>{todo.priority}</span>
             <span class="explorer-item__title">{todo.title}</span>
-            {todo.phase && <span class="explorer-item__meta">Phase {todo.phase}</span>}
             <button
-              class="btn btn--danger btn--sm"
+              class="btn btn--ghost btn--sm"
               hx-post={`/api/explorer/todos/${todo.id}/complete`}
               hx-target="closest li"
               hx-swap="outerHTML"
@@ -91,6 +90,10 @@ export function TodoListFragment({ todos }: TodoListFragmentProps) {
             >
               Done
             </button>
+          </div>
+          <div class="todo-card__meta">
+            {todo.phase && <span>Phase {todo.phase}</span>}
+            {todo.created && <span>{new Date(todo.created).toLocaleDateString()}</span>}
           </div>
         </li>
       ))}

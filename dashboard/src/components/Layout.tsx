@@ -88,6 +88,7 @@ export function Layout({ title, children, currentView }: LayoutProps) {
         </nav>
 
         <main id="main-content" class="main-content">
+          <div class="loading-bar" aria-hidden="true"></div>
           {children}
         </main>
 
