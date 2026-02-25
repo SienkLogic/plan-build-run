@@ -131,11 +131,11 @@ const AGENT_MAPPING = {
  *   - subagent_type is missing/empty (can't determine type)
  *   - Enforcement level is "off"
  *
- * NOTE: This function NEVER blocks Task() — blocking is too disruptive.
- *       It always returns an advisory (exitCode 0) or null.
+ * In "advisory" mode (default): returns exitCode 0 with additionalContext.
+ * In "block" mode: returns exitCode 2 with decision/reason to hard-block the agent spawn.
  *
  * @param {Object} data - parsed hook input from Claude Code
- * @returns {null|{ exitCode: 0, output: Object }}
+ * @returns {null|{ exitCode: number, output: Object }}
  */
 function checkNonPbrAgent(data) {
   const subagentType = data.tool_input && data.tool_input.subagent_type;
@@ -154,6 +154,22 @@ function checkNonPbrAgent(data) {
   if (config.level === 'off') return null;
 
   const suggestion = AGENT_MAPPING[subagentType] || 'a pbr:* agent (e.g., pbr:researcher, pbr:general, pbr:executor)';
+
+  if (config.level === 'block') {
+    const blockMessage =
+      `PBR workflow violation: spawning generic agent "${subagentType}" is blocked. ` +
+      `Use ${suggestion} instead. ` +
+      'PBR agents are auto-loaded via subagent_type — just change the type, no extra setup needed. ' +
+      'Set workflow.enforce_pbr_skills: "advisory" in config to allow with warnings.';
+
+    logHook('enforce-pbr-workflow', 'PreToolUse', 'block', { agentType: subagentType, suggestion });
+    return {
+      exitCode: 2,
+      output: { decision: 'block', reason: '[pbr] ' + blockMessage }
+    };
+  }
+
+  // advisory (default)
   const message =
     `PBR workflow advisory: spawning generic agent "${subagentType}" without PBR routing. ` +
     `Use ${suggestion} instead to maintain audit logging and workflow context. ` +
