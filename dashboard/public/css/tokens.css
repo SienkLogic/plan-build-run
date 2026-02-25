@@ -69,6 +69,13 @@
   --badge-font-size-sm: 0.6875rem;
   --badge-font-size-base: 0.75rem;
   --badge-font-size-lg: 0.8125rem;
+
+  /* Stat card tokens */
+  --stat-card-padding: var(--space-md) var(--space-lg);
+  --stat-card-value-size: 2rem;
+  --stat-card-label-size: 0.6875rem;
+  --stat-card-sub-size: 0.8125rem;
+  --sidebar-icon-size: 16px;
 }
 
 /* --- Dark Mode (explicit [data-theme="dark"] attribute) --- */
