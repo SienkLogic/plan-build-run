@@ -160,6 +160,38 @@ body.sidebar-visible .main-content::before {
   letter-spacing: 0.02em;
 }
 
+/* --- Sidebar Brand Icon --- */
+.sidebar__brand {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.sidebar__brand-icon {
+  display: flex;
+  align-items: center;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.sidebar__brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Sidebar Nav Icon --- */
+.sidebar__nav-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.sidebar__nav-link--active .sidebar__nav-icon,
+.sidebar__nav-link[aria-current="page"] .sidebar__nav-icon {
+  opacity: 1;
+}
+
 /* --- Sidebar Navigation --- */
 .sidebar__nav {
   list-style: none;
@@ -173,7 +205,9 @@ body.sidebar-visible .main-content::before {
 }
 
 .sidebar__nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   padding: var(--space-sm) var(--space-lg);
   font-size: 0.875rem;
   font-weight: 500;
