@@ -5,6 +5,26 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.38.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.37.0...plan-build-run-v2.38.0) (2026-02-27)
+
+
+### Features
+
+* **quick-016:** add L4 verification, failure markers, roadmap dual format, requirement coverage ([1260623](https://github.com/SienkLogic/plan-build-run/commit/1260623f483ae0e62a22b7637bfd3400da7883df))
+* **quick-016:** enhance agent success criteria and behavioral anchors from GSD gap analysis ([a3ac95a](https://github.com/SienkLogic/plan-build-run/commit/a3ac95a7cb0cfc6a44905bdbba1b2e354aabb7ea))
+* **quick-017:** add migrate subcommand to pbr-tools.js dispatcher ([8b4737a](https://github.com/SienkLogic/plan-build-run/commit/8b4737aa11eca1eea46a259805bd128ff3bee2e4))
+* **quick-017:** GREEN - implement migrate.js and wire CURRENT_SCHEMA_VERSION into config.js ([84beb51](https://github.com/SienkLogic/plan-build-run/commit/84beb51b77af7e4ee6db59e868df291f114e621e))
+* **scripts:** add CRITICAL tier to context-bridge ([4f46411](https://github.com/SienkLogic/plan-build-run/commit/4f464114b1401de3c6bb22c3fb2baff56ce3502f))
+* **skills:** add /pbr:test skill with command across all plugins ([a38d6e3](https://github.com/SienkLogic/plan-build-run/commit/a38d6e3f8fc3eda17a5810b38bd17fddaccb730a))
+* **skills:** add save-defaults, load-defaults, and --repair flag ([a56d1c9](https://github.com/SienkLogic/plan-build-run/commit/a56d1c9468c7212b802b18d71b7fe951b924d1c0))
+* **tools:** add todo.js library with tests ([2ba058b](https://github.com/SienkLogic/plan-build-run/commit/2ba058bb2f143333a920ef8dd14b09021d7abe11))
+
+
+### Bug Fixes
+
+* **tests:** force-add fixture todo files ignored by .gitignore ([1b89f11](https://github.com/SienkLogic/plan-build-run/commit/1b89f1178b3980b9e167d8d137e300b0f2aa9e7d))
+* **tools:** clean up .bak files in atomicWrite + add agent body sync tests ([af1aba2](https://github.com/SienkLogic/plan-build-run/commit/af1aba29ed80e46ec0e901974f6c851151274579))
+
 ## [2.37.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.36.0...plan-build-run-v2.37.0) (2026-02-27)
 
 
