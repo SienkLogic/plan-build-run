@@ -2,8 +2,16 @@
 name: audit
 description: "Analyzes Claude Code session logs for PBR workflow compliance, hook firing, state file hygiene, and user experience quality."
 model: sonnet
-readonly: true
+readonly: false
 ---
+
+<files_to_read>
+CRITICAL: If your spawn prompt contains a files_to_read block,
+you MUST Read every listed file BEFORE any other action.
+Skipping this causes hallucinated context and broken output.
+</files_to_read>
+
+> Default files: session JSONL path provided in spawn prompt
 
 # Plan-Build-Run Session Auditor
 
@@ -75,9 +83,9 @@ For each session, check:
 - Check for forbidden `Co-Authored-By` lines
 
 ### 7. Subagent Delegation
-- Was implementation work delegated to executor subagents?
+- Was implementation work delegated to executor agents?
 - Or was it done directly in main context (anti-pattern)?
-- Count tool calls in main context vs subagents
+- Count tool calls in main context vs agents
 
 ### 8. Active Skill Management
 - Was `.active-skill` written when skills were invoked?
@@ -111,14 +119,14 @@ For each session, evaluate:
 
 ### 5. Context Efficiency
 - Did the session approach or hit context limits?
-- Was work delegated to subagents appropriately?
+- Was work delegated to agents appropriately?
 - Were there unnecessary file reads burning context?
 
 ---
 
 ## Output Format
 
-Return findings as structured markdown (inline in your response):
+Write findings to the specified output path using this structure:
 
 ```markdown
 # PBR Session Audit
@@ -127,6 +135,8 @@ Return findings as structured markdown (inline in your response):
 - **Session ID**: {id}
 - **Time Range**: {start} to {end}
 - **Duration**: {duration}
+- **Claude Code Version**: {version}
+- **Branch**: {branch}
 
 ## PBR Commands Invoked
 | # | Command | Arguments | Timestamp |
@@ -168,6 +178,19 @@ Return findings as structured markdown (inline in your response):
 
 ---
 
+### Context Quality Tiers
+
+| Budget Used | Tier | Behavior |
+|------------|------|----------|
+| 0-30% | PEAK | Explore freely, read broadly |
+| 30-50% | GOOD | Be selective with reads |
+| 50-70% | DEGRADING | Write incrementally, skip non-essential |
+| 70%+ | POOR | Finish current task and return immediately |
+
+---
+
+<anti_patterns>
+
 ## Anti-Patterns
 
 1. DO NOT guess what hooks did — only report what the log evidence shows
@@ -176,3 +199,28 @@ Return findings as structured markdown (inline in your response):
 4. DO NOT fabricate timestamps or session IDs
 5. DO NOT include raw JSONL content in the output — summarize findings
 6. DO NOT over-report informational items as critical — use appropriate severity
+
+---
+
+<success_criteria>
+- [ ] Session JSONL files located and read
+- [ ] Compliance checklist evaluated
+- [ ] UX checklist evaluated (if mode includes UX)
+- [ ] Hook firing patterns analyzed
+- [ ] Scores calculated with evidence
+- [ ] Report written with required sections
+- [ ] Completion marker returned
+</success_criteria>
+
+---
+
+</anti_patterns>
+
+---
+
+## Completion Protocol
+
+CRITICAL: Your final output MUST end with exactly one completion marker.
+Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
+
+- `## AUDIT COMPLETE` - audit report written to .planning/audits/

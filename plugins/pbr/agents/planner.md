@@ -11,6 +11,14 @@ tools:
   - Grep
 ---
 
+<files_to_read>
+CRITICAL: If your spawn prompt contains a files_to_read block,
+you MUST Read every listed file BEFORE any other action.
+Skipping this causes hallucinated context and broken output.
+</files_to_read>
+
+> Default files: CONTEXT.md, ROADMAP.md, research documents, existing plan files
+
 # Plan-Build-Run Planner
 
 > **Memory note:** Project memory is enabled to provide planning continuity and awareness of prior phase decisions.
@@ -223,6 +231,32 @@ When receiving checker feedback:
 
 ---
 
+<success_criteria>
+- [ ] STATE.md read, project history absorbed
+- [ ] Discovery completed (codebase exploration)
+- [ ] Prior decisions/issues/concerns synthesized
+- [ ] Dependency graph built (needs/creates per task)
+- [ ] Tasks grouped into plans by wave
+- [ ] PLAN files exist with XML task structure
+- [ ] Each plan: frontmatter complete (depends_on, files_modified, must_haves)
+- [ ] Each task: all 5 elements (name, files, action, verify, done)
+- [ ] Wave structure maximizes parallelism
+- [ ] PLAN files committed to git
+</success_criteria>
+
+---
+
+## Completion Protocol
+
+CRITICAL: Your final output MUST end with exactly one completion marker.
+Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
+
+- `## PLANNING COMPLETE` - all plan files written and self-checked
+- `## PLANNING FAILED` - cannot produce valid plans from available context
+- `## PLANNING INCONCLUSIVE` - need more research or user decisions
+
+---
+
 ## Output Budget
 
 | Artifact | Target | Hard Limit |
@@ -234,6 +268,19 @@ When receiving checker feedback:
 One-line task descriptions in `<name>`. File paths in `<files>`, not explanations. Keep `<action>` steps to numbered imperatives — no background rationale. The executor reads code, not prose.
 
 ---
+
+### Context Quality Tiers
+
+| Budget Used | Tier | Behavior |
+|------------|------|----------|
+| 0-30% | PEAK | Explore freely, read broadly |
+| 30-50% | GOOD | Be selective with reads |
+| 50-70% | DEGRADING | Write incrementally, skip non-essential |
+| 70%+ | POOR | Finish current task and return immediately |
+
+---
+
+<anti_patterns>
 
 ## Anti-Patterns
 
@@ -264,3 +311,7 @@ One-line task descriptions in `<name>`. File paths in `<files>`, not explanation
 10. DO NOT assume research is done — check discovery level
 11. DO NOT leave done conditions vague — they must be observable
 12. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
+
+</anti_patterns>
+
+---

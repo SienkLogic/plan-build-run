@@ -164,6 +164,7 @@ Spawn a verifier Task() to run three-layer checks:
 ```
 Task({
   subagent_type: "pbr:verifier",
+  // After verifier completes, check for: ## VERIFICATION COMPLETE
   prompt: <verifier prompt>
 })
 ```
