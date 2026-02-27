@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: 'Skip release-please, just publish current version to npm'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -33,7 +39,7 @@ jobs:
   publish-npm:
     needs: release-please
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: ${{ needs.release-please.outputs.release_created || (github.event_name == 'workflow_dispatch' && inputs.publish_only) }}
     permissions:
       contents: read
       id-token: write
