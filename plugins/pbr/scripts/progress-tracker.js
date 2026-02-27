@@ -262,6 +262,12 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\n${hookHealth}`);
   }
 
+  // Check learnings deferral thresholds
+  const learningsThresholds = checkLearningsDeferrals(planningDir);
+  if (learningsThresholds.length > 0) {
+    parts.push(`\nLearnings deferral triggers ready:\n${learningsThresholds.join('\n')}`);
+  }
+
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan N\n- Build from a plan → /pbr:build N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
@@ -396,7 +402,24 @@ function tryLaunchDashboard(port, _planningDir, projectDir) {
   probe.unref();
 }
 
+/**
+ * Check learnings deferral thresholds and return notification strings.
+ * Wrapped in try/catch — threshold check must never break SessionStart.
+ * Equivalent to: node pbr-tools.js learnings check-thresholds
+ * @param {string} _planningDir — unused; thresholds check global learnings store
+ * @returns {string[]}
+ */
+function checkLearningsDeferrals(_planningDir) {
+  try {
+    const { checkDeferralThresholds } = require('./lib/learnings');
+    const triggered = checkDeferralThresholds();
+    return triggered.map(t => `  - ${t.key}: ${t.trigger} met — consider implementing deferred feature`);
+  } catch (_e) {
+    return [];
+  }
+}
+
 // Exported for testing
-module.exports = { getHookHealthSummary, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard };
+module.exports = { getHookHealthSummary, checkLearningsDeferrals, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard };
 
 main().catch(() => {});
