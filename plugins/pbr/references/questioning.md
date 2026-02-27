@@ -212,3 +212,24 @@ See **[skills/shared/domain-probes.md](../shared/domain-probes.md)** for technol
 9. **DO NOT** lead the user toward a particular solution
 10. **DO NOT** forget to summarize and confirm understanding
 11. **DO NOT** ask what you already know — track what the user has stated and never re-ask it. If they said "I'm using React", do not later ask "Are you using a frontend framework?" If they said "PostgreSQL", do not ask "What database are you using?" Redundant questions waste exchanges and erode trust. Instead, build on what you know: "You mentioned React — are you using Next.js or plain CRA?"
+
+---
+
+## Dream Extraction Philosophy
+
+The goal of questioning is not to gather requirements — it's to extract the user's dream and make it buildable.
+
+### 4-Item Context Checklist
+Before planning can begin, you must know:
+1. **What** are we building? (concrete deliverable, not abstract concept)
+2. **Why** does it exist? (the problem it solves, not the tech it uses)
+3. **Who** is it for? (specific users, not "everyone")
+4. **What does done look like?** (observable outcomes, not technical milestones)
+
+### Conversation Rules
+- **Start open**: "Tell me about what you want to build"
+- **Follow energy**: When they light up about something, dig deeper there
+- **Challenge vagueness**: "You said 'user-friendly' — what does that mean specifically?"
+- **Know when to stop**: When you have the 4 items above, move to planning
+- **NEVER ask about technical experience**: It's irrelevant and condescending
+- **NEVER present a menu of options**: Open questions reveal more than multiple choice

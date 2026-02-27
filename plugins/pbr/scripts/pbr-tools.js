@@ -30,11 +30,31 @@ const { classifyArtifact } = require('./local-llm/operations/classify-artifact')
 const { scoreSource } = require('./local-llm/operations/score-source');
 const { classifyError } = require('./local-llm/operations/classify-error');
 const { summarizeContext } = require('./local-llm/operations/summarize-context');
+
+/**
+ * Canonical list of known PBR agent types.
+ * Imported by validate-task.js and check-subagent-output.js to avoid drift.
+ */
+const KNOWN_AGENTS = [
+  'researcher',
+  'planner',
+  'plan-checker',
+  'executor',
+  'verifier',
+  'integration-checker',
+  'debugger',
+  'codebase-mapper',
+  'synthesizer',
+  'general',
+  'audit',
+  'dev-sync'
+];
+
 const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
 const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
 
-const cwd = process.cwd();
-const planningDir = path.join(cwd, '.planning');
+let cwd = process.cwd();
+let planningDir = path.join(cwd, '.planning');
 
 // --- Phase status transition state machine ---
 
@@ -138,6 +158,8 @@ function configClearCache() {
   _configCache = null;
   _configMtime = 0;
   _configPath = null;
+  cwd = process.cwd();
+  planningDir = path.join(cwd, '.planning');
 }
 
 /**
@@ -213,6 +235,162 @@ function resolveDepthProfile(config) {
   const profile = { ...defaults, ...userOverrides };
 
   return { depth, profile };
+}
+
+
+// --- Compound init commands (Phase 2) ---
+
+function initExecutePhase(phaseNum) {
+  const state = stateLoad();
+  if (!state.exists) return { error: "No .planning/ directory found" };
+  const phase = phaseInfo(phaseNum);
+  if (phase.error) return { error: phase.error };
+  const plans = planIndex(phaseNum);
+  const config = configLoad() || {};
+  const depthProfile = resolveDepthProfile(config);
+  const models = config.models || {};
+  let gitState = { branch: null, clean: null };
+  try {
+    const { execSync } = require("child_process");
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8", timeout: 5000 }).trim();
+    const status = execSync("git status --porcelain", { encoding: "utf8", timeout: 5000 }).trim();
+    gitState = { branch, clean: status === "" };
+  } catch (_e) { /* not a git repo */ }
+  return {
+    executor_model: models.executor || "sonnet",
+    verifier_model: models.verifier || "sonnet",
+    config: { depth: depthProfile.depth, mode: config.mode || "interactive", parallelization: config.parallelization || { enabled: false }, planning: config.planning || {}, gates: config.gates || {}, features: config.features || {} },
+    phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, has_context: phase.has_context, status: phase.filesystem_status, plan_count: phase.plan_count, completed: phase.completed },
+    plans: (plans.plans || []).map(p => ({ file: p.file, plan_id: p.plan_id, wave: p.wave, autonomous: p.autonomous, has_summary: p.has_summary, must_haves_count: p.must_haves_count, depends_on: p.depends_on })),
+    waves: plans.waves || {},
+    branch_name: gitState.branch, git_clean: gitState.clean
+  };
+}
+
+function initPlanPhase(phaseNum) {
+  const state = stateLoad();
+  if (!state.exists) return { error: "No .planning/ directory found" };
+  const config = configLoad() || {};
+  const models = config.models || {};
+  const depthProfile = resolveDepthProfile(config);
+  const phasesDir = path.join(planningDir, "phases");
+  const paddedPhase = String(phaseNum).padStart(2, "0");
+  let existingArtifacts = [], phaseDirName = null;
+  if (fs.existsSync(phasesDir)) {
+    const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(paddedPhase + "-"));
+    if (dirs.length > 0) { phaseDirName = dirs[0]; existingArtifacts = fs.readdirSync(path.join(phasesDir, phaseDirName)).filter(f => f.endsWith(".md")); }
+  }
+  let phaseGoal = null, phaseDeps = null;
+  if (state.roadmap && state.roadmap.phases) {
+    const rp = state.roadmap.phases.find(p => p.number === paddedPhase);
+    if (rp) { phaseGoal = rp.goal; phaseDeps = rp.depends_on; }
+  }
+  return {
+    researcher_model: models.researcher || "sonnet", planner_model: models.planner || "sonnet", checker_model: models.planner || "sonnet",
+    config: { depth: depthProfile.depth, profile: depthProfile.profile, features: config.features || {}, planning: config.planning || {} },
+    phase: { num: phaseNum, dir: phaseDirName, goal: phaseGoal, depends_on: phaseDeps },
+    existing_artifacts: existingArtifacts,
+    workflow: { research_phase: (config.features || {}).research_phase !== false, plan_checking: (config.features || {}).plan_checking !== false }
+  };
+}
+
+function initQuick(description) {
+  const config = configLoad() || {};
+  const quickDir = path.join(planningDir, "quick");
+  let nextNum = 1;
+  if (fs.existsSync(quickDir)) {
+    const dirs = fs.readdirSync(quickDir).filter(d => /^\d{3}-/.test(d)).sort();
+    if (dirs.length > 0) { nextNum = parseInt(dirs[dirs.length - 1].substring(0, 3), 10) + 1; }
+  }
+  const slug = (description || "task").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 30);
+  const paddedNum = String(nextNum).padStart(3, "0");
+  return {
+    next_task_number: paddedNum, slug, dir: path.join(".planning", "quick", paddedNum + "-" + slug),
+    dir_name: paddedNum + "-" + slug, timestamp: new Date().toISOString(),
+    config: { depth: config.depth || "standard", mode: config.mode || "interactive", models: config.models || {}, planning: config.planning || {} }
+  };
+}
+
+function initVerifyWork(phaseNum) {
+  const phase = phaseInfo(phaseNum);
+  if (phase.error) return { error: phase.error };
+  const config = configLoad() || {};
+  const models = config.models || {};
+  let priorAttempts = 0;
+  if (phase.verification) { priorAttempts = parseInt(phase.verification.attempt, 10) || 0; }
+  return {
+    verifier_model: models.verifier || "sonnet",
+    phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, plan_count: phase.plan_count, completed: phase.completed },
+    has_verification: !!phase.verification, prior_attempts: priorAttempts,
+    prior_status: phase.verification ? (phase.verification.status || "unknown") : null,
+    summaries: phase.summaries || []
+  };
+}
+
+function initResume() {
+  const state = stateLoad();
+  if (!state.exists) return { error: "No .planning/ directory found" };
+  let autoNext = null, continueHere = null, activeSkill = null;
+  try { autoNext = fs.readFileSync(path.join(planningDir, ".auto-next"), "utf8").trim(); } catch (_e) { /* file not found */ }
+  try { continueHere = fs.readFileSync(path.join(planningDir, ".continue-here"), "utf8").trim(); } catch (_e) { /* file not found */ }
+  try { activeSkill = fs.readFileSync(path.join(planningDir, ".active-skill"), "utf8").trim(); } catch (_e) { /* file not found */ }
+  return { state: state.state, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, current_phase: state.current_phase, progress: state.progress };
+}
+
+function initProgress() {
+  const state = stateLoad();
+  if (!state.exists) return { error: "No .planning/ directory found" };
+  const progress = stateCheckProgress();
+  return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage };
+}
+
+// --- State mutation extensions (Phase 2g-i) ---
+
+function statePatch(jsonStr) {
+  const statePath = path.join(planningDir, "STATE.md");
+  if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
+  let fields;
+  try { fields = JSON.parse(jsonStr); } catch (_e) { return { success: false, error: "Invalid JSON" }; }
+  const validFields = ["current_phase", "status", "plans_complete", "last_activity", "progress_percent", "phase_slug", "total_phases", "last_command", "blockers"];
+  const updates = [], errors = [];
+  for (const [field, value] of Object.entries(fields)) {
+    if (!validFields.includes(field)) { errors.push("Unknown field: " + field); continue; }
+    try { stateUpdate(field, String(value)); updates.push(field); } catch (e) { errors.push(field + ": " + e.message); }
+  }
+  return { success: errors.length === 0, updated: updates, errors: errors.length > 0 ? errors : undefined };
+}
+
+function stateAdvancePlan() {
+  const statePath = path.join(planningDir, "STATE.md");
+  if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
+  const stateContent = fs.readFileSync(statePath, "utf8");
+  const planMatch = stateContent.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
+  if (!planMatch) return { success: false, error: "Could not find Plan: N of M in STATE.md" };
+  const current = parseInt(planMatch[1], 10), total = parseInt(planMatch[2], 10);
+  const next = Math.min(current + 1, total);
+  stateUpdate("plans_complete", String(next));
+  const progressPct = total > 0 ? Math.round((next / total) * 100) : 0;
+  stateUpdate("progress_percent", String(progressPct));
+  return { success: true, previous_plan: current, current_plan: next, total_plans: total, progress_percent: progressPct };
+}
+
+function stateRecordMetric(metricArgs) {
+  let duration = null, plansCompleted = null;
+  for (let i = 0; i < metricArgs.length; i++) {
+    if (metricArgs[i] === "--duration" && metricArgs[i + 1]) {
+      const match = metricArgs[i + 1].match(/(\d+)(m|s|h)/);
+      if (match) { const val = parseInt(match[1], 10); const unit = match[2]; duration = unit === "h" ? val * 60 : unit === "s" ? Math.round(val / 60) : val; }
+      i++;
+    } else if (metricArgs[i] === "--plans-completed" && metricArgs[i + 1]) {
+      plansCompleted = parseInt(metricArgs[i + 1], 10); i++;
+    }
+  }
+  const parts = [];
+  if (duration !== null) parts.push("duration: " + duration + "m");
+  if (plansCompleted !== null) parts.push("plans_completed: " + plansCompleted);
+  if (parts.length > 0) historyAppend({ type: "metric", title: "Session metric", body: parts.join(", ") });
+  stateUpdate("last_activity", "now");
+  return { success: true, duration_minutes: duration, plans_completed: plansCompleted };
 }
 
 async function main() {
@@ -409,8 +587,37 @@ async function main() {
       output(suggestions.length > 0
         ? { suggestions }
         : { suggestions: [], message: 'Not enough shadow samples yet (need >= 20 per operation)' });
+    // --- Compound init commands ---
+    } else if (command === "init" && subcommand === "execute-phase") {
+      const phase = args[2];
+      if (!phase) error("Usage: pbr-tools.js init execute-phase <phase-number>");
+      output(initExecutePhase(phase));
+    } else if (command === "init" && subcommand === "plan-phase") {
+      const phase = args[2];
+      if (!phase) error("Usage: pbr-tools.js init plan-phase <phase-number>");
+      output(initPlanPhase(phase));
+    } else if (command === "init" && subcommand === "quick") {
+      const desc = args.slice(2).join(" ") || "";
+      output(initQuick(desc));
+    } else if (command === "init" && subcommand === "verify-work") {
+      const phase = args[2];
+      if (!phase) error("Usage: pbr-tools.js init verify-work <phase-number>");
+      output(initVerifyWork(phase));
+    } else if (command === "init" && subcommand === "resume") {
+      output(initResume());
+    } else if (command === "init" && subcommand === "progress") {
+      output(initProgress());
+    // --- State patch/advance/metric ---
+    } else if (command === "state" && subcommand === "patch") {
+      const jsonStr = args[2];
+      if (!jsonStr) error("Usage: pbr-tools.js state patch JSON");
+      output(statePatch(jsonStr));
+    } else if (command === "state" && subcommand === "advance-plan") {
+      output(stateAdvancePlan());
+    } else if (command === "state" && subcommand === "record-metric") {
+      output(stateRecordMetric(args.slice(2)));
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update, config validate, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate, init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
     }
   } catch (e) {
     error(e.message);
@@ -1567,4 +1774,4 @@ function writeActiveSkill(planningDir, skillName) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill };

@@ -23,6 +23,7 @@ const { logHook } = require('./hook-logger');
 const { resolveConfig } = require('./local-llm/health');
 const { validateTask: llmValidateTask } = require('./local-llm/operations/validate-task');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
+const { KNOWN_AGENTS } = require('./pbr-tools');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
@@ -38,21 +39,6 @@ function loadLocalLlmConfig(cwd) {
     return resolveConfig(undefined);
   }
 }
-
-const KNOWN_AGENTS = [
-  'researcher',
-  'planner',
-  'plan-checker',
-  'executor',
-  'verifier',
-  'integration-checker',
-  'debugger',
-  'codebase-mapper',
-  'synthesizer',
-  'general',
-  'audit',
-  'dev-sync'
-];
 
 const MAX_DESCRIPTION_LENGTH = 100;
 

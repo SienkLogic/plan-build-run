@@ -55,11 +55,12 @@ function checkRoadmapWrite(data) {
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
-  const errors = validateRoadmap(content);
-  if (errors && errors.length > 0) {
+  const result = validateRoadmap(content);
+  const combined = [...(result.errors || []), ...(result.warnings || [])];
+  if (combined.length > 0) {
     return {
       output: {
-        additionalContext: `[ROADMAP Validation] ${errors.join('; ')}`
+        additionalContext: `[ROADMAP Validation] ${combined.join('; ')}`
       }
     };
   }
