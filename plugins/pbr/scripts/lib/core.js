@@ -319,6 +319,15 @@ function atomicWrite(filePath, content) {
     // 3. Rename temp over original (atomic on most filesystems)
     fs.renameSync(tmpPath, filePath);
 
+    // 4. Clean up backup file on success
+    try {
+      if (fs.existsSync(bakPath)) {
+        fs.unlinkSync(bakPath);
+      }
+    } catch (_e) {
+      // Cleanup failure is non-fatal
+    }
+
     return { success: true };
   } catch (e) {
     // Rename failed — try to restore from backup

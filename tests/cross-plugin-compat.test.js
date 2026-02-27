@@ -211,6 +211,7 @@ describe('cross-plugin compatibility', () => {
         if (expectedShared.includes(f.split(path.sep).join('/'))) return false;
         if (f.startsWith('agents' + path.sep)) return false;
         if (f.startsWith('skills' + path.sep)) return false;
+        if (f.startsWith('commands' + path.sep)) return false;
         if (f.startsWith('templates' + path.sep)) return false;
         if (f.startsWith('references' + path.sep)) return false;
         return pbrFiles.includes(f);
@@ -570,6 +571,72 @@ describe('cross-plugin compatibility', () => {
       const content = fs.readFileSync(refPath, 'utf8');
       expect(content).toMatch(/##\s+local_llm/i);
     });
+  });
+
+  describe('agent body content sync', () => {
+    /**
+     * Normalize agent body content by stripping frontmatter and normalizing
+     * platform-specific differences (plugin root variable, agent terminology).
+     */
+    function normalizeAgentBody(content) {
+      // Strip YAML frontmatter
+      const body = content.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
+      return body
+        // Normalize plugin root variable
+        .replace(/\$\{CLAUDE_PLUGIN_ROOT\}/g, '${PLUGIN_ROOT}')
+        // Normalize agent terminology (Subagent/subagent -> Agent/agent, preserving case)
+        .replace(/[Ss]ubagent_type/g, 'agent_type')
+        .replace(/Subagent/g, 'Agent')
+        .replace(/subagent/g, 'agent')
+        // Normalize auto-loaded phrasing (varies: "they're auto-loaded", "auto-loaded", via "agent_type"/"agent:")
+        .replace(/— (?:they're )?auto-loaded via agent[_: ]?\w*/gi, '— auto-loaded via agent')
+        // Normalize line endings
+        .replace(/\r\n/g, '\n')
+        .trim();
+    }
+
+    const pbrAgentDir = path.join(PBR_DIR, 'agents');
+    const pbrAgentFiles = fs.readdirSync(pbrAgentDir)
+      .filter(f => f.endsWith('.md'));
+
+    for (const deriv of DERIVATIVES) {
+      const derivAgentDir = path.join(deriv.dir, 'agents');
+
+      for (const pbrFile of pbrAgentFiles) {
+        const agentName = normalizeAgentName(pbrFile);
+        const derivFile = deriv.agentExt === '.agent.md'
+          ? agentName + '.agent.md'
+          : agentName + '.md';
+
+        test(`${deriv.name} ${agentName} body matches pbr`, () => {
+          const pbrContent = fs.readFileSync(path.join(pbrAgentDir, pbrFile), 'utf8');
+          const derivPath = path.join(derivAgentDir, derivFile);
+          expect(fs.existsSync(derivPath)).toBe(true);
+          const derivContent = fs.readFileSync(derivPath, 'utf8');
+
+          const pbrBody = normalizeAgentBody(pbrContent);
+          const derivBody = normalizeAgentBody(derivContent);
+
+          if (pbrBody !== derivBody) {
+            // Find first differing line for a helpful error message
+            const pbrLines = pbrBody.split('\n');
+            const derivLines = derivBody.split('\n');
+            let firstDiff = -1;
+            for (let i = 0; i < Math.max(pbrLines.length, derivLines.length); i++) {
+              if (pbrLines[i] !== derivLines[i]) {
+                firstDiff = i + 1;
+                break;
+              }
+            }
+            throw new Error(
+              `Agent body drift in ${agentName} at line ~${firstDiff}:\n` +
+              `  pbr:    ${(pbrLines[firstDiff - 1] || '(missing)').trim()}\n` +
+              `  ${deriv.name}: ${(derivLines[firstDiff - 1] || '(missing)').trim()}`
+            );
+          }
+        });
+      }
+    }
   });
 
   describe('version sync', () => {

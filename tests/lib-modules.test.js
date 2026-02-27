@@ -742,6 +742,32 @@ describe('atomicWrite', () => {
     expect(result.success).toBe(true);
     expect(fs.readFileSync(filePath, 'utf8')).toBe('hello world');
   });
+
+  test('cleans up .bak file after successful write', () => {
+    const filePath = path.join(tmpDir, 'test.txt');
+    // Create original file so .bak gets created during atomic write
+    fs.writeFileSync(filePath, 'original content');
+    const result = coreLib.atomicWrite(filePath, 'new content');
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toBe('new content');
+    // .bak should be cleaned up on success
+    expect(fs.existsSync(filePath + '.bak')).toBe(false);
+  });
+
+  test('does not leave .tmp file after successful write', () => {
+    const filePath = path.join(tmpDir, 'test.txt');
+    coreLib.atomicWrite(filePath, 'content');
+    expect(fs.existsSync(filePath + '.tmp')).toBe(false);
+  });
+
+  test('creates new file when target does not exist', () => {
+    const filePath = path.join(tmpDir, 'new-file.txt');
+    const result = coreLib.atomicWrite(filePath, 'fresh content');
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toBe('fresh content');
+    // No .bak created when original didn't exist
+    expect(fs.existsSync(filePath + '.bak')).toBe(false);
+  });
 });
 
 // --- validateProject (pbr-tools.js — direct import for coverage) ---

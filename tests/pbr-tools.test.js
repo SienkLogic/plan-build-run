@@ -393,13 +393,14 @@ next_top_level: something`;
       cleanupDir(tmpDir);
     });
 
-    test('creates .bak backup of original', () => {
+    test('cleans up .bak file after successful write', () => {
       const { tmpDir, filePath } = makeTmpFile();
       fs.writeFileSync(filePath, '# Original');
       atomicWrite(filePath, '# Updated');
       const bakPath = filePath + '.bak';
-      expect(fs.existsSync(bakPath)).toBe(true);
-      expect(fs.readFileSync(bakPath, 'utf8')).toBe('# Original');
+      // .bak should be cleaned up on success (no stale .bak accumulation)
+      expect(fs.existsSync(bakPath)).toBe(false);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('# Updated');
       cleanupDir(tmpDir);
     });
 
@@ -431,8 +432,8 @@ next_top_level: something`;
       atomicWrite(filePath, 'Version 2');
       atomicWrite(filePath, 'Version 3');
       expect(fs.readFileSync(filePath, 'utf8')).toBe('Version 3');
-      // .bak should be Version 2 (last successful backup)
-      expect(fs.readFileSync(filePath + '.bak', 'utf8')).toBe('Version 2');
+      // .bak should be cleaned up after each successful write
+      expect(fs.existsSync(filePath + '.bak')).toBe(false);
       cleanupDir(tmpDir);
     });
   });
