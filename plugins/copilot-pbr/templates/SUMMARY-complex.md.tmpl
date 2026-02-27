@@ -1,0 +1,95 @@
+# SUMMARY-complex.md Template
+
+> Use when: decisions were made OR fileCount > 6
+> Referenced by: executor agent (complex plans, architectural work)
+
+## Frontmatter (YAML)
+
+```yaml
+---
+phase: "{phase_id}"
+plan: "{plan_id}"
+status: "complete"           # complete | partial | checkpoint
+subsystem: "{main subsystem affected}"
+tags:
+  - "{tag1}"
+requires:
+  - "{plan_id}: {artifact}"
+provides:
+  - "{export/artifact description}"
+affects:
+  - "{affected area 1}"
+tech_stack:
+  - "{technology used}"
+key_files:
+  - "{file1}: {what it does}"
+key_decisions:
+  - "{decision 1}: {rationale}"
+patterns:
+  - "{pattern used}: {where}"
+metrics:
+  duration_minutes: {n}
+  tasks_completed: {n}
+  tasks_total: {n}
+  commits: {n}
+  files_created: {n}
+  files_modified: {n}
+deferred:
+  - "{thing noticed but not implemented}"
+self_check_failures:
+  - "{failure description}"
+architecture_notes:
+  - "{key architectural decision and why}"
+---
+```
+
+## Body Structure
+
+```markdown
+# Plan Summary: {plan_id}
+
+## What Was Built
+
+{2-3 paragraph description of what was accomplished}
+
+## Architecture Decisions
+
+| Decision | Options Considered | Chosen | Rationale |
+|----------|-------------------|--------|-----------|
+| {decision} | {opt1}, {opt2} | {chosen} | {why} |
+
+## Task Results
+
+| Task | Status | Commit | Files | Verify |
+|------|--------|--------|-------|--------|
+| {task_id}: {name} | done | {hash} | {count} | passed |
+
+## Key Implementation Details
+
+{Important details about HOW things were implemented}
+
+## Integration Points
+
+{How this plan connects to other plans - imports, exports, shared state}
+
+## Known Issues
+
+{Issues discovered during execution}
+
+## Dependencies Provided
+
+{What other plans can now depend on}
+
+## Deferred Items
+
+{Items noticed but intentionally deferred - with rationale}
+```
+
+## Selection Heuristic
+
+Use this template when ANY of the following are true:
+- Key architectural decisions were made during execution
+- Total files created or modified > 6
+- Deviations from the plan occurred
+- Multiple integration points were established
+- The plan touched shared infrastructure or patterns

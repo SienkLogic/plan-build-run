@@ -359,21 +359,33 @@ describe('check-subagent-output.js', () => {
       expect(result.output).not.toContain('stale');
     });
 
-    test('researcher with old .md file returns stale warning', () => {
+
+    test('researcher with 10-min-old file is NOT flagged stale (B2 fix)', () => {
+      const researchFile = path.join(tmpDir, '.planning', 'research', 'STACK.md');
+      fs.writeFileSync(researchFile, '# Research');
+      // Set mtime to 10 minutes ago — within the 30-min threshold
+      const tenMinAgo = new Date(Date.now() - 600000);
+      fs.utimesSync(researchFile, tenMinAgo, tenMinAgo);
+      const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('stale');
+    });
+
+test('researcher with old .md file (>30min) returns stale warning', () => {
       const researchFile = path.join(tmpDir, '.planning', 'research', 'STACK.md');
       fs.writeFileSync(researchFile, '# Research');
       // Set mtime to 10 minutes ago
-      const oldTime = new Date(Date.now() - 600000);
+      const oldTime = new Date(Date.now() - 2100000);
       fs.utimesSync(researchFile, oldTime, oldTime);
       const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
       expect(result.exitCode).toBe(0);
       expect(result.output).toContain('stale');
     });
 
-    test('synthesizer with old output returns stale warning', () => {
+    test('synthesizer with old output (>30min) returns stale warning', () => {
       const researchFile = path.join(tmpDir, '.planning', 'research', 'SYNTHESIS.md');
       fs.writeFileSync(researchFile, '# Synthesis');
-      const oldTime = new Date(Date.now() - 600000);
+      const oldTime = new Date(Date.now() - 2100000);
       fs.utimesSync(researchFile, oldTime, oldTime);
       const result = runScript({ tool_input: { subagent_type: 'pbr:synthesizer' } });
       expect(result.exitCode).toBe(0);
@@ -567,6 +579,22 @@ describe('check-subagent-output.js', () => {
     test('returns null when no ROADMAP.md exists', () => {
       const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
       expect(result).toBeNull();
+    });
+  });
+
+  describe('KNOWN_AGENTS sync (B3 fix)', () => {
+    test('validate-task.js KNOWN_AGENTS matches pbr-tools.js', () => {
+      const vtKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-task')).KNOWN_AGENTS;
+      const ptKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools')).KNOWN_AGENTS;
+      expect(vtKnown).toEqual(ptKnown);
+    });
+
+    test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', () => {
+      const ptKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools')).KNOWN_AGENTS;
+      const prefixed = ptKnown.map(a => 'pbr:' + a);
+      for (const key of Object.keys(AGENT_OUTPUTS)) {
+        expect(prefixed).toContain(key);
+      }
     });
   });
 });

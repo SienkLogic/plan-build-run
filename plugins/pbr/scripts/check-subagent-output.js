@@ -27,7 +27,7 @@ const { classifyError } = require('./local-llm/operations/classify-error');
  * Check if a file was modified recently (within thresholdMs).
  * Returns false if file doesn't exist or on error.
  */
-function isRecent(filePath, thresholdMs = 300000) {
+function isRecent(filePath, thresholdMs = 1800000) {
   try {
     const stat = fs.statSync(filePath);
     return (Date.now() - stat.mtimeMs) < thresholdMs;
