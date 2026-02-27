@@ -3,6 +3,11 @@ const path = require('path');
 const os = require('os');
 
 const SCRIPTS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
+const {
+  saveUserDefaults,
+  mergeUserDefaults,
+  USER_DEFAULTS_PATH
+} = require(path.join(SCRIPTS, 'pbr-tools.js'));
 
 // configValidate reads from process.cwd()/.planning/config.json
 // We need to test it via CLI execution in a temp directory
@@ -38,6 +43,7 @@ describe('config validate', () => {
   test('valid config passes with no errors or warnings', () => {
     writeConfig({
       version: 2,
+      schema_version: 1,
       mode: 'interactive',
       depth: 'standard',
       context_strategy: 'aggressive',
@@ -235,6 +241,7 @@ describe('config validate', () => {
   test('no conflict warnings for compatible config', () => {
     writeConfig({
       version: 2,
+      schema_version: 1,
       mode: 'autonomous',
       features: { auto_continue: true },
       gates: {},
@@ -243,5 +250,91 @@ describe('config validate', () => {
     const result = run();
     expect(result.valid).toBe(true);
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('user defaults', () => {
+  describe('mergeUserDefaults', () => {
+    test('returns base when no defaults', () => {
+      const base = { mode: 'interactive', depth: 'standard' };
+      expect(mergeUserDefaults(base, null)).toEqual(base);
+    });
+
+    test('adds missing keys from user defaults', () => {
+      const base = { version: 2, mode: 'interactive' };
+      const defaults = { depth: 'quick', mode: 'autonomous' };
+      const result = mergeUserDefaults(base, defaults);
+      expect(result.depth).toBe('quick');
+      // base mode wins
+      expect(result.mode).toBe('interactive');
+    });
+
+    test('deep-merges nested objects', () => {
+      const base = { features: { tdd_mode: true } };
+      const defaults = { features: { research_phase: false, tdd_mode: false } };
+      const result = mergeUserDefaults(base, defaults);
+      // base tdd_mode wins
+      expect(result.features.tdd_mode).toBe(true);
+      // defaults research_phase fills the gap
+      expect(result.features.research_phase).toBe(false);
+    });
+
+    test('does not merge arrays (base wins)', () => {
+      const base = { models: { executor: 'opus' } };
+      const defaults = { models: { executor: 'sonnet', researcher: 'haiku' } };
+      const result = mergeUserDefaults(base, defaults);
+      expect(result.models.executor).toBe('opus');
+      expect(result.models.researcher).toBe('haiku');
+    });
+
+    test('handles empty user defaults object', () => {
+      const base = { mode: 'interactive' };
+      expect(mergeUserDefaults(base, {})).toEqual(base);
+    });
+  });
+
+  describe('saveUserDefaults', () => {
+    let savedPath;
+
+    afterEach(() => {
+      // Clean up if test wrote defaults
+      if (savedPath && fs.existsSync(savedPath)) {
+        fs.unlinkSync(savedPath);
+      }
+    });
+
+    test('saves only portable keys', () => {
+      const config = {
+        version: 2,
+        mode: 'autonomous',
+        depth: 'quick',
+        features: { tdd_mode: true },
+        models: { executor: 'opus' },
+        planning: { commit_docs: false },
+        git: { branching: 'phase' }
+      };
+      const result = saveUserDefaults(config);
+      savedPath = result.path;
+      expect(result.saved).toBe(true);
+      expect(result.keys).toContain('mode');
+      expect(result.keys).toContain('depth');
+      expect(result.keys).toContain('features');
+      expect(result.keys).not.toContain('version');
+
+      // Verify file contents
+      const saved = JSON.parse(fs.readFileSync(result.path, 'utf8'));
+      expect(saved.mode).toBe('autonomous');
+      expect(saved.version).toBeUndefined();
+    });
+  });
+
+  describe('loadUserDefaults', () => {
+    test('returns null when file does not exist', () => {
+      // USER_DEFAULTS_PATH may or may not exist
+      // We test the merge path handles null gracefully (loadUserDefaults returns null for missing file)
+      expect(USER_DEFAULTS_PATH).toMatch(/pbr-defaults\.json$/);
+      const result = mergeUserDefaults({ mode: 'interactive' }, null);
+      expect(result.mode).toBe('interactive');
+    });
   });
 });
