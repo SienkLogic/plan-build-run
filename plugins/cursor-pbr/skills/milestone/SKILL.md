@@ -413,6 +413,28 @@ Archive a completed milestone and prepare for the next one.
      - Key deliverables: {summary from Step 4}
      ```
 
+7d. **Aggregate learnings from milestone phases:**
+
+**CRITICAL: Run learnings aggregation NOW. Do NOT skip this step.**
+
+```bash
+node ${PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}
+```
+
+- If the script outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
+- Display the aggregation summary line to the user (e.g., "Learnings aggregated: 12 new, 3 updated, 0 errors").
+- After aggregation, check for triggered deferral thresholds:
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js learnings check-thresholds
+```
+
+If any thresholds are triggered, display each as a notification:
+
+```
+Note: Learnings threshold met — {key}: {trigger}. Consider implementing the deferred feature.
+```
+
 8. **Git tag:**
    ```bash
    git tag -a {version} -m "Milestone: {name}"

@@ -212,6 +212,25 @@ Spawn parallel agents for research. Each researcher writes to `.planning/researc
 
 **CRITICAL: Create .planning/research/ directory NOW before spawning researchers. Do NOT skip this step.**
 
+**Learnings injection (opt-in):** Before spawning researchers, check if global learnings exist:
+
+```bash
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" 2>/dev/null
+```
+
+If the command succeeds AND returns a non-empty JSON array:
+
+- Write the results to a temp file:
+
+  ```bash
+  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md
+  ```
+
+- Note the temp file path as `{learnings_temp_path}`
+- Add this file to the researcher's `files_to_read` block (see below)
+
+If no learnings exist or the command fails: skip injection silently.
+
 **For each research topic, invoke the @researcher agent:**
 
 Invoke `@researcher` with the research prompt constructed from the template.
@@ -231,8 +250,11 @@ Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure
 <files_to_read>
 CRITICAL: Read these files BEFORE any other action:
 1. .planning/REQUIREMENTS.md — scoped requirements (if exists)
+{if learnings_temp_path exists}2. {learnings_temp_path} — cross-project learnings (tech stack patterns from past PBR projects){/if}
 </files_to_read>
 ```
+
+If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit line 2 entirely.
 
 **Placeholders to fill:**
 - `{project name from questioning}` — project name gathered in Step 2
