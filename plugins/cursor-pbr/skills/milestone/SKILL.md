@@ -446,6 +446,22 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
+9b. **Push milestone to remote:**
+
+Use AskUserQuestion to ask the user how they want to publish the milestone:
+
+```
+question: "How should this milestone be published to GitHub?"
+header: "Publish"
+options:
+  - label: "Push tag + commits"    description: "Push the v{version} tag and any unpushed commits to origin"
+  - label: "Skip for now"          description: "Keep everything local — push later manually"
+```
+
+- If "Push tag + commits": run `git push origin main --follow-tags` to push both commits and the annotated tag in one command. Display success or error.
+- If "Skip for now": display reminder: "Tag v{version} is local only. Push when ready: `git push origin main --follow-tags`"
+- If "Other": follow user instructions (e.g., create a PR, push to a different branch, etc.)
+
 ### Post-Completion Smoke Test
 
 If `config.deployment.smoke_test_command` is set and non-empty:
