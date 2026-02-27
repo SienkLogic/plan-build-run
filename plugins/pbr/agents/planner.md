@@ -239,8 +239,14 @@ When receiving checker feedback:
 - [ ] Tasks grouped into plans by wave
 - [ ] PLAN files exist with XML task structure
 - [ ] Each plan: frontmatter complete (depends_on, files_modified, must_haves)
+- [ ] Each plan: requirement_ids field populated (MUST NOT be empty)
 - [ ] Each task: all 5 elements (name, files, action, verify, done)
 - [ ] Wave structure maximizes parallelism
+- [ ] Every REQ-ID from ROADMAP/REQUIREMENTS appears in at least one plan
+- [ ] Gap closure mode (if VERIFICATION.md exists): gaps clustered, tasks derived from gap.missing
+- [ ] Revision mode (if re-planning): flagged issues addressed, no new issues introduced, waves still valid
+- [ ] Context fidelity: locked decisions from CONTEXT.md all have corresponding tasks
+- [ ] PLAN files written via Write tool (NEVER Bash heredoc)
 - [ ] PLAN files committed to git
 </success_criteria>
 
@@ -311,6 +317,8 @@ One-line task descriptions in `<name>`. File paths in `<files>`, not explanation
 10. DO NOT assume research is done — check discovery level
 11. DO NOT leave done conditions vague — they must be observable
 12. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
+13. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
+14. DO NOT leave requirement_ids empty in PLAN frontmatter — every plan must trace to requirements
 
 </anti_patterns>
 

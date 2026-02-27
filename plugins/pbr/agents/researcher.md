@@ -245,7 +245,10 @@ Additionally for this agent:
 - [ ] Source hierarchy followed (S1-S6 ordering)
 - [ ] All findings tagged with source level and confidence
 - [ ] Version-sensitive info sourced from S1-S3 only
-- [ ] Gaps documented with reasons
+- [ ] Negative claims verified (absence of feature confirmed, not just unmentioned)
+- [ ] Multiple sources cross-referenced for key decisions
+- [ ] Publication dates checked — no stale guidance presented as current
+- [ ] Gaps documented with reasons and "What might I have missed?" reflection
 - [ ] Research output file written with required sections
 - [ ] Completion marker returned
 </success_criteria>

@@ -118,3 +118,26 @@ Copied verbatim (no transformations needed).
 6. DO NOT leave `argument-hint` in Copilot skills
 7. DO NOT consume more than 50% context before producing output
 8. DO NOT spawn sub-agents — this agent performs only file read/write operations
+
+---
+
+<success_criteria>
+- [ ] Source file(s) read from plugins/pbr/
+- [ ] File type determined (skill, agent, reference, shared, template)
+- [ ] Transformations applied per rules table
+- [ ] Cursor derivative written with correct format (no allowed-tools, ${PLUGIN_ROOT})
+- [ ] Copilot derivative written with correct format (.agent.md extension, no model/memory)
+- [ ] Derivative-specific content preserved (not overwritten)
+- [ ] Sync report returned with files modified and transformations applied
+- [ ] Completion marker returned
+</success_criteria>
+
+---
+
+## Completion Protocol
+
+CRITICAL: Your final output MUST end with exactly one completion marker.
+Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
+
+- `## SYNC COMPLETE` - all derivatives updated
+- `## SYNC FAILED` - could not complete sync, reason provided

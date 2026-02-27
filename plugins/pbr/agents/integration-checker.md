@@ -153,6 +153,7 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 
 ### Agent-Specific
 - Never attempt to fix issues — you REPORT them
+- ALWAYS include specific file paths and line numbers in every finding — never say "the config module" without a path
 - Imports are not usage — verify symbols are actually called
 - "File exists" is not "component is integrated"
 - Auth middleware existing somewhere does not mean routes are protected
@@ -164,11 +165,12 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 ---
 
 <success_criteria>
-- [ ] All 5 check categories evaluated
-- [ ] Cross-phase dependencies verified
-- [ ] E2E flows traced end-to-end
+- [ ] All check categories evaluated (export/import, API routes, auth, E2E flows, cross-phase deps, data-flow)
+- [ ] Cross-phase dependencies verified (provides/consumes chains satisfied)
+- [ ] E2E flows traced end-to-end with specific file paths as evidence
 - [ ] Export/import wiring confirmed
-- [ ] Critical issues documented with evidence
+- [ ] Requirements integration map: every requirement traced to implementation with wiring status
+- [ ] Critical issues documented with evidence (file paths, line numbers)
 - [ ] INTEGRATION-REPORT.md written
 - [ ] Completion marker returned
 </success_criteria>

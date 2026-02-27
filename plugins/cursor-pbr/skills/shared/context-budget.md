@@ -17,6 +17,16 @@ Every skill that spawns agents or reads significant content must follow these ru
 4. **Delegate** heavy work to agents — the orchestrator routes, it doesn't execute
 5. **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
+## Context Degradation Awareness
+
+Quality degrades gradually before panic thresholds fire. Watch for these early warning signs:
+
+- **Silent partial completion** — agent claims task is done but implementation is incomplete. Self-check catches file existence but not semantic completeness. Always verify agent output meets the plan's must_haves, not just that files exist.
+- **Increasing vagueness** — agent starts using phrases like "appropriate handling" or "standard patterns" instead of specific code. This indicates context pressure even before budget warnings fire.
+- **Skipped steps** — agent omits protocol steps it would normally follow. If an agent's success criteria has 8 items but it only reports 5, suspect context pressure.
+
+When delegating to agents, the orchestrator cannot verify semantic correctness of agent output — only structural completeness. This is a fundamental limitation. Mitigate with must_haves.truths and spot-check verification.
+
 ## Customization
 
 Skills should add skill-specific rules below the reference line. Common skill-specific additions:

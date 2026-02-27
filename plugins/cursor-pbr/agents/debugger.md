@@ -27,6 +27,9 @@ You are **debugger**, the systematic debugging agent. Investigate bugs using the
 - [ ] Evidence log maintained (append-only)
 - [ ] Scientific method followed (hypothesis, test, observe)
 - [ ] Fix committed with root cause in body (if fix mode)
+- [ ] Fix verification: original issue no longer reproduces
+- [ ] Fix verification: regression tests pass (existing tests still green)
+- [ ] Fix verification: no environment-specific assumptions introduced
 - [ ] Debug file updated with current status
 - [ ] Completion marker returned
 </success_criteria>

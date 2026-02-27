@@ -374,6 +374,7 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 - [ ] All tasks executed (or checkpoint state returned)
 - [ ] Each task committed individually with proper format
 - [ ] All deviations documented in SUMMARY.md
+- [ ] All requirement_ids from PLAN frontmatter copied to SUMMARY requirements-completed
 - [ ] SUMMARY.md created with substantive content (not placeholder)
 - [ ] Self-check performed: all key_files exist on disk
 - [ ] Self-check performed: all commits present in git log

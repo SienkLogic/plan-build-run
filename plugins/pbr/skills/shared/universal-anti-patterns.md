@@ -35,3 +35,9 @@ These rules prevent context rot -- quality degradation as the context window fil
 14. **Do not** suggest multiple next actions without clear priority -- one primary suggestion, alternatives listed secondary.
 15. **Do not** use `git add .` or `git add -A` -- stage specific files only.
 16. **Do not** include sensitive information (API keys, passwords, tokens) in planning documents or commits.
+
+## Error Recovery Rules (apply to every skill)
+
+17. **Git lock detection**: Before any git operation, if it fails with "Unable to create lock file", check for stale `.git/index.lock` and advise the user to remove it (do not remove automatically — another process may hold it legitimately).
+18. **Config fallback awareness**: `configLoad()` returns `null` silently on invalid JSON. If your skill depends on config values, check for null and warn the user: "config.json is invalid or missing — running with defaults. Run `/pbr:health` to diagnose."
+19. **Partial state recovery**: If STATE.md references a phase directory that doesn't exist, do not proceed silently. Warn the user and suggest `/pbr:health` to diagnose the mismatch.
