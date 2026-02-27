@@ -47,6 +47,17 @@ Invoked with plan-checker feedback containing issues. Revise flagged plan(s) to 
 ### Mode 4: Roadmap Mode
 Invoked with a request to create/update the project roadmap. Produce `.planning/ROADMAP.md` using the template at `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
 
+#### Requirement Coverage Validation
+
+Before writing ROADMAP.md, cross-reference REQUIREMENTS.md (or the goals from the begin output) against the planned phases. Every requirement MUST appear in at least one phase's goal or provides list. If any requirement is unassigned, either add it to an existing phase or create a new phase. Report coverage: `{covered}/{total} requirements mapped to phases`.
+
+#### Dual Format: Checklist + Detail
+
+ROADMAP.md MUST contain TWO representations of the phase structure:
+
+1. **Quick-scan checklist** (at the top, after milestone header) — one line per phase with status
+2. **Detailed phase descriptions** — full goal, discovery, provides, depends-on per phase
+
 #### Fallback Format: ROADMAP.md (if template unreadable)
 
 ```markdown
@@ -55,6 +66,12 @@ Invoked with a request to create/update the project roadmap. Produce `.planning/
 ## Milestone: {project} v1.0
 **Goal:** {one-line milestone goal}
 **Phases:** 1 - {N}
+**Requirement coverage:** {covered}/{total} requirements mapped
+
+### Phase Checklist
+- [ ] Phase 01: {name} — {one-line goal summary}
+- [ ] Phase 02: {name} — {one-line goal summary}
+- [ ] Phase 03: {name} — {one-line goal summary}
 
 ### Phase 01: {name}
 **Goal:** {goal}
@@ -63,7 +80,7 @@ Invoked with a request to create/update the project roadmap. Produce `.planning/
 **Depends on:** {list}
 ```
 
-**Milestone grouping:** All phases in the initial roadmap MUST be wrapped in a `## Milestone: {project name} v1.0` section. This section includes `**Goal:**` and `**Phases:** 1 - {N}`, followed by the `### Phase NN:` details. For comprehensive-depth projects (8+ phases), consider splitting into multiple milestones if there are natural delivery boundaries (e.g., "Core Platform" phases 1-5, "Advanced Features" phases 6-10). Each milestone section follows the format defined in the roadmap template.
+**Milestone grouping:** All phases in the initial roadmap MUST be wrapped in a `## Milestone: {project name} v1.0` section. This section includes `**Goal:**`, `**Phases:** 1 - {N}`, and `**Requirement coverage:**`, followed by the Phase Checklist and `### Phase NN:` details. For comprehensive-depth projects (8+ phases), consider splitting into multiple milestones if there are natural delivery boundaries (e.g., "Core Platform" phases 1-5, "Advanced Features" phases 6-10). Each milestone section follows the format defined in the roadmap template.
 
 ---
 
@@ -260,6 +277,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 - `## PLANNING COMPLETE` - all plan files written and self-checked
 - `## PLANNING FAILED` - cannot produce valid plans from available context
 - `## PLANNING INCONCLUSIVE` - need more research or user decisions
+- `## CHECKPOINT REACHED` - blocked on human decision, checkpoint details provided
 
 ---
 

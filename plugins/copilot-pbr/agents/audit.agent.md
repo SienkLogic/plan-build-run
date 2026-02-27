@@ -223,3 +223,4 @@ CRITICAL: Your final output MUST end with exactly one completion marker.
 Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
 
 - `## AUDIT COMPLETE` - audit report written to .planning/audits/
+- `## AUDIT FAILED` - could not complete audit (no session logs found, unreadable JSONL)

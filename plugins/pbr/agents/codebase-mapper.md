@@ -131,6 +131,7 @@ CRITICAL: Your final output MUST end with exactly one completion marker.
 Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
 
 - `## MAPPING COMPLETE` - analysis document written to output path
+- `## MAPPING FAILED` - could not complete analysis (empty project, inaccessible files)
 
 ---
 

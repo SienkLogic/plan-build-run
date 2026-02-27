@@ -4,9 +4,9 @@ Reference patterns for deriving verification criteria from goals. Used by the pl
 
 ---
 
-## The Three-Layer Check
+## The Four-Layer Check
 
-Every must-have is verified through three layers, checked in order:
+Every must-have is verified through up to four layers, checked in order:
 
 ### Layer 1: Existence
 
@@ -62,6 +62,28 @@ grep -q "prisma" src/app.ts
 grep -q "DISCORD_CLIENT_ID" src/auth/discord.ts
 ```
 
+### Layer 4: Functional
+
+Does the artifact actually work when executed?
+
+```bash
+# Tests pass
+npm test -- --testPathPattern auth
+pytest tests/test_auth.py -v
+
+# Build succeeds
+npm run build
+npx tsc --noEmit
+
+# API returns correct data
+curl -s http://localhost:3000/api/auth/login -X POST -d '{"code":"test"}' | jq '.token'
+
+# CLI produces expected output
+node src/cli.js --help | grep -q "Usage:"
+```
+
+**When to apply L4:** Only when automated verification commands exist (test suites, build scripts, API endpoints with test data). Skip for items requiring manual/visual testing. L4 is optional — artifacts passing L1-L3 without available automated tests are reported as `PASSED (L3 only)`.
+
 ---
 
 ## Verification by Feature Type
@@ -69,41 +91,46 @@ grep -q "DISCORD_CLIENT_ID" src/auth/discord.ts
 ### API Endpoint
 
 ```
-Existence:  curl returns non-404 status
-Substance:  curl returns expected response shape (correct fields)
-Wiring:     endpoint calls the right service, middleware is applied
+Existence:   curl returns non-404 status
+Substance:   curl returns expected response shape (correct fields)
+Wiring:      endpoint calls the right service, middleware is applied
+Functional:  POST/GET with test data returns correct response, error cases handled
 ```
 
 ### Database Schema
 
 ```
-Existence:  table/collection exists, can query without error
-Substance:  columns/fields match specification, constraints are applied
-Wiring:     application code references the schema, migrations run cleanly
+Existence:   table/collection exists, can query without error
+Substance:   columns/fields match specification, constraints are applied
+Wiring:      application code references the schema, migrations run cleanly
+Functional:  CRUD operations work end-to-end, constraints reject invalid data
 ```
 
 ### Authentication
 
 ```
-Existence:  auth routes exist, auth module exports functions
-Substance:  login flow returns token, invalid creds return error
-Wiring:     protected routes use auth middleware, tokens are validated
+Existence:   auth routes exist, auth module exports functions
+Substance:   login flow returns token, invalid creds return error
+Wiring:      protected routes use auth middleware, tokens are validated
+Functional:  auth tests pass (valid token, expired token, missing token, malformed token)
 ```
 
 ### UI Component
 
 ```
-Existence:  component file exists, exports default component
-Substance:  component renders expected elements (test or visual check)
-Wiring:     component is imported in parent, receives correct props, routes to it
+Existence:   component file exists, exports default component
+Substance:   component renders expected elements (test or visual check)
+Wiring:      component is imported in parent, receives correct props, routes to it
+Functional:  component tests pass, build succeeds with component included
 ```
 
 ### Configuration
 
 ```
-Existence:  config file exists, environment variables documented
-Substance:  config values are used (not dead code), defaults are sensible
-Wiring:     application reads config at startup, config changes take effect
+Existence:   config file exists, environment variables documented
+Substance:   config values are used (not dead code), defaults are sensible
+Wiring:      application reads config at startup, config changes take effect
+Functional:  app starts with config, missing config produces clear error message
 ```
 
 ---

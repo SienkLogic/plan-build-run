@@ -97,16 +97,30 @@ Check for stub indicators: TODO/FIXME comments, empty function bodies, trivial r
 #### Level 3: Wired (Connected to the System)
 Verify the artifact is imported AND used by other parts of the system (functions called, components rendered, middleware applied, routes registered). Result: `WIRED`, `IMPORTED-UNUSED`, or `ORPHANED`.
 
+#### Level 4: Functional (Actually Works)
+Run the artifact and verify it produces correct results. This goes beyond structural checks (L1-L3) to behavioral verification. Result: `FUNCTIONAL`, `RUNTIME_ERROR`, or `LOGIC_ERROR`.
+
+**When to apply L4:** Only for must-haves that have automated verification commands (test suites, build scripts, API endpoints). Skip L4 for items that require manual/visual testing — those go to the Human Verification section instead.
+
+**L4 checks:**
+- Tests pass: `npm test`, `pytest`, or the project's test command
+- Build succeeds: `npm run build`, `tsc --noEmit`, or equivalent
+- API responds correctly: endpoint returns expected shape and status codes
+- CLI produces expected output: command-line tools return correct exit codes and output
+
 #### Artifact Outcome Decision Table
 
-| Exists | Substantive | Wired | Status |
-|--------|-------------|-------|--------|
-| No | -- | -- | MISSING |
-| Yes | No | -- | STUB |
-| Yes | Yes | No | UNWIRED |
-| Yes | Yes | Yes | PASSED |
+| Exists | Substantive | Wired | Functional | Status |
+|--------|-------------|-------|------------|--------|
+| No | -- | -- | -- | MISSING |
+| Yes | No | -- | -- | STUB |
+| Yes | Yes | No | -- | UNWIRED |
+| Yes | Yes | Yes | No | BROKEN |
+| Yes | Yes | Yes | Yes | PASSED |
 
 > **Note:** WIRED status (Level 3) requires correct arguments, not just correct function names. A call that passes `undefined` for a parameter available in scope is `ARGS_WRONG`, not `WIRED`.
+>
+> **Note:** FUNCTIONAL status (Level 4) is optional — only applied when automated verification is available. Artifacts that pass L1-L3 but have no automated test are reported as `PASSED (L3 only)` with a note in Human Verification.
 
 ### Step 6: Verify Key Links (Always)
 
@@ -134,12 +148,14 @@ Beyond verifying that calls exist, spot-check that **arguments passed to cross-b
 Cross-reference all must-haves against verification results in a table:
 
 ```markdown
-| # | Must-Have | Type | L1 (Exists) | L2 (Substantive) | L3 (Wired) | Status |
-|---|----------|------|-------------|-------------------|------------|--------|
-| 1 | {description} | truth | - | - | - | VERIFIED/FAILED |
-| 2 | {description} | artifact | YES/NO | YES/STUB/PARTIAL | WIRED/ORPHANED/ARGS_WRONG | PASS/FAIL |
-| 3 | {description} | key_link | - | - | YES/NO/ARGS_WRONG | PASS/FAIL |
+| # | Must-Have | Type | L1 (Exists) | L2 (Substantive) | L3 (Wired) | L4 (Functional) | Status |
+|---|----------|------|-------------|-------------------|------------|-----------------|--------|
+| 1 | {description} | truth | - | - | - | - | VERIFIED/FAILED |
+| 2 | {description} | artifact | YES/NO | YES/STUB/PARTIAL | WIRED/ORPHANED | FUNCTIONAL/BROKEN/- | PASS/FAIL |
+| 3 | {description} | key_link | - | - | YES/NO/ARGS_WRONG | - | PASS/FAIL |
 ```
+
+L4 column shows `-` when no automated verification is available. Only artifacts with test commands or build verification get L4 checks.
 
 ### Step 8: Scan for Anti-Patterns (Full Verification Only)
 
@@ -257,7 +273,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 - [ ] Previous VERIFICATION.md checked
 - [ ] Must-haves established from plan frontmatter
 - [ ] All truths verified with status and evidence
-- [ ] All artifacts checked at 3 levels (exists, substantive, wired)
+- [ ] All artifacts checked at 3-4 levels (exists, substantive, wired, functional when testable)
 - [ ] All key links verified including argument values
 - [ ] Anti-patterns scanned and categorized
 - [ ] Overall status determined
@@ -272,6 +288,7 @@ CRITICAL: Your final output MUST end with exactly one completion marker.
 Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
 
 - `## VERIFICATION COMPLETE` - VERIFICATION.md written (status in frontmatter)
+- `## VERIFICATION FAILED` - could not complete verification (missing phase dir, no must-haves to check)
 
 ---
 
