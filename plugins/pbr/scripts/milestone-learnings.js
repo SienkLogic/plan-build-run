@@ -34,7 +34,6 @@ function parseFrontmatter(content) {
   const result = {};
   const lines = yaml.split('\n');
   let currentKey = null;
-  let currentList = null;
 
   for (const line of lines) {
     // List item (must check before key match so "  - item" doesn't match as key)
@@ -54,7 +53,6 @@ function parseFrontmatter(content) {
     if (kvMatch) {
       currentKey = kvMatch[1];
       const rawVal = kvMatch[2].trim();
-      currentList = null;
 
       if (rawVal === '' || rawVal === '[]') {
         // Empty scalar or empty inline array — may be followed by list items
