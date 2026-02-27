@@ -606,6 +606,8 @@ After review completes, always present a clear next action using the completion 
 - **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.
 - **If final phase:** Use the "Milestone Complete" template. Fill in phase count.
 
+Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block of the completion template.
+
 ---
 
 ## Notes
