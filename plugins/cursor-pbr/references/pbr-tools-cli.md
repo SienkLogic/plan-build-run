@@ -283,3 +283,118 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event error hook-failure '{"scri
 **Output:** `{ "logged": true, "category": "build", "event": "plan-complete" }`
 
 If the JSON-details argument is not valid JSON, it's stored as `{ "raw": "<the string>" }`.
+
+---
+
+## Compound Init Commands
+
+Compound commands that compose multiple data sources into a single JSON response.
+Replace multi-step context loading in skills with a single CLI call.
+
+### `init execute-phase <phase>`
+
+Everything an executor needs to start building a phase.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init execute-phase 3
+```
+
+**Output:**
+```json
+{
+  "executor_model": "sonnet",
+  "verifier_model": "sonnet",
+  "config": { "depth": "standard", "mode": "interactive", "parallelization": {}, "planning": {}, "gates": {}, "features": {} },
+  "phase": { "num": "3", "dir": "03-auth", "name": "auth", "goal": "...", "has_context": false, "status": "planned", "plan_count": 2, "completed": 0 },
+  "plans": [{ "file": "PLAN-01.md", "plan_id": "01", "wave": 1, "autonomous": true, "has_summary": false, "must_haves_count": 4, "depends_on": [] }],
+  "waves": { "wave_1": ["01", "02"] },
+  "branch_name": "main",
+  "git_clean": true
+}
+```
+
+### `init plan-phase <phase>`
+
+Everything a planner needs to start phase planning.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init plan-phase 3
+```
+
+**Output:** `researcher_model`, `planner_model`, `checker_model`, `config` (depth profile, features, planning settings), `phase` (num, dir, goal, depends_on), `existing_artifacts`, `workflow` flags.
+
+### `init quick <description>`
+
+Everything the quick skill needs: next task number, slug, directory path.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init quick "add search feature"
+```
+
+**Output:** `next_task_number`, `slug`, `dir`, `dir_name`, `timestamp`, `config` subset.
+
+### `init verify-work <phase>`
+
+Everything a verifier needs to start verification.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init verify-work 3
+```
+
+**Output:** `verifier_model`, `phase` info, `has_verification`, `prior_attempts`, `prior_status`, `summaries`.
+
+### `init resume`
+
+Detect interrupted state and suggest continuation.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init resume
+```
+
+**Output:** `state`, `auto_next`, `continue_here`, `active_skill`, `current_phase`, `progress`.
+
+### `init progress`
+
+All phases with status and completion data.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init progress
+```
+
+**Output:** `current_phase`, `total_phases`, `status`, `phases` array, `total_plans`, `completed_plans`, `percentage`.
+
+---
+
+## State Mutation Extensions
+
+### `state patch <JSON>`
+
+Multi-field atomic STATE.md update. Updates all fields in a single pass.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
+```
+
+**Valid fields:** `current_phase`, `status`, `plans_complete`, `last_activity`, `progress_percent`, `phase_slug`, `total_phases`, `last_command`, `blockers`
+
+**Output:** `{ "success": true, "updated": ["status", "last_activity"] }`
+
+### `state advance-plan`
+
+Increment current plan number in STATE.md and update progress percentage.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
+```
+
+**Output:** `{ "success": true, "previous_plan": 1, "current_plan": 2, "total_plans": 5, "progress_percent": 40 }`
+
+### `state record-metric [--duration Nm] [--plans-completed N]`
+
+Record session/execution metrics. Appends to HISTORY.md and updates last_activity.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-metric --duration 15m --plans-completed 3
+```
+
+**Output:** `{ "success": true, "duration_minutes": 15, "plans_completed": 3 }`

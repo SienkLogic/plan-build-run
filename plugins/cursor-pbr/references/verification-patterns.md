@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/verification-patterns.md -->
 # Goal-Backward Verification Patterns
 
 Reference patterns for deriving verification criteria from goals. Used by the planner to create `<verify>` and `<done>` elements, and by the verifier to check phase completion.
@@ -197,3 +196,55 @@ Bad:  "Tests pass"
 Good: "All 5 auth middleware tests pass: valid token, expired token,
        missing token, malformed token, and correct user extraction"
 ```
+
+---
+
+## Wiring Verification Patterns
+
+4 concrete patterns for verifying components are actually connected, not just present.
+
+### Pattern 1: Component to API
+1. Find the fetch/axios call in the component
+2. Verify the call is NOT commented out
+3. Verify the response is assigned to state (not discarded)
+4. Verify error handling exists (try/catch or .catch)
+
+### Pattern 2: API to Database
+1. Find the database query in the route handler
+2. Verify `await` is present (not fire-and-forget)
+3. Verify the result is returned in the response (not discarded)
+4. Verify error cases return appropriate HTTP status codes
+
+### Pattern 3: Form to Handler
+1. Find the form's onSubmit handler
+2. Verify it calls an API function (not just preventDefault)
+3. Verify form validation runs before the API call
+4. Verify success/error feedback is shown to the user
+
+### Pattern 4: State to Render
+1. Find state variables (useState, store, etc.)
+2. Verify they appear in JSX/template via .map(), interpolation, or conditional rendering
+3. Verify loading/error states are rendered (not just success state)
+4. Verify empty state is handled (not just "no data" crash)
+
+### Quick Verification Checklists
+
+**Component Checklist (8 items):**
+- [ ] Component file exists and exports correctly
+- [ ] Props/types are defined (not `any`)
+- [ ] API calls use actual endpoints (not hardcoded data)
+- [ ] Loading state renders something meaningful
+- [ ] Error state renders something meaningful
+- [ ] Empty state renders something meaningful
+- [ ] User interactions trigger actual handlers
+- [ ] Component is imported and rendered in parent
+
+**API Route Checklist (8 items):**
+- [ ] Route file exists and exports handler
+- [ ] Route is registered in router/app
+- [ ] Request validation exists (body, params, query)
+- [ ] Database query uses parameterized inputs
+- [ ] Success response includes expected data shape
+- [ ] Error response includes status code and message
+- [ ] Authentication/authorization check exists if needed
+- [ ] Response matches what the frontend expects

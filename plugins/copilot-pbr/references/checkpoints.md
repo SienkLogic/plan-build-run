@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/checkpoints.md -->
 # Checkpoints Reference
 
 How Plan-Build-Run uses checkpoint tasks to pause execution and involve the human.
@@ -156,3 +155,35 @@ When creating plans that include checkpoints:
 4. **Provide clear instructions** — the `<action>` and `<verify>` elements should give the human everything they need
 5. **Consider autonomous alternatives** — if a task CAN be verified automatically, prefer `type="auto"` with a robust `<verify>` command
 6. **Set `autonomous: false`** in the plan frontmatter when any task is a checkpoint
+
+---
+
+## Automation-First Philosophy
+
+### 5 Golden Rules
+1. If Claude CAN run it, Claude MUST run it
+2. If Claude CAN verify it, Claude MUST verify it
+3. Only checkpoint for things requiring human senses or credentials
+4. Group manual actions to minimize checkpoint count
+5. Never ask the user to do something automatable
+
+### Automatable Quick Reference
+
+| Action | Automatable? | Notes |
+|--------|-------------|-------|
+| Run tests | YES | `npm test`, `pytest`, etc. |
+| Start dev server | YES | `npm run dev` (check port) |
+| Check environment variables | YES | `env \| grep KEY` |
+| Build project | YES | `npm run build` |
+| Run linting | YES | `npm run lint` |
+| Database migrations | YES | CLI commands |
+| Click email verification link | NO | Requires browser + inbox |
+| 3DS payment verification | NO | Requires card + phone |
+| OAuth consent screen | NO | Requires browser interaction |
+| Hardware token/YubiKey | NO | Physical device |
+
+### Anti-Patterns
+- Asking user to "start the dev server" — just run it
+- Asking user to "check if tests pass" — run `npm test`
+- Saying "please verify the output" without running verification commands first
+- Creating a checkpoint for `mkdir` or `npm install`
