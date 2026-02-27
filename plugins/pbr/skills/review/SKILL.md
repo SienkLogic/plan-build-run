@@ -177,6 +177,16 @@ Task({
 
 Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
 
+**Prepend this block to the verifier prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
+2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
+3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+</files_to_read>
+```
+
 **Placeholders to fill before sending:**
 - `{For each PLAN.md file in the phase directory:}` — inline each plan's must_haves frontmatter block
 - `{For each SUMMARY.md file in the phase directory:}` — provide manifest table with file paths and status from frontmatter. The verifier reads full content from disk via Read tool.
@@ -409,6 +419,16 @@ Task({
 
 Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
 
+**Prepend this block to the debugger prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/VERIFICATION.md — gaps and failure details
+2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — what was built
+3. .planning/phases/{NN}-{slug}/PLAN-*.md — original plan must-haves
+</files_to_read>
+```
+
 **Placeholders to fill before sending:**
 - `[Inline the VERIFICATION.md content]` — provide file path; debugger reads via Read tool
 - `[Inline all SUMMARY.md files for the phase]` — provide manifest table of file paths
@@ -430,6 +450,16 @@ Task({
 ##### Gap Planner Prompt Template
 
 Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
+
+**Prepend this block to the gap planner prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/VERIFICATION.md — gaps to close
+2. .planning/phases/{NN}-{slug}/PLAN-*.md — existing plans for context
+3. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+</files_to_read>
+```
 
 **Placeholders to fill before sending:**
 - `[Inline VERIFICATION.md]` — provide file path; planner reads via Read tool
@@ -615,7 +645,7 @@ After review completes, always present a clear next action using the completion 
 - **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.
 - **If final phase:** Use the "Milestone Complete" template. Fill in phase count.
 
-> Tip: Run `/clear` before the next command to start with a fresh context window.
+Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block of the completion template.
 
 ---
 

@@ -4,6 +4,10 @@
  * PostToolUse hook on Read: Tracks cumulative file reads per skill invocation.
  *
  * Maintains a session-scoped counter in .planning/.context-tracker.
+ * Integrates with context-bridge.js: if .planning/.context-budget.json exists
+ * and is fresh (< 60 seconds), uses its tier-based warnings instead of the
+ * heuristic char/file milestones.
+ *
  * Warns only at meaningful thresholds to reduce noise:
  *   - Unique files read crosses milestone (10, 20, 30, ...)
  *   - Total chars read crosses milestone (50k, 100k, 150k, ...)
@@ -17,6 +21,8 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+
+const BRIDGE_STALENESS_MS = 60000; // 60 seconds
 
 const UNIQUE_FILE_MILESTONE = 10;    // warn every 10 unique files
 const CHAR_MILESTONE = 50000;        // warn every 50k chars
@@ -103,6 +109,19 @@ function main() {
         try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
       }
 
+      // Check bridge file for tier-based context warnings
+      const bridgeTier = checkBridge(planningDir);
+      if (bridgeTier) {
+        // Bridge is fresh and providing tier warnings — skip heuristic milestones
+        // (the bridge's context-bridge.js already handles tier debounce)
+        logHook('track-context-budget', 'PostToolUse', 'bridge-active', {
+          reads: tracker.reads,
+          total_chars: tracker.total_chars,
+          tier: bridgeTier,
+        });
+        process.exit(0);
+      }
+
       // Check thresholds — only warn at milestone crossings, not every read
       const warnings = [];
 
@@ -165,4 +184,36 @@ function loadTracker(trackerPath) {
   }
 }
 
-main();
+/**
+ * Check the context bridge file for tier-based warnings.
+ * Returns the current tier name if the bridge is fresh, null otherwise.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {string|null} Tier name if bridge is active and fresh, null if stale/missing
+ */
+function checkBridge(planningDir) {
+  const bridgePath = path.join(planningDir, '.context-budget.json');
+  try {
+    if (!fs.existsSync(bridgePath)) return null;
+
+    const stats = fs.statSync(bridgePath);
+    const ageMs = Date.now() - stats.mtimeMs;
+    if (ageMs > BRIDGE_STALENESS_MS) return null;
+
+    const content = fs.readFileSync(bridgePath, 'utf8');
+    const bridge = JSON.parse(content);
+
+    // Only trust bridge data that has a real source or recent update
+    if (!bridge.estimated_percent && bridge.estimated_percent !== 0) return null;
+
+    const { getTier } = require('./context-bridge');
+    const tier = getTier(bridge.estimated_percent);
+    return tier.name;
+  } catch (_e) {
+    return null;
+  }
+}
+
+module.exports = { checkBridge, BRIDGE_STALENESS_MS };
+
+if (require.main === module || process.argv[1] === __filename) { main(); }

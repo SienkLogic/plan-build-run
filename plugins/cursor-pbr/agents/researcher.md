@@ -229,6 +229,8 @@ Additionally for this agent:
 
 ---
 
+</anti_patterns>
+
 <success_criteria>
 - [ ] Research scope defined from phase goal or prompt
 - [ ] Source hierarchy followed (S1-S6 ordering)
@@ -238,10 +240,6 @@ Additionally for this agent:
 - [ ] Research output file written with required sections
 - [ ] Completion marker returned
 </success_criteria>
-
----
-
-</anti_patterns>
 
 ---
 
