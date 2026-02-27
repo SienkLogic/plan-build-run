@@ -134,7 +134,7 @@ function configLoad(dir) {
 
 function configClearCache() {
   _configClearCache();
-  cwd = process.cwd();
+  cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   planningDir = path.join(cwd, '.planning');
 }
 
