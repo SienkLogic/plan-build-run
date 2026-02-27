@@ -28,6 +28,10 @@
  *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
  *   history append <type> <title> [body] — Append record to HISTORY.md
  *   history load                         — Load all HISTORY.md records as JSON
+ *   todo list [--theme X] [--status Y]  — List todos as JSON (default: pending)
+ *   todo get <NNN>                       — Get a specific todo by number
+ *   todo add <title> [--priority P] [--theme T] — Add a new todo
+ *   todo done <NNN>                      — Mark a todo as complete
  *   llm metrics [--session <ISO>]        — Lifetime or session-scoped LLM usage metrics
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] — Add a new phase directory (with renumbering)
@@ -63,7 +67,11 @@ const {
   configClearCache: _configClearCache,
   configValidate: _configValidate,
   resolveDepthProfile,
-  DEPTH_PROFILE_DEFAULTS
+  DEPTH_PROFILE_DEFAULTS,
+  loadUserDefaults,
+  saveUserDefaults,
+  mergeUserDefaults,
+  USER_DEFAULTS_PATH
 } = require('./lib/config');
 
 const {
@@ -109,6 +117,17 @@ const {
   historyAppend: _historyAppend,
   historyLoad: _historyLoad
 } = require('./lib/history');
+
+const {
+  todoList: _todoList,
+  todoGet: _todoGet,
+  todoAdd: _todoAdd,
+  todoDone: _todoDone
+} = require('./lib/todo');
+
+const {
+  applyMigrations: _applyMigrations
+} = require('./lib/migrate');
 
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
@@ -232,6 +251,26 @@ function historyAppend(entry, dir) {
 
 function historyLoad(dir) {
   return _historyLoad(dir || planningDir);
+}
+
+function todoList(opts) {
+  return _todoList(planningDir, opts);
+}
+
+function todoGet(num) {
+  return _todoGet(planningDir, num);
+}
+
+function todoAdd(title, opts) {
+  return _todoAdd(planningDir, title, opts);
+}
+
+function todoDone(num) {
+  return _todoDone(planningDir, num);
+}
+
+function migrate(options) {
+  return _applyMigrations(planningDir, options);
 }
 
 // --- validateProject stays here (cross-cutting across modules) ---
@@ -374,6 +413,13 @@ async function main() {
       output(stateUpdate(field, value));
     } else if (command === 'config' && subcommand === 'validate') {
       output(configValidate());
+    } else if (command === 'config' && subcommand === 'load-defaults') {
+      const defaults = loadUserDefaults();
+      output(defaults || { exists: false, path: USER_DEFAULTS_PATH });
+    } else if (command === 'config' && subcommand === 'save-defaults') {
+      const config = configLoad();
+      if (!config) error('No config.json found. Run /pbr:setup first.');
+      output(saveUserDefaults(config));
     } else if (command === 'config' && subcommand === 'resolve-depth') {
       const dir = args[2] || undefined;
       const config = configLoad(dir);
@@ -590,10 +636,43 @@ async function main() {
       output(phaseRemove(phaseNum));
     } else if (command === 'phase' && subcommand === 'list') {
       output(phaseList());
+    } else if (command === 'todo' && subcommand === 'list') {
+      const opts = {};
+      const themeIdx = args.indexOf('--theme');
+      if (themeIdx !== -1 && args[themeIdx + 1]) opts.theme = args[themeIdx + 1];
+      const statusIdx = args.indexOf('--status');
+      if (statusIdx !== -1 && args[statusIdx + 1]) opts.status = args[statusIdx + 1];
+      output(todoList(opts));
+    } else if (command === 'todo' && subcommand === 'get') {
+      const num = args[2];
+      if (!num) error('Usage: pbr-tools.js todo get <NNN>');
+      output(todoGet(num));
+    } else if (command === 'todo' && subcommand === 'add') {
+      const titleParts = [];
+      const opts = {};
+      // Parse: todo add <title words...> [--priority P1] [--theme security] [--source cli]
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--priority' && args[i + 1]) { opts.priority = args[++i]; }
+        else if (args[i] === '--theme' && args[i + 1]) { opts.theme = args[++i]; }
+        else if (args[i] === '--source' && args[i + 1]) { opts.source = args[++i]; }
+        else { titleParts.push(args[i]); }
+      }
+      const title = titleParts.join(' ');
+      if (!title) error('Usage: pbr-tools.js todo add <title> [--priority P1|P2|P3] [--theme <theme>]');
+      output(todoAdd(title, opts));
+    } else if (command === 'todo' && subcommand === 'done') {
+      const num = args[2];
+      if (!num) error('Usage: pbr-tools.js todo done <NNN>');
+      output(todoDone(num));
+    } else if (command === 'migrate') {
+      const dryRun = args.includes('--dry-run');
+      const force = args.includes('--force');
+      const result = await migrate({ dryRun, force });
+      output(result);
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate, validate-project, init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
     }
   } catch (e) {
     error(e.message);
@@ -601,6 +680,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
