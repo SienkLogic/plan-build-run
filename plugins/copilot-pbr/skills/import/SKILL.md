@@ -275,6 +275,13 @@ Task({
 ```
 You are the plan-checker agent.
 
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+2. .planning/STATE.md — current project state and progress
+3. .planning/ROADMAP.md — phase structure, goals, and dependencies
+</files_to_read>
+
 <plans_to_check>
 {For each generated PLAN.md:}
 --- Plan File: {filename} ---
@@ -305,7 +312,15 @@ Run all verification dimensions on these plans. Return your structured report.
 Do NOT write any files. Return your findings as your response text.
 ```
 
-**Process checker results — revision loop:**
+**Process checker results — completion marker check:**
+
+After the plan-checker completes, check for completion markers in the Task() output:
+
+- If `## CHECK PASSED` is present: skip the revision loop entirely and proceed to Step 7.
+- If `## ISSUES FOUND` is present: enter the revision loop below.
+- If neither marker is found: treat as issues found and enter the revision loop.
+
+**Revision loop:**
 
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern (max 3 iterations).
 
@@ -322,6 +337,16 @@ Write each plan to `.planning/phases/{NN}-{slug}/PLAN-{plan_num}.md`.
 
 If existing plans are being replaced (user confirmed in Step 1):
 - Delete existing `*-PLAN.md` files in the phase directory before writing new ones
+
+---
+
+**Step 7b — Spot-check artifacts:**
+
+After writing plan files, verify they landed on disk:
+
+1. Glob `.planning/phases/{NN}-{slug}/PLAN-*.md` to confirm files exist
+2. Count matches — must equal the number of plans generated in Step 5
+3. If any are missing: re-attempt the write. If still missing, display an error listing the missing files.
 
 ---
 

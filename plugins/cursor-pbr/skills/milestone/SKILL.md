@@ -487,6 +487,12 @@ Verify milestone completion with cross-phase integration checks.
    ```
    You are integration-checker. Perform cross-phase integration verification.
 
+   <files_to_read>
+   CRITICAL: Read these files BEFORE any other action:
+   1. .planning/ROADMAP.md — phase structure, goals, and dependencies
+   2. .planning/phases/{NN}-{slug}/SUMMARY.md — for each milestone phase (read all)
+   </files_to_read>
+
    Milestone: {version or "current"}
    Phases to check: {list of phase directories}
 
@@ -506,20 +512,26 @@ Verify milestone completion with cross-phase integration checks.
    5. Return findings as a structured report
    ```
 
-4. **Check requirements coverage:**
+4. **Check integration-checker completion:**
+
+   After the integration-checker completes, check for `## INTEGRATION CHECK COMPLETE` in the Task() output. If the marker is absent, warn: `⚠ Integration checker did not return completion marker — results may be incomplete.` Proceed with whatever findings were returned but note the incomplete status in the audit report.
+
+5. **Check requirements coverage:**
    - Read REQUIREMENTS.md
    - For each requirement tagged for this milestone:
      - Search VERIFICATION.md files for coverage
      - Search SUMMARY.md `provides` fields
      - Flag uncovered requirements
 
-5. **Write audit report:**
+6. **Write audit report:**
 
    Create `.planning/{version}-MILESTONE-AUDIT.md` using the template:
 
    Read `skills/milestone/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
 
-6. **Report to user** using branded banners:
+   **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
+
+7. **Report to user** using branded banners:
 
    **If PASSED:**
    ```

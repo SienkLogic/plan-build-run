@@ -122,7 +122,12 @@ Display to the user: `◐ Spawning researcher...`
 ```
 Task({
   subagent_type: "pbr:researcher",
-  prompt: "<research_assignment>
+  prompt: "<files_to_read>
+    CRITICAL: Read these files BEFORE any other action:
+    1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+    2. .planning/STATE.md — current project state (if exists)
+  </files_to_read>
+  <research_assignment>
     Topic: {specific research question}
     Output file: .planning/research/{topic-slug}.md
     Mode: project-research
@@ -134,7 +139,13 @@ Task({
 })
 ```
 
-After the researcher completes, display: `✓ Research complete — results in .planning/research/{topic-slug}.md`
+After the researcher completes, check for completion markers in the Task() output:
+
+- If `## RESEARCH COMPLETE` is present: proceed normally
+- If `## RESEARCH BLOCKED` is present: display the blocker reason and offer to retry:
+  `⚠ Research blocked: {reason}. Try a different angle or continue without research.`
+
+Display: `✓ Research complete — results in .planning/research/{topic-slug}.md`
 
 Then:
 - Read ONLY the frontmatter and summary section of the research file (not the full document)
