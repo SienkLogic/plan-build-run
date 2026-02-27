@@ -303,6 +303,13 @@ Construct the executor prompt:
 ```
 You are the executor agent. Execute the following plan.
 
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — the full plan with task details
+2. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+3. .planning/STATE.md — current project state and progress
+</files_to_read>
+
 <plan_summary>
 [Inline only the ## Summary section from PLAN.md]
 </plan_summary>
@@ -452,7 +459,14 @@ For each plan that completed successfully in this wave:
 Task({
   agent_type: "pbr:verifier",
   model: "haiku",
-  prompt: "Targeted inline verification for plan {plan_id}.
+  prompt: "<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — must-haves to verify against
+2. .planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md — what the executor claims was built
+3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+</files_to_read>
+
+Targeted inline verification for plan {plan_id}.
 
 Verify ONLY these files: {comma-separated key_files list}
 
@@ -666,6 +680,16 @@ After verifier completes, check for completion marker: `## VERIFICATION COMPLETE
 #### Verifier Prompt Template
 
 Use the same verifier prompt template as defined in `/pbr:review`: read `skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
+
+**Prepend this block to the verifier prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
+2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
+3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+</files_to_read>
+```
 
 After the verifier returns, read the VERIFICATION.md frontmatter and display the results:
 

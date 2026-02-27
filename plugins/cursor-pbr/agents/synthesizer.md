@@ -161,6 +161,8 @@ Use the returned `summary` string as your working copy of that document's findin
 
 ---
 
+</anti_patterns>
+
 <success_criteria>
 - [ ] All input research documents read
 - [ ] Contradictions identified and documented
@@ -171,10 +173,6 @@ Use the returned `summary` string as your working copy of that document's findin
 - [ ] Confidence never upgraded beyond source support
 - [ ] Completion marker returned
 </success_criteria>
-
----
-
-</anti_patterns>
 
 ---
 

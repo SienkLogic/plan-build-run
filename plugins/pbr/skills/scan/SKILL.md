@@ -126,6 +126,14 @@ For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in t
 - `{scale}`: detected scale from Step 2
 - `{output_path}`: `.planning/codebase/`
 
+**Prepend this block to each mapper prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/codebase/RECON.md — baseline reconnaissance data (if exists)
+</files_to_read>
+```
+
 | Agent | Focus | Output Files | When |
 |-------|-------|-------------|------|
 | 1 | tech | STACK.md, INTEGRATIONS.md | Always |
@@ -144,6 +152,18 @@ All agents run in parallel. As each completes, display:
 ```
 
 (Only display lines for the focus areas that were actually spawned.)
+
+### Step 4b: Check Completion Markers
+
+After each codebase-mapper Task() completes, check the Task() output for the `## MAPPING COMPLETE` marker:
+
+- If `## MAPPING COMPLETE` is present: the mapper finished successfully, proceed normally
+- If the marker is missing: warn the user that the mapper may not have completed successfully:
+  ```
+  ⚠ Codebase mapper ({focus_area}) did not report MAPPING COMPLETE.
+  Output may be incomplete — check .planning/codebase/ for partial results.
+  ```
+  Continue to Step 5 verification regardless (the file existence checks will catch truly missing output).
 
 ### Step 5: Verify Output
 

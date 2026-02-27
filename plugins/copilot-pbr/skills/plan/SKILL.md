@@ -225,6 +225,15 @@ Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt 
 - `{dependencies from roadmap}` - dependency list
 - Fill `<project_context>` and `<prior_work>` blocks per the shared partial (`templates/prompt-partials/phase-project-context.md.tmpl`): Decision Summary for context, manifest table for prior work
 
+**Prepend this block to the researcher prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/ROADMAP.md — phase goals, dependencies, and structure
+2. .planning/REQUIREMENTS.md — scoped requirements for this phase (if exists)
+</files_to_read>
+```
+
 Wait for the researcher to complete before proceeding.
 
 ---
@@ -340,6 +349,16 @@ Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt tem
 - `<config>` - max tasks, parallelization, TDD mode from config.json
 - `<planning_instructions>` - phase-specific planning rules and output path
 
+**Prepend this block to the planner prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+2. .planning/ROADMAP.md — phase goals, dependencies, and structure
+3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
+</files_to_read>
+```
+
 Wait for the planner to complete.
 
 After the planner returns, read the plan files it created to extract counts. Display a completion summary:
@@ -386,6 +405,15 @@ Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt tem
 - `<plans_to_check>` - manifest table of PLAN.md file paths (checker reads each via Read tool)
 - `<phase_context>` - phase goal and requirement IDs
 - `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
+
+**Prepend this block to the checker prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/PLAN-*.md — plan files to validate
+2. .planning/CONTEXT.md — locked decisions to check against (if exists)
+</files_to_read>
+```
 
 **Process checker results:**
 
