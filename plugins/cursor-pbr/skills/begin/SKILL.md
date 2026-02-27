@@ -226,6 +226,14 @@ For each researcher, construct the prompt by reading the template and filling in
 
 Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure.
 
+**Prepend this block to the researcher prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/REQUIREMENTS.md — scoped requirements (if exists)
+</files_to_read>
+```
+
 **Placeholders to fill:**
 - `{project name from questioning}` — project name gathered in Step 2
 - `{2-3 sentence description from questioning}` — project description from Step 2
@@ -284,12 +292,38 @@ Invoke the `@synthesizer` agent with the synthesis prompt.
 
 Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 
+**Prepend this block to the synthesizer prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/research/*.md — all research output files from Step 5
+</files_to_read>
+```
+
 **Placeholders to fill:**
 - `{List all .planning/research/*.md files that were created}` — list the research files produced in Step 5
 
-**After the synthesizer completes**, display:
+**After the synthesizer completes**, check for completion markers in the Task() output:
+
+- If `## SYNTHESIS COMPLETE` is present: proceed normally
+- If `## SYNTHESIS BLOCKED` is present: warn the user and offer to proceed without synthesis:
+  ```
+  ⚠ Synthesizer reported BLOCKED: {reason from output}
+  Research files are still available individually in .planning/research/.
+  ```
+  Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+    question: "Synthesis was blocked. Continue without synthesis?"
+    header: "Blocked"
+    options:
+      - label: "Yes"  description: "Proceed to requirements — use individual research files"
+      - label: "No"   description: "Stop and investigate"
+  - If "Yes": proceed to Step 7 without SUMMARY.md
+  - If "No": stop and suggest reviewing .planning/research/ files
+- If neither marker is found: warn the user that the synthesizer may not have completed successfully, but proceed if SUMMARY.md exists on disk
+
+If synthesis succeeded, display:
 ```
-Research synthesis complete — see .planning/research/SUMMARY.md
+✓ Research synthesis complete — see .planning/research/SUMMARY.md
 ```
 
 ---
@@ -352,6 +386,15 @@ Invoke the `@planner` agent in roadmap mode with the roadmap prompt.
 #### Roadmap Prompt Template
 
 Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
+
+**Prepend this block to the roadmap planner prompt before sending:**
+```
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/REQUIREMENTS.md — scoped requirements for phase planning
+2. .planning/research/SUMMARY.md — research synthesis (if exists)
+</files_to_read>
+```
 
 **Placeholders to fill:**
 - `{project name}` — project name from Step 2

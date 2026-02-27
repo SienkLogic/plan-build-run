@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { KNOWN_AGENTS } = require('./pbr-tools');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyError } = require('./local-llm/operations/classify-error');
 
@@ -148,6 +149,25 @@ const AGENT_OUTPUTS = {
     }
   },
   'pbr:general': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:audit': {
+    description: 'audit report in .planning/audits/',
+    check: (planningDir) => {
+      const auditsDir = path.join(planningDir, 'audits');
+      if (!fs.existsSync(auditsDir)) return [];
+      try {
+        return fs.readdirSync(auditsDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('audits', f));
+      } catch (_e) {
+        return [];
+      }
+    }
+  },
+  'pbr:dev-sync': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
     check: () => []
@@ -338,6 +358,13 @@ async function main() {
   // Only check known Plan-Build-Run agent types
   const outputSpec = AGENT_OUTPUTS[agentType];
   if (!outputSpec) {
+    // Log when agent is in KNOWN_AGENTS but missing from AGENT_OUTPUTS
+    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(agentType)) {
+      logHook('check-subagent-output', 'PostToolUse', 'missing-output-spec', {
+        agent_type: agentType,
+        message: `Agent ${agentType} is in KNOWN_AGENTS but has no AGENT_OUTPUTS entry. Add one to check-subagent-output.js.`
+      });
+    }
     process.exit(0);
   }
 

@@ -175,6 +175,12 @@ Spawn a `Task(subagent_type: "pbr:executor")` with the following prompt:
 ```
 You are executor. Execute the following quick task plan.
 
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/quick/{NNN}-{slug}/PLAN.md — the quick task plan with task details
+2. .planning/STATE.md — current project state and progress (if exists)
+</files_to_read>
+
 Plan file: .planning/quick/{NNN}-{slug}/PLAN.md
 Phase: quick
 Plan ID: {NNN}
