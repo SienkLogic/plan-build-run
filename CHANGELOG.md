@@ -5,6 +5,23 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.36.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.35.1...plan-build-run-v2.36.0) (2026-02-27)
+
+
+### Features
+
+* **quick-013:** GSD Wave C — completion markers, file read protocol, XML enhancement, context tiers ([3ecb8e5](https://github.com/SienkLogic/plan-build-run/commit/3ecb8e57e733acc183cca9ecaa1d55c59213cff7))
+* **quick-014:** GSD Wave D — inline deviation rules, scope boundaries, self-check hardening, spot-checks ([221e82a](https://github.com/SienkLogic/plan-build-run/commit/221e82ab45e8b4f4048699fd2e5e59e40f6ed252))
+* **quick-014:** GSD Wave E + review fixes — context bridge, files_to_read, B3 completion, XML nesting ([cf652dc](https://github.com/SienkLogic/plan-build-run/commit/cf652dcd802dae1f6041c7ad5bfa6cc7363783d2))
+* **tools:** completion markers, file-read protocol, spot-checks for secondary skills ([f987a1d](https://github.com/SienkLogic/plan-build-run/commit/f987a1d8f61872c2c5978a0fe63c00c0cb9bfe7d))
+* **tools:** GSD Wave B — compound init commands, bug fixes, and reference upgrades ([fcaa91c](https://github.com/SienkLogic/plan-build-run/commit/fcaa91cc85f267fda7663aa47397b50f4c5ff4cb))
+
+
+### Bug Fixes
+
+* **quick-014:** add /clear recommendations to derivative plugin completion sections ([da892b7](https://github.com/SienkLogic/plan-build-run/commit/da892b75f747b19d9b47b1d8831371dd4a2a2fd7))
+* **quick-014:** review pass 2 — XML nesting, KNOWN_AGENTS prefix, completion markers, spot-check sync ([b91530d](https://github.com/SienkLogic/plan-build-run/commit/b91530d1a535a10f3a83a72c3cfa3fbdd64fd278))
+
 ## [2.35.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.35.0...plan-build-run-v2.35.1) (2026-02-25)
 
 
