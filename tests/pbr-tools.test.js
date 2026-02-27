@@ -843,6 +843,70 @@ next_top_level: something`;
     });
   });
 
+  describe('learnings subcommands', () => {
+    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
+    const { execFileSync } = require('child_process');
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-cli-test-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function runTool(args, env = {}) {
+      try {
+        const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+          encoding: 'utf8',
+          timeout: 10000,
+          cwd: tmpDir,
+          env: Object.assign({}, process.env, env),
+        });
+        return { status: 0, stdout, stderr: '' };
+      } catch (e) {
+        return { status: e.status || 1, stdout: e.stdout || '', stderr: e.stderr || '' };
+      }
+    }
+
+    test('learnings query with no args returns JSON array (may be empty)', () => {
+      const result = runTool(['learnings', 'query']);
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      expect(Array.isArray(json)).toBe(true);
+    });
+
+    test('learnings query --tags estimation returns filtered results or empty array', () => {
+      const result = runTool(['learnings', 'query', '--tags', 'estimation']);
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      expect(Array.isArray(json)).toBe(true);
+      // All returned entries must have the estimation tag
+      for (const entry of json) {
+        expect(entry.tags).toContain('estimation');
+      }
+    });
+
+    test('learnings ingest with missing input file exits with non-zero', () => {
+      const missingFile = path.join(tmpDir, 'nonexistent.json');
+      const result = runTool(['learnings', 'ingest', missingFile]);
+      expect(result.status).not.toBe(0);
+    });
+
+    test('learnings check-thresholds returns JSON array of triggered thresholds', () => {
+      const result = runTool(['learnings', 'check-thresholds']);
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      expect(Array.isArray(json)).toBe(true);
+      // Each triggered threshold has key and trigger fields
+      for (const item of json) {
+        expect(item).toHaveProperty('key');
+        expect(item).toHaveProperty('trigger');
+      }
+    });
+  });
+
   describe('configClearCache', () => {
     test('resets cache so next configLoad reads fresh data', () => {
       const tmpDir1 = fs.mkdtempSync(path.join(os.tmpdir(), 'tt-cache1-'));
