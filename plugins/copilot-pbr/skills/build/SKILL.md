@@ -860,6 +860,8 @@ Then present the appropriate branded banner from Read `references/ui-formatting.
 - **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.
 - **If `gaps_found`:** Use the "Gaps Found" template. Fill in phase number, name, score, and gap summaries from VERIFICATION.md.
 
+Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block of the completion template.
+
 **8g. Display USER-SETUP.md (conditional):**
 
 Check if `.planning/phases/{NN}-{slug}/USER-SETUP.md` exists. If it does:
