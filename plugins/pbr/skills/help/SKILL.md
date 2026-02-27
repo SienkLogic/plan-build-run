@@ -45,6 +45,7 @@ Display the following reference to the user:
 | `/pbr:plan <N>` | Plan a phase. Research, create plans, verify before building. | Medium (2-3 agents) |
 | `/pbr:build <N>` | Build a phase. Execute plans in parallel waves, verify results. | High (2-4 agents) |
 | `/pbr:review <N>` | Review what was built. Automated verification + walkthrough with you. | Low (1 agent) |
+| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework automatically. | Medium (1-3 agents) |
 
 ### Planning & Discovery
 
@@ -75,6 +76,7 @@ Display the following reference to the user:
 |---------|-------------|
 | `/pbr:review <N>` | Verify phase + conversational UAT. |
 | `/pbr:review <N> --auto-fix` | Auto-diagnose and fix verification failures. |
+| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
 | `/pbr:debug` | Systematic debugging with hypothesis testing. |
 | `/pbr:scan` | Analyze existing codebase (brownfield). |
 
