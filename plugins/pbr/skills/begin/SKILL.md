@@ -220,6 +220,7 @@ Spawn parallel Task() subagents for research. Each researcher writes to `.planni
 ```
 Task({
   subagent_type: "pbr:researcher",
+  // After researcher: check for ## RESEARCH COMPLETE or ## RESEARCH BLOCKED
   prompt: <see researcher prompt template below>
 })
 ```
@@ -367,6 +368,7 @@ Spawn the planner in roadmap mode:
 ```
 Task({
   subagent_type: "pbr:planner",
+  // After planner: check for ## PLANNING COMPLETE or ## PLANNING FAILED
   prompt: <roadmap prompt>
 })
 ```
