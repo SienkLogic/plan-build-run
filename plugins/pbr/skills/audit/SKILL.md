@@ -137,7 +137,12 @@ For each session:
 ```
 Task({
   subagent_type: "pbr:audit",
-  prompt: "<audit_assignment>
+  prompt: "<files_to_read>
+    CRITICAL: Read these files BEFORE any other action:
+    1. {absolute_path_to_session.jsonl} — session log to analyze
+    2. {subagent log paths, if any} — subagent session logs
+  </files_to_read>
+  <audit_assignment>
     Session JSONL: {absolute_path_to_session.jsonl}
     Subagent logs: {list of subagent jsonl paths, or 'none'}
     Audit mode: {mode}
@@ -173,7 +178,9 @@ Display progress:
 
 ## Step 5 — Collect and Synthesize
 
-As agents complete, collect their findings. Wait for all agents before proceeding.
+As agents complete, check each audit agent's Task() output for `## AUDIT COMPLETE`. If the marker is absent, mark that session as "analysis failed" in the synthesis and skip its findings — do not treat incomplete output as valid analysis. Log: `⚠ Session {id}: audit agent did not return completion marker — skipping.`
+
+Wait for all agents before proceeding.
 
 Synthesize across all sessions:
 
@@ -258,6 +265,15 @@ The report should follow this structure:
 
 ---
 
+## Step 6b — Spot-Check Artifacts
+
+**Before displaying results, verify the report landed on disk:**
+
+1. Glob `.planning/audits/{YYYY-MM-DD}-session-audit.md` to confirm the file exists
+2. If missing: re-attempt the write (Step 6). If still missing, display an error and include findings inline instead.
+
+---
+
 ## Step 7 — Display Summary
 
 After writing the report, display inline (keep it concise — the full report is on disk):
@@ -289,7 +305,7 @@ Full report: .planning/audits/{filename}
 - If todos identified: **Create todos** → `/pbr:todo add "{description}"`
 - Default: **See project status** → `/pbr:status`
 
-`/clear` first → fresh context window
+<sub>`/clear` first → fresh context window</sub>
 ```
 
 ---

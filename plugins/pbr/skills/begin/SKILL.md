@@ -430,6 +430,7 @@ CRITICAL: Read these files BEFORE any other action:
 - `{quick|standard|comprehensive}` — depth setting from Step 3
 
 **After the planner completes:**
+- **Spot-check:** Verify `.planning/ROADMAP.md` exists on disk using Glob before attempting to read it. If missing, the planner may have failed silently — warn: `⚠ ROADMAP.md not found after planner completed. Re-spawning planner...` and retry once.
 - Read `.planning/ROADMAP.md`
 - Count the phases from the roadmap content
 - Verify the roadmap contains a `## Milestone:` section wrapping the phases (the planner should generate this). If not, the initial set of phases constitutes the first milestone — add the section header yourself.
@@ -577,7 +578,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 After all steps complete, present the final summary using the stage banner format from Read `references/ui-formatting.md`:
 
-Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-formatting.md) pointing to `/pbr:discuss 1` with alternatives: `/pbr:explore`, `/pbr:plan 1`, `/pbr:milestone new`, `/pbr:config`.
+Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-formatting.md) pointing to `/pbr:discuss 1` with alternatives: `/pbr:explore`, `/pbr:plan 1`, `/pbr:milestone new`, `/pbr:config`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
 
 ---
 
