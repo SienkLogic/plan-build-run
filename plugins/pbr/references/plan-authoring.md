@@ -157,6 +157,34 @@ When a plan requires research before execution, set the `discovery` field in pla
 
 ---
 
+## TDD Decision Heuristic
+
+When assigning `tdd="true"` or `tdd="false"` on a task, apply this test:
+
+> **Can you write `expect(fn(input)).toBe(output)` before writing `fn`?**
+> Yes → `tdd="true"`. No → `tdd="false"`.
+
+### When TDD Adds Value
+
+- Pure functions and data transformations
+- Business logic with defined inputs/outputs
+- API response parsing and validation
+- State machines and workflow transitions
+- Utility functions and helpers
+
+### When to Skip TDD
+
+- UI rendering and layout (test after)
+- Configuration and environment setup
+- Glue code wiring modules together
+- Simple CRUD with no business logic
+- File system operations and I/O plumbing
+- One-off scripts and migrations
+
+When the global config `features.tdd_mode: true` is set, all tasks default to TDD. The planner should still set `tdd="false"` on tasks matching the skip list above — the global flag is a project preference, not a mandate for every task.
+
+---
+
 ## Dependency Graph Rules
 
 ### File Conflict Detection
