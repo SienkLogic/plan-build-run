@@ -5,6 +5,20 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.39.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.38.1...plan-build-run-v2.39.0) (2026-02-27)
+
+
+### Features
+
+* **45-01:** add learnings subcommands to pbr-tools.js dispatcher ([a2c9b98](https://github.com/SienkLogic/plan-build-run/commit/a2c9b98a60291611b85b086a4c274fa4ee82477b))
+* **45-01:** add lib/learnings.js with schema, storage, ingest, and query ([feb6bf6](https://github.com/SienkLogic/plan-build-run/commit/feb6bf6b2b1adcedc71d0558804a722be60aac77))
+* **45-03:** add deferral notifications to progress-tracker and aggregation step to milestone skill ([ac89d05](https://github.com/SienkLogic/plan-build-run/commit/ac89d05323d8b8468718bfad52181cf72b635ce6))
+* **45-03:** GREEN - milestone-learnings.js aggregation script ([68fa377](https://github.com/SienkLogic/plan-build-run/commit/68fa3778937825ad09b1b38cb5b626abf68dffc1))
+* **45-04:** add learnings injection to begin/SKILL.md researcher spawn step ([ebe3970](https://github.com/SienkLogic/plan-build-run/commit/ebe39702e4f04a2576b6e0ad6b7edb6e93672a4c))
+* **45-04:** add learnings injection to explore/SKILL.md and plan skill planner spawn ([53644cf](https://github.com/SienkLogic/plan-build-run/commit/53644cf9601ff47341ebde40c712e99d54f34ebb))
+* **45-05:** sync learnings injection and aggregation to cursor-pbr and copilot-pbr ([eef6a0c](https://github.com/SienkLogic/plan-build-run/commit/eef6a0caa5f19629d08d0cce878b51a7823b9424))
+* **quick-019:** add ecosystem integration — PR creation, CI gate, issue sync, smoke test ([c57e44e](https://github.com/SienkLogic/plan-build-run/commit/c57e44ede58d167cd69ffe5403cc20645c537635))
+
 ## [2.38.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.38.0...plan-build-run-v2.38.1) (2026-02-27)
 
 
