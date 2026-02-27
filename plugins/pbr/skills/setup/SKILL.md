@@ -74,7 +74,15 @@ mkdir -p .planning/phases .planning/todos/pending .planning/todos/done .planning
 
 **CRITICAL: Write .planning/config.json NOW. Do NOT skip this step.**
 
-Create `.planning/config.json` with defaults:
+Before writing config.json, check for user-level defaults:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" config load-defaults
+```
+
+If user defaults exist (the output has keys like `mode`, `features`, etc.), inform the user: "Found your saved preferences from ~/.claude/pbr-defaults.json. These will be merged into your project config (project-specific settings take precedence)." Then deep-merge user defaults into the config below before writing.
+
+Create `.planning/config.json` with defaults (merged with user defaults if they exist):
 ```json
 {
   "version": 2,

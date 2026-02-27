@@ -115,10 +115,11 @@ Use AskUserQuestion:
     - label: "Depth"          description: "quick/standard/comprehensive"
     - label: "Model profile"  description: "quality/balanced/budget/adaptive"
     - label: "Features"       description: "Toggle workflow features, gates, status line"
-    - label: "Git settings"   description: "branching strategy, commit mode"
+    - label: "Git settings"      description: "branching strategy, commit mode"
+    - label: "Save as defaults"  description: "Save current config as user-level defaults for new projects"
   multiSelect: false
 
-Note: The original 7 categories are condensed to 4. "Models" (per-agent) is accessible through "Model profile" with a follow-up option. "Gates", "Parallelization", and "Status Line" are grouped under "Features".
+Note: The original 7 categories are condensed to 5. "Models" (per-agent) is accessible through "Model profile" with a follow-up option. "Gates", "Parallelization", and "Status Line" are grouped under "Features". "Save as defaults" exports to ~/.claude/pbr-defaults.json.
 
 **Follow-up based on selection:**
 
@@ -180,6 +181,15 @@ Use AskUserQuestion:
     - label: "Milestone"   description: "New branch per milestone"
     - label: "Disabled"    description: "No git integration"
   multiSelect: false
+
+If user selects "Save as defaults":
+Save current project config as user-level defaults for future projects:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" config save-defaults
+```
+
+Display: "Saved your preferences to ~/.claude/pbr-defaults.json. New projects created with /pbr:setup will use these as starting values."
 
 If user types something else (freeform): interpret as a direct setting command and handle via Step 2 argument parsing logic.
 

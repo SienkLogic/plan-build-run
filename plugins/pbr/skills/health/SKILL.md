@@ -2,6 +2,7 @@
 name: health
 description: "Check planning directory integrity. Find and fix corrupted state."
 allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
+argument-hint: "[--repair]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -20,9 +21,15 @@ Then proceed to Step 1.
 
 # /pbr:health — Planning Directory Diagnostics
 
-You are running the **health** skill. Your job is to validate the integrity of the `.planning/` directory, report problems, and suggest targeted fixes. You never auto-repair anything.
+You are running the **health** skill. Your job is to validate the integrity of the `.planning/` directory, report problems, and suggest targeted fixes.
 
 This skill runs **inline**. It is read-only by default, but offers an optional **auto-fix** flow for common corruption patterns (see the Auto-Fix section below).
+
+## Argument Parsing
+
+Check if the user passed `--repair`:
+- `--repair`: Skip the AskUserQuestion prompt in the Auto-Fix section and automatically apply ALL fixes (equivalent to selecting "Fix all"). Still create backups before any destructive operations.
+- No flag: Use the interactive AskUserQuestion flow as described below (default behavior).
 
 ---
 
@@ -187,7 +194,11 @@ cp .planning/STATE.md .planning/backups/STATE-$(date +%Y%m%dT%H%M%S).md
 
 This ensures the user can recover the original STATE.md if the fix produces incorrect results.
 
-1. Count the auto-fixable issues and present:
+1. Count the auto-fixable issues.
+
+   **If `--repair` flag was passed**: Skip the question and go directly to "Fix all" (step 2). Display: "Auto-repair mode: applying {N} fixes..."
+
+   **Otherwise**: Present the choice:
 
    Use AskUserQuestion:
      question: "Found {N} auto-fixable issues. How should we handle them?"
@@ -197,7 +208,7 @@ This ensures the user can recover the original STATE.md if the fix produces inco
        - label: "Review each"   description: "Show each fix and confirm individually"
        - label: "Skip"          description: "Do nothing — just report"
 
-2. If "Fix all": Apply all fixes in order, then display a summary:
+2. If "Fix all" (or `--repair`): Apply all fixes in order, then display a summary:
    ```
    Auto-fix results:
    - Fixed: {description of fix 1}
