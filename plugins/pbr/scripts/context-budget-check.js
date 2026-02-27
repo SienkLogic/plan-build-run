@@ -185,8 +185,8 @@ function readCurrentPlan(planningDir, stateContent) {
 
     const phaseDir = path.join(phasesDir, dirs[0]);
 
-    // Find PLAN.md files
-    const planFiles = fs.readdirSync(phaseDir).filter(f => f.endsWith('PLAN.md'));
+    // Find PLAN*.md files (matches PLAN.md, PLAN-01.md, 01-PLAN.md, etc.)
+    const planFiles = fs.readdirSync(phaseDir).filter(f => /PLAN.*\.md$/i.test(f));
     if (planFiles.length === 0) return 'No PLAN.md found in current phase';
 
     // Read the last plan's objective only (frontmatter + objective tag)

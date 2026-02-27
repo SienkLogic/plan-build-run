@@ -326,7 +326,7 @@ function checkStateSync(data) {
   // Determine if this is a SUMMARY, VERIFICATION, or PLAN write
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
   const isVerification = basename === 'VERIFICATION.md';
-  const isPlan = basename.endsWith('PLAN.md') && !basename.includes('SUMMARY');
+  const isPlan = /PLAN.*\.md$/i.test(basename) && !basename.includes('SUMMARY');
 
   if (!isSummary && !isVerification && !isPlan) return null;
 
