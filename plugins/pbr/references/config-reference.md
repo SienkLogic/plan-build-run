@@ -155,8 +155,20 @@ Controls git integration and branching strategy.
 | `phase_branch_template` | string | `plan-build-run/phase-{phase}-{slug}` | Phase branch name pattern |
 | `milestone_branch_template` | string | `plan-build-run/{milestone}-{slug}` | Milestone branch name pattern |
 | `mode` | string | `enabled` | Git mode: `enabled` or `disabled` |
+| `auto_pr` | boolean | `false` | Create a GitHub PR after successful phase verification when branching is enabled |
 
 When `git.mode` is `disabled`, no git commands run at all -- no commits, branching, or hook validation. Useful for prototyping or non-git projects. See `references/git-integration.md` for full branching strategy details.
+
+---
+
+## ci
+
+Controls CI integration for build gates.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ci.gate_enabled` | boolean | `false` | Block wave advancement until CI passes |
+| `ci.wait_timeout_seconds` | number | `120` | Max seconds to wait for CI completion |
 
 ---
 
@@ -216,6 +228,16 @@ Controls debug workflow behavior.
 | `max_hypothesis_rounds` | integer | `5` | Maximum hypothesis-test cycles the debugger agent runs (1-20) |
 
 This value is overridden by the active depth profile if a `depth_profiles` entry sets `debug.max_hypothesis_rounds`.
+
+---
+
+## deployment
+
+Controls post-milestone deployment verification.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `deployment.smoke_test_command` | string | `""` | Bash command to run after milestone completion (e.g., `"curl -sf https://myapp.com/health"`) |
 
 ---
 

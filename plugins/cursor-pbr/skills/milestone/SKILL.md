@@ -424,6 +424,22 @@ Archive a completed milestone and prepare for the next one.
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
+### Post-Completion Smoke Test
+
+If `config.deployment.smoke_test_command` is set and non-empty:
+
+1. Run the command via Bash
+2. If exit code 0: display "Smoke test passed" with command output
+3. If exit code non-zero: display advisory warning:
+
+   ```
+   ⚠ Smoke test failed (exit code {N})
+   Command: {smoke_test_command}
+   Output: {first 20 lines of output}
+   ```
+
+   This is advisory only — the milestone is already archived. Surface it as a potential issue for the user to investigate.
+
 10. **Confirm** with branded output:
     ```
     ╔══════════════════════════════════════════════════════════════╗

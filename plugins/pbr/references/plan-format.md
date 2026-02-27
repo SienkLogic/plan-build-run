@@ -46,6 +46,9 @@ consumes:
 requirement_ids:
   - "P02-G1"
   - "P02-G2"
+closes_issues:
+  - 42
+  - 57
 ---
 ```
 
@@ -71,6 +74,7 @@ requirement_ids:
 | `requirement_ids` | NO | array | Requirement IDs from REQUIREMENTS.md or ROADMAP.md goal IDs that this plan addresses. Enables bidirectional traceability between plans and requirements/goals. |
 | `dependency_fingerprints` | NO | object | Hashes of dependency phase SUMMARY.md files at plan-creation time. Used to detect stale plans. |
 | `data_contracts` | NO | array | Cross-boundary parameter mappings for calls where arguments originate from external boundaries. Format: `"param: source (context) [fallback]"` |
+| `closes_issues` | NO | number[] | GitHub issue numbers to close when this plan's final commit lands. Default: `[]` |
 
 ### Data Contracts
 

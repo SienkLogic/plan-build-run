@@ -175,6 +175,36 @@ Branch name templates are configured in `config.json`:
 - `git.phase_branch_template`: Default `plan-build-run/phase-{phase}-{slug}`
 - `git.milestone_branch_template`: Default `plan-build-run/{milestone}-{slug}`
 
+### PR Creation
+
+When `git.auto_pr: true` and `git.branching` is `phase` or `milestone`, the build skill creates a GitHub PR after verification passes:
+
+1. Push the phase branch to the remote
+2. Create a PR via `gh pr create` with structured title and body
+3. PR title follows the commit convention: `feat(phase-{N}): {phase slug}`
+4. PR body includes phase goal, key files changed, and must-have verification results
+
+When `git.auto_pr: false` (default), the build skill offers the user a choice after verification:
+- Create PR now
+- Skip PR creation
+- Push branch only (create PR later)
+
+PR creation requires `gh` CLI authenticated with repo write access.
+
+### CI Integration
+
+When `ci.gate_enabled: true`, the build skill checks GitHub Actions status after each wave completes:
+
+1. Run: `gh run list --branch $(git branch --show-current) --limit 1 --json status,conclusion,url`
+2. If `status == completed` and `conclusion == success`: proceed to next wave
+3. If `status == in_progress`: wait up to `ci.wait_timeout_seconds`, re-check
+4. If `conclusion != success` or timeout: surface warning with run URL and offer:
+   - **Wait**: continue polling
+   - **Continue anyway**: proceed despite CI failure (logged as deviation)
+   - **Abort**: stop the build
+
+CI gate requires `gh` CLI and GitHub Actions configured on the repository. The gate only activates when there are commits pushed to a remote branch (branching must be enabled).
+
 ### Git Mode
 
 The `git.mode` field controls whether git integration is active:

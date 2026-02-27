@@ -120,6 +120,19 @@ One task = one commit. Exception: TDD tasks get 3 commits (RED, GREEN, REFACTOR)
 
 Stage only files listed in the task's `<files>`. If git commit fails with lock error, retry up to 3 times with 2s delay.
 
+### Issue Auto-Close
+
+When the plan frontmatter contains a non-empty `closes_issues` array, append issue-closing syntax to the **final** commit body for the plan:
+
+```
+git commit -m "feat(01-02): implement user auth
+
+Closes #42
+Closes #57"
+```
+
+Only append to the LAST commit of the plan — intermediate commits (RED/GREEN in TDD, partial progress) should NOT include closing syntax.
+
 ---
 
 ## Deviation Rules
