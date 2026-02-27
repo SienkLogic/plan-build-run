@@ -3,6 +3,8 @@ name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:plan — Phase Planning
 
 You are the orchestrator for `/pbr:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to agents, and keep the user's main context window clean.
@@ -134,6 +136,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 ---
 
 ### Step 2: Load Context (inline)
+
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read context file PATHS and metadata. Build lean context bundles for agent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
@@ -345,6 +349,17 @@ Planner created {N} plan(s) across {M} wave(s)
 ```
 
 Where `{N}` is the number of PLAN.md files written and `{M}` is the number of distinct wave values across those plans (from frontmatter).
+
+### Step 5b: Spot-Check Planner Output
+
+CRITICAL: Verify planner output before proceeding.
+
+1. **PLAN files exist**: Check `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist on disk
+2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
+3. **Task structure**: Verify at least one `<task>` block exists in each plan file
+4. **Plan count matches**: Number of PLAN files matches what the planner reported
+
+If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
 ---
 
