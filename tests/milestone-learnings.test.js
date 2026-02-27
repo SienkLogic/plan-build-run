@@ -175,6 +175,31 @@ deferred: []
     expect(stdout).toMatch(/2 new/);
   });
 
+  test('aggregates per-plan SUMMARY-{id}.md files within a single phase', () => {
+    const phaseDir = path.join(phasesDir, '45-learning');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-45-01.md'), `---
+provides:
+  - "Learnings library"
+deferred: []
+---
+`, 'utf8');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-45-02.md'), `---
+provides:
+  - "Test suite"
+deferred: []
+---
+`, 'utf8');
+
+    const stdout = runScript(`"${archiveDir}" --project myapp`, {
+      PBR_LEARNINGS_FILE: learningsFile
+    });
+
+    const lines = fs.readFileSync(learningsFile, 'utf8').trim().split('\n');
+    expect(lines.length).toBe(2);
+    expect(stdout).toMatch(/2 new/);
+  });
+
   // --- Test: gracefully handles missing or empty SUMMARY.md files ---
 
   test('handles phase directory with no SUMMARY.md gracefully', () => {
@@ -398,6 +423,47 @@ deferred: []
       const found = mod.findSummaryFiles(phasesDir);
       expect(found.length).toBe(2);
       expect(found.every(f => f.endsWith('SUMMARY.md'))).toBe(true);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('findSummaryFiles returns per-plan SUMMARY-{id}.md files', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-perplan-'));
+    try {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(path.join(phasesDir, '45-learning'), { recursive: true });
+      fs.writeFileSync(path.join(phasesDir, '45-learning', 'SUMMARY-45-01.md'), `---
+provides:
+  - "Feature A"
+deferred: []
+---
+`, 'utf8');
+      fs.writeFileSync(path.join(phasesDir, '45-learning', 'SUMMARY-45-02.md'), `---
+provides:
+  - "Feature B"
+deferred: []
+---
+`, 'utf8');
+
+      const found = mod.findSummaryFiles(phasesDir);
+      expect(found.length).toBe(2);
+      expect(found.every(f => /SUMMARY.*\.md$/.test(f))).toBe(true);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('findSummaryFiles returns both SUMMARY.md and SUMMARY-{id}.md in same phase', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-mixed-'));
+    try {
+      const phasesDir = path.join(tmpDir, 'phases');
+      fs.mkdirSync(path.join(phasesDir, '01-auth'), { recursive: true });
+      fs.writeFileSync(path.join(phasesDir, '01-auth', 'SUMMARY.md'), '# S1', 'utf8');
+      fs.writeFileSync(path.join(phasesDir, '01-auth', 'SUMMARY-01-01.md'), '# S2', 'utf8');
+
+      const found = mod.findSummaryFiles(phasesDir);
+      expect(found.length).toBe(2);
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }

@@ -161,9 +161,10 @@ function extractLearningsFromSummary(summaryContent, sourceProject) {
 }
 
 /**
- * Recursively find all SUMMARY.md files under a phases directory.
+ * Recursively find all SUMMARY*.md files under a phases directory.
+ * Matches both single-summary (SUMMARY.md) and per-plan (SUMMARY-45-01.md) patterns.
  * @param {string} phasesDir
- * @returns {string[]} absolute paths to SUMMARY.md files
+ * @returns {string[]} absolute paths to SUMMARY*.md files
  */
 function findSummaryFiles(phasesDir) {
   const results = [];
@@ -174,10 +175,16 @@ function findSummaryFiles(phasesDir) {
     for (const entry of entries) {
       const fullPath = path.join(phasesDir, entry.name);
       if (entry.isDirectory()) {
-        // Check for SUMMARY.md in this phase directory
-        const summaryPath = path.join(fullPath, 'SUMMARY.md');
-        if (fs.existsSync(summaryPath)) {
-          results.push(summaryPath);
+        // Find all SUMMARY*.md files in this phase directory
+        try {
+          const phaseFiles = fs.readdirSync(fullPath);
+          for (const file of phaseFiles) {
+            if (/^SUMMARY.*\.md$/i.test(file)) {
+              results.push(path.join(fullPath, file));
+            }
+          }
+        } catch (_e) {
+          // Ignore read errors for individual phase dirs
         }
         // Recurse in case of nested dirs
         results.push(...findSummaryFiles(fullPath));
