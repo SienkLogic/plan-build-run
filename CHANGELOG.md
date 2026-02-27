@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.40.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.40.0...plan-build-run-v2.40.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* **hooks:** use flexible regex for PLAN file detection in hooks ([402d602](https://github.com/SienkLogic/plan-build-run/commit/402d60286b9184aa0155c0840785a8e5872872d2))
+
 ## [2.40.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.39.0...plan-build-run-v2.40.0) (2026-02-27)
 
 
