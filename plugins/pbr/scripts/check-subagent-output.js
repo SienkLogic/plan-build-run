@@ -344,7 +344,7 @@ function loadLocalLlmConfig(cwd) {
 
 async function main() {
   const data = readStdin();
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
 
   // Only relevant for Plan-Build-Run projects

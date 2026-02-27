@@ -26,7 +26,25 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { lockedFileUpdate } = require('./pbr-tools');
+
+/**
+ * Write content to a file atomically using write-then-rename.
+ * Writes to a PID-stamped temp file, then renames over the original.
+ * If the rename fails, cleans up the temp file and re-throws.
+ *
+ * @param {string} filePath - Target file path
+ * @param {string} content - Content to write
+ */
+function atomicWriteFile(filePath, content) {
+  const tmpPath = filePath + '.tmp.' + process.pid;
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf8');
+    fs.renameSync(tmpPath, filePath);
+  } catch (e) {
+    try { fs.unlinkSync(tmpPath); } catch (_) { /* best effort cleanup */ }
+    throw e;
+  }
+}
 
 /**
  * Extract phase number from a phase directory name.
@@ -326,7 +344,7 @@ function checkStateSync(data) {
     return null;
   }
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const roadmapPath = path.join(planningDir, 'ROADMAP.md');
   const statePath = path.join(planningDir, 'STATE.md');
@@ -370,7 +388,7 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            lockedFileUpdate(roadmapPath, () => updatedRoadmap);
+            atomicWriteFile(roadmapPath, updatedRoadmap);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
           }
         }
@@ -410,7 +428,7 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          lockedFileUpdate(statePath, () => updatedState);
+          atomicWriteFile(statePath, updatedState);
           messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
         }
       } catch (e) {
@@ -455,7 +473,7 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            lockedFileUpdate(roadmapPath, () => updatedRoadmap);
+            atomicWriteFile(roadmapPath, updatedRoadmap);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
           }
         }
@@ -493,7 +511,7 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          lockedFileUpdate(statePath, () => updatedState);
+          atomicWriteFile(statePath, updatedState);
           messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
         }
       } catch (e) {
@@ -543,7 +561,7 @@ function checkStateSync(data) {
             const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
             const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
             if (updatedRoadmap !== roadmapContent) {
-              lockedFileUpdate(roadmapPath, () => updatedRoadmap);
+              atomicWriteFile(roadmapPath, updatedRoadmap);
               messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
             }
           }
@@ -588,6 +606,7 @@ function main() {
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
 module.exports = {
+  atomicWriteFile,
   extractPhaseNum,
   countPhaseArtifacts,
   updateProgressTable,

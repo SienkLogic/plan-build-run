@@ -129,7 +129,7 @@ function main() {
         if (phaseMatch) {
           const fs = require('fs');
           const path = require('path');
-          const statePath = path.join(process.cwd(), '.planning', 'STATE.md');
+          const statePath = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning', 'STATE.md');
           try {
             const stateContent = fs.readFileSync(statePath, 'utf8');
             const currentPhase = stateContent.match(/Phase:\s*(\d+)\s+of/);

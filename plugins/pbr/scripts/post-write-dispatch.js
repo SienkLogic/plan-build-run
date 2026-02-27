@@ -128,7 +128,7 @@ function main() {
       const normalizedPath = filePath.replace(/\\/g, '/');
       if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
         try {
-          const cwd = process.cwd();
+          const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
           const planningDir = path.join(cwd, '.planning');
           const llmConfig = (() => {
             try {

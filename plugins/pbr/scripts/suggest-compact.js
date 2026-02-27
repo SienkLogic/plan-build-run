@@ -26,7 +26,7 @@ function main() {
   process.stdin.resume();
   process.stdin.on('end', () => {
     try {
-      const cwd = process.cwd();
+      const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
       const planningDir = path.join(cwd, '.planning');
       if (!fs.existsSync(planningDir)) {
         process.exit(0);

@@ -101,7 +101,7 @@ function checkQuickExecutorGate(data) {
   // Only gate pbr:executor
   if (subagentType !== 'pbr:executor') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -167,7 +167,7 @@ function checkBuildExecutorGate(data) {
   // Only gate pbr:executor
   if (subagentType !== 'pbr:executor') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -239,7 +239,7 @@ function checkPlanExecutorGate(data) {
   // Only gate pbr:executor
   if (subagentType !== 'pbr:executor') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -268,7 +268,7 @@ function checkReviewPlannerGate(data) {
   // Only gate pbr:planner
   if (subagentType !== 'pbr:planner') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -322,7 +322,7 @@ function checkReviewVerifierGate(data) {
   // Only gate pbr:verifier
   if (subagentType !== 'pbr:verifier') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -382,7 +382,7 @@ function checkMilestoneCompleteGate(data) {
   const subagentType = toolInput.subagent_type || '';
   const description = toolInput.description || '';
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -489,7 +489,7 @@ function checkBuildDependencyGate(data) {
   // Only gate pbr:executor
   if (subagentType !== 'pbr:executor') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -593,14 +593,15 @@ function checkDebuggerAdvisory(data) {
   const subagentType = data.tool_input?.subagent_type || '';
   if (subagentType !== 'pbr:debugger') return null;
   // Only advise when spawned from the debug skill
-  const activeSkillPath = path.join(process.cwd(), '.planning', '.active-skill');
+  const debugCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const activeSkillPath = path.join(debugCwd, '.planning', '.active-skill');
   try {
     const activeSkill = fs.readFileSync(activeSkillPath, 'utf8').trim();
     if (activeSkill !== 'debug') return null;
   } catch (_e) {
     return null; // No .active-skill file — skip advisory
   }
-  const debugDir = path.join(process.cwd(), '.planning', 'debug');
+  const debugDir = path.join(debugCwd, '.planning', 'debug');
   if (!fs.existsSync(debugDir)) {
     return 'Debugger advisory: .planning/debug/ does not exist. Create it before spawning the debugger so output has a target location.';
   }
@@ -613,7 +614,7 @@ function checkCheckpointManifest(data) {
 
   if (subagentType !== 'pbr:executor') return null;
 
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const activeSkillFile = path.join(planningDir, '.active-skill');
 
@@ -662,7 +663,11 @@ function checkActiveSkillIntegrity(data) {
 
   if (typeof subagentType !== 'string' || !subagentType.startsWith('pbr:')) return null;
 
-  const cwd = process.cwd();
+  // Advisory agents that run without an active skill context — exempt from .active-skill checks
+  const EXEMPT_AGENTS = ['pbr:researcher', 'pbr:synthesizer', 'pbr:audit', 'pbr:dev-sync', 'pbr:general'];
+  if (EXEMPT_AGENTS.includes(subagentType)) return null;
+
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
 
   // Only check if .planning/ exists (PBR project)
@@ -801,8 +806,9 @@ function main() {
 
       // LLM task coherence check — advisory only
       try {
-        const llmConfig = loadLocalLlmConfig(process.cwd());
-        const planningDir = path.join(process.cwd(), '.planning');
+        const llmCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+        const llmConfig = loadLocalLlmConfig(llmCwd);
+        const planningDir = path.join(llmCwd, '.planning');
         const llmResult = await llmValidateTask(llmConfig, planningDir, data.tool_input || {}, data.session_id);
         if (llmResult && !llmResult.coherent) {
           warnings.push('LLM task coherence advisory: ' + (llmResult.issue || 'Task description may not match intended operation.') + ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)');

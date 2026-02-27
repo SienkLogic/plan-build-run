@@ -187,6 +187,14 @@ When a task has a checkpoint type, **STOP execution** and return a structured re
 
 All responses use: `CHECKPOINT: {TYPE}` header, task info, type-specific fields, completed tasks table, remaining tasks list.
 
+**Dirty tree cleanup**: Before returning a checkpoint, stash any uncommitted work to keep the working tree clean for the user:
+
+```bash
+git stash push -m "pbr-checkpoint: task ${TASK_NUM} paused" --include-untracked 2>/dev/null || true
+```
+
+Include the stash reference in your checkpoint response so the continuation agent can restore it with `git stash pop`.
+
 ---
 
 ## TDD Mode
@@ -205,7 +213,15 @@ When a task has `tdd="true"`, follow Red-Green-Refactor:
 
 After all tasks (or at checkpoint), create `.planning/phases/{phase_dir}/SUMMARY-{plan_id}.md`.
 
-Read `templates/SUMMARY.md.tmpl` for full structure. Status values: `complete`, `partial`, `checkpoint`.
+**Select the right template tier based on plan complexity:**
+
+| Condition | Template | Why |
+|-----------|----------|-----|
+| tasks <= 2 AND files <= 3, no decisions | `templates/SUMMARY-minimal.md.tmpl` | Avoids over-documenting simple work |
+| decisions made OR files > 6 OR deviations occurred | `templates/SUMMARY-complex.md.tmpl` | Captures architectural context |
+| Otherwise | `templates/SUMMARY.md.tmpl` | Standard level of detail |
+
+Status values: `complete`, `partial`, `checkpoint`.
 
 ### Fallback Format (if template unreadable)
 

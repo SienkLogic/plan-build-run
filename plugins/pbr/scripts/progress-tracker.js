@@ -18,7 +18,7 @@ const { configLoad } = require('./pbr-tools');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
 
 async function main() {
-  const cwd = process.cwd();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const planningDir = path.join(cwd, '.planning');
   const stateFile = path.join(planningDir, 'STATE.md');
 

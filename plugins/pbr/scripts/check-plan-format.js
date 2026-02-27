@@ -194,7 +194,7 @@ function validatePlan(content, _filePath) {
 
     // Skip checkpoint tasks - they have different required elements
     const taskTag = taskTags[index] || '';
-    if (taskTag.includes('checkpoint')) {
+    if (/\btype\s*=\s*["']?checkpoint/i.test(taskTag) || /\bcheckpoint\s*[:=]/i.test(taskTag)) {
       return; // Checkpoint tasks have different structure
     }
 
@@ -204,6 +204,18 @@ function validatePlan(content, _filePath) {
       }
     }
   });
+
+  // Path traversal check: ensure <files> elements don't escape project root
+  const filesTags = content.match(/<files>([\s\S]*?)<\/files>/g) || [];
+  for (const filesTag of filesTags) {
+    const filesContent = filesTag.replace(/<\/?files>/g, '');
+    const paths = filesContent.split(/[\n,]/).map(p => p.trim()).filter(Boolean);
+    for (const p of paths) {
+      if (p.includes('..') || path.isAbsolute(p.replace(/^[A-Za-z]:/, ''))) {
+        warnings.push(`Path traversal risk in <files>: "${p}" — use relative paths without ".." segments`);
+      }
+    }
+  }
 
   return { errors, warnings };
 }

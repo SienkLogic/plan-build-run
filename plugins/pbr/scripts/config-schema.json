@@ -4,7 +4,8 @@
   "description": "Configuration schema for .planning/config.json",
   "type": "object",
   "properties": {
-    "version": { "type": "integer", "enum": [1, 2] },
+    "version": { "type": ["integer", "string"], "enum": [1, 2, "1", "2"], "description": "Planning format version. v2 is current." },
+    "schema_version": { "type": "integer", "enum": [1], "description": "Config schema version for migration detection. Increment when config structure changes." },
     "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
     "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
     "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
@@ -128,6 +129,15 @@
         "always_confirm_destructive": { "type": "boolean" },
         "always_confirm_external_services": { "type": "boolean" },
         "enforce_phase_boundaries": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "timeouts": {
+      "type": "object",
+      "properties": {
+        "task_default_ms": { "type": "integer", "minimum": 30000, "description": "Default timeout per task in milliseconds (default: 300000 = 5 min)" },
+        "build_max_ms": { "type": "integer", "minimum": 60000, "description": "Maximum time for entire build command in milliseconds" },
+        "verify_max_ms": { "type": "integer", "minimum": 30000, "description": "Maximum time for verification in milliseconds" }
       },
       "additionalProperties": false
     },
