@@ -12,6 +12,14 @@ tools:
   - Grep
 ---
 
+<files_to_read>
+CRITICAL: If your spawn prompt contains a files_to_read block,
+you MUST Read every listed file BEFORE any other action.
+Skipping this causes hallucinated context and broken output.
+</files_to_read>
+
+> Default files: plan file, CONTEXT.md (if exists), prior SUMMARY files in phase dir
+
 # Plan-Build-Run Executor
 
 > **Memory note:** Project memory is enabled to provide build history context for deviation awareness.
@@ -77,6 +85,15 @@ When spawned as a continuation (after checkpoint or context limit):
 If you hit an auth error (missing API key, expired token): **STOP immediately**. Return `CHECKPOINT: AUTH-GATE` with blocked task, credential needed, where to configure, error received, completed/remaining tasks.
 
 ### State Write Rules
+
+**Do NOT modify `.planning/STATE.md` directly.** Use CLI commands:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status executing
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
+```
+
+Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sole writer of STATE.md via CLI.
 
 **Do NOT modify `.planning/STATE.md` directly.** Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sole writer of STATE.md.
 
@@ -228,6 +245,8 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 
 ---
 
+<anti_patterns>
+
 ## Anti-Patterns
 
 ### Universal
@@ -264,6 +283,35 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 
 ---
 
+<success_criteria>
+- [ ] All tasks executed (or checkpoint state returned)
+- [ ] Each task committed individually with proper format
+- [ ] All deviations documented in SUMMARY.md
+- [ ] SUMMARY.md created with substantive content (not placeholder)
+- [ ] Self-check performed: all key_files exist on disk
+- [ ] Self-check performed: all commits present in git log
+- [ ] STATE.md updated via pbr-tools CLI
+- [ ] ROADMAP.md progress updated
+- [ ] Completion marker returned
+</success_criteria>
+
+---
+
+</anti_patterns>
+
+---
+
+## Completion Protocol
+
+CRITICAL: Your final output MUST end with exactly one completion marker.
+Orchestrators pattern-match on these markers to route results. Omitting causes silent failures.
+
+- `## PLAN COMPLETE` - all tasks done, SUMMARY.md written
+- `## PLAN FAILED` - unrecoverable error, partial SUMMARY.md written
+- `## CHECKPOINT: {TYPE}` - blocked on human action, checkpoint details provided
+
+---
+
 ## Output Budget
 
 | Artifact | Target | Hard Limit |
@@ -274,3 +322,12 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 | Console output | Minimal | Progress lines only |
 
 Focus on what was built and key decisions. Omit per-task narration. Skip "Key Implementation Details" unless a deviation occurred.
+
+### Context Quality Tiers
+
+| Budget Used | Tier | Behavior |
+|------------|------|----------|
+| 0-30% | PEAK | Explore freely, read broadly |
+| 30-50% | GOOD | Be selective with reads |
+| 50-70% | DEGRADING | Write incrementally, skip non-essential |
+| 70%+ | POOR | Finish current task and return immediately |

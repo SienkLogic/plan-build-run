@@ -372,7 +372,9 @@ Task({
   prompt: <executor prompt constructed above>
 })
 
-NOTE: The pbr:executor subagent type auto-loads the agent definition. Do NOT inline it.
+NOTE: The pbr:executor subagent type auto-loads the agent definition.
+
+After executor completes, check for completion markers: `## PLAN COMPLETE`, `## PLAN FAILED`, or `## CHECKPOINT: {TYPE}`. Route accordingly — PLAN COMPLETE proceeds to next plan, PLAN FAILED triggers failure handling, CHECKPOINT triggers checkpoint flow. Do NOT inline it.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
@@ -655,6 +657,8 @@ Task({
 })
 
 NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inline it.
+
+After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.

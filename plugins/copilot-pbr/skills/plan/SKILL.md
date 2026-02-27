@@ -463,6 +463,8 @@ Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
 - Update STATE.md **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
+
+**Tooling shortcut**: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan {N}"}'`
 - **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build. This continues the build->review->plan->build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:build {N}`
 

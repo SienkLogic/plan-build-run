@@ -344,7 +344,9 @@ Task({
   prompt: <planning prompt>
 })
 
-NOTE: The pbr:planner subagent type auto-loads the agent definition. Do NOT inline it.
+NOTE: The pbr:planner subagent type auto-loads the agent definition.
+
+After planner completes, check for completion markers: `## PLANNING COMPLETE`, `## PLANNING FAILED`, or `## PLANNING INCONCLUSIVE`. Route accordingly. Do NOT inline it.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
@@ -492,7 +494,9 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
-- Update STATE.md **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
+- Update STATE.md via CLI **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
+
+**Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan {N}"}'`
 - **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:build {N}`
 

@@ -167,6 +167,8 @@ Display to the user: `◐ Spawning executor...`
 
 Spawn a `Task(agent_type: "pbr:executor")` with the following prompt:
 
+> **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
+
 ```
 You are executor. Execute the following quick task plan.
 

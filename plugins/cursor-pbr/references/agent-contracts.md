@@ -295,3 +295,30 @@ No YAML frontmatter required — these are reference documents with markdown tab
 - Codebase-Mapper does NOT commit — the orchestrator handles commits
 - Researcher treats these as S0 (highest confidence) local prior research
 - One focus area per invocation
+
+---
+
+## Completion Markers
+
+Every agent MUST end its output with exactly one completion marker. Orchestrating skills pattern-match on these markers to route results. Omitting a marker causes silent routing failures.
+
+| Agent | Markers |
+|-------|---------|
+| executor | `## PLAN COMPLETE` / `## PLAN FAILED` / `## CHECKPOINT: {TYPE}` |
+| planner | `## PLANNING COMPLETE` / `## PLANNING FAILED` / `## PLANNING INCONCLUSIVE` |
+| verifier | `## VERIFICATION COMPLETE` (status in VERIFICATION.md frontmatter) |
+| researcher | `## RESEARCH COMPLETE` / `## RESEARCH BLOCKED` |
+| synthesizer | `## SYNTHESIS COMPLETE` / `## SYNTHESIS BLOCKED` |
+| plan-checker | `## CHECK PASSED` / `## ISSUES FOUND` |
+| debugger | `## DEBUG COMPLETE` / `## ROOT CAUSE FOUND` / `## DEBUG SESSION PAUSED` |
+| codebase-mapper | `## MAPPING COMPLETE` |
+| integration-checker | `## INTEGRATION CHECK COMPLETE` |
+| general | `## TASK COMPLETE` / `## TASK FAILED` |
+| audit | `## AUDIT COMPLETE` |
+
+### Rules
+
+- Exactly ONE marker per agent invocation — never zero, never multiple
+- Marker must be the LAST heading in output (content may follow on same line)
+- Skills check for markers with regex: `/^## (PLAN COMPLETE|PLAN FAILED|CHECKPOINT)/m`
+- If an agent cannot determine outcome, use the FAILED/BLOCKED variant with explanation
