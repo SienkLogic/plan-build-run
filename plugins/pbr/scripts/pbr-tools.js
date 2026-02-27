@@ -37,6 +37,9 @@
  *   phase add <slug> [--after N] — Add a new phase directory (with renumbering)
  *   phase remove <N>             — Remove an empty phase directory (with renumbering)
  *   phase list                   — List all phase directories with status
+ *   learnings ingest <json-file>  — Ingest a learning entry into global store
+ *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T] — Query learnings
+ *   learnings check-thresholds   — Check deferral trigger conditions
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -128,6 +131,12 @@ const {
 const {
   applyMigrations: _applyMigrations
 } = require('./lib/migrate');
+
+const {
+  learningsIngest: _learningsIngest,
+  learningsQuery: _learningsQuery,
+  checkDeferralThresholds: _checkDeferralThresholds
+} = require('./lib/learnings');
 
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
@@ -669,10 +678,43 @@ async function main() {
       const force = args.includes('--force');
       const result = await migrate({ dryRun, force });
       output(result);
+    } else if (command === 'learnings') {
+      const subCmd = args[1];
+
+      if (subCmd === 'ingest') {
+        // learnings ingest <json-file-path>
+        const jsonFile = args[2];
+        if (!jsonFile) { error('Usage: learnings ingest <json-file>'); process.exit(1); }
+        const raw = fs.readFileSync(jsonFile, 'utf8');
+        const entry = JSON.parse(raw);
+        const result = _learningsIngest(entry);
+        output(result);
+
+      } else if (subCmd === 'query') {
+        // learnings query [--tags tag1,tag2] [--min-confidence low|medium|high] [--stack react] [--type tech-pattern]
+        const filters = {};
+        for (let i = 2; i < args.length; i++) {
+          if (args[i] === '--tags' && args[i + 1]) { filters.tags = args[++i].split(',').map(t => t.trim()); }
+          else if (args[i] === '--min-confidence' && args[i + 1]) { filters.minConfidence = args[++i]; }
+          else if (args[i] === '--stack' && args[i + 1]) { filters.stack = args[++i]; }
+          else if (args[i] === '--type' && args[i + 1]) { filters.type = args[++i]; }
+        }
+        const results = _learningsQuery(filters);
+        output(results);
+
+      } else if (subCmd === 'check-thresholds') {
+        // learnings check-thresholds — for progress-tracker to call
+        const triggered = _checkDeferralThresholds();
+        output(triggered);
+
+      } else {
+        error('Usage: learnings <ingest|query|check-thresholds>');
+        process.exit(1);
+      }
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds`);
     }
   } catch (e) {
     error(e.message);
