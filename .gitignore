@@ -3,6 +3,7 @@ node_modules/
 *.log
 nul
 .planning/
+.planning.bak/
 .claude/agent-memory/
 .claude/settings.local.json
 coverage/
