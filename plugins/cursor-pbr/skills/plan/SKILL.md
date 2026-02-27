@@ -237,6 +237,11 @@ CRITICAL: Read these files BEFORE any other action:
 
 Wait for the researcher to complete before proceeding.
 
+After the researcher completes, check the agent output for a completion marker:
+- If `## RESEARCH COMPLETE` is present: proceed to planner
+- If `## RESEARCH BLOCKED` is present: warn the user that research could not complete, ask if they want to proceed with limited context or stop
+- If neither marker is present: warn that researcher may not have completed successfully, but proceed
+
 ---
 
 ### Step 4.5: Seed Scanning (inline, before planning)

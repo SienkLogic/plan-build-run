@@ -154,6 +154,8 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 - Always check error handling paths, not just happy paths
 - Structural connectivity is not data-flow correctness — a connected pipeline can still drop data at any step
 
+</anti_patterns>
+
 ---
 
 <success_criteria>
@@ -165,10 +167,6 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 - [ ] INTEGRATION-REPORT.md written
 - [ ] Completion marker returned
 </success_criteria>
-
----
-
-</anti_patterns>
 
 ---
 

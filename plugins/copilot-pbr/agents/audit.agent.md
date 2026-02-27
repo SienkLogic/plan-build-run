@@ -201,6 +201,8 @@ Write findings to the specified output path using this structure:
 5. DO NOT include raw JSONL content in the output — summarize findings
 6. DO NOT over-report informational items as critical — use appropriate severity
 
+</anti_patterns>
+
 ---
 
 <success_criteria>
@@ -212,10 +214,6 @@ Write findings to the specified output path using this structure:
 - [ ] Report written with required sections
 - [ ] Completion marker returned
 </success_criteria>
-
----
-
-</anti_patterns>
 
 ---
 
