@@ -350,6 +350,24 @@ If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset
 
 #### Single-Planner Flow (default)
 
+**Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
+
+```bash
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" 2>/dev/null
+```
+
+If non-empty JSON array returned:
+
+- Write to temp file and note as `{learnings_temp_path}`:
+
+  ```bash
+  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
+  ```
+
+- Add as an additional `files_to_read` item in the planner prompt below
+
+If no learnings or command fails: omit.
+
 Display to the user: `◐ Spawning planner...`
 
 Spawn the planner Task() with all context inlined:
@@ -370,6 +388,7 @@ After planner completes, check for completion markers: `## PLANNING COMPLETE`, `
 #### Planning Prompt Template
 
 Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
+
 - `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
 - `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
 - `<prior_work>` - manifest table of preceding phase SUMMARY.md file paths with status and one-line exports (NOT full bodies)
@@ -378,14 +397,18 @@ Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt tem
 - `<planning_instructions>` - phase-specific planning rules and output path
 
 **Prepend this block to the planner prompt before sending:**
+
 ```
 <files_to_read>
 CRITICAL: Read these files BEFORE any other action:
 1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
+{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
+
+If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 4 entirely.
 
 Wait for the planner to complete.
 

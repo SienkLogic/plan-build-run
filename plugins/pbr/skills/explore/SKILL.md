@@ -119,6 +119,19 @@ When a knowledge gap emerges during the conversation — you're unsure about a l
 
 Display to the user: `◐ Spawning researcher...`
 
+**Learnings injection (opt-in):** Check for relevant tech stack learnings:
+
+```bash
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" 2>/dev/null
+```
+
+If non-empty JSON array returned:
+
+- Write to temp file: `node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md`
+- Note path as `{learnings_temp_path}`; add as item 3 in the researcher's `files_to_read` block below
+
+If no learnings or command fails: omit the extra files_to_read entry.
+
 ```
 Task({
   subagent_type: "pbr:researcher",
@@ -126,6 +139,7 @@ Task({
     CRITICAL: Read these files BEFORE any other action:
     1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
     2. .planning/STATE.md — current project state (if exists)
+    {if learnings_temp_path exists}3. {learnings_temp_path} — cross-project learnings (tech stack patterns from past PBR projects){/if}
   </files_to_read>
   <research_assignment>
     Topic: {specific research question}
@@ -138,6 +152,8 @@ Task({
   </research_assignment>"
 })
 ```
+
+If `{learnings_temp_path}` was produced above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 3 entirely.
 
 After the researcher completes, check for completion markers in the Task() output:
 
