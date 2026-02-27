@@ -64,6 +64,8 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
 2. Read `.planning/config.json`
    **CRITICAL: Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
@@ -200,6 +202,17 @@ Then show a brief table of must-haves with pass/fail status:
 ```
 
 Then display the overall verdict (`PASSED`, `GAPS FOUND`, or `HUMAN NEEDED`) before proceeding to the full results presentation.
+
+### Step 3a: Spot-Check Verifier Output
+
+CRITICAL: Verify verifier output before proceeding.
+
+1. **VERIFICATION.md exists**: Check `.planning/phases/{NN}-{slug}/VERIFICATION.md` exists on disk
+2. **Status field present**: Read VERIFICATION.md frontmatter — verify `status` field is present and is one of: pass, fail, partial
+3. **Must-haves checked**: Verify `must_haves_checked` count > 0 in frontmatter
+4. **Completion marker**: Look for `## VERIFICATION COMPLETE` in the Task() output
+
+If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
 ---
 
@@ -601,6 +614,8 @@ After review completes, always present a clear next action using the completion 
 - **If verified (not final phase):** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.
 - **If final phase:** Use the "Milestone Complete" template. Fill in phase count.
+
+> Tip: Run `/clear` before the next command to start with a fresh context window.
 
 ---
 

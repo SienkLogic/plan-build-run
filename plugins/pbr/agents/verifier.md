@@ -225,6 +225,39 @@ Output includes `is_re_verification: true` in frontmatter and a regressions sect
 
 Read `references/stub-patterns.md` for stub detection patterns by technology. Read the project's stack from `.planning/codebase/STACK.md` or `.planning/research/STACK.md` to determine which patterns to apply. If no stack file exists, use universal patterns only.
 
+<stub_detection_patterns>
+## Stub Detection Patterns
+
+When checking if code is "substantive" (not a stub/placeholder), scan for these patterns:
+
+**Universal stubs:**
+- `return null`, `return undefined`, `return {}`, `return []`
+- `TODO`, `FIXME`, `HACK`, `XXX` comments
+- Empty function bodies: `function foo() {}`
+- `throw new Error('Not implemented')`
+- `console.log('placeholder')`
+
+**React/JSX stubs:**
+- `<div>ComponentName</div>` (render-only placeholder)
+- `onClick={() => {}}` (empty event handler)
+- `useState()` value never referenced in JSX
+- Component returns only static text with no props usage
+
+**API stubs:**
+- `res.json({ message: 'Not implemented' })`
+- `res.status(501)` or `res.status(200).json({})`
+- Empty middleware: `(req, res, next) => next()`
+- Route handler with no database/service calls
+
+**Data flow stubs:**
+- `fetch()` with no `await` or `.then()` — result discarded
+- `useState()` setter never called
+- Props received but never used in render
+- Event handler that only calls `preventDefault()`
+
+Mark any file containing 2+ stub patterns as "STUB — not substantive".
+</stub_detection_patterns>
+
 ---
 
 <success_criteria>
