@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.38.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.38.0...plan-build-run-v2.38.1) (2026-02-27)
+
+
+### Documentation
+
+* **quick-018:** add TDD decision heuristic to plan-authoring reference ([b6744ab](https://github.com/SienkLogic/plan-build-run/commit/b6744abd33befddb0650f584fe8f8f3c6ebdf77f))
+
 ## [2.38.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.37.0...plan-build-run-v2.38.0) (2026-02-27)
 
 
