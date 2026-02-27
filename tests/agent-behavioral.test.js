@@ -276,8 +276,36 @@ describe('Plan-checker agent patterns', () => {
 describe('Debugger agent patterns', () => {
   const content = readAgent('debugger.md');
 
-  test('completion markers include DEBUG COMPLETE', () => {
+  test('has scientific method methodology', () => {
+    expect(content).toMatch(/scientific method/i);
+    expect(content).toMatch(/hypothes/i);
+  });
+
+  test('has operating modes (interactive and non-interactive)', () => {
+    expect(content).toMatch(/Operating Mode/i);
+    expect(content).toMatch(/interactive/i);
+  });
+
+  test('has debug file protocol with structured sections', () => {
+    expect(content).toMatch(/Debug File Protocol/i);
+    // Symptoms are immutable after gathering
+    expect(content).toMatch(/IMMUTABLE/);
+  });
+
+  test('has append-only evidence log', () => {
+    expect(content).toMatch(/append-only/i);
+    expect(content).toMatch(/Evidence Log/i);
+  });
+
+  test('has checkpoint protocol for human interaction', () => {
+    expect(content).toMatch(/checkpoint/i);
+    expect(content).toMatch(/HUMAN-VERIFY/);
+  });
+
+  test('completion markers include DEBUG COMPLETE, ROOT CAUSE FOUND, and PAUSED', () => {
     expect(content).toMatch(/## DEBUG COMPLETE/);
+    expect(content).toMatch(/## ROOT CAUSE FOUND/);
+    expect(content).toMatch(/## DEBUG SESSION PAUSED/);
   });
 });
 
@@ -287,6 +315,28 @@ describe('Debugger agent patterns', () => {
 
 describe('Researcher agent patterns', () => {
   const content = readAgent('researcher.md');
+
+  test('has 3 operating modes (project, phase, synthesis)', () => {
+    expect(content).toMatch(/Mode 1.*Project/i);
+    expect(content).toMatch(/Mode 2.*Phase/i);
+    expect(content).toMatch(/Mode 3.*Synthesis/i);
+  });
+
+  test('has source hierarchy methodology', () => {
+    expect(content).toMatch(/Source Hierarchy/i);
+  });
+
+  test('has confidence levels', () => {
+    expect(content).toMatch(/Confidence Level/i);
+  });
+
+  test('has multi-step research process', () => {
+    expect(content).toMatch(/Step 1.*Understand/i);
+    expect(content).toMatch(/Step 2.*Constraint/i);
+    expect(content).toMatch(/Step 3.*Research/i);
+    expect(content).toMatch(/Step 4.*Synthesize/i);
+    expect(content).toMatch(/Step 5.*Quality/i);
+  });
 
   test('completion markers include RESEARCH COMPLETE and RESEARCH BLOCKED', () => {
     expect(content).toMatch(/## RESEARCH COMPLETE/);
@@ -301,6 +351,24 @@ describe('Researcher agent patterns', () => {
 describe('Synthesizer agent patterns', () => {
   const content = readAgent('synthesizer.md');
 
+  test('has findings matrix step', () => {
+    expect(content).toMatch(/Findings Matrix/i);
+  });
+
+  test('has contradiction resolution step', () => {
+    expect(content).toMatch(/Resolve Contradictions/i);
+  });
+
+  test('has required output sections (Resolved Decisions, Open Questions, Deferred Ideas)', () => {
+    expect(content).toMatch(/Resolved Decisions/);
+    expect(content).toMatch(/Open Questions/);
+    expect(content).toMatch(/Deferred Ideas/);
+  });
+
+  test('has RESEARCH GAP flagging', () => {
+    expect(content).toMatch(/RESEARCH GAP/);
+  });
+
   test('completion markers include SYNTHESIS COMPLETE and SYNTHESIS BLOCKED', () => {
     expect(content).toMatch(/## SYNTHESIS COMPLETE/);
     expect(content).toMatch(/## SYNTHESIS BLOCKED/);
@@ -314,8 +382,29 @@ describe('Synthesizer agent patterns', () => {
 describe('Codebase-mapper agent patterns', () => {
   const content = readAgent('codebase-mapper.md');
 
-  test('completion markers include MAPPING COMPLETE', () => {
+  test('has 4 focus areas (tech, arch, quality, concerns)', () => {
+    expect(content).toMatch(/\btech\b/);
+    expect(content).toMatch(/\barch\b/);
+    expect(content).toMatch(/\bquality\b/);
+    expect(content).toMatch(/\bconcerns\b/);
+  });
+
+  test('has forbidden files list', () => {
+    expect(content).toMatch(/Forbidden Files/i);
+  });
+
+  test('has <critical_rules>', () => {
+    expect(content).toMatch(/<critical_rules>/);
+    expect(content).toMatch(/<\/critical_rules>/);
+  });
+
+  test('references codebase templates', () => {
+    expect(content).toMatch(/templates\/codebase\//);
+  });
+
+  test('completion markers include MAPPING COMPLETE and MAPPING FAILED', () => {
     expect(content).toMatch(/## MAPPING COMPLETE/);
+    expect(content).toMatch(/## MAPPING FAILED/);
   });
 });
 
@@ -342,6 +431,33 @@ describe('Integration-checker agent patterns', () => {
 describe('Audit agent patterns', () => {
   const content = readAgent('audit.md');
 
+  test('has compliance audit checklist', () => {
+    expect(content).toMatch(/Compliance Audit Checklist/i);
+    expect(content).toMatch(/STATE\.md Lifecycle/i);
+    expect(content).toMatch(/Commit Format/i);
+    expect(content).toMatch(/Subagent Delegation/i);
+  });
+
+  test('has UX audit checklist', () => {
+    expect(content).toMatch(/UX Audit Checklist/i);
+    expect(content).toMatch(/User Intent/i);
+    expect(content).toMatch(/Flow Choice/i);
+  });
+
+  test('documents JSONL format', () => {
+    expect(content).toMatch(/JSONL Format/i);
+  });
+
+  test('has evidence-over-assumption principle', () => {
+    expect(content).toMatch(/Evidence over assumption/i);
+  });
+
+  test('supports audit modes (compliance, ux, full)', () => {
+    expect(content).toMatch(/compliance/);
+    expect(content).toMatch(/\bux\b/i);
+    expect(content).toMatch(/\bfull\b/);
+  });
+
   test('completion markers include AUDIT COMPLETE', () => {
     expect(content).toMatch(/## AUDIT COMPLETE/);
   });
@@ -354,13 +470,26 @@ describe('Audit agent patterns', () => {
 describe('General agent patterns', () => {
   const content = readAgent('general.md');
 
-  test('completion markers include TASK COMPLETE and TASK FAILED', () => {
-    expect(content).toMatch(/## TASK COMPLETE/);
-    expect(content).toMatch(/## TASK FAILED/);
+  test('has self-escalation guidance', () => {
+    expect(content).toMatch(/Self-Escalation/i);
+  });
+
+  test('has context budget with quality tiers', () => {
+    expect(content).toMatch(/Context Budget/i);
+    expect(content).toMatch(/Context Quality Tier/i);
+  });
+
+  test('documents commit format convention', () => {
+    expect(content).toMatch(/Commit Format/i);
   });
 
   test('documents .planning directory structure', () => {
     expect(content).toMatch(/\.planning\//);
+  });
+
+  test('completion markers include TASK COMPLETE and TASK FAILED', () => {
+    expect(content).toMatch(/## TASK COMPLETE/);
+    expect(content).toMatch(/## TASK FAILED/);
   });
 });
 
