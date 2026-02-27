@@ -128,6 +128,49 @@ Reference: `references/deviation-rules.md` for examples and decision tree.
 | 4 — Architecture | Plan approach won't work | STOP. Return `CHECKPOINT: ARCHITECTURAL-DEVIATION` with problem, evidence, options. | YES |
 | 5 — Scope Creep | Nice-to-have noticed | Log to SUMMARY.md deferred ideas. Do NOT implement or add TODOs. | No |
 
+<deviation_rules>
+## Deviation Decision Tree
+
+When you encounter an unexpected issue during task execution:
+
+**Rule 1 — Bug in current task code**: Auto-fix immediately. Maximum 3 attempts. If not fixed after 3 attempts, document in SUMMARY.md deferred section and move on.
+
+**Rule 2 — Missing dependency**: Auto-install (npm install, pip install, etc.). Include in the same commit as the task that needs it.
+
+**Rule 3 — Critical gap blocking task**: Apply minimal fix to unblock. Document the fix and its scope in SUMMARY.md. Do NOT expand scope beyond the minimum needed.
+
+**Rule 4 — Architecture concern or unclear requirement**: STOP immediately. Return a CHECKPOINT with type "architecture" or "clarification". Do NOT guess or improvise architectural decisions.
+
+**Rule 5 — Scope creep (nice-to-have improvement)**: Log to SUMMARY.md deferred section. Do NOT implement. This includes: refactoring unrelated code, adding tests for pre-existing code, fixing pre-existing lint warnings, improving error messages in unchanged files.
+
+**Fallback**: When unsure which rule applies, use Rule 4 (STOP and ask). The cost of pausing is low; the cost of wrong-direction work is high.
+
+CRITICAL: Rules are in priority order. Check Rule 1 first, then 2, etc.
+</deviation_rules>
+
+<scope_boundary>
+## Scope Boundary
+
+Only auto-fix issues DIRECTLY caused by the current task's changes.
+
+- Changed file has a new lint error from YOUR code → Fix it (Rule 1)
+- Unchanged file has a pre-existing lint warning → Log to deferred, do NOT fix (Rule 5)
+- Test fails because YOUR code broke it → Fix it (Rule 1)
+- Test was already failing before your changes → Log to deferred, do NOT fix (Rule 5)
+- Dependency YOUR code needs is missing → Install it (Rule 2)
+- Dependency for a different feature is outdated → Do NOT update (Rule 5)
+</scope_boundary>
+
+<circuit_breaker>
+CRITICAL — FIX ATTEMPT LIMIT:
+After 3 failed attempts to fix a single issue, STOP trying.
+1. Document the issue in SUMMARY.md under "## Deferred Issues"
+2. Document what you tried and why it failed
+3. Move to the next task
+4. If NO tasks can be completed due to blockers, return ## PLAN FAILED
+Never enter an infinite fix loop. 3 strikes = move on.
+</circuit_breaker>
+
 ---
 
 ## Checkpoint Handling
@@ -213,12 +256,40 @@ If the plan introduced external setup requirements (env vars, API keys, system d
 
 **CRITICAL — Run the self-check. Skipping it means undetected failures reach the verifier.**
 
-After SUMMARY.md, before returning:
-1. `ls -la {path}` for each `key_files` entry
-2. `git log --oneline -n {expected_count}` — verify commit count
-3. Re-run last task's `<verify>` command
+<self_check_protocol>
+## Self-Check Protocol
 
-If ANY fails: set status to `partial`, add `self_check_failures` to frontmatter. Do NOT try to fix.
+CRITICAL: Run this self-check BEFORE writing SUMMARY.md and BEFORE updating STATE.md.
+
+### Layer 1: File Verification
+For each file in the plan's `key_files` list:
+```bash
+ls -la path/to/file
+```
+Every file MUST exist. If any are missing, the task is incomplete.
+
+### Layer 2: Commit Verification
+For each task committed:
+```bash
+git log --oneline -5 | grep "expected commit message fragment"
+```
+Every task MUST have a corresponding commit. If any are missing, the commit was lost.
+
+### Layer 3: Test Verification
+Re-run the verify command from the last completed task:
+```bash
+# whatever the task's verify field specified
+```
+
+### Result
+Append to SUMMARY.md:
+- `## Self-Check: PASSED` — all layers green
+- `## Self-Check: FAILED — [details]` — what failed and why
+
+CRITICAL: Do NOT proceed to state updates or completion marker if self-check FAILED.
+</self_check_protocol>
+
+If ANY layer fails: set status to `partial`, add `self_check_failures` to frontmatter. Do NOT try to fix.
 
 ---
 

@@ -139,6 +139,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 ### Step 2: Load Context (inline)
 
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
@@ -370,6 +372,17 @@ After the planner returns, read the plan files it created to extract counts. Dis
 ```
 
 Where `{N}` is the number of PLAN.md files written and `{M}` is the number of distinct wave values across those plans (from frontmatter).
+
+### Step 5b: Spot-Check Planner Output
+
+CRITICAL: Verify planner output before proceeding.
+
+1. **PLAN files exist**: Check `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist on disk
+2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
+3. **Task structure**: Verify at least one `<task>` block exists in each plan file
+4. **Plan count matches**: Number of PLAN files matches what the planner reported
+
+If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
 ---
 

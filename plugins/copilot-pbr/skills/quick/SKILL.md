@@ -44,6 +44,8 @@ Additionally for this skill:
 
 ### Step 1: Check Project Context
 
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init quick "{description}"` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings
    - If no: create **both** `.planning/` and `.planning/quick/` directories, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
@@ -193,6 +195,17 @@ After the executor completes:
    - `completed` — task succeeded
    - `partial` — some tasks completed, others failed
    - `failed` — task failed entirely
+
+### Step 8b: Spot-Check Executor Output
+
+CRITICAL: Verify executor output before proceeding.
+
+1. **SUMMARY.md exists**: Check `.planning/quick/{NNN}-{slug}/SUMMARY.md` exists
+2. **Key files exist**: Verify first 2 files from SUMMARY.md `key_files` frontmatter exist on disk
+3. **Commits present**: Run `git log --oneline -5` and verify at least one commit matches the task scope
+4. **Self-check status**: Look for `## Self-Check: FAILED` in SUMMARY.md — if present, warn the user
+
+If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
 ### Step 9: Update STATE.md
 

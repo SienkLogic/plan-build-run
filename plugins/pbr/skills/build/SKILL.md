@@ -134,6 +134,8 @@ Phase {N} depends on Phase {M}, which is not complete.
 
 ### Step 2: Load Config (inline)
 
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+
 Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
 
 ---
@@ -409,6 +411,11 @@ After reading each SUMMARY, perform a lightweight verification:
   "Plan {id} reported self-check failures: {list failures}. Inspect before continuing?"
 - If ANY spot-check fails, warn the user before proceeding to the next wave:
   "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
+
+**Additional wave spot-checks:**
+- Check for `## Self-Check: FAILED` in SUMMARY.md — if present, warn user before proceeding to next wave
+- Between waves: verify no file conflicts from parallel executors (check `git status` for uncommitted changes)
+- If ANY spot-check fails, present user with: **Retry this plan** / **Continue to next wave** / **Abort build**
 
 **Read executor deviations:**
 
@@ -830,6 +837,8 @@ Then present the appropriate branded banner from Read `references/ui-formatting.
 - **If `passed` + more phases:** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.
 - **If `gaps_found`:** Use the "Gaps Found" template. Fill in phase number, name, score, and gap summaries from VERIFICATION.md.
+
+> Tip: Run `/clear` before the next command to start with a fresh context window.
 
 **8g. Display USER-SETUP.md (conditional):**
 
