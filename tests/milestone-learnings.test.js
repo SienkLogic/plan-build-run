@@ -317,6 +317,75 @@ deferred:
     expect(entries[0].tags).toContain('deferred');
   });
 
+  test('extractLearningsFromSummary creates process-win for key_decisions items', () => {
+    const content = `---
+provides: []
+deferred: []
+key_decisions:
+  - "Chose PostgreSQL over MongoDB"
+---
+`;
+    const entries = mod.extractLearningsFromSummary(content, 'proj');
+    const decision = entries.find(e => e.type === 'process-win');
+    expect(decision).toBeDefined();
+    expect(decision.tags).toContain('decision');
+    expect(decision.summary).toContain('Chose PostgreSQL');
+  });
+
+  test('extractLearningsFromSummary creates tech-pattern for patterns items', () => {
+    const content = `---
+provides: []
+deferred: []
+patterns:
+  - "Repository pattern for data access"
+---
+`;
+    const entries = mod.extractLearningsFromSummary(content, 'proj');
+    const pattern = entries.find(e => e.tags && e.tags.includes('pattern'));
+    expect(pattern).toBeDefined();
+    expect(pattern.type).toBe('tech-pattern');
+    expect(pattern.summary).toContain('Repository pattern');
+  });
+
+  test('extractLearningsFromSummary creates planning-failure for issues items', () => {
+    const content = `---
+provides: []
+deferred: []
+issues:
+  - "Underestimated auth complexity"
+---
+`;
+    const entries = mod.extractLearningsFromSummary(content, 'proj');
+    const issue = entries.find(e => e.type === 'planning-failure');
+    expect(issue).toBeDefined();
+    expect(issue.tags).toContain('issue');
+    expect(issue.summary).toContain('Underestimated');
+  });
+
+  test('extractLearningsFromSummary handles inline array frontmatter', () => {
+    const content = `---
+provides: ["Feature A", "Feature B"]
+deferred: []
+---
+`;
+    const entries = mod.extractLearningsFromSummary(content, 'proj');
+    expect(entries.length).toBe(2);
+    expect(entries[0].summary).toContain('Feature A');
+    expect(entries[1].summary).toContain('Feature B');
+  });
+
+  test('extractLearningsFromSummary handles scalar string value in frontmatter', () => {
+    const content = `---
+provides: "Single feature"
+deferred: []
+---
+`;
+    // "provides" as a scalar string won't be iterable as array, so no entries from it
+    const entries = mod.extractLearningsFromSummary(content, 'proj');
+    // The scalar value won't produce tech-pattern entries since it's not an array
+    expect(Array.isArray(entries)).toBe(true);
+  });
+
   test('findSummaryFiles returns SUMMARY.md paths from phases dir', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'find-test-'));
     try {

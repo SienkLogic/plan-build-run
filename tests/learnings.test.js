@@ -594,6 +594,84 @@ describe('saveAll', () => {
   });
 });
 
+describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
+  let tmpDir, learningsMod;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-default-'));
+    // Use jest.isolateModules to reload learnings with mocked os.homedir
+    jest.isolateModules(() => {
+      const osModule = require('os');
+      const origHomedir = osModule.homedir;
+      osModule.homedir = () => tmpDir;
+      learningsMod = require('../plugins/pbr/scripts/lib/learnings');
+      osModule.homedir = origHomedir;
+    });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('loadAll with no filePath uses GLOBAL_LEARNINGS_PATH', () => {
+    // No file exists yet at the global path
+    const result = learningsMod.loadAll();
+    expect(result).toEqual([]);
+  });
+
+  test('saveAll with no filePath uses GLOBAL_LEARNINGS_PATH', () => {
+    learningsMod.saveAll([{ id: 'global-1' }]);
+    const globalFile = learningsMod.GLOBAL_LEARNINGS_PATH;
+    expect(fs.existsSync(globalFile)).toBe(true);
+    const content = fs.readFileSync(globalFile, 'utf8');
+    expect(content).toContain('global-1');
+  });
+
+  test('learningsIngest with no options uses GLOBAL_LEARNINGS_PATH', () => {
+    const entry = {
+      id: 'g-1',
+      source_project: 'proj',
+      type: 'tech-pattern',
+      tags: ['a'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'global test'
+    };
+    const result = learningsMod.learningsIngest(entry);
+    expect(result.action).toBe('created');
+  });
+
+  test('learningsQuery with no options uses GLOBAL_LEARNINGS_PATH', () => {
+    const entry = {
+      id: 'g-2',
+      source_project: 'proj',
+      type: 'tech-pattern',
+      tags: ['b'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'query test'
+    };
+    learningsMod.learningsIngest(entry);
+    const result = learningsMod.learningsQuery();
+    expect(result).toHaveLength(1);
+  });
+
+  test('checkDeferralThresholds with no options uses GLOBAL_LEARNINGS_PATH', () => {
+    const result = learningsMod.checkDeferralThresholds();
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  test('learningsQuery sorts entries without occurrences field using fallback', () => {
+    // Both entries lack occurrences — exercises both sides of (|| 1) in sort
+    learningsMod.saveAll([
+      { id: 'no-occ-a', summary: 'A', source_project: 'p', type: 'tech-pattern', tags: ['x'], confidence: 'low' },
+      { id: 'no-occ-b', summary: 'B', source_project: 'p', type: 'tech-pattern', tags: ['x'], confidence: 'low' }
+    ]);
+    const result = learningsMod.learningsQuery();
+    expect(result).toHaveLength(2);
+  });
+});
+
 describe('loadAll - edge cases', () => {
   let tmpDir;
   beforeEach(() => { tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-load-')); });
