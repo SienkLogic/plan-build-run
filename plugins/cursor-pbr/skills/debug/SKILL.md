@@ -210,7 +210,18 @@ Continuing investigation...
 
 ### Step 4: Handle Debugger Results
 
-When the debugger agent completes, display: `✓ Debug session complete — {N} hypotheses tested` (read the hypothesis count from the debug file's Hypotheses table).
+When the debugger agent completes, first check for completion markers in the Task() output before routing:
+
+| Marker in Task() Output | Route To |
+|--------------------------|----------|
+| `## DEBUG COMPLETE` | ROOT CAUSE FOUND + FIX path |
+| `## ROOT CAUSE FOUND` | ROOT CAUSE FOUND (no fix) path |
+| `## DEBUG SESSION PAUSED` | CHECKPOINT path |
+| No marker found | INCONCLUSIVE path |
+
+**Spot-check:** Before routing, verify `.planning/debug/{NNN}-{slug}.md` exists and was recently updated (modified timestamp is newer than the Task() spawn time). If the debug file was not updated, warn: `⚠ Debug file not updated by agent — results may be incomplete.`
+
+Display: `✓ Debug session complete — {N} hypotheses tested` (read the hypothesis count from the debug file's Hypotheses table).
 
 The debugger returns one of four outcomes:
 

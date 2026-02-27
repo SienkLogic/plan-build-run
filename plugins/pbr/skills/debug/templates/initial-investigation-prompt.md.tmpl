@@ -1,6 +1,13 @@
 <!-- Source: skills/debug/SKILL.md | Purpose: Spawn prompt for initial debugger investigation -->
 You are debugger. Investigate the following issue systematically.
 
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/debug/{NNN}-{slug}.md — the debug session file with symptoms and context
+2. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+3. .planning/STATE.md — current project state (if exists)
+</files_to_read>
+
 Debug file: .planning/debug/{NNN}-{slug}.md
 Mode: initial_investigation
 
@@ -20,8 +27,8 @@ Instructions:
    c. Execute the test
    d. Record the result (confirmed, rejected, inconclusive)
 4. Update the debug file with findings
-5. Return one of:
-   - ROOT_CAUSE_FOUND: {cause} + FIX: {what to change}
-   - ROOT_CAUSE_FOUND: {cause} (if find_root_cause_only mode)
-   - CHECKPOINT: {what was found, what to investigate next}
-   - INCONCLUSIVE: {findings so far, suggested next approaches}
+5. Return one of these markers as a heading in your response:
+   - `## DEBUG COMPLETE` — root cause found + fix applied: {cause} + {what was changed}
+   - `## ROOT CAUSE FOUND` — root cause identified, no fix applied (if find_root_cause_only mode): {cause}
+   - `## DEBUG SESSION PAUSED` — checkpoint, need user input: {what was found, what to investigate next}
+   - If no root cause found after exhausting hypotheses, return without a marker (treated as INCONCLUSIVE)
