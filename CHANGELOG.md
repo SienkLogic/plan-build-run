@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.40.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.39.0...plan-build-run-v2.40.0) (2026-02-27)
+
+
+### Features
+
+* **milestone:** add push/publish step after milestone complete ([dc26503](https://github.com/SienkLogic/plan-build-run/commit/dc26503975691480e805893e1fb400cf41b01226))
+
+
+### Bug Fixes
+
+* **tools:** find per-plan SUMMARY-{id}.md files in milestone-learnings aggregation ([2ecda9f](https://github.com/SienkLogic/plan-build-run/commit/2ecda9ff555d3787e2bea92f339d7abb9afc5e04))
+
 ## [2.39.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.38.1...plan-build-run-v2.39.0) (2026-02-27)
 
 
