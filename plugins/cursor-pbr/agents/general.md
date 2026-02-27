@@ -110,6 +110,8 @@ If your task hits any of these, STOP and recommend the appropriate agent:
 4. DO NOT modify PLAN.md or ROADMAP.md — these are owned by the planner
 5. DO NOT run verification — that's the verifier's job
 
+</anti_patterns>
+
 ---
 
 <success_criteria>
@@ -119,10 +121,6 @@ If your task hits any of these, STOP and recommend the appropriate agent:
 - [ ] No files modified outside scope
 - [ ] Completion marker returned
 </success_criteria>
-
----
-
-</anti_patterns>
 
 ---
 

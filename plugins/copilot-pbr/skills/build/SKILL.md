@@ -417,6 +417,11 @@ After reading each SUMMARY, perform a lightweight verification:
 - If ANY spot-check fails, warn the user before proceeding to the next wave:
   "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
 
+**Additional wave spot-checks:**
+- Check for `## Self-Check: FAILED` in SUMMARY.md — if present, warn user before proceeding to next wave
+- Between waves: verify no file conflicts from parallel executors (check `git status` for uncommitted changes)
+- If ANY spot-check fails, present user with: **Retry this plan** / **Continue to next wave** / **Abort build**
+
 **Read executor deviations:**
 
 After all executors in the wave complete, read all SUMMARY frontmatter and:

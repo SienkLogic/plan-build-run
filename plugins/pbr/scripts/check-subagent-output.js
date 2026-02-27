@@ -359,7 +359,8 @@ async function main() {
   const outputSpec = AGENT_OUTPUTS[agentType];
   if (!outputSpec) {
     // Log when agent is in KNOWN_AGENTS but missing from AGENT_OUTPUTS
-    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(agentType)) {
+    const shortName = agentType.startsWith('pbr:') ? agentType.slice(4) : agentType;
+    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(shortName)) {
       logHook('check-subagent-output', 'PostToolUse', 'missing-output-spec', {
         agent_type: agentType,
         message: `Agent ${agentType} is in KNOWN_AGENTS but has no AGENT_OUTPUTS entry. Add one to check-subagent-output.js.`

@@ -276,6 +276,11 @@ CRITICAL: Read these files BEFORE any other action:
 - When all complete: "All {N} researchers finished. Proceeding to synthesis."
 - Wait for all to complete before proceeding
 
+**After each researcher completes**, check the agent output for a completion marker:
+- If `## RESEARCH COMPLETE` is present: researcher finished successfully, proceed
+- If `## RESEARCH BLOCKED` is present: warn the user that research could not complete, ask if they want to proceed with limited context or stop
+- If neither marker is present: warn that researcher may not have completed successfully, but proceed if output files exist on disk
+
 ---
 
 ### Step 6: Synthesis (delegated to agent)
@@ -401,7 +406,11 @@ CRITICAL: Read these files BEFORE any other action:
 - `{description}` — project description from Step 2
 - `{quick|standard|comprehensive}` — depth setting from Step 3
 
-**After the planner completes:**
+**After the planner completes**, check the agent output for a completion marker:
+- If `## PLANNING COMPLETE` is present: planner finished successfully, proceed
+- If `## PLANNING FAILED` is present: warn the user that planning could not complete, display the reason, and offer to retry or abort
+- If neither marker is present: warn that planner may not have completed successfully, but proceed if ROADMAP.md exists on disk
+
 - Read `.planning/ROADMAP.md`
 - Count the phases and milestones from the roadmap content
 - Display:
