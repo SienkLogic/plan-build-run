@@ -11,9 +11,10 @@
  *   PEAK      (0-30%)  — no warnings
  *   GOOD      (30-50%) — no warnings
  *   DEGRADING (50-70%) — suggest subagent delegation
- *   POOR      (70%+)   — recommend /pbr:pause
+ *   POOR      (70-85%) — recommend /pbr:pause
+ *   CRITICAL  (85%+)   — urgent stop, context rot imminent
  *
- * Debounce: same-tier warnings suppressed for 5 tool calls.
+ * Debounce: same-tier warnings suppressed for 5 tool calls (2 for CRITICAL).
  * Tier escalation always warns immediately.
  *
  * Exit codes:
@@ -28,15 +29,18 @@ const TIERS = [
   { name: 'PEAK', min: 0, max: 30 },
   { name: 'GOOD', min: 30, max: 50 },
   { name: 'DEGRADING', min: 50, max: 70 },
-  { name: 'POOR', min: 70, max: 100 }
+  { name: 'POOR', min: 70, max: 85 },
+  { name: 'CRITICAL', min: 85, max: 100 }
 ];
 
 const TIER_MESSAGES = {
-  DEGRADING: 'Context is filling. Consider delegating heavy work to subagents.',
-  POOR: 'Context critically low. Recommend /pbr:pause to save state.'
+  DEGRADING: 'Context at ~50-70%. Delegate heavy reads and analysis to Task() subagents to preserve orchestrator quality.',
+  POOR: 'Context at ~70-85%. Run /pbr:pause soon to save state before quality degrades.',
+  CRITICAL: 'STOP — Context at 85%+. Run /pbr:pause NOW. Context rot is imminent — further work risks hallucinations and skipped steps.'
 };
 
 const DEBOUNCE_INTERVAL = 5; // tool calls between same-tier warnings
+const CRITICAL_DEBOUNCE_INTERVAL = 2; // shorter debounce for CRITICAL tier
 
 /**
  * Determine the context tier for a given percentage.
@@ -117,13 +121,14 @@ function shouldWarn(bridge, tierName) {
   const callsSinceWarn = bridge.calls_since_warn || 0;
 
   // Tier escalation — always warn
-  const tierOrder = { PEAK: 0, GOOD: 1, DEGRADING: 2, POOR: 3 };
+  const tierOrder = { PEAK: 0, GOOD: 1, DEGRADING: 2, POOR: 3, CRITICAL: 4 };
   if ((tierOrder[tierName] || 0) > (tierOrder[prevTier] || 0)) {
     return true;
   }
 
-  // Same tier — debounce
-  if (callsSinceWarn >= DEBOUNCE_INTERVAL) {
+  // Same tier — debounce (CRITICAL uses shorter interval)
+  const interval = tierName === 'CRITICAL' ? CRITICAL_DEBOUNCE_INTERVAL : DEBOUNCE_INTERVAL;
+  if (callsSinceWarn >= interval) {
     return true;
   }
 
@@ -253,7 +258,8 @@ module.exports = {
   updateBridge,
   TIERS,
   TIER_MESSAGES,
-  DEBOUNCE_INTERVAL
+  DEBOUNCE_INTERVAL,
+  CRITICAL_DEBOUNCE_INTERVAL
 };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }

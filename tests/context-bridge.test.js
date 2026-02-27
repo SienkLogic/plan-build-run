@@ -13,7 +13,8 @@ const {
   estimateFromHeuristic,
   shouldWarn,
   updateBridge,
-  DEBOUNCE_INTERVAL
+  DEBOUNCE_INTERVAL,
+  CRITICAL_DEBOUNCE_INTERVAL
 } = require(SCRIPT);
 
 describe('context-bridge.js', () => {
@@ -61,12 +62,20 @@ describe('context-bridge.js', () => {
       expect(getTier(70).name).toBe('POOR');
     });
 
-    test('returns POOR for 100%', () => {
-      expect(getTier(100).name).toBe('POOR');
+    test('returns POOR for 84%', () => {
+      expect(getTier(84).name).toBe('POOR');
     });
 
-    test('returns POOR for values above 100', () => {
-      expect(getTier(150).name).toBe('POOR');
+    test('returns CRITICAL for 85%', () => {
+      expect(getTier(85).name).toBe('CRITICAL');
+    });
+
+    test('returns CRITICAL for 100%', () => {
+      expect(getTier(100).name).toBe('CRITICAL');
+    });
+
+    test('returns CRITICAL for values above 100', () => {
+      expect(getTier(150).name).toBe('CRITICAL');
     });
   });
 
@@ -171,6 +180,30 @@ describe('context-bridge.js', () => {
       expect(shouldWarn(bridge, 'POOR')).toBe(true);
     });
 
+    test('warns on tier escalation from POOR to CRITICAL', () => {
+      const bridge = { last_warned_tier: 'POOR', calls_since_warn: 1 };
+      expect(shouldWarn(bridge, 'CRITICAL')).toBe(true);
+    });
+
+    test('warns on tier escalation from DEGRADING to CRITICAL', () => {
+      const bridge = { last_warned_tier: 'DEGRADING', calls_since_warn: 0 };
+      expect(shouldWarn(bridge, 'CRITICAL')).toBe(true);
+    });
+
+    test('CRITICAL uses shorter debounce interval', () => {
+      // Below CRITICAL debounce — should not warn
+      const bridge1 = { last_warned_tier: 'CRITICAL', calls_since_warn: 1 };
+      expect(shouldWarn(bridge1, 'CRITICAL')).toBe(false);
+
+      // At CRITICAL debounce interval — should warn
+      const bridge2 = { last_warned_tier: 'CRITICAL', calls_since_warn: CRITICAL_DEBOUNCE_INTERVAL };
+      expect(shouldWarn(bridge2, 'CRITICAL')).toBe(true);
+    });
+
+    test('CRITICAL debounce is shorter than standard debounce', () => {
+      expect(CRITICAL_DEBOUNCE_INTERVAL).toBeLessThan(DEBOUNCE_INTERVAL);
+    });
+
     test('handles missing last_warned_tier gracefully', () => {
       const bridge = { calls_since_warn: 0 };
       expect(shouldWarn(bridge, 'DEGRADING')).toBe(true);
@@ -249,11 +282,19 @@ describe('context-bridge.js', () => {
     });
 
     test('emits POOR warning on first escalation', () => {
-      const { output } = updateBridge(planningDir, { context_percent: 80 });
+      const { output } = updateBridge(planningDir, { context_percent: 75 });
       expect(output).not.toBeNull();
       expect(output.additionalContext).toContain('POOR');
-      expect(output.additionalContext).toContain('80%');
+      expect(output.additionalContext).toContain('75%');
       expect(output.additionalContext).toContain('/pbr:pause');
+    });
+
+    test('emits CRITICAL warning on first escalation', () => {
+      const { output } = updateBridge(planningDir, { context_percent: 90 });
+      expect(output).not.toBeNull();
+      expect(output.additionalContext).toContain('CRITICAL');
+      expect(output.additionalContext).toContain('90%');
+      expect(output.additionalContext).toContain('STOP');
     });
 
     test('debounces same-tier warnings', () => {
@@ -282,6 +323,17 @@ describe('context-bridge.js', () => {
       const r2 = updateBridge(planningDir, { context_percent: 75 });
       expect(r2.output).not.toBeNull();
       expect(r2.output.additionalContext).toContain('POOR');
+    });
+
+    test('bypasses debounce on escalation from POOR to CRITICAL', () => {
+      // Escalate to POOR
+      const r1 = updateBridge(planningDir, { context_percent: 75 });
+      expect(r1.output).not.toBeNull();
+
+      // Immediately escalate to CRITICAL — should bypass debounce
+      const r2 = updateBridge(planningDir, { context_percent: 90 });
+      expect(r2.output).not.toBeNull();
+      expect(r2.output.additionalContext).toContain('CRITICAL');
     });
 
     test('records warnings in bridge state', () => {
@@ -367,9 +419,16 @@ describe('context-bridge.js', () => {
     });
 
     test('outputs warning for POOR tier via CLI', () => {
-      const output = run({ context_percent: 80 });
+      const output = run({ context_percent: 75 });
       const parsed = JSON.parse(output);
       expect(parsed.additionalContext).toContain('POOR');
+    });
+
+    test('outputs warning for CRITICAL tier via CLI', () => {
+      const output = run({ context_percent: 90 });
+      const parsed = JSON.parse(output);
+      expect(parsed.additionalContext).toContain('CRITICAL');
+      expect(parsed.additionalContext).toContain('STOP');
     });
 
     test('no output for PEAK tier via CLI', () => {
