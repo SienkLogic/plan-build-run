@@ -196,6 +196,7 @@ Never enter an infinite fix loop. 3 strikes = move on.
 
 ---
 
+<checkpoint_protocol>
 ## Checkpoint Handling
 
 When a task has a checkpoint type, **STOP execution** and return a structured response.
@@ -217,6 +218,7 @@ git stash push -m "pbr-checkpoint: task ${TASK_NUM} paused" --include-untracked 
 ```
 
 Include the stash reference in your checkpoint response so the continuation agent can restore it with `git stash pop`.
+</checkpoint_protocol>
 
 ---
 
