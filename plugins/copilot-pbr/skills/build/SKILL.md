@@ -407,15 +407,40 @@ For each completed executor:
 
 **Spot-check executor claims:**
 
-After reading each SUMMARY, perform a lightweight verification:
-- Pick 2-3 files from the SUMMARY's `key_files` list and verify they exist (`ls`)
-- Run `git log --oneline -n {commit_count}` and confirm the count matches the claimed commits
-- For each spot-checked file, verify it has >10 lines (`wc -l`): warn if trivially small
-- For each spot-checked file, search for TODO/FIXME/placeholder/stub markers: warn if found
-- Check SUMMARY.md frontmatter for `self_check_failures`: if present, warn the user:
-  "Plan {id} reported self-check failures: {list failures}. Inspect before continuing?"
-- If ANY spot-check fails, warn the user before proceeding to the next wave:
-  "Spot-check failed for plan {id}: {detail}. Inspect before continuing?"
+CRITICAL: Before reading results or advancing to the next wave, run the spot-check CLI for each completed plan.
+
+For each completed plan in this wave:
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js spot-check {phaseSlug} {planId}
+```
+
+Where `{phaseSlug}` is the phase directory name (e.g., `49-build-workflow-hardening`) and `{planId}` is the plan identifier (e.g., `49-01`).
+
+The command returns JSON: `{ ok, summary_exists, key_files_checked, commits_present, detail }`
+
+**If `ok` is `false` for ANY plan: STOP.** Do NOT advance to the next wave. Present the user with:
+
+```
+Spot-check FAILED for plan {planId}: {detail}
+
+Choose an action:
+  Retry   — Re-spawn executor for this plan
+  Continue — Skip this plan and proceed to next wave (may leave phase incomplete)
+  Abort   — Stop the build entirely
+```
+
+Use AskUserQuestion with the three options. Route:
+
+- Retry: Re-spawn the executor for this plan (go back to Step 6a for this plan only)
+- Continue: Log the failure, skip the plan, proceed
+- Abort: Stop all build work, leave phase in partial state
+
+**If `ok` is `true` for all plans:**
+
+- Also check SUMMARY.md frontmatter for `self_check_failures`: if present, warn the user: "Plan {id} reported self-check failures: {list}. Inspect before continuing?"
+- Also search SUMMARY.md for `## Self-Check: FAILED` marker — if present, warn before next wave
+- Between waves: verify no file conflicts from parallel executors (`git status` for uncommitted changes)
 
 **Additional wave spot-checks:**
 - Check for `## Self-Check: FAILED` in SUMMARY.md — if present, warn user before proceeding to next wave
