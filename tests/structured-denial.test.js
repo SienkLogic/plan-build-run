@@ -131,12 +131,34 @@ const SCRIPTS_TO_CHECK = [
   'check-plan-format.js',
 ];
 
+/**
+ * Read content for a script, aggregating gate module files for validate-task.js
+ * since blocking reasons were decomposed into lib/gates/ modules.
+ */
+function readScriptContent(script) {
+  const content = fs.readFileSync(path.join(SCRIPTS_DIR, script), 'utf8');
+  if (script !== 'validate-task.js') return content;
+
+  // Aggregate gate module files so blocking reason checks still work
+  const gatesDir = path.join(SCRIPTS_DIR, 'lib', 'gates');
+  let aggregated = content;
+  try {
+    const gateFiles = fs.readdirSync(gatesDir).filter(f => f.endsWith('.js'));
+    for (const gf of gateFiles) {
+      aggregated += '\n' + fs.readFileSync(path.join(gatesDir, gf), 'utf8');
+    }
+  } catch (_e) {
+    // lib/gates/ not present — fall back to main file only
+  }
+  return aggregated;
+}
+
 describe('Structured denial messages', () => {
   const scriptReasons = {};
 
   beforeAll(() => {
     for (const script of SCRIPTS_TO_CHECK) {
-      const content = fs.readFileSync(path.join(SCRIPTS_DIR, script), 'utf8');
+      const content = readScriptContent(script);
       scriptReasons[script] = extractBlockingReasons(content);
     }
   });
