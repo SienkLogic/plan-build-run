@@ -60,7 +60,10 @@ if (invokedViaEval) {
 
 // When required as a module from -e bootstrap, export a runner function
 if (typeof module !== 'undefined' && module.exports) {
+  const BOOTSTRAP_SNIPPET = "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\"";
   module.exports = runScript;
+  module.exports.BOOTSTRAP_SNIPPET = BOOTSTRAP_SNIPPET;
+  module.exports.runScript = runScript;
 }
 
 // If we have a script name, run it immediately

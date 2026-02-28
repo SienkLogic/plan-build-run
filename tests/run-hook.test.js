@@ -1,12 +1,14 @@
 /**
  * Tests for run-hook.js — the bootstrap script for ALL PBR hooks.
- * Tests fixMsysPath, script resolution, and error handling.
+ * Tests fixMsysPath, script resolution, error handling, BOOTSTRAP_SNIPPET export,
+ * and hooks.json bootstrap drift detection.
  */
 
 const path = require('path');
 const { execSync } = require('child_process');
 
 const RUN_HOOK = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'run-hook.js');
+const HOOKS_JSON = path.join(__dirname, '..', 'plugins', 'pbr', 'hooks', 'hooks.json');
 
 
 describe('run-hook.js', () => {
@@ -100,5 +102,119 @@ describe('run-hook.js', () => {
       );
       expect(result.trim()).toBe('function');
     });
+  });
+});
+
+describe('run-hook.js BOOTSTRAP_SNIPPET export', () => {
+  let runHook;
+
+  beforeAll(() => {
+    // Use a child process to require run-hook.js in isolation (it has side effects)
+    // We read the export values by running a node subprocess
+  });
+
+  test('BOOTSTRAP_SNIPPET is exported as a string', () => {
+    const result = execSync(
+      `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(typeof m.BOOTSTRAP_SNIPPET);"`,
+      { encoding: 'utf8', timeout: 5000 }
+    );
+    expect(result.trim()).toBe('string');
+  });
+
+  test('BOOTSTRAP_SNIPPET contains MSYS path fix logic', () => {
+    const result = execSync(
+      `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(m.BOOTSTRAP_SNIPPET);"`,
+      { encoding: 'utf8', timeout: 5000 }
+    );
+    const snippet = result.trim();
+    expect(snippet).toContain('CLAUDE_PLUGIN_ROOT');
+    expect(snippet).toContain('String.fromCharCode');
+    expect(snippet).toContain('run-hook.js');
+  });
+
+  test('runScript is exported as a function', () => {
+    const result = execSync(
+      `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(typeof m.runScript);"`,
+      { encoding: 'utf8', timeout: 5000 }
+    );
+    expect(result.trim()).toBe('function');
+  });
+});
+
+describe('hooks.json $bootstrap documentation', () => {
+  let hooksJson;
+
+  beforeAll(() => {
+    hooksJson = require(HOOKS_JSON);
+  });
+
+  test('has $bootstrap documentation key', () => {
+    expect(hooksJson).toHaveProperty('$bootstrap');
+    expect(typeof hooksJson.$bootstrap).toBe('object');
+  });
+
+  test('$bootstrap.why explains the MSYS path problem', () => {
+    expect(hooksJson.$bootstrap).toHaveProperty('why');
+    expect(hooksJson.$bootstrap.why).toContain('MSYS');
+  });
+
+  test('$bootstrap.pattern documents the bootstrap one-liner', () => {
+    expect(hooksJson.$bootstrap).toHaveProperty('pattern');
+    expect(hooksJson.$bootstrap.pattern).toContain('CLAUDE_PLUGIN_ROOT');
+    expect(hooksJson.$bootstrap.pattern).toContain('String.fromCharCode');
+  });
+});
+
+describe('hooks.json bootstrap drift detection', () => {
+  /**
+   * Recursively collect all hook command strings from a hooks.json structure.
+   * Returns array of { event, command } objects.
+   */
+  function collectHookCommands(hooksObj) {
+    const results = [];
+    const hookEvents = hooksObj.hooks || {};
+
+    for (const [eventName, eventHooks] of Object.entries(hookEvents)) {
+      if (!Array.isArray(eventHooks)) continue;
+
+      for (const group of eventHooks) {
+        const groupHooks = group.hooks || [];
+        for (const hook of groupHooks) {
+          if (hook.type === 'command' && typeof hook.command === 'string') {
+            results.push({ event: eventName, command: hook.command });
+          }
+        }
+      }
+    }
+
+    return results;
+  }
+
+  test('all hook commands start with BOOTSTRAP_SNIPPET (drift detector)', () => {
+    const hooksJson = require(HOOKS_JSON);
+
+    // Get BOOTSTRAP_SNIPPET from a subprocess to avoid side effects of requiring run-hook.js
+    const snippetResult = execSync(
+      `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); process.stdout.write(m.BOOTSTRAP_SNIPPET);"`,
+      { encoding: 'utf8', timeout: 5000 }
+    );
+    const BOOTSTRAP_SNIPPET = snippetResult;
+
+    const commands = collectHookCommands(hooksJson);
+    expect(commands.length).toBeGreaterThan(0);
+
+    const violations = commands.filter(
+      ({ command }) => !command.startsWith(BOOTSTRAP_SNIPPET)
+    );
+
+    if (violations.length > 0) {
+      const details = violations
+        .map(({ event, command }) => `  [${event}] ${command.slice(0, 100)}`)
+        .join('\n');
+      throw new Error(
+        `${violations.length} hook command(s) do not start with BOOTSTRAP_SNIPPET:\n${details}\n\n` +
+        `Expected prefix:\n  ${BOOTSTRAP_SNIPPET}`
+      );
+    }
   });
 });
