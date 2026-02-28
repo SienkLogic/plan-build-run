@@ -56,7 +56,7 @@ async function main() {
 
       // Determine file type
       const basename = path.basename(filePath);
-      const isPlan = /PLAN.*\.md$/i.test(basename);
+      const isPlan = /^PLAN.*\.md$/.test(basename);
       const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
       const isVerification = basename === 'VERIFICATION.md';
       const isRoadmap = basename === 'ROADMAP.md';
@@ -276,7 +276,7 @@ function validateSummary(content, _filePath) {
 async function checkPlanWrite(data) {
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const basename = path.basename(filePath);
-  const isPlan = /PLAN.*\.md$/i.test(basename);
+  const isPlan = /^PLAN.*\.md$/.test(basename);
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
   const isVerification = basename === 'VERIFICATION.md';
   const isRoadmap = basename === 'ROADMAP.md';

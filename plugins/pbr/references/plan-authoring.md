@@ -200,6 +200,43 @@ Two plans CONFLICT if their `files_modified` lists overlap. Conflicting plans:
 
 ---
 
+## @file: Output Pattern (Large Payloads)
+
+When a `pbr-tools` CLI command produces output exceeding 50,000 characters, the tool writes
+the JSON payload to a temporary file instead of emitting it inline. It then prints a single
+line of the form:
+
+```
+@file:/tmp/pbr-1234567890.json
+```
+
+This prevents stdout overflow in environments with limited buffer sizes (hooks, Task() runners).
+
+### Verify Step Pattern
+
+If a plan's `<verify>` step calls `pbr-tools` and inspects the output, guard against the
+`@file:` case:
+
+```bash
+OUT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load)
+if echo "$OUT" | grep -q '^@file:'; then
+  OUT=$(cat "${OUT#@file:}")
+fi
+echo "$OUT" | grep '"status"'
+```
+
+### Agent Prompt Handling
+
+When an agent receives `@file:` output from a spawned tool call, it must read the referenced
+file to obtain the actual JSON payload. The `@file:` prefix is a signal — not a path fragment
+to be appended to another command.
+
+Plan actions that spawn `pbr-tools` subcommands should instruct the agent:
+
+> If the output starts with `@file:`, read the file at that path to get the full JSON response.
+
+---
+
 ## Context Fidelity Checklist
 
 Before writing plan files, verify context compliance:

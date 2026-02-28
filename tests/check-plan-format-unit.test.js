@@ -45,7 +45,7 @@ describe('checkPlanWrite', () => {
   });
 
   test('returns null for valid PLAN.md', async () => {
-    const filePath = path.join(tmpDir, 'test-PLAN.md');
+    const filePath = path.join(tmpDir, 'PLAN-test.md');
     fs.writeFileSync(filePath, `---
 phase: 01-setup
 plan: 01
@@ -264,7 +264,7 @@ describe('checkPlanWrite — LLM enrichment branch', () => {
     const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
     classifyArtifact.mockResolvedValueOnce({ classification: 'good', confidence: 0.95, reason: 'looks solid' });
 
-    const filePath = path.join(tmpDir, 'test-PLAN.md');
+    const filePath = path.join(tmpDir, 'PLAN-llm1.md');
     fs.writeFileSync(filePath, `---
 phase: 01-setup
 plan: 01
@@ -292,7 +292,7 @@ must_haves:
     const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
     classifyArtifact.mockResolvedValueOnce({ classification: 'ok', confidence: 0.8 });
 
-    const filePath = path.join(tmpDir, 'test2-PLAN.md');
+    const filePath = path.join(tmpDir, 'PLAN-llm2.md');
     fs.writeFileSync(filePath, `---
 phase: 01-setup
 plan: 01
@@ -318,7 +318,7 @@ must_haves:
     const { classifyArtifact } = require('../plugins/pbr/scripts/local-llm/operations/classify-artifact');
     classifyArtifact.mockRejectedValueOnce(new Error('LLM down'));
 
-    const filePath = path.join(tmpDir, 'test3-PLAN.md');
+    const filePath = path.join(tmpDir, 'PLAN-llm3.md');
     fs.writeFileSync(filePath, `---
 phase: 01-setup
 plan: 01
