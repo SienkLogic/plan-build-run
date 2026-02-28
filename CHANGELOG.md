@@ -5,6 +5,19 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.44.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.43.0...plan-build-run-v2.44.0) (2026-02-28)
+
+
+### Features
+
+* **49-03:** add CRITICAL spot-check CLI marker to build SKILL.md Step 6c ([255ee65](https://github.com/SienkLogic/plan-build-run/commit/255ee65506334a972ceb472b2fa90f1ba94eca80))
+* **49-03:** GREEN - refactor check-subagent-output.js to SKILL_CHECKS lookup table ([fb4b272](https://github.com/SienkLogic/plan-build-run/commit/fb4b272a8a02dd22d27745e5a9d98bb9fc57ef26))
+
+
+### Bug Fixes
+
+* **49-03:** sync spot-check CRITICAL marker to cursor-pbr and copilot-pbr ([994ef46](https://github.com/SienkLogic/plan-build-run/commit/994ef46aa13afde61ffa0e38e0332ab13be8863d))
+
 ## [2.43.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.42.1...plan-build-run-v2.43.0) (2026-02-28)
 
 
