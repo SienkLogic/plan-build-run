@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readActiveSkill, readCurrentPhase } = require('./helpers');
+const { readActiveSkill } = require('./helpers');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being

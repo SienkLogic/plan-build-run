@@ -4,7 +4,6 @@
  * Tests for localhost-only validation of local_llm.endpoint in configValidate().
  */
 
-const path = require('path');
 const { configValidate } = require('../../plugins/pbr/scripts/lib/config');
 
 function makeConfig(localLlm) {
