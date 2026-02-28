@@ -92,6 +92,23 @@ function configValidate(preloadedConfig, planningDir) {
     warnings.push(`config.json schema is outdated. Run: node pbr-tools.js migrate`);
   }
 
+  // Local LLM endpoint must be localhost-only for security
+  if (config.local_llm && config.local_llm.enabled === true && config.local_llm.endpoint) {
+    try {
+      const parsed = new URL(config.local_llm.endpoint);
+      const hostname = parsed.hostname.toLowerCase();
+      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]'];
+      if (!localhostNames.includes(hostname)) {
+        errors.push(
+          `local_llm.endpoint must be a localhost address (localhost, 127.0.0.1, or ::1). ` +
+          `Got: "${hostname}". Non-localhost endpoints are not supported for security reasons.`
+        );
+      }
+    } catch (_urlErr) {
+      errors.push(`local_llm.endpoint is not a valid URL: "${config.local_llm.endpoint}"`);
+    }
+  }
+
   // Semantic conflict detection — logical contradictions that pass schema validation
   // Clear contradictions -> errors; ambiguous/preference issues -> warnings
   if (config.mode === 'autonomous' && config.gates) {
