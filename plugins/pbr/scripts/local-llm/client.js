@@ -1,6 +1,12 @@
 /* global fetch, AbortSignal, performance */
 'use strict';
 
+const {
+  isDisabledPersistent,
+  recordFailurePersistent,
+  resetCircuitPersistent
+} = require('../lib/circuit-state');
+
 // Circuit breaker: Map<operationType, { failures: number, disabled: boolean }>
 const circuitState = new Map();
 
@@ -109,6 +115,7 @@ function resetCircuit(operationType) {
  * @param {string} operationType - operation identifier for circuit breaker tracking
  * @param {object} [options={}] - optional parameters
  * @param {boolean} [options.logprobs] - if true, request logprobs from the API
+ * @param {string} [options.planningDir] - optional .planning directory for persistent circuit breaker state
  * @returns {Promise<{ content: string, latency_ms: number, tokens: number, logprobsData: Array<{token: string, logprob: number}>|null }>}
  */
 async function complete(config, prompt, operationType, options = {}) {
@@ -119,8 +126,15 @@ async function complete(config, prompt, operationType, options = {}) {
   const numCtx = (config.advanced && config.advanced.num_ctx) || 4096;
   const keepAlive = (config.advanced && config.advanced.keep_alive) || '30m';
   const maxFailures = (config.advanced && config.advanced.disable_after_failures) || 3;
+  const planningDir = options.planningDir || null;
 
+  // Check in-memory circuit first (fast path), then persistent state
   if (isDisabled(operationType, maxFailures)) {
+    const err = new Error('Circuit open for operation: ' + operationType);
+    err.type = 'circuit_open';
+    throw err;
+  }
+  if (planningDir && isDisabledPersistent(planningDir, operationType, maxFailures)) {
     const err = new Error('Circuit open for operation: ' + operationType);
     err.type = 'circuit_open';
     throw err;
@@ -185,6 +199,7 @@ async function complete(config, prompt, operationType, options = {}) {
       if (isConnRefused) {
         // Server not running — no point retrying
         recordFailure(operationType, maxFailures);
+        if (planningDir) recordFailurePersistent(planningDir, operationType, maxFailures);
         throw err;
       }
 
@@ -197,18 +212,26 @@ async function complete(config, prompt, operationType, options = {}) {
       }
 
       // Final attempt or non-retryable error
-      if (attempt === totalAttempts - 1) {
-        recordFailure(operationType, maxFailures);
-      } else {
-        recordFailure(operationType, maxFailures);
-      }
+      recordFailure(operationType, maxFailures);
+      if (planningDir) recordFailurePersistent(planningDir, operationType, maxFailures);
       throw err;
     }
   }
 
   // Should not reach here, but guard anyway
   recordFailure(operationType, maxFailures);
+  if (planningDir) recordFailurePersistent(planningDir, operationType, maxFailures);
   throw lastErr;
 }
 
-module.exports = { tryParseJSON, categorizeError, isDisabled, recordFailure, resetCircuit, complete };
+module.exports = {
+  tryParseJSON,
+  categorizeError,
+  isDisabled,
+  recordFailure,
+  resetCircuit,
+  complete,
+  isDisabledPersistent,
+  recordFailurePersistent,
+  resetCircuitPersistent
+};
