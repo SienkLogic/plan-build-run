@@ -417,7 +417,7 @@ async function main() {
       const field = args[2];
       const value = args[3];
       if (!field || value === undefined) {
-        error('Usage: pbr-tools.js state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity');
+        error('Usage: pbr-tools.js state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity, progress_percent, phase_slug, total_phases, last_command, blockers');
       }
       output(stateUpdate(field, value));
     } else if (command === 'config' && subcommand === 'validate') {
