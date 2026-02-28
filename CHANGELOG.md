@@ -5,6 +5,26 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.42.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.41.0...plan-build-run-v2.42.0) (2026-02-28)
+
+
+### Features
+
+* **48-02:** add localhost-only validation for local_llm.endpoint in configValidate ([511e038](https://github.com/SienkLogic/plan-build-run/commit/511e038bc5821518d261ac49d3098ac8281970cd))
+* **48-02:** add persistent cross-process circuit breaker in lib/circuit-state.js ([85ee2fd](https://github.com/SienkLogic/plan-build-run/commit/85ee2fdb07ee9357c467d80f2ec02b6af2e0378e))
+* **48-02:** replace busy-wait loop with Atomics.wait in lockedFileUpdate ([0099aa2](https://github.com/SienkLogic/plan-build-run/commit/0099aa2b172b7705bba2c834be8601d225667b10))
+
+
+### Bug Fixes
+
+* **48-03:** remove unused imports causing ESLint failures in CI ([f459004](https://github.com/SienkLogic/plan-build-run/commit/f4590048e4847e802ace067b47d10d9c865d0f21))
+* **48-03:** remove unused variable in run-hook.test.js to pass ESLint ([2b553b1](https://github.com/SienkLogic/plan-build-run/commit/2b553b1df752231f9e78246fe6f4d6326f872f87))
+
+
+### Documentation
+
+* **48-03:** add bootstrap documentation and drift-detection test for hooks.json ([d29c015](https://github.com/SienkLogic/plan-build-run/commit/d29c01524bdbc2b01741f4c634b8e3855a3fa0b0))
+
 ## [2.41.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.40.1...plan-build-run-v2.41.0) (2026-02-28)
 
 
