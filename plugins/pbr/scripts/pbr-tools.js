@@ -40,6 +40,7 @@
  *   learnings ingest <json-file>  — Ingest a learning entry into global store
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T] — Query learnings
  *   learnings check-thresholds   — Check deferral trigger conditions
+ *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -131,6 +132,10 @@ const {
 const {
   applyMigrations: _applyMigrations
 } = require('./lib/migrate');
+
+const {
+  spotCheck: _spotCheck
+} = require('./lib/spot-check');
 
 const {
   learningsIngest: _learningsIngest,
@@ -280,6 +285,10 @@ function todoDone(num) {
 
 function migrate(options) {
   return _applyMigrations(planningDir, options);
+}
+
+function spotCheck(phaseDir, planId) {
+  return _spotCheck(planningDir, phaseDir, planId);
 }
 
 // --- validateProject stays here (cross-cutting across modules) ---
@@ -711,6 +720,15 @@ async function main() {
         error('Usage: learnings <ingest|query|check-thresholds>');
         process.exit(1);
       }
+    } else if (command === 'spot-check') {
+      // spot-check <phaseSlug> <planId>
+      // Returns JSON: { ok, summary_exists, key_files_checked, commits_present, detail }
+      const phaseSlug = args[1];
+      const planId = args[2];
+      if (!phaseSlug || !planId) {
+        error('Usage: spot-check <phaseSlug> <planId>');
+      }
+      output(spotCheck(phaseSlug, planId));
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
@@ -722,6 +740,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
