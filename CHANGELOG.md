@@ -5,6 +5,24 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.41.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.40.1...plan-build-run-v2.41.0) (2026-02-28)
+
+
+### Features
+
+* **47-01:** expand stateUpdate to cover all 9 STATE.md frontmatter fields ([de6a6b3](https://github.com/SienkLogic/plan-build-run/commit/de6a6b3b3f577c436396927a4b5511b5163a527c))
+* **47-02:** add [@file](https://github.com/file): escape hatch tests and documentation ([6634f50](https://github.com/SienkLogic/plan-build-run/commit/6634f504c7e64f25caaecb0b06561c3a03b88d35))
+
+
+### Bug Fixes
+
+* **47-01:** update stale state update usage hint to list all 9 fields ([e0d0e39](https://github.com/SienkLogic/plan-build-run/commit/e0d0e39fa11c8a210b7f44f1e311f80ce761b6c6))
+
+
+### Documentation
+
+* **46-02:** add agent contract compliance audit for phase 46 ([78bca43](https://github.com/SienkLogic/plan-build-run/commit/78bca43bb1c37375c9b7bd3704d874d957f61b26))
+
 ## [2.40.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.40.0...plan-build-run-v2.40.1) (2026-02-27)
 
 
