@@ -4,9 +4,13 @@
  * PostToolUse hook on Write|Edit: Tracks tool call count per session
  * and suggests /compact when approaching context limits.
  *
+ * Primary path: reads .planning/.context-budget.json (written by context-bridge.js)
+ * and emits tier-labeled warnings (DEGRADING/POOR/CRITICAL) when bridge data is
+ * fresh (<60s old). CRITICAL tier always emits; others use REMINDER_INTERVAL debounce.
+ *
+ * Fallback: when bridge is absent or stale, uses call-count threshold.
  * Counter stored in .planning/.compact-counter (JSON).
  * Threshold configurable via config.json hooks.compactThreshold (default: 50).
- * After first suggestion, re-suggests every 25 calls.
  * Counter resets on SessionStart (via progress-tracker.js).
  *
  * Exit codes:
