@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness } = require('../plugins/pbr/scripts/check-subagent-output');
+const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS } = require('../plugins/pbr/scripts/check-subagent-output');
 
 let tmpDir;
 let planningDir;
@@ -381,6 +381,128 @@ describe('getCurrentPhase', () => {
 
   test('returns null when no phase info', () => {
     expect(getCurrentPhase('# No phase info')).toBeNull();
+  });
+});
+
+describe('SKILL_CHECKS lookup table', () => {
+  test('SKILL_CHECKS is exported and is an object', () => {
+    expect(SKILL_CHECKS).toBeDefined();
+    expect(typeof SKILL_CHECKS).toBe('object');
+  });
+
+  test('SKILL_CHECKS has expected keys', () => {
+    const expectedKeys = [
+      'begin:pbr:planner',
+      'plan:pbr:researcher',
+      'scan:pbr:codebase-mapper',
+      'review:pbr:verifier',
+      'build:pbr:executor',
+      'quick:pbr:executor'
+    ];
+    for (const key of expectedKeys) {
+      expect(SKILL_CHECKS[key]).toBeDefined();
+      expect(typeof SKILL_CHECKS[key].check).toBe('function');
+      expect(typeof SKILL_CHECKS[key].description).toBe('string');
+    }
+  });
+
+  test('begin:pbr:planner warns when REQUIREMENTS.md missing', () => {
+    // ROADMAP.md and STATE.md present, REQUIREMENTS.md absent
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
+    const warnings = [];
+    SKILL_CHECKS['begin:pbr:planner'].check(planningDir, [], warnings);
+    expect(warnings.some(w => w.includes('REQUIREMENTS.md'))).toBe(true);
+  });
+
+  test('begin:pbr:planner warns when ROADMAP.md missing', () => {
+    fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Req');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
+    const warnings = [];
+    SKILL_CHECKS['begin:pbr:planner'].check(planningDir, [], warnings);
+    expect(warnings.some(w => w.includes('ROADMAP.md'))).toBe(true);
+  });
+
+  test('begin:pbr:planner no warning when all core files present', () => {
+    fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Req');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State');
+    const warnings = [];
+    SKILL_CHECKS['begin:pbr:planner'].check(planningDir, [], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('scan:pbr:codebase-mapper warns when tech area missing', () => {
+    const codebaseDir = path.join(planningDir, 'codebase');
+    fs.mkdirSync(codebaseDir, { recursive: true });
+    // arch, quality, concerns present but NOT tech
+    fs.writeFileSync(path.join(codebaseDir, 'arch-overview.md'), 'arch');
+    fs.writeFileSync(path.join(codebaseDir, 'quality-report.md'), 'quality');
+    fs.writeFileSync(path.join(codebaseDir, 'concerns.md'), 'concerns');
+    const warnings = [];
+    SKILL_CHECKS['scan:pbr:codebase-mapper'].check(planningDir, [], warnings);
+    expect(warnings.some(w => w.includes('"tech"'))).toBe(true);
+  });
+
+  test('scan:pbr:codebase-mapper no warning when all 4 areas present', () => {
+    const codebaseDir = path.join(planningDir, 'codebase');
+    fs.mkdirSync(codebaseDir, { recursive: true });
+    fs.writeFileSync(path.join(codebaseDir, 'tech-stack.md'), 'tech');
+    fs.writeFileSync(path.join(codebaseDir, 'arch-overview.md'), 'arch');
+    fs.writeFileSync(path.join(codebaseDir, 'quality-report.md'), 'quality');
+    fs.writeFileSync(path.join(codebaseDir, 'concerns.md'), 'concerns');
+    const warnings = [];
+    SKILL_CHECKS['scan:pbr:codebase-mapper'].check(planningDir, [], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('unknown key foo:pbr:executor has no SKILL_CHECKS entry and does not crash', () => {
+    expect(SKILL_CHECKS['foo:pbr:executor']).toBeUndefined();
+    // Lookup with optional chaining should not throw
+    const entry = SKILL_CHECKS['foo:pbr:executor'];
+    expect(() => entry?.check(planningDir, [], [])).not.toThrow();
+  });
+
+  test('build:pbr:executor calls checkSummaryCommits (warns on missing commits)', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: []\n---\nResults');
+    const found = ['phases/01-test/SUMMARY-01.md'];
+    const warnings = [];
+    SKILL_CHECKS['build:pbr:executor'].check(planningDir, found, warnings);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings[0]).toContain('empty');
+  });
+
+  test('quick:pbr:executor calls checkSummaryCommits (no warning when commits present)', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\nResults');
+    const found = ['phases/01-test/SUMMARY-01.md'];
+    const warnings = [];
+    SKILL_CHECKS['quick:pbr:executor'].check(planningDir, found, warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('plan:pbr:researcher warns when no research output found', () => {
+    // Empty planning dir, no research dir, no phase research
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
+    const warnings = [];
+    SKILL_CHECKS['plan:pbr:researcher'].check(planningDir, [], warnings);
+    expect(warnings.some(w => w.includes('No research output'))).toBe(true);
+  });
+
+  test('review:pbr:verifier warns when VERIFICATION.md has gaps_found status', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
+      '---\nstatus: gaps_found\n---\nDetails');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
+    const warnings = [];
+    SKILL_CHECKS['review:pbr:verifier'].check(planningDir, [], warnings);
+    expect(warnings.some(w => w.includes('gaps_found'))).toBe(true);
   });
 });
 
