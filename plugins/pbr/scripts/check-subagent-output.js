@@ -322,6 +322,74 @@ function checkSummaryCommits(planningDir, foundFiles, warnings) {
   }
 }
 
+// Skill-specific check lookup table keyed by 'activeSkill:agentType'
+const SKILL_CHECKS = {
+  'begin:pbr:planner': {
+    description: 'begin planner core files',
+    check: (planningDir, _found, warnings) => {
+      const coreFiles = ['REQUIREMENTS.md', 'ROADMAP.md', 'STATE.md'];
+      for (const f of coreFiles) {
+        if (!fs.existsSync(path.join(planningDir, f))) {
+          warnings.push(`Begin planner: ${f} was not created. The project may be in an incomplete state.`);
+        }
+      }
+    }
+  },
+  'plan:pbr:researcher': {
+    description: 'plan researcher phase-level RESEARCH.md',
+    check: (planningDir, found, warnings) => {
+      const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
+      if (found.length === 0 && phaseResearch.length === 0) {
+        warnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
+      }
+    }
+  },
+  'scan:pbr:codebase-mapper': {
+    description: 'scan codebase-mapper 4 focus areas',
+    check: (planningDir, _found, warnings) => {
+      const expectedAreas = ['tech', 'arch', 'quality', 'concerns'];
+      const codebaseDir = path.join(planningDir, 'codebase');
+      if (fs.existsSync(codebaseDir)) {
+        try {
+          const files = fs.readdirSync(codebaseDir).map(f => f.toLowerCase());
+          for (const area of expectedAreas) {
+            if (!files.some(f => f.includes(area))) {
+              warnings.push(`Scan mapper: No output file containing "${area}" found in .planning/codebase/. One of the 4 mappers may have failed.`);
+            }
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    }
+  },
+  'review:pbr:verifier': {
+    description: 'review verifier VERIFICATION.md status',
+    check: (planningDir, _found, warnings) => {
+      const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+      for (const vf of verFiles) {
+        try {
+          const content = fs.readFileSync(path.join(planningDir, vf), 'utf8');
+          const statusMatch = content.match(/^status:\s*(\S+)/mi);
+          if (statusMatch && statusMatch[1] === 'gaps_found') {
+            warnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    }
+  },
+  'build:pbr:executor': {
+    description: 'build executor SUMMARY commits',
+    check: (planningDir, found, warnings) => {
+      checkSummaryCommits(planningDir, found, warnings);
+    }
+  },
+  'quick:pbr:executor': {
+    description: 'quick executor SUMMARY commits',
+    check: (planningDir, found, warnings) => {
+      checkSummaryCommits(planningDir, found, warnings);
+    }
+  }
+};
+
 function readStdin() {
   try {
     const input = fs.readFileSync(0, 'utf8').trim();
@@ -406,57 +474,11 @@ async function main() {
     skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
   }
 
-  // GAP-04: Begin planner must produce core files
-  if (activeSkill === 'begin' && agentType === 'pbr:planner') {
-    const coreFiles = ['REQUIREMENTS.md', 'ROADMAP.md', 'STATE.md'];
-    for (const f of coreFiles) {
-      if (!fs.existsSync(path.join(planningDir, f))) {
-        skillWarnings.push(`Begin planner: ${f} was not created. The project may be in an incomplete state.`);
-      }
-    }
-  }
-
-  // GAP-05: Plan researcher should produce phase-level RESEARCH.md
-  if (activeSkill === 'plan' && agentType === 'pbr:researcher') {
-    const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
-    if (found.length === 0 && phaseResearch.length === 0) {
-      skillWarnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
-    }
-  }
-
-  // GAP-08: Scan codebase-mapper should produce all 4 focus areas
-  if (activeSkill === 'scan' && agentType === 'pbr:codebase-mapper') {
-    const expectedAreas = ['tech', 'arch', 'quality', 'concerns'];
-    const codebaseDir = path.join(planningDir, 'codebase');
-    if (fs.existsSync(codebaseDir)) {
-      try {
-        const files = fs.readdirSync(codebaseDir).map(f => f.toLowerCase());
-        for (const area of expectedAreas) {
-          if (!files.some(f => f.includes(area))) {
-            skillWarnings.push(`Scan mapper: No output file containing "${area}" found in .planning/codebase/. One of the 4 mappers may have failed.`);
-          }
-        }
-      } catch (_e) { /* best-effort */ }
-    }
-  }
-
-  // GAP-07: Review verifier should produce meaningful VERIFICATION.md status
-  if (activeSkill === 'review' && agentType === 'pbr:verifier') {
-    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
-    for (const vf of verFiles) {
-      try {
-        const content = fs.readFileSync(path.join(planningDir, vf), 'utf8');
-        const statusMatch = content.match(/^status:\s*(\S+)/mi);
-        if (statusMatch && statusMatch[1] === 'gaps_found') {
-          skillWarnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');
-        }
-      } catch (_e) { /* best-effort */ }
-    }
-  }
-
-  // GAP-06: Build/quick executor SUMMARY should have commits
-  if ((activeSkill === 'build' || activeSkill === 'quick') && agentType === 'pbr:executor') {
-    checkSummaryCommits(planningDir, found, skillWarnings);
+  // Skill-specific dispatch via SKILL_CHECKS lookup
+  const skillCheckKey = `${activeSkill}:${agentType}`;
+  const skillCheck = SKILL_CHECKS[skillCheckKey];
+  if (skillCheck) {
+    skillCheck.check(planningDir, found, skillWarnings);
   }
 
   // Output logic: avoid duplicating warnings
@@ -526,5 +548,5 @@ async function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness };
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness };
 if (require.main === module || process.argv[1] === __filename) { main(); }
