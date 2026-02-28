@@ -1,4 +1,4 @@
-const { checkCompaction, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../plugins/pbr/scripts/suggest-compact');
+const { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../plugins/pbr/scripts/suggest-compact');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -180,6 +180,158 @@ describe('suggest-compact.js', () => {
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('5 tool calls');
       expect(result.additionalContext).toContain('threshold: 5');
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('checkBridgeTier', () => {
+    function makeBridge(planningDir, percent, ageMs = 0) {
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      const timestamp = new Date(Date.now() - ageMs).toISOString();
+      fs.writeFileSync(bridgePath, JSON.stringify({ estimated_percent: percent, timestamp }), 'utf8');
+    }
+
+    test('returns null when bridge file is absent', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      expect(checkBridgeTier(planningDir)).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('returns null for PEAK tier (25%)', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 25);
+      expect(checkBridgeTier(planningDir)).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('returns DEGRADING for 55%', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 55);
+      const result = checkBridgeTier(planningDir);
+      expect(result).not.toBeNull();
+      expect(result.tier).toBe('DEGRADING');
+      expect(result.message).toContain('50-70%');
+      cleanup(tmpDir);
+    });
+
+    test('returns POOR for 75%', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 75);
+      const result = checkBridgeTier(planningDir);
+      expect(result).not.toBeNull();
+      expect(result.tier).toBe('POOR');
+      expect(result.message).toContain('70-85%');
+      cleanup(tmpDir);
+    });
+
+    test('returns CRITICAL for 90%', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 90);
+      const result = checkBridgeTier(planningDir);
+      expect(result).not.toBeNull();
+      expect(result.tier).toBe('CRITICAL');
+      expect(result.message).toContain('85%+');
+      cleanup(tmpDir);
+    });
+
+    test('returns null for stale bridge (120s old)', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 90, 120000);
+      expect(checkBridgeTier(planningDir)).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('returns tier for bridge just under staleness threshold (59s old)', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 75, 59000);
+      const result = checkBridgeTier(planningDir);
+      expect(result).not.toBeNull();
+      expect(result.tier).toBe('POOR');
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('checkCompaction with bridge tier', () => {
+    function makeBridge(planningDir, percent, ageMs = 0) {
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      const timestamp = new Date(Date.now() - ageMs).toISOString();
+      fs.writeFileSync(bridgePath, JSON.stringify({ estimated_percent: percent, timestamp }), 'utf8');
+    }
+
+    test('emits tier-labeled DEGRADING message when bridge is fresh at 55%', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 55);
+      // Seed counter at threshold so counter would trigger too
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget - DEGRADING]');
+      cleanup(tmpDir);
+    });
+
+    test('emits tier-labeled POOR message when bridge is fresh at 75%', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 75);
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget - POOR]');
+      cleanup(tmpDir);
+    });
+
+    test('CRITICAL tier always emits regardless of debounce', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 90);
+      // Set counter so it would be debounced normally (just after suggestion)
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD, lastSuggested: DEFAULT_THRESHOLD });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget - CRITICAL]');
+      cleanup(tmpDir);
+    });
+
+    test('falls back to counter warning when bridge is stale (120s old)', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 90, 120000);
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget]');
+      expect(result.additionalContext).not.toContain('[Context Budget - ');
+      cleanup(tmpDir);
+    });
+
+    test('falls back to counter warning when bridge is absent', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget]');
+      expect(result.additionalContext).not.toContain('[Context Budget - ');
+      cleanup(tmpDir);
+    });
+
+    test('PEAK tier (25%) falls through to counter check', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      makeBridge(planningDir, 25);
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      // Should use counter-based message (no tier label)
+      expect(result.additionalContext).toContain('[Context Budget]');
+      expect(result.additionalContext).not.toContain('[Context Budget - ');
       cleanup(tmpDir);
     });
   });
