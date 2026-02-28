@@ -106,13 +106,6 @@ describe('run-hook.js', () => {
 });
 
 describe('run-hook.js BOOTSTRAP_SNIPPET export', () => {
-  let runHook;
-
-  beforeAll(() => {
-    // Use a child process to require run-hook.js in isolation (it has side effects)
-    // We read the export values by running a node subprocess
-  });
-
   test('BOOTSTRAP_SNIPPET is exported as a string', () => {
     const result = execSync(
       `node -e "process.argv[1]=''; const m=require('${RUN_HOOK.replace(/\\/g, '\\\\')}'); console.log(typeof m.BOOTSTRAP_SNIPPET);"`,
