@@ -281,7 +281,8 @@ function stateCheckProgress(planningDir) {
  * Atomically update a field in STATE.md using lockedFileUpdate.
  * Supports both legacy and frontmatter (v2) formats.
  *
- * @param {string} field - One of: current_phase, status, plans_complete, last_activity
+ * @param {string} field - One of: current_phase, status, plans_complete, last_activity,
+ *   progress_percent, phase_slug, total_phases, last_command, blockers
  * @param {string} value - New value (use 'now' for last_activity to auto-timestamp)
  * @param {string} [planningDir] - Path to .planning directory
  */
@@ -292,7 +293,18 @@ function stateUpdate(field, value, planningDir) {
     return { success: false, error: 'STATE.md not found' };
   }
 
-  const validFields = ['current_phase', 'status', 'plans_complete', 'last_activity'];
+  // All 9 STATE.md frontmatter fields supported by stateUpdate
+  const validFields = [
+    'current_phase',
+    'status',
+    'plans_complete',
+    'last_activity',
+    'progress_percent',
+    'phase_slug',
+    'total_phases',
+    'last_command',
+    'blockers'
+  ];
   if (!validFields.includes(field)) {
     return { success: false, error: `Invalid field: ${field}. Valid fields: ${validFields.join(', ')}` };
   }
