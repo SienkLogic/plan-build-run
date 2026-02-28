@@ -84,7 +84,7 @@ describe('Universal agent patterns', () => {
   test.each(coreAgents)('%s closes all opened XML-style tags', (file) => {
     const content = readAgent(file);
     // Find all opening custom tags (not HTML like <br>)
-    const openTags = content.match(/<(files_to_read|success_criteria|anti_patterns|deviation_rules|circuit_breaker|scope_boundary|self_check_protocol|stub_detection_patterns|critical_rules|spot_check_protocol)>/g) || [];
+    const openTags = content.match(/<(files_to_read|success_criteria|anti_patterns|deviation_rules|circuit_breaker|scope_boundary|self_check_protocol|stub_detection_patterns|critical_rules|spot_check_protocol|role|execution_flow|checkpoint_protocol|plan_format|goal_backward|verification_process)>/g) || [];
     for (const tag of openTags) {
       const tagName = tag.slice(1, -1); // strip < >
       expect(content).toContain(`</${tagName}>`);
@@ -569,7 +569,8 @@ describe('Pattern coverage', () => {
       'files_to_read', 'success_criteria', 'anti_patterns',
       'deviation_rules', 'circuit_breaker', 'scope_boundary',
       'self_check_protocol', 'stub_detection_patterns', 'critical_rules',
-      'spot_check_protocol',
+      'spot_check_protocol', 'role', 'execution_flow', 'checkpoint_protocol',
+      'plan_format', 'goal_backward', 'verification_process',
     ];
 
     for (const file of coreAgents) {
