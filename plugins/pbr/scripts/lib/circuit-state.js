@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { atomicWrite } = require('./core');
 
 const STALE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const STATE_FILENAME = 'local-llm-circuit.json';
@@ -68,9 +69,7 @@ function saveCircuitState(planningDir, state) {
       fs.mkdirSync(logsDir, { recursive: true });
     }
     const statePath = _statePath(planningDir);
-    const tmpPath = statePath + '.tmp.' + process.pid;
-    fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2), 'utf8');
-    fs.renameSync(tmpPath, statePath);
+    atomicWrite(statePath, JSON.stringify(state, null, 2));
   } catch (_e) {
     // Best-effort — never crash the calling hook
   }
