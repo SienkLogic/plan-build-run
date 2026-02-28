@@ -395,9 +395,11 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
           if (attempt < retries - 1) {
             // Wait and retry
             const waitMs = retryDelayMs * (attempt + 1);
-            const start = Date.now();
-            while (Date.now() - start < waitMs) {
-              // Busy wait (synchronous context)
+            try {
+              Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+            } catch (_atomicsErr) {
+              const end = Date.now() + waitMs;
+              while (Date.now() < end) { /* last-resort fallback */ }
             }
             continue;
           }
