@@ -5,6 +5,15 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.43.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.42.1...plan-build-run-v2.43.0) (2026-02-28)
+
+
+### Features
+
+* **49-01:** add spot-check subcommand to pbr-tools.js dispatcher ([8a01f3a](https://github.com/SienkLogic/plan-build-run/commit/8a01f3aaff45b48b5a239e3bdc8e4a0213524bc8))
+* **49-01:** GREEN - implement spotCheck() in lib/spot-check.js ([d0d9d51](https://github.com/SienkLogic/plan-build-run/commit/d0d9d51b5a7467be7156243fbba9f05d1a624a12))
+* **49-02:** GREEN - add tier-aware bridge warnings to suggest-compact ([e145372](https://github.com/SienkLogic/plan-build-run/commit/e145372272ab3d3f6709ec87970f7a4e19226e9e))
+
 ## [2.42.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.42.0...plan-build-run-v2.42.1) (2026-02-28)
 
 
