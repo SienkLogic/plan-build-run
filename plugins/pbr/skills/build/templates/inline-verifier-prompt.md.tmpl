@@ -1,0 +1,18 @@
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — must-haves to verify against
+2. .planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md — what the executor claims was built
+3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+</files_to_read>
+
+Targeted inline verification for plan {plan_id}.
+
+Verify ONLY these files: {comma-separated key_files list}
+
+For each file, check three layers:
+1. Existence — does the file exist?
+2. Substantiveness — is it more than a stub? (>10 lines, no TODO/FIXME placeholders)
+3. Wiring — is it imported/used by at least one other file?
+
+Report PASS or FAIL with a one-line reason per file.
+Write nothing to disk — just return your results as text.
