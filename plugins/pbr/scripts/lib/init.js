@@ -156,11 +156,136 @@ function initProgress(planningDir) {
   return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage };
 }
 
+/**
+ * Aggregate all state an orchestrator skill needs to begin work on a phase.
+ * Replaces 5-10 individual file reads with a single CLI call returning ~1,500 tokens of JSON.
+ *
+ * @param {string} phaseNum - Phase number
+ * @param {string} [planningDir] - Path to .planning directory
+ */
+function initStateBundle(phaseNum, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const { parseYamlFrontmatter } = require('./core');
+
+  // 1. State
+  const stateResult = stateLoad(dir);
+  if (!stateResult.exists) return { error: 'No .planning/ directory found' };
+  const st = stateResult.state || {};
+  const state = {
+    current_phase: stateResult.current_phase,
+    status: st.status || stateResult.status || null,
+    progress: stateResult.progress,
+    total_phases: stateResult.phase_count || null,
+    last_activity: st.last_activity || null,
+    blockers: st.blockers || []
+  };
+
+  // 2. Config summary
+  const config = configLoad(dir) || {};
+  const depthProfile = resolveDepthProfile(config);
+  const models = config.models || {};
+  const config_summary = {
+    depth: depthProfile.depth,
+    mode: config.mode || 'interactive',
+    parallelization: config.parallelization || { enabled: false },
+    gates: config.gates || {},
+    features: config.features || {},
+    models: { executor: models.executor || 'sonnet', verifier: models.verifier || 'sonnet', planner: models.planner || 'sonnet' }
+  };
+
+  // 3. Phase info
+  const phaseResult = phaseInfo(phaseNum, dir);
+  if (phaseResult.error) return { error: phaseResult.error };
+  const phase = {
+    num: phaseNum,
+    dir: phaseResult.phase,
+    name: phaseResult.name,
+    goal: phaseResult.goal,
+    has_context: phaseResult.has_context,
+    status: phaseResult.filesystem_status,
+    plan_count: phaseResult.plan_count,
+    completed: phaseResult.completed
+  };
+
+  // 4. Plans
+  const plansResult = planIndex(phaseNum, dir);
+  const plans = (plansResult.plans || []).map(p => ({
+    file: p.file,
+    plan_id: p.plan_id,
+    wave: p.wave,
+    autonomous: p.autonomous,
+    has_summary: p.has_summary,
+    must_haves_count: p.must_haves_count,
+    depends_on: p.depends_on
+  }));
+  const waves = plansResult.waves || {};
+
+  // 5. Prior summaries — scan all phase directories for SUMMARY*.md, extract frontmatter only
+  const prior_summaries = [];
+  const phasesDir = path.join(dir, 'phases');
+  if (fs.existsSync(phasesDir)) {
+    const phaseDirs = fs.readdirSync(phasesDir).filter(d => {
+      try { return fs.statSync(path.join(phasesDir, d)).isDirectory(); } catch (_e) { return false; }
+    }).sort();
+    for (const pd of phaseDirs) {
+      if (prior_summaries.length >= 10) break;
+      const pdPath = path.join(phasesDir, pd);
+      let summaryFiles;
+      try { summaryFiles = fs.readdirSync(pdPath).filter(f => /^SUMMARY.*\.md$/i.test(f)).sort(); } catch (_e) { continue; }
+      for (const sf of summaryFiles) {
+        if (prior_summaries.length >= 10) break;
+        try {
+          const content = fs.readFileSync(path.join(pdPath, sf), 'utf8');
+          const fm = parseYamlFrontmatter(content);
+          if (fm && !fm.error) {
+            const entry = {
+              phase: fm.phase !== undefined ? fm.phase : null,
+              plan: fm.plan !== undefined ? fm.plan : null,
+              status: fm.status || null,
+              provides: fm.provides || [],
+              requires: fm.requires || [],
+              key_files: fm.key_files || []
+            };
+            if (fm.key_decisions !== undefined) entry.key_decisions = fm.key_decisions;
+            prior_summaries.push(entry);
+          }
+        } catch (_e) { /* skip unreadable */ }
+      }
+    }
+  }
+
+  // 6. Context file existence
+  const has_project_context = fs.existsSync(path.join(dir, 'CONTEXT.md'));
+  const has_phase_context = phaseResult.has_context || false;
+
+  // 7. Git state
+  let git = { branch: null, clean: null };
+  try {
+    const { execSync } = require('child_process');
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 5000 }).trim();
+    const status = execSync('git status --porcelain', { encoding: 'utf8', timeout: 5000 }).trim();
+    git = { branch, clean: status === '' };
+  } catch (_e) { /* not a git repo */ }
+
+  return {
+    state,
+    config_summary,
+    phase,
+    plans,
+    waves,
+    prior_summaries,
+    git,
+    has_project_context,
+    has_phase_context
+  };
+}
+
 module.exports = {
   initExecutePhase,
   initPlanPhase,
   initQuick,
   initVerifyWork,
   initResume,
-  initProgress
+  initProgress,
+  initStateBundle
 };
