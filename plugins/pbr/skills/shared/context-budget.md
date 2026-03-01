@@ -48,3 +48,30 @@ Additionally for this skill:
 - {Skill-specific rule 1}
 - {Skill-specific rule 2}
 ```
+
+## Agent Elapsed Time Estimates
+
+When displaying agent spawn lines (e.g., "Spawning researcher..."), append a parenthetical estimate:
+
+| Agent Type | Display Text | Estimate |
+|------------|-------------|----------|
+| researcher | Spawning researcher... | (est. 1-3 min) |
+| planner | Spawning planner... | (est. 2-5 min) |
+| executor | Spawning executor... | (est. 3-8 min) |
+| verifier | Spawning verifier... | (est. 1-2 min) |
+| codebase-mapper | Spawning codebase-mapper... | (est. 1-2 min) |
+| plan-checker | Spawning plan-checker... | (est. 1-2 min) |
+| integration-checker | Spawning integration-checker... | (est. 2-4 min) |
+| debugger | Spawning debugger... | (est. 2-5 min) |
+| general | Spawning agent... | (est. 1-4 min) |
+| audit | Spawning audit... | (est. 2-4 min) |
+
+**Usage**: In any skill that spawns Task() agents, prefix spawn displays with the agent name and append the estimate from this table. Example:
+
+```
+Spawning researcher... (est. 1-3 min)
+Spawning planner... (est. 2-5 min)
+[Wave 1: 3 plans in parallel] Spawning executors... (est. 3-8 min each)
+```
+
+Skills that spawn agents: build, plan, review, debug, scan, milestone, quick.

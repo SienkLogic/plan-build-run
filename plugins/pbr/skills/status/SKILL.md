@@ -98,6 +98,20 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics --session <content-o
 
 If `local_llm.enabled` is `false` or commands fail, skip this step silently.
 
+### Step 1c: Read Context Budget (advisory — skip on any error)
+
+Run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js context-triage
+```
+
+Parse the JSON response. Capture:
+- `tier` — one of PEAK / GOOD / DEGRADING / POOR / CRITICAL
+- `percentage` — numeric 0-100 (or null if unavailable)
+- `recommendation` — PROCEED / CHECKPOINT / COMPACT
+
+Store these for use in Step 4 display and Step 5 routing.
+
 ### Step 2: Scan Phase Directories
 
 For each phase listed in ROADMAP.md:
@@ -171,6 +185,18 @@ If any discrepancy found, add: `Run /pbr:resume to auto-reconcile STATE.md.`
 - Check `.planning/todos/pending/` for pending todo files
 - Count and summarize if any exist
 
+#### Critical Path
+Identify the single next-blocking item — the one phase or plan whose completion unblocks the most downstream work.
+
+Logic:
+1. From ROADMAP.md dependency graph, find all phases that are NOT yet verified.
+2. For each unverified phase, count how many other unverified phases list it in `depends_on` (direct + transitive).
+3. The phase with the highest downstream dependent count is the critical-path phase.
+4. If all unverified phases are independent (no dependencies between them), the critical path is the current phase from STATE.md.
+5. Within the critical-path phase, the critical-path plan is the lowest-numbered plan without a SUMMARY.md.
+
+Store: `criticalPhase` (number + name), `criticalPlan` (plan ID or null if phase not yet planned), `criticalCount` (number of downstream phases blocked).
+
 #### Quick Notes
 - Check `.planning/notes/` directory for note files (individual `.md` files)
 - Count active notes (files where frontmatter does NOT contain `promoted: true`)
@@ -195,6 +221,19 @@ Phase Status:
 | 1. {name} | {status indicator} {status text} | {completed}/{total} | {percentage}% |
 | 2. {name} | {status indicator} {status text} | {completed}/{total} | {percentage}% |
 | ...
+
+{If context tier is DEGRADING, POOR, or CRITICAL:}
+⚠ Context: {percentage}% used ({tier}) — {recommendation_text}
+  Run `/compact` to reclaim context before spawning more agents.
+
+Where `{recommendation_text}` maps:
+- DEGRADING → "quality may degrade on complex agents"
+- POOR → "context window is filling up"
+- CRITICAL → "STOP — compact before continuing"
+
+{If criticalPhase is identified AND criticalCount >= 1 AND there are 2+ unverified phases with dependencies:}
+Critical Path: Phase {N} — {phase name}{, Plan {criticalPlan} is next} [BLOCKING {criticalCount} downstream phase(s)]
+{Else: omit — not meaningful when only one phase remains or no inter-phase dependencies exist}
 
 {If blockers exist:}
 Blockers:
@@ -313,7 +352,10 @@ Based on the project state, suggest the single most logical next action:
 
 `{suggested command}`
 
-<sub>`/clear` first → fresh context window</sub>
+{If context percentage > 40% OR tier is DEGRADING/POOR/CRITICAL:}
+<sub>`/clear` first → fresh context window ({percentage}% used)</sub>
+{Else: omit the /clear hint entirely}
+{If `percentage` is null (no context data): omit the hint}
 
 
 ```
@@ -390,7 +432,7 @@ This skill should be fast. It's a status check, not an analysis.
 
 - Read full SUMMARY.md contents (frontmatter is enough)
 - Read plan file contents (just check existence)
-- Run Bash commands except for Step 1b (2-3 `pbr-tools` calls only when `local_llm.enabled: true`, skipped entirely otherwise)
+- Run Bash commands except for Step 1b (`pbr-tools llm` calls only when `local_llm.enabled: true`) and Step 1c (`pbr-tools context-triage`, always run but skip on error)
 - Modify any files
 - Spawn any Task agents
 
