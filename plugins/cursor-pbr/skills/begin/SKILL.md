@@ -118,9 +118,137 @@ Have a natural conversation to understand the user's vision. Do NOT present a fo
 
 ---
 
+### Step 2.5: Fast-Path Offer (inline)
+
+Before asking any workflow preference questions, offer the user a quick-start option:
+
+Use AskUserQuestion:
+  question: "How do you want to configure this project?"
+  header: "Setup mode"
+  options:
+    - label: "Quick start"
+      description: "Use all defaults — model balanced, depth standard, interactive mode, parallel on. Writes config in seconds."
+    - label: "Custom setup"
+      description: "Walk through model selection, features, and preferences step by step."
+
+**If user selects "Quick start":**
+- Write `.planning/config.json` immediately using the default config below (no further questions):
+  ```json
+  {
+    "version": 2,
+    "context_strategy": "aggressive",
+    "mode": "interactive",
+    "depth": "standard",
+    "features": {
+      "structured_planning": true,
+      "goal_verification": true,
+      "integration_verification": true,
+      "context_isolation": true,
+      "atomic_commits": true,
+      "session_persistence": true,
+      "research_phase": true,
+      "plan_checking": true,
+      "tdd_mode": false,
+      "status_line": true,
+      "auto_continue": false,
+      "auto_advance": false,
+      "team_discussions": false,
+      "inline_verify": false
+    },
+    "models": {
+      "researcher": "sonnet",
+      "planner": "inherit",
+      "executor": "inherit",
+      "verifier": "sonnet",
+      "integration_checker": "sonnet",
+      "debugger": "inherit",
+      "mapper": "sonnet",
+      "synthesizer": "haiku"
+    },
+    "parallelization": {
+      "enabled": true,
+      "plan_level": true,
+      "task_level": false,
+      "max_concurrent_agents": 3,
+      "min_plans_for_parallel": 2,
+      "use_teams": false
+    },
+    "planning": {
+      "commit_docs": true,
+      "max_tasks_per_plan": 3,
+      "search_gitignored": false
+    },
+    "git": {
+      "branching": "none",
+      "commit_format": "{type}({phase}-{plan}): {description}",
+      "phase_branch_template": "plan-build-run/phase-{phase}-{slug}",
+      "milestone_branch_template": "plan-build-run/{milestone}-{slug}",
+      "mode": "enabled"
+    },
+    "gates": {
+      "confirm_project": true,
+      "confirm_roadmap": true,
+      "confirm_plan": true,
+      "confirm_execute": false,
+      "confirm_transition": true,
+      "issues_review": true
+    },
+    "safety": {
+      "always_confirm_destructive": true,
+      "always_confirm_external_services": true
+    }
+  }
+  ```
+- Write `.planning/.active-skill` with text "begin"
+- Write CLAUDE.md integration block (see Step 3d-claude below) using the project name gathered in Step 2
+- Skip to Step 4 (Research Decision)
+- Tell the user: "Quick start selected. Using all defaults — you can adjust later with `/pbr:config`."
+
+**If user selects "Custom setup":** proceed to Step 3 normally.
+
+---
+
 ### Step 3: Workflow Preferences (inline)
 
 After understanding the project, configure the Plan-Build-Run workflow. Use AskUserQuestion for each preference below. Present them sequentially with conversational bridging (e.g., "Great. Next...") to keep the flow natural.
+
+**3-model. Model Profile:**
+Use AskUserQuestion:
+  question: "Which model profile should agents use?"
+  header: "Models"
+  options:
+    - label: "Balanced (Recommended)"
+      description: "Sonnet for most agents, Haiku for synthesizer. Good quality/cost tradeoff."
+    - label: "Quality"
+      description: "Opus for executor and planner, Sonnet for others. Best results, highest cost."
+    - label: "Budget"
+      description: "Haiku for most agents. Fastest and cheapest, but lower quality."
+
+Apply the selected profile to the models block in config.json:
+- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku
+- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet
+- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku
+
+**3-features. Workflow Features:**
+Use AskUserQuestion:
+  question: "Any extra workflow features?"
+  header: "Features"
+  multiSelect: true
+  options:
+    - label: "Auto-continue"
+      description: "Automatically chain commands (build → review → next phase) without prompting"
+    - label: "TDD mode"
+      description: "Write tests before implementation in executor agents"
+    - label: "Strict gates"
+      description: "Require verification AND review to pass before advancing phases"
+    - label: "Git branching"
+      description: "Create a branch per phase for cleaner PR history"
+
+Apply selections:
+- **Auto-continue**: Set `features.auto_continue: true`
+- **TDD mode**: Set `features.tdd_mode: true`
+- **Strict gates**: Set `gates.verification: true`, `gates.review: true`, `gates.plan_approval: true`
+- **Git branching**: Set `git.branching: "phase"`
 
 **3a. Mode:**
 Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
@@ -165,12 +293,33 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 - `yes` (default) — commit planning docs
 - `no` — add .planning/ to .gitignore
 
+**3d-claude. CLAUDE.md Integration:**
+
+Check if a `CLAUDE.md` file exists in the project root.
+
+**If it exists**: Read it. If it does NOT already contain a "Plan-Build-Run" section, append the block below.
+**If it does NOT exist**: Create `CLAUDE.md` with the block below.
+
+Append/create:
+
+```markdown
+## Plan-Build-Run
+
+This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run) for structured development.
+
+- Project state: `.planning/STATE.md` (source of truth for current phase and progress)
+- Configuration: `.planning/config.json`
+- Run `/pbr:status` to see current project state and suggested next action.
+
+**After compaction or context recovery**: Read `.planning/STATE.md` (especially the `## Session Continuity` section) before proceeding with any work. The PreCompact hook writes recovery state there automatically.
+```
+
 **After gathering preferences:**
 
 **CRITICAL (no hook): You MUST create the .planning/ directory and write config.json NOW. Do not proceed without this.**
 
 1. Read the config template from `skills/begin/templates/config.json.tmpl`
-2. Apply the user's choices to the template
+2. Apply the user's choices to the template (including 3d-claude CLAUDE.md integration)
 3. Create `.planning/` directory
 4. Write `.planning/config.json` with the user's preferences
 
