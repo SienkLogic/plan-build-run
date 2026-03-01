@@ -355,6 +355,201 @@ function phaseList(planningDir) {
   return { phases };
 }
 
+/**
+ * Extract frontmatter-only stats from all SUMMARY.md files across a milestone's phases.
+ * Never reads SUMMARY body content — only YAML frontmatter.
+ *
+ * Strategy for finding phases:
+ *   1. Check milestone archive: .planning/milestones/v{version}/phases/
+ *   2. Fall back to active phases dir: .planning/phases/
+ *      matching phase numbers extracted from ROADMAP.md milestone section.
+ *
+ * @param {string} version - Milestone version string (e.g. "5.0", "6.0")
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} Milestone stats with per-phase summaries and aggregated fields
+ */
+function milestoneStats(version, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+
+  const phases = [];
+
+  // --- Strategy 1: Check milestone archive ---
+  const archivePhasesDir = path.join(dir, 'milestones', `v${version}`, 'phases');
+  if (fs.existsSync(archivePhasesDir)) {
+    const phaseDirs = fs.readdirSync(archivePhasesDir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && /^\d+-/.test(e.name))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const phaseEntry of phaseDirs) {
+      const phaseData = _collectPhaseStats(path.join(archivePhasesDir, phaseEntry.name), phaseEntry.name);
+      if (phaseData) phases.push(phaseData);
+    }
+  } else {
+    // --- Strategy 2: Parse ROADMAP.md to find phase numbers for this milestone ---
+    const roadmapPath = path.join(dir, 'ROADMAP.md');
+    const phaseNums = _extractMilestonePhaseNums(roadmapPath, version);
+    const phasesDir = path.join(dir, 'phases');
+
+    if (fs.existsSync(phasesDir) && phaseNums.length > 0) {
+      const allDirs = fs.readdirSync(phasesDir, { withFileTypes: true })
+        .filter(e => e.isDirectory() && /^\d+-/.test(e.name))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const phaseEntry of allDirs) {
+        const num = parseInt(phaseEntry.name.split('-')[0], 10);
+        if (phaseNums.includes(num)) {
+          const phaseData = _collectPhaseStats(path.join(phasesDir, phaseEntry.name), phaseEntry.name);
+          if (phaseData) phases.push(phaseData);
+        }
+      }
+    }
+  }
+
+  // --- Aggregate across all phases ---
+  const providesSet = new Set();
+  const keyFilesSet = new Set();
+  const patternsSet = new Set();
+  const allKeyDecisions = [];
+  const allDeferred = [];
+  const totalMetrics = { tasks_completed: 0, commits: 0, files_changed: 0 };
+
+  for (const phase of phases) {
+    for (const summary of phase.summaries) {
+      (summary.provides || []).forEach(v => providesSet.add(v));
+      (summary.key_files || []).forEach(v => keyFilesSet.add(v));
+      (summary.patterns || []).forEach(v => patternsSet.add(v));
+      (summary.key_decisions || []).forEach(v => allKeyDecisions.push(v));
+      (summary.deferred || []).forEach(v => allDeferred.push(v));
+      const m = summary.metrics || {};
+      totalMetrics.tasks_completed += parseInt(m.tasks_completed, 10) || 0;
+      totalMetrics.commits += parseInt(m.commits, 10) || 0;
+      totalMetrics.files_changed += parseInt(m.files_changed, 10) || 0;
+    }
+  }
+
+  return {
+    version,
+    phase_count: phases.length,
+    phases,
+    aggregated: {
+      all_provides: [...providesSet],
+      all_key_files: [...keyFilesSet],
+      all_key_decisions: allKeyDecisions,
+      all_patterns: [...patternsSet],
+      all_deferred: allDeferred,
+      total_metrics: totalMetrics
+    }
+  };
+}
+
+/**
+ * Collect frontmatter-only stats from all SUMMARY*.md files in a single phase directory.
+ *
+ * @param {string} fullDir - Full path to phase directory
+ * @param {string} dirName - Directory name (e.g. "46-agent-contracts")
+ * @returns {object}
+ */
+function _collectPhaseStats(fullDir, dirName) {
+  const numStr = dirName.split('-')[0];
+  const name = dirName.replace(/^\d+-/, '');
+
+  const summaryFiles = findFiles(fullDir, /^SUMMARY.*\.md$/i);
+  const summaries = [];
+
+  for (const file of summaryFiles) {
+    const filePath = path.join(fullDir, file);
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    // Extract ONLY the YAML frontmatter — never read body content
+    const fm = parseYamlFrontmatter(content);
+
+    // Collect only the documented frontmatter fields
+    const entry = {};
+    const fields = ['phase', 'plan', 'status', 'provides', 'requires', 'key_files',
+      'key_decisions', 'patterns', 'metrics', 'deferred', 'tags'];
+    for (const field of fields) {
+      if (fm[field] !== undefined) {
+        entry[field] = fm[field];
+      }
+    }
+    summaries.push(entry);
+  }
+
+  return {
+    number: numStr,
+    name,
+    summaries
+  };
+}
+
+/**
+ * Parse ROADMAP.md to find phase numbers belonging to a milestone version.
+ * Scans for milestone section headers containing the version string, then
+ * collects phase numbers from "### Phase N:" headings or "Phases N-M" text.
+ *
+ * @param {string} roadmapPath - Path to ROADMAP.md
+ * @param {string} version - Version string (e.g. "5.0")
+ * @returns {number[]} Array of phase numbers
+ */
+function _extractMilestonePhaseNums(roadmapPath, version) {
+  if (!fs.existsSync(roadmapPath)) return [];
+
+  const content = fs.readFileSync(roadmapPath, 'utf8');
+  const lines = content.split(/\r?\n/);
+
+  const phaseNums = [];
+  let inMilestoneSection = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Detect milestone section header (## Milestone: ... (vX.Y) or containing version)
+    if (/^##\s+Milestone:/i.test(line)) {
+      inMilestoneSection = line.includes(`v${version}`) || line.includes(`(${version})`);
+      continue;
+    }
+
+    // If we hit a new ## section (not ###), exit the milestone section
+    if (/^##\s+[^#]/.test(line)) {
+      if (inMilestoneSection) break;
+      continue;
+    }
+
+    if (!inMilestoneSection) continue;
+
+    // Extract phase numbers from "### Phase N:" headings
+    const phaseHeading = line.match(/^###\s+Phase\s+(\d+)/i);
+    if (phaseHeading) {
+      phaseNums.push(parseInt(phaseHeading[1], 10));
+      continue;
+    }
+
+    // Extract from "Phases N-M" or "Phase N" text
+    const phaseRange = line.match(/Phases?\s+(\d+)(?:-(\d+))?/gi);
+    if (phaseRange) {
+      for (const match of phaseRange) {
+        const rangeMatch = match.match(/(\d+)(?:-(\d+))?/);
+        if (rangeMatch) {
+          const start = parseInt(rangeMatch[1], 10);
+          const end = rangeMatch[2] ? parseInt(rangeMatch[2], 10) : start;
+          for (let n = start; n <= end; n++) {
+            if (!phaseNums.includes(n)) phaseNums.push(n);
+          }
+        }
+      }
+    }
+
+    // Row entries in phase overview tables: | 51 | CLI Foundation | ...
+    const tableRow = line.match(/^\|\s*(\d+)\s*\|/);
+    if (tableRow) {
+      const n = parseInt(tableRow[1], 10);
+      if (!phaseNums.includes(n)) phaseNums.push(n);
+    }
+  }
+
+  return phaseNums;
+}
+
 module.exports = {
   frontmatter,
   planIndex,
@@ -362,5 +557,6 @@ module.exports = {
   phaseInfo,
   phaseAdd,
   phaseRemove,
-  phaseList
+  phaseList,
+  milestoneStats
 };

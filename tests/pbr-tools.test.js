@@ -1164,3 +1164,110 @@ describe('referenceGet / lib/reference', () => {
     expect(Array.isArray(result.available)).toBe(true);
   });
 });
+
+// ─── milestoneStats tests ────────────────────────────────────────────────────
+// Uses PBR_PROJECT_ROOT + configClearCache() to redirect module-level planningDir
+
+const { milestoneStats } = require('../plugins/pbr/scripts/pbr-tools');
+
+describe('milestoneStats', () => {
+  let tmpDir;
+  let origRoot;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-milestone-stats-'));
+    origRoot = process.env.PBR_PROJECT_ROOT;
+    process.env.PBR_PROJECT_ROOT = tmpDir;
+    configClearCache();
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'milestones'), { recursive: true });
+  });
+
+  afterEach(() => {
+    if (origRoot !== undefined) {
+      process.env.PBR_PROJECT_ROOT = origRoot;
+    } else {
+      delete process.env.PBR_PROJECT_ROOT;
+    }
+    configClearCache();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function writeSummary(dir, filename, frontmatter, body) {
+    fs.mkdirSync(dir, { recursive: true });
+    const fm = Object.entries(frontmatter)
+      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+      .join('\n');
+    const content = `---\n${fm}\n---\n\n${body || ''}`;
+    fs.writeFileSync(path.join(dir, filename), content, 'utf8');
+  }
+
+  function writeRoadmap(content) {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), content, 'utf8');
+  }
+
+  test('extracts frontmatter from active phases', () => {
+    writeRoadmap('## Milestone: Test Milestone (v1.0)\n\n### Phase 1: first-phase\n**Goal:** test\n\n### Phase 2: second-phase\n**Goal:** test\n');
+    const phase1Dir = path.join(tmpDir, '.planning', 'phases', '01-first-phase');
+    const phase2Dir = path.join(tmpDir, '.planning', 'phases', '02-second-phase');
+    writeSummary(phase1Dir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['feature-a'], key_files: ['src/a.js'] }, 'Body text that should not appear.');
+    writeSummary(phase2Dir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['feature-b'], key_files: ['src/b.js'] }, 'Another body.');
+
+    const result = milestoneStats('1.0');
+    expect(result.version).toBe('1.0');
+    expect(result.phase_count).toBe(2);
+    expect(result.phases[0].number).toBe('01');
+    expect(result.phases[0].summaries[0].provides).toEqual(['feature-a']);
+    expect(result.phases[1].number).toBe('02');
+    expect(result.phases[1].summaries[0].provides).toEqual(['feature-b']);
+  });
+
+  test('reads from milestone archive if phases are archived', () => {
+    const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v1.0', 'phases', '01-test');
+    writeSummary(archiveDir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['archived-feature'], key_files: ['src/archived.js'] }, 'Body should be ignored.');
+
+    const result = milestoneStats('1.0');
+    expect(result.version).toBe('1.0');
+    expect(result.phase_count).toBe(1);
+    expect(result.phases[0].name).toBe('test');
+    expect(result.phases[0].summaries[0].provides).toEqual(['archived-feature']);
+    expect(result.phases[0].summaries[0].key_files).toEqual(['src/archived.js']);
+  });
+
+  test('aggregated fields are deduplicated', () => {
+    writeRoadmap('## Milestone: Dedup Test (v2.0)\n\n### Phase 1: phase-a\n### Phase 2: phase-b\n');
+    const phase1Dir = path.join(tmpDir, '.planning', 'phases', '01-phase-a');
+    const phase2Dir = path.join(tmpDir, '.planning', 'phases', '02-phase-b');
+    writeSummary(phase1Dir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['shared-feature', 'unique-a'], key_files: ['src/shared.js'] }, '');
+    writeSummary(phase2Dir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['shared-feature', 'unique-b'], key_files: ['src/shared.js', 'src/extra.js'] }, '');
+
+    const result = milestoneStats('2.0');
+    expect(result.aggregated.all_provides).toContain('shared-feature');
+    expect(result.aggregated.all_provides).toContain('unique-a');
+    expect(result.aggregated.all_provides).toContain('unique-b');
+    expect(result.aggregated.all_provides.filter(v => v === 'shared-feature').length).toBe(1);
+    expect(result.aggregated.all_key_files.filter(f => f === 'src/shared.js').length).toBe(1);
+  });
+
+  test('handles milestone with no matching phases', () => {
+    writeRoadmap('## Milestone: Other Milestone (v9.0)\n\n### Phase 99: nonexistent\n');
+
+    const result = milestoneStats('9.0');
+    expect(result.version).toBe('9.0');
+    expect(result.phase_count).toBe(0);
+    expect(result.phases).toEqual([]);
+    expect(result.aggregated.all_provides).toEqual([]);
+    expect(result.aggregated.total_metrics.tasks_completed).toBe(0);
+  });
+
+  test('never includes SUMMARY body content in output', () => {
+    const archiveDir = path.join(tmpDir, '.planning', 'milestones', 'v3.0', 'phases', '01-body-test');
+    const longBody = 'This is a long body section with lots of content. '.repeat(50);
+    writeSummary(archiveDir, 'SUMMARY-01.md', { plan: '01', status: 'complete', provides: ['something'] }, longBody);
+
+    const result = milestoneStats('3.0');
+    const jsonOutput = JSON.stringify(result);
+    expect(jsonOutput).not.toContain('This is a long body section');
+    expect(result.phases[0].summaries[0].provides).toEqual(['something']);
+  });
+});
