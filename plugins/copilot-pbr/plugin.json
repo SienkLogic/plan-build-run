@@ -1,7 +1,7 @@
 {
   "name": "pbr",
   "displayName": "Plan-Build-Run",
-  "version": "2.47.0",
+  "version": "2.48.0",
   "description": "Plan-Build-Run — Structured development workflow for GitHub Copilot CLI. Solves context rot through disciplined agent delegation, structured planning, atomic execution, and goal-backward verification.",
   "author": {
     "name": "SienkLogic",

@@ -5,6 +5,16 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.48.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.47.0...plan-build-run-v2.48.0) (2026-03-01)
+
+
+### Features
+
+* **52-02:** GREEN - implement lib/build.js and wire 5 build helper subcommands into pbr-tools.js ([3710d3e](https://github.com/SienkLogic/plan-build-run/commit/3710d3eb323b6796e1465c830166c0ed377a228d))
+* **52-02:** replace inline staleness, checkpoint, and SUMMARY gate blocks with CLI calls in build/plan SKILL.md ([1de7081](https://github.com/SienkLogic/plan-build-run/commit/1de70810a9a4432b65c6c18ca91527e13b98de1d))
+* **52-03:** create error-reporting.md shared fragment and completion-output.md.tmpl ([083797c](https://github.com/SienkLogic/plan-build-run/commit/083797ca45421ab1bdbe521afd1ec95428510b0b))
+* **52-03:** extract edge cases and collapse error boxes/completion to references; sync derivatives ([2cc5718](https://github.com/SienkLogic/plan-build-run/commit/2cc5718917219454aa28b8ea719f45426f2c86d9))
+
 ## [2.47.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.46.0...plan-build-run-v2.47.0) (2026-03-01)
 
 
