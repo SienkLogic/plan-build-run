@@ -50,6 +50,8 @@
  *   session set <key> <value>      — Write a key to .planning/.session.json
  *   session clear [key]            — Delete .session.json or set key to null
  *   session dump                   — Print entire .session.json content
+ *   skill-section <skill> <section>       — Extract a section from a skill's SKILL.md → JSON
+ *   skill-section --list <skill>          — List all headings in a skill → JSON
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -160,6 +162,11 @@ const {
 const {
   referenceGet: _referenceGet
 } = require('./lib/reference');
+
+const {
+  skillSection: _skillSection,
+  listAvailableSkills: _listAvailableSkills
+} = require('./lib/skill-section');
 
 const {
   contextTriage: _contextTriage
@@ -339,6 +346,31 @@ function referenceGet(name, options) {
   const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
   if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
   return _referenceGet(name, options, root);
+}
+
+function resolvePluginRoot() {
+  // Resolve plugin root — try CLAUDE_PLUGIN_ROOT env, then walk up from __dirname
+  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
+  // Fix MSYS paths on Windows (same pattern as run-hook.js)
+  let root = pluginRoot;
+  const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
+  if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
+  return root;
+}
+
+function skillSectionGet(skillName, sectionQuery) {
+  return _skillSection(skillName, sectionQuery, resolvePluginRoot());
+}
+
+function listSkillHeadings(skillName) {
+  const { listHeadings } = require('./lib/reference');
+  const root = resolvePluginRoot();
+  const skillPath = require('path').join(root, 'skills', skillName, 'SKILL.md');
+  if (!require('fs').existsSync(skillPath)) {
+    return { error: `Skill not found: ${skillName}`, available: _listAvailableSkills(root) };
+  }
+  const content = require('fs').readFileSync(skillPath, 'utf8');
+  return { skill: skillName, headings: listHeadings(content) };
 }
 
 function contextTriage(options) {
@@ -901,8 +933,28 @@ async function main() {
       output(milestoneStats(version));
     } else if (command === 'validate-project') {
       output(validateProject());
+    } else if (command === 'skill-section') {
+      // skill-section --list <skill>  — list all headings
+      if (args[1] === '--list') {
+        const skillName = args[2];
+        if (!skillName) { error('Usage: pbr-tools.js skill-section --list <skill>'); return; }
+        const listResult = listSkillHeadings(skillName);
+        output(listResult);
+        if (listResult.error) process.exit(1);
+      } else {
+        // skill-section <skill> <section...>
+        const skillName = args[1];
+        const sectionQuery = args.slice(2).join(' ');
+        if (!skillName || !sectionQuery) {
+          error('Usage: pbr-tools.js skill-section <skill> <section>');
+          return;
+        }
+        const secResult = skillSectionGet(skillName, sectionQuery);
+        output(secResult);
+        if (secResult.error) process.exit(1);
+      }
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, skill-section <skill> <section>|--list <skill>`);
     }
   } catch (e) {
     error(e.message);
@@ -910,6 +962,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, skillSectionGet, listSkillHeadings };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.

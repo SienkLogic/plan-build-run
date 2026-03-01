@@ -16,6 +16,8 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content
 - **Delegate** all building work to executor agents — the orchestrator routes, it doesn't build
+- **Lazy-load steps**: Instead of reading ahead, fetch the next step's instructions on demand:
+  `node ${PLUGIN_ROOT}/scripts/pbr-tools.js skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
 
 ## Step 0 — Immediate Output
 
