@@ -105,7 +105,8 @@ const {
   phaseInfo: _phaseInfo,
   phaseAdd: _phaseAdd,
   phaseRemove: _phaseRemove,
-  phaseList: _phaseList
+  phaseList: _phaseList,
+  milestoneStats: _milestoneStats
 } = require('./lib/phase');
 
 const {
@@ -143,6 +144,10 @@ const {
   learningsQuery: _learningsQuery,
   checkDeferralThresholds: _checkDeferralThresholds
 } = require('./lib/learnings');
+
+const {
+  referenceGet: _referenceGet
+} = require('./lib/reference');
 
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
@@ -236,6 +241,10 @@ function phaseList() {
   return _phaseList(planningDir);
 }
 
+function milestoneStats(version) {
+  return _milestoneStats(version, planningDir);
+}
+
 function initExecutePhase(phaseNum) {
   return _initExecutePhase(phaseNum, planningDir);
 }
@@ -294,6 +303,16 @@ function migrate(options) {
 
 function spotCheck(phaseDir, planId) {
   return _spotCheck(planningDir, phaseDir, planId);
+}
+
+function referenceGet(name, options) {
+  // Resolve plugin root — try CLAUDE_PLUGIN_ROOT env, then walk up from __dirname
+  const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
+  // Fix MSYS paths on Windows (same pattern as run-hook.js)
+  let root = pluginRoot;
+  const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
+  if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
+  return _referenceGet(name, options, root);
 }
 
 // --- validateProject stays here (cross-cutting across modules) ---
@@ -738,10 +757,21 @@ async function main() {
         error('Usage: spot-check <phaseSlug> <planId>');
       }
       output(spotCheck(phaseSlug, planId));
+    } else if (command === 'reference') {
+      const name = args[1];
+      if (!name) error('Usage: pbr-tools.js reference <name> [--section <heading>] [--list]');
+      const listFlag = args.includes('--list');
+      const sectionIdx = args.indexOf('--section');
+      const section = sectionIdx !== -1 ? args.slice(sectionIdx + 1).join(' ') : null;
+      output(referenceGet(name, { section: section, list: listFlag }));
+    } else if (command === 'milestone-stats') {
+      const version = args[1];
+      if (!version) error('Usage: pbr-tools.js milestone-stats <version>');
+      output(milestoneStats(version));
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>`);
     }
   } catch (e) {
     error(e.message);
@@ -749,6 +779,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
