@@ -670,6 +670,8 @@ This ensures that `/pbr:review` after a `--gaps-only` build sees the updated ver
 
 **8-pre-c. Codebase map incremental update (conditional):**
 
+**CRITICAL (no hook): Run codebase map update if conditions are met. Do NOT skip this step.**
+
 Only run if ALL of these are true:
 - `.planning/codebase/` directory exists (project was previously scanned with `/pbr:scan`)
 - Build was not aborted
@@ -779,6 +781,8 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - This file signals to the user or to wrapper scripts that the next step is ready
 
 **8e-ii. Check Pending Todos:**
+
+**CRITICAL (no hook): Check pending todos after build. Do NOT skip this step.**
 
 After completing the build, check if any pending todos are now satisfied:
 
@@ -894,3 +898,9 @@ If `git.branching` is `phase` but we're not on the phase branch:
 | `.planning/STATE.md` | Updated progress | Steps 6f, 8b |
 | `.planning/.auto-next` | Next command signal (if auto_continue enabled) | Step 8e |
 | Project source files | Actual code | Step 6 (executors) |
+
+---
+
+## Cleanup
+
+Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
