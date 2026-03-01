@@ -41,6 +41,11 @@
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T] — Query learnings
  *   learnings check-thresholds   — Check deferral trigger conditions
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
+ *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
+ *   summary-gate <phase-slug> <plan-id>  — Verify SUMMARY.md exists, non-empty, valid frontmatter
+ *   checkpoint init <phase-slug> [--plans "id1,id2"]  — Initialize checkpoint manifest
+ *   checkpoint update <phase-slug> --wave N --resolved id [--sha hash]  — Update manifest
+ *   seeds match <phase-slug> <phase-number>  — Find matching seed files for a phase
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -152,6 +157,14 @@ const {
 const {
   contextTriage: _contextTriage
 } = require('./lib/context');
+
+const {
+  stalenessCheck: _stalenessCheck,
+  summaryGate: _summaryGate,
+  checkpointInit: _checkpointInit,
+  checkpointUpdate: _checkpointUpdate,
+  seedsMatch: _seedsMatch
+} = require('./lib/build');
 
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
@@ -322,6 +335,12 @@ function referenceGet(name, options) {
 function contextTriage(options) {
   return _contextTriage(options, planningDir);
 }
+
+function stalenessCheck(phaseSlug) { return _stalenessCheck(phaseSlug, planningDir); }
+function summaryGate(phaseSlug, planId) { return _summaryGate(phaseSlug, planId, planningDir); }
+function checkpointInit(phaseSlug, plans) { return _checkpointInit(phaseSlug, plans, planningDir); }
+function checkpointUpdate(phaseSlug, opts) { return _checkpointUpdate(phaseSlug, opts, planningDir); }
+function seedsMatch(phaseSlug, phaseNum) { return _seedsMatch(phaseSlug, phaseNum, planningDir); }
 
 // --- validateProject stays here (cross-cutting across modules) ---
 
@@ -765,6 +784,41 @@ async function main() {
         error('Usage: spot-check <phaseSlug> <planId>');
       }
       output(spotCheck(phaseSlug, planId));
+    } else if (command === 'staleness-check') {
+      const slug = args[1];
+      if (!slug) { error('Usage: staleness-check <phase-slug>'); process.exit(1); }
+      output(stalenessCheck(slug));
+    } else if (command === 'summary-gate') {
+      const [slug, planId] = args.slice(1);
+      if (!slug || !planId) { error('Usage: summary-gate <phase-slug> <plan-id>'); process.exit(1); }
+      output(summaryGate(slug, planId));
+    } else if (command === 'checkpoint') {
+      const sub = args[1];
+      const slug = args[2];
+      if (sub === 'init') {
+        const plans = args[3] || '';
+        output(checkpointInit(slug, plans));
+      } else if (sub === 'update') {
+        const waveIdx = args.indexOf('--wave');
+        const wave = waveIdx !== -1 ? parseInt(args[waveIdx + 1], 10) : 1;
+        const resolvedIdx = args.indexOf('--resolved');
+        const resolved = resolvedIdx !== -1 ? args[resolvedIdx + 1] : '';
+        const shaIdx = args.indexOf('--sha');
+        const sha = shaIdx !== -1 ? args[shaIdx + 1] : '';
+        output(checkpointUpdate(slug, { wave, resolved, sha }));
+      } else {
+        error('Usage: checkpoint init|update <phase-slug> [options]'); process.exit(1);
+      }
+    } else if (command === 'seeds') {
+      const sub = args[1];
+      if (sub === 'match') {
+        const slug = args[2];
+        const num = args[3];
+        if (!slug) { error('Usage: seeds match <phase-slug> <phase-number>'); process.exit(1); }
+        output(seedsMatch(slug, num));
+      } else {
+        error('Usage: seeds match <phase-slug> <phase-number>'); process.exit(1);
+      }
     } else if (command === 'context-triage') {
       const options = {};
       const agentsIdx = args.indexOf('--agents-done');
@@ -796,6 +850,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
