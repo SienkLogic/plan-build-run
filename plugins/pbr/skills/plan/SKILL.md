@@ -165,34 +165,7 @@ Collect all of this into a context bundle that will be passed to subagents.
 
 **IMPORTANT**: This step is FREE (no subagents). It happens entirely inline.
 
-Before spawning any agents, present your assumptions about how this phase should be approached:
-
-```
-Phase {N}: {Name}
-Goal: {from roadmap}
-
-My assumptions about this phase:
-
-1. **Approach**: I'm assuming we'll {approach}
-   - Correct? [yes/no/adjust]
-
-2. **Key technology**: I'm assuming we'll use {tech}
-   - Correct? [yes/no/adjust]
-
-3. **Architecture**: I'm assuming {architectural assumption}
-   - Correct? [yes/no/adjust]
-
-4. **Scope boundary**: I'm assuming {scope assumption}
-   - Correct? [yes/no/adjust]
-```
-
-For each assumption the user corrects:
-- Record the correction
-- These corrections become additional CONTEXT.md entries
-
-After all assumptions are confirmed/corrected:
-- Update `.planning/CONTEXT.md` with any new locked decisions
-- Continue to Step 4
+Before spawning any agents, present 4 assumptions to the user — one each for: approach (how the phase will be implemented), key technology, architecture, and scope boundary. For each, ask the user to confirm or correct. Record corrections as new CONTEXT.md locked decisions. After all assumptions are confirmed/corrected, continue to Step 4.
 
 ---
 
@@ -286,27 +259,10 @@ Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger mat
 
 ### Step 4.6: Surface Deferred Ideas (inline, before planning)
 
-Before spawning the planner, check `.planning/CONTEXT.md` for deferred ideas that may be relevant to this phase:
-
-1. If `.planning/CONTEXT.md` does NOT exist, skip this step silently
-2. If it exists, scan for sections named "Deferred Ideas", "Deferred", "Ideas", or "Seeds" (case-insensitive heading match)
-3. For each deferred item found, check relevance to the current phase by comparing the item text against the phase goal, requirements, and slug
-4. If relevant deferred items are found, present them to the user:
-   ```
-   Found {N} deferred idea(s) from previous discussions that may be relevant to Phase {NN}:
-     - {deferred item summary}
-     - {deferred item summary}
-   ```
-   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
-     question: "Include these deferred ideas in the planning context?"
-     header: "Deferred Ideas"
-     options:
-       - label: "Yes"  description: "Pass relevant deferred ideas to the planner"
-       - label: "No"   description: "Proceed without deferred ideas"
-5. If "Yes": append the relevant deferred items to the context bundle for the planner prompt (add them to the `<project_context>` block under a `Deferred ideas to consider:` heading)
-6. If "No" or no relevant items found: proceed without changes
-
-This is a lightweight relevance filter — do NOT spawn a subagent for this. Just match keywords from the deferred items against the phase goal and requirement text.
+Before spawning the planner, scan `.planning/CONTEXT.md` for deferred ideas relevant to this phase:
+- If CONTEXT.md lacks a deferred/ideas section, skip silently
+- If relevant deferred items found, present them via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`): "Include these deferred ideas in planning context?"
+- If "Yes": append items to planner context under `Deferred ideas to consider:`. If "No": proceed without changes.
 
 ---
 
@@ -314,39 +270,9 @@ This is a lightweight relevance filter — do NOT spawn a subagent for this. Jus
 
 #### Team Mode (--teams)
 
-Reference: `references/agent-teams.md` for team role definitions and coordination details.
+If `--teams` flag is set OR `config.parallelization.use_teams` is true, spawn 3 parallel planner agents (architect, security, test) then a synthesizer to merge their outputs. See `references/agent-teams.md` for agent role definitions, output paths (`.planning/phases/{NN}-{slug}/team/`), and prompt content for each role.
 
-If `--teams` flag is set OR `config.parallelization.use_teams` is true:
-
-1. Create the team output directory: `.planning/phases/{NN}-{slug}/team/`
-2. Display to the user: `◐ Spawning 3 planners in parallel (architect, security, test)...`
-
-   Spawn THREE planner agents in parallel using Task():
-
-   **Agent 1 -- Architect**:
-   - subagent_type: "pbr:planner"
-   - Prompt includes: "You are the ARCHITECT role in a planning team. Focus on: structure, file boundaries, dependency ordering, wave assignment. Write your output to `.planning/phases/{NN}-{slug}/team/architect-PLAN.md`. Do NOT write final PLAN.md files -- your output will be synthesized."
-   - Include phase goal, research doc paths, CONTEXT.md path in the prompt
-
-   **Agent 2 -- Security Reviewer**:
-   - subagent_type: "pbr:planner"
-   - Prompt includes: "You are the SECURITY REVIEWER role in a planning team. Focus on: authentication checks, input validation tasks, secrets handling, permission boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/security-PLAN.md`. Do NOT write final PLAN.md files."
-   - Include same context as Agent 1
-
-   **Agent 3 -- Test Designer**:
-   - subagent_type: "pbr:planner"
-   - Prompt includes: "You are the TEST DESIGNER role in a planning team. Focus on: test strategy, coverage targets, edge cases, which tasks should use TDD, integration test boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/test-PLAN.md`. Do NOT write final PLAN.md files."
-   - Include same context as Agent 1
-
-3. Wait for all three to complete
-4. Display to the user: `◐ Spawning synthesizer...`
-
-   Spawn the synthesizer agent:
-   - subagent_type: "pbr:synthesizer"
-   - Prompt: "Read all files in `.planning/phases/{NN}-{slug}/team/`. Synthesize them into unified PLAN.md files in `.planning/phases/{NN}-{slug}/`. The architect output provides structure, the security output adds security-related tasks or checks, and the test output informs TDD flags and test tasks. Resolve any contradictions by preferring the architect's structure with security and test additions."
-5. Proceed to plan checking as normal
-
-If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the existing single-planner flow below.
+If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the single-planner flow below.
 
 #### Single-Planner Flow (default)
 
@@ -501,25 +427,7 @@ Follow the revision loop pattern with:
 
 **If approval is needed:**
 
-Present a summary of all plans to the user:
-
-```
-Phase {N}: {name}
-Plans: {count}
-
-Plan {phase}-01: {plan name} (Wave {W}, {task_count} tasks)
-  Must-haves: {list truths}
-  Files: {list files_modified}
-  Tasks:
-    1. {task name}
-    2. {task name}
-
-Plan {phase}-02: {plan name} (Wave {W}, {task_count} tasks)
-  ...
-
-Wave execution order:
-  Wave 1: Plan 01, Plan 02 (parallel)
-  Wave 2: Plan 03 (depends on 01, 02)
+Present a summary of all plans to the user. For each plan include: plan name, wave, task count, must-haves, files_modified. For each task include the task name. Add a wave execution order summary (Wave 1: Plan 01, 02 (parallel), Wave 2: Plan 03, etc.).
 
 Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
   question: "Approve these {count} plans for Phase {N}?"
@@ -528,7 +436,6 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
     - label: "Approve"          description: "Proceed to build phase"
     - label: "Request changes"  description: "Discuss adjustments before proceeding"
     - label: "Abort"            description: "Cancel planning for this phase"
-```
 
 **If user selects 'Request changes' or 'Other':**
 - Discuss what needs to change
@@ -539,14 +446,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
   1. Find all SUMMARY.md files in the dependency phase directory
-  2. Compute a simple hash of each SUMMARY.md file (e.g., first 8 chars of a SHA-256 of the file content, or a simpler approach: use the file's byte length + last-modified timestamp as a fingerprint string)
-  3. Add a `dependency_fingerprints` field to each plan's YAML frontmatter:
-     ```yaml
-     dependency_fingerprints:
-       "01-01": "len:4856-mod:2025-02-08T09:40"
-       "01-02": "len:4375-mod:2025-02-08T09:43"
-     ```
-  4. This allows the build skill to detect if dependency phases were re-built after this plan was created
+  2. Compute a fingerprint string for each: `"len:{bytes}-mod:{mtime}"` and add as a `dependency_fingerprints` map in each plan's YAML frontmatter — this allows the build skill to detect stale plans if dependencies were rebuilt.
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
   **Tooling shortcut**: Use the CLI for atomic updates:
