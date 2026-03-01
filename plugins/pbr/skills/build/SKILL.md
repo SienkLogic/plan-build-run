@@ -373,11 +373,6 @@ Use AskUserQuestion with the three options. Route:
 - Also search SUMMARY.md for `## Self-Check: FAILED` marker — if present, warn before next wave
 - Between waves: verify no file conflicts from parallel executors (`git status` for uncommitted changes)
 
-**Additional wave spot-checks:**
-- Check for `## Self-Check: FAILED` in SUMMARY.md — if present, warn user before proceeding to next wave
-- Between waves: verify no file conflicts from parallel executors (check `git status` for uncommitted changes)
-- If ANY spot-check fails, present user with: **Retry this plan** / **Continue to next wave** / **Abort build**
-
 **Read executor deviations:**
 
 After all executors in the wave complete, read all SUMMARY frontmatter and:
