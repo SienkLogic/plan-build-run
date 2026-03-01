@@ -216,6 +216,12 @@ function main() {
   // NOTE: .auto-next is intentionally NOT cleaned here — it is a one-shot
   // signal consumed by auto-continue.js (Stop hook). SessionEnd cleanup
   // races with the Stop hook and would delete the signal before it is read.
+
+  // Primary: remove .session.json (consolidated session state)
+  if (tryRemove(path.join(planningDir, '.session.json'))) {
+    cleaned.push('.session.json');
+  }
+  // Legacy fallback: also clean individual signal files during transition period
   if (tryRemove(path.join(planningDir, '.active-operation'))) {
     cleaned.push('.active-operation');
   }

@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad, tailLines, lockedFileUpdate } = require('./pbr-tools');
+const { configLoad, tailLines, lockedFileUpdate, sessionLoad } = require('./pbr-tools');
 
 function main() {
   const cwd = process.cwd();
@@ -113,6 +113,12 @@ function main() {
 }
 
 function readActiveOperation(planningDir) {
+  // Try .session.json first (new), fall back to legacy .active-operation file
+  try {
+    const session = sessionLoad(planningDir);
+    if (session.activeOperation) return session.activeOperation;
+  } catch (_e) { /* fall through */ }
+
   const activeOpFile = path.join(planningDir, '.active-operation');
   if (!fs.existsSync(activeOpFile)) return '';
   try {
@@ -160,6 +166,12 @@ function readRoadmapSummary(planningDir) {
 }
 
 function readCurrentPlan(planningDir, stateContent) {
+  // Try .session.json first (new), then .active-plan file (legacy)
+  try {
+    const session = sessionLoad(planningDir);
+    if (session.activePlan) return session.activePlan;
+  } catch (_e) { /* fall through */ }
+
   // Prefer .active-plan signal file (definitive) over directory listing (guesswork)
   const activePlanFile = path.join(planningDir, '.active-plan');
   if (fs.existsSync(activePlanFile)) {

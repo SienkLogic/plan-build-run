@@ -72,7 +72,10 @@ const {
   determinePhaseStatus,
   atomicWrite,
   lockedFileUpdate,
-  writeActiveSkill
+  writeActiveSkill,
+  sessionLoad,
+  sessionSave,
+  SESSION_ALLOWED_KEYS
 } = require('./lib/core');
 
 const {
@@ -349,51 +352,6 @@ function checkpointUpdate(phaseSlug, opts) { return _checkpointUpdate(phaseSlug,
 function seedsMatch(phaseSlug, phaseNum) { return _seedsMatch(phaseSlug, phaseNum, planningDir); }
 function ciPoll(runId, timeoutSecs) { return _ciPoll(runId, timeoutSecs, planningDir); }
 function rollbackPlan(manifestPath) { return _rollback(manifestPath, planningDir); }
-
-// --- Session state management (.planning/.session.json) ---
-
-const SESSION_ALLOWED_KEYS = ['activeSkill', 'compactCounter', 'sessionStart', 'activeOperation', 'activePlan'];
-
-/**
- * Load .session.json from .planning/ directory.
- * Returns parsed object or {} if file is missing or unreadable.
- *
- * @param {string} dir - Path to .planning/ directory
- * @returns {object}
- */
-function sessionLoad(dir) {
-  const sessionPath = path.join(dir, '.session.json');
-  try {
-    if (!fs.existsSync(sessionPath)) return {};
-    const content = fs.readFileSync(sessionPath, 'utf8');
-    return JSON.parse(content);
-  } catch (_e) {
-    return {};
-  }
-}
-
-/**
- * Save data to .session.json using atomic write (write .tmp, then rename).
- * Merges provided data with existing session data.
- *
- * @param {string} dir - Path to .planning/ directory
- * @param {object} data - Key-value pairs to merge into session
- * @returns {{ success: boolean, error?: string }}
- */
-function sessionSave(dir, data) {
-  const sessionPath = path.join(dir, '.session.json');
-  const tmpPath = sessionPath + '.tmp';
-  try {
-    const existing = sessionLoad(dir);
-    const merged = Object.assign(existing, data);
-    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
-    fs.renameSync(tmpPath, sessionPath);
-    return { success: true };
-  } catch (e) {
-    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* cleanup */ }
-    return { success: false, error: e.message };
-  }
-}
 
 // --- validateProject stays here (cross-cutting across modules) ---
 

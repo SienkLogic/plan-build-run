@@ -450,8 +450,54 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
   }
 }
 
+// --- Session state management (.planning/.session.json) ---
+
+const SESSION_ALLOWED_KEYS = ['activeSkill', 'compactCounter', 'sessionStart', 'activeOperation', 'activePlan'];
+
+/**
+ * Load .session.json from .planning/ directory.
+ * Returns parsed object or {} if file is missing or unreadable.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @returns {object}
+ */
+function sessionLoad(dir) {
+  const sessionPath = path.join(dir, '.session.json');
+  try {
+    if (!fs.existsSync(sessionPath)) return {};
+    const content = fs.readFileSync(sessionPath, 'utf8');
+    return JSON.parse(content);
+  } catch (_e) {
+    return {};
+  }
+}
+
+/**
+ * Save data to .session.json using atomic write (write .tmp, then rename).
+ * Merges provided data with existing session data.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {object} data - Key-value pairs to merge into session
+ * @returns {{ success: boolean, error?: string }}
+ */
+function sessionSave(dir, data) {
+  const sessionPath = path.join(dir, '.session.json');
+  const tmpPath = sessionPath + '.tmp';
+  try {
+    const existing = sessionLoad(dir);
+    const merged = Object.assign(existing, data);
+    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
+    fs.renameSync(tmpPath, sessionPath);
+    return { success: true };
+  } catch (e) {
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* cleanup */ }
+    return { success: false, error: e.message };
+  }
+}
+
 /**
  * Write .active-skill with OS-level mutual exclusion.
+ * Also writes activeSkill to .session.json for consolidated session tracking.
  *
  * @param {string} planningDir - Path to .planning/ directory
  * @param {string} skillName - Skill name to write
@@ -485,8 +531,11 @@ function writeActiveSkill(planningDir, skillName) {
       }
     }
 
-    // Write the skill name
+    // Write the skill name (legacy file — kept for backward compat with reader scripts)
     fs.writeFileSync(skillFile, skillName, 'utf8');
+
+    // Also write to .session.json for consolidated session tracking
+    try { sessionSave(planningDir, { activeSkill: skillName }); } catch (_e) { /* non-fatal */ }
 
     // Release lock
     try { fs.unlinkSync(lockFile); } catch (_e) { /* best effort */ }
@@ -585,5 +634,8 @@ module.exports = {
   atomicWrite,
   lockedFileUpdate,
   writeActiveSkill,
+  sessionLoad,
+  sessionSave,
+  SESSION_ALLOWED_KEYS,
   validateObject
 };

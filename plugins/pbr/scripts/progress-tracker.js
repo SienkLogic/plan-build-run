@@ -14,7 +14,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad } = require('./pbr-tools');
+const { configLoad, sessionSave } = require('./pbr-tools');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
 
 async function main() {
@@ -40,9 +40,13 @@ async function main() {
   }
 
   // Write session-start timestamp for local-llm metrics correlation
+  // Primary: write to .session.json (unified session state)
+  // Legacy: also write .session-start file for session-cleanup.js backward compat
+  const sessionStart = new Date().toISOString();
+  try { sessionSave(planningDir, { sessionStart }); } catch (_e) { /* non-fatal */ }
   const sessionStartFile = path.join(planningDir, '.session-start');
   try {
-    fs.writeFileSync(sessionStartFile, new Date().toISOString(), 'utf8');
+    fs.writeFileSync(sessionStartFile, sessionStart, 'utf8');
   } catch (_e) { /* non-fatal */ }
 
   // Local LLM health check (advisory only — never blocks SessionStart)
@@ -217,14 +221,20 @@ function buildContext(planningDir, stateFile) {
   }
 
   // Check for stale .active-skill (multi-session conflict detection)
+  // Try .session.json first (new), fall back to .active-skill file (legacy)
   const activeSkillFile = path.join(planningDir, '.active-skill');
+  const { sessionLoad: _sessionLoad } = require('./pbr-tools');
+  const sessionData = _sessionLoad(planningDir);
+  const sessionActiveSkill = sessionData.activeSkill || null;
+
   if (fs.existsSync(activeSkillFile)) {
     try {
       const stats = fs.statSync(activeSkillFile);
       const ageMs = Date.now() - stats.mtimeMs;
       const ageMinutes = Math.floor(ageMs / 60000);
       if (ageMinutes > 60) {
-        const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
+        // Prefer skill name from .session.json if available
+        const skill = sessionActiveSkill || fs.readFileSync(activeSkillFile, 'utf8').trim();
         // Auto-cleanup stale .active-skill lock (> 60 minutes = certainly stale)
         try {
           fs.unlinkSync(activeSkillFile);
