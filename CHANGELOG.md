@@ -5,6 +5,21 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.50.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.49.0...plan-build-run-v2.50.0) (2026-03-01)
+
+
+### Features
+
+* **52-04:** replace 4 milestone banners with tmpl refs; condense 5 plan SKILL.md sections to &lt; 600 lines ([3e383c4](https://github.com/SienkLogic/plan-build-run/commit/3e383c45d4cfdb51298a2d2531f51752132368a0))
+* **53-01:** add cleanup section and CRITICAL markers to build, consolidate plan pre-planner briefing ([7c14693](https://github.com/SienkLogic/plan-build-run/commit/7c14693e7790728e00d5e4d080e19f54648bc156))
+* **53-02:** GREEN - implement ciPoll and rollback in lib/build.js ([d2ffa30](https://github.com/SienkLogic/plan-build-run/commit/d2ffa309eab8bf10981e88ded12c8e2b4029ad28))
+* **53-02:** register ci-poll and rollback in pbr-tools.js dispatcher ([88c551e](https://github.com/SienkLogic/plan-build-run/commit/88c551e82d3acb1d807bd302c758d041cb0577c0))
+
+
+### Bug Fixes
+
+* **52-05:** remove blank lines to bring build SKILL.md to 868 lines (&lt; 870 target) ([6cd9549](https://github.com/SienkLogic/plan-build-run/commit/6cd954972c33540462cb08f6a192604879b8e6df))
+
 ## [2.49.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.48.0...plan-build-run-v2.49.0) (2026-03-01)
 
 
