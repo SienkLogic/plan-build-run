@@ -1544,3 +1544,228 @@ describe('contextTriage', () => {
     expect(result.reason).toContain('GOOD');
   });
 });
+
+// ============================================================
+// Build helpers (lib/build.js) — tests written RED-first (TDD)
+// ============================================================
+
+describe('build helpers', () => {
+  const {
+    stalenessCheck,
+    summaryGate,
+    checkpointInit,
+    checkpointUpdate,
+    seedsMatch
+  } = require('../plugins/pbr/scripts/lib/build');
+
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-build-'));
+    fs.mkdirSync(path.join(tmpDir, 'phases'), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  // ── summaryGate ──────────────────────────────────────────
+
+  describe('summaryGate', () => {
+    test('returns gate:"exists" when SUMMARY file does not exist', () => {
+      const planningDir = tmpDir;
+      fs.mkdirSync(path.join(tmpDir, 'phases', '01-test'), { recursive: true });
+      const result = summaryGate('01-test', '01-01', planningDir);
+      expect(result.ok).toBe(false);
+      expect(result.gate).toBe('exists');
+    });
+
+    test('returns gate:"nonempty" when SUMMARY file is empty', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '01-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '');
+      const result = summaryGate('01-test', '01-01', planningDir);
+      expect(result.ok).toBe(false);
+      expect(result.gate).toBe('nonempty');
+    });
+
+    test('returns gate:"valid-frontmatter" when SUMMARY has content but no frontmatter', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '01-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '# Just a heading\n\nNo frontmatter here.');
+      const result = summaryGate('01-test', '01-01', planningDir);
+      expect(result.ok).toBe(false);
+      expect(result.gate).toBe('valid-frontmatter');
+    });
+
+    test('returns ok:true when SUMMARY has valid frontmatter with status', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '01-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const content = '---\nplan: "01-01"\nstatus: complete\n---\n\n## Task Results\n';
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), content);
+      const result = summaryGate('01-test', '01-01', planningDir);
+      expect(result.ok).toBe(true);
+      expect(result.gate).toBeNull();
+    });
+  });
+
+  // ── checkpointInit ───────────────────────────────────────
+
+  describe('checkpointInit', () => {
+    test('creates .checkpoint-manifest.json with correct structure', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '02-alpha');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const result = checkpointInit('02-alpha', '02-01,02-02', planningDir);
+      expect(result.ok).toBe(true);
+      expect(result.path).toContain('.checkpoint-manifest.json');
+
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.plans).toEqual(['02-01', '02-02']);
+      expect(manifest.checkpoints_resolved).toEqual([]);
+      expect(manifest.checkpoints_pending).toEqual([]);
+      expect(manifest.wave).toBe(1);
+      expect(manifest.deferred).toEqual([]);
+      expect(manifest.commit_log).toEqual([]);
+      expect(manifest.last_good_commit).toBeNull();
+    });
+
+    test('accepts an array of plan IDs', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '02-beta');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const result = checkpointInit('02-beta', ['02-01', '02-03'], planningDir);
+      expect(result.ok).toBe(true);
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.plans).toEqual(['02-01', '02-03']);
+    });
+
+    test('handles empty plans string', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '03-empty');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const result = checkpointInit('03-empty', '', planningDir);
+      expect(result.ok).toBe(true);
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.plans).toEqual([]);
+    });
+  });
+
+  // ── checkpointUpdate ─────────────────────────────────────
+
+  describe('checkpointUpdate', () => {
+    test('moves resolved plan from plans to checkpoints_resolved', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '04-update');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      checkpointInit('04-update', '04-01,04-02', planningDir);
+
+      const result = checkpointUpdate('04-update', { wave: 1, resolved: '04-01', sha: 'abc1234' }, planningDir);
+      expect(result.ok).toBe(true);
+
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.plans).toEqual(['04-02']);
+      expect(manifest.checkpoints_resolved).toContain('04-01');
+    });
+
+    test('advances wave counter', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '04-wave');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      checkpointInit('04-wave', '04-01', planningDir);
+      checkpointUpdate('04-wave', { wave: 2, resolved: '04-01', sha: '' }, planningDir);
+
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.wave).toBe(2);
+    });
+
+    test('appends to commit_log and updates last_good_commit when sha provided', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '04-log');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      checkpointInit('04-log', '04-01', planningDir);
+      checkpointUpdate('04-log', { wave: 1, resolved: '04-01', sha: 'deadbeef' }, planningDir);
+
+      const manifest = JSON.parse(fs.readFileSync(path.join(phaseDir, '.checkpoint-manifest.json'), 'utf8'));
+      expect(manifest.commit_log.length).toBe(1);
+      expect(manifest.commit_log[0].sha).toBe('deadbeef');
+      expect(manifest.last_good_commit).toBe('deadbeef');
+    });
+
+    test('returns error when manifest does not exist', () => {
+      const planningDir = tmpDir;
+      fs.mkdirSync(path.join(tmpDir, 'phases', '05-nofile'), { recursive: true });
+      const result = checkpointUpdate('05-nofile', { wave: 1, resolved: '05-01', sha: '' }, planningDir);
+      expect(result.error).toBeTruthy();
+    });
+  });
+
+  // ── seedsMatch ───────────────────────────────────────────
+
+  describe('seedsMatch', () => {
+    test('returns matched:[] when seeds directory does not exist', () => {
+      const planningDir = tmpDir;
+      const result = seedsMatch('03-auth', '3', planningDir);
+      expect(result.matched).toEqual([]);
+    });
+
+    test('returns matched:[] when no seeds match', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'other.md'), '---\nname: Other\ntrigger: unrelated\ndescription: Some seed\n---\n');
+      const result = seedsMatch('03-auth', '3', planningDir);
+      expect(result.matched).toEqual([]);
+    });
+
+    test('matches on exact slug', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'auth-seed.md'), '---\nname: Auth Seed\ntrigger: 03-auth\ndescription: Auth patterns\n---\n');
+      const result = seedsMatch('03-auth', '3', planningDir);
+      expect(result.matched.length).toBe(1);
+      expect(result.matched[0].name).toBe('Auth Seed');
+    });
+
+    test('matches on wildcard trigger "*"', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'global.md'), '---\nname: Global Seed\ntrigger: "*"\ndescription: Always matches\n---\n');
+      const result = seedsMatch('05-deploy', '5', planningDir);
+      expect(result.matched.length).toBe(1);
+      expect(result.matched[0].trigger).toBe('*');
+    });
+
+    test('matches on phase number string', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'num-seed.md'), '---\nname: Num Seed\ntrigger: "7"\ndescription: Phase 7 seed\n---\n');
+      const result = seedsMatch('07-deploy', '7', planningDir);
+      expect(result.matched.length).toBe(1);
+    });
+  });
+
+  // ── stalenessCheck ───────────────────────────────────────
+
+  describe('stalenessCheck', () => {
+    test('returns error when phase directory does not exist', () => {
+      const planningDir = tmpDir;
+      const result = stalenessCheck('99-nonexistent', planningDir);
+      expect(result.error).toBeTruthy();
+    });
+
+    test('returns stale:false when phase has no plans', () => {
+      const planningDir = tmpDir;
+      fs.mkdirSync(path.join(tmpDir, 'phases', '01-empty'), { recursive: true });
+      const result = stalenessCheck('01-empty', planningDir);
+      expect(result.stale).toBe(false);
+      expect(result.plans).toEqual([]);
+    });
+  });
+});
