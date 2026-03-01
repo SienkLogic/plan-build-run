@@ -91,43 +91,55 @@ function transformBody(content, _target) {
 
 /**
  * Transform agent .md frontmatter for a given target.
- * Removes model, memory, and tools lines — keeps name and description.
+ *
+ * cursor: remove `memory` and `tools` lines; keep `name`, `description`, `model`;
+ *   add `readonly: false` (required by cursor-plugin-validation.test.js).
+ * copilot: remove `model`, `memory`, `tools` lines; keep only `name` and `description`.
+ *
  * Agent files do NOT carry allowed-tools or argument-hint.
  *
  * @param {string} content  Full agent .md file content
- * @param {'cursor'|'copilot'} _target  (same transform for both)
+ * @param {'cursor'|'copilot'} target
  * @returns {string}
  */
-function transformAgentFrontmatter(content, _target) {
+function transformAgentFrontmatter(content, target) {
   return content.replace(/^---\r?\n([\s\S]*?)\r?\n---/, (_match, fm) => {
     let lines = fm.split(/\r?\n/);
 
-    // Remove model, memory, tools lines (tools may be multi-line YAML list)
+    // Fields to remove depend on target
     const keepLines = [];
     let inToolsList = false;
 
     for (const line of lines) {
       if (/^model\s*:/.test(line)) {
         inToolsList = false;
+        if (target === 'cursor') {
+          keepLines.push(line); // cursor keeps model
+        }
         continue;
       }
       if (/^memory\s*:/.test(line)) {
         inToolsList = false;
-        continue;
+        continue; // both targets remove memory
       }
       if (/^tools\s*:/.test(line)) {
         inToolsList = true;
-        continue;
+        continue; // both targets remove tools
       }
       // If we're in the tools list, skip indented lines (list items)
       if (inToolsList && /^\s+-/.test(line)) {
         continue;
       }
-      // Any non-indented line ends the tools list
+      // Any non-indented non-empty line ends the tools list
       if (inToolsList && line.trim() !== '') {
         inToolsList = false;
       }
       keepLines.push(line);
+    }
+
+    // cursor requires `readonly: false`
+    if (target === 'cursor' && !keepLines.some(l => /^readonly\s*:/.test(l))) {
+      keepLines.push('readonly: false');
     }
 
     return '---\n' + keepLines.join('\n') + '\n---';

@@ -1,10 +1,15 @@
 'use strict';
 
+const path = require('path');
+const fs = require('fs');
+
 const {
   transformFrontmatter,
   transformBody,
   transformAgentFrontmatter,
   transformHooksJson,
+  generate,
+  verify,
 } = require('../scripts/generate-derivatives');
 
 // ---------------------------------------------------------------------------
@@ -126,13 +131,18 @@ describe('transformAgentFrontmatter', () => {
     'Agent body here.',
   ].join('\n');
 
-  test('cursor: removes model, memory, tools lines', () => {
+  test('cursor: removes memory and tools but keeps model', () => {
     const result = transformAgentFrontmatter(agentContent, 'cursor');
-    expect(result).not.toMatch(/^model\s*:/m);
+    expect(result).toMatch(/^model\s*:/m);     // cursor keeps model
     expect(result).not.toMatch(/^memory\s*:/m);
     expect(result).not.toMatch(/^tools\s*:/m);
     expect(result).not.toMatch(/^\s+-\s+Read/m);
     expect(result).not.toMatch(/^\s+-\s+Write/m);
+  });
+
+  test('cursor: adds readonly: false', () => {
+    const result = transformAgentFrontmatter(agentContent, 'cursor');
+    expect(result).toMatch(/^readonly:\s*false/m);
   });
 
   test('cursor: keeps name and description', () => {
@@ -141,10 +151,13 @@ describe('transformAgentFrontmatter', () => {
     expect(result).toMatch(/description: "Does agent things"/);
   });
 
-  test('copilot: same as cursor (removes model/memory/tools)', () => {
-    const cursorResult = transformAgentFrontmatter(agentContent, 'cursor');
+  test('copilot: removes model, memory, tools (unlike cursor)', () => {
     const copilotResult = transformAgentFrontmatter(agentContent, 'copilot');
-    expect(cursorResult).toBe(copilotResult);
+    expect(copilotResult).not.toMatch(/^model\s*:/m);
+    expect(copilotResult).not.toMatch(/^memory\s*:/m);
+    expect(copilotResult).not.toMatch(/^tools\s*:/m);
+    expect(copilotResult).toMatch(/name: myagent/);
+    expect(copilotResult).toMatch(/description: "Does agent things"/);
   });
 
   test('keeps agent body content', () => {
@@ -212,9 +225,6 @@ describe('transformHooksJson', () => {
 // ---------------------------------------------------------------------------
 
 describe('copilot agent filename convention', () => {
-  const path = require('path');
-  const fs = require('fs');
-
   const COPILOT_DIR = path.resolve(__dirname, '..', 'plugins', 'copilot-pbr', 'agents');
 
   test('all copilot agent files have .agent.md suffix', () => {
@@ -240,5 +250,99 @@ describe('copilot agent filename convention', () => {
       .sort();
 
     expect(copilotStems).toEqual(pbrStems);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// generate() and verify() integration tests
+// ---------------------------------------------------------------------------
+
+describe('generate and verify (integration)', () => {
+  test('generate cursor returns array of written file paths', () => {
+    const written = generate('cursor', false);
+    expect(Array.isArray(written)).toBe(true);
+    expect(written.length).toBeGreaterThan(0);
+    // All paths should be inside cursor-pbr
+    for (const f of written) {
+      expect(f).toMatch(/cursor-pbr/);
+    }
+  });
+
+  test('generate copilot returns array of written file paths', () => {
+    const written = generate('copilot', false);
+    expect(Array.isArray(written)).toBe(true);
+    expect(written.length).toBeGreaterThan(0);
+    for (const f of written) {
+      expect(f).toMatch(/copilot-pbr/);
+    }
+  });
+
+  test('generate dry-run returns same paths without writing', () => {
+    const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
+    const testFile = path.join(CURSOR_DIR, 'skills', 'audit', 'SKILL.md');
+
+    // Record mtime before
+    const statBefore = fs.statSync(testFile);
+
+    const written = generate('cursor', true);
+    expect(written.length).toBeGreaterThan(0);
+
+    // File mtime should not have changed
+    const statAfter = fs.statSync(testFile);
+    expect(statAfter.mtimeMs).toBe(statBefore.mtimeMs);
+  });
+
+  test('verify returns ok:true when derivatives match', () => {
+    // First generate so derivatives are up to date
+    generate('cursor', false);
+    const result = verify('cursor');
+    expect(result.ok).toBe(true);
+    expect(result.drifted).toHaveLength(0);
+  });
+
+  test('verify returns ok:false when a derivative file has drift', () => {
+    const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
+    const testFile = path.join(CURSOR_DIR, 'skills', 'audit', 'SKILL.md');
+    const original = fs.readFileSync(testFile, 'utf8');
+
+    // Introduce drift
+    fs.writeFileSync(testFile, original + '\n<!-- DRIFT -->\n');
+    const result = verify('cursor');
+
+    // Restore
+    fs.writeFileSync(testFile, original);
+
+    expect(result.ok).toBe(false);
+    expect(result.drifted.length).toBeGreaterThan(0);
+  });
+
+  test('copilot verify returns ok:true when derivatives match', () => {
+    generate('copilot', false);
+    const result = verify('copilot');
+    expect(result.ok).toBe(true);
+  });
+
+  test('verify detects missing file as drift', () => {
+    const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
+    const testFile = path.join(CURSOR_DIR, 'references', 'pbr-rules.md');
+    const original = fs.readFileSync(testFile);
+
+    // Temporarily remove file
+    fs.unlinkSync(testFile);
+    const result = verify('cursor');
+
+    // Restore
+    fs.writeFileSync(testFile, original);
+
+    // Should detect missing file
+    expect(result.ok).toBe(false);
+    const hasMissing = result.drifted.some(d => d.includes('(missing)') || d.includes('pbr-rules'));
+    expect(hasMissing).toBe(true);
+  });
+
+  test('generate cursor target-only works', () => {
+    const written = generate('cursor', true);
+    expect(written.every(f => f.includes('cursor-pbr'))).toBe(true);
+    expect(written.every(f => !f.includes('copilot-pbr'))).toBe(true);
   });
 });
