@@ -256,13 +256,13 @@ After the researcher completes, check the Task() output for a completion marker:
 
 Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger matches the current phase:
 
-1. Glob for `.planning/seeds/*.md`
-2. For each seed file, read its frontmatter and check the `trigger` field
-3. A seed matches if ANY of these are true:
-   - `trigger` equals the phase slug (e.g., `trigger: authentication`) — **preferred**
-   - `trigger` is a substring of the phase directory name (e.g., `trigger: auth` matches `03-authentication`)
-   - `trigger` equals the current phase number as integer (e.g., `trigger: 3`) — backward compatible but NOT recommended for new seeds (breaks with decimal phases like 3.1)
-   - `trigger` equals `*` (always matches)
+1. Run seed matcher CLI:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js seeds match {phase-slug} {phase-number}
+   ```
+   Returns `{ matched: [{ name, description, trigger, path }] }`.
+2. If `matched` is empty: proceed silently.
+3. If `matched` is non-empty: present to user (see step 4 below).
 4. If matching seeds are found, present them to the user:
    ```
    Found {N} seeds related to Phase {NN}:

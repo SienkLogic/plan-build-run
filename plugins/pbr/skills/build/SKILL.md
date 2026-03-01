@@ -84,27 +84,17 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 
 **Staleness check (dependency fingerprints):**
 After validating prerequisites, check plan staleness:
-1. Read each PLAN.md file's `dependency_fingerprints` field (if present)
-2. For each fingerprinted dependency, check the current SUMMARY.md file (length + modification time)
-3. If any fingerprint doesn't match: the dependency phase was re-built after this plan was created
-4. Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
-   question: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created."
-   header: "Stale"
-   options:
-     - label: "Continue anyway"  description: "Proceed with existing plans (may still be valid)"
-     - label: "Re-plan"          description: "Stop and re-plan with `/pbr:plan {N}` (recommended)"
-   If "Re-plan" or "Other": stop and suggest `/pbr:plan {N}`
-   If "Continue anyway": proceed with existing plans
-10. If plans have no `dependency_fingerprints` field, fall back to timestamp-based staleness detection:
-   a. Read `.planning/ROADMAP.md` and identify the current phase's dependencies (the `depends_on` field)
-   b. For each dependency phase, find its phase directory under `.planning/phases/`
-   c. Check if any SUMMARY.md files in the dependency phase directory have a modification timestamp newer than the current phase's PLAN.md files
-   d. If any upstream dependency was modified after planning, display a warning (do NOT block):
-      ```
-      Warning: Phase {dep_phase} (dependency of Phase {N}) was modified after this phase was planned.
-      Plans may be based on outdated assumptions. Consider re-planning with `/pbr:plan {N}`.
-      ```
-   e. This is advisory only — continue with the build after displaying the warning
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js staleness-check {phase-slug}
+```
+
+Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
+- Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
+  question: "Plan {plan_id} may be stale — {reason}"
+  options: ["Continue anyway", "Re-plan with /pbr:plan {N}"]
+- If "Re-plan": stop. If "Continue anyway": proceed.
+If `stale: false`: proceed silently.
 
 **Validation errors — use branded error boxes:**
 
@@ -200,30 +190,19 @@ Validate wave consistency:
 
 ### Step 5b: Write Checkpoint Manifest (inline)
 
-**CRITICAL: Write .checkpoint-manifest.json NOW before entering the wave loop.**
+**CRITICAL: Initialize checkpoint manifest NOW before entering the wave loop.**
 
-Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json`:
-
-```json
-{
-  "plans": ["02-01", "02-02", "02-03"],
-  "checkpoints_resolved": [],
-  "checkpoints_pending": [],
-  "wave": 1,
-  "deferred": [],
-  "commit_log": [],
-  "last_good_commit": null
-}
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
 ```
 
-This file tracks execution progress for crash recovery and rollback. On resume after compaction, read this manifest to determine where execution left off and which plans still need work.
+After each wave completes, update the manifest:
 
-Update the manifest after each wave completes:
-- Move completed plan IDs into `checkpoints_resolved`
-- Advance the `wave` counter
-- Record commit SHAs in `commit_log` (array of `{ plan, sha, timestamp }` objects)
-- Update `last_good_commit` to the SHA of the last successfully verified commit
-- Append any deferred items collected from executor SUMMARYs
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
+```
+
+This tracks execution for crash recovery and rollback. Read `.checkpoint-manifest.json` on resume to reconstruct which plans are complete.
 
 ---
 
@@ -565,15 +544,13 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
 After each wave completes (all plans in the wave are done, skipped, or aborted):
 
 **SUMMARY gate — verify before updating STATE.md:**
+For every plan in the wave, run:
 
-Before writing any STATE.md update, verify these three gates for every plan in the wave:
-1. SUMMARY file exists at the expected path
-2. SUMMARY file is not empty (file size > 0)
-3. SUMMARY file has a valid title and YAML frontmatter (contains `---` delimiters and a `status:` field)
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js summary-gate {phase-slug} {plan-id}
+```
 
-Block the STATE.md update until ALL gates pass. If any gate fails:
-- Warn user: "SUMMARY gate failed for plan {id}: {which gate}. Cannot update STATE.md."
-- Ask user to retry the executor or manually inspect the SUMMARY file
+Returns `{ ok: bool, gate: string, detail: string }`. Block STATE.md update until ALL plans return `ok: true`. If any fail, warn: "SUMMARY gate failed for plan {id}: {gate} — {detail}. Cannot update STATE.md."
 
 Once gates pass, update `.planning/STATE.md`:
 
