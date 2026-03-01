@@ -139,7 +139,7 @@ function buildAgentContext() {
   // Active skill context — try .session.json first, fall back to legacy .active-skill
   let activeSkill = sessionLoad(planningDir).activeSkill || '';
   if (!activeSkill) {
-    try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) {}
+    try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) { /* legacy file missing */ }
   }
   // TODO(Phase 55+): Remove legacy .active-skill fallback once .session.json is confirmed stable
   if (activeSkill) parts.push(`Active skill: /pbr:${activeSkill}`);
