@@ -18,7 +18,9 @@ const {
   historyAppend,
   historyLoad,
   VALID_STATUS_TRANSITIONS,
-  validateStatusTransition
+  validateStatusTransition,
+  sessionLoad,
+  sessionSave
 } = require('../plugins/pbr/scripts/pbr-tools');
 
 describe('pbr-tools.js', () => {
@@ -2054,5 +2056,147 @@ describe('rollback', () => {
     const result = rollback(manifestPath, tmpDir);
     expect(result.ok).toBe(true);
     expect(result.plans_invalidated.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── session subcommand tests ───────────────────────────────────────────────
+
+describe('session subcommand (pbr-tools)', () => {
+  const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
+  const { execFileSync } = require('child_process');
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-session-test-'));
+    fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function runTool(args) {
+    try {
+      const stdout = execFileSync(process.execPath, [SCRIPT, ...args], {
+        encoding: 'utf8',
+        timeout: 10000,
+        cwd: tmpDir,
+        env: Object.assign({}, process.env, { PBR_PROJECT_ROOT: tmpDir }),
+      });
+      return { status: 0, stdout, stderr: '' };
+    } catch (e) {
+      return { status: e.status || 1, stdout: e.stdout || '', stderr: e.stderr || '' };
+    }
+  }
+
+  // ── CLI tests ─────────────────────────────────────────────────────────────
+
+  test('session get returns null when no .session.json exists', () => {
+    const result = runTool(['session', 'get', 'activeSkill']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json).toEqual({ key: 'activeSkill', value: null });
+  });
+
+  test('session set writes .session.json and returns ok', () => {
+    const result = runTool(['session', 'set', 'activeSkill', 'build']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json).toEqual({ ok: true });
+
+    const sessionFile = path.join(tmpDir, '.planning', '.session.json');
+    expect(fs.existsSync(sessionFile)).toBe(true);
+    const data = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+    expect(data.activeSkill).toBe('build');
+  });
+
+  test('session get after set returns the stored value', () => {
+    runTool(['session', 'set', 'activeSkill', 'build']);
+    const result = runTool(['session', 'get', 'activeSkill']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json).toEqual({ key: 'activeSkill', value: 'build' });
+  });
+
+  test('session set merges without overwriting other keys', () => {
+    runTool(['session', 'set', 'activeSkill', 'plan']);
+    runTool(['session', 'set', 'compactCounter', '5']);
+    const result = runTool(['session', 'get', 'activeSkill']);
+    const json = JSON.parse(result.stdout);
+    expect(json.value).toBe('plan');
+    const result2 = runTool(['session', 'get', 'compactCounter']);
+    const json2 = JSON.parse(result2.stdout);
+    expect(json2.value).toBe(5);
+  });
+
+  test('session clear deletes .session.json', () => {
+    runTool(['session', 'set', 'activeSkill', 'build']);
+    const result = runTool(['session', 'clear']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json).toEqual({ ok: true });
+    const sessionFile = path.join(tmpDir, '.planning', '.session.json');
+    expect(fs.existsSync(sessionFile)).toBe(false);
+  });
+
+  test('session clear <key> sets key to null without deleting file', () => {
+    runTool(['session', 'set', 'activeSkill', 'build']);
+    runTool(['session', 'set', 'compactCounter', '3']);
+    const result = runTool(['session', 'clear', 'activeSkill']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json).toEqual({ ok: true });
+
+    const sessionFile = path.join(tmpDir, '.planning', '.session.json');
+    expect(fs.existsSync(sessionFile)).toBe(true);
+    const data = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+    expect(data.activeSkill).toBeNull();
+    expect(data.compactCounter).toBe(3);
+  });
+
+  test('session dump prints entire session JSON', () => {
+    runTool(['session', 'set', 'activeSkill', 'plan']);
+    const result = runTool(['session', 'dump']);
+    expect(result.status).toBe(0);
+    const json = JSON.parse(result.stdout);
+    expect(json.activeSkill).toBe('plan');
+  });
+
+  test('session get unknown key exits 1', () => {
+    const result = runTool(['session', 'get', 'unknownKey']);
+    expect(result.status).toBe(1);
+  });
+
+  test('session set unknown key exits 1', () => {
+    const result = runTool(['session', 'set', 'notAValidKey', 'value']);
+    expect(result.status).toBe(1);
+  });
+
+  // ── sessionLoad / sessionSave exported functions ──────────────────────────
+
+  test('sessionLoad returns empty object when no .session.json', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    const data = sessionLoad(planningDir);
+    expect(data).toEqual({});
+  });
+
+  test('sessionSave writes JSON atomically and sessionLoad reads it back', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    sessionSave(planningDir, { activeSkill: 'build', compactCounter: 2 });
+
+    const sessionFile = path.join(planningDir, '.session.json');
+    expect(fs.existsSync(sessionFile)).toBe(true);
+
+    const data = sessionLoad(planningDir);
+    expect(data.activeSkill).toBe('build');
+    expect(data.compactCounter).toBe(2);
+  });
+
+  test('sessionSave uses atomic write (no .tmp file left behind)', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    sessionSave(planningDir, { activeSkill: 'test' });
+
+    const tmpFile = path.join(planningDir, '.session.json.tmp');
+    expect(fs.existsSync(tmpFile)).toBe(false);
   });
 });
