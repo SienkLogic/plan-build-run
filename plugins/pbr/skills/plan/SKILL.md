@@ -225,44 +225,51 @@ After the researcher completes, check the Task() output for a completion marker:
 
 ---
 
-### Step 4.5: Seed Scanning (inline, before planning)
+### Step 4.5: Pre-Planner Briefing (delegated)
 
-Before spawning the planner, scan `.planning/seeds/` for seeds whose trigger matches the current phase:
+**CRITICAL (no hook): Run pre-planner briefing before spawning the planner. Do NOT skip this step.**
 
-1. Run seed matcher CLI:
-   ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js seeds match {phase-slug} {phase-number}
-   ```
-   Returns `{ matched: [{ name, description, trigger, path }] }`.
-2. If `matched` is empty: proceed silently.
-3. If `matched` is non-empty: present to user (see step 4 below).
-4. If matching seeds are found, present them to the user:
-   ```
-   Found {N} seeds related to Phase {NN}:
-     - {seed_name}: {seed description}
-     - {seed_name}: {seed description}
-   ```
+Consolidate seed scanning and deferred idea surfacing into a single lightweight Task():
 
-   Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
-     question: "Include these {N} seeds in planning?"
-     header: "Seeds?"
-     options:
-       - label: "Yes, all"     description: "Include all {N} matching seeds"
-       - label: "Let me pick"  description: "Choose which seeds to include"
-       - label: "No"           description: "Proceed without seeds"
-5. If "Yes, all": include all matching seed content in the planner's context
-6. If "Let me pick": present individual seeds for selection
-7. If "No" or "Other": proceed without seeds
-8. If no matching seeds found: proceed silently
+```
+Task({
+  subagent_type: "pbr:general",
+  model: "haiku",
+  prompt: "Pre-planner briefing for Phase {NN} ({phase-slug}).
 
----
+1. SEED SCANNING:
+   Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js seeds match {phase-slug} {phase-number}`
+   If `matched` is non-empty, output a ## Seeds section listing each seed name, description, and content.
+   If empty, output: ## Seeds\nNo matching seeds found.
 
-### Step 4.6: Surface Deferred Ideas (inline, before planning)
+2. DEFERRED IDEAS:
+   Read `.planning/CONTEXT.md`. If it has a section containing 'deferred' or 'ideas' (case-insensitive),
+   extract items that mention Phase {NN} or keywords matching the phase slug.
+   If relevant items found, output a ## Deferred Ideas section listing them.
+   If none found, output: ## Deferred Ideas\nNo relevant deferred items.
 
-Before spawning the planner, scan `.planning/CONTEXT.md` for deferred ideas relevant to this phase:
-- If CONTEXT.md lacks a deferred/ideas section, skip silently
-- If relevant deferred items found, present them via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`): "Include these deferred ideas in planning context?"
-- If "Yes": append items to planner context under `Deferred ideas to consider:`. If "No": proceed without changes.
+Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
+})
+```
+
+After the Task() completes:
+- If `## Seeds` section contains matches: present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
+  question: "Include these {N} seeds in planning?"
+  header: "Seeds?"
+  options:
+    - label: "Yes, all"     description: "Include all {N} matching seeds"
+    - label: "Let me pick"  description: "Choose which seeds to include"
+    - label: "No"           description: "Proceed without seeds"
+- If "Yes, all": include seed content in planner context
+- If "Let me pick": present individual seeds for selection
+- If "No": proceed without seeds
+
+- If `## Deferred Ideas` section has items: present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  question: "Include these deferred ideas in planning context?"
+- If "Yes": append to planner context under `Deferred ideas to consider:`
+- If "No": proceed without changes
+
+- If both sections are empty: proceed silently to Step 5 (no AskUserQuestion needed)
 
 ---
 
