@@ -934,3 +934,233 @@ next_top_level: something`;
     });
   });
 });
+
+
+// ─── reference module tests ────────────────────────────────────────────────
+
+const { listHeadings, extractSection, resolveReferencePath, referenceGet: referenceGetLib } = require('../plugins/pbr/scripts/lib/reference');
+
+describe('referenceGet / lib/reference', () => {
+  const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
+
+  // ── listHeadings ──────────────────────────────────────────────────────────
+
+  test('listHeadings extracts H2 and H3 headings', () => {
+    const content = [
+      '# Title',
+      '',
+      '## Section One',
+      'Some text.',
+      '',
+      '### Sub-section A',
+      'Sub text.',
+      '',
+      '## Section Two',
+      'More text.',
+      '',
+      '### Sub-section B',
+      'More sub text.',
+    ].join('\n');
+
+    const headings = listHeadings(content);
+    expect(headings.length).toBe(4);
+    expect(headings[0]).toEqual({ level: 2, heading: 'Section One' });
+    expect(headings[1]).toEqual({ level: 3, heading: 'Sub-section A' });
+    expect(headings[2]).toEqual({ level: 2, heading: 'Section Two' });
+    expect(headings[3]).toEqual({ level: 3, heading: 'Sub-section B' });
+    const h1Items = headings.filter(h => h.level === 1);
+    expect(h1Items.length).toBe(0);
+  });
+
+  // ── extractSection ────────────────────────────────────────────────────────
+
+  test('extractSection with exact match', () => {
+    const content = [
+      '## YAML Frontmatter',
+      '',
+      'This is the YAML frontmatter section.',
+      '',
+      '## Next Section',
+      'Different content.',
+    ].join('\n');
+
+    const result = extractSection(content, 'YAML Frontmatter');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('YAML Frontmatter');
+    expect(result.level).toBe(2);
+    expect(result.content).toContain('YAML frontmatter section');
+    expect(result.content).not.toContain('Different content');
+    expect(result.char_count).toBeGreaterThan(0);
+  });
+
+  test('extractSection with fuzzy starts-with match', () => {
+    const content = [
+      '## YAML Frontmatter',
+      '',
+      'Description of YAML.',
+      '',
+      '## Other',
+      'Other content.',
+    ].join('\n');
+
+    const result = extractSection(content, 'yaml');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('YAML Frontmatter');
+  });
+
+  test('extractSection with contains match', () => {
+    const content = [
+      '## Contract: Researcher -> Synthesizer',
+      '',
+      'The researcher feeds the synthesizer.',
+      '',
+      '## Other Section',
+      'Unrelated.',
+    ].join('\n');
+
+    const result = extractSection(content, 'Researcher');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('Contract: Researcher -> Synthesizer');
+    expect(result.content).toContain('researcher feeds the synthesizer');
+  });
+
+  test('extractSection with word-boundary match', () => {
+    const content = [
+      '## Rule 1: Bug Discovered',
+      '',
+      'Auto-fix immediately.',
+      '',
+      '## Rule 2: Missing Dependency',
+      'Install it.',
+    ].join('\n');
+
+    const result = extractSection(content, 'rule 1');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('Rule 1: Bug Discovered');
+    expect(result.content).toContain('Auto-fix immediately');
+    expect(result.content).not.toContain('Install it');
+  });
+
+  test('extractSection for H3 stops at next H3 or H2', () => {
+    const content = [
+      '## Parent Section',
+      '',
+      'Parent intro.',
+      '',
+      '### Child One',
+      '',
+      'First child content.',
+      '',
+      '### Child Two',
+      '',
+      'Second child content.',
+      '',
+      '## Another H2',
+      'H2 content.',
+    ].join('\n');
+
+    const result = extractSection(content, 'Child One');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('Child One');
+    expect(result.level).toBe(3);
+    expect(result.content).toContain('First child content');
+    expect(result.content).not.toContain('Second child content');
+    expect(result.content).not.toContain('H2 content');
+  });
+
+  test('extractSection for H2 includes nested H3s', () => {
+    const content = [
+      '## Parent Section',
+      '',
+      'Parent intro.',
+      '',
+      '### Child H3',
+      '',
+      'Child content here.',
+      '',
+      '## Next H2',
+      'Different section.',
+    ].join('\n');
+
+    const result = extractSection(content, 'Parent Section');
+    expect(result).not.toBeNull();
+    expect(result.level).toBe(2);
+    expect(result.content).toContain('Child H3');
+    expect(result.content).toContain('Child content here');
+    expect(result.content).not.toContain('Different section');
+  });
+
+  test('returns null when section not found', () => {
+    const content = [
+      '## Section One',
+      'Content one.',
+      '',
+      '## Section Two',
+      'Content two.',
+    ].join('\n');
+
+    const result = extractSection(content, 'Nonexistent Section XYZ');
+    expect(result).toBeNull();
+  });
+
+  test('handles CRLF line endings', () => {
+    const content = [
+      '## CRLF Section',
+      '',
+      'Content with Windows line endings.',
+      '',
+      '## Next Section',
+      'Other.',
+    ].join('\r\n');
+
+    const headings = listHeadings(content);
+    expect(headings.length).toBe(2);
+    expect(headings[0].heading).toBe('CRLF Section');
+    expect(headings[0].heading).not.toMatch(/\r$/);
+
+    const result = extractSection(content, 'CRLF Section');
+    expect(result).not.toBeNull();
+    expect(result.heading).toBe('CRLF Section');
+    expect(result.content).toContain('Content with Windows line endings');
+  });
+
+  // ── resolveReferencePath ──────────────────────────────────────────────────
+
+  test('resolveReferencePath lists available refs when name not found', () => {
+    const result = resolveReferencePath('nonexistent-ref-xyz', PLUGIN_ROOT);
+    expect(result).toHaveProperty('error');
+    expect(result).toHaveProperty('available');
+    expect(Array.isArray(result.available)).toBe(true);
+    expect(result.available).toContain('plan-format');
+  });
+
+  test('resolveReferencePath resolves known reference', () => {
+    const result = resolveReferencePath('plan-format', PLUGIN_ROOT);
+    expect(typeof result).toBe('string');
+    expect(result).toMatch(/plan-format\.md$/);
+  });
+
+  // ── referenceGet integration ──────────────────────────────────────────────
+
+  test('referenceGet --list returns headings array', () => {
+    const result = referenceGetLib('plan-format', { list: true }, PLUGIN_ROOT);
+    expect(result).toHaveProperty('name', 'plan-format');
+    expect(result).toHaveProperty('headings');
+    expect(Array.isArray(result.headings)).toBe(true);
+    expect(result.headings.length).toBeGreaterThan(0);
+  });
+
+  test('referenceGet --section extracts matching content', () => {
+    const result = referenceGetLib('plan-format', { section: 'YAML Frontmatter' }, PLUGIN_ROOT);
+    expect(result).toHaveProperty('name', 'plan-format');
+    expect(result).toHaveProperty('heading', 'YAML Frontmatter');
+    expect(result.content).toBeTruthy();
+  });
+
+  test('referenceGet returns error with available headings on missing section', () => {
+    const result = referenceGetLib('plan-format', { section: 'Nonexistent XYZ Section' }, PLUGIN_ROOT);
+    expect(result).toHaveProperty('error');
+    expect(result).toHaveProperty('available');
+    expect(Array.isArray(result.available)).toBe(true);
+  });
+});
