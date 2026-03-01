@@ -5,6 +5,25 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.46.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.45.0...plan-build-run-v2.46.0) (2026-03-01)
+
+
+### Features
+
+* **51-01:** implement initStateBundle in lib/init.js ([0e1b103](https://github.com/SienkLogic/plan-build-run/commit/0e1b1038953c974266f36af9a8ecd08e5f54dc13))
+* **51-01:** wire state-bundle into pbr-tools.js dispatch ([7092b58](https://github.com/SienkLogic/plan-build-run/commit/7092b58aa3376bc858bfa7ff69b68e0e3b96b9f1))
+* **51-02:** add milestoneStats function and milestone-stats CLI command ([d962ad2](https://github.com/SienkLogic/plan-build-run/commit/d962ad27510ece26b14a2439f50c9d5dde21a491))
+* **51-03:** create lib/reference.js with listHeadings, extractSection, resolveReferencePath, referenceGet ([5f5e340](https://github.com/SienkLogic/plan-build-run/commit/5f5e340381d61aa450ef2afebaa0d6c8b3b55546))
+* **51-03:** wire reference subcommand into pbr-tools.js dispatch with --section and --list flags ([b638ed9](https://github.com/SienkLogic/plan-build-run/commit/b638ed9d8a7ecefec56bd5ae88d555ad9dd5e906))
+* **51-04:** create lib/context.js with contextTriage function ([e77982e](https://github.com/SienkLogic/plan-build-run/commit/e77982ed220fb17fe911e1e3d6323570b8309044))
+* **51-04:** wire context-triage dispatch into pbr-tools.js ([2f6fcb4](https://github.com/SienkLogic/plan-build-run/commit/2f6fcb4a8212f43fa84d3b01a74234cee46fe80a))
+
+
+### Bug Fixes
+
+* **51-04:** remove unused test imports to fix lint errors ([a7e90e0](https://github.com/SienkLogic/plan-build-run/commit/a7e90e0533448d8be4a13a74711b52da0ec993d0))
+* **tools:** fix planIndex regex to match PLAN-NN.md naming convention ([a4aadc1](https://github.com/SienkLogic/plan-build-run/commit/a4aadc1f95baeaa285b722d3d88ea607a4addd59))
+
 ## [2.45.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.44.0...plan-build-run-v2.45.0) (2026-03-01)
 
 
