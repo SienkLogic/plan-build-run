@@ -54,7 +54,8 @@ function planIndex(phaseNum, planningDir) {
   }
 
   const fullDir = path.join(phasesDir, phaseDir.name);
-  const planFiles = findFiles(fullDir, /-PLAN\.md$/);
+  // Match both PLAN-NN.md (current) and NN-PLAN.md / slug-NN-PLAN.md (legacy)
+  const planFiles = findFiles(fullDir, /PLAN.*\.md$/i);
 
   const plans = [];
   const waves = {};
@@ -65,7 +66,7 @@ function planIndex(phaseNum, planningDir) {
 
     const plan = {
       file,
-      plan_id: fm.plan || file.replace(/-PLAN\.md$/, ''),
+      plan_id: fm.plan || file.replace(/^PLAN-?/i, '').replace(/-PLAN/i, '').replace(/\.md$/i, ''),
       wave: parseInt(fm.wave, 10) || 1,
       type: fm.type || 'unknown',
       autonomous: fm.autonomous !== false,
@@ -112,7 +113,8 @@ function mustHavesCollect(phaseNum, planningDir) {
   }
 
   const fullDir = path.join(phasesDir, phaseDir.name);
-  const planFiles = findFiles(fullDir, /-PLAN\.md$/);
+  // Match both PLAN-NN.md (current) and NN-PLAN.md / slug-NN-PLAN.md (legacy)
+  const planFiles = findFiles(fullDir, /PLAN.*\.md$/i);
 
   const perPlan = {};
   const allTruths = new Set();
@@ -122,7 +124,7 @@ function mustHavesCollect(phaseNum, planningDir) {
   for (const file of planFiles) {
     const content = fs.readFileSync(path.join(fullDir, file), 'utf8');
     const fm = parseYamlFrontmatter(content);
-    const planId = fm.plan || file.replace(/-PLAN\.md$/, '');
+    const planId = fm.plan || file.replace(/^PLAN-?/i, '').replace(/-PLAN/i, '').replace(/\.md$/i, '');
     const mh = fm.must_haves || { truths: [], artifacts: [], key_links: [] };
 
     perPlan[planId] = mh;

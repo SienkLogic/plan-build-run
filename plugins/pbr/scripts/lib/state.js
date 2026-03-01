@@ -246,7 +246,7 @@ function stateCheckProgress(planningDir) {
 
   for (const entry of entries) {
     const phaseDir = path.join(phasesDir, entry.name);
-    const plans = findFiles(phaseDir, /-PLAN\.md$/);
+    const plans = findFiles(phaseDir, /PLAN.*\.md$/i);
     const summaries = findFiles(phaseDir, /^SUMMARY-.*\.md$/);
     const verification = fs.existsSync(path.join(phaseDir, 'VERIFICATION.md'));
 

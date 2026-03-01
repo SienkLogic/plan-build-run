@@ -272,7 +272,7 @@ function calculateProgress(planningDir) {
 
   for (const entry of entries) {
     const dir = path.join(phasesDir, entry.name);
-    const plans = findFiles(dir, /-PLAN\.md$/);
+    const plans = findFiles(dir, /PLAN.*\.md$/i);
     total += plans.length;
 
     const summaries = findFiles(dir, /^SUMMARY-.*\.md$/);

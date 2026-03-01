@@ -67,7 +67,7 @@ function extractPhaseNum(dirName) {
 function countPhaseArtifacts(phaseDir) {
   try {
     const files = fs.readdirSync(phaseDir);
-    const plans = files.filter(f => /-PLAN\.md$/.test(f));
+    const plans = files.filter(f => /PLAN.*\.md$/i.test(f));
     const summaries = files.filter(f => /SUMMARY.*\.md$/.test(f) || /.*SUMMARY.*\.md$/.test(f));
 
     // Filter for summaries that have status: complete in frontmatter
