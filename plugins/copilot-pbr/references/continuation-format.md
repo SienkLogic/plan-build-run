@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/continuation-format.md -->
 # Continuation Protocol
 
 How to spawn a fresh executor agent to continue from a checkpoint or partial completion.

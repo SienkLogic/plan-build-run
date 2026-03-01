@@ -1,9 +1,6 @@
 ---
 name: integration-checker
 description: "Cross-phase integration and E2E flow verification. Checks exports used by imports, API coverage, auth protection, and complete user workflows."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -144,7 +141,7 @@ See `references/integration-patterns.md` for grep/search patterns by framework.
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Agent-Specific
 - Never attempt to fix issues — you REPORT them

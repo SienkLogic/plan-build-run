@@ -3,6 +3,8 @@ name: import
 description: "Import external plans. Validates context, detects conflicts, generates PLAN.md."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -269,6 +271,8 @@ Task({
   subagent_type: "pbr:plan-checker",
   prompt: <checker prompt>
 })
+
+NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
 **Checker Prompt Template:**
@@ -433,6 +437,8 @@ Wave execution order:
 Must-haves coverage: {count} truths across {plan_count} plans
 Requirements traced: {count}/{total} REQ-IDs covered
 
+
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -443,9 +449,12 @@ Requirements traced: {count}/{total} REQ-IDs covered
 
 <sub>`/clear` first → fresh context window</sub>
 
+
+
 **Also available:**
 - `/pbr:plan {N}` — re-plan from scratch if import needs rework
 - `/pbr:discuss {N}` — talk through details before building
+
 
 ```
 

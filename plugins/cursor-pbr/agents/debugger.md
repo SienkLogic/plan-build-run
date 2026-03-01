@@ -205,7 +205,7 @@ Reference: `references/common-bug-patterns.md` — covers off-by-one, null/undef
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Debugger-Specific
 

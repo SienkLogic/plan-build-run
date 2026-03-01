@@ -9,7 +9,7 @@ description: "Execute an ad-hoc task with atomic commits. Skips full plan/review
 
 You are running the **quick** skill. Your job is to execute a small, self-contained task outside the normal plan/build/review cycle. Quick tasks get their own tracking, atomic commits, and state integration, but skip the overhead of full planning.
 
-This skill **spawns a single Task(agent_type: "pbr:executor")** for execution.
+This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution.
 
 ---
 
@@ -30,7 +30,7 @@ Then proceed to Step 1.
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(agent_type: "pbr:executor")`
+- **Never** implement the task yourself — you are a router, not a builder. ALL code changes go through a spawned `Task(subagent_type: "pbr:executor")`
 - **Never** skip creating `.planning/quick/{NNN}-{slug}/` and writing PLAN.md — even trivial tasks need tracking artifacts
 - **Minimize** reading executor output into main context — read only SUMMARY.md frontmatter
 
@@ -87,7 +87,7 @@ Use AskUserQuestion:
   multiSelect: false
 
 If user selects "Quick task": continue to Step 4.
-If user selects "Full plan": clean up `.active-skill` if it exists, then chain directly to the plan skill. The user's task description carries over in conversation context — the plan skill will pick it up.
+If user selects "Full plan": clean up `.active-skill` if it exists, then chain directly: `Skill({ skill: "pbr:plan", args: "" })`. The user's task description carries over in conversation context — the plan skill will pick it up.
 If user selects "Revise": go back to Step 2 to get a new task description.
 If user types something else (freeform): interpret their response and proceed accordingly.
 
@@ -167,7 +167,7 @@ node ${PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/quick/{NNN
 
 Display to the user: `◐ Spawning executor...`
 
-Spawn a `Task(agent_type: "pbr:executor")` with the following prompt:
+Spawn a `Task(subagent_type: "pbr:executor")` with the following prompt:
 
 > **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
 
@@ -290,6 +290,8 @@ Display results to the user with branded output:
 Commit: {hash} — {commit message}
 Files: {list of files changed}
 
+
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -300,9 +302,12 @@ Files: {list of files changed}
 
 <sub>`/clear` first → fresh context window</sub>
 
+
+
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:todo list` — see pending todos
+
 
 ```
 
@@ -399,7 +404,7 @@ Choose verification based on context:
 
 **These are the most common failure modes. If you violate any of these, the skill has not executed correctly.**
 
-1. **DO NOT** implement the task yourself — you MUST spawn a `Task(agent_type: "pbr:executor")`. This is the single most important rule.
+1. **DO NOT** implement the task yourself — you MUST spawn a `Task(subagent_type: "pbr:executor")`. This is the single most important rule.
 2. **DO NOT** skip creating `.planning/quick/{NNN}-{slug}/` — every quick task gets a tracking directory
 3. **DO NOT** skip writing PLAN.md — the executor needs a plan file to follow
 4. **DO NOT** create elaborate multi-wave plans — quick tasks should be 1-3 tasks max

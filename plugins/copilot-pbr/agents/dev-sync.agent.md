@@ -1,9 +1,6 @@
 ---
 name: dev-sync
 description: "Syncs PBR plugin changes to cursor-pbr and copilot-pbr derivatives with format adjustments."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -34,8 +31,8 @@ Spawned by the orchestrator after edits to PBR plugin files. You receive either:
 |---------|-------------|-----------------|-------------------|
 | `allowed-tools:` frontmatter | KEEP | REMOVE entire line | REMOVE entire line |
 | `argument-hint:` frontmatter | KEEP | KEEP | REMOVE entire line |
-| `${CLAUDE_PLUGIN_ROOT}` | As-is | Replace → `${PLUGIN_ROOT}` | Replace → `${PLUGIN_ROOT}` |
-| "subagent" / "subagents" | As-is | Replace → "agent" / "agents" | Replace → "agent" / "agents" |
+| `${PLUGIN_ROOT}` | As-is | Replace → `${PLUGIN_ROOT}` | Replace → `${PLUGIN_ROOT}` |
+| "subagent" / "agents" | As-is | Replace → "agent" / "agents" | Replace → "agent" / "agents" |
 | `subagent_type:` | As-is | Replace → `agent:` | Replace → `agent:` |
 
 **Paths**:
@@ -58,9 +55,9 @@ Spawned by the orchestrator after edits to PBR plugin files. You receive either:
 
 **Text swaps** (same for both Cursor and Copilot agent bodies):
 
-- `${CLAUDE_PLUGIN_ROOT}` → `${PLUGIN_ROOT}`
+- `${PLUGIN_ROOT}` → `${PLUGIN_ROOT}`
 - "subagent" → "agent" (case-sensitive, whole word when possible)
-- "subagents" → "agents"
+- "agents" → "agents"
 - `subagent_type:` → `agent:`
 
 **Paths**:
@@ -73,8 +70,8 @@ Spawned by the orchestrator after edits to PBR plugin files. You receive either:
 
 These are copied with text swaps only (no frontmatter changes):
 
-- `${CLAUDE_PLUGIN_ROOT}` → `${PLUGIN_ROOT}`
-- "subagent" → "agent", "subagents" → "agents"
+- `${PLUGIN_ROOT}` → `${PLUGIN_ROOT}`
+- "subagent" → "agent", "agents" → "agents"
 - `subagent_type:` → `agent:`
 
 **Paths**:

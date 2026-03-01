@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/domain-probes.md -->
 # Domain-Aware Probing Patterns
 
 Shared reference for `/pbr:explore`, `/pbr:begin`, and `/pbr:discuss`.

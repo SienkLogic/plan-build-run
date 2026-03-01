@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/wave-execution.md -->
 # Wave-Based Execution
 
 How Plan-Build-Run parallelizes plan execution within a phase while respecting dependencies.

@@ -322,7 +322,7 @@ One-line task descriptions in `<name>`. File paths in `<files>`, not explanation
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output — write incrementally
-12. DO NOT read agent .md files from agents/ — they're auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 ### Planner-Specific Anti-Patterns
 1. DO NOT create plans that violate CONTEXT.md locked decisions

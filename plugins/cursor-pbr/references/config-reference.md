@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/config-reference.md -->
 # Config Reference Guide
 
 Complete reference for `.planning/config.json` -- the file that controls all Plan-Build-Run workflow behavior. Created by `/pbr:begin`, modifiable via `/pbr:config` or direct editing. Validated against `config-schema.json`.

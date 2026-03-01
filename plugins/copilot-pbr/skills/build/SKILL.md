@@ -82,27 +82,17 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 
 **Staleness check (dependency fingerprints):**
 After validating prerequisites, check plan staleness:
-1. Read each PLAN.md file's `dependency_fingerprints` field (if present)
-2. For each fingerprinted dependency, check the current SUMMARY.md file (length + modification time)
-3. If any fingerprint doesn't match: the dependency phase was re-built after this plan was created
-4. Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
-   question: "Plan {plan_id} may be stale — dependency phase {M} was re-built after this plan was created."
-   header: "Stale"
-   options:
-     - label: "Continue anyway"  description: "Proceed with existing plans (may still be valid)"
-     - label: "Re-plan"          description: "Stop and re-plan with `/pbr:plan {N}` (recommended)"
-   If "Re-plan" or "Other": stop and suggest `/pbr:plan {N}`
-   If "Continue anyway": proceed with existing plans
-10. If plans have no `dependency_fingerprints` field, fall back to timestamp-based staleness detection:
-   a. Read `.planning/ROADMAP.md` and identify the current phase's dependencies (the `depends_on` field)
-   b. For each dependency phase, find its phase directory under `.planning/phases/`
-   c. Check if any SUMMARY.md files in the dependency phase directory have a modification timestamp newer than the current phase's PLAN.md files
-   d. If any upstream dependency was modified after planning, display a warning (do NOT block):
-      ```
-      Warning: Phase {dep_phase} (dependency of Phase {N}) was modified after this phase was planned.
-      Plans may be based on outdated assumptions. Consider re-planning with `/pbr:plan {N}`.
-      ```
-   e. This is advisory only — continue with the build after displaying the warning
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js staleness-check {phase-slug}
+```
+
+Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
+- Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
+  question: "Plan {plan_id} may be stale — {reason}"
+  options: ["Continue anyway", "Re-plan with /pbr:plan {N}"]
+- If "Re-plan": stop. If "Continue anyway": proceed.
+If `stale: false`: proceed silently.
 
 **Validation errors — use branded error boxes:**
 
@@ -198,30 +188,19 @@ Validate wave consistency:
 
 ### Step 5b: Write Checkpoint Manifest (inline)
 
-**CRITICAL (hook-enforced): Write .checkpoint-manifest.json NOW before entering the wave loop.**
+**CRITICAL (hook-enforced): Initialize checkpoint manifest NOW before entering the wave loop.**
 
-Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json`:
-
-```json
-{
-  "plans": ["02-01", "02-02", "02-03"],
-  "checkpoints_resolved": [],
-  "checkpoints_pending": [],
-  "wave": 1,
-  "deferred": [],
-  "commit_log": [],
-  "last_good_commit": null
-}
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
 ```
 
-This file tracks execution progress for crash recovery and rollback. On resume after compaction, read this manifest to determine where execution left off and which plans still need work.
+After each wave completes, update the manifest:
 
-Update the manifest after each wave completes:
-- Move completed plan IDs into `checkpoints_resolved`
-- Advance the `wave` counter
-- Record commit SHAs in `commit_log` (array of `{ plan, sha, timestamp }` objects)
-- Update `last_good_commit` to the SHA of the last successfully verified commit
-- Append any deferred items collected from executor SUMMARYs
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
+```
+
+This tracks execution for crash recovery and rollback. Read `.checkpoint-manifest.json` on resume to reconstruct which plans are complete.
 
 ---
 
@@ -325,11 +304,11 @@ Use the filled template as the Task() prompt.
 
 ```
 Task({
-  agent_type: "pbr:executor",
+  subagent_type: "pbr:executor",
   prompt: <executor prompt constructed above>
 })
 
-NOTE: The pbr:executor agent type auto-loads the agent definition.
+NOTE: The pbr:executor subagent type auto-loads the agent definition.
 
 After executor completes, check for completion markers: `## PLAN COMPLETE`, `## PLAN FAILED`, or `## CHECKPOINT: {TYPE}`. Route accordingly — PLAN COMPLETE proceeds to next plan, PLAN FAILED triggers failure handling, CHECKPOINT triggers checkpoint flow. Do NOT inline it.
 ```
@@ -392,13 +371,7 @@ Use AskUserQuestion with the three options. Route:
 - Also search SUMMARY.md for `## Self-Check: FAILED` marker — if present, warn before next wave
 - Between waves: verify no file conflicts from parallel executors (`git status` for uncommitted changes)
 
-**Additional wave spot-checks:**
-- Check for `## Self-Check: FAILED` in SUMMARY.md — if present, warn user before proceeding to next wave
-- Between waves: verify no file conflicts from parallel executors (check `git status` for uncommitted changes)
-- If ANY spot-check fails, present user with: **Retry this plan** / **Continue to next wave** / **Abort build**
-
 **Read executor deviations:**
-
 After all executors in the wave complete, read all SUMMARY frontmatter and:
 - Collect `deferred` items into a running list (append to `.checkpoint-manifest.json` deferred array)
 - Flag any deviation-rule-4 (architectural) stops — these require user attention
@@ -419,16 +392,14 @@ Wave {W} Results:
 
 **Skip if** the depth profile has `features.inline_verify: false`.
 
-To check: use the resolved depth profile. Only `comprehensive` mode enables inline verification by default.
-
-When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave. This catches issues early — before dependent plans build on a broken foundation.
+To check: use the resolved depth profile. Only `comprehensive` mode enables inline verification by default. When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave — catching issues early before dependent plans build on a broken foundation.
 
 For each plan that completed successfully in this wave:
 
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
 2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
-   Spawn `Task({ agent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `skills/build/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
+   Spawn `Task({ subagent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `skills/build/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
 
 3. If verifier reports FAIL for any file:
    - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
@@ -563,15 +534,13 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
 After each wave completes (all plans in the wave are done, skipped, or aborted):
 
 **SUMMARY gate — verify before updating STATE.md:**
+For every plan in the wave, run:
 
-Before writing any STATE.md update, verify these three gates for every plan in the wave:
-1. SUMMARY file exists at the expected path
-2. SUMMARY file is not empty (file size > 0)
-3. SUMMARY file has a valid title and YAML frontmatter (contains `---` delimiters and a `status:` field)
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js summary-gate {phase-slug} {plan-id}
+```
 
-Block the STATE.md update until ALL gates pass. If any gate fails:
-- Warn user: "SUMMARY gate failed for plan {id}: {which gate}. Cannot update STATE.md."
-- Ask user to retry the executor or manually inspect the SUMMARY file
+Returns `{ ok: bool, gate: string, detail: string }`. Block STATE.md update until ALL plans return `ok: true`. If any fail, warn: "SUMMARY gate failed for plan {id}: {gate} — {detail}. Cannot update STATE.md."
 
 Once gates pass, update `.planning/STATE.md`:
 
@@ -621,11 +590,11 @@ Spawn a verifier Task():
 
 ```
 Task({
-  agent_type: "pbr:verifier",
+  subagent_type: "pbr:verifier",
   prompt: <verifier prompt>
 })
 
-NOTE: The pbr:verifier agent type auto-loads the agent definition. Do NOT inline it.
+NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inline it.
 
 After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
@@ -690,7 +659,7 @@ If triggered:
    Spawn a lightweight mapper Task():
    ```
    Task({
-     agent_type: "pbr:codebase-mapper",
+     subagent_type: "pbr:codebase-mapper",
      model: "haiku",
      prompt: "Incremental codebase map update. These files changed during the Phase {N} build:\n{diff file list}\n\nRead the existing .planning/codebase/ documents. Update ONLY the sections affected by these changes. Do NOT rewrite entire documents — make targeted updates. If a new dependency was added, update STACK.md. If new directories/modules were created, update STRUCTURE.md. If new patterns were introduced, update CONVENTIONS.md. Write updated files to .planning/codebase/."
    })

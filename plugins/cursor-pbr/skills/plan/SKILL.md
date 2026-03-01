@@ -8,14 +8,14 @@ argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] | add 
 
 # /pbr:plan — Phase Planning
 
-You are the orchestrator for `/pbr:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to agents, and keep the user's main context window clean.
+You are the orchestrator for `/pbr:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() agents, and keep the user's main context window clean.
 
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading agent output — read only plan frontmatter for summaries
+- **Minimize** reading subagent output — read only plan frontmatter for summaries
 - **Delegate** all research and planning work to agents — the orchestrator routes, it doesn't plan
 
 ## Step 0 — Immediate Output
@@ -125,7 +125,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
 
 **If phase already has plans:**
-- Use the yes-no pattern from `skills/shared/gate-prompts.md`:
+- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Phase {N} already has plans. Re-plan from scratch?"
   header: "Re-plan?"
   options:
@@ -140,7 +140,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 **Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
-Read context file PATHS and metadata. Build lean context bundles for agent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
+Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
@@ -164,34 +164,7 @@ Collect all of this into a context bundle that will be passed to agents.
 
 **IMPORTANT**: This step is FREE (no agents). It happens entirely inline.
 
-Before spawning any agents, present your assumptions about how this phase should be approached:
-
-```
-Phase {N}: {Name}
-Goal: {from roadmap}
-
-My assumptions about this phase:
-
-1. **Approach**: I'm assuming we'll {approach}
-   - Correct? [yes/no/adjust]
-
-2. **Key technology**: I'm assuming we'll use {tech}
-   - Correct? [yes/no/adjust]
-
-3. **Architecture**: I'm assuming {architectural assumption}
-   - Correct? [yes/no/adjust]
-
-4. **Scope boundary**: I'm assuming {scope assumption}
-   - Correct? [yes/no/adjust]
-```
-
-For each assumption the user corrects:
-- Record the correction
-- These corrections become additional CONTEXT.md entries
-
-After all assumptions are confirmed/corrected:
-- Update `.planning/CONTEXT.md` with any new locked decisions
-- Continue to Step 4
+Before spawning any agents, present 4 assumptions to the user — one each for: approach (how the phase will be implemented), key technology, architecture, and scope boundary. For each, ask the user to confirm or correct. Record corrections as new CONTEXT.md locked decisions. After all assumptions are confirmed/corrected, continue to Step 4.
 
 ---
 
@@ -208,17 +181,24 @@ To check: run `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` an
 
 **If research is needed:**
 
-Display to the user: `Spawning researcher...`
+Display to the user: `◐ Spawning researcher...`
 
-Invoke the `@researcher` agent with the phase research prompt.
+Spawn a researcher Task():
 
-**NOTE**: The `@researcher` agent is defined in `agents/researcher.md`. Do NOT inline it.
+```
+Task({
+  subagent_type: "pbr:researcher",
+  prompt: <phase research prompt>
+})
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT inline it.
+```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Phase Research Prompt Template
 
-Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt template for the researcher agent. Fill in the placeholders with phase-specific context:
+Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt template for spawning the researcher agent. Fill in the placeholders with phase-specific context:
 - `{NN}` - phase number (zero-padded)
 - `{phase name}` - phase name from roadmap
 - `{goal from roadmap}` - phase goal statement
@@ -237,7 +217,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 
 Wait for the researcher to complete before proceeding.
 
-After the researcher completes, check the agent output for a completion marker:
+After the researcher completes, check the Task() output for a completion marker:
 - If `## RESEARCH COMPLETE` is present: proceed to planner
 - If `## RESEARCH BLOCKED` is present: warn the user that research could not complete, ask if they want to proceed with limited context or stop
 - If neither marker is present: warn that researcher may not have completed successfully, but proceed
@@ -272,7 +252,7 @@ Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
 ```
 
 After the Task() completes:
-- If `## Seeds` section contains matches: present them to the user via the yes-no-pick pattern from `skills/shared/gate-prompts.md`:
+- If `## Seeds` section contains matches: present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
   question: "Include these {N} seeds in planning?"
   header: "Seeds?"
   options:
@@ -283,7 +263,7 @@ After the Task() completes:
 - If "Let me pick": present individual seeds for selection
 - If "No": proceed without seeds
 
-- If `## Deferred Ideas` section has items: present via the yes-no pattern from `skills/shared/gate-prompts.md`:
+- If `## Deferred Ideas` section has items: present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Include these deferred ideas in planning context?"
 - If "Yes": append to planner context under `Deferred ideas to consider:`
 - If "No": proceed without changes
@@ -296,48 +276,51 @@ After the Task() completes:
 
 #### Team Mode (--teams)
 
-Reference: `references/agent-teams.md` for team role definitions and coordination details.
+If `--teams` flag is set OR `config.parallelization.use_teams` is true, spawn 3 parallel planner agents (architect, security, test) then a synthesizer to merge their outputs. See `references/agent-teams.md` for agent role definitions, output paths (`.planning/phases/{NN}-{slug}/team/`), and prompt content for each role.
 
-If `--teams` flag is set OR `config.parallelization.use_teams` is true:
-
-1. Create the team output directory: `.planning/phases/{NN}-{slug}/team/`
-2. Display to the user: `Spawning 3 planners in parallel (architect, security, test)...`
-
-   Invoke THREE `@planner` agents in parallel:
-
-   **Agent 1 -- Architect**:
-   - Invoke `@planner` with: "You are the ARCHITECT role in a planning team. Focus on: structure, file boundaries, dependency ordering, wave assignment. Write your output to `.planning/phases/{NN}-{slug}/team/architect-PLAN.md`. Do NOT write final PLAN.md files -- your output will be synthesized."
-   - Include phase goal, research doc paths, CONTEXT.md path in the prompt
-
-   **Agent 2 -- Security Reviewer**:
-   - Invoke `@planner` with: "You are the SECURITY REVIEWER role in a planning team. Focus on: authentication checks, input validation tasks, secrets handling, permission boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/security-PLAN.md`. Do NOT write final PLAN.md files."
-   - Include same context as Agent 1
-
-   **Agent 3 -- Test Designer**:
-   - Invoke `@planner` with: "You are the TEST DESIGNER role in a planning team. Focus on: test strategy, coverage targets, edge cases, which tasks should use TDD, integration test boundaries. Write your output to `.planning/phases/{NN}-{slug}/team/test-PLAN.md`. Do NOT write final PLAN.md files."
-   - Include same context as Agent 1
-
-3. Wait for all three to complete
-4. Display to the user: `Spawning synthesizer...`
-
-   Invoke `@synthesizer` with: "Read all files in `.planning/phases/{NN}-{slug}/team/`. Synthesize them into unified PLAN.md files in `.planning/phases/{NN}-{slug}/`. The architect output provides structure, the security output adds security-related tasks or checks, and the test output informs TDD flags and test tasks. Resolve any contradictions by preferring the architect's structure with security and test additions."
-5. Proceed to plan checking as normal
-
-If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the existing single-planner flow below.
+If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the single-planner flow below.
 
 #### Single-Planner Flow (default)
 
-Display to the user: `Spawning planner...`
+**Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
 
-Invoke the `@planner` agent with all context inlined.
+```bash
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" 2>/dev/null
+```
 
-**NOTE**: The `@planner` agent is defined in `agents/planner.md`. Do NOT inline it.
+If non-empty JSON array returned:
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+- Write to temp file and note as `{learnings_temp_path}`:
+
+  ```bash
+  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
+  ```
+
+- Add as an additional `files_to_read` item in the planner prompt below
+
+If no learnings or command fails: omit.
+
+Display to the user: `◐ Spawning planner...`
+
+Spawn the planner Task() with all context inlined:
+
+```
+Task({
+  subagent_type: "pbr:planner",
+  prompt: <planning prompt>
+})
+
+NOTE: The pbr:planner subagent type auto-loads the agent definition.
+
+After planner completes, check for completion markers: `## PLANNING COMPLETE`, `## PLANNING FAILED`, or `## PLANNING INCONCLUSIVE`. Route accordingly. Do NOT inline it.
+```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Planning Prompt Template
 
-Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for the planner agent. Fill in all placeholder blocks with phase-specific context:
+Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
+
 - `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
 - `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
 - `<prior_work>` - manifest table of preceding phase SUMMARY.md file paths with status and one-line exports (NOT full bodies)
@@ -346,21 +329,25 @@ Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt tem
 - `<planning_instructions>` - phase-specific planning rules and output path
 
 **Prepend this block to the planner prompt before sending:**
+
 ```
 <files_to_read>
 CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
+{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
+
+If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 4 entirely.
 
 Wait for the planner to complete.
 
 After the planner returns, read the plan files it created to extract counts. Display a completion summary:
 
 ```
-Planner created {N} plan(s) across {M} wave(s)
+✓ Planner created {N} plan(s) across {M} wave(s)
 ```
 
 Where `{N}` is the number of PLAN.md files written and `{M}` is the number of distinct wave values across those plans (from frontmatter).
@@ -387,17 +374,24 @@ To check: use the resolved depth profile from Step 1. The profile consolidates t
 
 **If validation is enabled:**
 
-Display to the user: `Spawning plan checker...`
+Display to the user: `◐ Spawning plan checker...`
 
-Invoke the `@plan-checker` agent with the checker prompt.
+Spawn the plan checker Task():
 
-**NOTE**: The `@plan-checker` agent is defined in `agents/plan-checker.md`. Do NOT inline it.
+```
+Task({
+  subagent_type: "pbr:plan-checker",
+  prompt: <checker prompt>
+})
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
+```
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Checker Prompt Template
 
-Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt template for the plan checker agent. Fill in the placeholders:
+Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
 - `<plans_to_check>` - manifest table of PLAN.md file paths (checker reads each via Read tool)
 - `<phase_context>` - phase goal and requirement IDs
 - `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
@@ -415,8 +409,8 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 
 After the plan checker returns, display its result:
 
-- If `VERIFICATION PASSED`: display `Plan checker: all plans passed` and proceed to Step 8
-- If issues found: display `Plan checker found {N} issue(s) — entering revision loop` and proceed to Step 7
+- If `VERIFICATION PASSED`: display `✓ Plan checker: all plans passed` and proceed to Step 8
+- If issues found: display `⚠ Plan checker found {N} issue(s) — entering revision loop` and proceed to Step 7
 
 ---
 
@@ -425,7 +419,7 @@ After the plan checker returns, display its result:
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
 Follow the revision loop pattern with:
-- **Producer**: planner (re-invoked with `skills/plan/templates/revision-prompt.md.tmpl`)
+- **Producer**: planner (re-spawned with `skills/plan/templates/revision-prompt.md.tmpl`)
 - **Checker**: plan-checker (back to Step 6)
 - **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
 
@@ -439,34 +433,15 @@ Follow the revision loop pattern with:
 
 **If approval is needed:**
 
-Present a summary of all plans to the user:
+Present a summary of all plans to the user. For each plan include: plan name, wave, task count, must-haves, files_modified. For each task include the task name. Add a wave execution order summary (Wave 1: Plan 01, 02 (parallel), Wave 2: Plan 03, etc.).
 
-```
-Phase {N}: {name}
-Plans: {count}
-
-Plan {phase}-01: {plan name} (Wave {W}, {task_count} tasks)
-  Must-haves: {list truths}
-  Files: {list files_modified}
-  Tasks:
-    1. {task name}
-    2. {task name}
-
-Plan {phase}-02: {plan name} (Wave {W}, {task_count} tasks)
-  ...
-
-Wave execution order:
-  Wave 1: Plan 01, Plan 02 (parallel)
-  Wave 2: Plan 03 (depends on 01, 02)
-
-Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
   question: "Approve these {count} plans for Phase {N}?"
   header: "Approve?"
   options:
     - label: "Approve"          description: "Proceed to build phase"
     - label: "Request changes"  description: "Discuss adjustments before proceeding"
     - label: "Abort"            description: "Cancel planning for this phase"
-```
 
 **If user selects 'Request changes' or 'Other':**
 - Discuss what needs to change
@@ -477,14 +452,7 @@ Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
 - **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
 - **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
   1. Find all SUMMARY.md files in the dependency phase directory
-  2. Compute a simple hash of each SUMMARY.md file (e.g., first 8 chars of a SHA-256 of the file content, or a simpler approach: use the file's byte length + last-modified timestamp as a fingerprint string)
-  3. Add a `dependency_fingerprints` field to each plan's YAML frontmatter:
-     ```yaml
-     dependency_fingerprints:
-       "01-01": "len:4856-mod:2025-02-08T09:40"
-       "01-02": "len:4375-mod:2025-02-08T09:43"
-     ```
-  4. This allows the build skill to detect if dependency phases were re-built after this plan was created
+  2. Compute a fingerprint string for each: `"len:{bytes}-mod:{mtime}"` and add as a `dependency_fingerprints` map in each plan's YAML frontmatter — this allows the build skill to detect stale plans if dependencies were rebuilt.
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
   **Tooling shortcut**: Use the CLI for atomic updates:
@@ -501,10 +469,10 @@ Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
   4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
-- Update STATE.md **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
+- Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
 **Tooling shortcut**: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan {N}"}'`
-- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build. This continues the build->review->plan->build cycle automatically.
+- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:build {N}`
 
 ---
@@ -570,7 +538,7 @@ When invoked with `--gaps`:
 1. Read `.planning/phases/{NN}-{slug}/VERIFICATION.md`
    - If no VERIFICATION.md exists: tell user "No verification report found. Run `/pbr:review {N}` first."
 2. Extract all gaps from the verification report
-3. Invoke `@planner` in Gap Closure mode:
+3. Spawn planner Task() in Gap Closure mode:
 
 Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt template for the gap closure planner. Fill in the placeholders:
 - `<verification_report>` - inline the FULL VERIFICATION.md content
@@ -593,15 +561,15 @@ If the specified phase doesn't exist in ROADMAP.md, display a branded error box 
 If REQUIREMENTS.md or ROADMAP.md don't exist, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Missing prerequisites.
 
 ### Research agent fails
-If the researcher agent fails, display:
+If the researcher Task() fails, display:
 ```
-Research agent failed. Planning without phase-specific research.
-This may result in less accurate plans.
+⚠ Research agent failed. Planning without phase-specific research.
+  This may result in less accurate plans.
 ```
 Continue to the planning step.
 
 ### Planner agent fails
-If the planner agent fails, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Planner agent failure.
+If the planner Task() fails, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Planner agent failure.
 
 ### Checker loops forever
 After 3 revision iterations without passing, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Checker loops.
@@ -616,7 +584,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
 | `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
-| `.planning/ROADMAP.md` | Plans Complete + Status -> `planned`; updated for add/insert/remove | Step 8, Subcommands |
+| `.planning/ROADMAP.md` | Plans Complete + Status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |
 
 ---

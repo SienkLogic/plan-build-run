@@ -3,11 +3,13 @@ name: continue
 description: "Execute the next logical step automatically. No prompts, no decisions — just do it."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:continue — Action-Oriented Resumption
 
 You are running the **continue** skill. Unlike `/pbr:status` which shows the dashboard and suggests the next action, `/pbr:continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
 
-This skill runs **inline** and may delegate to other skills via agent invocation.
+This skill runs **inline** and may delegate to other skills via Task().
 
 ---
 
@@ -29,7 +31,7 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 
 Additionally for this skill:
 - **Minimize** state reads — read only STATE.md lines 1-20 to determine next action
-- **Delegate** execution to the appropriate skill
+- **Delegate** execution to the appropriate skill via Skill() or Task()
 
 ---
 
@@ -56,7 +58,9 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
 
 If STATE.md doesn't exist, display:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 No project state found.
 
@@ -90,30 +94,31 @@ This prevents runaway chains that fill the context window without a human checkp
 
 Check the resumption priority hierarchy (same as /pbr:resume):
 
-1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` -> Execute `/pbr:plan {N} --gaps`
-2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items -> Resume the build
-3. **Continue-here file**: `.continue-here.md` exists -> Follow its next step
-4. **Incomplete build**: PLAN.md files without SUMMARY.md -> Execute `/pbr:build {N}`
-5. **Unverified phase**: All plans complete, no VERIFICATION.md -> Execute `/pbr:review {N}`
-6. **Phase complete, more phases exist**: Verification passed -> Execute `/pbr:plan {N+1}`
-7. **All phases complete**: Verification passed on final phase, no more phases in ROADMAP.md -> Stop. Display: "All phases are complete. Run `/pbr:milestone audit` to verify cross-phase integration, or `/pbr:milestone complete` to archive this milestone."
+1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `/pbr:plan {N} --gaps`
+2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
+3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
+4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:build {N}`
+5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:review {N}`
+6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan {N+1}`
+7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:milestone audit` to verify cross-phase integration, then `/pbr:milestone complete` to archive."
+8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:milestone new` to start the next milestone, or `/pbr:milestone audit` if not yet audited."
 
 ### Step 3: Execute
 
 Based on the determined action, display the delegation indicator to the user:
 ```
-Delegating to /pbr:{skill} {args}...
+◐ Delegating to /pbr:{skill} {args}...
 ```
 
-Then invoke the appropriate skill. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, invoke the skill directly:
+Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md files into your context** — this wastes the main context budget with 500+ lines of instructions. Instead, use the Skill tool which runs the skill in a clean invocation:
 
-| Situation | Action | Skill to invoke |
+| Situation | Action | How |
 |-----------|--------|-----|
-| Gaps need closure | Plan gap closure | `/pbr:plan {N} --gaps` |
-| Build incomplete | Continue build | `/pbr:build {N}` |
-| Review needed | Run review | `/pbr:review {N}` |
-| Next phase needed | Plan next phase | `/pbr:plan {N+1}` |
-| Project not started | Plan phase 1 | `/pbr:plan 1` |
+| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` |
+| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` |
+| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
+| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
+| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` |
 
 Where `{N}` is the current phase number determined from STATE.md in Step 1.
 
@@ -122,24 +127,26 @@ Where `{N}` is the current phase number determined from STATE.md in Step 1.
 After execution completes, display a branded completion:
 ```
 ╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► STEP COMPLETE                              ║
+║  PLAN-BUILD-RUN ► STEP COMPLETE ✓                            ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Completed: {what was done}
+✓ Completed: {what was done}
 
----
 
-## Next Up
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{Next action description}**
 
 `/pbr:continue` or `{specific command}`
 
----
+
 ```
 
 **If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
-After the delegated skill completes, immediately re-run Step 1-3 to determine and execute the NEXT action. Continue chaining until a hard stop is reached. This enables hands-free phase cycling: build->review->plan->build->...
+After the delegated skill completes, immediately re-run Step 1-3 to determine and execute the NEXT action. Continue chaining until a hard stop is reached. This enables hands-free phase cycling: build→review→plan→build→...
 
 ---
 

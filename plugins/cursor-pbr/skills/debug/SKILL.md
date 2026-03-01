@@ -4,6 +4,8 @@ description: "Systematic debugging with hypothesis testing. Persistent across se
 argument-hint: "[issue description]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -253,6 +255,7 @@ Actions:
 **Commit:** {hash}
 
 
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -264,9 +267,11 @@ Actions:
 <sub>`/clear` first → fresh context window</sub>
 
 
+
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:review {N}` — verify the current phase
+
 
 ```
 
@@ -288,6 +293,7 @@ Actions:
 
 ```
 
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -299,9 +305,11 @@ Actions:
 <sub>`/clear` first → fresh context window</sub>
 
 
+
 **Also available:**
 - `/pbr:plan` — for complex fixes that need planning
 - `/pbr:status` — see project status
+
 
 ```
 

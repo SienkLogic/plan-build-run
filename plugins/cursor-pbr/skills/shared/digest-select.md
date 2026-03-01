@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/digest-select.md -->
 # Digest-Select Pattern
 
 Selective reading depth for prior phase SUMMARY.md files. Saves tokens by reading only what is needed based on the relationship to the current phase.

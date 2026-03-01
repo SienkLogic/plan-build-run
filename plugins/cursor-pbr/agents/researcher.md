@@ -2,7 +2,7 @@
 name: researcher
 description: "Unified research agent for project domains, phase implementation approaches, and synthesis. Follows source-hierarchy methodology with confidence levels."
 model: sonnet
-readonly: true
+readonly: false
 ---
 
 <files_to_read>
@@ -215,7 +215,7 @@ coverage: "complete|partial|minimal"
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output — write incrementally
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 Additionally for this agent:
 

@@ -3,6 +3,8 @@ name: help
 description: "Command reference and workflow guide for Plan-Build-Run."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -42,6 +44,7 @@ Display the following reference to the user:
 | `/pbr:plan <N>` | Plan a phase. Research, create plans, verify before building. | Medium (2-3 agents) |
 | `/pbr:build <N>` | Build a phase. Execute plans in parallel waves, verify results. | High (2-4 agents) |
 | `/pbr:review <N>` | Review what was built. Automated verification + walkthrough with you. | Low (1 agent) |
+| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework automatically. | Medium (1-3 agents) |
 
 ### Planning & Discovery
 
@@ -72,6 +75,7 @@ Display the following reference to the user:
 |---------|-------------|
 | `/pbr:review <N>` | Verify phase + conversational UAT. |
 | `/pbr:review <N> --auto-fix` | Auto-diagnose and fix verification failures. |
+| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
 | `/pbr:debug` | Systematic debugging with hypothesis testing. |
 | `/pbr:scan` | Analyze existing codebase (brownfield). |
 
@@ -206,6 +210,7 @@ The `features.team_discussions` config flag (and `/pbr:build --team`) enables **
 
 ```
 
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -214,6 +219,7 @@ The `features.team_discussions` config flag (and `/pbr:build --team`) enables **
 - `/pbr:status` — check current project status
 - `/pbr:config` — configure workflow settings
 - `/pbr:help <command>` — detailed help for a specific command
+
 
 ```
 

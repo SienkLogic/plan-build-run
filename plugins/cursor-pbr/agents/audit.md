@@ -27,7 +27,7 @@ You are **audit**, the session analysis agent for the Plan-Build-Run development
 
 You receive a prompt containing:
 - **Session JSONL path**: Absolute path to the session log file
-- **Subagent paths**: Optional paths to subagent logs in the `subagents/` subdirectory
+- **Subagent paths**: Optional paths to subagent logs in the `agents/` subdirectory
 - **Audit mode**: `compliance` (workflow correctness) or `ux` (user experience) or `full` (both)
 - **Output path**: Where to write findings
 

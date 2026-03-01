@@ -3,6 +3,8 @@ name: status
 description: "Show current project status and suggest what to do next."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -48,7 +50,9 @@ Read the following files (skip any that don't exist):
 1. **`.planning/config.json`** — Project settings
    - If this doesn't exist, display:
      ```
-     ERROR
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
 
      No Plan-Build-Run project found.
 
@@ -240,8 +244,8 @@ Generate a 20-character progress bar:
 ```
 
 Use Unicode block characters:
-- Filled: full block (U+2588)
-- Empty: light shade (U+2591)
+- Filled: `█` (full block, U+2588)
+- Empty: `░` (light shade, U+2591)
 
 ### Status Indicators
 
@@ -263,57 +267,59 @@ Based on the project state, suggest the single most logical next action:
 
 ```
 1. Is there paused work (.continue-here.md)?
-   YES -> "Resume your work: `/pbr:resume`"
+   YES → "Resume your work: `/pbr:resume`"
 
 2. Is there a verification with gaps?
-   YES -> "Fix verification gaps: `/pbr:plan {N} --gaps`"
+   YES → "Fix verification gaps: `/pbr:plan {N} --gaps`"
 
 3. Is the current phase planned but not built?
-   YES -> "Build the current phase: `/pbr:build {N}`"
+   YES → "Build the current phase: `/pbr:build {N}`"
 
 4. Is the current phase built but not reviewed?
-   YES -> "Review what was built: `/pbr:review {N}`"
+   YES → "Review what was built: `/pbr:review {N}`"
 
 5. Is the current phase verified (complete)?
-   YES -> Is there a next phase?
-     YES -> Was next phase already planned?
-       YES -> Does it need re-planning? (dependency phase changed)
-         YES -> "Re-plan with updated context: `/pbr:plan {N+1}`"
-         NO -> "Build the next phase: `/pbr:build {N+1}`"
-       NO -> "Plan the next phase: `/pbr:plan {N+1}`"
-     NO -> "All phases complete! Your next steps:\n       -> /pbr:milestone audit — verify cross-phase integration (recommended)\n       -> /pbr:milestone complete — archive this milestone and create a git tag\n       -> /pbr:milestone new — start planning the next set of features"
+   YES → Is there a next phase?
+     YES → Was next phase already planned?
+       YES → Does it need re-planning? (dependency phase changed)
+         YES → "Re-plan with updated context: `/pbr:plan {N+1}`"
+         NO → "Build the next phase: `/pbr:build {N+1}`"
+       NO → "Plan the next phase: `/pbr:plan {N+1}`"
+     NO → Check for existing `*-MILESTONE-AUDIT.md` in `.planning/`:\n       IF audit passed → "All phases complete and audited! `/pbr:milestone complete` to archive and tag."\n       IF audit has gaps → "Audit found gaps. `/pbr:milestone gaps` to address them."\n       IF no audit → "All phases complete! `/pbr:milestone audit` to verify cross-phase integration (recommended), then `/pbr:milestone complete`."
 
 6. Is the current phase not started?
-   YES -> Has it been discussed?
-     YES -> "Plan this phase: `/pbr:plan {N}`"
-     NO -> "Start with a discussion: `/pbr:discuss {N}` or jump to `/pbr:plan {N}`"
+   YES → Has it been discussed?
+     YES → "Plan this phase: `/pbr:plan {N}`"
+     NO → "Start with a discussion: `/pbr:discuss {N}` or jump to `/pbr:plan {N}`"
 
 7. Active debug sessions?
-   YES -> "Continue debugging: `/pbr:debug`"
+   YES → "Continue debugging: `/pbr:debug`"
 
 8. Nothing active?
-   -> "Start your project: `/pbr:begin`"
+   → "Start your project: `/pbr:begin`"
 ```
 
 **If only one reasonable next action exists**, present it with branded routing:
 
 ```
----
 
-## Next Up
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
 
 **{brief explanation}**
 
 `{suggested command}`
 
-`/clear` first for a fresh context window
+<sub>`/clear` first → fresh context window</sub>
 
----
+
 ```
 
 **If multiple reasonable next actions exist** (2-3 alternatives), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
 
-Present options:
+Use AskUserQuestion:
   question: "What would you like to do next?"
   header: "Next Step"
   options:
@@ -347,7 +353,10 @@ Build options dynamically from the decision tree results. Always include "Someth
 
 ### All phases complete
 - Celebrate briefly: "All phases complete!"
-- Suggest: `/pbr:milestone audit` to verify cross-phase integration (recommended first)
+- Check for existing audit report: look for `*-MILESTONE-AUDIT.md` in `.planning/`
+  - **If audit exists and passed:** Suggest `/pbr:milestone complete` to archive (audit already done)
+  - **If audit exists with gaps:** Suggest `/pbr:milestone gaps` to address issues
+  - **If no audit exists:** Suggest `/pbr:milestone audit` to verify cross-phase integration (recommended first)
 - Then: `/pbr:milestone complete` to archive the milestone and tag it
 - Or: `/pbr:milestone new` to start the next set of features
 
@@ -382,7 +391,7 @@ This skill should be fast. It's a status check, not an analysis.
 - Read plan file contents (just check existence)
 - Run Bash commands except for Step 1b (2-3 `pbr-tools` calls only when `local_llm.enabled: true`, skipped entirely otherwise)
 - Modify any files
-- Invoke any agents
+- Spawn any Task agents
 
 ---
 

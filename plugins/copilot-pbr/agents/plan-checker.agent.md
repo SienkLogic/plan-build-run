@@ -1,9 +1,6 @@
 ---
 name: plan-checker
 description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 10 dimensions."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -239,7 +236,7 @@ Plans: {count} | Tasks: {count} | Blockers: {count} | Warnings: {count} | Info: 
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 </anti_patterns>
 

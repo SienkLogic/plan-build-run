@@ -2,7 +2,8 @@
 name: verifier
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
 model: sonnet
-readonly: true
+isolation: worktree
+readonly: false
 ---
 
 <files_to_read>
@@ -332,7 +333,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output — write incrementally
-12. DO NOT read agent .md files from agents/ — they're auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 ### Verifier-Specific Anti-Patterns
 1. DO NOT trust SUMMARY.md claims without verifying the actual codebase

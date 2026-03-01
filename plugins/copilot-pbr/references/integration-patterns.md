@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/integration-patterns.md -->
 # Integration Patterns Reference
 
 Technology-specific grep/search patterns and E2E flow templates for integration-checker.

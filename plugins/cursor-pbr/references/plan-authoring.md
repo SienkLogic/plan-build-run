@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/plan-authoring.md -->
 # Plan Authoring Guide
 
 Quality guidelines for writing executable plans. Used by planner and plan-checker.

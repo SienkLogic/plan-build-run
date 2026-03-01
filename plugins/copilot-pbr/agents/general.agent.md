@@ -1,9 +1,6 @@
 ---
 name: general
 description: "Lightweight Plan-Build-Run-aware agent for ad-hoc tasks that don't fit specialized roles."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -102,7 +99,7 @@ If your task hits any of these, STOP and recommend the appropriate agent:
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Agent-Specific
 1. DO NOT take on large implementation tasks — escalate to executor

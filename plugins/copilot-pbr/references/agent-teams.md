@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/agent-teams.md -->
 # Agent Teams Reference
 
 Agent Teams enable parallel specialist perspectives for critical phases. Teams are off by default.

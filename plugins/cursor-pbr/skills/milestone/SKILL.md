@@ -3,6 +3,9 @@ name: milestone
 description: "Manage milestones: new, complete, audit, gaps."
 argument-hint: "new|complete|audit|gaps [version]"
 ---
+<!-- markdownlint-disable MD012 MD046 -->
+
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
 ## Step 0 — Immediate Output
 
@@ -29,9 +32,9 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Never** perform integration checks yourself — delegate to the integration-checker agent
+- **Never** perform integration checks yourself — delegate to the integration-checker subagent
 - **Minimize** reading audit and verification outputs — read only frontmatter and status fields
-- **Delegate** all cross-phase integration analysis to the integration-checker agent
+- **Delegate** all cross-phase integration analysis to the integration-checker subagent
 
 ---
 
@@ -158,39 +161,7 @@ Start a new milestone cycle with new phases.
    docs(planning): start milestone "{name}" (phases {start}-{end})
    ```
 
-10. **Confirm** with branded output:
-    ```
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  PLAN-BUILD-RUN ► MILESTONE CREATED ✓                        ║
-    ╚══════════════════════════════════════════════════════════════╝
-
-    **Milestone: {name}** — {count} phases
-
-    Phases:
-    {N}. {name}
-    {N+1}. {name}
-    ...
-
-
-
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  ▶ NEXT UP                                                   ║
-    ╚══════════════════════════════════════════════════════════════╝
-
-    **Phase {N}: {name}** — start with discussion or planning
-
-    `/pbr:discuss {N}`
-
-    <sub>`/clear` first → fresh context window</sub>
-
-
-
-    **Also available:**
-    - `/pbr:plan {N}` — skip discussion, plan directly
-    - `/pbr:status` — see project status
-
-
-    ```
+10. **Confirm** with branded output — read `skills/milestone/templates/new-output.md.tmpl` and fill in `{name}` (milestone name), `{count}` (phase count), `{N}` (first phase number).
 
 ---
 
@@ -478,42 +449,7 @@ If `config.deployment.smoke_test_command` is set and non-empty:
 
    This is advisory only — the milestone is already archived. Surface it as a potential issue for the user to investigate.
 
-10. **Confirm** with branded output:
-    ```
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  PLAN-BUILD-RUN ► MILESTONE COMPLETE 🎉                      ║
-    ╚══════════════════════════════════════════════════════════════╝
-
-    **{version}**
-
-    Stats:
-    - {count} phases, {count} plans
-    - {count} commits, {lines} lines of code
-    - {duration} days
-
-    Archived to: .planning/milestones/{version}/
-    Git tag: {version}
-
-
-
-    ╔══════════════════════════════════════════════════════════════╗
-    ║  ▶ NEXT UP                                                   ║
-    ╚══════════════════════════════════════════════════════════════╝
-
-    **Start the next milestone** — plan new features
-
-    `/pbr:milestone new`
-
-    <sub>`/clear` first → fresh context window</sub>
-
-
-
-    **Also available:**
-    - `/pbr:status` — see project status
-    - `/pbr:help` — see all commands
-
-
-    ```
+10. **Confirm** with branded output — read `skills/milestone/templates/complete-output.md.tmpl` and fill in `{version}`, `{count}` (phases, plans, commits), `{lines}`, `{duration}`.
 
 ---
 
@@ -536,7 +472,7 @@ Verify milestone completion with cross-phase integration checks.
 
    Display to the user: `◐ Spawning integration checker...`
 
-   Spawn `Task(agent_type: "pbr:integration-checker")`. Read `skills/milestone/templates/integration-checker-prompt.md.tmpl`, fill in `{version or "current"}`, `{list of phase directories}`, and `{phase SUMMARY.md paths}`, then use the filled template as the Task() prompt.
+   Spawn `Task(subagent_type: "pbr:integration-checker")`. Read `skills/milestone/templates/integration-checker-prompt.md.tmpl`, fill in `{version or "current"}`, `{list of phase directories}`, and `{phase SUMMARY.md paths}`, then use the filled template as the Task() prompt.
 
 4. **Check integration-checker completion:**
 
@@ -557,91 +493,7 @@ Verify milestone completion with cross-phase integration checks.
 
    **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
 
-7. **Report to user** using branded banners:
-
-   **If PASSED:**
-   ```
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT PASSED ✓                   ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   All phases verified, integration checks passed, requirements covered.
-
-
-
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  ▶ NEXT UP                                                   ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   **Complete the milestone** — archive and tag
-
-   `/pbr:milestone complete {version}`
-
-   <sub>`/clear` first → fresh context window</sub>
-
-
-
-   **Also available:**
-   - `/pbr:milestone gaps` — address any minor issues first
-   - `/pbr:status` — see project status
-
-
-   ```
-
-   **If GAPS FOUND:**
-   ```
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT — GAPS FOUND ⚠             ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   Found {count} gaps:
-   - {gap 1}
-   - {gap 2}
-
-
-
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  ▶ NEXT UP                                                   ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   **Close the gaps** — create fix phases
-
-   `/pbr:milestone gaps`
-
-   <sub>`/clear` first → fresh context window</sub>
-
-
-
-   **Also available:**
-   - `/pbr:milestone complete` — proceed despite gaps
-   - `/pbr:status` — see project status
-
-
-   ```
-
-   **If TECH DEBT:**
-   ```
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  PLAN-BUILD-RUN ► MILESTONE AUDIT — TECH DEBT ⚠              ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   Milestone functional but has {count} tech debt items.
-
-
-
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  ▶ NEXT UP                                                   ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   **Address tech debt or proceed**
-
-   `/pbr:milestone gaps` — create cleanup phases
-   `/pbr:milestone complete` — proceed as-is
-
-   <sub>`/clear` first → fresh context window</sub>
-
-
-   ```
+7. **Report to user** using branded banners — read `skills/milestone/templates/audit-output.md.tmpl`. The template contains all 3 variants (PASSED, GAPS FOUND, TECH DEBT). Select the appropriate section based on audit result. Fill in `{version}`, `{count}`, `{gap 1}`, `{gap 2}` as applicable.
 
 ---
 
@@ -721,35 +573,7 @@ Create phases to close gaps found during an audit.
    docs(planning): add gap-closure phases from milestone audit
    ```
 
-9. **Confirm** with branded output:
-   ```
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  PLAN-BUILD-RUN ► GAP PHASES CREATED ✓                       ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   Created {count} gap-closure phase(s):
-   - Phase {N}: {name}
-   - Phase {N+1}: {name}
-
-
-
-   ╔══════════════════════════════════════════════════════════════╗
-   ║  ▶ NEXT UP                                                   ║
-   ╚══════════════════════════════════════════════════════════════╝
-
-   **Plan the first gap-closure phase**
-
-   `/pbr:plan {N}`
-
-   <sub>`/clear` first → fresh context window</sub>
-
-
-
-   **Also available:**
-   - `/pbr:status` — see project status
-
-
-   ```
+9. **Confirm** with branded output — read `skills/milestone/templates/gaps-output.md.tmpl` and fill in `{count}` (gap-closure phases created), `{N}` (first gap phase number), `{name}` (phase name).
 
 ---
 

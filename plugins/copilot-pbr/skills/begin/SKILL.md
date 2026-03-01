@@ -3,16 +3,18 @@ name: begin
 description: "Start a new project. Deep questioning, research, requirements, and roadmap."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:begin — Project Initialization
 
-You are the orchestrator for `/pbr:begin`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to agents and keep the user's main context window clean.
+You are the orchestrator for `/pbr:begin`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() agents and keep the user's main context window clean.
 
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading agent output — read only summaries, not full research docs
+- **Minimize** reading subagent output — read only summaries, not full research docs
 - **Delegate** all analysis work to agents — the orchestrator routes, it doesn't analyze
 
 ## Step 0 — Immediate Output
@@ -36,7 +38,7 @@ Then proceed to Step 1.
 
 ## Orchestration Flow
 
-Execute these steps in order. Each step specifies whether it runs inline (in your context) or is delegated to an agent.
+Execute these steps in order. Each step specifies whether it runs inline (in your context) or is delegated to a subagent.
 
 ---
 
@@ -118,7 +120,7 @@ Have a natural conversation to understand the user's vision. Do NOT present a fo
 
 ### Step 3: Workflow Preferences (inline)
 
-After understanding the project, configure the Plan-Build-Run workflow. Present preferences sequentially with conversational bridging (e.g., "Great. Next...") to keep the flow natural.
+After understanding the project, configure the Plan-Build-Run workflow. Use AskUserQuestion for each preference below. Present them sequentially with conversational bridging (e.g., "Great. Next...") to keep the flow natural.
 
 **3a. Mode:**
 Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
@@ -208,7 +210,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 
 ### Step 5: Research (delegated to agents)
 
-Spawn parallel agents for research. Each researcher writes to `.planning/research/`.
+Spawn parallel Task() agents for research. Each researcher writes to `.planning/research/`.
 
 **CRITICAL (no hook): Create .planning/research/ directory NOW before spawning researchers. Do NOT skip this step.**
 
@@ -231,13 +233,19 @@ If the command succeeds AND returns a non-empty JSON array:
 
 If no learnings exist or the command fails: skip injection silently.
 
-**For each research topic, invoke the @researcher agent:**
+**For each research topic, spawn a Task():**
 
-Invoke `@researcher` with the research prompt constructed from the template.
+```
+Task({
+  subagent_type: "pbr:researcher",
+  // After researcher: check for ## RESEARCH COMPLETE or ## RESEARCH BLOCKED
+  prompt: <see researcher prompt template below>
+})
+```
 
-**NOTE**: The `@researcher` agent is defined in `agents/researcher.md`. Do NOT inline the agent definition — it wastes main context.
+**NOTE**: The `pbr:researcher` subagent type auto-loads the agent definition from `agents/researcher.md`. Do NOT inline the agent definition — it wastes main context.
 
-**Path resolution**: Before constructing any agent prompt, resolve plugin root to its absolute path. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Researcher Prompt Template
 
@@ -246,6 +254,7 @@ For each researcher, construct the prompt by reading the template and filling in
 Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the researcher prompt before sending:**
+
 ```
 <files_to_read>
 CRITICAL (no hook): Read these files BEFORE any other action:
@@ -292,28 +301,34 @@ If `{learnings_temp_path}` was produced in the learnings injection step above, r
 - What security concerns exist?
 
 **Parallelization:**
-- Spawn ALL researchers in parallel when possible
-- Before spawning, display to the user: `Spawning {N} researchers in parallel...`
-- When each completes: "{topic} researcher complete ({duration})"
-- When all complete: "All {N} researchers finished. Proceeding to synthesis."
+- Spawn ALL researchers in parallel (multiple Task() calls in one response)
+- Use `run_in_background: true` for each researcher
+- Before spawning, display to the user: `◐ Spawning {N} researchers in parallel...`
+- While waiting, display progress to the user:
+  - After spawning: list of topics being researched
+  - Periodically (every ~30s): check `TaskOutput` with `block: false` for each agent and report status
+  - When each completes: "✓ {topic} researcher complete ({duration})"
+  - When all complete: "All {N} researchers finished. Proceeding to synthesis."
 - Wait for all to complete before proceeding
-
-**After each researcher completes**, check the agent output for a completion marker:
-- If `## RESEARCH COMPLETE` is present: researcher finished successfully, proceed
-- If `## RESEARCH BLOCKED` is present: warn the user that research could not complete, ask if they want to proceed with limited context or stop
-- If neither marker is present: warn that researcher may not have completed successfully, but proceed if output files exist on disk
 
 ---
 
-### Step 6: Synthesis (delegated to agent)
+### Step 6: Synthesis (delegated to subagent)
 
-After all researchers complete, display to the user: `Spawning synthesizer...`
+After all researchers complete, display to the user: `◐ Spawning synthesizer...`
 
-Invoke the `@synthesizer` agent with the synthesis prompt.
+Spawn a synthesis agent:
 
-**NOTE**: The `@synthesizer` agent is defined in `agents/synthesizer.md`. Do NOT inline it.
+```
+Task({
+  subagent_type: "pbr:synthesizer",
+  prompt: <synthesis prompt>
+})
+```
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts.
+**NOTE**: The `pbr:synthesizer` subagent type auto-loads the agent definition. Do NOT inline it. The agent definition specifies `model: sonnet` — do not override it.
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it.
 
 #### Synthesis Prompt Template
 
@@ -400,15 +415,23 @@ Read the template from `skills/begin/templates/REQUIREMENTS.md.tmpl` and write `
 
 ---
 
-### Step 8: Roadmap Generation (delegated to agent)
+### Step 8: Roadmap Generation (delegated to subagent)
 
-Display to the user: `Spawning planner (roadmap)...`
+Display to the user: `◐ Spawning planner (roadmap)...`
 
-Invoke the `@planner` agent in roadmap mode with the roadmap prompt.
+Spawn the planner in roadmap mode:
 
-**NOTE**: The `@planner` agent is defined in `agents/planner.md`. Do NOT inline it. The planner agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
+```
+Task({
+  subagent_type: "pbr:planner",
+  // After planner: check for ## PLANNING COMPLETE or ## PLANNING FAILED
+  prompt: <roadmap prompt>
+})
+```
 
-**Path resolution**: Before constructing the agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts.
+**NOTE**: The `pbr:planner` subagent type auto-loads the agent definition. Do NOT inline it. The planner agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
+
+**Path resolution**: Before constructing the agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it.
 
 #### Roadmap Prompt Template
 
@@ -428,17 +451,14 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - `{description}` — project description from Step 2
 - `{quick|standard|comprehensive}` — depth setting from Step 3
 
-**After the planner completes**, check the agent output for a completion marker:
-- If `## PLANNING COMPLETE` is present: planner finished successfully, proceed
-- If `## PLANNING FAILED` is present: warn the user that planning could not complete, display the reason, and offer to retry or abort
-- If neither marker is present: warn that planner may not have completed successfully, but proceed if ROADMAP.md exists on disk
-
+**After the planner completes:**
 - **Spot-check:** Verify `.planning/ROADMAP.md` exists on disk using Glob before attempting to read it. If missing, the planner may have failed silently — warn: `⚠ ROADMAP.md not found after planner completed. Re-spawning planner...` and retry once.
 - Read `.planning/ROADMAP.md`
-- Count the phases and milestones from the roadmap content
+- Count the phases from the roadmap content
+- Verify the roadmap contains a `## Milestone:` section wrapping the phases (the planner should generate this). If not, the initial set of phases constitutes the first milestone — add the section header yourself.
 - Display:
   ```
-  Roadmap created — {N} phases across {M} milestones
+  ✓ Roadmap created — {N} phases in milestone "{name}"
   ```
 - If `gates.confirm_roadmap` is true in config, use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
   question: "Approve this roadmap?"
@@ -446,7 +466,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
     - label: "Approve"          description: "Proceed with this roadmap"
     - label: "Request changes"  description: "Discuss adjustments before proceeding"
     - label: "Abort"            description: "Cancel and start over"
-    - If user selects "Request changes": edit the roadmap inline (small changes) or re-invoke planner
+    - If user selects "Request changes": edit the roadmap inline (small changes) or re-spawn planner
     - If user selects "Approve": proceed to Step 9
     - If user selects "Abort": stop execution
 
@@ -587,10 +607,10 @@ Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phas
 ## Error Handling
 
 ### Research agent fails
-If a researcher agent fails or times out:
+If a researcher Task() fails or times out:
 - Note which topic wasn't researched
 - Continue with available research
-- Display: "Research on {topic} failed. Proceeding without it. You can re-research during /pbr:plan."
+- Display: `⚠ Research on {topic} failed. Proceeding without it. You can re-research during /pbr:plan.`
 
 ### User wants to restart
 If user says they want to start over mid-flow:
@@ -600,7 +620,9 @@ If user says they want to start over mid-flow:
 ### Config write fails
 If `.planning/` directory can't be created, display:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Cannot create .planning/ directory.
 

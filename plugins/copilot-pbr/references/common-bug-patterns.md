@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/common-bug-patterns.md -->
 # Common Bug Patterns
 
 Quick reference for the debugger agent. Check these patterns early — they cover ~80% of bugs.

@@ -3,6 +3,8 @@ name: scan
 description: "Analyze an existing codebase. Maps structure, architecture, conventions, and concerns."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -227,6 +229,7 @@ Top concerns:
 Then use the "Next Up" routing block:
 ```
 
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -238,9 +241,11 @@ Then use the "Next Up" routing block:
 <sub>`/clear` first → fresh context window</sub>
 
 
+
 **Also available:**
 - `/pbr:milestone new` — create a milestone to address concerns
 - `/pbr:status` — see project status
+
 
 ```
 

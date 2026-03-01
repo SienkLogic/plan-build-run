@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/phase-argument-parsing.md -->
 # Phase Argument Parsing
 
 How skills parse and validate phase number arguments from `$ARGUMENTS`.

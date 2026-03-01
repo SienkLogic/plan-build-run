@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/model-selection.md -->
 # Model Selection Reference
 
 Plan-Build-Run uses adaptive model selection to balance cost and capability.

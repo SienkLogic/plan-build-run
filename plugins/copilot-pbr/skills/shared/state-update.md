@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/state-update.md -->
 # STATE.md Update Pattern
 
 Standard pattern for updating `.planning/STATE.md`. Include this fragment in skills that modify project state.

@@ -4,6 +4,8 @@ description: "Verify the build matched the plan. Automated checks + walkthrough 
 argument-hint: "<phase-number> [--auto-fix] [--teams]"
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:review — Phase Review and Verification
 
 You are the orchestrator for `/pbr:review`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
@@ -13,7 +15,7 @@ You are the orchestrator for `/pbr:review`. This skill verifies that what was bu
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading agent output — read only VERIFICATION.md frontmatter for summaries
+- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries
 
 ## Step 0 — Immediate Output
 
@@ -34,7 +36,7 @@ Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
 ### Event-Driven Auto-Verification
 
-When `features.goal_verification` is enabled and depth is "standard" or "comprehensive", event hooks automatically queue verification after executor completion. The hook writes `.planning/.auto-verify` as a signal file. The build skill's orchestrator detects this signal and invokes the verifier agent.
+When `features.goal_verification` is enabled and depth is "standard" or "comprehensive", the `event-handler.js` hook automatically queues verification after executor completion. The hook writes `.planning/.auto-verify` as a signal file. The build skill's orchestrator detects this signal and spawns the verifier agent.
 
 **This is additive**: `/pbr:review` can always be invoked manually regardless of auto-verification settings. If auto-verification already ran, `/pbr:review` re-runs verification (useful for re-checking after fixes).
 
@@ -72,13 +74,15 @@ Execute these steps in order.
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
 5. If no phase number given, read current phase from `.planning/STATE.md`
-6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot).
+6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
 **Validation errors — use branded error boxes:**
 
 If no SUMMARY.md files:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Phase {N} hasn't been built yet.
 
@@ -87,7 +91,9 @@ Phase {N} hasn't been built yet.
 
 If no PLAN.md files:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Phase {N} has no plans.
 
@@ -115,30 +121,35 @@ Check if a VERIFICATION.md already exists from `/pbr:build`'s auto-verification 
 
 ### Step 3: Automated Verification (delegated)
 
-**Depth profile gate:** Before invoking the verifier, resolve the depth profile. If `features.goal_verification` is false in the profile, skip automated verification and proceed directly to Step 5 (Conversational UAT). Note to user: "Automated verification skipped (depth: {depth}). Proceeding to manual review."
+**Depth profile gate:** Before spawning the verifier, resolve the depth profile. If `features.goal_verification` is false in the profile, skip automated verification and proceed directly to Step 5 (Conversational UAT). Note to user: "Automated verification skipped (depth: {depth}). Proceeding to manual review."
 
 #### Team Review Mode
 
 If `--teams` flag is present OR `config.parallelization.use_teams` is true:
 
 1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
-2. Display to the user: `Spawning 3 verifiers in parallel (functional, security, performance)...`
+2. Display to the user: `◐ Spawning 3 verifiers in parallel (functional, security, performance)...`
 
-   Invoke THREE `@verifier` agents in parallel:
+   Spawn THREE verifier agents in parallel using Task():
 
    **Agent 1 -- Functional Reviewer**:
-   - Invoke `@verifier` with: "You are the FUNCTIONAL REVIEWER in a review team. Focus on: must-haves met, code correctness, completeness, integration points. Write output to `.planning/phases/{NN}-{slug}/team/functional-VERIFY.md`."
+   - subagent_type: "pbr:verifier"
+   - Prompt includes: "You are the FUNCTIONAL REVIEWER in a review team. Focus on: must-haves met, code correctness, completeness, integration points. Write output to `.planning/phases/{NN}-{slug}/team/functional-VERIFY.md`."
 
    **Agent 2 -- Security Auditor**:
-   - Invoke `@verifier` with: "You are the SECURITY AUDITOR in a review team. Focus on: vulnerabilities, auth bypass paths, injection risks, secrets exposure, permission escalation. Write output to `.planning/phases/{NN}-{slug}/team/security-VERIFY.md`."
+   - subagent_type: "pbr:verifier"
+   - Prompt includes: "You are the SECURITY AUDITOR in a review team. Focus on: vulnerabilities, auth bypass paths, injection risks, secrets exposure, permission escalation. Write output to `.planning/phases/{NN}-{slug}/team/security-VERIFY.md`."
 
    **Agent 3 -- Performance Analyst**:
-   - Invoke `@verifier` with: "You are the PERFORMANCE ANALYST in a review team. Focus on: N+1 queries, memory leaks, unnecessary allocations, bundle size impact, blocking operations. Write output to `.planning/phases/{NN}-{slug}/team/performance-VERIFY.md`."
+   - subagent_type: "pbr:verifier"
+   - Prompt includes: "You are the PERFORMANCE ANALYST in a review team. Focus on: N+1 queries, memory leaks, unnecessary allocations, bundle size impact, blocking operations. Write output to `.planning/phases/{NN}-{slug}/team/performance-VERIFY.md`."
 
 3. Wait for all three to complete
-4. Display to the user: `Spawning synthesizer...`
+4. Display to the user: `◐ Spawning synthesizer...`
 
-   Invoke `@synthesizer` with: "Read all *-VERIFY.md files in `.planning/phases/{NN}-{slug}/team/`. Synthesize into a unified VERIFICATION.md. Merge pass/fail verdicts -- a must-have fails if ANY reviewer flags it. Combine gap lists. Security and performance findings go into dedicated sections."
+   Spawn synthesizer:
+   - subagent_type: "pbr:synthesizer"
+   - Prompt: "Read all *-VERIFY.md files in `.planning/phases/{NN}-{slug}/team/`. Synthesize into a unified VERIFICATION.md. Merge pass/fail verdicts -- a must-have fails if ANY reviewer flags it. Combine gap lists. Security and performance findings go into dedicated sections."
 5. Proceed to UAT walkthrough with the unified VERIFICATION.md
 
 If teams not enabled, proceed with existing single-verifier flow.
@@ -147,11 +158,19 @@ Reference: `references/agent-teams.md`
 
 #### Single-Verifier Flow (default)
 
-Display to the user: `Spawning verifier...`
+Display to the user: `◐ Spawning verifier...`
 
-Invoke the `@verifier` agent to run three-layer checks.
+Spawn a verifier Task() to run three-layer checks:
 
-**Path resolution**: Before constructing any agent prompt, resolve plugin root to its absolute path. Do not pass the variable literally in prompts. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+```
+Task({
+  subagent_type: "pbr:verifier",
+  // After verifier completes, check for: ## VERIFICATION COMPLETE
+  prompt: <verifier prompt>
+})
+```
+
+**Path resolution**: Before constructing any agent prompt, resolve `${PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -179,7 +198,7 @@ Wait for the verifier to complete.
 **After the verifier completes**, read VERIFICATION.md frontmatter and display a quick summary before the full results:
 
 ```
-Verifier: {passed}/{total} must-haves verified
+✓ Verifier: {passed}/{total} must-haves verified
 ```
 
 Then show a brief table of must-haves with pass/fail status:
@@ -187,8 +206,8 @@ Then show a brief table of must-haves with pass/fail status:
 ```
 | Must-Have | Status |
 |-----------|--------|
-| {name}    | PASS   |
-| {name}    | FAIL   |
+| {name}    | ✓      |
+| {name}    | ✗      |
 ```
 
 Then display the overall verdict (`PASSED`, `GAPS FOUND`, or `HUMAN NEEDED`) before proceeding to the full results presentation.
@@ -233,16 +252,16 @@ The same gaps have persisted across {attempt} verification attempts.
 Remaining gaps: {count}
 ```
 
-Use the multi-option-escalation pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: multi-option-escalation from `skills/shared/gate-prompts.md`):
   question: "Phase {N} has failed verification {attempt} times with {count} persistent gaps. How should we proceed?"
   header: "Escalate"
   options:
     - label: "Accept gaps"   description: "Mark as complete-with-gaps and move on"
     - label: "Re-plan"       description: "Go back to /pbr:plan {N} with gap context"
-    - label: "Debug"         description: "Invoke /pbr:debug to investigate root causes"
+    - label: "Debug"         description: "Spawn /pbr:debug to investigate root causes"
     - label: "Retry"         description: "Try one more verification cycle"
 
-- **If user selects "Accept gaps":** Follow up with a second question:
+- **If user selects "Accept gaps":** Follow up with a second AskUserQuestion:
     question: "Accept all gaps or pick specific ones to override?"
     header: "Override?"
     options:
@@ -359,11 +378,12 @@ If all automated checks and UAT items passed:
 
 Use the branded output from `references/ui-formatting.md`:
 - If more phases remain: use the "Phase Complete" banner template
-- If this was the last phase: use the "Milestone Complete" banner template
+- If this was the last phase in the current milestone: use the "Milestone Complete" banner template
+- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
 - Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
-   - Use the yes-no pattern from `skills/shared/gate-prompts.md`:
+   - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
      question: "Phase {N} verified. Ready to move to Phase {N+1}?"
      header: "Continue?"
      options:
@@ -373,9 +393,9 @@ Use the branded output from `references/ui-formatting.md`:
    - If "No" or "Other": stop
 
 5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
-   - Chain directly to plan next phase
-   - This continues the build->review->plan cycle automatically
-   - **If this is the last phase:** HARD STOP — do NOT auto-advance past milestone boundaries
+   - Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1}" })`
+   - This continues the build→review→plan cycle automatically
+   - **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."
 
 #### Gaps Found WITH `--auto-fix`
 
@@ -383,9 +403,16 @@ If gaps were found and `--auto-fix` was specified:
 
 **Step 6a: Diagnose**
 
-Display to the user: `Spawning debugger...`
+Display to the user: `◐ Spawning debugger...`
 
-Invoke the `@debugger` agent to analyze each failure.
+Spawn a debugger Task() to analyze each failure:
+
+```
+Task({
+  subagent_type: "pbr:debugger",
+  prompt: <debugger prompt>
+})
+```
 
 ##### Debugger Prompt Template
 
@@ -408,9 +435,16 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 
 **Step 6b: Create Gap-Closure Plans**
 
-After receiving the root cause analysis, display to the user: `Spawning planner (gap closure)...`
+After receiving the root cause analysis, display to the user: `◐ Spawning planner (gap closure)...`
 
-Invoke the `@planner` agent in gap-closure mode.
+Spawn the planner in gap-closure mode:
+
+```
+Task({
+  subagent_type: "pbr:planner",
+  prompt: <gap planner prompt>
+})
+```
 
 ##### Gap Planner Prompt Template
 
@@ -436,8 +470,8 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 **Step 6c: Validate gap-closure plans (conditional)**
 
 If `features.plan_checking` is true in config:
-- Display to the user: `Spawning plan checker...`
-- Invoke `@plan-checker` on the new gap-closure plans
+- Display to the user: `◐ Spawning plan checker...`
+- Spawn plan checker Task() on the new gap-closure plans
 - Same process as `/pbr:plan` Step 6
 
 **Step 6d: Present gap-closure plans to user**
@@ -453,7 +487,7 @@ Plans:
   {plan_id}: {name} — fixes: {gap description} ({difficulty})
   {plan_id}: {name} — fixes: {gap description} ({difficulty})
 
-Use the approve-revise-abort pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
   question: "Approve these {count} gap-closure plans?"
   header: "Approve?"
   options:
@@ -484,7 +518,7 @@ Phase {N}: {name} — Gaps Found
 2. {gap description}
    ...
 
-Use the multi-option-gaps pattern from `skills/shared/gate-prompts.md`:
+Use AskUserQuestion (pattern: multi-option-gaps from `skills/shared/gate-prompts.md`):
   question: "{count} verification gaps need attention. How should we proceed?"
   header: "Gaps"
   options:
@@ -549,9 +583,11 @@ After Step 3, also check cross-phase integration:
 ## Error Handling
 
 ### Verifier agent fails
-If the verifier agent fails, display:
+If the verifier Task() fails, display:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Automated verification failed.
 
@@ -561,7 +597,7 @@ Fall back to manual UAT only (skip automated checks).
 
 ### No must-haves to check
 If plans have empty must_haves:
-- Warn user: "Plans don't have defined must-haves. UAT will be based on plan descriptions only."
+- Warn user: `⚠ Plans don't have defined must-haves. UAT will be based on plan descriptions only.`
 - Use SUMMARY.md content as the basis for UAT
 
 ### User can't verify something
@@ -571,9 +607,11 @@ If user can't verify an item (e.g., needs server running, needs credentials):
 - Suggest how to verify later
 
 ### Debugger fails during auto-fix
-If the debugger agent fails, display:
+If the debugger Task() fails, display:
 ```
-ERROR
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
 Auto-diagnosis failed.
 
@@ -589,7 +627,7 @@ Ask user: "Would you like to proceed with gap-closure plans without root cause a
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report | Step 3 (created or updated with UAT) |
 | `.planning/phases/{NN}-{slug}/*-PLAN.md` | Gap-closure plans | Step 6b (--auto-fix only) |
-| `.planning/ROADMAP.md` | Status -> `verified` + Completed date | Step 6 |
+| `.planning/ROADMAP.md` | Status → `verified` + Completed date | Step 6 |
 | `.planning/STATE.md` | Updated with review status | Step 6 |
 
 ---

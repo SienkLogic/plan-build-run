@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/config-loading.md -->
 # Config Loading Pattern
 
 Standard pattern for loading `.planning/config.json` fields at the start of a skill invocation.

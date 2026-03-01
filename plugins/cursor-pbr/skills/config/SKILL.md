@@ -3,6 +3,8 @@ name: config
 description: "Configure settings: depth, model profiles, features, git, and gates."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -203,6 +205,7 @@ Updated:
   models.executor: inherit → sonnet
 
 
+
 ╔══════════════════════════════════════════════════════════════╗
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
@@ -214,9 +217,11 @@ Updated:
 <sub>`/clear` first → fresh context window</sub>
 
 
+
 **Also available:**
 - `/pbr:continue` — execute next logical step
 - `/pbr:config` — change more settings
+
 
 ```
 

@@ -1,9 +1,6 @@
 ---
 name: synthesizer
 description: "Fast synthesis of multiple research outputs into coherent recommendations. Resolves contradictions between sources."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -147,7 +144,7 @@ Use the returned `summary` string as your working copy of that document's findin
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output
-12. DO NOT read agent .md files from agents/ — auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Agent-Specific
 1. DO NOT re-research topics — synthesize what's already been researched

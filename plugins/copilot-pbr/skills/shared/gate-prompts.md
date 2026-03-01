@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/gate-prompts.md -->
 # Gate Prompt Patterns
 
 > Referenced by: plan, build, import, scan, review, milestone, config, status, resume, quick, begin, discuss, explore, debug skills

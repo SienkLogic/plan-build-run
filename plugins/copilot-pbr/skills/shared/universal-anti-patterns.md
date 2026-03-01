@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/universal-anti-patterns.md -->
 # Universal Anti-Patterns
 
 Rules that apply to ALL skills. Individual skills may have additional skill-specific anti-patterns listed in their own SKILL.md.
@@ -26,7 +25,7 @@ These rules prevent context rot -- quality degradation as the context window fil
 
 ## Task/Subagent Rules (apply to every skill)
 
-10. **Never** invoke `Skill()` inside a `Task()` subagent -- the Skill tool is not available in subagent contexts. Subagents spawned by `Task()` cannot resolve `/pbr:*` skill prefixes, so `Skill({ skill: "pbr:plan" })` will silently fail. Instead, chain skills at the orchestrator level (return control to the orchestrator, then call `Skill()` from there). For subagent work, use `subagent_type: "pbr:{agent}"` which auto-loads agent definitions.
+10. **Never** invoke `Skill()` inside a `Task()` subagent -- the Skill tool is not available in subagent contexts. Agents spawned by `Task()` cannot resolve `/pbr:*` skill prefixes, so `Skill({ skill: "pbr:plan" })` will silently fail. Instead, chain skills at the orchestrator level (return control to the orchestrator, then call `Skill()` from there). For subagent work, use `subagent_type: "pbr:{agent}"` which auto-loads agent definitions.
 
 ## Behavioral Rules (apply to every skill)
 

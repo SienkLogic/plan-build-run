@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/commit-planning-docs.md -->
 # Commit Planning Docs Pattern
 
 Standard pattern for committing planning artifacts to git. Reference this fragment in skills that create or modify `.planning/` files.

@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/model-profiles.md -->
 # Model Profiles Reference
 
 How Plan-Build-Run maps agents to models and how to configure model selection.

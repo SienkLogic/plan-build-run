@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/context-budget.md -->
 # Context Budget Rules
 
 Standard rules for keeping orchestrator context lean. Reference this fragment in skills that spawn Task() agents.

@@ -3,6 +3,8 @@ name: do
 description: "Route freeform text to the right PBR skill automatically."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~3,000 tokens. Begin executing Step 1 immediately.**
+
 # /pbr:do — Freeform Task Router
 
 You are running the **do** skill. Your job is to analyze freeform text from the user and route it to the most appropriate PBR skill. You are a dispatcher, not an executor — you never do the work yourself.

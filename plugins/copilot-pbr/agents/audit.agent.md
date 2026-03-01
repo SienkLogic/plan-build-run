@@ -1,9 +1,6 @@
 ---
 name: audit
 description: "Analyzes Claude Code session logs for PBR workflow compliance, hook firing, state file hygiene, and user experience quality."
-tools: ["*"]
-infer: true
-target: "github-copilot"
 ---
 
 <files_to_read>
@@ -28,7 +25,7 @@ You are **audit**, the session analysis agent for the Plan-Build-Run development
 
 You receive a prompt containing:
 - **Session JSONL path**: Absolute path to the session log file
-- **Subagent paths**: Optional paths to subagent logs in the `subagents/` subdirectory
+- **Subagent paths**: Optional paths to subagent logs in the `agents/` subdirectory
 - **Audit mode**: `compliance` (workflow correctness) or `ux` (user experience) or `full` (both)
 - **Output path**: Where to write findings
 
@@ -83,7 +80,7 @@ For each session, check:
 - Verify format: `{type}({scope}): {description}`
 - Check for forbidden `Co-Authored-By` lines
 
-### 7. Agent Delegation
+### 7. Subagent Delegation
 - Was implementation work delegated to executor agents?
 - Or was it done directly in main context (anti-pattern)?
 - Count tool calls in main context vs agents

@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/plan-format.md -->
 # Plan Format Reference
 
 Complete reference for the XML task specification used in Plan-Build-Run plan files.

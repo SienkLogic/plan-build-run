@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/git-integration.md -->
 # Git Integration Reference
 
 Plan-Build-Run's commit conventions, commit points, branching strategy, and hook scripts.

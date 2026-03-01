@@ -3,7 +3,7 @@ name: test
 description: "Generate tests for completed phase code. Detects test framework and targets key files."
 ---
 
-**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by the plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
 # /pbr:test — Post-Phase Test Generation
 
@@ -125,7 +125,7 @@ Output: tests/auth/login.test.js
 For each target file (or batch of related files), spawn an executor agent:
 
 ```
-Spawn agent_type: "pbr:executor"
+Spawn subagent_type: "pbr:executor"
 
 Task: Generate tests for the following file(s):
 

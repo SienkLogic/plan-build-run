@@ -1,4 +1,3 @@
-<!-- canonical: ../../../pbr/skills/shared/context-loader-task.md -->
 # Context Loader Task Pattern
 
 Standard pattern for spawning a lightweight Task() to build a project briefing before the main skill logic runs. Used by skills that need project context but want to keep the orchestrator lean.

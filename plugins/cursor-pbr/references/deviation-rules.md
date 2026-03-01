@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/deviation-rules.md -->
 # Deviation Rules
 
 When execution doesn't go exactly as planned, these 5 rules govern what the executor can do on its own versus what requires user approval.

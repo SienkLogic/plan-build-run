@@ -3,6 +3,8 @@ name: dashboard
 description: "Launch the PBR web dashboard for the current project."
 ---
 
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Begin executing immediately.**
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:
@@ -19,19 +21,18 @@ Then proceed to Step 1.
 
 1. **Parse arguments**: Extract `--port N` from the user's input. Default to `3000`.
 
-2. **Locate dashboard**: The dashboard lives at `../../dashboard/` relative to this plugin's root directory (i.e. two levels up from `plugins/copilot-pbr/`). Resolve the absolute path.
-
-3. **Check dependencies**: Check if `node_modules/` exists in the dashboard directory. If not, run:
+2. **Check dependencies**: Check if `../../dashboard/node_modules/` exists. If not, run:
    ```
-   npm install --prefix <dashboard-dir>
+   npm install --prefix ../../dashboard
    ```
 
-4. **Launch dashboard**: Run in background:
+3. **Launch dashboard**: Run in background via Bash:
    ```
-   node <dashboard-dir>/bin/cli.js --dir <cwd> --port <port> &
+   node ../../dashboard/bin/cli.js --dir <cwd> --port <port> &
    ```
+   Use `&` to background the process so it doesn't block the session.
 
-5. **Output to user**:
+4. **Output to user**:
    ```
    Dashboard running at http://localhost:<port>
    Open this URL in your browser to view your project's planning state.

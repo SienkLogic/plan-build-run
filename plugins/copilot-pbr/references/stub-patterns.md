@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/stub-patterns.md -->
 # Stub Detection Patterns
 
 Technology-aware patterns for detecting incomplete implementations. Used by the verifier during Layer 2 (Substantiveness) checks.
