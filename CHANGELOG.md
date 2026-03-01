@@ -5,6 +5,14 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.49.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.48.0...plan-build-run-v2.49.0) (2026-03-01)
+
+
+### Features
+
+* **52-04:** extract 4 milestone completion banners to tmpl files ([62064af](https://github.com/SienkLogic/plan-build-run/commit/62064af63ce6fb3bd044cd807d08aeb5979be219))
+* **52-05:** remove duplicate wave spot-checks paragraph from build SKILL.md ([6b90261](https://github.com/SienkLogic/plan-build-run/commit/6b9026193d868d1bdb0225ccf197e919c30040c9))
+
 ## [2.48.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.47.0...plan-build-run-v2.48.0) (2026-03-01)
 
 
