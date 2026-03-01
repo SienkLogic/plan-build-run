@@ -252,21 +252,25 @@ Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
 ```
 
 After the Task() completes:
-- If `## Seeds` section contains matches: present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
-  question: "Include these {N} seeds in planning?"
-  header: "Seeds?"
-  options:
-    - label: "Yes, all"     description: "Include all {N} matching seeds"
-    - label: "Let me pick"  description: "Choose which seeds to include"
-    - label: "No"           description: "Proceed without seeds"
-- If "Yes, all": include seed content in planner context
-- If "Let me pick": present individual seeds for selection
-- If "No": proceed without seeds
+- If `## Seeds` section contains matches:
+  - If `gates.confirm_seeds` is `true` in config: present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
+      question: "Include these {N} seeds in planning?"
+      header: "Seeds?"
+      options:
+        - label: "Yes, all"     description: "Include all {N} matching seeds"
+        - label: "Let me pick"  description: "Choose which seeds to include"
+        - label: "No"           description: "Proceed without seeds"
+    - If "Yes, all": include seed content in planner context
+    - If "Let me pick": present individual seeds for selection
+    - If "No": proceed without seeds
+  - If `gates.confirm_seeds` is `false` (default): automatically include all matching seeds in planner context without prompting. Log: "Including {N} seeds automatically (gates.confirm_seeds=false)."
 
-- If `## Deferred Ideas` section has items: present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
-  question: "Include these deferred ideas in planning context?"
-- If "Yes": append to planner context under `Deferred ideas to consider:`
-- If "No": proceed without changes
+- If `## Deferred Ideas` section has items:
+  - If `gates.confirm_deferred` is `true` in config: present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+      question: "Include these deferred ideas in planning context?"
+    - If "Yes": append to planner context under `Deferred ideas to consider:`
+    - If "No": proceed without changes
+  - If `gates.confirm_deferred` is `false` (default): automatically append deferred ideas to planner context without prompting. Log: "Including deferred ideas automatically (gates.confirm_deferred=false)."
 
 - If both sections are empty: proceed silently to Step 5 (no AskUserQuestion needed)
 

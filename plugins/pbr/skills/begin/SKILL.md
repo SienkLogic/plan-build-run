@@ -348,13 +348,15 @@ Based on the depth setting from Step 3, determine the research approach:
 - Tell user: "Skipping research phase (depth: quick). Moving straight to requirements."
 
 **If depth is `standard` or `comprehensive`:**
-Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
-  question: "I'd like to research the technology landscape before planning. This helps create better plans. Proceed with research?"
-  options:
-    - label: "Yes"  description: "Run research agents (recommended for standard/comprehensive)"
-    - label: "No"   description: "Skip research, move straight to requirements"
-- If user selects "No": skip to Step 7
-- If user selects "Yes": proceed to Step 5
+- If `gates.confirm_research` is `true` in config:
+  Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+    question: "I'd like to research the technology landscape before planning. This helps create better plans. Proceed with research?"
+    options:
+      - label: "Yes"  description: "Run research agents (recommended for standard/comprehensive)"
+      - label: "No"   description: "Skip research, move straight to requirements"
+  - If user selects "No": skip to Step 7
+  - If user selects "Yes": proceed to Step 5
+- If `gates.confirm_research` is `false` (default): proceed directly to Step 5 (research runs automatically)
 
 ---
 
@@ -730,15 +732,17 @@ If `gates.confirm_project` is true in config:
   - Phases: {count} phases in roadmap
   - Requirements: {count} v1 requirements
   - Config: depth={depth}, mode={mode}
-- Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
-  question: "Everything look good? Commit the planning docs?"
-  options:
-    - label: "Yes"  description: "Stage and commit .planning/ files"
-    - label: "No"   description: "Let me review and adjust first"
-- If user selects "Yes" and `planning.commit_docs` is true:
-  - Stage `.planning/` files (excluding research/ if gitignored)
-  - Commit: `chore: initialize plan-build-run project planning`
-- If user selects "No": let user review and adjust
+- If `gates.confirm_commit_docs` is `true` OR this is a **brownfield** project (existing code detected in Step 1):
+  Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
+    question: "Everything look good? Commit the planning docs?"
+    options:
+      - label: "Yes"  description: "Stage and commit .planning/ files"
+      - label: "No"   description: "Let me review and adjust first"
+  - If user selects "Yes" and `planning.commit_docs` is true:
+    - Stage `.planning/` files (excluding research/ if gitignored)
+    - Commit: `chore: initialize plan-build-run project planning`
+  - If user selects "No": let user review and adjust
+- If `gates.confirm_commit_docs` is `false` AND greenfield: skip the question and commit automatically if `planning.commit_docs` is true
 
 ---
 

@@ -119,7 +119,11 @@
         "confirm_plan": { "type": "boolean" },
         "confirm_execute": { "type": "boolean" },
         "confirm_transition": { "type": "boolean" },
-        "issues_review": { "type": "boolean" }
+        "issues_review": { "type": "boolean" },
+        "confirm_research": { "type": "boolean" },
+        "confirm_seeds": { "type": "boolean" },
+        "confirm_deferred": { "type": "boolean" },
+        "confirm_commit_docs": { "type": "boolean" }
       },
       "additionalProperties": false
     },
