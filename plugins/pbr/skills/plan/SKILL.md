@@ -116,7 +116,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
-   **CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+   **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase exists in ROADMAP.md
@@ -210,7 +210,7 @@ Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt 
 **Prepend this block to the researcher prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/ROADMAP.md — phase goals, dependencies, and structure
 2. .planning/REQUIREMENTS.md — scoped requirements for this phase (if exists)
 </files_to_read>
@@ -333,7 +333,7 @@ Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt tem
 
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
@@ -355,7 +355,7 @@ Where `{N}` is the number of PLAN.md files written and `{M}` is the number of di
 
 ### Step 5b: Spot-Check Planner Output
 
-CRITICAL: Verify planner output before proceeding.
+CRITICAL (no hook): Verify planner output before proceeding.
 
 1. **PLAN files exist**: Check `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist on disk
 2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
@@ -400,7 +400,7 @@ Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt tem
 **Prepend this block to the checker prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/PLAN-*.md — plan files to validate
 2. .planning/CONTEXT.md — locked decisions to check against (if exists)
 </files_to_read>
@@ -470,7 +470,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
   5. Update the `Status` column to `planned`
   6. Save the file — do NOT skip this step
-- Update STATE.md via CLI **(CRITICAL — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
+- Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
 **Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan {N}"}'`
 - **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
@@ -482,7 +482,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 ### Subcommand: `add`
 
-**CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+**CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
 1. Read `.planning/ROADMAP.md`
 2. Calculate next phase number (last phase + 1)
@@ -499,7 +499,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
 
-**CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+**CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
 1. Read `.planning/ROADMAP.md`
 2. Calculate decimal phase number:
@@ -520,7 +520,7 @@ Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
    - Phase must exist
    - Phase must be in `pending` or `not started` status (cannot remove completed/in-progress phases)
    - No other phases depend on this phase (or user confirms breaking dependencies)
-3. **CRITICAL: Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+3. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 4. Confirm with user: "Remove Phase {N}: {name}? This will delete the phase directory and renumber subsequent phases."
 5. If confirmed:
    - Delete `.planning/phases/{NN}-{slug}/` directory

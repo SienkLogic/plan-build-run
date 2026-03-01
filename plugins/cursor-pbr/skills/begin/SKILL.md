@@ -165,7 +165,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 
 **After gathering preferences:**
 
-**CRITICAL: You MUST create the .planning/ directory and write config.json NOW. Do not proceed without this.**
+**CRITICAL (no hook): You MUST create the .planning/ directory and write config.json NOW. Do not proceed without this.**
 
 1. Read the config template from `skills/begin/templates/config.json.tmpl`
 2. Apply the user's choices to the template
@@ -174,7 +174,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 
 **IMPORTANT**: This step MUST happen BEFORE research (Step 5) because depth controls how many researchers to spawn.
 
-**CRITICAL: Write .active-skill NOW.** Write the text "begin" to `.planning/.active-skill` using the Write tool. Verify the file exists before proceeding.
+**CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "begin" to `.planning/.active-skill` using the Write tool. Verify the file exists before proceeding.
 
 ---
 
@@ -210,7 +210,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 
 Spawn parallel agents for research. Each researcher writes to `.planning/research/`.
 
-**CRITICAL: Create .planning/research/ directory NOW before spawning researchers. Do NOT skip this step.**
+**CRITICAL (no hook): Create .planning/research/ directory NOW before spawning researchers. Do NOT skip this step.**
 
 **Learnings injection (opt-in):** Before spawning researchers, check if global learnings exist:
 
@@ -248,7 +248,7 @@ Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure
 **Prepend this block to the researcher prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/REQUIREMENTS.md — scoped requirements (if exists)
 {if learnings_temp_path exists}2. {learnings_temp_path} — cross-project learnings (tech stack patterns from past PBR projects){/if}
 </files_to_read>
@@ -322,7 +322,7 @@ Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 **Prepend this block to the synthesizer prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/research/*.md — all research output files from Step 5
 </files_to_read>
 ```
@@ -390,7 +390,7 @@ Each requirement must be:
 
 **7e. Write REQUIREMENTS.md:**
 
-**CRITICAL: Write REQUIREMENTS.md NOW. The roadmap planner depends on this file.**
+**CRITICAL (no hook): Write REQUIREMENTS.md NOW. The roadmap planner depends on this file.**
 
 Read the template from `skills/begin/templates/REQUIREMENTS.md.tmpl` and write `.planning/REQUIREMENTS.md` with:
 - All v1 requirements grouped by category
@@ -417,7 +417,7 @@ Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 **Prepend this block to the roadmap planner prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/REQUIREMENTS.md — scoped requirements for phase planning
 2. .planning/research/SUMMARY.md — research synthesis (if exists)
 </files_to_read>
@@ -456,9 +456,9 @@ CRITICAL: Read these files BEFORE any other action:
 
 Write the project state files from templates:
 
-**CRITICAL: You MUST write all 5 state initialization files (Steps 9a-9e). Do NOT skip any.**
+**CRITICAL (no hook): You MUST write all 5 state initialization files (Steps 9a-9e). Do NOT skip any.**
 
-**CRITICAL: Write PROJECT.md NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Write PROJECT.md NOW. Do NOT skip this step.**
 
 **9a. Write PROJECT.md:**
 1. Read `skills/begin/templates/PROJECT.md.tmpl`
@@ -472,7 +472,7 @@ Write the project state files from templates:
 3. Write to `.planning/PROJECT.md`
 4. Ensure the `## Milestones` section is filled in with the project name and phase count from the roadmap
 
-**CRITICAL: Write STATE.md NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Write STATE.md NOW. Do NOT skip this step.**
 
 **9b. Write STATE.md:**
 1. Read `skills/begin/templates/STATE.md.tmpl`
@@ -486,7 +486,7 @@ Write the project state files from templates:
 4. Fill in the `## Milestone` section with the project name and total phase count
 5. **STATE.md size limit**: Follow size limit enforcement rules in `skills/shared/state-update.md` (150 lines max).
 
-**CRITICAL: Write CONTEXT.md NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Write CONTEXT.md NOW. Do NOT skip this step.**
 
 **9c. Write CONTEXT.md:**
 Create `.planning/CONTEXT.md` from information gathered during questioning:
@@ -512,7 +512,7 @@ Create `.planning/CONTEXT.md` from information gathered during questioning:
 | {feature} | {reason} |
 ```
 
-**CRITICAL: Write HISTORY.md NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Write HISTORY.md NOW. Do NOT skip this step.**
 
 **9d. Write HISTORY.md:**
 Create `.planning/HISTORY.md` with an initial entry:
@@ -527,7 +527,7 @@ Create `.planning/HISTORY.md` with an initial entry:
 - Roadmap: {N} phases planned
 ```
 
-**CRITICAL: Create phase directories NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Create phase directories NOW. Do NOT skip this step.**
 
 **9e. Create phase directories:**
 For each phase in the roadmap, create the directory structure:

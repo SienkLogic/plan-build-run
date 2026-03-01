@@ -93,7 +93,7 @@ If user types something else (freeform): interpret their response and proceed ac
 
 ### Step 4: Generate Slug and Task Number
 
-**CRITICAL: You MUST complete Steps 4, 5, and 6 before any executor is spawned. If you skip these steps, the quick task will have no tracking artifacts and no PLAN.md for the executor to follow. This is the #1 failure mode of this skill.**
+**CRITICAL (no hook): You MUST complete Steps 4, 5, and 6 before any executor is spawned. If you skip these steps, the quick task will have no tracking artifacts and no PLAN.md for the executor to follow. This is the #1 failure mode of this skill.**
 
 **Generate slug:**
 - Take the first 4-5 meaningful words from the description
@@ -175,7 +175,7 @@ Spawn a `Task(agent_type: "pbr:executor")` with the following prompt:
 You are executor. Execute the following quick task plan.
 
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/quick/{NNN}-{slug}/PLAN.md — the quick task plan with task details
 2. .planning/STATE.md — current project state and progress (if exists)
 </files_to_read>
@@ -204,7 +204,7 @@ After the executor completes:
 
 ### Step 8b: Spot-Check Executor Output
 
-CRITICAL: Verify executor output before proceeding.
+CRITICAL (no hook): Verify executor output before proceeding.
 
 1. **SUMMARY.md exists**: Check `.planning/quick/{NNN}-{slug}/SUMMARY.md` exists
 2. **Key files exist**: Verify first 2 files from SUMMARY.md `key_files` frontmatter exist on disk

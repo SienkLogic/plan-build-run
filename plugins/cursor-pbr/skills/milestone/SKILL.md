@@ -147,7 +147,7 @@ Start a new milestone cycle with new phases.
    - **Status:** In progress
    ```
 
-**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body with new milestone info.**
+**CRITICAL (no hook) -- DO NOT SKIP: Update STATE.md frontmatter AND body with new milestone info.**
 
 8. **Update STATE.md:**
    - Set current phase to the first new phase
@@ -249,7 +249,7 @@ Dry-run of milestone completion — shows what would happen without making any c
    Ready to complete? Run: /pbr:milestone complete v{version}
    ```
 
-**CRITICAL**: This subcommand is READ-ONLY. Do not create directories, move files, modify STATE.md, modify ROADMAP.md, or create git tags. Only read and display.
+**CRITICAL (no hook)**: This subcommand is READ-ONLY. Do not create directories, move files, modify STATE.md, modify ROADMAP.md, or create git tags. Only read and display.
 
 ---
 
@@ -325,7 +325,7 @@ Archive a completed milestone and prepare for the next one.
 
 5. **Archive milestone documents:**
 
-   **CRITICAL: Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
+   **CRITICAL (no hook): Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
 
    Before creating or moving anything, verify the destination is safe:
    - Check if `.planning/milestones/{version}/` already exists
@@ -345,19 +345,19 @@ Archive a completed milestone and prepare for the next one.
    - Verify each source phase directory exists before attempting to move it
    - If any source phase directory is missing, warn but continue with the phases that do exist
 
-   **CRITICAL: Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
+   **CRITICAL (no hook): Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
 
    Create a versioned archive directory and move phase directories into it:
    - `.planning/milestones/{version}/ROADMAP.md` — snapshot of ROADMAP.md at completion
-   - `.planning/milestones/{version}/REQUIREMENTS.md` — **CRITICAL: Copy REQUIREMENTS.md to archive NOW. Do NOT skip this step.** Snapshot of REQUIREMENTS.md
+   - `.planning/milestones/{version}/REQUIREMENTS.md` — **CRITICAL (no hook): Copy REQUIREMENTS.md to archive NOW. Do NOT skip this step.** Snapshot of REQUIREMENTS.md
    - `.planning/milestones/{version}/STATS.md` — milestone statistics
    - `.planning/milestones/{version}/phases/{NN}-{slug}/` — move each milestone phase directory from `.planning/phases/` into the archive
 
-   **CRITICAL: Move phase directories from .planning/phases/ to archive NOW. Do NOT skip this step.**
+   **CRITICAL (no hook): Move phase directories from .planning/phases/ to archive NOW. Do NOT skip this step.**
 
    **Move phases:** For each phase belonging to this milestone, move (not copy) its directory from `.planning/phases/{NN}-{slug}/` to `.planning/milestones/{version}/phases/{NN}-{slug}/`. This keeps the active phases directory clean for the next milestone.
 
-   **CRITICAL: Write STATS.md to .planning/milestones/{version}/STATS.md NOW. Do NOT skip this step.**
+   **CRITICAL (no hook): Write STATS.md to .planning/milestones/{version}/STATS.md NOW. Do NOT skip this step.**
 
    **Stats file content:**
 
@@ -378,7 +378,7 @@ Archive a completed milestone and prepare for the next one.
 
    - Move validated requirements from active to completed section
 
-**CRITICAL: Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
 
 7. **Collapse completed phases in ROADMAP.md:**
    Replace detailed phase entries with collapsed summaries:
@@ -394,7 +394,7 @@ Archive a completed milestone and prepare for the next one.
    | {N+1}. {name} | Completed |
    ```
 
-**CRITICAL: Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
 7b. **Update STATE.md:**
    - Update `.planning/STATE.md` to mark the milestone as complete
@@ -415,7 +415,7 @@ Archive a completed milestone and prepare for the next one.
 
 7d. **Aggregate learnings from milestone phases:**
 
-**CRITICAL: Run learnings aggregation NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
 
 ```bash
 node ${PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}

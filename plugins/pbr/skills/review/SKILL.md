@@ -68,7 +68,7 @@ Execute these steps in order.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
 2. Read `.planning/config.json`
-   **CRITICAL: Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
+   **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -180,7 +180,7 @@ Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as th
 **Prepend this block to the verifier prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
 2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
 3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
@@ -215,7 +215,7 @@ Then display the overall verdict (`PASSED`, `GAPS FOUND`, or `HUMAN NEEDED`) bef
 
 ### Step 3a: Spot-Check Verifier Output
 
-CRITICAL: Verify verifier output before proceeding.
+CRITICAL (no hook): Verify verifier output before proceeding.
 
 1. **VERIFICATION.md exists**: Check `.planning/phases/{NN}-{slug}/VERIFICATION.md` exists on disk
 2. **Status field present**: Read VERIFICATION.md frontmatter — verify `status` field is present and is one of: pass, fail, partial
@@ -369,7 +369,7 @@ If all automated checks and UAT items passed:
    4. Update the `Status` column to `verified`
    5. Update the `Completed` column to the current date (YYYY-MM-DD)
    6. Save the file — do NOT skip this step
-2. Update `.planning/STATE.md` **(CRITICAL — update BOTH frontmatter AND body):**
+2. Update `.planning/STATE.md` **(CRITICAL (no hook) — update BOTH frontmatter AND body):**
    - Frontmatter: `status: "verified"`, `progress_percent`, `last_activity`, `last_command`
    - Body `## Current Position`: `Status:` line, `Last activity:` line, `Progress:` bar
    - These MUST stay in sync — see `skills/shared/state-update.md`
@@ -422,7 +422,7 @@ Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as th
 **Prepend this block to the debugger prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/VERIFICATION.md — gaps and failure details
 2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — what was built
 3. .planning/phases/{NN}-{slug}/PLAN-*.md — original plan must-haves
@@ -454,7 +454,7 @@ Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as
 **Prepend this block to the gap planner prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/VERIFICATION.md — gaps to close
 2. .planning/phases/{NN}-{slug}/PLAN-*.md — existing plans for context
 3. .planning/CONTEXT.md — locked decisions and constraints (if exists)

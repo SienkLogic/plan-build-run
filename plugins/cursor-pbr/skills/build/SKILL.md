@@ -64,7 +64,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 1. Parse `$ARGUMENTS` for phase number and flags
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Resolve depth profile: run `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
-4. **CRITICAL: Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
+4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 5. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - PLAN.md files exist in the directory
@@ -199,7 +199,7 @@ Validate wave consistency:
 
 ### Step 5b: Write Checkpoint Manifest (inline)
 
-**CRITICAL: Write .checkpoint-manifest.json NOW before entering the wave loop.**
+**CRITICAL (hook-enforced): Write .checkpoint-manifest.json NOW before entering the wave loop.**
 
 Before entering the wave loop, write `.planning/phases/{NN}-{slug}/.checkpoint-manifest.json`:
 
@@ -358,7 +358,7 @@ For each completed executor:
 
 **Spot-check executor claims:**
 
-CRITICAL: Before reading results or advancing to the next wave, run the spot-check CLI for each completed plan.
+CRITICAL (no hook): Before reading results or advancing to the next wave, run the spot-check CLI for each completed plan.
 
 For each completed plan in this wave:
 
@@ -590,6 +590,12 @@ node ${PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 
 **STATE.md size limit:** Follow the size limit enforcement rules in `skills/shared/state-update.md` (150 lines max — collapse completed phases, remove duplicated decisions, trim old sessions).
 
+**Completion check:** Before proceeding to next wave, confirm ALL of:
+- [ ] SUMMARY gate passed for every plan in this wave
+- [ ] STATE.md frontmatter `plans_complete` updated
+- [ ] STATE.md body progress bar updated
+- [ ] `last_activity` timestamp refreshed
+
 ---
 
 ### Step 7: Phase Verification (delegated, conditional)
@@ -634,7 +640,7 @@ Use the same verifier prompt template as defined in `/pbr:review`: read `skills/
 **Prepend this block to the verifier prompt before sending:**
 ```
 <files_to_read>
-CRITICAL: Read these files BEFORE any other action:
+CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
 2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
 3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
@@ -692,7 +698,7 @@ If triggered:
    ```
 4. Do NOT block on this — use `run_in_background: true` and continue to Step 8a. Report completion in Step 8f if it finishes in time.
 
-**CRITICAL: Update ROADMAP.md progress table NOW. Do NOT skip this step.**
+**CRITICAL (no hook): Update ROADMAP.md progress table NOW. Do NOT skip this step. (roadmap-sync warns)**
 
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
@@ -710,12 +716,17 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 5. Update the `Status` column to the final_status determined in Step 8-pre
 6. Save the file — do NOT skip this step
 
-**CRITICAL: Update STATE.md NOW with phase completion status. Do NOT skip this step.**
+**CRITICAL (no hook): Update STATE.md NOW with phase completion status. Do NOT skip this step. (state-sync warns)**
 
-**8b. Update STATE.md (CRITICAL — update BOTH frontmatter AND body):**
+**8b. Update STATE.md (CRITICAL (no hook) — update BOTH frontmatter AND body):**
 - Frontmatter: `status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`
 - Body `## Current Position`: `Phase:` line, `Plan:` line, `Status:` line, `Last activity:` line, `Progress:` bar
 - These MUST stay in sync — the status line reads frontmatter, humans read the body
+
+**Completion check:** Before proceeding to 8c, confirm ALL of:
+- [ ] STATE.md frontmatter fields set: status, plans_complete, last_activity, progress_percent, last_command
+- [ ] STATE.md body ## Current Position updated: Phase, Status, Last activity, Progress bar
+- [ ] Frontmatter and body are consistent (same status value in both)
 
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
@@ -779,6 +790,12 @@ After invoking the chained skill, it runs within the same session. When it compl
 **Else if `features.auto_continue` is `true`:**
 Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:plan {N+1}` or `/pbr:review {N}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
+
+**Completion check:** Before proceeding to 8f, confirm ALL of:
+- [ ] auto_advance OR auto_continue evaluated (one path taken)
+- [ ] If auto_continue: `.auto-next` file written with correct next command
+- [ ] Pending todos evaluated (Step 8e-ii)
+- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
 
 **8e-ii. Check Pending Todos:**
 
