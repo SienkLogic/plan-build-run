@@ -145,4 +145,5 @@ function stepVerify(skill, step, checklist, context) {
   };
 }
 
+// matchPredicate exported for unit testing of individual predicate branches
 module.exports = { stepVerify, matchPredicate };
