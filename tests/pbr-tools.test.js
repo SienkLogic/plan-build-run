@@ -1840,3 +1840,219 @@ describe('build helpers', () => {
     });
   });
 });
+
+// ============================================================
+// ci-poll
+// ============================================================
+
+describe('ciPoll', () => {
+  let ciPoll;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.mock('child_process', () => ({
+      execSync: jest.fn()
+    }));
+    ({ ciPoll } = require('../plugins/pbr/scripts/lib/build'));
+  });
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.unmock('child_process');
+  });
+
+  test('returns next_action:continue when CI run completed with success', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue(JSON.stringify({
+      status: 'completed',
+      conclusion: 'success',
+      url: 'https://github.com/actions/runs/12345'
+    }));
+    const result = ciPoll('12345', 300, '/tmp/.planning');
+    expect(result.next_action).toBe('continue');
+    expect(result.conclusion).toBe('success');
+    expect(result.url).toBe('https://github.com/actions/runs/12345');
+    expect(typeof result.elapsed_seconds).toBe('number');
+  });
+
+  test('returns next_action:abort when CI run completed with failure', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue(JSON.stringify({
+      status: 'completed',
+      conclusion: 'failure',
+      url: 'https://github.com/actions/runs/99999'
+    }));
+    const result = ciPoll('99999', 300, '/tmp/.planning');
+    expect(result.next_action).toBe('abort');
+    expect(result.status).toBe('failed');
+    expect(result.conclusion).toBe('failure');
+  });
+
+  test('returns next_action:wait when CI run is in_progress', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue(JSON.stringify({
+      status: 'in_progress',
+      conclusion: null,
+      url: 'https://github.com/actions/runs/55555'
+    }));
+    const result = ciPoll('55555', 300, '/tmp/.planning');
+    expect(result.next_action).toBe('wait');
+  });
+
+  test('returns next_action:abort when timeout is exceeded', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue(JSON.stringify({
+      status: 'in_progress',
+      conclusion: null,
+      url: 'https://github.com/actions/runs/77777'
+    }));
+    // timeout of 0 means already exceeded
+    const result = ciPoll('77777', 0, '/tmp/.planning');
+    expect(result.next_action).toBe('abort');
+    expect(result.status).toBe('timed_out');
+  });
+
+  test('returns error JSON when run-id is missing', () => {
+    const result = ciPoll(null, 300, '/tmp/.planning');
+    expect(result.error).toBeTruthy();
+    expect(result.next_action).toBe('abort');
+  });
+
+  test('returns error JSON when gh command fails', () => {
+    const { execSync } = require('child_process');
+    execSync.mockImplementation(() => { throw new Error('gh: command not found'); });
+    const result = ciPoll('12345', 300, '/tmp/.planning');
+    expect(result.error).toBeTruthy();
+    expect(result.next_action).toBe('abort');
+  });
+});
+
+// ============================================================
+// rollback
+// ============================================================
+
+describe('rollback', () => {
+  let rollback;
+  let tmpDir;
+
+  beforeEach(() => {
+    jest.resetModules();
+    jest.mock('child_process', () => ({
+      execSync: jest.fn()
+    }));
+    ({ rollback } = require('../plugins/pbr/scripts/lib/build'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-rollback-'));
+    fs.mkdirSync(path.join(tmpDir, 'phases', '01-test'), { recursive: true });
+  });
+
+  afterEach(() => {
+    jest.resetModules();
+    jest.unmock('child_process');
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function writeManifest(phaseDir, manifest) {
+    const p = path.join(phaseDir, '.checkpoint-manifest.json');
+    fs.writeFileSync(p, JSON.stringify(manifest, null, 2), 'utf8');
+    return p;
+  }
+
+  test('successfully rolls back when manifest has last_good_commit', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue('');
+    const phaseDir = path.join(tmpDir, 'phases', '01-test');
+    const manifest = {
+      plans: [],
+      checkpoints_resolved: ['01-01'],
+      last_good_commit: 'abc1234',
+      wave: 1,
+      deferred: [],
+      commit_log: []
+    };
+    const manifestPath = writeManifest(phaseDir, manifest);
+
+    const result = rollback(manifestPath, tmpDir);
+    expect(result.ok).toBe(true);
+    expect(result.rolled_back_to).toBe('abc1234');
+    expect(Array.isArray(result.plans_invalidated)).toBe(true);
+    expect(Array.isArray(result.files_deleted)).toBe(true);
+    expect(Array.isArray(result.warnings)).toBe(true);
+  });
+
+  test('returns ok:false when manifest has no last_good_commit', () => {
+    const phaseDir = path.join(tmpDir, 'phases', '01-test');
+    const manifest = {
+      plans: ['01-01'],
+      checkpoints_resolved: [],
+      last_good_commit: null,
+      wave: 1,
+      deferred: [],
+      commit_log: []
+    };
+    const manifestPath = writeManifest(phaseDir, manifest);
+
+    const result = rollback(manifestPath, tmpDir);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/No rollback point/i);
+  });
+
+  test('returns ok:false when manifest file does not exist', () => {
+    const result = rollback('/nonexistent/path/.checkpoint-manifest.json', tmpDir);
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Manifest not found/i);
+  });
+
+  test('deletes failed plan SUMMARY.md when it exists', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue('');
+    const phaseDir = path.join(tmpDir, 'phases', '01-test');
+    // Create a SUMMARY file to simulate failed plan
+    const summaryPath = path.join(phaseDir, 'SUMMARY-01-01.md');
+    fs.writeFileSync(summaryPath, '---\nstatus: partial\n---\n');
+    const manifest = {
+      plans: [],
+      checkpoints_resolved: ['01-01'],
+      failed_plan: '01-01',
+      last_good_commit: 'def5678',
+      wave: 1,
+      deferred: [],
+      commit_log: []
+    };
+    const manifestPath = writeManifest(phaseDir, manifest);
+
+    const result = rollback(manifestPath, tmpDir);
+    expect(result.ok).toBe(true);
+    // SUMMARY for failed plan should be deleted
+    expect(fs.existsSync(summaryPath)).toBe(false);
+    expect(result.files_deleted).toContain(summaryPath);
+  });
+
+  test('invalidates downstream plans that depend on failed plan', () => {
+    const { execSync } = require('child_process');
+    execSync.mockReturnValue('');
+    const phaseDir = path.join(tmpDir, 'phases', '01-test');
+    // Create downstream SUMMARY files (wave 2 plans)
+    const downstream1 = path.join(phaseDir, 'SUMMARY-01-02.md');
+    const downstream2 = path.join(phaseDir, 'SUMMARY-01-03.md');
+    fs.writeFileSync(downstream1, '---\nstatus: complete\n---\n');
+    fs.writeFileSync(downstream2, '---\nstatus: complete\n---\n');
+    const manifest = {
+      plans: [],
+      checkpoints_resolved: ['01-01', '01-02', '01-03'],
+      failed_plan: '01-01',
+      last_good_commit: 'ghi9012',
+      wave: 2,
+      deferred: [],
+      commit_log: [],
+      downstream_of: {
+        '01-02': ['01-01'],
+        '01-03': ['01-01']
+      }
+    };
+    const manifestPath = writeManifest(phaseDir, manifest);
+
+    const result = rollback(manifestPath, tmpDir);
+    expect(result.ok).toBe(true);
+    expect(result.plans_invalidated.length).toBeGreaterThan(0);
+  });
+});
