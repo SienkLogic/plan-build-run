@@ -1271,3 +1271,157 @@ describe('milestoneStats', () => {
     expect(result.phases[0].summaries[0].provides).toEqual(['something']);
   });
 });
+
+// --- stateBundle / initStateBundle tests ---
+
+const { initStateBundle, stateBundle } = require('../plugins/pbr/scripts/pbr-tools');
+
+const BUNDLE_STATE_FM = [
+  '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
+  'phase_slug: auth', 'status: executing', 'progress_percent: 40',
+  'plans_total: 2', 'plans_complete: 1', 'last_activity: 2026-02-20',
+  'last_command: /pbr:build 3', 'blockers: []', '---',
+  '# Project State', '', '## Current Position',
+  'Phase: 3 of 5 -- Auth', 'Status: executing', 'Progress: 40%',
+].join('\n');
+
+const BUNDLE_CONFIG_JSON = JSON.stringify({
+  version: 1, depth: 'standard', mode: 'interactive',
+  models: { executor: 'sonnet', verifier: 'sonnet', planner: 'sonnet' },
+  features: {}, planning: {}, gates: {}, parallelization: { enabled: false },
+});
+
+const BUNDLE_PLAN_MD = [
+  '---', 'plan: 01', 'wave: 1', 'autonomous: false',
+  'type: implementation', 'depends_on: []', 'must_haves:',
+  '  truths:', '    - Item A',
+  '  artifacts:', '    - src/foo.ts', '  key_links: []',
+  '---', '# Plan 01',
+].join('\n');
+
+const BUNDLE_SUMMARY_MD = [
+  '---', 'phase: 2', 'plan: setup-01', 'status: complete',
+  'provides:', '  - base project structure',
+  'requires: []', 'key_files:', '  - src/index.js', 'deferred: []',
+  '---', '# Summary', 'Done.',
+].join('\n');
+
+function buildBundleFixture(tmpDir, opts) {
+  opts = opts || {};
+  const planningDir = path.join(tmpDir, '.planning');
+  const phaseDir = path.join(planningDir, 'phases', '03-auth');
+  fs.mkdirSync(phaseDir, { recursive: true });
+  fs.writeFileSync(path.join(planningDir, 'STATE.md'), BUNDLE_STATE_FM);
+  fs.writeFileSync(path.join(planningDir, 'config.json'), BUNDLE_CONFIG_JSON);
+  if (!opts.skipPlan) {
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), BUNDLE_PLAN_MD);
+  }
+  if (opts.summaryCount) {
+    for (let i = 1; i <= opts.summaryCount; i++) {
+      const pd = String(i).padStart(2, '0') + '-phase' + i;
+      const pdPath = path.join(planningDir, 'phases', pd);
+      fs.mkdirSync(pdPath, { recursive: true });
+      const sm = ['---', 'phase: ' + i, 'plan: p0' + i, 'status: complete',
+        'provides:', '  - item' + i, 'requires: []',
+        'key_files:', '  - src/f' + i + '.ts', 'deferred: []', '---', '# S'].join('\n');
+      fs.writeFileSync(path.join(pdPath, 'SUMMARY-0' + i + '.md'), sm);
+    }
+  }
+  if (opts.withSummary) {
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-03.md'), BUNDLE_SUMMARY_MD);
+  }
+}
+
+describe('stateBundle / initStateBundle', () => {
+  let bundleTmpDir;
+  let bundleOrigCwd;
+  let bundleOrigRoot;
+
+  beforeEach(() => {
+    bundleTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-bundle-test-'));
+    bundleOrigCwd = process.cwd();
+    bundleOrigRoot = process.env.PBR_PROJECT_ROOT;
+    process.chdir(bundleTmpDir);
+    delete process.env.PBR_PROJECT_ROOT;
+    configClearCache();
+  });
+
+  afterEach(() => {
+    process.chdir(bundleOrigCwd);
+    if (bundleOrigRoot !== undefined) {
+      process.env.PBR_PROJECT_ROOT = bundleOrigRoot;
+    } else {
+      delete process.env.PBR_PROJECT_ROOT;
+    }
+    fs.rmSync(bundleTmpDir, { recursive: true, force: true });
+    configClearCache();
+  });
+
+  test('returns complete state bundle for existing phase', () => {
+    buildBundleFixture(bundleTmpDir);
+    const result = initStateBundle('3');
+    expect(result.error).toBeUndefined();
+    expect(result).toHaveProperty('state');
+    expect(result).toHaveProperty('config_summary');
+    expect(result).toHaveProperty('phase');
+    expect(result).toHaveProperty('plans');
+    expect(result).toHaveProperty('waves');
+    expect(result).toHaveProperty('prior_summaries');
+    expect(result).toHaveProperty('git');
+    expect(result).toHaveProperty('has_project_context');
+    expect(result).toHaveProperty('has_phase_context');
+    expect(result.state).toHaveProperty('current_phase');
+    expect(result.state).toHaveProperty('status');
+    expect(result.state).toHaveProperty('progress');
+    expect(result.state).toHaveProperty('total_phases');
+    expect(result.state).toHaveProperty('last_activity');
+    expect(result.state).toHaveProperty('blockers');
+    expect(result.config_summary).toHaveProperty('depth');
+    expect(result.config_summary).toHaveProperty('mode');
+    expect(result.config_summary).toHaveProperty('models');
+    expect(result.phase.num).toBe('3');
+    expect(result.phase.dir).toBe('03-auth');
+    expect(result.git).toHaveProperty('branch');
+    expect(result.git).toHaveProperty('clean');
+  });
+
+  test('prior_summaries contains only frontmatter fields', () => {
+    buildBundleFixture(bundleTmpDir, { withSummary: true });
+    const result = initStateBundle('3');
+    for (const entry of result.prior_summaries) {
+      const keys = Object.keys(entry);
+      const allowed = ['phase', 'plan', 'status', 'provides', 'requires', 'key_files', 'key_decisions'];
+      for (const k of keys) {
+        expect(allowed).toContain(k);
+      }
+      expect(JSON.stringify(entry)).not.toContain('Done.');
+      expect(JSON.stringify(entry)).not.toContain('# Summary');
+    }
+  });
+
+  test('prior_summaries capped at 10', () => {
+    buildBundleFixture(bundleTmpDir, { summaryCount: 12 });
+    const result = initStateBundle('3');
+    expect(result.prior_summaries.length).toBeLessThanOrEqual(10);
+  });
+
+  test('handles missing phase gracefully', () => {
+    buildBundleFixture(bundleTmpDir);
+    const result = initStateBundle('99');
+    expect(result.error).toBeDefined();
+    expect(typeof result.error).toBe('string');
+  });
+
+  test('handles empty .planning/ directory', () => {
+    const result = initStateBundle('3');
+    expect(result.error).toBeDefined();
+    expect(result.error).toMatch(/No .planning/);
+  });
+
+  test('config_summary includes resolved depth profile', () => {
+    buildBundleFixture(bundleTmpDir);
+    const result = initStateBundle('3');
+    expect(result.config_summary).toHaveProperty('depth');
+    expect(result.config_summary.depth).toBe('standard');
+  });
+});
