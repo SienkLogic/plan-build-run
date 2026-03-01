@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { KNOWN_AGENTS } = require('./pbr-tools');
+const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyError } = require('./local-llm/operations/classify-error');
 
@@ -437,11 +437,12 @@ async function main() {
     process.exit(0);
   }
 
-  // Read active skill
-  let activeSkill = '';
-  try {
-    activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim();
-  } catch (_e) { /* no active skill */ }
+  // Read active skill — try .session.json first, fall back to legacy .active-skill
+  let activeSkill = sessionLoad(planningDir).activeSkill || '';
+  if (!activeSkill) {
+    try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) {}
+  }
+  // TODO(Phase 55+): Remove legacy .active-skill fallback once .session.json is confirmed stable
 
   // Check for expected outputs
   const found = outputSpec.check(planningDir);

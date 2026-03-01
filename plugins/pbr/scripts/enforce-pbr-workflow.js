@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { sessionLoad } = require('./pbr-tools');
 
 /**
  * Load the enforcement configuration from .planning/config.json.
@@ -73,9 +74,13 @@ function checkUnmanagedSourceWrite(data) {
   // Skip if not a PBR project
   if (!fs.existsSync(planningDir)) return null;
 
-  // Skip if a PBR skill is active
-  const activeSkillFile = path.join(planningDir, '.active-skill');
-  if (fs.existsSync(activeSkillFile)) return null;
+  // Skip if a PBR skill is active — try .session.json first, fall back to legacy .active-skill
+  let activeSkill = sessionLoad(planningDir).activeSkill || '';
+  if (!activeSkill) {
+    try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) {}
+  }
+  // TODO(Phase 55+): Remove legacy .active-skill fallback once .session.json is confirmed stable
+  if (activeSkill) return null;
 
   // Skip if writing inside .planning/
   const normalizedFile = filePath.replace(/\\/g, '/');
@@ -208,9 +213,13 @@ function checkUnmanagedCommit(data) {
   // Skip if not a PBR project
   if (!fs.existsSync(planningDir)) return null;
 
-  // Skip if a PBR skill is active
-  const activeSkillFile = path.join(planningDir, '.active-skill');
-  if (fs.existsSync(activeSkillFile)) return null;
+  // Skip if a PBR skill is active — try .session.json first, fall back to legacy .active-skill
+  let activeSkillCommit = sessionLoad(planningDir).activeSkill || '';
+  if (!activeSkillCommit) {
+    try { activeSkillCommit = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) {}
+  }
+  // TODO(Phase 55+): Remove legacy .active-skill fallback once .session.json is confirmed stable
+  if (activeSkillCommit) return null;
 
   const config = loadEnforcementConfig(planningDir);
   if (config.level === 'off') return null;
