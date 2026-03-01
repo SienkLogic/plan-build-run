@@ -144,20 +144,24 @@ describe('Reference Integrity', () => {
     expect(fs.existsSync(refsDir)).toBe(true);
 
     const expectedRefs = [
-      'checkpoints.md',
+      'agent-contracts.md',
+      'agent-teams.md',
+      'common-bug-patterns.md',
+      'config-reference.md',
       'continuation-format.md',
       'deviation-rules.md',
       'git-integration.md',
+      'integration-patterns.md',
       'model-profiles.md',
+      'model-selection.md',
+      'pbr-tools-cli.md',
       'plan-authoring.md',
       'plan-format.md',
-      'config-reference.md',
       'questioning.md',
       'reading-verification.md',
+      'signal-files.md',
       'stub-patterns.md',
-      'pbr-rules.md',
       'ui-formatting.md',
-      'verification-patterns.md',
       'wave-execution.md',
     ];
 

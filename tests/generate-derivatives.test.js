@@ -324,7 +324,7 @@ describe('generate and verify (integration)', () => {
 
   test('verify detects missing file as drift', () => {
     const CURSOR_DIR = path.resolve(__dirname, '..', 'plugins', 'cursor-pbr');
-    const testFile = path.join(CURSOR_DIR, 'references', 'pbr-rules.md');
+    const testFile = path.join(CURSOR_DIR, 'references', 'deviation-rules.md');
     const original = fs.readFileSync(testFile);
 
     // Temporarily remove file
@@ -336,7 +336,7 @@ describe('generate and verify (integration)', () => {
 
     // Should detect missing file
     expect(result.ok).toBe(false);
-    const hasMissing = result.drifted.some(d => d.includes('(missing)') || d.includes('pbr-rules'));
+    const hasMissing = result.drifted.some(d => d.includes('(missing)') || d.includes('deviation-rules'));
     expect(hasMissing).toBe(true);
   });
 
