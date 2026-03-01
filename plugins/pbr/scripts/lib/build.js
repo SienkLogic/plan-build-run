@@ -12,10 +12,13 @@
  *   checkpointInit(phaseSlug, plans, planningDir) — Initialize checkpoint manifest
  *   checkpointUpdate(phaseSlug, opts, planningDir) — Update checkpoint manifest
  *   seedsMatch(phaseSlug, phaseNumber, planningDir) — Find matching seed files
+ *   ciPoll(runId, timeoutSecs, planningDir)  — Single-check GitHub Actions CI run status
+ *   rollback(manifestPath, planningDir)      — Rollback failed plan via checkpoint manifest
  */
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 /**
  * Resolve the .planning directory from the given planningDir or env/cwd fallback.
@@ -442,6 +445,236 @@ function parseSeedFrontmatter(content) {
 }
 
 // ---------------------------------------------------------------------------
+// ciPoll
+// ---------------------------------------------------------------------------
+
+/**
+ * Single-check GitHub Actions CI run status (not a polling loop).
+ * The build skill calls this repeatedly when needed.
+ *
+ * @param {string|null} runId - GitHub Actions run ID
+ * @param {number} [timeoutSecs=300] - Max seconds allowed (used only to detect timeout already exceeded)
+ * @param {string} [planningDir] - Unused; kept for signature consistency
+ * @returns {{ status: string, conclusion: string|null, url: string, next_action: string, elapsed_seconds: number, error?: string }}
+ */
+function ciPoll(runId, timeoutSecs, _planningDir) {
+  const startMs = Date.now();
+  const timeout = (typeof timeoutSecs === 'number' && !isNaN(timeoutSecs)) ? timeoutSecs : 300;
+
+  if (!runId) {
+    return {
+      status: 'error',
+      conclusion: null,
+      url: '',
+      next_action: 'abort',
+      elapsed_seconds: 0,
+      error: 'Missing run-id. Usage: ci-poll <run-id> [--timeout <seconds>]'
+    };
+  }
+
+  // If timeout already exceeded (caller sets 0 to signal timeout)
+  if (timeout <= 0) {
+    return {
+      status: 'timed_out',
+      conclusion: null,
+      url: '',
+      next_action: 'abort',
+      elapsed_seconds: 0,
+      error: 'CI timeout exceeded'
+    };
+  }
+
+  let raw;
+  try {
+    raw = execSync(`gh run view ${runId} --json status,conclusion,url`, {
+      encoding: 'utf8',
+      timeout: 10000
+    });
+  } catch (e) {
+    const elapsed = Math.round((Date.now() - startMs) / 1000);
+    return {
+      status: 'error',
+      conclusion: null,
+      url: '',
+      next_action: 'abort',
+      elapsed_seconds: elapsed,
+      error: e.message || 'gh command failed'
+    };
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_e) {
+    const elapsed = Math.round((Date.now() - startMs) / 1000);
+    return {
+      status: 'error',
+      conclusion: null,
+      url: '',
+      next_action: 'abort',
+      elapsed_seconds: elapsed,
+      error: 'Failed to parse gh output: ' + raw
+    };
+  }
+
+  const elapsed = Math.round((Date.now() - startMs) / 1000);
+  const ghStatus = parsed.status || '';
+  const conclusion = parsed.conclusion || null;
+  const url = parsed.url || '';
+
+  if (ghStatus === 'completed') {
+    const passed = conclusion === 'success';
+    return {
+      status: passed ? 'passed' : 'failed',
+      conclusion,
+      url,
+      next_action: passed ? 'continue' : 'abort',
+      elapsed_seconds: elapsed
+    };
+  }
+
+  // in_progress, queued, waiting, etc.
+  return {
+    status: ghStatus,
+    conclusion: null,
+    url,
+    next_action: 'wait',
+    elapsed_seconds: elapsed
+  };
+}
+
+// ---------------------------------------------------------------------------
+// rollback
+// ---------------------------------------------------------------------------
+
+/**
+ * Rollback a failed plan using checkpoint manifest.
+ * Reads manifest, runs git reset --soft, invalidates downstream SUMMARY.md files.
+ *
+ * @param {string} manifestPath - Absolute path to .checkpoint-manifest.json
+ * @param {string} [planningDir]
+ * @returns {{ ok: boolean, rolled_back_to: string|null, plans_invalidated: string[], files_deleted: string[], warnings: string[], error?: string }}
+ */
+function rollback(manifestPath, _planningDir) {
+  // Step 1: Read manifest
+  if (!fs.existsSync(manifestPath)) {
+    return {
+      ok: false,
+      rolled_back_to: null,
+      plans_invalidated: [],
+      files_deleted: [],
+      warnings: [],
+      error: 'Manifest not found: ' + manifestPath
+    };
+  }
+
+  let manifest;
+  try {
+    const raw = fs.readFileSync(manifestPath, 'utf8');
+    manifest = JSON.parse(raw);
+  } catch (e) {
+    return {
+      ok: false,
+      rolled_back_to: null,
+      plans_invalidated: [],
+      files_deleted: [],
+      warnings: [],
+      error: 'Cannot parse manifest: ' + e.message
+    };
+  }
+
+  // Step 2: Extract last_good_commit
+  const lastGoodCommit = manifest.last_good_commit || null;
+  if (!lastGoodCommit) {
+    return {
+      ok: false,
+      rolled_back_to: null,
+      plans_invalidated: [],
+      files_deleted: [],
+      warnings: [],
+      error: 'No rollback point available (last_good_commit is missing or null). Use abort instead.'
+    };
+  }
+
+  const phaseDir = path.dirname(manifestPath);
+  const filesDeleted = [];
+  const plansInvalidated = [];
+  const warnings = [];
+
+  // Step 3: git reset --soft to last good commit
+  try {
+    execSync(`git reset --soft ${lastGoodCommit}`, { encoding: 'utf8', timeout: 15000 });
+  } catch (e) {
+    return {
+      ok: false,
+      rolled_back_to: null,
+      plans_invalidated: [],
+      files_deleted: [],
+      warnings: [],
+      error: 'git reset --soft failed: ' + e.message
+    };
+  }
+
+  // Step 4: Identify failed plan
+  const failedPlan = manifest.failed_plan || null;
+
+  // Step 5: Delete failed plan's SUMMARY.md if it exists
+  if (failedPlan) {
+    const failedSummary = path.join(phaseDir, `SUMMARY-${failedPlan}.md`);
+    if (fs.existsSync(failedSummary)) {
+      try {
+        fs.unlinkSync(failedSummary);
+        filesDeleted.push(failedSummary);
+      } catch (e) {
+        warnings.push(`Could not delete ${failedSummary}: ${e.message}`);
+      }
+    }
+  }
+
+  // Step 6: Scan for downstream plans and invalidate them
+  // downstream_of maps planId -> [deps]. A plan is downstream if failedPlan is in its deps.
+  const downstreamOf = manifest.downstream_of || {};
+  const resolved = Array.isArray(manifest.checkpoints_resolved) ? manifest.checkpoints_resolved : [];
+
+  for (const planId of resolved) {
+    if (planId === failedPlan) continue;
+    const deps = downstreamOf[planId] || [];
+    if (failedPlan && deps.includes(failedPlan)) {
+      plansInvalidated.push(planId);
+      const summaryPath = path.join(phaseDir, `SUMMARY-${planId}.md`);
+      if (fs.existsSync(summaryPath)) {
+        try {
+          fs.unlinkSync(summaryPath);
+          filesDeleted.push(summaryPath);
+        } catch (e) {
+          warnings.push(`Could not delete ${summaryPath}: ${e.message}`);
+        }
+      }
+    }
+  }
+
+  // Step 7: Write updated manifest back
+  const updatedManifest = Object.assign({}, manifest, {
+    checkpoints_resolved: resolved.filter(p =>
+      p !== failedPlan && !plansInvalidated.includes(p)
+    )
+  });
+  try {
+    fs.writeFileSync(manifestPath, JSON.stringify(updatedManifest, null, 2), 'utf8');
+  } catch (e) {
+    warnings.push('Could not update manifest: ' + e.message);
+  }
+
+  return {
+    ok: true,
+    rolled_back_to: lastGoodCommit,
+    plans_invalidated: plansInvalidated,
+    files_deleted: filesDeleted,
+    warnings
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -450,5 +683,7 @@ module.exports = {
   summaryGate,
   checkpointInit,
   checkpointUpdate,
-  seedsMatch
+  seedsMatch,
+  ciPoll,
+  rollback
 };
