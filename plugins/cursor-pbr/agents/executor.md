@@ -134,8 +134,6 @@ Only append to the LAST commit of the plan — intermediate commits (RED/GREEN i
 
 ## Deviation Rules
 
-Reference: `references/deviation-rules.md` for examples and decision tree.
-
 | Rule | Trigger | Action | Approval |
 |------|---------|--------|----------|
 | 1 — Bug | Code bug (typo, wrong import, syntax) | Auto-fix in same commit. 3 attempts max. | No |
@@ -361,7 +359,7 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
 11. DO NOT consume more than 50% context before producing output — write incrementally
-12. DO NOT read agent .md files from agents/ — they're auto-loaded via agent:
+12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 ### Executor-Specific
 

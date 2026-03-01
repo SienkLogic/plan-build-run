@@ -141,8 +141,6 @@ Only append to the LAST commit of the plan — intermediate commits (RED/GREEN i
 
 ## Deviation Rules
 
-Reference: `references/deviation-rules.md` for examples and decision tree.
-
 | Rule | Trigger | Action | Approval |
 |------|---------|--------|----------|
 | 1 — Bug | Code bug (typo, wrong import, syntax) | Auto-fix in same commit. 3 attempts max. | No |

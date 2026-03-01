@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/agent-anti-patterns.md -->
 # Universal Agent Anti-Patterns
 
 These anti-patterns apply to ALL Plan-Build-Run agents. Each agent also has role-specific anti-patterns defined in its own agent file.

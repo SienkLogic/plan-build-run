@@ -1,4 +1,3 @@
-<!-- canonical: ../../pbr/references/pbr-rules.md -->
 # Plan-Build-Run Rules
 
 Authoritative rules for all Plan-Build-Run skills, agents, hooks, and workflows.
