@@ -488,19 +488,17 @@ Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prom
 - If yes: warn user that those plans will also need to be skipped or adjusted
 
 **If user selects 'Rollback':**
-- Read `last_good_commit` from `.checkpoint-manifest.json`
-- If `last_good_commit` exists:
-  - Show the user: "Rolling back to commit {sha} (last verified good state). This will soft-reset {N} commits."
-  - Run: `git reset --soft {last_good_commit}`
-  - Delete the failed plan's SUMMARY.md file if it was created
-  - **CRITICAL — Invalidate downstream dependencies:**
-    - Check if any plans in later waves depend on the rolled-back plan
-    - For each downstream plan that depends on it: delete its SUMMARY.md (forces re-execution)
-    - Remove ALL downstream dependent plans from `checkpoints_resolved` in the manifest
-    - If downstream phases (outside this build) have `dependency_fingerprints` referencing this phase, warn: "Downstream phases may need re-planning with `/pbr:plan <N>` since Phase {current} was partially rolled back."
-  - Update the checkpoint manifest: remove the failed plan from `checkpoints_resolved`
-  - Continue to next wave or stop based on user preference
-- If no `last_good_commit`: warn "No rollback point available (this was the first plan). Use abort instead."
+Run the rollback CLI:
+
+```bash
+node ${PLUGIN_ROOT}/scripts/pbr-tools.js rollback .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
+```
+
+Returns `{ ok, rolled_back_to, plans_invalidated, files_deleted, warnings }`.
+
+- If `ok` is `true`: display "Rolled back to commit {rolled_back_to}. {plans_invalidated.length} downstream plans invalidated."
+  Show any warnings. Continue to next wave or stop based on user preference.
+- If `ok` is `false`: display the error message. Suggest "Use abort instead."
 
 **If user selects 'Abort':**
 - Update STATE.md with current progress
@@ -545,18 +543,20 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
 
 1. Push current commits: `git push`
 2. Wait 5 seconds for CI to trigger
-3. Check: `gh run list --branch $(git branch --show-current) --limit 1 --json status,conclusion,url`
-4. If in_progress: poll every 15 seconds up to `config.ci.wait_timeout_seconds`
-5. If failed/timed out: show warning box:
-
+3. Get the current run ID:
+   ```bash
+   gh run list --branch $(git branch --show-current) --limit 1 --json databaseId -q '.[0].databaseId'
    ```
-   ⚠ CI Status: {conclusion}
-   Run: {url}
-   Options: [Wait] [Continue anyway] [Abort]
+4. Poll CI status using CLI:
+   ```bash
+   node ${PLUGIN_ROOT}/scripts/pbr-tools.js ci-poll <run-id> [--timeout <seconds>]
    ```
-
-6. Use AskUserQuestion to present options: Wait / Continue anyway / Abort
-7. If "Continue anyway": log deviation — `DEVIATION: CI gate bypassed for wave {N}`
+   Returns `{ status, conclusion, url, next_action, elapsed_seconds }`.
+5. If `next_action` is `"continue"`: proceed to next wave
+6. If `next_action` is `"wait"`: re-run ci-poll after 15 seconds (repeat up to `config.ci.wait_timeout_seconds`)
+7. If `next_action` is `"abort"` or `status` is `"failed"`:
+   Show warning box and use AskUserQuestion: Wait / Continue anyway / Abort
+8. If "Continue anyway": log deviation — `DEVIATION: CI gate bypassed for wave {N}`
 8. If "Abort": stop build, update STATE.md
 
 #### 6f. Update STATE.md
