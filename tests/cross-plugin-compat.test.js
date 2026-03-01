@@ -394,6 +394,9 @@ describe('cross-plugin compatibility', () => {
       });
     });
 
+    // Note: references/archive/ subdir is excluded automatically (not a .md file).
+    // Archived docs (agent-anti-patterns, checkpoints, context-quality-tiers, pbr-rules,
+    // verification-patterns) must not appear in active references/ listing.
     // Verify references/ and templates/ directories have the same files as PBR
     describe('shared resource sync', () => {
       test('references/ files match PBR', () => {
