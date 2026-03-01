@@ -5,6 +5,19 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.53.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.52.0...plan-build-run-v2.53.0) (2026-03-01)
+
+
+### Features
+
+* **54-03:** archive 5 dead reference docs and create signal-files.md ([4dff42d](https://github.com/SienkLogic/plan-build-run/commit/4dff42db3690b89dee04306bfe1562c0da789c60))
+* **54-04:** migrate signal file readers to sessionLoad with legacy fallback ([02d6ae9](https://github.com/SienkLogic/plan-build-run/commit/02d6ae9405ead3fdbe18239687ec312e02310e1e))
+
+
+### Bug Fixes
+
+* **54-04:** add comments to empty catch blocks to satisfy ESLint no-empty rule ([8280c54](https://github.com/SienkLogic/plan-build-run/commit/8280c5412b79bf61ca5ccdcb7cf82b9b3ca13be3))
+
 ## [2.52.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.51.0...plan-build-run-v2.52.0) (2026-03-01)
 
 
