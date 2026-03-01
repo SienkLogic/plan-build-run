@@ -56,6 +56,7 @@ Parse the phase number and optional flags:
 | `3 --gaps` | Create gap-closure plans for phase 3 (from VERIFICATION.md) |
 | `3 --teams` | Plan phase 3 using specialist agent teams |
 | (no number) | Use current phase from STATE.md |
+| `3 --preview` | Preview what planning would produce for phase 3 without spawning agents |
 
 ### Subcommands
 
@@ -123,6 +124,36 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
+
+
+#### --preview mode
+
+If `--preview` is present in `$ARGUMENTS`:
+
+1. Detect the `--preview` flag and extract the phase number.
+2. Render the following dry-run banner:
+
+   ```
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  DRY RUN — /pbr:plan {N} --preview                           ║
+   ║  No researchers or planners will be spawned                  ║
+   ╚══════════════════════════════════════════════════════════════╝
+   ```
+
+3. Show the 5 steps that would occur:
+
+   1. Parse ROADMAP.md for phase {N} goal, dependencies, and requirements
+   2. Spawn researcher agents to investigate codebase and gather context
+   3. Spawn planner agent to write PLAN files based on research
+   4. Run plan-checker to validate structure and completeness
+   5. Present plans for your approval before building
+
+4. Show estimated agent spawns: ~2-4 agents (1-2 researchers + 1 planner + 1 plan-checker)
+5. Show output location: `.planning/phases/{NN}-{slug}/PLAN-NN.md`
+
+6. **STOP** — do not proceed to Step 2.
+
+---
 
 **If phase already has plans:**
 - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):

@@ -50,6 +50,54 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3 --gaps-only` | Build only gap-closure plans in phase 3 |
 | `3 --team` | Use Agent Teams for complex inter-agent coordination |
 | (no number) | Use current phase from STATE.md |
+| `3 --preview` | Preview what build would do for phase 3 without executing |
+
+---
+
+
+#### --preview mode
+
+If `--preview` is present in `$ARGUMENTS`:
+
+1. Extract the phase slug from `$ARGUMENTS` (use the phase number to look up the slug, or pass the number directly — the CLI accepts partial slug matches).
+2. Run:
+
+   ```bash
+   node ${PLUGIN_ROOT}/scripts/pbr-tools.js build-preview {phase-slug}
+   ```
+
+   Capture the JSON output.
+3. Render the following preview document (do NOT proceed to Step 2):
+
+   ```
+   ╔══════════════════════════════════════════════════════════════╗
+   ║  DRY RUN — /pbr:build {N} --preview                          ║
+   ║  No executor agents will be spawned                          ║
+   ╚══════════════════════════════════════════════════════════════╝
+
+   PHASE: {phase}
+
+   ## Plans
+   {for each plan: - {id} (wave {wave}, {task_count} tasks)}
+
+   ## Wave Structure
+   {for each wave: Wave {wave}: {plan IDs} [parallel | sequential]}
+
+   ## Files That Would Be Modified
+   {for each file in files_affected: - {file}}
+   (Total: {count} files)
+
+   ## Estimated Agent Spawns
+   {agent_count} executor task(s)
+
+   ## Critical Path
+   {critical_path joined with " → "}
+
+   ## Dependency Chain
+   {for each entry in dependency_chain: - {id} (wave {wave}) depends on: {depends_on or "none"}}
+   ```
+
+4. **STOP** — do not proceed to Step 2.
 
 ---
 
@@ -567,6 +615,9 @@ node ${PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 - [ ] STATE.md body progress bar updated
 - [ ] `last_activity` timestamp refreshed
 
+To verify programmatically: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
+If any item fails, investigate before proceeding to Step 7.
+
 ---
 
 ### Step 7: Phase Verification (delegated, conditional)
@@ -699,6 +750,9 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 - [ ] STATE.md body ## Current Position updated: Phase, Status, Last activity, Progress bar
 - [ ] Frontmatter and body are consistent (same status value in both)
 
+To verify programmatically: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
+If any item fails, investigate before marking phase complete.
+
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 If `planning.commit_docs` is `true`:
@@ -767,6 +821,9 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] If auto_continue: `.auto-next` file written with correct next command
 - [ ] Pending todos evaluated (Step 8e-ii)
 - [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
+
+To verify programmatically: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
+If any item fails, investigate before closing the session.
 
 **8e-ii. Check Pending Todos:**
 
