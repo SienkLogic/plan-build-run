@@ -298,65 +298,15 @@ Reference: `references/model-selection.md` for full details.
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
 5. Read `.planning/config.json`
 
-Construct the executor prompt:
+Construct the executor prompt by reading `skills/build/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
 
-```
-You are the executor agent. Execute the following plan.
+- `{NN}-{slug}` — phase directory (e.g., `02-authentication`)
+- `{plan_id}` — plan being executed (e.g., `02-01`)
+- `{commit_format}`, `{tdd_mode}`, `{atomic_commits}` — from loaded config
+- File paths: absolute paths to project root, config.json, STATE.md, CONTEXT.md
+- `{prior_work table rows}` — one row per completed plan in this phase
 
-<files_to_read>
-CRITICAL: Read these files BEFORE any other action:
-1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — the full plan with task details
-2. .planning/CONTEXT.md — locked decisions and constraints (if exists)
-3. .planning/STATE.md — current project state and progress
-</files_to_read>
-
-<plan_summary>
-[Inline only the ## Summary section from PLAN.md]
-</plan_summary>
-
-<plan_file>
-.planning/phases/{NN}-{slug}/{plan_id}-PLAN.md
-</plan_file>
-
-<project_context>
-Project root: {absolute path to project root}
-Platform: {win32|linux|darwin}
-
-Config:
-  commit_format: {commit_format from config}
-  tdd_mode: {tdd_mode from config}
-  atomic_commits: {atomic_commits from config}
-
-Available context files (read via Read tool as needed):
-  - Config: {absolute path to config.json}
-  - State: {absolute path to STATE.md}
-{If CONTEXT.md exists:}
-  - Project context (locked decisions): {absolute path to CONTEXT.md}
-</project_context>
-
-<prior_work>
-Completed plans in this phase:
-| Plan | Status | Commits | Summary File |
-|------|--------|---------|-------------|
-| {plan_id} | complete | {hash1}, {hash2} | {absolute path to SUMMARY.md} |
-
-Read any SUMMARY file via Read tool if you need details on what prior plans produced.
-</prior_work>
-
-Execute all tasks in the plan sequentially. For each task:
-0. Read the full plan file from the path in <plan_file> to get task details
-1. Execute the <action> steps
-2. Run the <verify> commands
-3. Create an atomic commit with format: {commit_format}
-4. Record the commit hash
-
-After all tasks complete:
-1. Write SUMMARY.md to .planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md
-2. Run self-check (verify files exist, commits exist, verify commands still pass)
-3. Return your SUMMARY.md content as your final response
-
-If you hit a checkpoint task, STOP and return the checkpoint response format immediately.
-```
+Use the filled template as the Task() prompt.
 
 **Spawn strategy based on config:**
 
@@ -478,37 +428,7 @@ For each plan that completed successfully in this wave:
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
 2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
-   Spawn a lightweight verifier:
-
-   <!-- NOTE: This is a targeted inline check (existence/substantiveness/wiring for specific files),
-        NOT the full must-have verifier. The canonical full verifier prompt lives in
-        agents/verifier.md and is templated via skills/review/templates/verifier-prompt.md.tmpl.
-        Keep this lightweight prompt distinct from the full verifier. -->
-
-```
-Task({
-  agent_type: "pbr:verifier",
-  model: "haiku",
-  prompt: "<files_to_read>
-CRITICAL: Read these files BEFORE any other action:
-1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — must-haves to verify against
-2. .planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md — what the executor claims was built
-3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
-</files_to_read>
-
-Targeted inline verification for plan {plan_id}.
-
-Verify ONLY these files: {comma-separated key_files list}
-
-For each file, check three layers:
-1. Existence — does the file exist?
-2. Substantiveness — is it more than a stub? (>10 lines, no TODO/FIXME placeholders)
-3. Wiring — is it imported/used by at least one other file?
-
-Report PASS or FAIL with a one-line reason per file.
-Write nothing to disk — just return your results as text."
-})
-```
+   Spawn `Task({ agent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `skills/build/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
 
 3. If verifier reports FAIL for any file:
    - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
@@ -608,36 +528,15 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 
 Reference: `references/continuation-format.md` for the continuation protocol.
 
-```
-You are the executor agent. Continue executing a plan from a checkpoint.
+Read `skills/build/templates/continuation-prompt.md.tmpl` and fill in:
 
-<plan_summary>
-[Inline only the ## Summary section from PLAN.md]
-</plan_summary>
+- `{NN}-{slug}`, `{plan_id}` — current phase and plan
+- `{plan_summary}` — the ## Summary section from PLAN.md
+- `{task table rows}` — one row per task with completion status
+- `{user's response}` — the checkpoint resolution from Step 3
+- `{project context key-values}` — config values + file paths
 
-<plan_file>
-.planning/phases/{NN}-{slug}/{plan_id}-PLAN.md
-</plan_file>
-
-<completed_tasks>
-| Task | Commit | Status |
-|------|--------|--------|
-| {task_name} | {hash} | complete |
-| {task_name} | {hash} | complete |
-| {checkpoint_task} | — | checkpoint |
-</completed_tasks>
-
-<checkpoint_resolution>
-User response to checkpoint: {user's response}
-Resume at: Task {N+1} (or re-execute checkpoint task with user's answer)
-</checkpoint_resolution>
-
-<project_context>
-{Same lean context as original spawn — config key-values + file paths, not inlined bodies}
-</project_context>
-
-Continue execution from the checkpoint. Skip completed tasks. Process the checkpoint resolution, then continue with remaining tasks. Write SUMMARY.md when done.
-```
+Use the filled template as the Task() prompt.
 
 #### 6e-ii. CI Gate (after wave completion, conditional)
 

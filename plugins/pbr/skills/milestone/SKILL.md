@@ -540,35 +540,7 @@ Verify milestone completion with cross-phase integration checks.
 
    Display to the user: `◐ Spawning integration checker...`
 
-   Spawn `Task(subagent_type: "pbr:integration-checker")` with:
-
-   ```
-   You are integration-checker. Perform cross-phase integration verification.
-
-   <files_to_read>
-   CRITICAL: Read these files BEFORE any other action:
-   1. .planning/ROADMAP.md — phase structure, goals, and dependencies
-   2. .planning/phases/{NN}-{slug}/SUMMARY.md — for each milestone phase (read all)
-   </files_to_read>
-
-   Milestone: {version or "current"}
-   Phases to check: {list of phase directories}
-
-   Instructions:
-   1. Read all SUMMARY.md files for the milestone phases
-   2. Build a dependency graph from provides/affects/requires fields
-   3. Verify integration points:
-      a. Every "requires" in a later phase is "provided" by an earlier phase
-      b. Every "affects" target still exists and hasn't been broken
-      c. No circular dependencies
-      d. No orphaned provides (things built but never consumed)
-   4. Check for:
-      - Broken imports/references between phases
-      - API contract mismatches
-      - Missing error handling at integration points
-      - Configuration inconsistencies
-   5. Return findings as a structured report
-   ```
+   Spawn `Task(subagent_type: "pbr:integration-checker")`. Read `skills/milestone/templates/integration-checker-prompt.md.tmpl`, fill in `{version or "current"}`, `{list of phase directories}`, and `{phase SUMMARY.md paths}`, then use the filled template as the Task() prompt.
 
 4. **Check integration-checker completion:**
 
