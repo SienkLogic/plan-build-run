@@ -114,7 +114,8 @@ const {
   initQuick: _initQuick,
   initVerifyWork: _initVerifyWork,
   initResume: _initResume,
-  initProgress: _initProgress
+  initProgress: _initProgress,
+  initStateBundle: _initStateBundle
 } = require('./lib/init');
 
 const {
@@ -257,6 +258,10 @@ function initResume() {
 
 function initProgress() {
   return _initProgress(planningDir);
+}
+
+function stateBundle(phaseNum) {
+  return _initStateBundle(phaseNum, planningDir);
 }
 
 function historyAppend(entry, dir) {
@@ -633,6 +638,10 @@ async function main() {
       output(initResume());
     } else if (command === "init" && subcommand === "progress") {
       output(initProgress());
+    } else if (command === 'state-bundle') {
+      const phaseNum = args[1];
+      if (!phaseNum) error('Usage: pbr-tools.js state-bundle <phase-number>');
+      output(stateBundle(phaseNum));
     // --- State patch/advance/metric ---
     } else if (command === "state" && subcommand === "patch") {
       const jsonStr = args[2];
@@ -732,7 +741,7 @@ async function main() {
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds`);
     }
   } catch (e) {
     error(e.message);
@@ -740,6 +749,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
