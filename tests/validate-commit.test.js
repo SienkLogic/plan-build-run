@@ -107,6 +107,11 @@ describe('validate-commit.js', () => {
       const result = runScript({ command: 'git add file.js && git commit -m "fix(02-01): resolve bug"' });
       expect(result.exitCode).toBe(0);
     });
+
+    test('allows revert commits from undo skill', () => {
+      const data = { tool_input: { command: "git commit -m \"revert(55-02): undo add undo skill\"" } };
+      expect(checkCommit(data)).toBeNull();
+    });
   });
 
   describe('invalid commit messages', () => {

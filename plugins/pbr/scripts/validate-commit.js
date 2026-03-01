@@ -25,7 +25,7 @@ const { logEvent } = require('./event-logger');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyCommit } = require('./local-llm/operations/classify-commit');
 
-const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip'];
+const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert'];
 
 const SENSITIVE_PATTERNS = [
   /^\.env$/,                          // .env exactly (not .env.example)
@@ -47,7 +47,7 @@ const SAFE_PATTERNS = [
 
 // Pattern: type(scope): description
 // Scope can be: NN-MM (phase-plan), quick-NNN, planning, or any word
-const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip)(\([a-zA-Z0-9._-]+\))?:\s+.+/;
+const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip|revert)(\([a-zA-Z0-9._-]+\))?:\s+.+/;
 
 // Merge commits are always allowed
 const MERGE_PATTERN = /^Merge\s/;
