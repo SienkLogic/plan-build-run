@@ -568,6 +568,9 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 - [ ] STATE.md body progress bar updated
 - [ ] `last_activity` timestamp refreshed
 
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
+If any item fails, investigate before proceeding to Step 7.
+
 ---
 
 ### Step 7: Phase Verification (delegated, conditional)
@@ -700,6 +703,9 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 - [ ] STATE.md body ## Current Position updated: Phase, Status, Last activity, Progress bar
 - [ ] Frontmatter and body are consistent (same status value in both)
 
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
+If any item fails, investigate before marking phase complete.
+
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 If `planning.commit_docs` is `true`:
@@ -768,6 +774,9 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] If auto_continue: `.auto-next` file written with correct next command
 - [ ] Pending todos evaluated (Step 8e-ii)
 - [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
+
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
+If any item fails, investigate before closing the session.
 
 **8e-ii. Check Pending Todos:**
 

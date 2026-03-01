@@ -52,6 +52,8 @@
  *   session dump                   — Print entire .session.json content
  *   skill-section <skill> <section>       — Extract a section from a skill's SKILL.md → JSON
  *   skill-section --list <skill>          — List all headings in a skill → JSON
+ *   step-verify [skill] [step] [checklist-json]  — Validate per-step completion checklist → JSON
+ *   build-preview [phase-slug]            — Preview what /pbr:build would do for a phase → JSON
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -167,6 +169,14 @@ const {
   skillSection: _skillSection,
   listAvailableSkills: _listAvailableSkills
 } = require('./lib/skill-section');
+
+const {
+  stepVerify: _stepVerify
+} = require('./lib/step-verify');
+
+const {
+  buildPreview: _buildPreview
+} = require('./lib/preview');
 
 const {
   contextTriage: _contextTriage
@@ -953,8 +963,44 @@ async function main() {
         output(secResult);
         if (secResult.error) process.exit(1);
       }
+    } else if (command === 'step-verify') {
+      // step-verify <skill> <step> <checklist-json>
+      const skill = args[1];
+      const step = args[2];
+      const checklistStr = args[3] || '[]';
+      let checklist;
+      try {
+        checklist = JSON.parse(checklistStr);
+      } catch (_e) {
+        output({ error: 'Invalid checklist JSON' });
+        process.exit(1);
+        return;
+      }
+      const svPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+      const svContext = {
+        planningDir: svPlanningDir,
+        phaseSlug: process.env.PBR_PHASE_SLUG || '',
+        planId: process.env.PBR_PLAN_ID || ''
+      };
+      const svResult = _stepVerify(skill, step, checklist, svContext);
+      output(svResult);
+      if (svResult.error || svResult.all_passed === false) process.exit(1);
+    } else if (command === 'build-preview') {
+      const phaseSlug = args[1];
+      if (!phaseSlug) {
+        error('Usage: pbr-tools.js build-preview <phase-slug>');
+        return;
+      }
+      const previewPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+      const previewPluginRoot = path.resolve(__dirname, '..');
+      const result = _buildPreview(phaseSlug, {}, previewPlanningDir, previewPluginRoot);
+      if (result && result.error) {
+        output(result);
+        process.exit(1);
+      }
+      output(result);
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, skill-section <skill> <section>|--list <skill>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>`);
     }
   } catch (e) {
     error(e.message);
@@ -962,6 +1008,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, skillSectionGet, listSkillHeadings };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
