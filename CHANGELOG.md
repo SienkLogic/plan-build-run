@@ -5,6 +5,17 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.45.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.44.0...plan-build-run-v2.45.0) (2026-03-01)
+
+
+### Features
+
+* **50-01:** add checkpoint_protocol XML wrapper to executor.md ([a1fc5d0](https://github.com/SienkLogic/plan-build-run/commit/a1fc5d0b41ab3180c982436aec39cb0b4d6f4d56))
+* **50-01:** add role and execution_flow XML wrappers to executor.md ([27a2370](https://github.com/SienkLogic/plan-build-run/commit/27a2370ebbe7b20066e71bff50e3ac49f46103a2))
+* **50-02:** migrate planner.md to XML structural tags ([f947132](https://github.com/SienkLogic/plan-build-run/commit/f9471322f17c269cc1548c07052741ab562eecf3))
+* **50-03:** migrate verifier.md to XML structural tags ([107bb32](https://github.com/SienkLogic/plan-build-run/commit/107bb32260bcc94c3991c4ae8e4197e14040e19a))
+* **50-04:** sync XML wrapper tags to cursor-pbr and copilot-pbr executor/planner/verifier agents ([98a0d42](https://github.com/SienkLogic/plan-build-run/commit/98a0d420d26c79c440a980f7f4970214904fdbdb))
+
 ## [2.44.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.43.0...plan-build-run-v2.44.0) (2026-02-28)
 
 
