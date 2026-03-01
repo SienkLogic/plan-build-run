@@ -1274,8 +1274,8 @@ describe('milestoneStats', () => {
 
 // --- stateBundle / initStateBundle tests ---
 
-const { initStateBundle, stateBundle, contextTriage } = require('../plugins/pbr/scripts/pbr-tools');
-const { contextTriage: contextTriageLib, readBridgeData, readTrackerData } = require('../plugins/pbr/scripts/lib/context');
+const { initStateBundle } = require('../plugins/pbr/scripts/pbr-tools');
+const { contextTriage: contextTriageLib } = require('../plugins/pbr/scripts/lib/context');
 
 const BUNDLE_STATE_FM = [
   '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
