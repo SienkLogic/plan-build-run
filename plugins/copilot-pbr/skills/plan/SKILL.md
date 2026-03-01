@@ -596,24 +596,10 @@ Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt
 ## Error Handling
 
 ### Phase not found
-If the specified phase doesn't exist in ROADMAP.md, display:
-```
-ERROR
-
-Phase {N} not found in ROADMAP.md.
-
-**To fix:** Run `/pbr:status` to see available phases.
-```
+If the specified phase doesn't exist in ROADMAP.md, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Phase not found.
 
 ### Missing prerequisites
-If REQUIREMENTS.md or ROADMAP.md don't exist, display:
-```
-ERROR
-
-Project not initialized. Missing REQUIREMENTS.md or ROADMAP.md.
-
-**To fix:** Run `/pbr:begin` first.
-```
+If REQUIREMENTS.md or ROADMAP.md don't exist, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Missing prerequisites.
 
 ### Research agent fails
 If the researcher agent fails, display:
@@ -624,29 +610,10 @@ This may result in less accurate plans.
 Continue to the planning step.
 
 ### Planner agent fails
-If the planner agent fails, display:
-```
-ERROR
-
-Planner agent failed for Phase {N}.
-
-**To fix:**
-- Try again with `/pbr:plan {N} --skip-research`
-- Check `.planning/CONTEXT.md` for conflicting constraints
-```
+If the planner agent fails, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Planner agent failure.
 
 ### Checker loops forever
-After 3 revision iterations without passing, display:
-```
-ERROR
-
-Plan checker failed to pass after 3 revision iterations for Phase {N}.
-
-**To fix:**
-- Review the remaining issues below and decide whether to proceed or revise manually
-- Run `/pbr:plan {N}` to restart planning from scratch
-```
-
+After 3 revision iterations without passing, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Checker loops.
 Present remaining issues and ask user to decide: proceed or intervene.
 
 ---
@@ -671,42 +638,5 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 After planning completes, present:
 
-Use the branded stage banner from `references/ui-formatting.md`:
-
-```
-╔══════════════════════════════════════════════════════════════╗
-║  PLAN-BUILD-RUN ► PLANNING PHASE {N}                         ║
-╚══════════════════════════════════════════════════════════════╝
-
-**Phase {N}: {name}** — {plan_count} plans created
-
-Plans:
-  {phase}-01: {name} (Wave 1, {task_count} tasks)
-  {phase}-02: {name} (Wave 1, {task_count} tasks)
-  {phase}-03: {name} (Wave 2, {task_count} tasks)
-
-Wave execution:
-  Wave 1: Plans 01, 02 (parallel)
-  Wave 2: Plan 03
-```
-
-Then use the "Next Up" routing block:
-```
----
-
-## Next Up
-
-**Build Phase {N}** — execute these plans
-
-/pbr:build {N}
-
-`/clear` first for a fresh context window
-
----
-
-**Also available:**
-- /pbr:plan {N} --assumptions — review assumptions first
-- /pbr:discuss {N} — talk through details before building
-
----
-```
+Use the branded stage banner and next-up block from `skills/plan/templates/completion-output.md.tmpl`.
+Fill in: `{N}` (phase number), `{phase-name}`, `{plan_count}`, `{plan_list_lines}` (one line per plan with wave and task count), `{wave_table_lines}` (one line per wave).
