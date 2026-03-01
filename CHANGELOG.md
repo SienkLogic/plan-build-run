@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.50.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.49.0...plan-build-run-v2.50.0) (2026-03-01)
+
+
+### Features
+
+* **52-04:** replace 4 milestone banners with tmpl refs; condense 5 plan SKILL.md sections to &lt; 600 lines ([3e383c4](https://github.com/SienkLogic/plan-build-run/commit/3e383c45d4cfdb51298a2d2531f51752132368a0))
+
+
+### Bug Fixes
+
+* **52-05:** remove blank lines to bring build SKILL.md to 868 lines (&lt; 870 target) ([6cd9549](https://github.com/SienkLogic/plan-build-run/commit/6cd954972c33540462cb08f6a192604879b8e6df))
+
 ## [2.49.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.48.0...plan-build-run-v2.49.0) (2026-03-01)
 
 
