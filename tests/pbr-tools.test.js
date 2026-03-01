@@ -1767,5 +1767,76 @@ describe('build helpers', () => {
       expect(result.stale).toBe(false);
       expect(result.plans).toEqual([]);
     });
+
+    test('returns stale:false for plan with no dependencies', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '02-nodeps');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      // Plan with empty depends_on
+      const planContent = '---\nplan: "02-01"\ndepends_on: []\n---\n# Plan\n';
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), planContent);
+      const result = stalenessCheck('02-nodeps', planningDir);
+      expect(result.stale).toBe(false);
+    });
+  });
+
+  // ── summaryGate edge cases ───────────────────────────────
+
+  describe('summaryGate edge cases', () => {
+    test('returns gate:"valid-frontmatter" when file has dashes but no status field', () => {
+      const planningDir = tmpDir;
+      const phaseDir = path.join(tmpDir, 'phases', '06-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      // Has --- but no status: field
+      const content = '---\nplan: "06-01"\n---\n\n## Task Results\n';
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-06-01.md'), content);
+      const result = summaryGate('06-test', '06-01', planningDir);
+      expect(result.ok).toBe(false);
+      expect(result.gate).toBe('valid-frontmatter');
+    });
+  });
+
+  // ── seedsMatch edge cases ────────────────────────────────
+
+  describe('seedsMatch edge cases', () => {
+    test('matches on trigger substring of phase slug', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      // trigger "auth" is substring of "03-authentication"
+      fs.writeFileSync(path.join(seedsDir, 'partial.md'), '---\nname: Partial Match\ntrigger: auth\ndescription: Auth patterns\n---\n');
+      const result = seedsMatch('03-authentication', '3', planningDir);
+      expect(result.matched.length).toBe(1);
+      expect(result.matched[0].name).toBe('Partial Match');
+    });
+
+    test('skips seed file with no frontmatter', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'no-fm.md'), '# Just a heading\nNo frontmatter here.');
+      const result = seedsMatch('03-auth', '3', planningDir);
+      expect(result.matched).toEqual([]);
+    });
+
+    test('skips seed file with no trigger field', () => {
+      const planningDir = tmpDir;
+      const seedsDir = path.join(tmpDir, 'seeds');
+      fs.mkdirSync(seedsDir, { recursive: true });
+      fs.writeFileSync(path.join(seedsDir, 'no-trigger.md'), '---\nname: No Trigger\ndescription: Missing trigger\n---\n');
+      const result = seedsMatch('03-auth', '3', planningDir);
+      expect(result.matched).toEqual([]);
+    });
+  });
+
+  // ── checkpointInit edge cases ────────────────────────────
+
+  describe('checkpointInit edge cases', () => {
+    test('returns error when phase directory does not exist', () => {
+      const planningDir = tmpDir;
+      // Do NOT create the directory
+      const result = checkpointInit('99-missing', '99-01', planningDir);
+      expect(result.error).toBeTruthy();
+    });
   });
 });
