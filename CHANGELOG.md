@@ -5,6 +5,14 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.47.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.46.0...plan-build-run-v2.47.0) (2026-03-01)
+
+
+### Features
+
+* **52-01:** extract 3 inline executor prompts from build/SKILL.md to tmpl files ([e5db296](https://github.com/SienkLogic/plan-build-run/commit/e5db2966dfc53fc8b7534cce6257880ebc7438f9))
+* **52-01:** replace inline prompts with template references in build and milestone SKILL.md ([04b7d0f](https://github.com/SienkLogic/plan-build-run/commit/04b7d0ff19bba67c8a0a620fbaaacf189f1055be))
+
 ## [2.46.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.45.0...plan-build-run-v2.46.0) (2026-03-01)
 
 
