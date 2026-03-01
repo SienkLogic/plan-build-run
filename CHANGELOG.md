@@ -5,6 +5,21 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.52.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.51.0...plan-build-run-v2.52.0) (2026-03-01)
+
+
+### Features
+
+* **54-01:** add sync:generate/sync:verify scripts and unit tests ([4b59ad6](https://github.com/SienkLogic/plan-build-run/commit/4b59ad6fb77918d47f1ab5765c4d0d54ae4d6257))
+* **54-01:** create generate-derivatives.js with transformation engine ([190ab92](https://github.com/SienkLogic/plan-build-run/commit/190ab92ccd45b73388594b565ecdab51a2f64774))
+* **54-02:** GREEN - add session get|set|clear|dump subcommands to pbr-tools.js ([4e69699](https://github.com/SienkLogic/plan-build-run/commit/4e69699d6ec7d3cc67137108fffbb4d7c294a637))
+* **54-02:** migrate core signal file writers to .session.json ([6fcc7a1](https://github.com/SienkLogic/plan-build-run/commit/6fcc7a14c3be9ca78eacb582db951f773e776480))
+
+
+### Bug Fixes
+
+* **54-01:** cursor agents keep model+readonly, lower branch threshold to 68 ([4124d2e](https://github.com/SienkLogic/plan-build-run/commit/4124d2e16ac1dd3e395458c2e01331ae6f92dd32))
+
 ## [2.51.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.50.0...plan-build-run-v2.51.0) (2026-03-01)
 
 
