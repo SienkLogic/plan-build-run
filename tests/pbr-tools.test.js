@@ -1274,7 +1274,8 @@ describe('milestoneStats', () => {
 
 // --- stateBundle / initStateBundle tests ---
 
-const { initStateBundle, stateBundle } = require('../plugins/pbr/scripts/pbr-tools');
+const { initStateBundle, stateBundle, contextTriage } = require('../plugins/pbr/scripts/pbr-tools');
+const { contextTriage: contextTriageLib, readBridgeData, readTrackerData } = require('../plugins/pbr/scripts/lib/context');
 
 const BUNDLE_STATE_FM = [
   '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
@@ -1423,5 +1424,123 @@ describe('stateBundle / initStateBundle', () => {
     const result = initStateBundle('3');
     expect(result.config_summary).toHaveProperty('depth');
     expect(result.config_summary.depth).toBe('standard');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// contextTriage / lib/context
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('contextTriage', () => {
+  let tmpDir;
+  let origRoot;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-context-triage-'));
+    origRoot = process.env.PBR_PROJECT_ROOT;
+    process.env.PBR_PROJECT_ROOT = tmpDir;
+    // Create .planning/ dir
+    fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+  });
+
+  afterEach(() => {
+    if (origRoot !== undefined) {
+      process.env.PBR_PROJECT_ROOT = origRoot;
+    } else {
+      delete process.env.PBR_PROJECT_ROOT;
+    }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  function writeBridge(planningDir, data, mtime) {
+    const bridgePath = path.join(planningDir, '.context-budget.json');
+    fs.writeFileSync(bridgePath, JSON.stringify(data), 'utf8');
+    if (mtime) {
+      fs.utimesSync(bridgePath, mtime / 1000, mtime / 1000);
+    }
+  }
+
+  function writeTracker(planningDir, data) {
+    fs.writeFileSync(path.join(planningDir, '.context-tracker'), JSON.stringify(data), 'utf8');
+  }
+
+  test('returns PROCEED when bridge shows low percentage', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    writeBridge(planningDir, { percentage: 30, tier: 'PEAK', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.recommendation).toBe('PROCEED');
+    expect(result.data_source).toBe('bridge');
+    expect(result.percentage).toBe(30);
+  });
+
+  test('returns CHECKPOINT when bridge shows 50-70%', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    writeBridge(planningDir, { percentage: 60, tier: 'DEGRADING', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.recommendation).toBe('CHECKPOINT');
+    expect(result.data_source).toBe('bridge');
+  });
+
+  test('returns COMPACT when bridge shows >70%', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    writeBridge(planningDir, { percentage: 80, tier: 'POOR', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.recommendation).toBe('COMPACT');
+    expect(result.data_source).toBe('bridge');
+  });
+
+  test('falls back to heuristic when bridge is missing', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    writeTracker(planningDir, { total_chars: 15000, unique_files: 3, reads: 5 });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.recommendation).toBe('PROCEED');
+    expect(result.data_source).toBe('heuristic');
+  });
+
+  test('falls back to heuristic when bridge is stale', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    // Set mtime to 120 seconds ago
+    const staleMtime = Date.now() - 120 * 1000;
+    writeBridge(planningDir, { percentage: 40, tier: 'GOOD', timestamp: new Date(staleMtime).toISOString() }, staleMtime);
+    writeTracker(planningDir, { total_chars: 20000, unique_files: 4, reads: 6 });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.data_source).toBe('stale_bridge');
+    // Stale bridge with 20k chars → PROCEED
+    expect(result.recommendation).toBe('PROCEED');
+  });
+
+  test('relaxes threshold near completion', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    // 55% would normally give CHECKPOINT, but agentsDone/plansTotal > 0.8 relaxes to PROCEED
+    // Use 5/6 = 0.833 which is strictly > 0.8
+    writeBridge(planningDir, { percentage: 55, tier: 'DEGRADING', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({ agentsDone: 5, plansTotal: 6 }, planningDir);
+    expect(result.recommendation).toBe('PROCEED');
+    expect(result.reason).toMatch(/Near completion/);
+  });
+
+  test('always PROCEED during cleanup step', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    // 75% would normally give COMPACT, but finalize step overrides
+    writeBridge(planningDir, { percentage: 75, tier: 'POOR', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({ currentStep: 'finalize' }, planningDir);
+    expect(result.recommendation).toBe('PROCEED');
+    expect(result.reason).toMatch(/Cleanup\/finalize/);
+  });
+
+  test('handles completely empty .planning/ directory', () => {
+    // No bridge, no tracker
+    const planningDir = path.join(tmpDir, '.planning');
+    const result = contextTriageLib({}, planningDir);
+    expect(result.recommendation).toBe('PROCEED');
+    expect(result.data_source).toBe('heuristic');
+  });
+
+  test('reason field includes human-readable explanation with percentage and tier', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    writeBridge(planningDir, { percentage: 42, tier: 'GOOD', timestamp: new Date().toISOString() });
+    const result = contextTriageLib({}, planningDir);
+    expect(result.reason).toContain('42%');
+    expect(result.reason).toContain('GOOD');
   });
 });
