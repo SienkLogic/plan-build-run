@@ -47,9 +47,9 @@ describe('agent-teams', () => {
     });
 
     test('documents all three planning roles', () => {
-      expect(planSkill).toContain('ARCHITECT role');
-      expect(planSkill).toContain('SECURITY REVIEWER role');
-      expect(planSkill).toContain('TEST DESIGNER role');
+      // Condensed in Phase 52: role definitions moved to references/agent-teams.md
+      // Plan SKILL.md now references roles by short name in a summary line
+      expect(planSkill).toMatch(/architect.*security.*test/i);
     });
 
     test('includes synthesis step', () => {
