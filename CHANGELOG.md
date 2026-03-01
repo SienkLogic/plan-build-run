@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.51.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.50.0...plan-build-run-v2.51.0) (2026-03-01)
+
+
+### Features
+
+* **53-02:** add ci-poll and rollback CLI commands to pbr-tools ([c26434a](https://github.com/SienkLogic/plan-build-run/commit/c26434ac4d58ba8e0849205109f1978222131377))
+
+
+### Bug Fixes
+
+* **53-02:** sync ci-poll and rollback CLI updates to cursor-pbr and copilot-pbr ([ab78f09](https://github.com/SienkLogic/plan-build-run/commit/ab78f09db8e7e653d49d3b1bff366ae95bae98bc))
+
 ## [2.50.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.49.0...plan-build-run-v2.50.0) (2026-03-01)
 
 
