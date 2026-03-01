@@ -77,7 +77,18 @@ Execute these steps in order.
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
-**Validation errors — use branded error boxes:**
+**Validation errors:**
+
+If phase directory not found, use conversational recovery:
+
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
+2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
+3. Display: "Phase '{slug}' not found. Did you mean one of these?"
+   - List `suggestions` (if any) as numbered options.
+   - Offer "Show all phases" to list `available`.
+4. Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
+   - If user picks a valid phase slug: re-run with that slug.
+   - If user chooses to abort: stop cleanly with a friendly message.
 
 If no SUMMARY.md files:
 ```

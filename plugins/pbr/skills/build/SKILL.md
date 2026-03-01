@@ -159,16 +159,23 @@ Phase {N} has no plans.
 **To fix:** Run `/pbr:plan {N}` first.
 ```
 
-If dependencies incomplete:
-```
-╔══════════════════════════════════════════════════════════════╗
-║  ERROR                                                       ║
-╚══════════════════════════════════════════════════════════════╝
+If dependencies incomplete, use conversational recovery:
 
-Phase {N} depends on Phase {M}, which is not complete.
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {dependency-phase-slug}`
+2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
+3. Display what summaries exist and what is still missing.
+4. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`) to offer:
+   - "Build {dependency-phase} first" — stop and show: `/pbr:build {dependency-phase}`
+   - "Continue anyway (skip dependency check)" — proceed with build, note unmet deps in output
 
-**To fix:** Build Phase {M} first with `/pbr:build {M}`.
-```
+If config validation fails for a specific field, use conversational recovery:
+
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives config-invalid {field} {value}`
+2. Parse the JSON response to get `valid_values` and `suggested_fix`.
+3. Display the invalid field, its current value, and the valid options.
+4. Use AskUserQuestion to offer: "Fix config.json now, or continue with current value?"
+   - If "Fix now": stop and display the `suggested_fix` instruction.
+   - If "Continue": proceed with default value for that field.
 
 ---
 
