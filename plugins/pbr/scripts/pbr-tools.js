@@ -46,6 +46,10 @@
  *   checkpoint init <phase-slug> [--plans "id1,id2"]  — Initialize checkpoint manifest
  *   checkpoint update <phase-slug> --wave N --resolved id [--sha hash]  — Update manifest
  *   seeds match <phase-slug> <phase-number>  — Find matching seed files for a phase
+ *   session get <key>              — Read a key from .planning/.session.json
+ *   session set <key> <value>      — Write a key to .planning/.session.json
+ *   session clear [key]            — Delete .session.json or set key to null
+ *   session dump                   — Print entire .session.json content
  *
  * Environment: PBR_PROJECT_ROOT — Override project root directory (used when hooks fire from subagent cwd)
  */
@@ -345,6 +349,51 @@ function checkpointUpdate(phaseSlug, opts) { return _checkpointUpdate(phaseSlug,
 function seedsMatch(phaseSlug, phaseNum) { return _seedsMatch(phaseSlug, phaseNum, planningDir); }
 function ciPoll(runId, timeoutSecs) { return _ciPoll(runId, timeoutSecs, planningDir); }
 function rollbackPlan(manifestPath) { return _rollback(manifestPath, planningDir); }
+
+// --- Session state management (.planning/.session.json) ---
+
+const SESSION_ALLOWED_KEYS = ['activeSkill', 'compactCounter', 'sessionStart', 'activeOperation', 'activePlan'];
+
+/**
+ * Load .session.json from .planning/ directory.
+ * Returns parsed object or {} if file is missing or unreadable.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @returns {object}
+ */
+function sessionLoad(dir) {
+  const sessionPath = path.join(dir, '.session.json');
+  try {
+    if (!fs.existsSync(sessionPath)) return {};
+    const content = fs.readFileSync(sessionPath, 'utf8');
+    return JSON.parse(content);
+  } catch (_e) {
+    return {};
+  }
+}
+
+/**
+ * Save data to .session.json using atomic write (write .tmp, then rename).
+ * Merges provided data with existing session data.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {object} data - Key-value pairs to merge into session
+ * @returns {{ success: boolean, error?: string }}
+ */
+function sessionSave(dir, data) {
+  const sessionPath = path.join(dir, '.session.json');
+  const tmpPath = sessionPath + '.tmp';
+  try {
+    const existing = sessionLoad(dir);
+    const merged = Object.assign(existing, data);
+    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
+    fs.renameSync(tmpPath, sessionPath);
+    return { success: true };
+  } catch (e) {
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* cleanup */ }
+    return { success: false, error: e.message };
+  }
+}
 
 // --- validateProject stays here (cross-cutting across modules) ---
 
@@ -833,6 +882,45 @@ async function main() {
       const manifestPath = args[1];
       if (!manifestPath) { error('Usage: pbr-tools.js rollback <manifest-path>'); return; }
       output(rollbackPlan(manifestPath));
+    } else if (command === 'session') {
+      const sub = args[1];
+      const key = args[2];
+      const value = args[3];
+      const dir = planningDir;
+      if (sub === 'get') {
+        if (!key) { error('Usage: pbr-tools.js session get <key>'); return; }
+        if (!SESSION_ALLOWED_KEYS.includes(key)) { error(`Unknown session key: ${key}. Allowed: ${SESSION_ALLOWED_KEYS.join(', ')}`); return; }
+        const data = sessionLoad(dir);
+        const val = Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+        output({ key, value: val });
+      } else if (sub === 'set') {
+        if (!key || value === undefined) { error('Usage: pbr-tools.js session set <key> <value>'); return; }
+        if (!SESSION_ALLOWED_KEYS.includes(key)) { error(`Unknown session key: ${key}. Allowed: ${SESSION_ALLOWED_KEYS.join(', ')}`); return; }
+        // Coerce numeric strings
+        let coerced = value;
+        if (/^\d+$/.test(value)) coerced = parseInt(value, 10);
+        else if (value === 'null') coerced = null;
+        const result = sessionSave(dir, { [key]: coerced });
+        if (!result.success) { error(result.error || 'Failed to save session'); return; }
+        output({ ok: true });
+      } else if (sub === 'clear') {
+        const sessionPath = path.join(dir, '.session.json');
+        if (key) {
+          // Clear a specific key — set to null
+          if (!SESSION_ALLOWED_KEYS.includes(key)) { error(`Unknown session key: ${key}. Allowed: ${SESSION_ALLOWED_KEYS.join(', ')}`); return; }
+          const result = sessionSave(dir, { [key]: null });
+          if (!result.success) { error(result.error || 'Failed to clear session key'); return; }
+        } else {
+          // Clear entire session file
+          try { if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath); } catch (e) { error(e.message); return; }
+        }
+        output({ ok: true });
+      } else if (sub === 'dump') {
+        const data = sessionLoad(dir);
+        output(data);
+      } else {
+        error('Usage: pbr-tools.js session get|set|clear|dump <key> [value]');
+      }
     } else if (command === 'context-triage') {
       const options = {};
       const agentsIdx = args.indexOf('--agents-done');
@@ -856,7 +944,7 @@ async function main() {
     } else if (command === 'validate-project') {
       output(validateProject());
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump`);
     }
   } catch (e) {
     error(e.message);
@@ -864,6 +952,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
