@@ -374,7 +374,6 @@ Use AskUserQuestion with the three options. Route:
 - Between waves: verify no file conflicts from parallel executors (`git status` for uncommitted changes)
 
 **Read executor deviations:**
-
 After all executors in the wave complete, read all SUMMARY frontmatter and:
 - Collect `deferred` items into a running list (append to `.checkpoint-manifest.json` deferred array)
 - Flag any deviation-rule-4 (architectural) stops — these require user attention
@@ -395,9 +394,7 @@ Wave {W} Results:
 
 **Skip if** the depth profile has `features.inline_verify: false`.
 
-To check: use the resolved depth profile. Only `comprehensive` mode enables inline verification by default.
-
-When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave. This catches issues early — before dependent plans build on a broken foundation.
+To check: use the resolved depth profile. Only `comprehensive` mode enables inline verification by default. When inline verification is enabled, each completed plan gets a targeted verification pass before the orchestrator proceeds to the next wave — catching issues early before dependent plans build on a broken foundation.
 
 For each plan that completed successfully in this wave:
 
