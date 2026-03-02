@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Context-engineered development workflow for Claude Code, Cursor, and GitHub Copilot CLI.</strong>
+  <strong>Context-engineered development workflow for Claude Code, Cursor, GitHub Copilot CLI, OpenAI Codex, and Google Jules.</strong>
   <br />
   Build ambitious multi-phase software without quality degradation.
   <br />
@@ -27,7 +27,7 @@
   <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
   <a href="LICENSE"><img src="https://img.shields.io/github/license/SienkLogic/plan-build-run?style=for-the-badge" alt="License" /></a>
   <a href="https://www.npmjs.com/package/@sienklogic/plan-build-run"><img src="https://img.shields.io/npm/v/@sienklogic/plan-build-run?style=for-the-badge&logo=npm&logoColor=white" alt="npm" /></a>
-  <img src="https://img.shields.io/badge/Tests-2153_passing-brightgreen?style=for-the-badge" alt="2153 Tests" />
+  <img src="https://img.shields.io/badge/Tests-9283_passing-brightgreen?style=for-the-badge" alt="9283 Tests" />
 </p>
 
 ---
@@ -133,6 +133,48 @@ All three plugins share the same `.planning/` directory — start in any tool, c
 </details>
 
 <details>
+<summary><strong>Install for OpenAI Codex CLI</strong></summary>
+
+Plan-Build-Run also works in OpenAI Codex CLI. Skills and agents are available via the `plugins/codex-pbr/` plugin. No hooks (Codex CLI does not support lifecycle hooks).
+
+**macOS / Linux:**
+```bash
+cd /path/to/your/project
+bash /path/to/plan-build-run/plugins/codex-pbr/setup.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\your\project
+powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\codex-pbr\setup.ps1
+```
+
+All five plugins share the same `.planning/` directory. See [`plugins/codex-pbr/README.md`](plugins/codex-pbr/README.md) for full details.
+
+</details>
+
+<details>
+<summary><strong>Install for Google Jules</strong></summary>
+
+Plan-Build-Run also works in Google Jules. Skills and agents are available via the `plugins/jules-pbr/` plugin. No hooks (Jules does not support lifecycle hooks).
+
+**macOS / Linux:**
+```bash
+cd /path/to/your/project
+bash /path/to/plan-build-run/plugins/jules-pbr/setup.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\your\project
+powershell -ExecutionPolicy Bypass -File C:\path\to\plan-build-run\plugins\jules-pbr\setup.ps1
+```
+
+All five plugins share the same `.planning/` directory. See [`plugins/jules-pbr/README.md`](plugins/jules-pbr/README.md) for full details.
+
+</details>
+
+<details>
 <summary><strong>Dashboard (Optional)</strong></summary>
 
 Plan-Build-Run ships with a companion web dashboard for browsing your project's planning state in a browser.
@@ -219,7 +261,7 @@ Set `depth: quick` in `/pbr:config` to reduce agent spawns across all workflows.
 | `/pbr:build <N>` | Build a phase: parallel execution in waves, atomic commits | 2-4 (quick: 1-2) |
 | `/pbr:review <N>` | Verify a phase: automated 3-layer checks + conversational UAT | 1 |
 
-See **[Commands](https://github.com/SienkLogic/plan-build-run/wiki/Commands)** for all 26 commands with flags, cost-by-depth tables, and detailed descriptions.
+See **[Commands](https://github.com/SienkLogic/plan-build-run/wiki/Commands)** for all 27 commands with flags, cost-by-depth tables, and detailed descriptions.
 
 ---
 
@@ -292,8 +334,8 @@ Requires a GPU with 6+ GB VRAM for best performance. CPU-only works but adds lat
 | Topic | Description |
 |-------|-------------|
 | **[Agents](https://github.com/SienkLogic/plan-build-run/wiki/Agents)** | 12 specialized agents with configurable model profiles and file-based communication |
-| **[Configuration](https://github.com/SienkLogic/plan-build-run/wiki/Configuration)** | 13 config keys, depth/model profiles, 16+ feature toggles, local LLM settings |
-| **[Hooks](https://github.com/SienkLogic/plan-build-run/wiki/Hooks)** | 38 hook scripts that enforce discipline at zero token cost |
+| **[Configuration](https://github.com/SienkLogic/plan-build-run/wiki/Configuration)** | 12 config keys, depth/model profiles, 14+ feature toggles, local LLM settings |
+| **[Hooks](https://github.com/SienkLogic/plan-build-run/wiki/Hooks)** | 41 hook scripts that enforce discipline at zero token cost |
 | **[Local LLM](https://github.com/SienkLogic/plan-build-run/wiki/Configuration#local_llm)** | Offload hook-level inference to Ollama for token savings with automatic fallback |
 | **[Project Structure](https://github.com/SienkLogic/plan-build-run/wiki/Project-Structure)** | The `.planning/` directory layout, key files, and file ownership |
 | **[Dashboard](https://github.com/SienkLogic/plan-build-run/wiki/Dashboard)** | Web UI with live updates for browsing project state |
@@ -306,28 +348,29 @@ Requires a GPU with 6+ GB VRAM for best performance. CPU-only works but adds lat
 
 ## Platform Compatibility
 
-Plan-Build-Run works across three platforms with varying levels of hook support. Hooks are the mechanism that fires validation scripts on every tool call — they power local LLM offloading, commit format enforcement, context budget tracking, and workflow gates.
+Plan-Build-Run works across five platforms with varying levels of hook support. Hooks are the mechanism that fires validation scripts on every tool call — they power local LLM offloading, commit format enforcement, context budget tracking, and workflow gates.
 
-| Feature | Claude Code | Copilot CLI | Cursor IDE |
-|---------|:-----------:|:-----------:|:----------:|
-| Skills (slash commands) | All 26 | All 26 | All 26 |
-| Agents (subagent delegation) | All 12 | All 12 | All 12 |
-| `.planning/` state management | Full | Full | Full |
-| **Hook support** | **Full (14 events)** | **Partial (4 events)** | **Unverified** |
-| Commit format enforcement | Hook-enforced | Hook-enforced | Manual |
-| PLAN/SUMMARY quality classification | Hook + skill fallback | Hook + skill fallback | Skill fallback only |
-| Test failure triage | Automatic (hook) | Automatic (hook) | Not available |
-| Context budget tracking | Automatic (hook) | Not available | Not available |
-| Auto-continue between skills | Automatic (hook) | Not available | Not available |
-| Subagent lifecycle logging | Automatic (hook) | Not available | Not available |
-| **Local LLM offloading** | **Full (8 operations)** | **Mostly (6-7 operations)** | **CLI only** |
-| `pbr-tools.js llm` CLI commands | Full | Full | Full |
+| Feature | Claude Code | Copilot CLI | Cursor IDE | Codex CLI | Jules |
+|---------|:-----------:|:-----------:|:----------:|:---------:|:-----:|
+| Skills (slash commands) | All 27 | All 27 | All 27 | All 27 | All 27 |
+| Agents (subagent delegation) | All 12 | All 12 | All 12 | All 12 | All 12 |
+| `.planning/` state management | Full | Full | Full | Full | Full |
+| **Hook support** | **Full (14 events)** | **Partial (4 events)** | **Unverified** | **None** | **None** |
+| Commit format enforcement | Hook-enforced | Hook-enforced | Manual | Manual | Manual |
+| PLAN/SUMMARY quality classification | Hook + skill fallback | Hook + skill fallback | Skill fallback only | Skill fallback only | Skill fallback only |
+| Test failure triage | Automatic (hook) | Automatic (hook) | Not available | Not available | Not available |
+| Context budget tracking | Automatic (hook) | Not available | Not available | Not available | Not available |
+| Auto-continue between skills | Automatic (hook) | Not available | Not available | Not available | Not available |
+| Subagent lifecycle logging | Automatic (hook) | Not available | Not available | Not available | Not available |
+| **Local LLM offloading** | **Full (8 operations)** | **Mostly (6-7 operations)** | **CLI only** | **CLI only** | **CLI only** |
+| `pbr-tools.js llm` CLI commands | Full | Full | Full | Full | Full |
 
 **Key differences:**
 
 - **Claude Code** has full hook support — all local LLM operations fire automatically on every tool call
 - **Copilot CLI** supports `sessionStart`, `preToolUse`, `postToolUse`, and `sessionEnd` — covers most validation hooks but misses lifecycle events (`SubagentStop`, `PreCompact`, `Stop`)
 - **Cursor IDE** hook support is unverified — hooks.json is configured but whether Cursor actually fires them is unknown. Skills include `pbr-tools.js llm` fallback calls for key operations (plan quality, verification quality) so local LLM classification is available even without hooks
+- **OpenAI Codex CLI** and **Google Jules** do not support hooks. All skills and agents are available via `plugins/codex-pbr/` and `plugins/jules-pbr/` respectively. Agent definitions use AGENTS.md format.
 
 All platforms share the same scripts via relative paths — no code duplication. See the [Copilot CLI](plugins/copilot-pbr/README.md) and [Cursor IDE](plugins/cursor-pbr/README.md) READMEs for platform-specific details.
 
@@ -341,7 +384,7 @@ git clone https://github.com/SienkLogic/plan-build-run.git
 cd plan-build-run
 npm install
 
-# Run tests (2153 tests, 73 suites)
+# Run tests (9283 tests, 281 suites)
 npm test
 
 # Lint
@@ -362,14 +405,19 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux. See [CONTRIBUTING.md]
 
 | Metric | Count |
 |--------|-------|
-| Skills (slash commands) | 26 |
+| Skills (slash commands) | 27 |
 | Specialized agents | 12 |
-| Hook scripts | 38 |
+| Hook scripts | 41 |
 | Local LLM operations | 8 |
-| Supported platforms | 3 (Claude Code, Cursor, Copilot CLI) |
-| Tests | 2153 |
-| Test suites | 73 |
-| Config keys | 13 top-level (62+ properties) |
+| Supported platforms | 5 (Claude Code, Cursor, Copilot CLI, Codex, Jules) |
+| Tests | 9283 |
+| Test suites | 281 |
+| Config keys | 12 top-level (62+ properties) |
+| Feature toggles | 14 |
+| Lib modules | 19 |
+| Shared fragments | 12 |
+| Templates | 10 |
+| References | 19 |
 
 ---
 

@@ -1,6 +1,6 @@
 # Workflow Reference
 
-A complete guide to Plan-Build-Run's 25 skills and how they fit together.
+A complete guide to Plan-Build-Run's 27 skills and how they fit together.
 
 ---
 
@@ -190,6 +190,36 @@ Execute a small task outside the full plan/build/review cycle.
 
 ---
 
+#### `/pbr:do` -- Route Freeform Text
+
+Route a freeform description to the right PBR skill automatically.
+
+```
+/pbr:do fix the login button color
+/pbr:do plan the caching layer
+```
+
+**When to use**: When you know what you want to do but aren't sure which command to use. Plan-Build-Run analyzes the input and routes to the best matching skill.
+
+**What it does**: Inline routing — no agents spawned. Interprets freeform text and delegates to the appropriate skill.
+
+---
+
+#### `/pbr:undo` -- Revert Recent Commits
+
+Revert recent PBR-generated commits safely.
+
+```
+/pbr:undo                  # Show recent commits and pick one to revert
+/pbr:undo --plan 2         # Revert commits from plan 2 of the current phase
+```
+
+**When to use**: When you want to roll back recent PBR-generated work without destructive resets.
+
+**What it does**: Lists recent PBR commits, confirms your choice, then uses `git revert` (non-destructive) to undo them. Updates STATE.md after reverting.
+
+---
+
 #### `/pbr:continue` -- Auto-Advance
 
 Determine and execute the next logical step automatically.
@@ -205,6 +235,20 @@ Determine and execute the next logical step automatically.
 ---
 
 ### Verification and Debugging
+
+#### `/pbr:test` -- Generate Tests
+
+Generate tests for completed phase code.
+
+```
+/pbr:test 2                # Generate tests for phase 2 output
+```
+
+**When to use**: After building a phase, when you want to add tests for the code that was written. Detects your test framework automatically.
+
+**What it does**: Reads the phase SUMMARY.md to identify key files, then spawns one executor agent to write tests with atomic commits.
+
+---
 
 #### `/pbr:debug` -- Systematic Debugging
 
@@ -341,6 +385,23 @@ Read and modify workflow settings.
 ```
 
 **When to use**: To tune Plan-Build-Run's behavior for your project -- speed vs. thoroughness, model quality vs. cost, confirmation prompts vs. autonomous execution.
+
+---
+
+#### `/pbr:audit` -- Session Audit
+
+Analyze Claude Code session logs for workflow compliance and UX quality.
+
+```
+/pbr:audit                             # Audit today's sessions (full mode)
+/pbr:audit --from 2026-03-01           # Audit sessions from a specific date
+/pbr:audit --mode compliance           # Compliance-only analysis
+/pbr:audit --today --mode ux           # UX analysis for today
+```
+
+**When to use**: To review how well a session followed PBR workflow best practices — useful for team quality reviews or self-improvement.
+
+**What it does**: Reads Claude Code session JSONL logs, spawns parallel audit agents (one per session), and writes a report to `.planning/audits/{YYYY-MM-DD}-session-audit.md`.
 
 ---
 

@@ -684,11 +684,14 @@ flowchart TD
 | `synthesizer` | begin | haiku | Compress research outputs into summary |
 | `planner` | begin, plan, review | inherit | Generate roadmaps, phase plans, gap-closure plans |
 | `plan-checker` | plan, review | inherit | Verify plan quality, trigger revisions |
-| `executor` | build, quick | inherit | Execute plan tasks, write code, create files |
+| `executor` | build, quick, test | inherit | Execute plan tasks, write code, create files |
 | `verifier` | build, review | inherit | Goal-backward verification of phase outcomes |
 | `debugger` | debug, review | inherit | Scientific-method bug investigation |
 | `codebase-mapper` | scan | sonnet | Analyze codebase from a specific focus angle |
 | `integration-checker` | milestone audit | sonnet | Cross-phase integration and E2E flow checks |
+| `general` | ad-hoc tasks | inherit | Lightweight PBR-aware agent for miscellaneous work |
+| `audit` | audit | haiku | Session analysis for workflow compliance and UX quality |
+| `dev-sync` | internal | sonnet | Cross-plugin derivative sync (cursor-pbr, copilot-pbr, etc.) |
 
 All agents are spawned via `Task()` with `subagent_type` — agent definitions are auto-loaded from `agents/*.md`, never inlined into the orchestrator prompt.
 

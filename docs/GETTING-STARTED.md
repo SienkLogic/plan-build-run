@@ -270,7 +270,7 @@ This directory is the source of truth. You can kill your terminal, reboot, come 
 
 ## Next Steps
 
-- [Workflow Reference](WORKFLOW-REFERENCE.md) -- All 26 commands with descriptions and common workflows
+- [Workflow Reference](WORKFLOW-REFERENCE.md) -- All 27 commands with descriptions and common workflows
 - [Creating Skills](CREATING-SKILLS.md) -- Extend Plan-Build-Run with custom slash commands
 - [Creating Agents](CREATING-AGENTS.md) -- Add specialized agents for your domain
 - [Full Documentation](DOCS.md) -- Comprehensive reference for every skill, agent, and config option

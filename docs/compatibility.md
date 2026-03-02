@@ -2,6 +2,10 @@
 
 Plan-Build-Run's minimum required version and notable upstream fixes that affect reliability.
 
+## Platform Support
+
+Plan-Build-Run supports 5 platforms: Claude Code, Cursor IDE, GitHub Copilot CLI, OpenAI Codex CLI (`plugins/codex-pbr/`), and Google Jules (`plugins/jules-pbr/`). Codex and Jules do not support lifecycle hooks — all skills and agents are available, but hook-powered features (commit validation, context tracking, auto-continue) are not active on those platforms.
+
 ## Minimum Version
 
 **Claude Code 2.1.45+** (required)
@@ -48,6 +52,6 @@ Plan-Build-Run depends on features and bug fixes from this release:
 | Feature | Since Version | Plan-Build-Run Usage |
 |---------|--------------|---------------|
 | `spinnerTipsOverride` | 2.1.45 | Custom spinner tips via `spinner_tips` config |
-| Plugin hooks | 1.0.x | All 10 hook event types |
+| Plugin hooks | 1.0.x | All 14 hook event types |
 | `subagent_type` | 1.0.x | Auto-loads agent definitions |
 | Agent Teams | 2.1.x | Optional `--team` flag in build/review |

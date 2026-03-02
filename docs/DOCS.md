@@ -239,6 +239,37 @@ Execute a small, well-defined task outside the plan/build/review cycle with an a
 
 ---
 
+#### `/pbr:do` — Route Freeform Text
+
+Route a freeform description to the right PBR skill automatically. Useful when you're not sure which command to run.
+
+**Syntax**: `/pbr:do <freeform text>`
+
+**Agents spawned**: None (routes inline to the appropriate skill)
+
+**Behavior**:
+- Analyzes the freeform input and determines the best matching PBR skill
+- Routes immediately — no additional prompts
+- Example: `/pbr:do fix the login bug` routes to `/pbr:debug` or `/pbr:quick` depending on context
+
+---
+
+#### `/pbr:undo` — Revert Recent Commits
+
+Revert recent PBR-generated commits safely using `git revert`.
+
+**Syntax**: `/pbr:undo [phase] [--plan N]`
+
+**Agents spawned**: None (inline)
+
+**Behavior**:
+- Lists recent PBR commits (last 5 by default) and confirms before reverting
+- Uses `git revert` (non-destructive) rather than `git reset`
+- Can target a specific phase or plan with `--plan N`
+- Updates STATE.md after reverting
+
+---
+
 #### `/pbr:continue` — Auto-Continue
 
 Determine and execute the next logical step automatically. No prompts, no decisions.
@@ -256,6 +287,22 @@ Determine and execute the next logical step automatically. No prompts, no decisi
 ---
 
 ### Verification & Debugging
+
+#### `/pbr:test` — Generate Tests
+
+Generate tests for completed phase code. Detects test framework and targets key files.
+
+**Syntax**: `/pbr:test <N>`
+
+**Agents spawned**: 1 `executor`
+
+**Behavior**:
+- Reads SUMMARY.md and VERIFICATION.md from the target phase to identify key files
+- Detects the project's test framework (Jest, pytest, Vitest, etc.)
+- Spawns an executor to write tests with atomic commits
+- Uses TDD-style `test(NN-MM): add tests for {area}` commit format
+
+---
 
 #### `/pbr:debug` — Systematic Debugging
 
@@ -409,6 +456,32 @@ Read and modify `.planning/config.json` settings.
 
 ---
 
+#### `/pbr:audit` — Session Audit
+
+Analyze Claude Code session logs for PBR workflow compliance and UX quality.
+
+**Syntax**: `/pbr:audit [--from DATE] [--to DATE] [--today] [--mode compliance|ux|full]`
+
+| Argument | Meaning |
+|----------|---------|
+| `--from DATE` | Analyze sessions from this date forward |
+| `--to DATE` | Analyze sessions up to this date |
+| `--today` | Analyze today's sessions only (default) |
+| `--mode compliance` | Check STATE.md lifecycle, hooks, commit format, subagent delegation |
+| `--mode ux` | Evaluate user intent vs behavior, flow quality, feedback gaps |
+| `--mode full` | Run both compliance and UX analysis (default) |
+
+**Agents spawned**: Parallel `audit` agents (one per session) + 1 Bash/haiku agent for git log analysis
+
+**Files created**: `.planning/audits/{YYYY-MM-DD}-session-audit.md`
+
+**Behavior**:
+- Reads Claude Code session JSONL logs from `~/.claude/projects/{encoded-path}/*.jsonl`
+- Each audit agent checks: STATE.md lifecycle, hook evidence, commit format, subagent delegation, active-skill management, user intent vs behavior, flow choice quality, feedback gaps
+- Parallel analysis — one agent per session file for speed
+
+---
+
 #### `/pbr:help` — Command Reference
 
 Display command reference and workflow guide. No agents, no file I/O.
@@ -419,7 +492,7 @@ Display command reference and workflow guide. No agents, no file I/O.
 
 ## Agents Reference
 
-Plan-Build-Run includes 10 specialized agents. Each runs in a fresh `Task()` context with a clean 200k token window.
+Plan-Build-Run includes 12 specialized agents. Each runs in a fresh `Task()` context with a clean 200k token window.
 
 | Agent | File | Role | Model | Read-Only | Key Output |
 |-------|------|------|-------|-----------|------------|
@@ -433,6 +506,8 @@ Plan-Build-Run includes 10 specialized agents. Each runs in a fresh `Task()` con
 | Codebase Mapper | `codebase-mapper` | Brownfield codebase analysis (tech, arch, quality, concerns) | Sonnet | Yes | `.planning/codebase/*.md` |
 | Synthesizer | `synthesizer` | Research output synthesis and contradiction resolution | Haiku | Yes | `SUMMARY.md` |
 | General | `general` | Lightweight Plan-Build-Run-aware agent for ad-hoc tasks | Inherit | Varies | Varies |
+| Audit | `audit` | Session analysis for workflow compliance and UX quality | Haiku | Yes | `.planning/audits/*.md` |
+| Dev-Sync | `dev-sync` | Cross-plugin derivative sync (internal, not user-facing) | Sonnet | No (write access) | Synced derivative plugin files |
 
 **Model values**: `sonnet` = Claude Sonnet, `inherit` = same model as parent session, `haiku` = Claude Haiku, `opus` = Claude Opus. Configurable via `/pbr:config model <agent> <model>` or `/pbr:config model-profile <preset>`.
 
@@ -440,7 +515,7 @@ Plan-Build-Run includes 10 specialized agents. Each runs in a fresh `Task()` con
 
 ## Configuration Reference
 
-All settings live in `.planning/config.json`. Created by `/pbr:begin`, modified by `/pbr:config`.
+All settings live in `.planning/config.json`. Created by `/pbr:begin`, modified by `/pbr:config`. There are 12 top-level config keys with 62+ properties total.
 
 ### Top-Level Settings
 
@@ -469,6 +544,8 @@ Boolean toggles for workflow behavior.
 | `features.status_line` | `true` | Show phase/progress in Claude Code status line |
 | `features.auto_continue` | `false` | Auto-spawn continuation agents without user prompt |
 | `features.team_discussions` | `false` | Enable team-based discussion workflows |
+| `features.auto_advance` | `false` | Automatically advance to the next phase after review passes |
+| `features.inline_verify` | `true` | Run inline verification checks within executor agents |
 
 ### Models
 
@@ -550,7 +627,7 @@ Confirmation gates pause for user approval. Set `mode: autonomous` or toggle ind
 
 ## Hooks Reference
 
-Plan-Build-Run registers 5 hooks via `hooks/hooks.json`. Hooks are Node.js scripts that fire automatically on Claude Code lifecycle events.
+Plan-Build-Run registers 41 hook scripts via `hooks/hooks.json`. Hooks are Node.js scripts that fire automatically on Claude Code lifecycle events across 14 event types.
 
 ### 1. Progress Tracker — `SessionStart`
 
@@ -664,15 +741,17 @@ Plan-Build-Run creates and manages a `.planning/` directory in your project root
       20260207-001.md
 
   milestones/             # From /pbr:milestone complete
-    v1.0-ROADMAP.md       # Archived roadmap snapshot
-    v1.0-REQUIREMENTS.md  # Archived requirements
-    v1.0-STATS.md         # Milestone statistics
+    v1.0/                 # Directory-based archive (v2.3+ format)
+      ROADMAP.md          # Archived roadmap snapshot
+      REQUIREMENTS.md     # Archived requirements
+      STATS.md            # Milestone statistics
+      phases/             # Archived phase directories
 
   seeds/                  # Deferred implementation hints
     SEED-001-caching.md
 
-  notes/                  # From /pbr:explore
-    performance-ideas.md
+  notes/                  # From /pbr:note
+    2026-02-08-performance-ideas.md   # Individual note files with YAML frontmatter
 
   logs/                   # Hook audit trail
     hooks.jsonl
