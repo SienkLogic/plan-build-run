@@ -10,6 +10,7 @@ const {
   transformHooksJson,
   generate,
   verify,
+  CODEX_DIR,
 } = require('../scripts/generate-derivatives');
 
 // ---------------------------------------------------------------------------
@@ -461,5 +462,48 @@ describe('generate and verify (integration)', () => {
     const written = generate('cursor', true);
     expect(written.every(f => f.includes('cursor-pbr'))).toBe(true);
     expect(written.every(f => !f.includes('copilot-pbr'))).toBe(true);
+  });
+
+  test('CODEX_DIR constant resolves to plugins/codex-pbr/', () => {
+    expect(CODEX_DIR).toBeDefined();
+    expect(CODEX_DIR).toMatch(/codex-pbr/);
+    expect(path.isAbsolute(CODEX_DIR)).toBe(true);
+  });
+
+  test('generate codex dry-run returns paths inside codex-pbr', () => {
+    const written = generate('codex', true);
+    expect(Array.isArray(written)).toBe(true);
+    expect(written.length).toBeGreaterThan(0);
+    for (const f of written) {
+      expect(f).toMatch(/codex-pbr/);
+    }
+  });
+
+  test('generate codex writes files to plugins/codex-pbr/', () => {
+    const written = generate('codex', false);
+    expect(Array.isArray(written)).toBe(true);
+    expect(written.length).toBeGreaterThan(0);
+    for (const f of written) {
+      expect(f).toMatch(/codex-pbr/);
+    }
+  });
+
+  test('verify codex returns ok:true immediately after generation', () => {
+    generate('codex', false);
+    const result = verify('codex');
+    expect(result.ok).toBe(true);
+    expect(result.drifted).toHaveLength(0);
+  });
+
+  test('codex agent files have .md extension (not .agent.md)', () => {
+    generate('codex', false);
+    const codexAgentsDir = path.join(CODEX_DIR, 'agents');
+    if (fs.existsSync(codexAgentsDir)) {
+      const files = fs.readdirSync(codexAgentsDir);
+      for (const f of files) {
+        expect(f).not.toMatch(/\.agent\.md$/);
+        expect(f).toMatch(/\.md$/);
+      }
+    }
   });
 });

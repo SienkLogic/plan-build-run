@@ -410,7 +410,9 @@ function processHooks(srcDir, destDir, target, dryRun, written) {
  */
 function generate(target, dryRun) {
   dryRun = dryRun || false;
-  const destDir = target === 'cursor' ? CURSOR_DIR : COPILOT_DIR;
+  const destDir = target === 'cursor' ? CURSOR_DIR
+    : target === 'codex' ? CODEX_DIR
+    : COPILOT_DIR;
   const written = [];
 
   processSkills(PBR_DIR, destDir, target, dryRun, written);
@@ -431,7 +433,9 @@ function generate(target, dryRun) {
  * @returns {{ ok: boolean, drifted: string[] }}
  */
 function verify(target) {
-  const destDir = target === 'cursor' ? CURSOR_DIR : COPILOT_DIR;
+  const destDir = target === 'cursor' ? CURSOR_DIR
+    : target === 'codex' ? CODEX_DIR
+    : COPILOT_DIR;
 
   // Run generate in dry-run mode to collect expected file paths
   const wouldWrite = generate(target, true);
@@ -513,10 +517,11 @@ function main() {
   for (const arg of args) {
     if (arg === 'cursor') targets.push('cursor');
     if (arg === 'copilot') targets.push('copilot');
+    if (arg === 'codex') targets.push('codex');
   }
 
   if (targets.length === 0) {
-    targets.push('cursor', 'copilot');
+    targets.push('cursor', 'copilot', 'codex');
   }
 
   if (isVerify) {
@@ -561,6 +566,7 @@ module.exports = {
   transformHooksJson,
   generate,
   verify,
+  CODEX_DIR,
 };
 
 if (require.main === module || process.argv[1] === __filename) {
