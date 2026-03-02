@@ -254,6 +254,84 @@ describe('copilot agent filename convention', () => {
 });
 
 // ---------------------------------------------------------------------------
+// codex target
+// ---------------------------------------------------------------------------
+
+describe('codex target', () => {
+  const skillFm = [
+    '---',
+    'name: myskill',
+    'description: "Does something cool"',
+    'allowed-tools: Read, Write, Bash',
+    'argument-hint: "<N> [--flag]"',
+    '---',
+    '',
+    'Body content here.',
+  ].join('\n');
+
+  const agentContent = [
+    '---',
+    'name: myagent',
+    'description: "Does agent things"',
+    'model: sonnet',
+    'memory: project',
+    'tools:',
+    '  - Read',
+    '  - Write',
+    '  - Bash',
+    '---',
+    '',
+    'Agent body here.',
+  ].join('\n');
+
+  describe('transformFrontmatter with codex', () => {
+    test('removes allowed-tools', () => {
+      const result = transformFrontmatter(skillFm, 'codex');
+      expect(result).not.toMatch(/allowed-tools/);
+    });
+
+    test('removes argument-hint', () => {
+      const result = transformFrontmatter(skillFm, 'codex');
+      expect(result).not.toMatch(/argument-hint/);
+    });
+
+    test('keeps name and description', () => {
+      const result = transformFrontmatter(skillFm, 'codex');
+      expect(result).toMatch(/name: myskill/);
+      expect(result).toMatch(/description: "Does something cool"/);
+    });
+  });
+
+  describe('transformAgentFrontmatter with codex', () => {
+    test('removes model', () => {
+      const result = transformAgentFrontmatter(agentContent, 'codex');
+      expect(result).not.toMatch(/^model\s*:/m);
+    });
+
+    test('removes memory', () => {
+      const result = transformAgentFrontmatter(agentContent, 'codex');
+      expect(result).not.toMatch(/^memory\s*:/m);
+    });
+
+    test('removes tools list', () => {
+      const result = transformAgentFrontmatter(agentContent, 'codex');
+      expect(result).not.toMatch(/^tools\s*:/m);
+    });
+
+    test('keeps name and description', () => {
+      const result = transformAgentFrontmatter(agentContent, 'codex');
+      expect(result).toMatch(/name: myagent/);
+      expect(result).toMatch(/description: "Does agent things"/);
+    });
+
+    test('does NOT add readonly: false', () => {
+      const result = transformAgentFrontmatter(agentContent, 'codex');
+      expect(result).not.toMatch(/readonly/);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // generate() and verify() integration tests
 // ---------------------------------------------------------------------------
 

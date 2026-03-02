@@ -26,6 +26,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PBR_DIR = path.join(ROOT, 'plugins', 'pbr');
 const CURSOR_DIR = path.join(ROOT, 'plugins', 'cursor-pbr');
 const COPILOT_DIR = path.join(ROOT, 'plugins', 'copilot-pbr');
+const CODEX_DIR = path.join(ROOT, 'plugins', 'codex-pbr');
 
 // ---------------------------------------------------------------------------
 // Transformation functions (exported for unit tests)
@@ -49,8 +50,8 @@ function transformFrontmatter(content, target) {
     // Remove allowed-tools for both targets
     lines = lines.filter(l => !/^allowed-tools\s*:/.test(l));
 
-    // Remove argument-hint for copilot only
-    if (target === 'copilot') {
+    // Remove argument-hint for copilot and codex
+    if (target === 'copilot' || target === 'codex') {
       lines = lines.filter(l => !/^argument-hint\s*:/.test(l));
     }
 
