@@ -53,7 +53,7 @@ Progress: [{progress_bar}] {percent}%
 Phase 3 of 10 = 20% → [████░░░░░░░░░░░░░░░░] 20%
 Phase 7 of 10 = 70% → [██████████████░░░░░░] 70%
 ```
-Calculation: `filled = Math.round((completed_phases / total_phases) * 20)`
+Calculation: `filled = Math.round((completed_phases / phase_count) * 20)` where `phase_count` is derived from ROADMAP.md (available via `stateLoad` as `phase_count`)
 
 ### 3. Accumulated Context (lines 16-25)
 ```

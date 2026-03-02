@@ -361,7 +361,7 @@ All phases with status and completion data.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init progress
 ```
 
-**Output:** `current_phase`, `total_phases`, `status`, `phases` array, `total_plans`, `completed_plans`, `percentage`.
+**Output:** `current_phase`, `phase_count`, `status`, `phases` array, `total_plans`, `completed_plans`, `percentage`.
 
 ---
 
@@ -375,7 +375,7 @@ Multi-field atomic STATE.md update. Updates all fields in a single pass.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
 ```
 
-**Valid fields:** `current_phase`, `status`, `plans_complete`, `last_activity`, `progress_percent`, `phase_slug`, `total_phases`, `last_command`, `blockers`
+**Valid fields:** `current_phase`, `status`, `plans_complete`, `last_activity`, `progress_percent`, `phase_slug`, `last_command`, `blockers`
 
 **Output:** `{ "success": true, "updated": ["status", "last_activity"] }`
 

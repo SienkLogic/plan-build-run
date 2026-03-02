@@ -172,7 +172,7 @@ After running all 10 checks and collecting results, if any of the following auto
 
 | Pattern | Detection | Fix Action |
 |---------|-----------|------------|
-| Missing STATE.md frontmatter | Check 5 finds STATE.md without `---` block | Regenerate frontmatter from ROADMAP.md phase data (current_phase, total_phases, status) |
+| Missing STATE.md frontmatter | Check 5 finds STATE.md without `---` block | Regenerate frontmatter from ROADMAP.md phase data (current_phase, phase_slug, status) |
 | STATE.md phase_slug mismatch | Check 5/7 finds phase_slug doesn't match current phase directory name | Correct phase_slug to match the actual directory name in `.planning/phases/` |
 | Missing config.json | Check 1/2 finds no `.planning/config.json` | Create with default config template (same as `$pbr-setup` defaults) |
 | Orphaned .active-skill file | Check 10 or general scan finds `.planning/.active-skill` older than 1 hour | Delete the stale `.active-skill` file |
