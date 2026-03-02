@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.56.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.55.0...plan-build-run-v2.56.0) (2026-03-02)
+
+
+### Features
+
+* **58-02:** add Codex manual files (AGENTS.md, config.toml, README) ([c928ea6](https://github.com/SienkLogic/plan-build-run/commit/c928ea6d7170ce5c2b97bf5fe11505046f008396))
+
+
+### Bug Fixes
+
+* **58-02:** correct repo URL in codex-pbr README ([1b13b2a](https://github.com/SienkLogic/plan-build-run/commit/1b13b2a4799fa9827abf82feda4f87c2c65e2880))
+
 ## [2.55.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.54.0...plan-build-run-v2.55.0) (2026-03-02)
 
 
