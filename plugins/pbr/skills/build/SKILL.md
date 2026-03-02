@@ -55,8 +55,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 
 ---
 
-
-#### --preview mode
+### --preview mode
 
 If `--preview` is present in `$ARGUMENTS`:
 

@@ -126,7 +126,6 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
 
-
 #### --preview mode
 
 If `--preview` is present in `$ARGUMENTS`:
