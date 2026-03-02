@@ -730,11 +730,10 @@ All checks passed.`);
       expect(result).toBeNull();
     });
 
-    test('preserves total_phases from frontmatter when body has different total', () => {
+    test('uses body total when rewriting phase line (total_phases removed from frontmatter)', () => {
       const content = [
         '---',
         'current_phase: 12',
-        'total_phases: 15',
         'phase_name: "Testing"',
         'status: "building"',
         '---',
@@ -747,7 +746,7 @@ All checks passed.`);
 
       const result = syncStateBody(content, filePath);
       expect(result).not.toBeNull();
-      expect(result.content).toContain('Phase: 12 of 15 (Testing)');
+      expect(result.content).toContain('Phase: 12 of 10 (Testing)');
     });
   });
 

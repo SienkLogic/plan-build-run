@@ -31,7 +31,6 @@ function parseStateMd(content) {
   if (frontmatter.version === 2 || frontmatter.current_phase !== undefined) {
     result.format = 'frontmatter';
     result.current_phase = frontmatter.current_phase || null;
-    result.total_phases = frontmatter.total_phases || null;
     result.phase_name = frontmatter.phase_slug || frontmatter.phase_name || null;
     result.status = frontmatter.status || null;
     result.progress = frontmatter.progress_percent !== undefined ? frontmatter.progress_percent : null;
@@ -301,7 +300,6 @@ function stateUpdate(field, value, planningDir) {
     'last_activity',
     'progress_percent',
     'phase_slug',
-    'total_phases',
     'last_command',
     'blockers'
   ];
@@ -340,7 +338,7 @@ function statePatch(jsonStr, planningDir) {
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
   let fields;
   try { fields = JSON.parse(jsonStr); } catch (_e) { return { success: false, error: "Invalid JSON" }; }
-  const validFields = ["current_phase", "status", "plans_complete", "last_activity", "progress_percent", "phase_slug", "total_phases", "last_command", "blockers"];
+  const validFields = ["current_phase", "status", "plans_complete", "last_activity", "progress_percent", "phase_slug", "last_command", "blockers"];
   const updates = [], errors = [];
   for (const [field, value] of Object.entries(fields)) {
     if (!validFields.includes(field)) { errors.push("Unknown field: " + field); continue; }

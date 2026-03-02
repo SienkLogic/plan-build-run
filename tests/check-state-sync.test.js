@@ -212,17 +212,14 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     });
 
     test('updates phase frontmatter fields', () => {
-      const withPhaseFm = stateContent.replace('current_phase: 3', 'current_phase: 3')
-        .replace('total_phases: 10', 'total_phases: 10')
+      const withPhaseFm = stateContent
         .replace('---\n# Project', 'phase_slug: "api-endpoints"\nphase_name: "Api Endpoints"\n---\n# Project');
       const result = updateStatePosition(withPhaseFm, {
         fmCurrentPhase: 5,
-        fmTotalPhases: 12,
         fmPhaseSlug: 'deployment',
         fmPhaseName: 'Deployment'
       });
       expect(result).toContain('current_phase: 5');
-      expect(result).toContain('total_phases: 12');
       expect(result).toContain('phase_slug: "deployment"');
       expect(result).toContain('phase_name: "Deployment"');
     });

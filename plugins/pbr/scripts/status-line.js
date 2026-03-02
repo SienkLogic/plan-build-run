@@ -242,12 +242,11 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   // Phase section (always includes brand text)
   if (sections.includes('phase')) {
     const fmPhase = fm && fm.current_phase;
-    const fmTotal = fm && fm.total_phases;
     const fmName = fm && fm.phase_name;
     const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
 
     const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
-    const phaseTotal = fmTotal || (phaseMatch && phaseMatch[2]);
+    const phaseTotal = phaseMatch && phaseMatch[2];
     const phaseName = fmName || (phaseMatch && phaseMatch[3]);
 
     if (phaseNum && phaseTotal) {
@@ -263,11 +262,11 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   // Plan section
   if (sections.includes('plan')) {
     const fmComplete = fm && fm.plans_complete;
-    const fmTotal = fm && fm.plans_total;
+    const fmPlansTotal = fm && fm.plans_total;
     const planMatch = content.match(/Plan:\s*(\d+)\s*of\s*(\d+)/);
 
     const done = fmComplete != null ? parseInt(fmComplete, 10) : (planMatch ? parseInt(planMatch[1], 10) : null);
-    const total = fmTotal != null ? parseInt(fmTotal, 10) : (planMatch ? parseInt(planMatch[2], 10) : null);
+    const total = fmPlansTotal != null ? parseInt(fmPlansTotal, 10) : (planMatch ? parseInt(planMatch[2], 10) : null);
 
     if (done != null && total != null && total > 0) {
       const planColor = done === total ? c.green : c.white;

@@ -347,7 +347,7 @@ function validateState(content, _filePath) {
       warnings.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
-      const requiredFields = ['version', 'current_phase', 'total_phases', 'phase_slug', 'status'];
+      const requiredFields = ['version', 'current_phase', 'phase_slug', 'status'];
       for (const field of requiredFields) {
         if (!frontmatter.includes(`${field}:`)) {
           warnings.push(`Frontmatter missing "${field}" field`);
@@ -440,14 +440,12 @@ function syncStateBody(content, filePath) {
 
   const fm = content.substring(3, fmEnd);
   const phaseMatch = fm.match(/^current_phase:\s*(\d+)/m);
-  const totalMatch = fm.match(/^total_phases:\s*(\d+)/m);
   const slugMatch = fm.match(/^phase_name:\s*"?([^"\r\n]+)"?/m);
   const statusMatch = fm.match(/^status:\s*"?([^"\r\n]+)"?/m);
 
   if (!phaseMatch) return null;
 
   const fmPhase = phaseMatch[1];
-  const fmTotal = totalMatch ? totalMatch[1] : null;
   const fmName = slugMatch ? slugMatch[1] : null;
   const fmStatus = statusMatch ? statusMatch[1] : null;
 
@@ -459,9 +457,10 @@ function syncStateBody(content, filePath) {
 
   // Fix phase line drift
   if (bodyPhaseMatch && bodyPhaseMatch[1] !== fmPhase) {
-    const newPhaseLine = fmTotal
-      ? (fmName ? `Phase: ${fmPhase} of ${fmTotal} (${fmName})` : `Phase: ${fmPhase} of ${fmTotal}`)
-      : `Phase: ${fmPhase} of ${bodyPhaseMatch[2]}`;
+    const bodyTotal = bodyPhaseMatch ? bodyPhaseMatch[2] : null;
+    const newPhaseLine = bodyTotal
+      ? (fmName ? `Phase: ${fmPhase} of ${bodyTotal} (${fmName})` : `Phase: ${fmPhase} of ${bodyTotal}`)
+      : `Phase: ${fmPhase}`;
     updated = updated.replace(/^Phase:\s*\d+\s*of\s*\d+.*/m, newPhaseLine);
     needsFix = true;
   }

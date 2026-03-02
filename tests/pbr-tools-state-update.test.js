@@ -88,11 +88,10 @@ describe('stateUpdate — expanded field coverage', () => {
     expect(content).toContain('api');
   });
 
-  test('updates total_phases field', () => {
+  test('rejects total_phases field (removed field)', () => {
     const result = stateUpdate('total_phases', '6');
-    expect(result.success).toBe(true);
-    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
-    expect(content).toMatch(/total_phases:\s*6/);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Invalid field/);
   });
 
   test('updates last_command field', () => {

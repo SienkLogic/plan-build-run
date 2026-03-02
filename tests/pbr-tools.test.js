@@ -103,7 +103,6 @@ Status: building`;
       const result = parseStateMd(content);
       expect(result.format).toBe('frontmatter');
       expect(result.current_phase).toBe(3);
-      expect(result.total_phases).toBe(10);
       expect(result.phase_name).toBe('auth-system');
       expect(result.status).toBe('building');
       expect(result.progress).toBe(30);
@@ -1376,7 +1375,6 @@ describe('stateBundle / initStateBundle', () => {
     expect(result.state).toHaveProperty('current_phase');
     expect(result.state).toHaveProperty('status');
     expect(result.state).toHaveProperty('progress');
-    expect(result.state).toHaveProperty('total_phases');
     expect(result.state).toHaveProperty('last_activity');
     expect(result.state).toHaveProperty('blockers');
     expect(result.config_summary).toHaveProperty('depth');
