@@ -7,7 +7,7 @@ const os = require('os');
 const { stateUpdate, configClearCache } = require('../plugins/pbr/scripts/pbr-tools');
 
 const STATE_FM = [
-  '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
+  '---', 'version: 2', 'current_phase: 3',
   'phase_slug: "auth"', 'status: "executing"', 'progress_percent: 40',
   'plans_total: 2', 'plans_complete: 1', 'last_activity: "2026-02-20 10:00:00"',
   'last_command: "/pbr:build 3"', 'blockers: []', '---',

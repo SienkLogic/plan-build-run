@@ -138,7 +138,6 @@ describe('check-state-sync.js', () => {
     const stateContent = `---
 version: 2
 current_phase: 3
-total_phases: 10
 status: "ready_to_plan"
 progress_percent: 0
 plans_total: 2
@@ -496,7 +495,6 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         const state = `---
 version: 2
 current_phase: 1
-total_phases: 2
 phase_slug: "setup"
 phase_name: "Setup"
 status: "building"
@@ -537,7 +535,6 @@ Progress: [██░░░░░░░░░░░░░░░░░░] 10%
         const state = `---
 version: 2
 current_phase: 3
-total_phases: 10
 status: "building"
 progress_percent: 0
 plans_total: 1

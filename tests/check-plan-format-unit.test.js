@@ -153,7 +153,7 @@ describe('checkStateWrite', () => {
 
   test('returns null for valid STATE.md', () => {
     const filePath = path.join(tmpDir, 'STATE.md');
-    fs.writeFileSync(filePath, '---\nversion: 2\ncurrent_phase: 1\ntotal_phases: 3\nphase_slug: "test"\nstatus: "planned"\n---\n# State');
+    fs.writeFileSync(filePath, '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "planned"\n---\n# State');
     expect(checkStateWrite({ tool_input: { file_path: filePath } })).toBeNull();
   });
 
@@ -357,13 +357,13 @@ describe('checkStateWrite — syncStateBody branch', () => {
   });
 
   test('returns null when body phase matches frontmatter', () => {
-    const content = '---\ncurrent_phase: 2\ntotal_phases: 5\n---\nPhase: 2 of 5\nStatus: Building';
+    const content = '---\ncurrent_phase: 2\n---\nPhase: 2 of 5\nStatus: Building';
     expect(syncStateBody(content, '/tmp/STATE.md')).toBeNull();
   });
 
   test('detects and fixes body phase drift', () => {
     const filePath = path.join(tmpDir, 'STATE.md');
-    const content = '---\ncurrent_phase: 3\ntotal_phases: 5\nphase_name: "auth"\nstatus: "building"\n---\nPhase: 2 of 5\nStatus: Planning';
+    const content = '---\ncurrent_phase: 3\nphase_name: "auth"\nstatus: "building"\n---\nPhase: 2 of 5\nStatus: Planning';
     fs.writeFileSync(filePath, content);
     const result = syncStateBody(content, filePath);
     expect(result).not.toBeNull();
@@ -373,7 +373,7 @@ describe('checkStateWrite — syncStateBody branch', () => {
 
   test('checkStateWrite warns on long STATE.md', () => {
     const filePath = path.join(tmpDir, 'STATE.md');
-    const longContent = '---\nversion: 2\ncurrent_phase: 1\ntotal_phases: 3\nphase_slug: "test"\nstatus: "planned"\n---\n' + 'line\n'.repeat(200);
+    const longContent = '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "planned"\n---\n' + 'line\n'.repeat(200);
     fs.writeFileSync(filePath, longContent);
     const result = checkStateWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();

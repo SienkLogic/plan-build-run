@@ -85,7 +85,6 @@ describe('pbr-tools.js', () => {
       const content = `---
 version: 2
 current_phase: 3
-total_phases: 10
 phase_slug: "auth-system"
 status: "building"
 progress_percent: 30
@@ -1279,7 +1278,7 @@ const { initStateBundle } = require('../plugins/pbr/scripts/pbr-tools');
 const { contextTriage: contextTriageLib } = require('../plugins/pbr/scripts/lib/context');
 
 const BUNDLE_STATE_FM = [
-  '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
+  '---', 'version: 2', 'current_phase: 3',
   'phase_slug: auth', 'status: executing', 'progress_percent: 40',
   'plans_total: 2', 'plans_complete: 1', 'last_activity: 2026-02-20',
   'last_command: /pbr:build 3', 'blockers: []', '---',

@@ -384,21 +384,21 @@ Body`;
 
   describe('validateState', () => {
     test('valid STATE.md with all required fields passes', () => {
-      const content = '---\nversion: 2\ncurrent_phase: 3\ntotal_phases: 5\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
+      const content = '---\nversion: 2\ncurrent_phase: 3\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
       const result = validateState(content, '/fake/STATE.md');
       expect(result.errors).toHaveLength(0);
       expect(result.warnings).toHaveLength(0);
     });
 
     test('missing version field produces warning', () => {
-      const content = '---\ncurrent_phase: 3\ntotal_phases: 5\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
+      const content = '---\ncurrent_phase: 3\nphase_slug: "test"\nstatus: "planned"\n---\n# State\n';
       const result = validateState(content, '/fake/STATE.md');
       expect(result.warnings.length).toBeGreaterThan(0);
       expect(result.warnings.some(w => w.includes('version'))).toBe(true);
     });
 
     test('missing phase_slug produces warning', () => {
-      const content = '---\nversion: 2\ncurrent_phase: 3\ntotal_phases: 5\nstatus: "planned"\n---\n';
+      const content = '---\nversion: 2\ncurrent_phase: 3\nstatus: "planned"\n---\n';
       const result = validateState(content, '/fake/STATE.md');
       expect(result.warnings.some(w => w.includes('phase_slug'))).toBe(true);
     });
@@ -623,7 +623,7 @@ All checks passed.`);
     });
 
     test('STATE.md with 100 lines does not trigger line count warning', () => {
-      const lines = ['---', 'version: 2', 'current_phase: 3', 'total_phases: 5', 'phase_slug: "test"', 'status: "building"', '---'];
+      const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
       while (lines.length < 100) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
@@ -636,7 +636,7 @@ All checks passed.`);
     });
 
     test('STATE.md with 160 lines triggers advisory warning mentioning 150 lines', () => {
-      const lines = ['---', 'version: 2', 'current_phase: 3', 'total_phases: 5', 'phase_slug: "test"', 'status: "building"', '---'];
+      const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
       while (lines.length < 160) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
@@ -663,7 +663,6 @@ All checks passed.`);
       const content = [
         '---',
         'current_phase: 23',
-        'total_phases: 23',
         'phase_name: "Quality & Gap Closure"',
         'status: "planned"',
         '---',
@@ -690,7 +689,6 @@ All checks passed.`);
       const content = [
         '---',
         'current_phase: 5',
-        'total_phases: 10',
         'status: "building"',
         '---',
         '# State',
@@ -718,7 +716,6 @@ All checks passed.`);
       const content = [
         '---',
         'current_phase: 5',
-        'total_phases: 10',
         '---',
         '# State',
         'No phase line here',

@@ -11,7 +11,7 @@ const {
 } = require('../plugins/pbr/scripts/pbr-tools');
 
 const STATE_FM = [
-  '---', 'version: 2', 'current_phase: 3', 'total_phases: 5',
+  '---', 'version: 2', 'current_phase: 3',
   'phase_slug: auth', 'status: executing', 'progress_percent: 40',
   'plans_total: 2', 'plans_complete: 1', 'last_activity: 2026-02-20',
   'last_command: /pbr:build 3', 'blockers: []', '---',
@@ -266,7 +266,7 @@ describe('pbr-tools compound init commands', () => {
     test('returns expected fields', () => {
       var result = initProgress();
       expect(result).toHaveProperty('current_phase');
-      expect(result).toHaveProperty('total_phases');
+      expect(result).toHaveProperty('total_phases'); // derived from ROADMAP.md phase_count, not STATE.md frontmatter
       expect(result).toHaveProperty('status');
       expect(result).toHaveProperty('phases');
       expect(result).toHaveProperty('total_plans');
