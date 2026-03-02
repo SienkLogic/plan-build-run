@@ -210,9 +210,6 @@ function updateStatePosition(content, updates) {
       if (updates.fmCurrentPhase !== undefined) {
         fm = fm.replace(/^(current_phase:\s*).*/m, (_, p) => `${p}${updates.fmCurrentPhase}`);
       }
-      if (updates.fmTotalPhases !== undefined) {
-        fm = fm.replace(/^(total_phases:\s*).*/m, (_, p) => `${p}${updates.fmTotalPhases}`);
-      }
       if (updates.fmPhaseSlug !== undefined) {
         fm = fm.replace(/^(phase_slug:\s*).*/m, (_, p) => `${p}"${updates.fmPhaseSlug}"`);
       }
@@ -420,7 +417,6 @@ function checkStateSync(data) {
         if (currentPhase !== null && currentPhase !== phaseNumInt) {
           stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
           stateUpdates.fmCurrentPhase = phaseNumInt;
-          stateUpdates.fmTotalPhases = totalPhases;
           stateUpdates.fmPhaseSlug = phaseSlug;
           stateUpdates.fmPhaseName = phaseName;
           messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
@@ -503,7 +499,6 @@ function checkStateSync(data) {
         if (currentPhase !== null && currentPhase !== phaseNumInt) {
           stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
           stateUpdates.fmCurrentPhase = phaseNumInt;
-          stateUpdates.fmTotalPhases = totalPhases;
           stateUpdates.fmPhaseSlug = phaseSlug;
           stateUpdates.fmPhaseName = phaseName;
           messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
