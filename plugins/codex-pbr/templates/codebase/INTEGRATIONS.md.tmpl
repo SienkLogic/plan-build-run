@@ -1,0 +1,78 @@
+<!-- Source: agents/codebase-mapper.md | Purpose: Output format for INTEGRATIONS.md codebase analysis -->
+# External Integrations
+
+> Analyzed: {date}
+> Total integrations: {n}
+
+## APIs
+
+| Service | Type | Auth Method | Config Var | Used In | Documentation |
+|---------|------|-------------|------------|---------|---------------|
+| {Discord API} | REST | {OAuth2} | DISCORD_TOKEN | {src/integrations/discord.ts} | {URL} |
+| {Stripe} | REST | {API Key} | STRIPE_SECRET_KEY | {src/payments/} | {URL} |
+
+### API Client Patterns
+
+{How API calls are made in this codebase — fetch wrapper? axios instance? SDK?}
+
+```{language}
+// Example from codebase: {file:line}
+{actual code pattern}
+```
+
+## Databases
+
+| Database | Type | ORM/Driver | Config | Schema Location | Migrations |
+|----------|------|-----------|--------|-----------------|------------|
+| {PostgreSQL} | {Relational} | {Prisma} | DATABASE_URL | {prisma/schema.prisma} | {prisma/migrations/} |
+| {Redis} | {Key-value} | {ioredis} | REDIS_URL | - | - |
+
+### Database Patterns
+
+{How database access is structured — repository pattern? direct queries? ORM models?}
+
+## Authentication & Authorization
+
+| Aspect | Implementation | Config | Files |
+|--------|---------------|--------|-------|
+| Method | {JWT / Session / OAuth} | {env vars} | {files} |
+| Provider | {self / Auth0 / Clerk / etc.} | {env vars} | {files} |
+| Storage | {cookie / localStorage / header} | - | {files} |
+| Roles | {admin, user, etc.} | {where defined} | {files} |
+
+## Email/Notifications
+
+| Service | Purpose | Config | Used In |
+|---------|---------|--------|---------|
+| {SendGrid} | {Transactional email} | SENDGRID_KEY | {src/email/} |
+
+## File Storage
+
+| Service | Purpose | Config | Used In |
+|---------|---------|--------|---------|
+| {S3} | {User uploads} | AWS_* vars | {src/storage/} |
+
+## Monitoring & Logging
+
+| Tool | Purpose | Config | Used In |
+|------|---------|--------|---------|
+| {Sentry} | {Error tracking} | SENTRY_DSN | {src/lib/sentry.ts} |
+| {Winston} | {Logging} | - | {src/lib/logger.ts} |
+
+## CI/CD
+
+| Platform | Config | Stages | Deployment |
+|----------|--------|--------|------------|
+| {GitHub Actions} | {.github/workflows/} | {lint, test, build, deploy} | {Vercel / AWS / etc.} |
+
+### Pipeline Details
+
+{Description of the CI/CD pipeline flow}
+
+## Infrastructure
+
+| Component | Provider | Config | Notes |
+|-----------|----------|--------|-------|
+| {Hosting} | {Vercel} | {vercel.json} | {auto-deploy from main} |
+| {DNS} | {Cloudflare} | - | {if relevant} |
+| {CDN} | {included with host} | - | - |
