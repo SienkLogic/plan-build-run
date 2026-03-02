@@ -61,7 +61,7 @@ function createTmpProject() {
   const planningDir = path.join(tmpDir, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   fs.mkdirSync(logsDir, { recursive: true });
-  fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nversion: 2\ncurrent_phase: 1\ntotal_phases: 3\nstatus: "building"\nprogress_percent: 10\n---\n# Project State\nPhase: 1 of 3\nStatus: building\n');
+  fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\nprogress_percent: 10\n---\n# Project State\nPhase: 1 of 3\nStatus: building\n');
   return tmpDir;
 }
 

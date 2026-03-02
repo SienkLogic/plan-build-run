@@ -534,7 +534,7 @@ test('researcher with old .md file (>30min) returns stale warning', () => {
 
   describe('getCurrentPhase', () => {
     test('prefers frontmatter over body', () => {
-      const content = '---\ncurrent_phase: 23\ntotal_phases: 23\n---\n# State\nPhase: 20 of 23';
+      const content = '---\ncurrent_phase: 23\n---\n# State\nPhase: 20 of 23';
       expect(getCurrentPhase(content)).toBe('23');
     });
 

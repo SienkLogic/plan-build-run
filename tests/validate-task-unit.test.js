@@ -335,7 +335,6 @@ describe('checkMilestoneCompleteGate', () => {
   const STATE = `---
 version: 2
 current_phase: 2
-total_phases: 2
 phase_slug: "second"
 ---
 # State
