@@ -302,6 +302,45 @@ describe('codex target', () => {
     });
   });
 
+  describe('transformBody with codex', () => {
+    test('replaces /pbr: with $pbr-', () => {
+      const input = 'Run /pbr:plan to create a plan, then /pbr:build to execute.';
+      const result = transformBody(input, 'codex');
+      expect(result).toContain('$pbr-plan');
+      expect(result).toContain('$pbr-build');
+      expect(result).not.toContain('/pbr:');
+    });
+
+    test('still replaces ${CLAUDE_PLUGIN_ROOT} with ${PLUGIN_ROOT}', () => {
+      const input = 'node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js';
+      const result = transformBody(input, 'codex');
+      expect(result).toContain('${PLUGIN_ROOT}/scripts/run-hook.js');
+      expect(result).not.toContain('${CLAUDE_PLUGIN_ROOT}');
+    });
+
+    test('still replaces subagents with agents', () => {
+      const input = 'Spawn subagents using subagent_type.';
+      const result = transformBody(input, 'codex');
+      expect(result).toContain('Spawn agents');
+      expect(result).toContain('subagent_type');
+    });
+
+    test('cursor target does NOT replace /pbr:', () => {
+      const input = 'Run /pbr:plan to start.';
+      const result = transformBody(input, 'cursor');
+      expect(result).toContain('/pbr:plan');
+      expect(result).not.toContain('$pbr-');
+    });
+  });
+
+  describe('transformHooksJson with codex', () => {
+    test('returns null', () => {
+      const input = JSON.stringify({ hooks: {} });
+      const result = transformHooksJson(input, 'codex');
+      expect(result).toBeNull();
+    });
+  });
+
   describe('transformAgentFrontmatter with codex', () => {
     test('removes model', () => {
       const result = transformAgentFrontmatter(agentContent, 'codex');

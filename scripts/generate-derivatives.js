@@ -71,7 +71,7 @@ function transformFrontmatter(content, target) {
  * @param {'cursor'|'copilot'} _target  (unused; same transform for both)
  * @returns {string}
  */
-function transformBody(content, _target) {
+function transformBody(content, target) {
   // Replace ${CLAUDE_PLUGIN_ROOT}/dashboard → ../../dashboard
   // Derivatives are at plugins/{name}/ so ../../dashboard resolves to root/dashboard.
   // Must happen BEFORE the generic CLAUDE_PLUGIN_ROOT → PLUGIN_ROOT replacement
@@ -86,6 +86,12 @@ function transformBody(content, _target) {
   // Strategy: replace "subagents" as a whole word first, then "Subagents".
   result = result.replace(/\bsubagents\b/g, 'agents');
   result = result.replace(/\bSubagents\b/g, 'Agents');
+
+  // Codex-specific: replace /pbr: command references with $pbr- syntax
+  // Applied after subagents replace to avoid interfering with those substitutions.
+  if (target === 'codex') {
+    result = result.replace(/\/pbr:/g, '$pbr-');
+  }
 
   return result;
 }
@@ -160,7 +166,7 @@ function transformAgentFrontmatter(content, target) {
  * @returns {string|null}  Transformed JSON string, or null if target === 'copilot'
  */
 function transformHooksJson(content, target) {
-  if (target === 'copilot') {
+  if (target === 'copilot' || target === 'codex') {
     return null;
   }
 
@@ -378,8 +384,8 @@ function processCommands(srcDir, destDir, dryRun, written) {
  * @param {string[]} written
  */
 function processHooks(srcDir, destDir, target, dryRun, written) {
-  if (target === 'copilot') {
-    return; // copilot hooks.json maintained separately
+  if (target === 'copilot' || target === 'codex') {
+    return; // copilot/codex hooks.json maintained separately (or not applicable)
   }
 
   const srcFile = path.join(srcDir, 'hooks', 'hooks.json');
