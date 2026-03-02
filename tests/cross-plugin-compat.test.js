@@ -129,14 +129,18 @@ describe('cross-plugin compatibility', () => {
   describe.each(DERIVATIVES)('$name', ({ name, dir, agentExt, hasArgumentHint, hookFormat }) => {
 
     test('plugin manifest is valid', () => {
-      const hooks = JSON.parse(
-        fs.readFileSync(path.join(dir, 'hooks', 'hooks.json'), 'utf8')
-      );
-      expect(hooks).toHaveProperty('hooks');
+      if (hookFormat !== 'none') {
+        const hooks = JSON.parse(
+          fs.readFileSync(path.join(dir, 'hooks', 'hooks.json'), 'utf8')
+        );
+        expect(hooks).toHaveProperty('hooks');
+      }
 
       expect(fs.existsSync(path.join(dir, 'agents'))).toBe(true);
       expect(fs.existsSync(path.join(dir, 'skills'))).toBe(true);
-      expect(fs.existsSync(path.join(dir, 'hooks'))).toBe(true);
+      if (hookFormat !== 'none') {
+        expect(fs.existsSync(path.join(dir, 'hooks'))).toBe(true);
+      }
     });
 
     test('no conflicting script paths', () => {
@@ -148,6 +152,8 @@ describe('cross-plugin compatibility', () => {
         const duplicates = derivOwnScripts.filter(s => pbrOwnScripts.includes(s));
         expect(duplicates).toEqual([]);
       }
+
+      if (hookFormat === 'none') return; // Codex has no hook system
 
       // Should reference scripts that exist
       const hooks = JSON.parse(
@@ -227,6 +233,7 @@ describe('cross-plugin compatibility', () => {
       let pbrHooks, derivHooks;
 
       beforeAll(() => {
+        if (hookFormat === 'none') return; // skip hook tests for codex
         pbrHooks = JSON.parse(
           fs.readFileSync(path.join(PBR_DIR, 'hooks', 'hooks.json'), 'utf8')
         );
@@ -235,7 +242,11 @@ describe('cross-plugin compatibility', () => {
         );
       });
 
-      if (hookFormat === 'command') {
+      if (hookFormat === 'none') {
+        test('hook system not applicable (no hooks)', () => {
+          expect(fs.existsSync(path.join(dir, 'hooks'))).toBe(false);
+        });
+      } else if (hookFormat === 'command') {
         // Cursor: exact event match with PBR (same format, same events)
         test('same hook event types registered', () => {
           const pbrEvents = Object.keys(pbrHooks.hooks).sort();
@@ -365,7 +376,8 @@ describe('cross-plugin compatibility', () => {
         );
 
         const pbrHeadings = extractHeadings(pbrContent);
-        const derivHeadings = extractHeadings(derivContent);
+        // Normalize codex command syntax ($pbr- -> /pbr:) before comparing headings
+        const derivHeadings = extractHeadings(derivContent).map(h => h.replace(/\$pbr-/g, '/pbr:'));
         expect(derivHeadings).toEqual(pbrHeadings);
       });
 
@@ -570,6 +582,15 @@ describe('cross-plugin compatibility', () => {
       });
     }
 
+    // Verify codex-pbr derivative agents have matching hint sections
+    for (const agentName of LOCAL_LLM_AGENTS) {
+      test(`codex-pbr ${agentName}.md contains local LLM hint section`, () => {
+        const agentPath = path.join(CODEX_DIR, 'agents', agentName + '.md');
+        const content = fs.readFileSync(agentPath, 'utf8');
+        expect(content).toMatch(LOCAL_LLM_HINT_HEADINGS[agentName]);
+      });
+    }
+
     // Verify config-reference.md exists and has local_llm section in pbr
     test('pbr config-reference.md has local_llm section', () => {
       const refPath = path.join(PBR_DIR, 'references', 'config-reference.md');
@@ -595,6 +616,8 @@ describe('cross-plugin compatibility', () => {
         .replace(/subagent/g, 'agent')
         // Normalize auto-loaded phrasing (varies: "they're auto-loaded", "auto-loaded", via "agent_type"/"agent:")
         .replace(/— (?:they're )?auto-loaded via agent[_: ]?\w*/gi, '— auto-loaded via agent')
+        // Normalize codex command syntax ($pbr- -> /pbr:)
+        .replace(/\$pbr-/g, '/pbr:')
         // Normalize line endings
         .replace(/\r\n/g, '\n')
         .trim();
