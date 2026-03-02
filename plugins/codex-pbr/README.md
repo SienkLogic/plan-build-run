@@ -109,7 +109,7 @@ These files cannot be auto-generated and must be maintained by hand:
 
 ## More Information
 
-- Main PBR repository: [plan-build-run](https://github.com/devalexanderdaza/plan-build-run)
+- Main PBR repository: [plan-build-run](https://github.com/SienkLogic/plan-build-run)
 - Codex CLI documentation: [openai/codex](https://github.com/openai/codex)
 - Claude Code plugin (`plugins/pbr/`) — the canonical source for all skills and agents
 - Cursor plugin (`plugins/cursor-pbr/`) — Cursor IDE derivative
