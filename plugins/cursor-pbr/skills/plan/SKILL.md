@@ -590,10 +590,26 @@ Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt
 ## Error Handling
 
 ### Phase not found
-If the specified phase doesn't exist in ROADMAP.md, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Phase not found.
+If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
+
+1. Run: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
+2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
+3. Display: "Phase '{slug}' not found. Did you mean one of these?"
+   - List `suggestions` (if any) as numbered options.
+   - Offer "Show all phases" to list `available`.
+4. Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
+   - If user picks a valid phase slug: re-run with that slug.
+   - If user chooses to abort: stop cleanly with a friendly message.
 
 ### Missing prerequisites
-If REQUIREMENTS.md or ROADMAP.md don't exist, display a branded error box — see `skills/shared/error-reporting.md`, pattern: Missing prerequisites.
+If REQUIREMENTS.md or ROADMAP.md don't exist, use conversational recovery:
+
+1. Run: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {phase}`
+2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
+3. Display what is already complete and what is missing.
+4. Use AskUserQuestion to offer: "Run /pbr:build {prerequisite-phase} first, or continue anyway?"
+   - If user chooses to continue: proceed with planning (note missing prereqs in plan frontmatter).
+   - If user chooses to build first: stop and display the suggested build command.
 
 ### Research agent fails
 If the researcher Task() fails, display:
