@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.55.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.54.0...plan-build-run-v2.55.0) (2026-03-02)
+
+
+### Features
+
+* **57-01:** add CODEX_DIR constant and codex support in transformFrontmatter + transformAgentFrontmatter ([88652bc](https://github.com/SienkLogic/plan-build-run/commit/88652bc24f17bf2c7555d257f3e092b1d713eebe))
+* **57-01:** add generate/verify/main codex dispatch, export CODEX_DIR, and integration tests ([606f3fe](https://github.com/SienkLogic/plan-build-run/commit/606f3fee42c96f47300646021e79ea44706c704e))
+* **57-01:** extend transformBody with codex /pbr: transform and transformHooksJson null return ([baeabbb](https://github.com/SienkLogic/plan-build-run/commit/baeabbb4065808bb1ecb0961bd631c1443ae459d))
+* **57-02:** generate plugins/codex-pbr/ via generate-derivatives.js codex ([99d0d22](https://github.com/SienkLogic/plan-build-run/commit/99d0d220185c150bf7abd1d56806a36eea76be75))
+* **57-02:** GREEN - add hookFormat none guards and codex-pbr normalization in compat tests ([68812c3](https://github.com/SienkLogic/plan-build-run/commit/68812c34d71099b23c0b5cf320fa332215fb4f03))
+* **58-01:** finalize Jules AGENTS.md template with enforcement rules and workflows ([7c58ca3](https://github.com/SienkLogic/plan-build-run/commit/7c58ca38247402b58e51653faab831ce0c8d1d67))
+
 ## [2.54.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.53.0...plan-build-run-v2.54.0) (2026-03-02)
 
 
