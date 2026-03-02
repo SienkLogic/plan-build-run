@@ -5,11 +5,13 @@ const ROOT = path.resolve(__dirname, '..');
 const PBR_DIR = path.join(ROOT, 'plugins', 'pbr');
 const CURSOR_DIR = path.join(ROOT, 'plugins', 'cursor-pbr');
 const COPILOT_DIR = path.join(ROOT, 'plugins', 'copilot-pbr');
+const CODEX_DIR = path.join(ROOT, 'plugins', 'codex-pbr');
 
 // All derivative plugins that should stay in sync with the canonical pbr plugin
 const DERIVATIVES = [
   { name: 'cursor-pbr', dir: CURSOR_DIR, agentExt: '.md', hasArgumentHint: true, hookFormat: 'command' },
   { name: 'copilot-pbr', dir: COPILOT_DIR, agentExt: '.agent.md', hasArgumentHint: false, hookFormat: 'bash-powershell' },
+  { name: 'codex-pbr', dir: CODEX_DIR, agentExt: '.md', hasArgumentHint: false, hookFormat: 'none' },
 ];
 
 /**
