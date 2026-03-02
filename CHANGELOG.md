@@ -5,6 +5,28 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.54.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.53.0...plan-build-run-v2.54.0) (2026-03-02)
+
+
+### Features
+
+* **55-01:** merge setup wizard into begin with quick-start fast-path ([fd04bb3](https://github.com/SienkLogic/plan-build-run/commit/fd04bb3dd0b56dab60ad35fe7b01a46ff80400ea))
+* **55-02:** add /pbr:undo skill for safe commit reversal ([e14d30e](https://github.com/SienkLogic/plan-build-run/commit/e14d30ea31e9277117fcc25f91d0adff65e1359d))
+* **55-03:** default 4 redundant confirmation gates to silent ([0ce5920](https://github.com/SienkLogic/plan-build-run/commit/0ce5920bd237c7e2c54750ecbf3a87e83a452e20))
+* **55-04:** add proactive context signals and critical-path indicator to status ([f2cf26f](https://github.com/SienkLogic/plan-build-run/commit/f2cf26fd3ad52f5d20ef3e85e6477f6badf8f333))
+* **56-01:** GREEN - implement lib/skill-section.js with fuzzy section extraction ([f7f1e2b](https://github.com/SienkLogic/plan-build-run/commit/f7f1e2be1d5ac0044acbdc33db846d5e35595759))
+* **56-01:** wire skill-section into pbr-tools.js and annotate build SKILL.md ([ccfde40](https://github.com/SienkLogic/plan-build-run/commit/ccfde40ecb300844e18245d68af7389604732efc))
+* **56-02:** GREEN - implement lib/preview.js with buildPreview() ([31e4b39](https://github.com/SienkLogic/plan-build-run/commit/31e4b39b210398bfefe593cb99c9a70dcf8fda98))
+* **56-02:** wire build-preview CLI and add --preview branches to build and plan skills ([e9f4b61](https://github.com/SienkLogic/plan-build-run/commit/e9f4b61c8b18fba0710caf8c2e56dd56321f40ab))
+* **56-03:** GREEN - implement step-verify.js with filesystem predicate engine ([9d7be17](https://github.com/SienkLogic/plan-build-run/commit/9d7be17977e5f47bb09f86535e93eaa6273f0c05))
+* **56-03:** wire step-verify into pbr-tools.js and update build SKILL.md completion checks ([f8b4410](https://github.com/SienkLogic/plan-build-run/commit/f8b44106e5592cd84afbda1eebfdc6a33b82278b))
+* **56-04:** wire suggest-alternatives CLI and conversational error recovery in plan/build/review ([d852998](https://github.com/SienkLogic/plan-build-run/commit/d852998f2334873289d1021aab2280bc985d96f2))
+
+
+### Bug Fixes
+
+* **56-02:** fix markdownlint errors in build/plan SKILL.md and lower branch coverage threshold ([2439e0e](https://github.com/SienkLogic/plan-build-run/commit/2439e0ef7dd60864f401d2668af9f2208b7533f6))
+
 ## [2.53.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.52.0...plan-build-run-v2.53.0) (2026-03-01)
 
 
