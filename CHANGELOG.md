@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.56.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.56.1...plan-build-run-v2.56.2) (2026-03-03)
+
+
+### Bug Fixes
+
+* **tools:** block non-PBR agent types by default with [native] bypass ([0256189](https://github.com/SienkLogic/plan-build-run/commit/02561890e49dba88df03d3977f9a8597740bd389))
+
 ## [2.56.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.56.0...plan-build-run-v2.56.1) (2026-03-03)
 
 
