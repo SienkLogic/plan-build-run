@@ -65,9 +65,9 @@ Present grouped output:
 ```
 Recent PBR commits (grouped by scope):
 
-[55-02] Phase 55, Plan 02
-  abc1234  feat(55-02): add undo skill
-  def5678  chore(55-02): register undo command
+[undo]
+  abc1234  feat(undo): add undo skill
+  def5678  chore(undo): register undo command
 
 [quick-003]
   ghi9012  fix(quick-003): fix hook path resolution
@@ -76,7 +76,7 @@ Recent PBR commits (grouped by scope):
   jkl3456  docs(planning): update roadmap phase 55
 ```
 
-For phase-plan scopes (NN-MM pattern), add a "Phase NN, Plan MM" annotation. For other scopes, show just the scope label.
+For descriptive scopes, show just the scope label. For phase-plan scopes (NN-MM pattern, from older commits), add a "Phase NN, Plan MM" annotation.
 
 ---
 
@@ -104,8 +104,8 @@ Display the commits that will be reverted:
 ```
 The following commits will be reverted (using git revert, NOT git reset):
 
-  abc1234  feat(55-02): add undo skill
-  def5678  chore(55-02): register undo command
+  abc1234  feat(undo): add undo skill
+  def5678  chore(undo): register undo command
 
 This creates new revert commits — your history is preserved.
 ```
@@ -127,7 +127,7 @@ git revert --no-commit {hash}
 ```
 
 After all reverts are staged, determine the commit message:
-- Extract scope from the first commit being reverted (e.g., `55-02`)
+- Extract scope from the first commit being reverted (e.g., `undo`, `auth`, `executor`)
 - If reverting a **single commit**: `revert({scope}): undo {original description}`
 - If reverting **multiple commits**: `revert({scope}): undo {N} commits from {scope}`
 

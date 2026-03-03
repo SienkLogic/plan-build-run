@@ -105,7 +105,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 
 56. Format: `{type}({scope}): {description}`.
 57. Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `wip`.
-58. Valid scopes: `{NN}-{MM}` (phase-plan), `quick-{NNN}`, `planning`, or any lowercase word.
+58. Valid scopes: a short descriptive word for what changed (e.g., `auth`, `executor`, `config`), `quick-{NNN}`, `planning`, or `{NN}-{MM}` (phase-plan, legacy).
 59. **Never** use `git add .` or `git add -A` — stage specific files only.
 60. Blocked files: `.env` (not `.env.example`), `*.key`, `*.pem`, `*.pfx`, `*.p12`, `*credential*`, `*secret*` (unless in `tests/` or `*.example`).
 61. TDD tasks: exactly 3 commits — RED (test), GREEN (feat), REFACTOR.
