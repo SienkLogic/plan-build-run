@@ -29,7 +29,7 @@ Context is your scarcest resource. Protect it:
 ## Commit Discipline
 
 - Prefer atomic commits per logical change
-- Follow the commit format: `{type}({phase}-{plan}): {description}`
+- Follow the commit format: `{type}({scope}): {description}`
 - Valid types: feat, fix, refactor, test, docs, chore
 
 ## Workflow Discipline

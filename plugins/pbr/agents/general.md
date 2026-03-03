@@ -59,7 +59,7 @@ This agent is available for ad-hoc `Task()` calls from skills or custom orchestr
 
 All commits follow: `{type}({scope}): {description}`
 - **Types**: feat, fix, refactor, test, docs, chore, wip
-- **Scopes**: `{phase}-{plan}` (e.g., `03-01`), `quick-{NNN}`, `planning`
+- **Scopes**: descriptive word (e.g., `auth`, `api`, `executor`), `quick-{NNN}`, `planning`
 
 ## Self-Escalation
 
