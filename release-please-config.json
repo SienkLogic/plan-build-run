@@ -6,9 +6,7 @@
   "changelog-sections": [
     { "type": "feat",     "section": "Features",         "hidden": false },
     { "type": "fix",      "section": "Bug Fixes",        "hidden": false },
-    { "type": "perf",     "section": "Performance",      "hidden": false },
-    { "type": "revert",   "section": "Reverts",          "hidden": false },
-    { "type": "docs",     "section": "Documentation",    "hidden": false },
+    { "type": "docs",     "section": "Documentation",    "hidden": true  },
     { "type": "refactor", "section": "Code Refactoring", "hidden": true  },
     { "type": "test",     "section": "Tests",            "hidden": true  },
     { "type": "chore",    "section": "Miscellaneous",    "hidden": true  },
