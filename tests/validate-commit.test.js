@@ -54,22 +54,22 @@ function runScript(toolInput) {
 describe('validate-commit.js', () => {
   describe('valid commit messages', () => {
     test('standard feat commit', () => {
-      const result = runScript({ command: 'git commit -m "feat(03-01): add user authentication"' });
+      const result = runScript({ command: 'git commit -m "feat(auth): add user authentication"' });
       expect(result.exitCode).toBe(0);
     });
 
     test('fix commit', () => {
-      const result = runScript({ command: 'git commit -m "fix(02-02): resolve database timeout"' });
+      const result = runScript({ command: 'git commit -m "fix(api): resolve database timeout"' });
       expect(result.exitCode).toBe(0);
     });
 
     test('refactor commit', () => {
-      const result = runScript({ command: 'git commit -m "refactor(01-03): extract validation logic"' });
+      const result = runScript({ command: 'git commit -m "refactor(core): extract validation logic"' });
       expect(result.exitCode).toBe(0);
     });
 
     test('test commit', () => {
-      const result = runScript({ command: 'git commit -m "test(03-02): add auth middleware tests"' });
+      const result = runScript({ command: 'git commit -m "test(auth): add auth middleware tests"' });
       expect(result.exitCode).toBe(0);
     });
 
@@ -79,7 +79,22 @@ describe('validate-commit.js', () => {
     });
 
     test('chore commit', () => {
-      const result = runScript({ command: 'git commit -m "chore(01-01): update dependencies"' });
+      const result = runScript({ command: 'git commit -m "chore(deps): update dependencies"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('descriptive scope commit', () => {
+      const result = runScript({ command: 'git commit -m "feat(changelog): improve commit readability"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('multi-word-hyphenated scope', () => {
+      const result = runScript({ command: 'git commit -m "fix(plan-checker): handle empty frontmatter"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('old NN-MM scope format still valid (backward compat)', () => {
+      const result = runScript({ command: 'git commit -m "feat(03-01): old format still valid"' });
       expect(result.exitCode).toBe(0);
     });
 
@@ -99,17 +114,17 @@ describe('validate-commit.js', () => {
     });
 
     test('commit after cd (chained with &&)', () => {
-      const result = runScript({ command: 'cd /d/Repos/project && git commit -m "feat(01-01): add feature"' });
+      const result = runScript({ command: 'cd /d/Repos/project && git commit -m "feat(hooks): add feature"' });
       expect(result.exitCode).toBe(0);
     });
 
     test('commit after git add (chained with &&)', () => {
-      const result = runScript({ command: 'git add file.js && git commit -m "fix(02-01): resolve bug"' });
+      const result = runScript({ command: 'git add file.js && git commit -m "fix(api): resolve bug"' });
       expect(result.exitCode).toBe(0);
     });
 
     test('allows revert commits from undo skill', () => {
-      const data = { tool_input: { command: "git commit -m \"revert(55-02): undo add undo skill\"" } };
+      const data = { tool_input: { command: "git commit -m \"revert(undo): undo add undo skill\"" } };
       expect(checkCommit(data)).toBeNull();
     });
   });
@@ -121,17 +136,17 @@ describe('validate-commit.js', () => {
     });
 
     test('invalid type', () => {
-      const result = runScript({ command: 'git commit -m "feature(03-01): add auth"' });
+      const result = runScript({ command: 'git commit -m "feature(auth): add auth"' });
       expect(result.exitCode).toBe(2);
     });
 
     test('missing colon', () => {
-      const result = runScript({ command: 'git commit -m "feat(03-01) add auth"' });
+      const result = runScript({ command: 'git commit -m "feat(auth) add auth"' });
       expect(result.exitCode).toBe(2);
     });
 
     test('missing space after colon', () => {
-      const result = runScript({ command: 'git commit -m "feat(03-01):add auth"' });
+      const result = runScript({ command: 'git commit -m "feat(auth):add auth"' });
       expect(result.exitCode).toBe(2);
     });
 
@@ -141,12 +156,12 @@ describe('validate-commit.js', () => {
     });
 
     test('empty description', () => {
-      runScript({ command: 'git commit -m "feat(03-01): "' });
+      runScript({ command: 'git commit -m "feat(auth): "' });
       // The regex requires at least one char after ": "
-      // "feat(03-01): " has a trailing space but empty desc
+      // "feat(auth): " has a trailing space but empty desc
       // This depends on exact regex - trailing space makes it match .+
       // So this might actually pass. Let's test the real edge case:
-      const result2 = runScript({ command: 'git commit -m "feat(03-01):"' });
+      const result2 = runScript({ command: 'git commit -m "feat(auth):"' });
       expect(result2.exitCode).toBe(2);
     });
   });
@@ -176,7 +191,7 @@ describe('validate-commit.js', () => {
   describe('AI co-author blocking', () => {
     test('blocks Co-Authored-By with Claude', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: Claude <noreply@anthropic.com>"'
       });
       expect(result.exitCode).toBe(2);
       expect(result.output).toContain('co-author');
@@ -184,35 +199,35 @@ describe('validate-commit.js', () => {
 
     test('blocks Co-Authored-By with Anthropic email', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Bot <noreply@anthropic.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: Bot <noreply@anthropic.com>"'
       });
       expect(result.exitCode).toBe(2);
     });
 
     test('blocks Co-Authored-By with Copilot', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: GitHub Copilot <copilot@github.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: GitHub Copilot <copilot@github.com>"'
       });
       expect(result.exitCode).toBe(2);
     });
 
     test('blocks Co-Authored-By with GPT', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: ChatGPT <noreply@openai.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: ChatGPT <noreply@openai.com>"'
       });
       expect(result.exitCode).toBe(2);
     });
 
     test('allows Co-Authored-By with human name', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Jane Doe <jane@example.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: Jane Doe <jane@example.com>"'
       });
       expect(result.exitCode).toBe(0);
     });
 
     test('blocks case-insensitive co-author match', () => {
       const result = runScript({
-        command: 'git commit -m "feat(01-01): add feature" -m "co-authored-by: claude opus <noreply@anthropic.com>"'
+        command: 'git commit -m "feat(hooks): add feature" -m "co-authored-by: claude opus <noreply@anthropic.com>"'
       });
       expect(result.exitCode).toBe(2);
     });
@@ -252,7 +267,7 @@ describe('validate-commit.js', () => {
     test('sensitive file check function exists and runs without crash', () => {
       // checkCommit calls checkSensitiveFilesResult() internally, which runs git diff --cached
       // In a test environment without staged sensitive files, it should not block
-      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(01-01): add feature"' } });
+      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): add feature"' } });
       // Should be null (no block) since no sensitive files are staged
       expect(result).toBeNull();
     });
@@ -277,7 +292,7 @@ describe('validate-commit.js', () => {
     test('blocks AI co-author via checkCommit', () => {
       const result = checkCommit({
         tool_input: {
-          command: 'git commit -m "feat(01-01): add feature" -m "Co-Authored-By: Claude Opus 4 <noreply@anthropic.com>"'
+          command: 'git commit -m "feat(hooks): add feature" -m "Co-Authored-By: Claude Opus 4 <noreply@anthropic.com>"'
         }
       });
       expect(result).not.toBeNull();
@@ -300,7 +315,7 @@ describe('validate-commit.js', () => {
     });
 
     test('extracts message from -m with escaped quotes', () => {
-      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(01-01): add feature"' } });
+      const result = checkCommit({ tool_input: { command: 'git commit -m "feat(hooks): add feature"' } });
       expect(result).toBeNull();
     });
 
