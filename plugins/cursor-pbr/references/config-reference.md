@@ -151,7 +151,7 @@ Controls git integration and branching strategy.
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `branching` | string | `none` | Branching strategy: `none`, `phase`, `milestone`, `disabled` |
-| `commit_format` | string | `{type}({phase}-{plan}): {description}` | Commit message template |
+| `commit_format` | string | `{type}({scope}): {description}` | Commit message template. Use a short descriptive word as the scope (e.g., `auth`, `config`, `executor`) rather than phase-plan numbers. |
 | `phase_branch_template` | string | `plan-build-run/phase-{phase}-{slug}` | Phase branch name pattern |
 | `milestone_branch_template` | string | `plan-build-run/{milestone}-{slug}` | Milestone branch name pattern |
 | `mode` | string | `enabled` | Git mode: `enabled` or `disabled` |

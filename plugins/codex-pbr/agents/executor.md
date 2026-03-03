@@ -218,7 +218,7 @@ When a task has `tdd="true"`, follow Red-Green-Refactor:
 | Phase | Action | Test Must | Commit | If Wrong |
 |-------|--------|-----------|--------|----------|
 | RED | Write test from `<done>` | FAIL | `test({scope}): RED - ...` | Passes? Fix test. |
-| GREEN | Minimal code to pass | PASS | `feat({scope}): GREEN - ...` | Fails? Fix code. |
+| GREEN | Minimal code to pass | PASS | `refactor({scope}): GREEN - ...` | Fails? Fix code. |
 | REFACTOR | Clean up, keep behavior | PASS | `refactor({scope}): REFACTOR - ...` | Breaks? Revert. |
 
 ---

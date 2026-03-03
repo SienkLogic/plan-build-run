@@ -7,23 +7,22 @@ Plan-Build-Run's commit conventions, commit points, branching strategy, and hook
 ## Commit Message Format
 
 ```
-{type}({phase}-{plan}): {description}
+{type}({scope}): {description}
 ```
 
 ### Components
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `{type}` | Conventional commit type | `feat`, `fix`, `test` |
-| `{phase}` | Phase number (zero-padded) | `02` |
-| `{plan}` | Plan number | `01` |
-| `{description}` | Imperative, lowercase description | `implement discord oauth client` |
+| `{type}` | Conventional commit type | `feat`, `fix`, `chore` |
+| `{scope}` | Descriptive word for the area of change | `auth`, `executor`, `changelog` |
+| `{description}` | Imperative, lowercase description | `add discord oauth flow` |
 
-The format is configurable via `config.json` at `git.commit_format`. The default is `{type}({phase}-{plan}): {description}`.
+The format is configurable via `config.json` at `git.commit_format`. The default is `{type}({scope}): {description}`.
 
 ### Full Example
 ```
-feat(02-01): implement discord oauth client
+feat(auth): implement discord oauth client
 ```
 
 ---
@@ -32,19 +31,35 @@ feat(02-01): implement discord oauth client
 
 | Type | When to Use | Example |
 |------|------------|---------|
-| `feat` | New feature or functionality | `feat(02-01): implement discord oauth client` |
-| `fix` | Bug fix (including during execution) | `fix(02-01): handle null user profile from discord api` |
-| `refactor` | Code restructuring, no behavior change | `refactor(02-01): extract token validation into helper` |
-| `test` | Adding or modifying tests | `test(02-01): add failing tests for discord oauth flow` |
-| `docs` | Documentation changes | `docs(03-02): add api endpoint documentation` |
-| `chore` | Build config, dependencies, tooling | `chore(01-01): configure typescript and eslint` |
-| `style` | Formatting, whitespace (no logic change) | `style(02-01): fix import ordering` |
+| `feat` | New feature or functionality | `feat(auth): implement discord oauth client` |
+| `fix` | Bug fix (including during execution) | `fix(api): handle null user profile from discord` |
+| `refactor` | Code restructuring, no behavior change | `refactor(auth): extract token validation into helper` |
+| `test` | Adding or modifying tests | `test(auth): add failing tests for oauth flow` |
+| `docs` | Documentation changes | `docs(planning): add api endpoint documentation` |
+| `chore` | Build config, dependencies, tooling | `chore(deps): configure typescript and eslint` |
+| `style` | Formatting, whitespace (no logic change) | `style(auth): fix import ordering` |
+
+---
+
+## Commit Type Discipline
+
+| Type | Use For | Appears in Changelog |
+|------|---------|---------------------|
+| `feat` | User-visible features ONLY (new commands, new config options, changed behavior users notice) | YES |
+| `fix` | Bug fixes users would notice | YES |
+| `refactor` | Internal restructuring, TDD GREEN commits, code cleanup | No |
+| `test` | Test additions including TDD RED commits | No |
+| `docs` | Documentation (hidden — mostly planning artifacts) | No |
+| `chore` | Build config, deps, tooling, internal scaffolding | No |
+| `wip` | Work in progress (use sparingly) | No |
+
+**TDD commits**: RED phase → `test({scope}): RED - ...`, GREEN phase → `refactor({scope}): GREEN - ...`, REFACTOR phase → `refactor({scope}): REFACTOR - ...`
 
 ---
 
 ## Special Commit Scopes
 
-Beyond the standard `{phase}-{plan}` scope, Plan-Build-Run recognizes these additional patterns:
+Beyond descriptive scopes, Plan-Build-Run recognizes these additional patterns:
 
 | Pattern | When Used | Example |
 |---------|-----------|---------|
@@ -84,9 +99,9 @@ Each successfully completed plan task gets exactly one atomic commit. No more, n
 TDD tasks (`tdd="true"`) produce exactly 3 commits following Red-Green-Refactor:
 
 ```
-test(02-01): RED - add failing tests for auth middleware
-feat(02-01): GREEN - implement auth middleware to pass tests
-refactor(02-01): REFACTOR - extract token verification helper
+test(auth): RED - add failing tests for auth middleware
+refactor(auth): GREEN - implement auth middleware to pass tests
+refactor(auth): REFACTOR - extract token verification helper
 ```
 
 ### Commit Preconditions
@@ -125,15 +140,15 @@ When an executor applies a deviation rule during a task, the deviation is includ
 ```bash
 # Standard task
 git add src/auth/discord.ts src/auth/types.ts
-git commit -m "feat(02-01): implement Discord OAuth client with token exchange"
+git commit -m "feat(auth): implement Discord OAuth client with token exchange"
 
 # Task that also installed a dependency (Rule 2)
 git add src/auth/discord.ts src/auth/types.ts package.json package-lock.json
-git commit -m "feat(02-01): implement Discord OAuth client with token exchange"
+git commit -m "feat(auth): implement Discord OAuth client with token exchange"
 
 # TDD RED
 git add tests/auth/discord.test.ts
-git commit -m "test(02-01): add failing tests for Discord OAuth flow"
+git commit -m "test(auth): add failing tests for Discord OAuth flow"
 ```
 
 ---

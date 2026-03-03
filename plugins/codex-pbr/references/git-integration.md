@@ -14,9 +14,9 @@ Plan-Build-Run's commit conventions, commit points, branching strategy, and hook
 
 | Part | Description | Example |
 |------|-------------|---------|
-| `{type}` | Conventional commit type | `feat`, `fix`, `test` |
-| `{scope}` | A short descriptive word for what changed | `auth`, `executor`, `config` |
-| `{description}` | Imperative, lowercase description | `implement discord oauth client` |
+| `{type}` | Conventional commit type | `feat`, `fix`, `chore` |
+| `{scope}` | Descriptive word for the area of change | `auth`, `executor`, `changelog` |
+| `{description}` | Imperative, lowercase description | `add discord oauth flow` |
 
 The format is configurable via `config.json` at `git.commit_format`. The default is `{type}({scope}): {description}`.
 
@@ -32,23 +32,28 @@ feat(auth): implement discord oauth client
 | Type | When to Use | Example |
 |------|------------|---------|
 | `feat` | New feature or functionality | `feat(auth): implement discord oauth client` |
-| `fix` | Bug fix (including during execution) | `fix(auth): handle null user profile from discord api` |
+| `fix` | Bug fix (including during execution) | `fix(api): handle null user profile from discord` |
 | `refactor` | Code restructuring, no behavior change | `refactor(auth): extract token validation into helper` |
-| `test` | Adding or modifying tests | `test(auth): add failing tests for discord oauth flow` |
-| `docs` | Documentation changes | `docs(api): add api endpoint documentation` |
-| `chore` | Build config, dependencies, tooling | `chore(config): configure typescript and eslint` |
+| `test` | Adding or modifying tests | `test(auth): add failing tests for oauth flow` |
+| `docs` | Documentation changes | `docs(planning): add api endpoint documentation` |
+| `chore` | Build config, dependencies, tooling | `chore(deps): configure typescript and eslint` |
 | `style` | Formatting, whitespace (no logic change) | `style(auth): fix import ordering` |
 
 ---
 
 ## Commit Type Discipline
 
-Use the commit type that matches the PRIMARY change. Common pitfalls:
+| Type | Use For | Appears in Changelog |
+|------|---------|---------------------|
+| `feat` | User-visible features ONLY (new commands, new config options, changed behavior users notice) | YES |
+| `fix` | Bug fixes users would notice | YES |
+| `refactor` | Internal restructuring, TDD GREEN commits, code cleanup | No |
+| `test` | Test additions including TDD RED commits | No |
+| `docs` | Documentation (hidden — mostly planning artifacts) | No |
+| `chore` | Build config, deps, tooling, internal scaffolding | No |
+| `wip` | Work in progress (use sparingly) | No |
 
-- A `refactor` that also fixes a bug → use `fix` (the fix is the important part)
-- A `feat` that requires test additions → `feat` for the implementation commit, `test` for TDD RED
-- A `chore` that changes build behavior → use `fix` or `feat` (behavior change = functional type)
-- Never use `test` for non-test file changes, even if "testing" the feature
+**TDD commits**: RED phase → `test({scope}): RED - ...`, GREEN phase → `refactor({scope}): GREEN - ...`, REFACTOR phase → `refactor({scope}): REFACTOR - ...`
 
 ---
 
@@ -70,7 +75,7 @@ Beyond descriptive scopes, Plan-Build-Run recognizes these additional patterns:
 For commits that need explanation, add a body after a blank line:
 
 ```
-feat(auth): implement discord oauth client
+feat(02-01): implement discord oauth client
 
 - Uses discord-oauth2 library for token exchange
 - Stores tokens in httpOnly cookies for security
@@ -95,7 +100,7 @@ TDD tasks (`tdd="true"`) produce exactly 3 commits following Red-Green-Refactor:
 
 ```
 test(auth): RED - add failing tests for auth middleware
-feat(auth): GREEN - implement auth middleware to pass tests
+refactor(auth): GREEN - implement auth middleware to pass tests
 refactor(auth): REFACTOR - extract token verification helper
 ```
 
