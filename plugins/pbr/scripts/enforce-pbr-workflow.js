@@ -13,7 +13,7 @@
  *   checkUnmanagedCommit(data)         — PreToolUse Bash: advises git commits to use /pbr:quick
  *
  * All functions return null for pass, or { exitCode, output } for action.
- * checkNonPbrAgent always returns advisory (exitCode 0) — never blocks Task().
+ * checkNonPbrAgent defaults to blocking (exitCode 2) — blocks non-PBR agents.
  */
 
 'use strict';
@@ -136,8 +136,9 @@ const AGENT_MAPPING = {
  *   - subagent_type is missing/empty (can't determine type)
  *   - Enforcement level is "off"
  *
- * In "advisory" mode (default): returns exitCode 0 with additionalContext.
- * In "block" mode: returns exitCode 2 with decision/reason to hard-block the agent spawn.
+ * Defaults to **blocking** (exitCode 2) unless config overrides to "advisory".
+ * This is stricter than checkUnmanagedSourceWrite/checkUnmanagedCommit because
+ * non-PBR agents bypass audit logging, workflow context, and project-aware prompts.
  *
  * @param {Object} data - parsed hook input from Claude Code
  * @returns {null|{ exitCode: number, output: Object }}
@@ -149,6 +150,10 @@ function checkNonPbrAgent(data) {
   // Already using a PBR agent
   if (subagentType.startsWith('pbr:')) return null;
 
+  // Per-call bypass: user says "use native agents" and the LLM includes [native] in description
+  const description = (data.tool_input && data.tool_input.description) || '';
+  if (/\[native\]/i.test(description)) return null;
+
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
 
@@ -158,14 +163,35 @@ function checkNonPbrAgent(data) {
   const config = loadEnforcementConfig(planningDir);
   if (config.level === 'off') return null;
 
+  // For agent enforcement, determine the effective level.
+  // Priority: workflow.enforce_pbr_agents > workflow.enforce_pbr_skills > default "block"
+  // Agent enforcement is stricter than source write/commit checks — blocks by default.
+  let agentLevel = 'block'; // default: block non-PBR agents
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const agentExplicit = parsed.workflow && parsed.workflow.enforce_pbr_agents;
+    const skillExplicit = parsed.workflow && parsed.workflow.enforce_pbr_skills;
+    if (agentExplicit === 'advisory' || agentExplicit === 'block' || agentExplicit === 'off') {
+      agentLevel = agentExplicit;
+    } else if (skillExplicit === 'advisory' || skillExplicit === 'block' || skillExplicit === 'off') {
+      agentLevel = skillExplicit;
+    }
+  } catch (_e) {
+    // No config — keep default (block)
+  }
+
+  if (agentLevel === 'off') return null;
+
   const suggestion = AGENT_MAPPING[subagentType] || 'a pbr:* agent (e.g., pbr:researcher, pbr:general, pbr:executor)';
 
-  if (config.level === 'block') {
+  // Block non-PBR agents unless explicitly set to advisory
+  if (agentLevel !== 'advisory') {
     const blockMessage =
       `PBR workflow violation: spawning generic agent "${subagentType}" is blocked. ` +
       `Use ${suggestion} instead. ` +
       'PBR agents are auto-loaded via subagent_type — just change the type, no extra setup needed. ' +
-      'Set workflow.enforce_pbr_skills: "advisory" in config to allow with warnings.';
+      'If the user explicitly requested a native agent, add [native] to the Task description to bypass this check.';
 
     logHook('enforce-pbr-workflow', 'PreToolUse', 'block', { agentType: subagentType, suggestion });
     return {

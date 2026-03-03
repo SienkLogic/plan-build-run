@@ -26,6 +26,7 @@ These rules prevent context rot -- quality degradation as the context window fil
 ## Task/Subagent Rules (apply to every skill)
 
 10. **Never** invoke `Skill()` inside a `Task()` subagent -- the Skill tool is not available in subagent contexts. Subagents spawned by `Task()` cannot resolve `/pbr:*` skill prefixes, so `Skill({ skill: "pbr:plan" })` will silently fail. Instead, chain skills at the orchestrator level (return control to the orchestrator, then call `Skill()` from there). For subagent work, use `subagent_type: "pbr:{agent}"` which auto-loads agent definitions.
+11. **NEVER** use non-PBR agent types (`general-purpose`, `Explore`, `Plan`, `Bash`, `feature-dev`, etc.) -- ALWAYS use `subagent_type: "pbr:{agent}"` (e.g., `pbr:researcher`, `pbr:executor`, `pbr:general`). PBR agents have project-aware prompts, audit logging, and workflow context. Generic agents bypass all of this. A PreToolUse hook **blocks** non-PBR agent spawns by default. Exceptions: (a) bare `Task()` with no `subagent_type` for lightweight read-only briefings (see context-loader-task pattern), (b) if the user says "use native agents", add `[native]` to the Task description to bypass the block for that call.
 
 ## Behavioral Rules (apply to every skill)
 

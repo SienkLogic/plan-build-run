@@ -22,7 +22,9 @@ Then proceed to Step 1.
 
 You are running the **explore** skill. Your job is to help the user think through ideas that might become a todo, requirement, phase, decision, or nothing yet. This is Socratic conversation, not requirements gathering. No phase number is needed.
 
-This skill runs **inline** (no Task delegation), with optional Task() spawns for context loading and mid-conversation research.
+This skill runs **inline** (no Task delegation), with optional Task() spawns for context loading, upfront research, and mid-conversation research.
+
+**CRITICAL: Agent type rule** — When spawning ANY research or analysis Task(), ALWAYS use `subagent_type: "pbr:researcher"`. NEVER use `general-purpose`, `Explore`, or other non-PBR agent types. The PreToolUse hook will block non-PBR agents.
 
 ---
 
@@ -101,6 +103,31 @@ Reference `skills/shared/domain-probes.md` for technology-specific follow-up que
 | `/pbr:explore` | "What are you thinking about?" |
 | `/pbr:explore auth` | "What's your thinking on auth? Are you starting from scratch or rethinking something?" |
 | `/pbr:explore "should we add caching?"` | "Caching for what specifically? What's feeling slow or what do you expect to be slow?" |
+
+---
+
+## Upfront Research Delegation
+
+When the user's initial request is research-heavy (e.g., "explore best practices for X", "research how other projects do Y", "compare approaches to Z"), delegate immediately to `pbr:researcher` agents rather than doing inline research.
+
+**Detection**: If `$ARGUMENTS` contains words like "research", "compare", "explore examples", "best practices", "how do others", or describes gathering external information — this is an upfront research task.
+
+**Pattern**: Spawn one or more `pbr:researcher` agents in parallel, then synthesize their findings inline:
+
+```
+Task({
+  subagent_type: "pbr:researcher",
+  prompt: "<research_assignment>
+    Topic: {specific research question from user's request}
+    Output: Return findings as structured markdown in your response.
+    Mode: external-research
+
+    {detailed research instructions}
+  </research_assignment>"
+})
+```
+
+After researchers complete, synthesize findings inline and continue the Socratic conversation with the user about what was discovered.
 
 ---
 

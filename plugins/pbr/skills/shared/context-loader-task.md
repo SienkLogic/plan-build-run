@@ -44,6 +44,7 @@ Task({
 2. **Budget: ~500 tokens.** The briefing must be concise. The subagent reads full files in its own context; the orchestrator receives only the summary.
 3. **No suggestions.** The briefing reports state, it does not recommend actions. The skill logic decides what to do.
 4. **Read-only.** The briefing task must not write any files.
+5. **No subagent_type needed.** This is the ONE exception to the "always use `pbr:*` agents" rule. Bare `Task()` without `subagent_type` is intentional here — these are lightweight read-only briefings that don't need agent-specific prompts. Do NOT generalize this pattern to other Task() calls — all research, execution, and analysis Task() calls MUST use `subagent_type: "pbr:{agent}"`.
 
 ### Using the Briefing
 

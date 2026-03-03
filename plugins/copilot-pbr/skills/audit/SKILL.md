@@ -153,11 +153,11 @@ Task({
 })
 ```
 
-Also spawn a git analysis agent (can use a Bash agent or general-purpose):
+Also spawn a git analysis agent:
 
 ```
 Task({
-  subagent_type: "Bash",
+  subagent_type: "pbr:general",
   model: "haiku",
   prompt: "Run these git commands in {project_dir}:
     1. git log --since='{from}' --until='{to}' --format='%h|%s|%an|%ai' --all

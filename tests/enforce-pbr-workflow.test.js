@@ -268,38 +268,50 @@ describe('checkNonPbrAgent', () => {
     cleanup(tmpDir);
   });
 
-  test('returns advisory for subagent_type "Explore" with PBR agent suggestion', () => {
+  test('blocks subagent_type "Explore" by default with PBR agent suggestion', () => {
     const data = { tool_input: { subagent_type: 'Explore' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
-    expect(result.exitCode).toBe(0);
-    expect(result.output).toHaveProperty('additionalContext');
+    expect(result.exitCode).toBe(2);
+    expect(result.output).toHaveProperty('decision', 'block');
     // Should mention PBR alternative for Explore
-    expect(result.output.additionalContext).toMatch(/pbr:researcher|pbr:codebase-mapper/i);
+    expect(result.output.reason).toMatch(/pbr:researcher|pbr:codebase-mapper/i);
   });
 
-  test('returns advisory for "general-purpose" suggesting pbr:general', () => {
+  test('blocks "general-purpose" by default suggesting pbr:general', () => {
     const data = { tool_input: { subagent_type: 'general-purpose' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
-    expect(result.exitCode).toBe(0);
-    expect(result.output.additionalContext).toContain('pbr:general');
+    expect(result.exitCode).toBe(2);
+    expect(result.output.reason).toContain('pbr:general');
   });
 
-  test('returns advisory for "Plan" agent type', () => {
+  test('blocks "Plan" agent type by default', () => {
     const data = { tool_input: { subagent_type: 'Plan' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
-    expect(result.exitCode).toBe(0);
-    expect(result.output.additionalContext).toContain('pbr:planner');
+    expect(result.exitCode).toBe(2);
+    expect(result.output.reason).toContain('pbr:planner');
   });
 
-  test('returns advisory for "Bash" agent type', () => {
+  test('blocks "Bash" agent type by default', () => {
     const data = { tool_input: { subagent_type: 'Bash' } };
     const result = checkNonPbrAgent(data);
     expect(result).not.toBeNull();
-    expect(result.exitCode).toBe(0);
-    expect(result.output.additionalContext).toContain('pbr:executor');
+    expect(result.exitCode).toBe(2);
+    expect(result.output.reason).toContain('pbr:executor');
+  });
+
+  test('returns advisory when config level is "advisory"', () => {
+    writeConfig(planningDir, { workflow: { enforce_pbr_skills: 'advisory' } });
+    const nonPbrTypes = ['Explore', 'general-purpose', 'Plan', 'Bash'];
+    for (const subagent_type of nonPbrTypes) {
+      const data = { tool_input: { subagent_type } };
+      const result = checkNonPbrAgent(data);
+      expect(result).not.toBeNull();
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toHaveProperty('additionalContext');
+    }
   });
 
   test('returns null for subagent_type "pbr:researcher" (already PBR)', () => {
@@ -325,6 +337,18 @@ describe('checkNonPbrAgent', () => {
 
   test('returns null when subagent_type is missing from tool_input', () => {
     const data = { tool_input: {} };
+    const result = checkNonPbrAgent(data);
+    expect(result).toBeNull();
+  });
+
+  test('returns null when description contains [native] bypass marker', () => {
+    const data = { tool_input: { subagent_type: 'general-purpose', description: 'Research READMEs [native]' } };
+    const result = checkNonPbrAgent(data);
+    expect(result).toBeNull();
+  });
+
+  test('[native] bypass is case-insensitive', () => {
+    const data = { tool_input: { subagent_type: 'Explore', description: 'Explore repos [NATIVE]' } };
     const result = checkNonPbrAgent(data);
     expect(result).toBeNull();
   });
