@@ -177,14 +177,14 @@ When executing a plan:
 **Commit message format:**
 
 ```
-{type}({phase}-{plan}): {description}
+{type}({scope}): {description}
 ```
 
 Examples:
-- `feat(01-01): implement configuration loader`
-- `fix(01-01): handle missing DB_PORT with default value`
-- `test(01-01): add unit tests for config validation`
-- `refactor(02-01): extract auth middleware into separate module`
+- `feat(config): implement configuration loader`
+- `fix(config): handle missing DB_PORT with default value`
+- `test(config): add unit tests for config validation`
+- `refactor(auth): extract auth middleware into separate module`
 
 Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
 
@@ -196,8 +196,8 @@ phase: "01-setup"
 plan: "01-01"
 status: "complete"
 commits:
-  - "abc1234: feat(01-01): implement configuration loader"
-  - "def5678: feat(01-01): create database connection module"
+  - "abc1234: feat(config): implement configuration loader"
+  - "def5678: feat(database): create database connection module"
 key_files:
   - "src/config.ts"
   - "src/database.ts"
@@ -291,7 +291,7 @@ Before any `git commit`, verify the message matches:
 ```
 
 - **Valid types**: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
-- **Valid scopes**: `NN-MM` (phase-plan), `quick-NNN`, `planning`, or a descriptive word
+- **Valid scopes**: a short descriptive word for what changed (e.g., `auth`, `config`, `executor`), `quick-NNN`, `planning`
 - **Block the commit** if the format doesn't match — fix the message first
 
 ### Gate 2: Plan-Before-Build

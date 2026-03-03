@@ -100,7 +100,7 @@ One task = one commit. Exception: TDD tasks get 3 commits (RED, GREEN, REFACTOR)
 ### Commit Format
 
 ```
-{type}({phase}-{plan}): {description}
+{type}({scope}): {description}
 ```
 
 | Type | When |
@@ -119,7 +119,7 @@ Stage only files listed in the task's `<files>`. If git commit fails with lock e
 When the plan frontmatter contains a non-empty `closes_issues` array, append issue-closing syntax to the **final** commit body for the plan:
 
 ```
-git commit -m "feat(01-02): implement user auth
+git commit -m "feat(auth): implement user auth
 
 Closes #42
 Closes #57"
@@ -217,9 +217,9 @@ When a task has `tdd="true"`, follow Red-Green-Refactor:
 
 | Phase | Action | Test Must | Commit | If Wrong |
 |-------|--------|-----------|--------|----------|
-| RED | Write test from `<done>` | FAIL | `test(NN-MM): RED - ...` | Passes? Fix test. |
-| GREEN | Minimal code to pass | PASS | `feat(NN-MM): GREEN - ...` | Fails? Fix code. |
-| REFACTOR | Clean up, keep behavior | PASS | `refactor(NN-MM): REFACTOR - ...` | Breaks? Revert. |
+| RED | Write test from `<done>` | FAIL | `test({scope}): RED - ...` | Passes? Fix test. |
+| GREEN | Minimal code to pass | PASS | `feat({scope}): GREEN - ...` | Fails? Fix code. |
+| REFACTOR | Clean up, keep behavior | PASS | `refactor({scope}): REFACTOR - ...` | Breaks? Revert. |
 
 ---
 
