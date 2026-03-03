@@ -139,7 +139,7 @@ describe('Executor agent patterns', () => {
 
   test('has atomic commit documentation', () => {
     expect(content).toMatch(/atomic commit/i);
-    expect(content).toMatch(/\{type\}\(\{?phase/);
+    expect(content).toMatch(/\{type\}\(\{?scope/);
   });
 
   test('has progress tracking via .PROGRESS file', () => {
