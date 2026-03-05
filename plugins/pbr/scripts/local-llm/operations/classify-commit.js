@@ -6,6 +6,52 @@ const { route } = require('../router');
 
 const VALID_CLASSIFICATIONS = ['correct', 'type_mismatch', 'vague'];
 
+const CONVENTIONAL_COMMIT_RE = /^(feat|fix|refactor|test|docs|chore|wip|perf|ci|build|revert)(\(.*?\))?!?:/;
+
+const TEST_FILE_RE = /(?:^|[/\\])tests[/\\]|\.test\.[jt]sx?$|\.spec\.[jt]sx?$/;
+const MARKDOWN_RE = /\.mdx?$/i;
+const CONFIG_TOOLING_RE = /\.(?:json|ya?ml|toml|ini|env|lock)$|(?:^|[/\\])(?:\.github|\.husky|scripts)[/\\]|(?:Makefile|Dockerfile|\.eslintrc|\.prettierrc|babel\.config|jest\.config|tsconfig|webpack\.config|rollup\.config)/i;
+
+/**
+ * Heuristic-first classifier for git commit messages.
+ * Runs before the LLM path and returns early for unambiguous cases.
+ *
+ * @param {string} commitMessage - the commit message to classify
+ * @param {string[]} [stagedFiles] - optional list of staged file paths
+ * @returns {{ classification: string, confidence: number }|null} result or null (fall through to LLM)
+ */
+function classifyCommitHeuristic(commitMessage, stagedFiles) {
+  const match = CONVENTIONAL_COMMIT_RE.exec(commitMessage);
+  if (!match) return null;
+
+  const type = match[1];
+  const files = stagedFiles && stagedFiles.length > 0 ? stagedFiles : [];
+
+  // Check for "fix" type but description implies addition
+  const descriptionPart = commitMessage.slice(match[0].length).trim();
+  if (type === 'fix' && /^(?:add|adds|adding|new\b)/i.test(descriptionPart)) {
+    return { classification: 'type_mismatch', confidence: 0.9 };
+  }
+
+  // Type-to-file alignment checks (only when staged files are known)
+  if (files.length > 0) {
+    if (type === 'test' && files.every(f => TEST_FILE_RE.test(f))) {
+      return { classification: 'correct', confidence: 1.0 };
+    }
+
+    if (type === 'docs' && files.every(f => MARKDOWN_RE.test(f))) {
+      return { classification: 'correct', confidence: 1.0 };
+    }
+
+    if ((type === 'chore' || type === 'ci' || type === 'build') && files.every(f => CONFIG_TOOLING_RE.test(f))) {
+      return { classification: 'correct', confidence: 1.0 };
+    }
+  }
+
+  // Type parsed cleanly — most conventional commits are typed correctly
+  return { classification: 'correct', confidence: 0.8 };
+}
+
 /**
  * Classifies a git commit message for semantic correctness using the local LLM.
  * Goes beyond regex validation — checks whether the commit type matches the
@@ -21,6 +67,29 @@ const VALID_CLASSIFICATIONS = ['correct', 'type_mismatch', 'vague'];
 async function classifyCommit(config, planningDir, commitMessage, stagedFiles, sessionId) {
   if (!config.enabled || !config.features.commit_classification) return null;
   if (isDisabled('commit-classification', config.advanced.disable_after_failures)) return null;
+
+  // Heuristic-first: skip LLM for unambiguous cases
+  const heuristic = classifyCommitHeuristic(commitMessage, stagedFiles);
+  if (heuristic !== null) {
+    logMetric(planningDir, {
+      session_id: sessionId || 'unknown',
+      timestamp: new Date().toISOString(),
+      operation: 'commit-classification',
+      model: 'heuristic',
+      latency_ms: 0,
+      tokens_used_local: 0,
+      tokens_saved_frontier: 150,
+      result: heuristic.classification,
+      fallback_used: false,
+      confidence: heuristic.confidence
+    });
+    return {
+      classification: heuristic.classification,
+      confidence: heuristic.confidence,
+      latency_ms: 0,
+      fallback_used: false
+    };
+  }
 
   const filesContext = stagedFiles && stagedFiles.length > 0
     ? '\nStaged files: ' + stagedFiles.slice(0, 20).join(', ')
@@ -65,4 +134,4 @@ async function classifyCommit(config, planningDir, commitMessage, stagedFiles, s
   }
 }
 
-module.exports = { classifyCommit, VALID_CLASSIFICATIONS };
+module.exports = { classifyCommit, classifyCommitHeuristic, VALID_CLASSIFICATIONS };

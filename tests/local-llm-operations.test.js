@@ -28,9 +28,9 @@ const { validateTask } = require('../plugins/pbr/scripts/local-llm/operations/va
 const { classifyError, ERROR_CATEGORIES } = require('../plugins/pbr/scripts/local-llm/operations/classify-error');
 const { scoreSource, SOURCE_LEVELS } = require('../plugins/pbr/scripts/local-llm/operations/score-source');
 const { summarizeContext } = require('../plugins/pbr/scripts/local-llm/operations/summarize-context');
-const { classifyCommit, VALID_CLASSIFICATIONS } = require('../plugins/pbr/scripts/local-llm/operations/classify-commit');
+const { classifyCommit, classifyCommitHeuristic, VALID_CLASSIFICATIONS } = require('../plugins/pbr/scripts/local-llm/operations/classify-commit');
 const { triageTestOutput, VALID_CATEGORIES } = require('../plugins/pbr/scripts/local-llm/operations/triage-test-output');
-const { classifyFileIntent, VALID_FILE_TYPES, VALID_INTENTS } = require('../plugins/pbr/scripts/local-llm/operations/classify-file-intent');
+const { classifyFileIntent, classifyFileIntentHeuristic, VALID_FILE_TYPES, VALID_INTENTS } = require('../plugins/pbr/scripts/local-llm/operations/classify-file-intent');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -364,7 +364,9 @@ describe('classifyCommit', () => {
     ...overrides
   });
 
-  test('happy path: returns classification object', async () => {
+  // --- LLM path tests (use non-conventional messages to bypass heuristic) ---
+
+  test('LLM path: returns classification for non-conventional message', async () => {
     route.mockResolvedValue({
       content: '{"classification":"correct","confidence":0.95}',
       latency_ms: 100,
@@ -372,7 +374,8 @@ describe('classifyCommit', () => {
       logprobsData: null
     });
 
-    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat(tools): add retry logic', ['src/api.js'], 'sess-1');
+    // Non-conventional format bypasses heuristic → falls through to LLM
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'updated the retry logic in tools', ['src/api.js'], 'sess-1');
 
     expect(result).not.toBeNull();
     expect(result.classification).toBe('correct');
@@ -394,19 +397,19 @@ describe('classifyCommit', () => {
     expect(route).not.toHaveBeenCalled();
   });
 
-  test('returns null when route returns null', async () => {
+  test('returns null when route returns null (non-conventional message)', async () => {
     route.mockResolvedValue(null);
-    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'updated something');
     expect(result).toBeNull();
   });
 
-  test('returns null when route throws', async () => {
+  test('returns null when route throws (non-conventional message)', async () => {
     route.mockRejectedValue(new Error('LLM crash'));
-    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'updated something');
     expect(result).toBeNull();
   });
 
-  test('returns null for invalid classification value', async () => {
+  test('returns null for invalid classification value (non-conventional)', async () => {
     route.mockResolvedValue({
       content: '{"classification":"invalid_value","confidence":0.9}',
       latency_ms: 50,
@@ -414,21 +417,8 @@ describe('classifyCommit', () => {
       logprobsData: null
     });
 
-    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something');
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'updated something');
     expect(result).toBeNull();
-  });
-
-  test('detects type_mismatch classification', async () => {
-    route.mockResolvedValue({
-      content: '{"classification":"type_mismatch","confidence":0.8}',
-      latency_ms: 80,
-      tokens: 8,
-      logprobsData: null
-    });
-
-    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'fix: add new auth system', ['src/auth.js']);
-    expect(result).not.toBeNull();
-    expect(result.classification).toBe('type_mismatch');
   });
 
   test('returns null when isDisabled returns true', async () => {
@@ -446,7 +436,7 @@ describe('classifyCommit', () => {
     expect(VALID_CLASSIFICATIONS).toContain('type_mismatch');
   });
 
-  test('includes staged files in prompt when provided', async () => {
+  test('includes staged files in prompt for non-conventional messages', async () => {
     route.mockResolvedValue({
       content: '{"classification":"correct","confidence":0.9}',
       latency_ms: 50,
@@ -454,11 +444,69 @@ describe('classifyCommit', () => {
       logprobsData: null
     });
 
-    await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something', ['a.js', 'b.js']);
+    await classifyCommit(commitConfig(), PLANNING_DIR, 'updated something', ['a.js', 'b.js']);
     expect(route).toHaveBeenCalled();
     const prompt = route.mock.calls[0][1];
     expect(prompt).toContain('a.js');
     expect(prompt).toContain('b.js');
+  });
+
+  // --- Heuristic path tests ---
+
+  test('heuristic: returns correct for well-formed conventional commit', async () => {
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'feat(tools): add retry logic', ['src/api.js'], 'sess-1');
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('correct');
+    expect(result.confidence).toBe(0.8);
+    expect(result.latency_ms).toBe(0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns correct with high confidence for test type + test files', async () => {
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'test(tools): add unit tests', ['tests/tools.test.js', 'tests/utils.spec.js']);
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('correct');
+    expect(result.confidence).toBe(1.0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns correct for docs type + markdown files', async () => {
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'docs(readme): update install section', ['README.md', 'docs/setup.md']);
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('correct');
+    expect(result.confidence).toBe(1.0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns type_mismatch for fix + add description', async () => {
+    const result = await classifyCommit(commitConfig(), PLANNING_DIR, 'fix(api): add new auth system', ['src/auth.js']);
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('type_mismatch');
+    expect(result.confidence).toBe(0.9);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: logs metric with model "heuristic"', async () => {
+    const { logMetric } = require('../plugins/pbr/scripts/local-llm/metrics');
+    await classifyCommit(commitConfig(), PLANNING_DIR, 'feat: something', [], 'sess-1');
+    expect(logMetric).toHaveBeenCalledWith(PLANNING_DIR, expect.objectContaining({
+      model: 'heuristic',
+      latency_ms: 0,
+      operation: 'commit-classification'
+    }));
+  });
+
+  // --- Pure heuristic function tests ---
+
+  test('classifyCommitHeuristic: returns null for non-conventional message', () => {
+    expect(classifyCommitHeuristic('updated the readme')).toBeNull();
+  });
+
+  test('classifyCommitHeuristic: returns correct for chore + config files', () => {
+    const result = classifyCommitHeuristic('chore: update deps', ['package.json', 'package-lock.json']);
+    expect(result).not.toBeNull();
+    expect(result.classification).toBe('correct');
+    expect(result.confidence).toBe(1.0);
   });
 });
 
@@ -567,49 +615,52 @@ describe('classifyFileIntent', () => {
     ...overrides
   });
 
-  test('happy path: returns file_type and intent', async () => {
+  // --- LLM path tests (use ambiguous .md paths to bypass heuristic) ---
+
+  test('LLM path: returns file_type and intent for ambiguous file', async () => {
     route.mockResolvedValue({
-      content: '{"file_type":"code","intent":"create","confidence":0.92}',
+      content: '{"file_type":"docs","intent":"create","confidence":0.92}',
       latency_ms: 120,
       tokens: 12,
       logprobsData: null
     });
 
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'src/api.js', 'const express = require("express");', 'sess-1');
+    // Root-level .md is ambiguous → heuristic returns null → falls through to LLM
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'README.md', '# My Project', 'sess-1');
 
     expect(result).not.toBeNull();
-    expect(result.file_type).toBe('code');
+    expect(result.file_type).toBe('docs');
     expect(result.intent).toBe('create');
     expect(result.confidence).toBe(0.92);
     expect(result.fallback_used).toBe(false);
   });
 
   test('returns null when config.enabled = false', async () => {
-    const result = await classifyFileIntent(fileConfig({ enabled: false }), PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(fileConfig({ enabled: false }), PLANNING_DIR, 'README.md', 'content');
     expect(result).toBeNull();
     expect(route).not.toHaveBeenCalled();
   });
 
   test('returns null when features.file_intent_classification = false', async () => {
     const config = fileConfig({ features: { file_intent_classification: false } });
-    const result = await classifyFileIntent(config, PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(config, PLANNING_DIR, 'README.md', 'content');
     expect(result).toBeNull();
     expect(route).not.toHaveBeenCalled();
   });
 
-  test('returns null when route returns null', async () => {
+  test('returns null when route returns null (ambiguous file)', async () => {
     route.mockResolvedValue(null);
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'CHANGELOG.md', 'content');
     expect(result).toBeNull();
   });
 
-  test('returns null when route throws', async () => {
+  test('returns null when route throws (ambiguous file)', async () => {
     route.mockRejectedValue(new Error('LLM crash'));
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'CHANGELOG.md', 'content');
     expect(result).toBeNull();
   });
 
-  test('falls back to other/update for unknown values', async () => {
+  test('falls back to other/update for unknown LLM values', async () => {
     route.mockResolvedValue({
       content: '{"file_type":"unknown_type","intent":"unknown_intent","confidence":0.6}',
       latency_ms: 70,
@@ -617,23 +668,10 @@ describe('classifyFileIntent', () => {
       logprobsData: null
     });
 
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'NOTES.md', 'content');
     expect(result).not.toBeNull();
     expect(result.file_type).toBe('other');
     expect(result.intent).toBe('update');
-  });
-
-  test('classifies test files correctly', async () => {
-    route.mockResolvedValue({
-      content: '{"file_type":"test","intent":"create","confidence":0.95}',
-      latency_ms: 80,
-      tokens: 8,
-      logprobsData: null
-    });
-
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'tests/foo.test.js', "describe('foo', () => {");
-    expect(result).not.toBeNull();
-    expect(result.file_type).toBe('test');
   });
 
   test('VALID_FILE_TYPES and VALID_INTENTS are non-empty arrays', () => {
@@ -650,24 +688,109 @@ describe('classifyFileIntent', () => {
   test('returns null when isDisabled returns true', async () => {
     const { isDisabled } = require('../plugins/pbr/scripts/local-llm/client');
     isDisabled.mockReturnValueOnce(true);
-    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', 'content');
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'README.md', 'content');
     expect(result).toBeNull();
     isDisabled.mockReturnValue(false);
   });
 
-  test('truncates long content snippets', async () => {
+  test('truncates long content snippets (ambiguous file)', async () => {
     route.mockResolvedValue({
-      content: '{"file_type":"code","intent":"update","confidence":0.9}',
+      content: '{"file_type":"docs","intent":"update","confidence":0.9}',
       latency_ms: 50,
       tokens: 5,
       logprobsData: null
     });
 
     const longContent = 'x'.repeat(2000);
-    await classifyFileIntent(fileConfig(), PLANNING_DIR, 'file.js', longContent);
+    await classifyFileIntent(fileConfig(), PLANNING_DIR, 'NOTES.md', longContent);
     expect(route).toHaveBeenCalled();
     const prompt = route.mock.calls[0][1];
-    // Content should be truncated to 800 chars
     expect(prompt.length).toBeLessThan(2000);
+  });
+
+  // --- Heuristic path tests ---
+
+  test('heuristic: returns code for .js file without calling LLM', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'src/api.js', 'const x = 1;');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('code');
+    expect(result.intent).toBe('update');
+    expect(result.confidence).toBe(1.0);
+    expect(result.latency_ms).toBe(0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns test for file in tests/ directory', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'tests/foo.test.js', "describe('foo', () => {");
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('test');
+    expect(result.latency_ms).toBe(0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns config for .json file', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'package.json', '{"name": "test"}');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('config');
+    expect(result.confidence).toBe(1.0);
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns null for ambiguous root .md (falls through to LLM)', async () => {
+    route.mockResolvedValue(null);
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'NOTES.md', 'some notes');
+    // Heuristic returns null → LLM returns null → overall null
+    expect(result).toBeNull();
+    expect(route).toHaveBeenCalled();
+  });
+
+  test('heuristic: returns docs for .md in docs/ directory', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'docs/guide.md', '# Guide');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('docs');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns plan for .planning/ files', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, '.planning/ROADMAP.md', '# Roadmap');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('plan');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns state for .planning/STATE.md', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, '.planning/STATE.md', '---\nversion: 2');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('state');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: returns template for .ejs file', async () => {
+    const result = await classifyFileIntent(fileConfig(), PLANNING_DIR, 'templates/report.ejs', '<%= title %>');
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('template');
+    expect(route).not.toHaveBeenCalled();
+  });
+
+  test('heuristic: logs metric with model "heuristic"', async () => {
+    const { logMetric } = require('../plugins/pbr/scripts/local-llm/metrics');
+    await classifyFileIntent(fileConfig(), PLANNING_DIR, 'src/index.js', 'module.exports = {};', 'sess-1');
+    expect(logMetric).toHaveBeenCalledWith(PLANNING_DIR, expect.objectContaining({
+      model: 'heuristic',
+      latency_ms: 0,
+      operation: 'file-intent'
+    }));
+  });
+
+  // --- Pure heuristic function tests ---
+
+  test('classifyFileIntentHeuristic: returns null for unknown extension', () => {
+    expect(classifyFileIntentHeuristic('data.bin', 'binary content')).toBeNull();
+  });
+
+  test('classifyFileIntentHeuristic: returns test via content signal', () => {
+    const result = classifyFileIntentHeuristic('unknown.file', "describe('suite', () => {");
+    expect(result).not.toBeNull();
+    expect(result.file_type).toBe('test');
   });
 });
