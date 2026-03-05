@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.57.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.56.3...plan-build-run-v2.57.0) (2026-03-05)
+
+
+### Features
+
+* **quick-021:** add heuristic-first classification for file intent and commits ([a70167e](https://github.com/SienkLogic/plan-build-run/commit/a70167e0d9c7449339c056ccd44d7be819ae6ce3))
+
 ## [2.56.3](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.56.2...plan-build-run-v2.56.3) (2026-03-03)
 
 
