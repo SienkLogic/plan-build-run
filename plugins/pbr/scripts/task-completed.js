@@ -15,7 +15,22 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { sessionLoad } = require('./pbr-tools');
+
+/**
+ * Read current_phase from STATE.md frontmatter.
+ * Lightweight — avoids heavy stateLoad() which parses roadmap/config too.
+ */
+function readCurrentPhase(planningDir) {
+  try {
+    const statePath = path.join(planningDir, 'STATE.md');
+    if (!fs.existsSync(statePath)) return null;
+    const content = fs.readFileSync(statePath, 'utf8');
+    const match = content.match(/^current_phase:\s*(\d+)/m);
+    return match ? match[1] : null;
+  } catch (_e) {
+    return null;
+  }
+}
 
 function readStdin() {
   try {
@@ -42,8 +57,8 @@ function checkHaltConditions(data, planningDir) {
   // --- Verifier: halt if VERIFICATION.md reports gaps_found or failed ---
   if (agentType === 'pbr:verifier') {
     try {
-      const state = sessionLoad(planningDir);
-      const phaseNum = (state && state.currentPhase) ? String(state.currentPhase).padStart(2, '0') : null;
+      const rawPhase = readCurrentPhase(planningDir);
+      const phaseNum = rawPhase ? String(rawPhase).padStart(2, '0') : null;
       if (phaseNum) {
         const phasesDir = path.join(planningDir, 'phases');
         const candidates = fs.readdirSync(phasesDir).filter(d => d.startsWith(phaseNum + '-'));
@@ -66,8 +81,8 @@ function checkHaltConditions(data, planningDir) {
   // --- Executor: halt if SUMMARY.md is missing from current phase dir ---
   if (agentType === 'pbr:executor') {
     try {
-      const state = sessionLoad(planningDir);
-      const phaseNum = (state && state.currentPhase) ? String(state.currentPhase).padStart(2, '0') : null;
+      const rawPhase = readCurrentPhase(planningDir);
+      const phaseNum = rawPhase ? String(rawPhase).padStart(2, '0') : null;
       if (phaseNum) {
         const phasesDir = path.join(planningDir, 'phases');
         const candidates = fs.readdirSync(phasesDir).filter(d => d.startsWith(phaseNum + '-'));
@@ -115,4 +130,4 @@ function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { main, checkHaltConditions };
+module.exports = { main, checkHaltConditions, readCurrentPhase };

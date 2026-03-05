@@ -20,7 +20,7 @@ function readStdin() {
   try {
     const input = fs.readFileSync(0, 'utf8').trim();
     if (input) return JSON.parse(input);
-  } catch (_e) {}
+  } catch (_e) { /* empty or non-JSON stdin */ }
   return {};
 }
 

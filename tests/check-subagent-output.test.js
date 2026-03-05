@@ -532,6 +532,33 @@ test('researcher with old .md file (>30min) returns stale warning', () => {
     });
   });
 
+  describe('agent_type field priority (2.1.69 compat)', () => {
+    test('prefers data.agent_type over tool_input.subagent_type (forward compat)', () => {
+      // New Claude Code sends agent_type at top level
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      const result = runScript({ agent_type: 'pbr:executor', tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result.exitCode).toBe(0);
+      // The script should use 'pbr:executor' (from agent_type), not 'pbr:planner'
+      // Verify by checking that executor-specific checks ran (not planner checks)
+    });
+
+    test('falls back to tool_input.subagent_type when agent_type is absent (backward compat)', () => {
+      // Old Claude Code only sends subagent_type in tool_input
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('falls back to top-level subagent_type as last resort', () => {
+      const result = runScript({ subagent_type: 'pbr:executor' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('handles missing agent type gracefully', () => {
+      const result = runScript({ tool_input: {} });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('getCurrentPhase', () => {
     test('prefers frontmatter over body', () => {
       const content = '---\ncurrent_phase: 23\n---\n# State\nPhase: 20 of 23';

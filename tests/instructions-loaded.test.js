@@ -8,7 +8,7 @@ const SCRIPT_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'ins
 
 describe('instructions-loaded.js', () => {
   let tmpDir, planningDir;
-  let origExit, origWrite;
+  let origExit;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-il-'));

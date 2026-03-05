@@ -108,6 +108,124 @@ describe('task-completed.js', () => {
     });
   });
 
+  describe('checkHaltConditions', () => {
+    const { checkHaltConditions } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed'));
+
+    let haltTmpDir;
+
+    beforeEach(() => {
+      haltTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-halt-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(haltTmpDir, { recursive: true, force: true });
+    });
+
+    test('returns null when agent_type is missing', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      expect(checkHaltConditions({}, planningDir)).toBeNull();
+    });
+
+    test('returns null for non-verifier/non-executor agents', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      expect(checkHaltConditions({ agent_type: 'pbr:planner' }, planningDir)).toBeNull();
+    });
+
+    test('returns continue:false for verifier when VERIFICATION.md has gaps_found', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 61\nstatus: "built"\n---\n# State\nPhase: 61'
+      );
+      fs.writeFileSync(
+        path.join(phaseDir, 'VERIFICATION.md'),
+        '---\nstatus: gaps_found\n---\n# Verification\nGaps found'
+      );
+      const result = checkHaltConditions({ agent_type: 'pbr:verifier' }, planningDir);
+      expect(result).toMatchObject({ continue: false });
+      expect(result.stopReason).toContain('gaps');
+    });
+
+    test('returns continue:false for verifier when VERIFICATION.md has failed', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '05-auth');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 5\nstatus: "built"\n---\n# State\nPhase: 5'
+      );
+      fs.writeFileSync(
+        path.join(phaseDir, 'VERIFICATION.md'),
+        '---\nstatus: failed\n---\n# Verification\nFailed'
+      );
+      const result = checkHaltConditions({ agent_type: 'pbr:verifier' }, planningDir);
+      expect(result).toMatchObject({ continue: false });
+      expect(result.stopReason).toContain('failed');
+    });
+
+    test('returns null for verifier when VERIFICATION.md has passed', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 61\nstatus: "built"\n---\n# State\nPhase: 61'
+      );
+      fs.writeFileSync(
+        path.join(phaseDir, 'VERIFICATION.md'),
+        '---\nstatus: passed\n---\n# Verification\nAll good'
+      );
+      expect(checkHaltConditions({ agent_type: 'pbr:verifier' }, planningDir)).toBeNull();
+    });
+
+    test('returns continue:false for executor when SUMMARY.md is missing', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 61\nstatus: "building"\n---\n# State\nPhase: 61'
+      );
+      // No SUMMARY.md written
+      const result = checkHaltConditions({ agent_type: 'pbr:executor' }, planningDir);
+      expect(result).toMatchObject({ continue: false });
+      expect(result.stopReason).toContain('SUMMARY.md');
+    });
+
+    test('returns null for executor when SUMMARY.md exists', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 61\nstatus: "built"\n---\n# State\nPhase: 61'
+      );
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '# Summary\nDone');
+      expect(checkHaltConditions({ agent_type: 'pbr:executor' }, planningDir)).toBeNull();
+    });
+
+    test('uses subagent_type fallback when agent_type is absent', () => {
+      const planningDir = path.join(haltTmpDir, '.planning');
+      const phaseDir = path.join(planningDir, 'phases', '61-hook-event-modernization');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(planningDir, 'STATE.md'),
+        '---\ncurrent_phase: 61\nstatus: "built"\n---\n# State\nPhase: 61'
+      );
+      fs.writeFileSync(
+        path.join(phaseDir, 'VERIFICATION.md'),
+        '---\nstatus: gaps_found\n---\n# Gaps'
+      );
+      // Use old-style subagent_type field
+      const result = checkHaltConditions({ subagent_type: 'pbr:verifier' }, planningDir);
+      expect(result).toMatchObject({ continue: false });
+    });
+  });
+
   describe('logging behavior in a .planning project', () => {
     let tmpDir;
 
