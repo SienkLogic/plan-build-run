@@ -5,6 +5,19 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.58.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.57.0...plan-build-run-v2.58.0) (2026-03-05)
+
+
+### Features
+
+* **hook-events:** add native agent_type support, continue:false halt signals, and InstructionsLoaded hook ([8f09dcb](https://github.com/SienkLogic/plan-build-run/commit/8f09dcbad39c4f0e19d7f26f4f5fa694bc2b5f2e))
+
+
+### Bug Fixes
+
+* **hook-events:** add InstructionsLoaded to hooks schema and valid events list ([cd6601c](https://github.com/SienkLogic/plan-build-run/commit/cd6601c66ac806e1c884e86b829596001fc81c3f))
+* **hook-events:** fix sessionLoad bug in halt conditions, add missing agent_type and halt tests ([aab8ec6](https://github.com/SienkLogic/plan-build-run/commit/aab8ec6b9346a66fcb6e9a1f038ec5bef4c8cf6f))
+
 ## [2.57.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.56.3...plan-build-run-v2.57.0) (2026-03-05)
 
 
