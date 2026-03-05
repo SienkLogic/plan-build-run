@@ -10,6 +10,7 @@
       "type": "object",
       "properties": {
         "SessionStart": { "$ref": "#/definitions/hookEntryList" },
+        "InstructionsLoaded": { "$ref": "#/definitions/hookEntryList" },
         "PreToolUse": { "$ref": "#/definitions/hookEntryList" },
         "PostToolUse": { "$ref": "#/definitions/hookEntryList" },
         "PostToolUseFailure": { "$ref": "#/definitions/hookEntryList" },
