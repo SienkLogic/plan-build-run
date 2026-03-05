@@ -421,7 +421,7 @@ async function main() {
   }
 
   // Extract agent type from the Task completion data
-  const agentType = data.tool_input?.subagent_type || data.subagent_type || '';
+  const agentType = data.agent_type || data.tool_input?.subagent_type || data.subagent_type || '';
 
   // Only check known Plan-Build-Run agent types
   const outputSpec = AGENT_OUTPUTS[agentType];

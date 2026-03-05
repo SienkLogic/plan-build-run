@@ -15,6 +15,13 @@ const path = require('path');
  * @returns {string|null}
  */
 function readActiveSkill(planningDir) {
+  // Check .session.json first (consistent with check-subagent-output.js and log-subagent.js)
+  try {
+    const { sessionLoad } = require('../../pbr-tools');
+    const session = sessionLoad(planningDir);
+    if (session && session.activeSkill) return session.activeSkill;
+  } catch (_e) { /* pbr-tools unavailable */ }
+  // Fall back to legacy .active-skill file
   try {
     return fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim();
   } catch (_e) {
