@@ -4,6 +4,24 @@ How Plan-Build-Run maps agents to models and how to configure model selection.
 
 ---
 
+## Session Model (Orchestrator)
+
+The orchestrator is your main Claude Code session -- it reads skills, manages state, and routes work to agents. Its model is whatever you selected in Claude Code (not controlled by PBR's `config.json`).
+
+**Cost impact:** The orchestrator accounts for roughly 40% of total session cost. Agents set to `inherit` (planner, executor, debugger, general in the `balanced` profile) also use this model. Switching your session from Opus to Sonnet reduces cost for both the orchestrator and all `inherit` agents.
+
+**Recommendations:**
+
+| Goal | Session Model | Config Adjustment |
+|------|---------------|-------------------|
+| Maximum quality | Opus | None needed -- `inherit` agents get Opus |
+| Balanced cost/quality | Sonnet | None needed -- `inherit` agents get Sonnet, which handles most tasks well |
+| Cheap orchestration, Opus agents | Sonnet | Set `planner: "opus"`, `executor: "opus"`, `debugger: "opus"` to override inherit |
+
+Sonnet 4.6 handles orchestration tasks (state reading, routing decisions, context assembly) effectively. Reserve Opus for agents doing complex reasoning, architecture, or novel code generation.
+
+---
+
 ## Agent-to-Model Mapping
 
 Each Plan-Build-Run agent has a default model specified in its agent definition frontmatter (`model:` field). These defaults are overridden by the `models` section of `config.json`.

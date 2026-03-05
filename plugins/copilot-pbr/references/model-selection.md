@@ -14,7 +14,7 @@ Plan-Build-Run uses adaptive model selection to balance cost and capability.
 |-----------|-------|-----------|
 | simple | haiku | Fast, cheap — sufficient for mechanical changes |
 | medium | sonnet | Good balance for standard feature work |
-| complex | inherit | Uses session model — typically Opus for critical work |
+| complex | inherit | Uses session model — see `model-profiles.md` Session Model section for cost implications |
 
 ## Override Mechanisms
 

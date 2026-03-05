@@ -58,6 +58,8 @@ Stop. Do not proceed further.
 
 ## Step 2: Model Selection
 
+Note: These profiles control agent models, not the orchestrator. The orchestrator uses your Claude Code session model. For cost optimization, consider running your session on Sonnet -- agents with `inherit` will follow. See `references/model-profiles.md` for details.
+
 Use AskUserQuestion:
   question: "Which model profile should agents use?"
   header: "Models"

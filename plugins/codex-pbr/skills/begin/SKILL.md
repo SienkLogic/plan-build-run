@@ -132,6 +132,7 @@ Use AskUserQuestion:
       description: "Walk through model selection, features, and preferences step by step."
 
 **If user selects "Quick start":**
+- Tell the user: "Tip: Agents set to `inherit` use your Claude Code session model. For cost savings, run on Sonnet -- orchestration and inherit agents work well at that tier. See `references/model-profiles.md` for details."
 - Write `.planning/config.json` immediately using the default config below (no further questions):
   ```json
   {
@@ -213,6 +214,8 @@ Use AskUserQuestion:
 After understanding the project, configure the Plan-Build-Run workflow. Use AskUserQuestion for each preference below. Present them sequentially with conversational bridging (e.g., "Great. Next...") to keep the flow natural.
 
 **3-model. Model Profile:**
+Note: These profiles control agent models. The orchestrator uses your Claude Code session model. For cost optimization, consider running on Sonnet -- agents with `inherit` will follow. See `references/model-profiles.md`.
+
 Use AskUserQuestion:
   question: "Which model profile should agents use?"
   header: "Models"
