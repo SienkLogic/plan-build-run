@@ -311,6 +311,30 @@
       },
       "additionalProperties": false
     },
+    "hook_server": {
+      "type": "object",
+      "description": "Persistent HTTP hook server settings. When enabled, hooks POST to the server instead of spawning per-hook processes.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, hook-server-client.js routes hook events to the persistent hook-server.js process."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535,
+          "default": 19836,
+          "description": "TCP port the hook server listens on (127.0.0.1 only)."
+        },
+        "event_log": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, all hook events are appended to .planning/.hook-events.jsonl."
+        }
+      },
+      "additionalProperties": false
+    },
     "local_llm": {
       "type": "object",
       "properties": {
