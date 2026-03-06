@@ -39,6 +39,11 @@ async function main() {
     tryLaunchDashboard(config.dashboard.port || 3000, planningDir, cwd);
   }
 
+  // Auto-launch hook server
+  if (config) {
+    tryLaunchHookServer(config, planningDir);
+  }
+
   // Write session-start timestamp for local-llm metrics correlation
   // Primary: write to .session.json (unified session state)
   // Legacy: also write .session-start file for session-cleanup.js backward compat
@@ -413,6 +418,52 @@ function tryLaunchDashboard(port, _planningDir, projectDir) {
 }
 
 /**
+ * Attempt to launch the hook server in a detached background process.
+ * Checks if the port is already in use before spawning.
+ */
+function tryLaunchHookServer(config, planningDir) {
+  if (config.hook_server && config.hook_server.enabled === false) {
+    return;
+  }
+
+  const port = (config.hook_server && config.hook_server.port) || 19836;
+  const projectRoot = planningDir.replace(/[/\\]\.planning$/, '');
+
+  const net = require('net');
+  const { spawn } = require('child_process');
+
+  // Quick port probe — if something is already listening, skip launch
+  const probe = net.createConnection({ port, host: '127.0.0.1' });
+  probe.on('connect', () => {
+    probe.destroy();
+    logHook('progress-tracker', 'SessionStart', 'hook-server-already-running', { port });
+  });
+  probe.on('error', () => {
+    // Port is free — launch hook server
+    const serverPath = path.join(__dirname, 'hook-server.js');
+    if (!fs.existsSync(serverPath)) {
+      logHook('progress-tracker', 'SessionStart', 'hook-server-missing', { serverPath });
+      return;
+    }
+
+    try {
+      const child = spawn(process.execPath, [serverPath, '--port', String(port), '--dir', planningDir], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: projectRoot
+      });
+      child.unref();
+      logHook('progress-tracker', 'SessionStart', 'hook-server-launched', { port, pid: child.pid });
+    } catch (e) {
+      logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', { error: e.message });
+    }
+  });
+
+  // Don't let the probe keep the process alive
+  probe.unref();
+}
+
+/**
  * Check learnings deferral thresholds and return notification strings.
  * Wrapped in try/catch — threshold check must never break SessionStart.
  * Equivalent to: node pbr-tools.js learnings check-thresholds
@@ -430,6 +481,6 @@ function checkLearningsDeferrals(_planningDir) {
 }
 
 // Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard };
+module.exports = { getHookHealthSummary, checkLearningsDeferrals, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 main().catch(() => {});
