@@ -20,6 +20,31 @@ function runScript(input, cwd) {
   }
 }
 
+// Helper: build a minimal valid plan string with optional overrides applied to the frontmatter block.
+// Pass overrides as an object; each key replaces the matching line or appends if not present.
+// Pass bodyOverride to replace the <task> block content.
+function buildValidPlan({ frontmatterExtra = '', taskContent = null } = {}) {
+  const task = taskContent !== null ? taskContent : `<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+  return `---
+phase: 03-auth
+plan: 01
+wave: 1
+implements: []
+must_haves:
+  truths: ["Something works"]
+  artifacts: ["src/file.ts"]
+  key_links: []
+${frontmatterExtra}---
+
+${task}`;
+}
+
 describe('check-plan-format.js', () => {
   describe('validatePlan', () => {
     test('valid plan with all elements returns no errors or warnings', () => {
@@ -243,6 +268,97 @@ wave: 1
 </tasks>`;
       const result = validatePlan(content, 'test-PLAN.md');
       expect(Array.isArray(result.warnings)).toBe(true);
+    });
+
+    // Phase 66: implements: blocking tests
+    test('validatePlan: missing implements: field produces blocking error', () => {
+      // Valid frontmatter with all required fields except implements:
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+must_haves:
+  truths: ["Something works"]
+  artifacts: ["src/file.ts"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      // Must be a blocking error (not a warning)
+      const implementsError = result.errors.find(e => /implements/i.test(e));
+      expect(implementsError).toBeDefined();
+      // Must NOT be an advisory warning about implements
+      const implementsWarning = result.warnings.find(w => /implements/i.test(w));
+      expect(implementsWarning).toBeUndefined();
+    });
+
+    test('validatePlan: implements:[] present produces no implements error', () => {
+      const content = buildValidPlan();
+      const result = validatePlan(content, 'test-PLAN.md');
+      const implementsError = result.errors.find(e => /implements/i.test(e));
+      expect(implementsError).toBeUndefined();
+    });
+
+    // Phase 66: feature task element validation tests
+    test('validatePlan: feature task missing behavior element produces blocking error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <files>src/feature.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+  <feature>
+    <implementation>Implement it</implementation>
+  </feature>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const behaviorError = result.errors.find(e => /behavior/i.test(e));
+      expect(behaviorError).toBeDefined();
+    });
+
+    test('validatePlan: feature task missing implementation element produces blocking error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <files>src/feature.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+  <feature>
+    <behavior>Expected behavior here</behavior>
+  </feature>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const implementationError = result.errors.find(e => /implementation/i.test(e));
+      expect(implementationError).toBeDefined();
+    });
+
+    test('validatePlan: valid feature task with behavior and implementation passes', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <files>src/feature.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+  <feature>
+    <behavior>Expected behavior here</behavior>
+    <implementation>How it is implemented</implementation>
+  </feature>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      // No feature-specific errors
+      const behaviorError = result.errors.find(e => /behavior/i.test(e));
+      expect(behaviorError).toBeUndefined();
+      const implementationError = result.errors.find(e => /implementation/i.test(e));
+      expect(implementationError).toBeUndefined();
     });
   });
 
