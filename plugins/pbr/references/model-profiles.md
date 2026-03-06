@@ -24,7 +24,9 @@ Sonnet 4.6 handles orchestration tasks (state reading, routing decisions, contex
 
 ## Agent-to-Model Mapping
 
-Each Plan-Build-Run agent has a default model specified in its agent definition frontmatter (`model:` field). These defaults are overridden by the `models` section of `config.json`.
+Each Plan-Build-Run agent's model is controlled by `config.json models.*`. When no config entry exists for an agent, the agent inherits the session model.
+
+The `model:` frontmatter field has been removed from PBR agent definitions — `config.json` is now the sole source of truth for agent model assignment.
 
 ### Default Agent Models
 
@@ -40,8 +42,10 @@ Each Plan-Build-Run agent has a default model specified in its agent definition 
 | `codebase-mapper` | `sonnet` | Codebase analysis requires thorough reasoning |
 | `synthesizer` | `haiku` | Synthesis is mechanical combination; speed over depth |
 | `general` | `inherit` | Lightweight utility; inherits session model |
+| `audit` | `inherit` | Session log analysis inherits session model |
+| `dev-sync` | `inherit` | Cross-plugin sync is mechanical; inherits session model |
 
-The `inherit` value means the agent uses whatever model the parent session is running (typically the user's configured Claude model).
+The `inherit` value means the agent uses whatever model the parent session is running (typically the user's configured Claude model). Defaults listed above are the effective values from the `balanced` profile in `config.json`.
 
 ---
 
@@ -106,6 +110,28 @@ Note: Claude Code 2.1.45+ supports Sonnet 4.6. Model values are abstract names �
 
 ---
 
+## Custom Profiles
+
+The `model_profiles` key in `config.json` lets you define named profiles beyond the four built-in presets. Each profile is a partial map of agent names to model strings — omitted agents fall back to the active profile defaults.
+
+```json
+{
+  "model_profiles": {
+    "my-profile": {
+      "executor": "opus",
+      "planner": "opus",
+      "synthesizer": "sonnet"
+    }
+  }
+}
+```
+
+Activate a custom profile with `/pbr:config model-profile my-profile`. The profile merges with the `balanced` preset: any agent not listed in your custom profile uses its `balanced` default.
+
+Partial profiles are allowed — you can override just the agents you care about. This is useful for temporarily upgrading a single agent without specifying the rest.
+
+---
+
 ## Model Selection in Skill Orchestration
 
 Skills that spawn subagents use the `model` parameter in `Task()` calls. Some skills hardcode a lighter model for specific tasks:
@@ -114,4 +140,4 @@ Skills that spawn subagents use the `model` parameter in `Task()` calls. Some sk
 - **Build skill**: Spawns codebase mapper updates with `model: "haiku"` for incremental map refreshes
 - **Plan skill**: Uses the configured `planner` model for main planning work
 
-The `subagent_type` parameter automatically loads the agent definition, and the model from `config.json` takes precedence over the agent's default `model:` frontmatter field.
+The `subagent_type` parameter automatically loads the agent definition, and the model from `config.json` takes precedence over any agent-level model setting.

@@ -52,6 +52,24 @@
       },
       "additionalProperties": false
     },
+    "model_profiles": {
+      "type": "object",
+      "description": "User-defined custom model profiles. Each key is a profile name; value is an object mapping agent names to model strings (sonnet, opus, haiku, inherit). Partial profiles allowed — omitted agents fall back to the active profile defaults.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "researcher": { "type": "string" },
+          "planner": { "type": "string" },
+          "executor": { "type": "string" },
+          "verifier": { "type": "string" },
+          "integration_checker": { "type": "string" },
+          "debugger": { "type": "string" },
+          "mapper": { "type": "string" },
+          "synthesizer": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
     "parallelization": {
       "type": "object",
       "properties": {
