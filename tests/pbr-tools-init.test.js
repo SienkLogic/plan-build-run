@@ -115,6 +115,18 @@ describe('pbr-tools compound init commands', () => {
       var result = initExecutePhase('3');
       expect(result.error).toBeDefined();
     });
+
+    test('initExecutePhase respects overrideModel when provided', () => {
+      var result = initExecutePhase('3', path.join(tmpDir, '.planning'), 'opus');
+      expect(result.executor_model).toBe('opus');
+      expect(result.verifier_model).toBe('opus');
+    });
+
+    test('initExecutePhase falls back to config model when overrideModel is undefined', () => {
+      var result = initExecutePhase('3', path.join(tmpDir, '.planning'));
+      expect(result.executor_model).toBe('sonnet');
+      expect(result.verifier_model).toBe('sonnet');
+    });
   });
 
   describe('initPlanPhase', () => {
@@ -149,6 +161,19 @@ describe('pbr-tools compound init commands', () => {
       fs.rmSync(path.join(tmpDir, '.planning'), { recursive: true });
       var result = initPlanPhase('3');
       expect(result.error).toBeDefined();
+    });
+
+    test('initPlanPhase respects overrideModel when provided', () => {
+      var result = initPlanPhase('3', path.join(tmpDir, '.planning'), 'haiku');
+      expect(result.researcher_model).toBe('haiku');
+      expect(result.planner_model).toBe('haiku');
+      expect(result.checker_model).toBe('haiku');
+    });
+
+    test('initPlanPhase falls back to config model when overrideModel is undefined', () => {
+      var result = initPlanPhase('3', path.join(tmpDir, '.planning'));
+      expect(result.researcher_model).toBe('sonnet');
+      expect(result.planner_model).toBe('sonnet');
     });
   });
   describe('initQuick', () => {
@@ -219,6 +244,16 @@ describe('pbr-tools compound init commands', () => {
     test('returns error for missing phase', () => {
       var result = initVerifyWork('99');
       expect(result.error).toBeDefined();
+    });
+
+    test('initVerifyWork respects overrideModel when provided', () => {
+      var result = initVerifyWork('3', path.join(tmpDir, '.planning'), 'inherit');
+      expect(result.verifier_model).toBe('inherit');
+    });
+
+    test('initVerifyWork falls back to config model when overrideModel is undefined', () => {
+      var result = initVerifyWork('3', path.join(tmpDir, '.planning'));
+      expect(result.verifier_model).toBe('sonnet');
     });
   });
 

@@ -84,6 +84,21 @@ describe('model-selection', () => {
     });
   });
 
+  describe('model_profiles config schema', () => {
+    test('config-schema.json has model_profiles property', () => {
+      expect(schema.properties.model_profiles).toBeDefined();
+      expect(schema.properties.model_profiles.type).toBe('object');
+    });
+
+    test('model_profiles additionalProperties schema accepts agent keys', () => {
+      const profileSchema = schema.properties.model_profiles.additionalProperties;
+      expect(profileSchema).toBeDefined();
+      expect(profileSchema.properties.researcher).toBeDefined();
+      expect(profileSchema.properties.executor).toBeDefined();
+      expect(profileSchema.properties.planner).toBeDefined();
+    });
+  });
+
   describe('reference doc consistency', () => {
     const refContent = fs.readFileSync(
       path.join(PLUGIN_ROOT, 'references', 'model-selection.md'),

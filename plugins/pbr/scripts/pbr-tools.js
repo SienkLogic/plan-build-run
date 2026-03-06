@@ -297,20 +297,20 @@ function milestoneStats(version) {
   return _milestoneStats(version, planningDir);
 }
 
-function initExecutePhase(phaseNum) {
-  return _initExecutePhase(phaseNum, planningDir);
+function initExecutePhase(phaseNum, overridePlanningDir, overrideModel) {
+  return _initExecutePhase(phaseNum, overridePlanningDir || planningDir, overrideModel);
 }
 
-function initPlanPhase(phaseNum) {
-  return _initPlanPhase(phaseNum, planningDir);
+function initPlanPhase(phaseNum, overridePlanningDir, overrideModel) {
+  return _initPlanPhase(phaseNum, overridePlanningDir || planningDir, overrideModel);
 }
 
 function initQuick(description) {
   return _initQuick(description, planningDir);
 }
 
-function initVerifyWork(phaseNum) {
-  return _initVerifyWork(phaseNum, planningDir);
+function initVerifyWork(phaseNum, overridePlanningDir, overrideModel) {
+  return _initVerifyWork(phaseNum, overridePlanningDir || planningDir, overrideModel);
 }
 
 function initResume() {
