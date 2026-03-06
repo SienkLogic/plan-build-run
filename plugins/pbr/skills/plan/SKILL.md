@@ -229,7 +229,7 @@ NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT i
 
 #### Phase Research Prompt Template
 
-Read `skills/plan/templates/researcher-prompt.md.tmpl` and use it as the prompt template for spawning the researcher agent. Fill in the placeholders with phase-specific context:
+Read `${CLAUDE_SKILL_DIR}/templates/researcher-prompt.md.tmpl` and use it as the prompt template for spawning the researcher agent. Fill in the placeholders with phase-specific context:
 - `{NN}` - phase number (zero-padded)
 - `{phase name}` - phase name from roadmap
 - `{goal from roadmap}` - phase goal statement
@@ -354,7 +354,7 @@ After planner completes, check for completion markers: `## PLANNING COMPLETE`, `
 
 #### Planning Prompt Template
 
-Read `skills/plan/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
+Read `${CLAUDE_SKILL_DIR}/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
 
 - `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
 - `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
@@ -426,7 +426,7 @@ NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT
 
 #### Checker Prompt Template
 
-Read `skills/plan/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
+Read `${CLAUDE_SKILL_DIR}/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
 - `<plans_to_check>` - manifest table of PLAN.md file paths (checker reads each via Read tool)
 - `<phase_context>` - phase goal and requirement IDs
 - `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
@@ -454,7 +454,7 @@ After the plan checker returns, display its result:
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
 Follow the revision loop pattern with:
-- **Producer**: planner (re-spawned with `skills/plan/templates/revision-prompt.md.tmpl`)
+- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl`)
 - **Checker**: plan-checker (back to Step 6)
 - **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
 
@@ -531,7 +531,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 ### Subcommand: `insert <N>`
 
-Reference: `skills/plan/decimal-phase-calc.md` for decimal numbering rules.
+Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rules.
 
 **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
@@ -575,7 +575,7 @@ When invoked with `--gaps`:
 2. Extract all gaps from the verification report
 3. Spawn planner Task() in Gap Closure mode:
 
-Read `skills/plan/templates/gap-closure-prompt.md.tmpl` and use it as the prompt template for the gap closure planner. Fill in the placeholders:
+Read `${CLAUDE_SKILL_DIR}/templates/gap-closure-prompt.md.tmpl` and use it as the prompt template for the gap closure planner. Fill in the placeholders:
 - `<verification_report>` - inline the FULL VERIFICATION.md content
 - `<existing_plans>` - inline all existing PLAN.md files for the phase
 - `<gap_closure_instructions>` - specify output path and gap_closure frontmatter flag
@@ -648,5 +648,5 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 After planning completes, present:
 
-Use the branded stage banner and next-up block from `skills/plan/templates/completion-output.md.tmpl`.
+Use the branded stage banner and next-up block from `${CLAUDE_SKILL_DIR}/templates/completion-output.md.tmpl`.
 Fill in: `{N}` (phase number), `{phase-name}`, `{plan_count}`, `{plan_list_lines}` (one line per plan with wave and task count), `{wave_table_lines}` (one line per wave).

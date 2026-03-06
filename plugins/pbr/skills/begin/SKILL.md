@@ -322,7 +322,7 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 **CRITICAL (no hook): You MUST create the .planning/ directory and write config.json NOW. Do not proceed without this.**
 
-1. Read the config template from `skills/begin/templates/config.json.tmpl`
+1. Read the config template from `${CLAUDE_SKILL_DIR}/templates/config.json.tmpl`
 2. Apply the user's choices to the template (including 3d-claude CLAUDE.md integration)
 3. Create `.planning/` directory
 4. Write `.planning/config.json` with the user's preferences
@@ -406,7 +406,7 @@ Task({
 
 For each researcher, construct the prompt by reading the template and filling in placeholders:
 
-Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/researcher-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the researcher prompt before sending:**
 
@@ -487,7 +487,7 @@ Task({
 
 #### Synthesis Prompt Template
 
-Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the synthesizer prompt before sending:**
 ```
@@ -562,7 +562,7 @@ Each requirement must be:
 
 **CRITICAL (no hook): Write REQUIREMENTS.md NOW. The roadmap planner depends on this file.**
 
-Read the template from `skills/begin/templates/REQUIREMENTS.md.tmpl` and write `.planning/REQUIREMENTS.md` with:
+Read the template from `${CLAUDE_SKILL_DIR}/templates/REQUIREMENTS.md.tmpl` and write `.planning/REQUIREMENTS.md` with:
 - All v1 requirements grouped by category
 - All v2 requirements with deferral reasons
 - Out-of-scope items with rationale
@@ -590,7 +590,7 @@ Task({
 
 #### Roadmap Prompt Template
 
-Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the roadmap planner prompt before sending:**
 ```
@@ -636,7 +636,7 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write PROJECT.md NOW. Do NOT skip this step.**
 
 **9a. Write PROJECT.md:**
-1. Read `skills/begin/templates/PROJECT.md.tmpl`
+1. Read `${CLAUDE_SKILL_DIR}/templates/PROJECT.md.tmpl`
 2. Fill in:
    - `{project_name}` — from questioning
    - `{2-3 sentences}` — project description from questioning
@@ -650,7 +650,7 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write STATE.md NOW. Do NOT skip this step.**
 
 **9b. Write STATE.md:**
-1. Read `skills/begin/templates/STATE.md.tmpl`
+1. Read `${CLAUDE_SKILL_DIR}/templates/STATE.md.tmpl`
 2. Fill in:
    - `{date}` — today's date
    - `{total}` — total phase count from roadmap
