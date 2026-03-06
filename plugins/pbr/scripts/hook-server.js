@@ -64,6 +64,31 @@ const cache = {
 // JSONL event log
 // ---------------------------------------------------------------------------
 
+/**
+ * Read the last maxLines lines from the JSONL event log, parsing each as JSON.
+ * Malformed lines are silently skipped. Returns an array of event objects.
+ */
+function readEventLogTail(logFile, maxLines) {
+  if (maxLines === undefined) maxLines = 500;
+  try {
+    if (!fs.existsSync(logFile)) return [];
+    const content = fs.readFileSync(logFile, 'utf8');
+    const lines = content.split('\n').filter(l => l.trim().length > 0);
+    const tail = lines.slice(-maxLines);
+    const events = [];
+    for (const line of tail) {
+      try {
+        events.push(JSON.parse(line));
+      } catch (_e) {
+        // Skip malformed lines
+      }
+    }
+    return events;
+  } catch (_e) {
+    return [];
+  }
+}
+
 /** Append a JSON event object as a single line to .planning/.hook-events.jsonl */
 function appendEvent(planningDir, eventObj) {
   if (!planningDir) return;
@@ -202,6 +227,24 @@ function createServer(planningDir) {
       });
     }
 
+    // Enriched context endpoint
+    if (req.method === 'GET' && req.url === '/context') {
+      try {
+        const logFile = path.join(planningDir, '.hook-events.jsonl');
+        const events = readEventLogTail(logFile, 500);
+        const response = {
+          recentEvents: events.slice(-20),
+          activeSkillHistory: [...new Set(events.filter(e => e.activeSkill).map(e => e.activeSkill))].slice(-5),
+          advisoryMessages: events.filter(e => e.additionalContext).slice(-10),
+          sessionCount: events.filter(e => e.type === 'server_start').length,
+          generatedAt: Date.now()
+        };
+        return sendJSON(res, 200, response);
+      } catch (_e) {
+        return sendJSON(res, 200, {});
+      }
+    }
+
     // Hook dispatch
     if (req.method === 'POST' && req.url === '/hook') {
       let reqBody;
@@ -286,6 +329,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, mergeContext, lazyHandler, resolveHandler, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }

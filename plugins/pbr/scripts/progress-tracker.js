@@ -9,6 +9,7 @@
  */
 
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
@@ -73,9 +74,23 @@ async function main() {
     }
   } catch (_e) { /* graceful degradation — never surface to user */ }
 
+  // Enrich context with recent session activity from hook server (advisory, fail-open)
+  let enrichedContext = '';
+  try {
+    const enriched = await getEnrichedContext(config, planningDir);
+    if (enriched && typeof enriched === 'object' && Array.isArray(enriched.recentEvents)) {
+      const skillList = Array.isArray(enriched.activeSkillHistory) ? enriched.activeSkillHistory.join(', ') || 'none' : 'none';
+      enrichedContext = `\n## Recent Session Activity\n- ${enriched.recentEvents.length} recent events tracked\n- Active skills: ${skillList}`;
+      if (Array.isArray(enriched.advisoryMessages) && enriched.advisoryMessages.length > 0) {
+        const lastThree = enriched.advisoryMessages.slice(-3);
+        enrichedContext += '\n- Recent advisories: ' + lastThree.map(m => m.additionalContext || '').filter(Boolean).join(' | ');
+      }
+    }
+  } catch (_e) { /* graceful degradation */ }
+
   if (context) {
     const output = {
-      additionalContext: context + llmContext
+      additionalContext: context + llmContext + enrichedContext
     };
     process.stdout.write(JSON.stringify(output));
     logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });
@@ -480,7 +495,50 @@ function checkLearningsDeferrals(_planningDir) {
   }
 }
 
-// Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+/**
+ * Query the hook server's /context endpoint and return enriched session context.
+ * Returns null if the server is down or any error occurs (fail-open).
+ */
+async function getEnrichedContext(config, _planningDir) {
+  try {
+    if (config && config.hook_server && config.hook_server.enabled === false) {
+      return null;
+    }
+    const port = (config && config.hook_server && config.hook_server.port) || 19836;
 
-main().catch(() => {});
+    // TCP probe — check if server is reachable before making HTTP request
+    const reachable = await new Promise(resolve => {
+      const net = require('net');
+      const probe = net.createConnection({ port, host: '127.0.0.1' });
+      probe.setTimeout(500);
+      probe.on('connect', () => { probe.destroy(); resolve(true); });
+      probe.on('error', () => resolve(false));
+      probe.on('timeout', () => { probe.destroy(); resolve(false); });
+    });
+
+    if (!reachable) return null;
+
+    // HTTP GET /context with 500ms timeout
+    const result = await new Promise((resolve, _reject) => {
+      const req = http.get({ hostname: '127.0.0.1', port, path: '/context' }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch (_e) { resolve(null); }
+        });
+      });
+      req.on('error', () => resolve(null));
+      req.setTimeout(500, () => { req.destroy(); resolve(null); });
+    });
+
+    return result;
+  } catch (_e) {
+    return null;
+  }
+}
+
+// Exported for testing
+module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+
+if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }
