@@ -192,6 +192,18 @@ function main() {
         return;
       }
 
+      // Blocking gate: PROJECT.md + REQUIREMENTS.md must exist for plan/build
+      const docGate = checkDocExistence(data);
+      if (docGate && docGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: docGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: docGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
       // Blocking/advisory gate: non-PBR agent enforcement
       const nonPbrAgentResult = checkNonPbrAgent(data);
       if (nonPbrAgentResult && nonPbrAgentResult.exitCode === 2) {
@@ -209,13 +221,6 @@ function main() {
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
       if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
-
-      // Advisory: doc existence gate (PROJECT.md + REQUIREMENTS.md)
-      const docAdvisory = checkDocExistence(data);
-      if (docAdvisory && docAdvisory.advisory) {
-        logHook('validate-task', 'PreToolUse', 'warn', { warning: docAdvisory.message });
-        warnings.push(docAdvisory.message);
-      }
 
       // LLM task coherence check — advisory only
       try {

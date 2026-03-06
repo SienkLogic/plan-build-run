@@ -601,6 +601,11 @@ Status: built
       if (opts.activeSkill) fs.writeFileSync(path.join(planningDir, '.active-skill'), opts.activeSkill);
       if (opts.stateContent) fs.writeFileSync(path.join(planningDir, 'STATE.md'), opts.stateContent);
       if (opts.roadmapContent) fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), opts.roadmapContent);
+      // Always add PROJECT.md + REQUIREMENTS.md so doc-existence gate doesn't block
+      if (opts.stateContent && opts.roadmapContent) {
+        fs.writeFileSync(path.join(planningDir, 'PROJECT.md'), '# Project\n');
+        fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Requirements\n');
+      }
       if (opts.phaseDirs) {
         const phasesDir = path.join(planningDir, 'phases');
         fs.mkdirSync(phasesDir, { recursive: true });
@@ -708,6 +713,11 @@ Status: built
       if (opts.activeSkill) fs.writeFileSync(path.join(planningDir, '.active-skill'), opts.activeSkill);
       if (opts.stateContent) fs.writeFileSync(path.join(planningDir, 'STATE.md'), opts.stateContent);
       if (opts.roadmapContent) fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), opts.roadmapContent);
+      // Always add PROJECT.md + REQUIREMENTS.md so doc-existence gate doesn't block
+      if (opts.stateContent && opts.roadmapContent) {
+        fs.writeFileSync(path.join(planningDir, 'PROJECT.md'), '# Project\n');
+        fs.writeFileSync(path.join(planningDir, 'REQUIREMENTS.md'), '# Requirements\n');
+      }
       if (opts.phaseDirs) {
         const phasesDir = path.join(planningDir, 'phases');
         fs.mkdirSync(phasesDir, { recursive: true });

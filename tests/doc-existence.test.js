@@ -53,7 +53,7 @@ describe('checkDocExistence', () => {
     expect(result).toBeNull();
   });
 
-  test('returns advisory when PROJECT.md is missing but STATE.md and ROADMAP.md exist', () => {
+  test('returns block when PROJECT.md is missing but STATE.md and ROADMAP.md exist', () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md', 'REQUIREMENTS.md'
     ]);
@@ -62,11 +62,11 @@ describe('checkDocExistence', () => {
 
     const result = checkDocExistence(makeData());
     expect(result).not.toBeNull();
-    expect(result.advisory).toBe(true);
-    expect(result.message).toContain('PROJECT.md');
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('PROJECT.md');
   });
 
-  test('returns advisory when REQUIREMENTS.md is missing but STATE.md and ROADMAP.md exist', () => {
+  test('returns block when REQUIREMENTS.md is missing but STATE.md and ROADMAP.md exist', () => {
     const { tmpDir, planningDir } = makeTempProject([
       'STATE.md', 'ROADMAP.md', 'PROJECT.md'
     ]);
@@ -75,8 +75,8 @@ describe('checkDocExistence', () => {
 
     const result = checkDocExistence(makeData());
     expect(result).not.toBeNull();
-    expect(result.advisory).toBe(true);
-    expect(result.message).toContain('REQUIREMENTS.md');
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('REQUIREMENTS.md');
   });
 
   test('returns null when STATE.md is missing (not a PBR project yet)', () => {
