@@ -172,6 +172,23 @@ describe('transformAgentFrontmatter', () => {
     expect(result).toMatch(/name: minimal/);
     expect(result).toMatch(/description: "Minimal agent"/);
   });
+
+  test('cursor: adds default model: sonnet when source lacks model (phase 64+)', () => {
+    const noModel = '---\nname: executor\ndescription: "Executor agent"\n---\nBody.';
+    const result = transformAgentFrontmatter(noModel, 'cursor');
+    expect(result).toMatch(/^model: sonnet$/m);
+    // model should appear after description
+    const lines = result.split('\n');
+    const descIdx = lines.findIndex(l => /^description/.test(l));
+    const modelIdx = lines.findIndex(l => /^model/.test(l));
+    expect(modelIdx).toBe(descIdx + 1);
+  });
+
+  test('copilot: does NOT add default model when source lacks model', () => {
+    const noModel = '---\nname: executor\ndescription: "Executor agent"\n---\nBody.';
+    const result = transformAgentFrontmatter(noModel, 'copilot');
+    expect(result).not.toMatch(/^model\s*:/m);
+  });
 });
 
 // ---------------------------------------------------------------------------

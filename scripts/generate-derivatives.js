@@ -144,6 +144,13 @@ function transformAgentFrontmatter(content, target) {
       keepLines.push(line);
     }
 
+    // cursor requires `model: sonnet` (PBR uses config-only since phase 64)
+    if (target === 'cursor' && !keepLines.some(l => /^model\s*:/.test(l))) {
+      // Insert after description line for consistent ordering
+      const descIdx = keepLines.findIndex(l => /^description\s*:/.test(l));
+      keepLines.splice(descIdx >= 0 ? descIdx + 1 : keepLines.length, 0, 'model: sonnet');
+    }
+
     // cursor requires `readonly: false`
     if (target === 'cursor' && !keepLines.some(l => /^readonly\s*:/.test(l))) {
       keepLines.push('readonly: false');
