@@ -28,6 +28,32 @@
         ]
       }
     ],
+    "worktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" worktree-create.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') worktree-create.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      }
+    ],
+    "worktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" worktree-remove.js",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') worktree-remove.js",
+            "cwd": ".",
+            "timeoutSec": 15
+          }
+        ]
+      }
+    ],
     "postToolUse": [
       {
         "matcher": "Write|Edit",
