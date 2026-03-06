@@ -112,6 +112,16 @@ Parse the JSON response. Capture:
 
 Store these for use in Step 4 display and Step 5 routing.
 
+6. **`.planning/CONTEXT.md`** (project-level, if exists)
+   - Note: project-level locked decisions file
+
+### Step 1d: Check Project Documents
+
+Check existence of the three project-level documents and record their status for Step 4 display:
+- `.planning/PROJECT.md` — exists or not
+- `.planning/REQUIREMENTS.md` — exists or not
+- `.planning/CONTEXT.md` — exists or not
+
 ### Step 2: Scan Phase Directories
 
 For each phase listed in ROADMAP.md:
@@ -221,6 +231,13 @@ Phase Status:
 | 1. {name} | {status indicator} {status text} | {completed}/{total} | {percentage}% |
 | 2. {name} | {status indicator} {status text} | {completed}/{total} | {percentage}% |
 | ...
+
+**Project documents:**
+| File | Status |
+|------|--------|
+| PROJECT.md | {exists / not found — run /pbr:begin} |
+| REQUIREMENTS.md | {exists / not found — run /pbr:begin} |
+| CONTEXT.md | {exists / not found — run /pbr:discuss --project} |
 
 {If context tier is DEGRADING, POOR, or CRITICAL:}
 ⚠ Context: {percentage}% used ({tier}) — {recommendation_text}
