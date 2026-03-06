@@ -103,6 +103,7 @@
         ]
       },
       {
+        "matcher": "Write|Edit|Bash|Task",
         "hooks": [
           {
             "type": "command",

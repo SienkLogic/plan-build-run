@@ -76,7 +76,7 @@ function loadBridge(bridgePath) {
 function saveBridge(bridgePath, data) {
   try {
     const tmpPath = bridgePath + '.' + process.pid;
-    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
+    fs.writeFileSync(tmpPath, JSON.stringify(data), 'utf8');
     fs.renameSync(tmpPath, bridgePath);
   } catch (_e) {
     // Best-effort — clean up temp file if rename failed
