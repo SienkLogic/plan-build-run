@@ -72,8 +72,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" check-subagent-output.js",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') check-subagent-output.js",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js check-subagent-output",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js check-subagent-output",
             "cwd": ".",
             "timeoutSec": 15
           }
@@ -121,8 +121,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" log-tool-failure.js",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') log-tool-failure.js",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js log-tool-failure",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js log-tool-failure",
             "cwd": ".",
             "timeoutSec": 15
           }
@@ -234,8 +234,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" log-subagent.js start",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') log-subagent.js start",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js log-subagent-start",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js log-subagent-start",
             "cwd": ".",
             "timeoutSec": 15
           }
@@ -247,8 +247,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" log-subagent.js stop",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') log-subagent.js stop",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js log-subagent",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js log-subagent",
             "cwd": ".",
             "timeoutSec": 15
           }
@@ -258,8 +258,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" event-handler.js",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') event-handler.js",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js event-handler",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js event-handler",
             "cwd": ".",
             "timeoutSec": 15
           }
@@ -271,8 +271,8 @@
         "hooks": [
           {
             "type": "command",
-            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" task-completed.js",
-            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') task-completed.js",
+            "bash": "node \"$(cd \"$(dirname \"$0\")\" && pwd)/../../pbr/scripts/run-hook.js\" hook-server-client.js task-completed",
+            "powershell": "node (Join-Path (Split-Path -Parent $PSScriptRoot) 'pbr\\scripts\\run-hook.js') hook-server-client.js task-completed",
             "cwd": ".",
             "timeoutSec": 15
           }

@@ -52,12 +52,12 @@ function extractScriptNamesFromHooks(hooks) {
       for (const h of hookList) {
         // command-string format (pbr, cursor-pbr)
         if (h.command) {
-          const match = h.command.match(/([\w-]+\.js)(\s+\w+)?\s*$/);
+          const match = h.command.match(/([\w-]+\.js)(\s+[\w-]+)?\s*$/);
           if (match) names.push(match[1]);
         }
         // bash/powershell format (copilot-pbr)
         if (h.bash) {
-          const match = h.bash.match(/([\w-]+\.js)(\s+\w+)?\s*$/);
+          const match = h.bash.match(/([\w-]+\.js)(\s+[\w-]+)?\s*$/);
           if (match) names.push(match[1]);
         }
       }
@@ -71,7 +71,7 @@ function extractScriptNamesFromHooks(hooks) {
  */
 function scriptNameFromHook(h) {
   const cmd = h.command || h.bash || '';
-  const match = cmd.match(/([\w-]+\.js)(\s+\w+)?\s*$/);
+  const match = cmd.match(/([\w-]+\.js)(\s+[\w-]+)?\s*$/);
   return match ? match[1] : cmd;
 }
 
