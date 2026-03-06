@@ -486,7 +486,17 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - Or make small inline edits to plan files directly
 
 **If user selects 'Approve':**
-- **CONTEXT.md compliance reporting**: If `.planning/CONTEXT.md` exists, compare all locked decisions against the generated plans. Print: "CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks" where M = locked decisions that are reflected in at least one task, N = total locked decisions. If any locked decisions are unmapped, list them as warnings.
+- **CONTEXT.md compliance reporting**: Check locked decisions from BOTH sources:
+  a. Project-level: `.planning/CONTEXT.md` (if exists) — cross-cutting decisions for all phases
+  b. Phase-level: `.planning/phases/{NN}-{slug}/CONTEXT.md` (if exists) — phase-specific decisions
+     Phase-level decisions override project-level for the same decision area.
+
+  Collect ALL locked decisions from both files (deduplicate identical decision text).
+  Compare against the generated plan tasks. Print:
+  `CONTEXT.md compliance: {M}/{N} locked decisions mapped to tasks`
+  where M = locked decisions reflected in at least one task action, N = total unique locked decisions.
+  If any locked decisions are unmapped, list them as warnings.
+  If neither CONTEXT.md exists: skip this check silently.
 - **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
   1. Find all SUMMARY.md files in the dependency phase directory
   2. Compute a fingerprint string for each: `"len:{bytes}-mod:{mtime}"` and add as a `dependency_fingerprints` map in each plan's YAML frontmatter — this allows the build skill to detect stale plans if dependencies were rebuilt.
