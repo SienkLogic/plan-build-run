@@ -251,6 +251,61 @@ describe('config validate', () => {
     expect(result.valid).toBe(true);
     expect(result.warnings).toEqual([]);
   });
+
+  describe('prd config', () => {
+    test('prd.auto_extract: false is valid', () => {
+      writeConfig({
+        version: 2,
+        schema_version: 1,
+        mode: 'interactive',
+        depth: 'standard',
+        prd: { auto_extract: false }
+      });
+      const result = run();
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    test('prd.auto_extract: true is valid', () => {
+      writeConfig({
+        version: 2,
+        schema_version: 1,
+        mode: 'interactive',
+        depth: 'standard',
+        prd: { auto_extract: true }
+      });
+      const result = run();
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    test('prd with unknown key warns (unrecognized key)', () => {
+      writeConfig({
+        version: 2,
+        schema_version: 1,
+        mode: 'interactive',
+        depth: 'standard',
+        prd: { auto_extract: false, unknown_key: 'oops' }
+      });
+      const result = run();
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([expect.stringContaining('unknown_key')])
+      );
+    });
+
+    test('prd.auto_extract: non-boolean is invalid', () => {
+      writeConfig({
+        version: 2,
+        schema_version: 1,
+        mode: 'interactive',
+        depth: 'standard',
+        prd: { auto_extract: 'yes' }
+      });
+      const result = run();
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+  });
 });
 
 describe('user defaults', () => {

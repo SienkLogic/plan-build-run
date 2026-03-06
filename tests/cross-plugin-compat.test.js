@@ -684,4 +684,39 @@ describe('cross-plugin compatibility', () => {
       expect(manifest.version).toBe(pkg.version);
     });
   });
+
+  describe('import --prd argument-hint sync', () => {
+    const skillPath = (plugin) =>
+      path.join(ROOT, 'plugins', plugin, 'skills', 'import', 'SKILL.md');
+
+    test('pbr import argument-hint includes --prd', () => {
+      const content = fs.readFileSync(skillPath('pbr'), 'utf8');
+      expect(content).toMatch(/argument-hint.*--prd/);
+    });
+
+    test('cursor-pbr import argument-hint includes --prd', () => {
+      const content = fs.readFileSync(skillPath('cursor-pbr'), 'utf8');
+      expect(content).toMatch(/argument-hint.*--prd/);
+    });
+
+    test('pbr import contains PRD Import Flow Steps A-G', () => {
+      const content = fs.readFileSync(skillPath('pbr'), 'utf8');
+      ['Step A:', 'Step B:', 'Step C:', 'Step D:', 'Step E:', 'Step F:', 'Step G:'].forEach(step => {
+        expect(content).toContain(step);
+      });
+    });
+
+    test('cursor-pbr import uses ${PLUGIN_ROOT} not ${CLAUDE_PLUGIN_ROOT}', () => {
+      const content = fs.readFileSync(skillPath('cursor-pbr'), 'utf8');
+      expect(content).not.toContain('CLAUDE_PLUGIN_ROOT');
+    });
+
+    test('copilot-pbr import has no allowed-tools in frontmatter', () => {
+      const content = fs.readFileSync(skillPath('copilot-pbr'), 'utf8');
+      // Extract frontmatter between first two ---
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      expect(fmMatch).toBeTruthy();
+      expect(fmMatch[1]).not.toContain('allowed-tools');
+    });
+  });
 });
