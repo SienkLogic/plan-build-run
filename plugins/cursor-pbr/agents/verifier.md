@@ -1,9 +1,6 @@
 ---
 name: verifier
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
-model: sonnet
-isolation: worktree
-readonly: false
 ---
 
 <files_to_read>
@@ -76,7 +73,8 @@ Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for 
 - `artifacts`: Files/exports that must exist, be substantive, and not be stubs
 - `key_links`: Connections that must be wired between components
 
-If plans lack explicit must-haves, derive them goal-backward from ROADMAP.md: what must be TRUE → what must EXIST → what must be CONNECTED.
+Must-haves in plan frontmatter are canonical — use exactly what mustHavesCollect returns.
+Only fall back to goal-backward derivation from ROADMAP.md if ALL plans in the phase have completely empty must_haves sections. Do NOT supplement or re-derive when must_haves are present.
 
 Output: A numbered list of every must-have to verify.
 
@@ -160,6 +158,14 @@ Cross-reference all must-haves against verification results in a table:
 ```
 
 L4 column shows `-` when no automated verification is available. Only artifacts with test commands or build verification get L4 checks.
+
+### Step 7b: Write REQ-ID Traceability (Always)
+
+After verifying all must-haves, collect `implements:[]` from all plan frontmatters in the phase.
+
+- For each REQ-ID: if all must-haves for that plan passed → add to `satisfied:[]`
+- If any must-have for that plan failed → add to `unsatisfied:[]`
+- Write `satisfied:[]` and `unsatisfied:[]` to the VERIFICATION.md frontmatter
 
 ### Step 8: Scan for Anti-Patterns (Full Verification Only)
 
