@@ -83,6 +83,117 @@ function checkContextWrite(data) {
   return null; // Advisory only — no output needed
 }
 
+/**
+ * Core dispatch logic extracted for both stdin (main) and HTTP (handleHttp) paths.
+ *
+ * @param {Object} data - Parsed hook input (same as stdin JSON)
+ * @param {string} planningDir - Absolute path to .planning/ directory
+ * @returns {Promise<Object|null>} Hook response object or null
+ */
+async function processEvent(data, planningDir) {
+  // Route CONTEXT.md writes to sync hook (runs first, always returns null)
+  checkContextWrite(data);
+
+  // Plan format check (PLAN.md, SUMMARY*.md)
+  // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
+  // check below. The plan format check validates frontmatter structure, while
+  // state-sync auto-updates ROADMAP.md and STATE.md tracking fields.
+  const planResult = await checkPlanWrite(data);
+  if (planResult) {
+    return planResult.output;
+  }
+
+  // ROADMAP.md structural validation (before sync checks)
+  const roadmapResult = checkRoadmapWrite(data);
+  if (roadmapResult) {
+    return roadmapResult.output;
+  }
+
+  // Roadmap sync check (STATE.md)
+  const syncResult = checkSync(data);
+  if (syncResult) {
+    return syncResult.output;
+  }
+
+  // STATE.md frontmatter validation (after roadmap sync, advisory only)
+  const stateResult = checkStateWrite(data);
+  if (stateResult) {
+    return stateResult.output;
+  }
+
+  // State sync check (SUMMARY/VERIFICATION → STATE.md + ROADMAP.md)
+  const stateSyncResult = checkStateSync(data);
+  if (stateSyncResult) {
+    return stateSyncResult.output;
+  }
+
+  // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
+  const qualityResult = checkQuality(data);
+  if (qualityResult) {
+    return qualityResult.output;
+  }
+
+  // LLM file intent classification — advisory enrichment for non-planning files
+  // Skipped for .planning/ files (already handled by plan format / state checks above)
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
+    try {
+      const { resolveConfig } = require('./local-llm/health');
+      const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
+      const llmConfig = (() => {
+        try {
+          const configPath = path.join(planningDir, 'config.json');
+          const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          return resolveConfig(parsed.local_llm);
+        } catch (_e) {
+          return resolveConfig(undefined);
+        }
+      })();
+
+      let contentSnippet = '';
+      try {
+        const content = data.tool_input?.content || data.tool_input?.new_string || '';
+        contentSnippet = content.slice(0, 400);
+      } catch (_e) {
+        // No content available
+      }
+
+      if (contentSnippet) {
+        const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
+        if (llmResult && llmResult.file_type) {
+          return {
+            additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
+          };
+        }
+      }
+    } catch (_llmErr) {
+      // Never propagate LLM errors
+    }
+  }
+
+  return null;
+}
+
+/**
+ * HTTP handler for hook-server.js.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ *
+ * @param {Object} reqBody - Request body from hook-server
+ * @param {Object} _cache - In-memory server cache (unused, config read from disk)
+ * @returns {Promise<Object|null>} Hook response or null
+ */
+async function handleHttp(reqBody, _cache) {
+  const data = reqBody.data || {};
+  const planningDir = reqBody.planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  try {
+    return await processEvent(data, planningDir);
+  } catch (_e) {
+    return null;
+  }
+}
+
 function main() {
   let input = '';
 
@@ -91,97 +202,13 @@ function main() {
   process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
+      const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+      const planningDir = path.join(cwd, '.planning');
 
-      // Route CONTEXT.md writes to sync hook (runs first, always returns null)
-      checkContextWrite(data);
-
-      // Plan format check (PLAN.md, SUMMARY*.md)
-      // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
-      // check below. The plan format check validates frontmatter structure, while
-      // state-sync auto-updates ROADMAP.md and STATE.md tracking fields.
-      const planResult = await checkPlanWrite(data);
-      if (planResult) {
-        process.stdout.write(JSON.stringify(planResult.output));
-        process.exit(0);
+      const output = await processEvent(data, planningDir);
+      if (output) {
+        process.stdout.write(JSON.stringify(output));
       }
-
-      // ROADMAP.md structural validation (before sync checks)
-      const roadmapResult = checkRoadmapWrite(data);
-      if (roadmapResult) {
-        process.stdout.write(JSON.stringify(roadmapResult.output));
-        process.exit(0);
-      }
-
-      // Roadmap sync check (STATE.md)
-      const syncResult = checkSync(data);
-      if (syncResult) {
-        process.stdout.write(JSON.stringify(syncResult.output));
-        process.exit(0);
-      }
-
-      // STATE.md frontmatter validation (after roadmap sync, advisory only)
-      const stateResult = checkStateWrite(data);
-      if (stateResult) {
-        process.stdout.write(JSON.stringify(stateResult.output));
-        process.exit(0);
-      }
-
-      // State sync check (SUMMARY/VERIFICATION → STATE.md + ROADMAP.md)
-      const stateSyncResult = checkStateSync(data);
-      if (stateSyncResult) {
-        process.stdout.write(JSON.stringify(stateSyncResult.output));
-        process.exit(0);
-      }
-
-      // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
-      const qualityResult = checkQuality(data);
-      if (qualityResult) {
-        process.stdout.write(JSON.stringify(qualityResult.output));
-        process.exit(0);
-      }
-
-      // LLM file intent classification — advisory enrichment for non-planning files
-      // Skipped for .planning/ files (already handled by plan format / state checks above)
-      const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
-      const normalizedPath = filePath.replace(/\\/g, '/');
-      if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
-        try {
-          const { resolveConfig } = require('./local-llm/health');
-          const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
-          const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-          const planningDir = path.join(cwd, '.planning');
-          const llmConfig = (() => {
-            try {
-              const configPath = path.join(planningDir, 'config.json');
-              const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-              return resolveConfig(parsed.local_llm);
-            } catch (_e) {
-              return resolveConfig(undefined);
-            }
-          })();
-
-          let contentSnippet = '';
-          try {
-            const content = data.tool_input?.content || data.tool_input?.new_string || '';
-            contentSnippet = content.slice(0, 400);
-          } catch (_e) {
-            // No content available
-          }
-
-          if (contentSnippet) {
-            const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
-            if (llmResult && llmResult.file_type) {
-              process.stdout.write(JSON.stringify({
-                additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
-              }));
-              process.exit(0);
-            }
-          }
-        } catch (_llmErr) {
-          // Never propagate LLM errors
-        }
-      }
-
       process.exit(0);
     } catch (_e) {
       // Don't block on parse errors
@@ -189,5 +216,7 @@ function main() {
     }
   });
 }
+
+module.exports = { handleHttp, processEvent };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }

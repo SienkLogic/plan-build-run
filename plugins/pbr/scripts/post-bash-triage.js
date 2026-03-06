@@ -108,6 +108,25 @@ async function checkTestTriage(data) {
   return null;
 }
 
+/**
+ * HTTP handler for hook-server.js.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ *
+ * @param {Object} reqBody - Request body from hook-server
+ * @param {Object} _cache - In-memory server cache (unused)
+ * @returns {Promise<Object|null>} Hook response or null
+ */
+async function handleHttp(reqBody, _cache) {
+  const data = reqBody.data || {};
+  try {
+    const result = await checkTestTriage(data);
+    return result ? result.output : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 function main() {
   let input = '';
 
@@ -128,5 +147,5 @@ function main() {
   });
 }
 
-module.exports = { checkTestTriage, detectTestRunner };
+module.exports = { checkTestTriage, detectTestRunner, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }
