@@ -194,8 +194,8 @@ function loadTracker(trackerPath) {
 function checkBridge(planningDir) {
   const bridgePath = path.join(planningDir, '.context-budget.json');
   try {
-    if (!fs.existsSync(bridgePath)) return null;
-
+    // Single statSync replaces existsSync + statSync (2 syscalls → 1).
+    // If the file doesn't exist, statSync throws and we catch below.
     const stats = fs.statSync(bridgePath);
     const ageMs = Date.now() - stats.mtimeMs;
     if (ageMs > BRIDGE_STALENESS_MS) return null;
