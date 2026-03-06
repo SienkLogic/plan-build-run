@@ -36,13 +36,13 @@ function main() {
     // Skip if parent has no .planning/ — not a PBR project
     if (!fs.existsSync(parentPlanningDir)) {
       logHook('worktree-create', 'WorktreeCreate', 'skip-no-parent', { worktree_path: worktreePath });
-      process.exit(0);
+      process.exit(0); return;
     }
 
     // Skip if worktree already has .planning/ initialized
     if (fs.existsSync(planningDir)) {
       logHook('worktree-create', 'WorktreeCreate', 'skip-exists', { worktree_path: worktreePath });
-      process.exit(0);
+      process.exit(0); return;
     }
 
     // Create .planning/ directory

@@ -34,7 +34,7 @@ function main() {
     // Skip if no .planning/ exists in worktree
     if (!fs.existsSync(planningDir)) {
       logHook('worktree-remove', 'WorktreeRemove', 'skip-no-planning', { worktree_path: worktreePath });
-      process.exit(0);
+      process.exit(0); return;
     }
 
     // Guard: only clean up if STATE.md has the "parent:" marker — this indicates
@@ -45,7 +45,7 @@ function main() {
       const stateContent = fs.readFileSync(stateMdPath, 'utf8');
       if (!stateContent.includes('parent:')) {
         logHook('worktree-remove', 'WorktreeRemove', 'skip-not-worktree', { worktree_path: worktreePath });
-        process.exit(0);
+        process.exit(0); return;
       }
     }
 
