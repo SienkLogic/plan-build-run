@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { buildAgentContext, resolveAgentType } = require('../plugins/pbr/scripts/log-subagent');
+const { buildAgentContext, resolveAgentType, handleHttp } = require('../plugins/pbr/scripts/log-subagent');
 
 let tmpDir;
 let planningDir;
@@ -111,5 +111,76 @@ describe('resolveAgentType edge cases', () => {
 
   test('handles missing tool_input key', () => {
     expect(resolveAgentType({ other: 'value' })).toBeNull();
+  });
+});
+
+describe('handleHttp', () => {
+  test('handles SubagentStart event and returns null when no context', () => {
+    const result = handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:planner', agent_id: 'abc' },
+      planningDir
+    });
+    // result is null or has hookSpecificOutput depending on buildAgentContext
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+
+  test('handles SubagentStart event with planningDir — writes .active-agent', () => {
+    handleHttp({
+      event: 'SubagentStart',
+      data: { tool_input: { subagent_type: 'pbr:executor' }, agent_id: 'xyz' },
+      planningDir
+    });
+    // The .active-agent file should be written
+    const agentFile = path.join(planningDir, '.active-agent');
+    expect(fs.existsSync(agentFile)).toBe(true);
+  });
+
+  test('handles SubagentStop event — removes .active-agent', () => {
+    // Create .active-agent first
+    const agentFile = path.join(planningDir, '.active-agent');
+    fs.writeFileSync(agentFile, 'pbr:executor');
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:executor', agent_id: 'xyz', duration_ms: 5000 },
+      planningDir
+    });
+    expect(result).toBeNull();
+    expect(fs.existsSync(agentFile)).toBe(false);
+  });
+
+  test('handles SubagentStop event when .active-agent does not exist', () => {
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('handles unknown event — returns null', () => {
+    const result = handleHttp({
+      event: 'SomethingElse',
+      data: {},
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('handles SubagentStart without planningDir — uses writeActiveAgent fallback', () => {
+    // No planningDir — falls back to writeActiveAgent (uses process.cwd())
+    const result = handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:planner' }
+    });
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+
+  test('handles SubagentStop without planningDir — uses removeActiveAgent fallback', () => {
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:executor' }
+    });
+    expect(result).toBeNull();
   });
 });

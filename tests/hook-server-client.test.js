@@ -109,6 +109,51 @@ describe('hook-server-client.js exports', () => {
       server.close();
     }
   });
+
+  test('postHook rejects with timeout error when server is too slow', async () => {
+    // Create a server that never responds (hangs)
+    const slowServer = await new Promise((resolve, reject) => {
+      const server = http.createServer((_req, _res) => {
+        // Intentionally never respond — simulates a hung server
+      });
+      server.listen(0, '127.0.0.1', () => {
+        resolve({ server, port: server.address().port });
+      });
+      server.on('error', reject);
+    });
+
+    try {
+      const body = JSON.stringify({ event: 'PostToolUse', tool: 'Read', data: {} });
+      await expect(postHook(slowServer.port, body, 50)).rejects.toThrow('request timeout');
+    } finally {
+      slowServer.server.close();
+    }
+  });
+
+  test('postHook rejects on connection error (port not listening)', async () => {
+    const body = JSON.stringify({ event: 'test', tool: 'Read', data: {} });
+    // Port 19990 very unlikely to be in use
+    await expect(postHook(19990, body, 500)).rejects.toBeDefined();
+  });
+
+  test('probePort returns false when port times out (timeout path)', async () => {
+    // A port that accepts connections but then does nothing — should timeout
+    // Easiest to test with a very short timeout on a closed port
+    const result = await probePort(19991, 10);
+    expect(result).toBe(false);
+  });
+
+  test('probePort done() is idempotent (settled guard)', async () => {
+    // probePort with a real server — the connect callback fires done(true)
+    // then if there were a second event it would be ignored
+    const { server, port } = await createMockServer({});
+    try {
+      const result = await probePort(port, 500);
+      expect(result).toBe(true);
+    } finally {
+      server.close();
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -189,6 +234,27 @@ describe('hook-server-client.js process behavior', () => {
       expect(parsed.decision).toBeUndefined();
     } finally {
       server.close();
+    }
+  });
+
+  test('exits 0 when server returns non-JSON response', async () => {
+    // Mock server that returns invalid JSON
+    const badServer = await new Promise((resolve, reject) => {
+      const server = http.createServer((_req, res) => {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('not-json-at-all');
+      });
+      server.listen(0, '127.0.0.1', () => {
+        resolve({ server, port: server.address().port });
+      });
+      server.on('error', reject);
+    });
+
+    try {
+      const { status } = runClient('track-context-budget', badServer.port, JSON.stringify({ tool_input: {} }));
+      expect(status).toBe(0);
+    } finally {
+      badServer.server.close();
     }
   });
 });

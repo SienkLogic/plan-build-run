@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { handleHttp, summarizeInput } = require('../plugins/pbr/scripts/log-tool-failure');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'log-tool-failure.js');
 
@@ -169,5 +170,70 @@ describe('log-tool-failure.js', () => {
       const eventEntry = JSON.parse(result.eventsLog.split('\n').pop());
       expect(eventEntry.input_summary).toBe(expected);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Unit tests for exported handleHttp and summarizeInput
+// ---------------------------------------------------------------------------
+
+describe('log-tool-failure.js exports', () => {
+  test('handleHttp returns additionalContext for Bash non-interrupt failure', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: 'exit code 1', is_interrupt: false, tool_input: { command: 'npm test' } }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('/pbr:debug');
+  });
+
+  test('handleHttp returns null for non-Bash tool failure', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Write', error: 'permission denied', is_interrupt: false, tool_input: { file_path: '/x' } }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('handleHttp returns null for interrupted Bash', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: 'interrupted', is_interrupt: true, tool_input: { command: 'npm test' } }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('handleHttp handles non-string error object', () => {
+    // Exercises the JSON.stringify branch for error
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: { code: 'ENOENT', msg: 'not found' }, is_interrupt: false, tool_input: {} }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('/pbr:debug');
+  });
+
+  test('handleHttp handles missing data gracefully', () => {
+    const result = handleHttp({});
+    // data is undefined — should use defaults and not throw
+    expect(result).toBeNull(); // toolName defaults to 'unknown', not 'Bash'
+  });
+
+  test('summarizeInput returns command for Bash', () => {
+    expect(summarizeInput('Bash', { command: 'git status' })).toBe('git status');
+  });
+
+  test('summarizeInput returns file_path for Edit', () => {
+    expect(summarizeInput('Edit', { file_path: '/some/file.js' })).toBe('/some/file.js');
+  });
+
+  test('summarizeInput returns empty string for unknown tool', () => {
+    expect(summarizeInput('UnknownTool', {})).toBe('');
+  });
+
+  test('summarizeInput returns empty string for Task with no description', () => {
+    expect(summarizeInput('Task', {})).toBe('');
+  });
+
+  test('summarizeInput truncates long Bash command', () => {
+    const longCmd = 'x'.repeat(200);
+    const result = summarizeInput('Bash', { command: longCmd });
+    expect(result.length).toBeLessThanOrEqual(100);
   });
 });

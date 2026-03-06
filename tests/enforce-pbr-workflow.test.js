@@ -402,6 +402,19 @@ describe('checkNonPbrAgent', () => {
     expect(result.output.reason).toMatch(/pbr:researcher|pbr:codebase-mapper/);
     expect(result.output).not.toHaveProperty('additionalContext');
   });
+
+  test('uses enforce_pbr_agents when set (takes priority over enforce_pbr_skills)', () => {
+    // L176 branch: agentExplicit is 'advisory', so agentLevel = agentExplicit
+    writeConfig(planningDir, {
+      workflow: { enforce_pbr_agents: 'advisory', enforce_pbr_skills: 'block' }
+    });
+    const data = { tool_input: { subagent_type: 'Explore' } };
+    const result = checkNonPbrAgent(data);
+    // enforce_pbr_agents='advisory' takes priority over enforce_pbr_skills='block'
+    expect(result).not.toBeNull();
+    expect(result.exitCode).toBe(0); // advisory = no block
+    expect(result.output).toHaveProperty('additionalContext');
+  });
 });
 
 // ─── checkUnmanagedCommit ────────────────────────────────────────────────────

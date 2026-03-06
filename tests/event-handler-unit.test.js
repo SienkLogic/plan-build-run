@@ -6,7 +6,7 @@ const os = require('os');
 
 // Import the writeAutoVerifySignal indirectly via module — it's not exported.
 // We test it through the main flow by testing shouldAutoVerify + getPhaseFromState combinations.
-const { isExecutorAgent, shouldAutoVerify, getPhaseFromState } = require('../plugins/pbr/scripts/event-handler');
+const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp } = require('../plugins/pbr/scripts/event-handler');
 
 let tmpDir;
 let planningDir;
@@ -115,6 +115,79 @@ describe('shouldAutoVerify additional branches', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'comprehensive' }));
     expect(shouldAutoVerify(planningDir)).toBe(true);
+  });
+});
+
+describe('handleHttp', () => {
+  test('returns null when data is not an executor agent', () => {
+    const result = handleHttp({ data: { agent_type: 'pbr:planner' }, planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir: path.join(tmpDir, 'nonexistent')
+    });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when shouldAutoVerify returns false (quick depth)', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when no STATE.md exists', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when STATE.md status is not building', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5\nStatus: planned');
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('returns additionalContext when status is building', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 3 of 8\nStatus: building');
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Phase 3');
+  });
+
+  test('includes error hint when last_assistant_message contains error', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3\nStatus: building');
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor', last_assistant_message: 'Task failed with error code 1' },
+      planningDir
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('errors/warnings');
+  });
+
+  test('returns null when planningDir is falsy', () => {
+    const result = handleHttp({
+      data: { agent_type: 'pbr:executor' },
+      planningDir: null
+    });
+    expect(result).toBeNull();
   });
 });
 

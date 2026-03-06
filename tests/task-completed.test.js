@@ -108,6 +108,75 @@ describe('task-completed.js', () => {
     });
   });
 
+  describe('handleHttp and readCurrentPhase unit tests', () => {
+    const { handleHttp, readCurrentPhase } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed'));
+
+    let haltTmpDir;
+    let planningDir;
+
+    beforeEach(() => {
+      haltTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-htc-'));
+      planningDir = path.join(haltTmpDir, '.planning');
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    });
+
+    afterEach(() => {
+      fs.rmSync(haltTmpDir, { recursive: true, force: true });
+    });
+
+    test('readCurrentPhase returns null when STATE.md does not exist', () => {
+      expect(readCurrentPhase(planningDir)).toBeNull();
+    });
+
+    test('readCurrentPhase extracts current_phase from STATE.md', () => {
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 7\nstatus: built\n---\n');
+      expect(readCurrentPhase(planningDir)).toBe('7');
+    });
+
+    test('readCurrentPhase returns null when no current_phase field', () => {
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 5 of 10\nStatus: built\n');
+      expect(readCurrentPhase(planningDir)).toBeNull();
+    });
+
+    test('handleHttp returns null for non-executor/non-verifier agent', () => {
+      const result = handleHttp({ data: { agent_type: 'pbr:planner' }, planningDir });
+      expect(result).toBeNull();
+    });
+
+    test('handleHttp returns null when planningDir does not exist', () => {
+      const result = handleHttp({
+        data: { agent_type: 'pbr:executor' },
+        planningDir: path.join(haltTmpDir, 'nonexistent')
+      });
+      expect(result).toBeNull();
+    });
+
+    test('handleHttp returns null when executor SUMMARY.md exists', () => {
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\n');
+      const phaseDir = path.join(planningDir, 'phases', '03-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), '# Summary\nDone');
+      const result = handleHttp({ data: { agent_type: 'pbr:executor' }, planningDir });
+      expect(result).toBeNull();
+    });
+
+    test('handleHttp returns halt when executor SUMMARY.md is missing', () => {
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 3\n---\n');
+      const phaseDir = path.join(planningDir, 'phases', '03-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      // No SUMMARY.md
+      const result = handleHttp({ data: { agent_type: 'pbr:executor' }, planningDir });
+      expect(result).not.toBeNull();
+      expect(result.continue).toBe(false);
+      expect(result.stopReason).toContain('SUMMARY.md');
+    });
+
+    test('handleHttp returns null when planningDir is falsy', () => {
+      const result = handleHttp({ data: { agent_type: 'pbr:verifier' }, planningDir: null });
+      expect(result).toBeNull();
+    });
+  });
+
   describe('checkHaltConditions', () => {
     const { checkHaltConditions } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed'));
 

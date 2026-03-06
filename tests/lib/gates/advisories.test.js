@@ -145,4 +145,28 @@ describe('checkActiveSkillIntegrity', () => {
     const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:planner' } });
     expect(result).toBeNull();
   });
+
+  test('warns when .active-skill is older than 2 hours (stale lock)', () => {
+    process.env.PBR_PROJECT_ROOT = tmpDir;
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir, { recursive: true });
+    const activeSkillFile = path.join(planningDir, '.active-skill');
+    fs.writeFileSync(activeSkillFile, 'build');
+    // Backdate by 3 hours
+    const staleTime = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    fs.utimesSync(activeSkillFile, staleTime, staleTime);
+    const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result).not.toBeNull();
+    expect(result).toContain('stale');
+    expect(result).toContain('build');
+  });
+
+  test('returns null for exempt agents (pbr:researcher)', () => {
+    process.env.PBR_PROJECT_ROOT = tmpDir;
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir, { recursive: true });
+    // No .active-skill, but agent is exempt
+    const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:researcher' } });
+    expect(result).toBeNull();
+  });
 });

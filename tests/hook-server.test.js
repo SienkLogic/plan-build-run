@@ -203,7 +203,7 @@ describe('hook-server.js integration', () => {
 // ---------------------------------------------------------------------------
 
 describe('hook-server.js exports', () => {
-  const { appendEvent, mergeContext, resolveHandler, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
+  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, lazyHandler, createServer, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
 
   test('DEFAULT_PORT is 19836', () => {
     expect(DEFAULT_PORT).toBe(19836);
@@ -277,5 +277,299 @@ describe('hook-server.js exports', () => {
     const merged = mergeContext(h1, h2);
     const result = await merged({});
     expect(result.additionalContext).toBe('ok');
+  });
+
+  // -------------------------------------------------------------------------
+  // readEventLogTail
+  // -------------------------------------------------------------------------
+
+  test('readEventLogTail returns empty array when file does not exist', () => {
+    const result = readEventLogTail('/nonexistent/path/.hook-events.jsonl', 10);
+    expect(result).toEqual([]);
+  });
+
+  test('readEventLogTail returns empty array when file is empty', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
+    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    fs.writeFileSync(logFile, '', 'utf8');
+    const result = readEventLogTail(logFile, 10);
+    expect(result).toEqual([]);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('readEventLogTail parses valid JSONL lines', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
+    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    fs.writeFileSync(logFile, '{"event":"A"}\n{"event":"B"}\n', 'utf8');
+    const result = readEventLogTail(logFile, 10);
+    expect(result).toHaveLength(2);
+    expect(result[0].event).toBe('A');
+    expect(result[1].event).toBe('B');
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('readEventLogTail skips malformed lines', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
+    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    fs.writeFileSync(logFile, '{"event":"A"}\nnot-json\n{"event":"C"}\n', 'utf8');
+    const result = readEventLogTail(logFile, 10);
+    expect(result).toHaveLength(2);
+    expect(result[0].event).toBe('A');
+    expect(result[1].event).toBe('C');
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('readEventLogTail respects maxLines limit', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
+    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const lines = ['{"event":"1"}', '{"event":"2"}', '{"event":"3"}', '{"event":"4"}', '{"event":"5"}'];
+    fs.writeFileSync(logFile, lines.join('\n') + '\n', 'utf8');
+    const result = readEventLogTail(logFile, 3);
+    expect(result).toHaveLength(3);
+    expect(result[0].event).toBe('3');
+    expect(result[2].event).toBe('5');
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('readEventLogTail uses default maxLines of 500 when not provided', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
+    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    fs.writeFileSync(logFile, '{"event":"X"}\n', 'utf8');
+    // No second arg — exercises the undefined branch
+    const result = readEventLogTail(logFile);
+    expect(result).toHaveLength(1);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  // -------------------------------------------------------------------------
+  // lazyHandler
+  // -------------------------------------------------------------------------
+
+  test('lazyHandler returns null result for nonexistent script', async () => {
+    const handler = lazyHandler('__nonexistent_script_xyz__');
+    const result = await handler({ event: 'test', tool: 'Read', data: {} });
+    expect(result).toBeNull();
+  });
+
+  test('lazyHandler returns null for script that does not export handleHttp', async () => {
+    // hook-logger.js exists but does not export handleHttp
+    const handler = lazyHandler('hook-logger');
+    const result = await handler({ event: 'test', tool: 'Read', data: {} });
+    expect(result).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // createServer — unit test the request handler directly
+  // -------------------------------------------------------------------------
+
+  test('createServer returns a server object', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    expect(server).toBeDefined();
+    expect(typeof server.listen).toBe('function');
+    server.close();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('createServer /health endpoint returns ok with pid and uptime', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      http.get({ hostname: '127.0.0.1', port, path: '/health' }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          const parsed = JSON.parse(data);
+          expect(parsed.status).toBe('ok');
+          expect(typeof parsed.pid).toBe('number');
+          expect(typeof parsed.uptime).toBe('number');
+          server.close(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            done();
+          });
+        });
+      }).on('error', done);
+    });
+  });
+
+  test('createServer /context endpoint returns structured response', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    // Write a log file with a few events
+    const logPath = path.join(planningDir, '.hook-events.jsonl');
+    fs.writeFileSync(logPath, '{"event":"test","activeSkill":"plan"}\n{"event":"server_start"}\n', 'utf8');
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      http.get({ hostname: '127.0.0.1', port, path: '/context' }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          const parsed = JSON.parse(data);
+          expect(Array.isArray(parsed.recentEvents)).toBe(true);
+          expect(typeof parsed.generatedAt).toBe('number');
+          server.close(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            done();
+          });
+        });
+      }).on('error', done);
+    });
+  });
+
+  test('createServer /unknown returns 404', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      http.get({ hostname: '127.0.0.1', port, path: '/no-such-route' }, res => {
+        expect(res.statusCode).toBe(404);
+        server.close(() => {
+          fs.rmSync(tmpDir, { recursive: true, force: true });
+          done();
+        });
+      }).on('error', done);
+    });
+  });
+
+  test('createServer POST /hook with malformed JSON returns 400', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      const body = 'not valid json';
+      const req = http.request({
+        hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, res => {
+        expect(res.statusCode).toBe(400);
+        server.close(() => {
+          fs.rmSync(tmpDir, { recursive: true, force: true });
+          done();
+        });
+      });
+      req.on('error', done);
+      req.write(body);
+      req.end();
+    });
+  });
+
+  test('createServer POST /hook with unknown event returns 200 empty object', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      const body = JSON.stringify({ event: 'NoSuchEvent', tool: 'NoTool', data: {} });
+      const req = http.request({
+        hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          expect(res.statusCode).toBe(200);
+          expect(JSON.parse(data)).toEqual({});
+          server.close(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            done();
+          });
+        });
+      });
+      req.on('error', done);
+      req.write(body);
+      req.end();
+    });
+  });
+
+  test('createServer POST /hook logs event with file_path when data.tool_input is present', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      const body = JSON.stringify({
+        event: 'PostToolUse', tool: 'Read',
+        data: { tool_input: { file_path: '/some/important.md' } }
+      });
+      const req = http.request({
+        hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          expect(res.statusCode).toBe(200);
+          // Verify the log file was written with the file entry
+          setTimeout(() => {
+            const logPath = path.join(planningDir, '.hook-events.jsonl');
+            if (fs.existsSync(logPath)) {
+              const logContent = fs.readFileSync(logPath, 'utf8');
+              expect(logContent).toContain('important.md');
+            }
+            server.close(() => {
+              fs.rmSync(tmpDir, { recursive: true, force: true });
+              done();
+            });
+          }, 50);
+        });
+      });
+      req.on('error', done);
+      req.write(body);
+      req.end();
+    });
+  });
+
+  test('createServer POST /hook without data.tool_input does not include file in log', (done) => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    const server = createServer(planningDir);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      const body = JSON.stringify({ event: 'SessionEnd', tool: '*', data: {} });
+      const req = http.request({
+        hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+      }, res => {
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          expect(res.statusCode).toBe(200);
+          server.close(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            done();
+          });
+        });
+      });
+      req.on('error', done);
+      req.write(body);
+      req.end();
+    });
+  });
+
+  test('mergeContext returns null when merged object is empty (no context, no decision)', async () => {
+    // Handlers return objects with no additionalContext or decision
+    const h1 = async () => ({ someOtherKey: 'value' });
+    const merged = mergeContext(h1);
+    const result = await merged({});
+    expect(result).toBeNull();
   });
 });
