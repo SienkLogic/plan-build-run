@@ -35,6 +35,7 @@ const HOOK_EVENT_MAP = {
   'post-bash-triage':     { event: 'PostToolUse',        tool: 'Bash'  },
   'check-subagent-output':{ event: 'PostToolUse',        tool: 'Task'  },
   'log-tool-failure':     { event: 'PostToolUseFailure', tool: '*'     },
+  'log-subagent-start':   { event: 'SubagentStart',      tool: '*'     },
   'log-subagent':         { event: 'SubagentStop',       tool: '*'     },
   'event-handler':        { event: 'SubagentStop',       tool: '*'     },
   'task-completed':       { event: 'TaskCompleted',      tool: '*'     },

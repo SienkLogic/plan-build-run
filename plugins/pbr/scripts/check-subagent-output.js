@@ -549,5 +549,93 @@ async function main() {
   process.exit(0);
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness };
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ * @param {{ data: object, planningDir: string }} reqBody
+ * @returns {Promise<{ additionalContext: string }|null>}
+ */
+async function handleHttp(reqBody) {
+  const data = reqBody.data || {};
+  const planningDir = reqBody.planningDir;
+  if (!planningDir || !fs.existsSync(planningDir)) return null;
+
+  const agentType = data.agent_type || data.tool_input?.subagent_type || data.subagent_type || '';
+  const outputSpec = AGENT_OUTPUTS[agentType];
+  if (!outputSpec) {
+    const shortName = agentType.startsWith('pbr:') ? agentType.slice(4) : agentType;
+    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(shortName)) {
+      logHook('check-subagent-output', 'PostToolUse', 'missing-output-spec', {
+        agent_type: agentType,
+        message: `Agent ${agentType} is in KNOWN_AGENTS but has no AGENT_OUTPUTS entry. Add one to check-subagent-output.js.`
+      });
+    }
+    return null;
+  }
+
+  let activeSkill = sessionLoad(planningDir).activeSkill || '';
+  if (!activeSkill) {
+    try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) { /* legacy file missing */ }
+  }
+
+  const found = outputSpec.check(planningDir);
+  const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
+  const skillWarnings = [];
+
+  if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
+    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+  }
+
+  if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {
+    const roadmapWarning = checkRoadmapStaleness(planningDir);
+    if (roadmapWarning) skillWarnings.push(roadmapWarning);
+  }
+
+  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+    const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
+    skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
+  }
+
+  const skillCheckKey = `${activeSkill}:${agentType}`;
+  const skillCheck = SKILL_CHECKS[skillCheckKey];
+  if (skillCheck) skillCheck.check(planningDir, found, skillWarnings);
+
+  // LLM classification helper (advisory, never throws)
+  async function getLlmNote() {
+    try {
+      const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (!errorText) return '';
+      const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
+      if (llmResult && llmResult.category) {
+        return `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+      }
+    } catch (_e) { /* never propagate */ }
+    return '';
+  }
+
+  if (genericMissing && skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });
+    const llmCategoryNote = await getLlmNote();
+    const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
+      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
+    return { additionalContext: msg };
+  } else if (genericMissing) {
+    logHook('check-subagent-output', 'PostToolUse', 'warning', { agent_type: agentType, expected: outputSpec.description, found: 'none' });
+    const llmCategoryNote = await getLlmNote();
+    return {
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
+    };
+  } else if (skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });
+    return { additionalContext: 'Skill-specific warnings:\n' + skillWarnings.map(w => `- ${w}`).join('\n') };
+  } else {
+    logHook('check-subagent-output', 'PostToolUse', 'verified', { agent_type: agentType, found: found });
+    return null;
+  }
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

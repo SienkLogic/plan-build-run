@@ -129,5 +129,39 @@ function main() {
   process.exit(0);
 }
 
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, ... }.
+ * Must NOT call process.exit().
+ * @param {{ data: object, planningDir: string }} reqBody
+ * @returns {{ continue: false, stopReason: string }|null}
+ */
+function handleHttp(reqBody) {
+  const data = reqBody.data || {};
+  const planningDir = reqBody.planningDir;
+
+  logHook('task-completed', 'TaskCompleted', 'completed', {
+    agent_type: data.agent_type || data.subagent_type || null,
+    agent_id: data.agent_id || null,
+    duration_ms: data.duration_ms || null
+  });
+
+  logEvent('agent', 'task-completed', {
+    agent_type: data.agent_type || data.subagent_type || null,
+    agent_id: data.agent_id || null,
+    duration_ms: data.duration_ms || null
+  });
+
+  if (planningDir && fs.existsSync(planningDir)) {
+    const halt = checkHaltConditions(data, planningDir);
+    if (halt) {
+      logHook('task-completed', 'TaskCompleted', 'halting', halt);
+      return halt;
+    }
+  }
+
+  return null;
+}
+
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { main, checkHaltConditions, readCurrentPhase };
+module.exports = { main, checkHaltConditions, readCurrentPhase, handleHttp };

@@ -158,5 +158,53 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState };
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, ... }.
+ * Must NOT call process.exit().
+ * @param {{ data: object, planningDir: string }} reqBody
+ * @returns {{ additionalContext: string }|null}
+ */
+function handleHttp(reqBody) {
+  const data = reqBody.data || {};
+
+  if (!isExecutorAgent(data)) return null;
+
+  const agentType = data.agent_type || data.subagent_type;
+  logHook('event-handler', 'SubagentStop', 'executor-complete', { agent_type: agentType });
+  logEvent('workflow', 'executor-complete', { agent_type: agentType });
+
+  const planningDir = reqBody.planningDir;
+  if (!planningDir || !fs.existsSync(planningDir)) return null;
+
+  if (!shouldAutoVerify(planningDir)) {
+    logHook('event-handler', 'SubagentStop', 'skip-verify', { reason: 'config/depth' });
+    return null;
+  }
+
+  const stateInfo = getPhaseFromState(planningDir);
+  if (!stateInfo || stateInfo.status !== 'building') {
+    logHook('event-handler', 'SubagentStop', 'skip-verify', {
+      reason: stateInfo ? `status=${stateInfo.status}` : 'no-state'
+    });
+    return null;
+  }
+
+  writeAutoVerifySignal(planningDir, stateInfo.phase);
+
+  const lastMsg = data.last_assistant_message || '';
+  let verifyHint = '';
+  if (lastMsg) {
+    const lowerMsg = lastMsg.toLowerCase();
+    if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('warning')) {
+      verifyHint = ' Note: executor output mentions errors/warnings — verification should pay close attention.';
+    }
+  }
+
+  return {
+    additionalContext: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.${verifyHint}`
+  };
+}
+
+module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -157,5 +157,79 @@ function buildAgentContext() {
   return '[Plan-Build-Run Project Context] ' + parts.join(' | ');
 }
 
-module.exports = { buildAgentContext, resolveAgentType };
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, ... }.
+ * Uses reqBody.event to distinguish SubagentStart vs SubagentStop.
+ * Must NOT call process.exit().
+ * @param {{ event: string, data: object, planningDir: string }} reqBody
+ * @returns {{ additionalContext: string }|null}
+ */
+function handleHttp(reqBody) {
+  const event = reqBody.event || '';
+  const data = reqBody.data || {};
+  const agentType = resolveAgentType(data);
+
+  if (event === 'SubagentStart') {
+    logHook('log-subagent', 'SubagentStart', 'spawned', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null
+    });
+    logEvent('agent', 'spawn', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      description: data.description || null
+    });
+
+    // Write .active-agent signal — use planningDir from reqBody if available
+    const planningDir = reqBody.planningDir;
+    if (planningDir) {
+      try {
+        const filePath = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(planningDir)) {
+          fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
+        }
+      } catch (_e) { /* best-effort */ }
+    } else {
+      writeActiveAgent(agentType || 'unknown');
+    }
+
+    const context = buildAgentContext();
+    if (context) {
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'SubagentStart',
+          additionalContext: context
+        }
+      };
+    }
+    return null;
+  } else if (event === 'SubagentStop') {
+    // Remove .active-agent signal
+    const planningDir = reqBody.planningDir;
+    if (planningDir) {
+      try {
+        const filePath = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (_e) { /* best-effort */ }
+    } else {
+      removeActiveAgent();
+    }
+    logHook('log-subagent', 'SubagentStop', 'completed', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      duration_ms: data.duration_ms || null
+    });
+    logEvent('agent', 'complete', {
+      agent_id: data.agent_id || null,
+      agent_type: agentType,
+      duration_ms: data.duration_ms || null
+    });
+    return null;
+  }
+  return null;
+}
+
+module.exports = { buildAgentContext, resolveAgentType, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -83,3 +83,40 @@ function summarizeInput(toolName, toolInput) {
 }
 
 main().catch(() => {});
+
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { data, planningDir, ... }.
+ * Must NOT call process.exit().
+ * @param {{ data: object }} reqBody
+ * @returns {{ additionalContext: string }|null}
+ */
+function handleHttp(reqBody) {
+  const data = reqBody.data || {};
+  const toolName = data.tool_name || 'unknown';
+  const error = data.error || 'unknown error';
+  const isInterrupt = data.is_interrupt || false;
+  const toolInput = data.tool_input || {};
+
+  logHook('log-tool-failure', 'PostToolUseFailure', 'logged', {
+    tool: toolName,
+    error: typeof error === 'string' ? error.substring(0, 200) : JSON.stringify(error).substring(0, 200),
+    interrupt: isInterrupt
+  });
+
+  logEvent('tool', 'failure', {
+    tool: toolName,
+    error: typeof error === 'string' ? error.substring(0, 500) : JSON.stringify(error).substring(0, 500),
+    interrupt: isInterrupt,
+    input_summary: summarizeInput(toolName, toolInput)
+  });
+
+  if (toolName === 'Bash' && !isInterrupt) {
+    return {
+      additionalContext: '[Tool Failure] Bash command failed. To investigate: check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.'
+    };
+  }
+  return null;
+}
+
+module.exports = { handleHttp, summarizeInput };
