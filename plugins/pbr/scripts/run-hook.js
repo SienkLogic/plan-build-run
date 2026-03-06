@@ -88,36 +88,45 @@ if (scriptName) {
 function runScript(name, args) {
   args = args || [];
 
-  // Early-exit for non-PBR projects: skip loading the target script entirely.
-  // This avoids the full require() chain (~10-20ms) for every hook invocation
-  // in projects that don't use Plan-Build-Run.
-  if (!ALWAYS_RUN.has(name)) {
-    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-    const planningDir = path.join(cwd, '.planning');
-    try {
-      fs.statSync(planningDir);
-    } catch (_e) {
-      process.exit(0);
-    }
-  }
-
   // Try __dirname first, then pluginRoot
   const candidates = [
     path.resolve(__dirname, name),
     pluginRoot ? path.resolve(pluginRoot, 'scripts', name) : null
   ].filter(Boolean);
 
+  // Phase 1: Resolve the script path (cheap — just fs.statSync, no require).
+  // This must happen before the .planning/ check so missing scripts still
+  // get proper error messages regardless of project type.
+  let resolvedPath = null;
   for (const candidate of candidates) {
     try {
-      process.argv = [process.argv[0], candidate, ...args];
-      require(candidate);
-      return;
-    } catch (err) {
-      if (err.code !== 'MODULE_NOT_FOUND') throw err;
+      fs.statSync(candidate);
+      resolvedPath = candidate;
+      break;
+    } catch (_e) {
+      // Not found at this path
     }
   }
 
-  process.stderr.write(`run-hook: cannot find script: ${name}\n`);
-  process.stderr.write(`  searched: ${candidates.join(', ')}\n`);
-  process.exit(1);
+  if (!resolvedPath) {
+    process.stderr.write(`run-hook: cannot find script: ${name}\n`);
+    process.stderr.write(`  searched: ${candidates.join(', ')}\n`);
+    process.exit(1);
+  }
+
+  // Phase 2: Early-exit for non-PBR projects. Script exists but .planning/
+  // doesn't — skip loading the module entirely. This avoids the full
+  // require() chain (~10-20ms) for every hook invocation in non-PBR projects.
+  if (!ALWAYS_RUN.has(name)) {
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    try {
+      fs.statSync(path.join(cwd, '.planning'));
+    } catch (_e) {
+      process.exit(0);
+    }
+  }
+
+  // Phase 3: Load and execute the script.
+  process.argv = [process.argv[0], resolvedPath, ...args];
+  require(resolvedPath);
 }
