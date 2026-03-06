@@ -136,7 +136,69 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 ---
 
-## Step 5: Write Updated Config
+## Step 5: Platform Settings
+
+Manage Claude Code platform settings that PBR recommends for optimal token usage.
+
+**Read `.planning/config.json`** (already loaded in Step 1). Check for a `platform_settings` block:
+- If absent, treat it as `{}` (no managed settings).
+
+**Check for existing `.claude/settings.json`**:
+- If it exists, read its contents. Parse as JSON (or `{}` if empty/missing).
+- If it does not exist, start from `{}`.
+
+**Compute the merge**:
+- Start with the existing `.claude/settings.json` content.
+- Apply each key from `platform_settings` in config.json on top.
+- If `platform_settings` is absent or empty, skip the write entirely.
+
+**Report drift** (compare before/after):
+- List keys being ADDED (were absent in .claude/settings.json)
+- List keys being CHANGED (differ from existing .claude/settings.json value)
+- List keys that MATCH (already correct — no change needed)
+
+Display the report:
+
+```
+Platform Settings:
+  Keys added:   includeGitInstructions → false
+  Keys matched: (none)
+  Keys changed: (none)
+
+Writing .claude/settings.json...
+```
+
+If all keys already match, display:
+
+```
+Platform Settings: .claude/settings.json is already in sync — no changes needed.
+```
+
+**Conflict detection**: If an existing `.claude/settings.json` has a key from `platform_settings` set to the OPPOSITE value (e.g., `"includeGitInstructions": true` when PBR wants `false`), display a WARNING before overwriting:
+
+```
+WARNING: .claude/settings.json has includeGitInstructions: true
+         PBR recommends false (removes redundant built-in git instructions).
+         Overwriting with PBR recommended value.
+```
+
+**Write the merged settings.json**:
+- Write to `.claude/settings.json` in the project root (alongside `.planning/`).
+- Ensure the directory `.claude/` exists (create it if needed with Bash `mkdir -p .claude`).
+- Write with 2-space indentation. Include a `$schema` key at the top:
+  ```json
+  {
+    "$schema": "https://json.schemastore.org/claude-code-settings.json",
+    "includeGitInstructions": false
+  }
+  ```
+  (Merge in any pre-existing keys from .claude/settings.json that are NOT managed by PBR — pass them through unchanged at the bottom of the object.)
+
+**Drift detection note**: On subsequent /pbr:setup runs, if `.claude/settings.json` has drifted from `platform_settings` (e.g., user manually changed it), this step will detect and re-apply the PBR values with a drift warning. This is by design — platform_settings in config.json is the source of truth.
+
+---
+
+## Step 6: Write Updated Config
 
 **CRITICAL: Write `.planning/config.json` NOW with all changes from Steps 2-3. Do NOT skip this step.**
 
@@ -144,13 +206,14 @@ Write the updated config.json to disk with all applied changes.
 
 ---
 
-## Step 6: Verification
+## Step 7: Verification
 
 Run a quick check:
 1. Verify `.planning/config.json` is valid JSON (read it back)
 2. Display updated settings summary
 
 Display:
+
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PLAN-BUILD-RUN ► RECONFIGURE COMPLETE ✓                     ║
@@ -160,6 +223,7 @@ Updated:
 - Model profile: {new profile}
 - Features changed: {list or "none"}
 - CLAUDE.md: {updated/skipped}
+- Platform settings: {".claude/settings.json updated" or "already in sync" or "no managed settings"}
 
 Run /pbr:status to see current project state.
 ```
