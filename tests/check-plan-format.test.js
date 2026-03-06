@@ -501,6 +501,8 @@ checked_at: 2026-02-23T00:00:00Z
 must_haves_checked: 3
 must_haves_passed: 3
 must_haves_failed: 0
+satisfied: []
+unsatisfied: []
 ---
 All checks passed.`);
       const input = JSON.stringify({ tool_input: { file_path: verPath } });

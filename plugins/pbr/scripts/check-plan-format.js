@@ -170,9 +170,9 @@ function validatePlan(content, _filePath) {
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       }
-      // Advisory: implements:[] enables REQ-ID traceability (Phase 65 feature)
+      // Blocking: implements:[] is required for REQ-ID traceability (Phase 66)
       if (!frontmatter.includes('implements:')) {
-        warnings.push('Frontmatter missing "implements" field — add implements:[] to enable REQ-ID traceability');
+        errors.push('Frontmatter missing required "implements" field (use implements:[] if no requirements apply)');
       }
     }
   }
@@ -206,6 +206,22 @@ function validatePlan(content, _filePath) {
       if (!taskContent.includes(`<${elem}>`) && !taskContent.includes(`<${elem} `)) {
         errors.push(`Task ${index + 1}: missing <${elem}> element`);
       }
+    }
+
+    // Feature task validation: require <behavior> and <implementation> child elements
+    if (taskContent.includes('<feature>')) {
+      if (!taskContent.includes('<behavior>') && !taskContent.includes('<behavior ')) {
+        errors.push(`Task ${index + 1}: feature task missing <behavior> element`);
+      }
+      if (!taskContent.includes('<implementation>') && !taskContent.includes('<implementation ')) {
+        errors.push(`Task ${index + 1}: feature task missing <implementation> element`);
+      }
+    }
+
+    // Informational: automated verify wrapper advisory
+    const verifyMatch = taskContent.match(/<verify>([\s\S]*?)<\/verify>/);
+    if (verifyMatch && verifyMatch[1].includes('<automated>')) {
+      warnings.push(`Task ${index + 1}: uses automated verify wrapper (machine-parseable commands for auto_checkpoints mode)`);
     }
   });
 
@@ -380,6 +396,14 @@ function validateVerification(content, _filePath) {
         if (!frontmatter.includes(`${field}:`)) {
           errors.push(`Frontmatter missing "${field}" field`);
         }
+      }
+
+      // Advisory: traceability fields for REQ-ID tracking (backward-compatible warnings)
+      if (!frontmatter.includes('satisfied:')) {
+        warnings.push('Frontmatter missing "satisfied" field — add satisfied:[] listing REQ-IDs confirmed in this phase');
+      }
+      if (!frontmatter.includes('unsatisfied:')) {
+        warnings.push('Frontmatter missing "unsatisfied" field — add unsatisfied:[] listing REQ-IDs that failed verification');
       }
     }
   }
