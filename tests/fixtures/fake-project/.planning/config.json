@@ -21,5 +21,8 @@
   "git": {
     "auto_commit": true,
     "commit_format": "{type}({scope}): {description}"
+  },
+  "platform_settings": {
+    "includeGitInstructions": false
   }
 }
