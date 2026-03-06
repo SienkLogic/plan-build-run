@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.61.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.61.0...plan-build-run-v2.61.1) (2026-03-06)
+
+
+### Bug Fixes
+
+* **hooks:** resolve script path before .planning/ early-exit check ([06487f7](https://github.com/SienkLogic/plan-build-run/commit/06487f78799a521f6d9041dc1323d36bfdf4a1d8))
+
 ## [2.61.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.60.0...plan-build-run-v2.61.0) (2026-03-06)
 
 
