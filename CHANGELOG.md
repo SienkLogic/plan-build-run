@@ -5,6 +5,18 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.62.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.61.1...plan-build-run-v2.62.0) (2026-03-06)
+
+
+### Features
+
+* **hook-server:** add GET /context endpoint and SessionStart enrichment ([802253d](https://github.com/SienkLogic/plan-build-run/commit/802253da7af9087a10c8218f762593a2d048cfe1))
+* **hook-server:** add handleHttp to 5 remaining medium-frequency hooks ([41f0cd7](https://github.com/SienkLogic/plan-build-run/commit/41f0cd7e98cf3c1019b42c27afed500b19fe4dd2))
+* **hook-server:** add handleHttp to post-write-dispatch and post-bash-triage ([b4d794f](https://github.com/SienkLogic/plan-build-run/commit/b4d794faff1a588a9016a19ebeb354dfd57f5caa))
+* **hook-server:** add handleHttp to track-context-budget and context-bridge ([8212131](https://github.com/SienkLogic/plan-build-run/commit/8212131a6b057a487a6ee837cb999eeee5d10ebc))
+* **hook-server:** add HTTP hook server and client with JSONL event log ([bf1a15b](https://github.com/SienkLogic/plan-build-run/commit/bf1a15bf8993211db2801af429e9680dd220a521))
+* **hook-server:** complete hook migration — all enrichment hooks export handleHttp ([647561f](https://github.com/SienkLogic/plan-build-run/commit/647561f7c6c863d1ef177b7a3ddc88c0f7c3489f))
+
 ## [2.61.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.61.0...plan-build-run-v2.61.1) (2026-03-06)
 
 
