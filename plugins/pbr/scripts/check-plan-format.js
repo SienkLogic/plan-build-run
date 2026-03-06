@@ -399,7 +399,8 @@ function validateVerification(content, _filePath) {
       }
 
       // Advisory: traceability fields for REQ-ID tracking (backward-compatible warnings)
-      if (!frontmatter.includes('satisfied:')) {
+      // Use word-boundary regex to avoid "satisfied:" matching inside "unsatisfied:"
+      if (!/(?:^|\n)\s*satisfied:/.test(frontmatter)) {
         warnings.push('Frontmatter missing "satisfied" field — add satisfied:[] listing REQ-IDs confirmed in this phase');
       }
       if (!frontmatter.includes('unsatisfied:')) {

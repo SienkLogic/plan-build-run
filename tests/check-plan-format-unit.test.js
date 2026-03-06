@@ -113,6 +113,8 @@ checked_at: 2026-02-19
 must_haves_checked: 3
 must_haves_passed: 3
 must_haves_failed: 0
+satisfied: []
+unsatisfied: []
 ---
 All good`);
     const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
@@ -391,5 +393,63 @@ describe('validateVerification branch coverage', () => {
   test('unclosed frontmatter is an error', () => {
     const result = validateVerification('---\nstatus: passed\n', 'VERIFICATION.md');
     expect(result.errors).toContain('Unclosed YAML frontmatter');
+  });
+
+  // Phase 66: satisfied/unsatisfied advisory tests — these are WARNINGS not blocking errors
+  test('validateVerification: missing satisfied field produces advisory warning', () => {
+    const content = `---
+status: passed
+phase: 03-auth
+checked_at: 2026-03-06T00:00:00Z
+must_haves_checked: 3
+must_haves_passed: 3
+must_haves_failed: 0
+unsatisfied: []
+---
+Body`;
+    const result = validateVerification(content, 'VERIFICATION.md');
+    // Must be in warnings (advisory), not errors (blocking)
+    const satisfiedWarning = result.warnings.find(w => /satisfied/i.test(w));
+    expect(satisfiedWarning).toBeDefined();
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('validateVerification: missing unsatisfied field produces advisory warning', () => {
+    const content = `---
+status: passed
+phase: 03-auth
+checked_at: 2026-03-06T00:00:00Z
+must_haves_checked: 3
+must_haves_passed: 3
+must_haves_failed: 0
+satisfied: []
+---
+Body`;
+    const result = validateVerification(content, 'VERIFICATION.md');
+    // Must be in warnings (advisory), not errors (blocking)
+    const unsatisfiedWarning = result.warnings.find(w => /unsatisfied/i.test(w));
+    expect(unsatisfiedWarning).toBeDefined();
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('validateVerification: satisfied and unsatisfied present produce no advisory warnings for those fields', () => {
+    const content = `---
+status: passed
+phase: 03-auth
+checked_at: 2026-03-06T00:00:00Z
+must_haves_checked: 3
+must_haves_passed: 3
+must_haves_failed: 0
+satisfied: []
+unsatisfied: []
+---
+Body`;
+    const result = validateVerification(content, 'VERIFICATION.md');
+    // Neither satisfied nor unsatisfied should appear in warnings
+    const satisfiedWarning = result.warnings.find(w => /\bsatisfied\b/i.test(w));
+    expect(satisfiedWarning).toBeUndefined();
+    const unsatisfiedWarning = result.warnings.find(w => /\bunsatisfied\b/i.test(w));
+    expect(unsatisfiedWarning).toBeUndefined();
+    expect(result.errors).toHaveLength(0);
   });
 });
