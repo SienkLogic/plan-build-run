@@ -249,3 +249,59 @@ Each subagent coordination step has a token cost in the orchestrator:
 | **Total per agent cycle** | **1,000-2,200 tokens** |
 
 Compare to inlining the same work: 5,000-20,000 tokens. Delegation saves 3-10x.
+
+---
+
+## Testing Plugin Changes Locally
+
+When developing PBR itself, you frequently edit skills, agents, hooks, and scripts. Claude Code does not auto-reload plugin files mid-session. Use these patterns to test changes without restarting.
+
+### /reload-plugins Command
+
+`/reload-plugins` (Claude Code 2.1.69+) reloads all plugin files within the current session. Use it after editing:
+
+- Any `skills/*/SKILL.md` file
+- Any `agents/*.md` file
+- `hooks/hooks.json` (hook registrations)
+- Any `references/*.md` or `templates/*.tmpl` file
+
+**Usage:**
+
+```
+/reload-plugins
+```
+
+Run this command in the Claude Code chat input. It re-reads all plugin markdown from disk. Existing hook scripts (`.js` files) are re-required on next hook invocation — no reload needed for scripts alone.
+
+**Limitations:**
+
+- Does not restart Node.js hook processes — script changes take effect on the next hook invocation naturally
+- Does not reset session state (STATE.md, active-skill, etc.)
+- Cannot unregister hooks registered at session start; restart for `hooks.json` structural changes (adding/removing events)
+
+### Full Restart
+
+Required when:
+
+- Adding or removing hook events in `hooks.json`
+- Changing hook `command` strings or `matcher` patterns
+- Testing `SessionStart` hook behavior (only fires once per session)
+
+Use `claude --plugin-dir .` to load the local plugin instead of the cached version:
+
+```bash
+claude --plugin-dir .
+```
+
+### Cache Sync
+
+If testing against a cached plugin install (not `--plugin-dir .`), sync changed files manually:
+
+```bash
+# Sync hooks and scripts to cache
+CACHE=~/.claude/plugins/cache/plan-build-run/pbr/{version}
+cp plugins/pbr/hooks/hooks.json $CACHE/hooks/
+cp plugins/pbr/scripts/*.js $CACHE/scripts/
+```
+
+Replace `{version}` with the installed version from `plugins/pbr/.claude-plugin/plugin.json`.
