@@ -257,6 +257,9 @@ describe('templates', () => {
       'ROADMAP.md.tmpl',
       'SUMMARY.md.tmpl',
       'VERIFICATION-DETAIL.md.tmpl',
+      'PROJECT.md.tmpl',
+      'REQUIREMENTS.md.tmpl',
+      'project-CONTEXT.md.tmpl',
     ];
     for (const tmpl of keyTemplates) {
       expect(fs.existsSync(path.join(templatesDir, tmpl))).toBe(true);

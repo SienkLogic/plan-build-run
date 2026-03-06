@@ -321,7 +321,7 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 **CRITICAL (no hook): You MUST create the .planning/ directory and write config.json NOW. Do not proceed without this.**
 
-1. Read the config template from `skills/begin/templates/config.json.tmpl`
+1. Read the config template from `${CLAUDE_SKILL_DIR}/templates/config.json.tmpl`
 2. Apply the user's choices to the template (including 3d-claude CLAUDE.md integration)
 3. Create `.planning/` directory
 4. Write `.planning/config.json` with the user's preferences
@@ -405,7 +405,7 @@ Task({
 
 For each researcher, construct the prompt by reading the template and filling in placeholders:
 
-Read `skills/begin/templates/researcher-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/researcher-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the researcher prompt before sending:**
 
@@ -486,7 +486,7 @@ Task({
 
 #### Synthesis Prompt Template
 
-Read `skills/begin/templates/synthesis-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/synthesis-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the synthesizer prompt before sending:**
 ```
@@ -546,11 +546,10 @@ For each category, present the features and ask the user to classify each:
 - **Out of scope** — Will NOT be built
 
 **7d. Assign REQ-IDs:**
-For each committed requirement, assign an ID in the format `{CATEGORY}-{NN}`:
-- `AUTH-01`: User can log in with Discord OAuth
-- `AUTH-02`: Protected routes redirect to login
-- `UI-01`: Dashboard shows player statistics
-- `UI-02`: Mobile-responsive layout
+For each committed requirement, assign an ID using the REQ-F/REQ-NF schema:
+- Functional requirements: `REQ-F-xxx` numbered sequentially within each category (REQ-F-001, REQ-F-002, ...)
+- Non-functional requirements: `REQ-NF-xxx` numbered sequentially across all NFR categories (REQ-NF-001, REQ-NF-002, ...)
+- Examples: `REQ-F-001: User can log in with Discord OAuth`, `REQ-NF-001: Page loads in <2s on 4G`
 
 Each requirement must be:
 - **User-centric** — describes a capability from the user's perspective
@@ -561,7 +560,7 @@ Each requirement must be:
 
 **CRITICAL (no hook): Write REQUIREMENTS.md NOW. The roadmap planner depends on this file.**
 
-Read the template from `skills/begin/templates/REQUIREMENTS.md.tmpl` and write `.planning/REQUIREMENTS.md` with:
+Read the template from `${CLAUDE_SKILL_DIR}/templates/REQUIREMENTS.md.tmpl` and write `.planning/REQUIREMENTS.md` with:
 - All v1 requirements grouped by category
 - All v2 requirements with deferral reasons
 - Out-of-scope items with rationale
@@ -589,7 +588,7 @@ Task({
 
 #### Roadmap Prompt Template
 
-Read `skills/begin/templates/roadmap-prompt.md.tmpl` for the prompt structure.
+Read `${CLAUDE_SKILL_DIR}/templates/roadmap-prompt.md.tmpl` for the prompt structure.
 
 **Prepend this block to the roadmap planner prompt before sending:**
 ```
@@ -635,7 +634,7 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write PROJECT.md NOW. Do NOT skip this step.**
 
 **9a. Write PROJECT.md:**
-1. Read `skills/begin/templates/PROJECT.md.tmpl`
+1. Read `${CLAUDE_SKILL_DIR}/templates/PROJECT.md.tmpl`
 2. Fill in:
    - `{project_name}` — from questioning
    - `{2-3 sentences}` — project description from questioning
@@ -649,7 +648,7 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write STATE.md NOW. Do NOT skip this step.**
 
 **9b. Write STATE.md:**
-1. Read `skills/begin/templates/STATE.md.tmpl`
+1. Read `${CLAUDE_SKILL_DIR}/templates/STATE.md.tmpl`
 2. Fill in:
    - `{date}` — today's date
    - `{total}` — total phase count from roadmap
@@ -663,28 +662,13 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write CONTEXT.md NOW. Do NOT skip this step.**
 
 **9c. Write CONTEXT.md:**
-Create `.planning/CONTEXT.md` from information gathered during questioning:
-
-```markdown
-# Project Context
-
-## Locked Decisions
-{Technology choices, architecture decisions, and constraints that are NON-NEGOTIABLE}
-
-| Decision | Rationale | Locked By |
-|----------|-----------|-----------|
-| {e.g., "Use TypeScript"} | {User preference, team skill} | User |
-
-## User Constraints
-{Budget, timeline, skill level, hosting, team size}
-
-## Deferred Ideas
-{Features explicitly moved to v2 or out-of-scope}
-
-| Idea | Reason Deferred |
-|------|----------------|
-| {feature} | {reason} |
-```
+1. Read `${CLAUDE_SKILL_DIR}/templates/project-CONTEXT.md.tmpl`
+2. Fill in from the questioning conversation:
+   - Locked Decisions: all technology choices and architecture decisions from Step 2
+   - User Constraints: budget, timeline, skill level, hosting, team
+   - Deferred Ideas: out-of-scope items identified in Step 7c scoping
+   - Claude's Discretion: any areas where user said "you decide"
+3. Write to `.planning/CONTEXT.md`
 
 **CRITICAL (no hook): Write HISTORY.md NOW. Do NOT skip this step.**
 

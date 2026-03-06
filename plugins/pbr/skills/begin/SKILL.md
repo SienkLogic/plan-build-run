@@ -547,11 +547,10 @@ For each category, present the features and ask the user to classify each:
 - **Out of scope** — Will NOT be built
 
 **7d. Assign REQ-IDs:**
-For each committed requirement, assign an ID in the format `{CATEGORY}-{NN}`:
-- `AUTH-01`: User can log in with Discord OAuth
-- `AUTH-02`: Protected routes redirect to login
-- `UI-01`: Dashboard shows player statistics
-- `UI-02`: Mobile-responsive layout
+For each committed requirement, assign an ID using the REQ-F/REQ-NF schema:
+- Functional requirements: `REQ-F-xxx` numbered sequentially within each category (REQ-F-001, REQ-F-002, ...)
+- Non-functional requirements: `REQ-NF-xxx` numbered sequentially across all NFR categories (REQ-NF-001, REQ-NF-002, ...)
+- Examples: `REQ-F-001: User can log in with Discord OAuth`, `REQ-NF-001: Page loads in <2s on 4G`
 
 Each requirement must be:
 - **User-centric** — describes a capability from the user's perspective
@@ -664,28 +663,13 @@ Write the project state files from templates:
 **CRITICAL (no hook): Write CONTEXT.md NOW. Do NOT skip this step.**
 
 **9c. Write CONTEXT.md:**
-Create `.planning/CONTEXT.md` from information gathered during questioning:
-
-```markdown
-# Project Context
-
-## Locked Decisions
-{Technology choices, architecture decisions, and constraints that are NON-NEGOTIABLE}
-
-| Decision | Rationale | Locked By |
-|----------|-----------|-----------|
-| {e.g., "Use TypeScript"} | {User preference, team skill} | User |
-
-## User Constraints
-{Budget, timeline, skill level, hosting, team size}
-
-## Deferred Ideas
-{Features explicitly moved to v2 or out-of-scope}
-
-| Idea | Reason Deferred |
-|------|----------------|
-| {feature} | {reason} |
-```
+1. Read `${CLAUDE_SKILL_DIR}/templates/project-CONTEXT.md.tmpl`
+2. Fill in from the questioning conversation:
+   - Locked Decisions: all technology choices and architecture decisions from Step 2
+   - User Constraints: budget, timeline, skill level, hosting, team
+   - Deferred Ideas: out-of-scope items identified in Step 7c scoping
+   - Claude's Discretion: any areas where user said "you decide"
+3. Write to `.planning/CONTEXT.md`
 
 **CRITICAL (no hook): Write HISTORY.md NOW. Do NOT skip this step.**
 
