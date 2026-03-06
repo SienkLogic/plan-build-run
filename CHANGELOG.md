@@ -5,6 +5,32 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.59.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.58.0...plan-build-run-v2.59.0) (2026-03-06)
+
+
+### Features
+
+* **63-01:** implement worktree-create.js hook script ([195c9e0](https://github.com/SienkLogic/plan-build-run/commit/195c9e0c03d5ebaecdddfb9df647a165eba6a199))
+* **63-01:** implement worktree-remove.js hook script ([3928168](https://github.com/SienkLogic/plan-build-run/commit/392816846f29a58e58e09f72fd9f976428a4c46b))
+* **64-03:** add profile command registration to derivative plugins ([f12d4af](https://github.com/SienkLogic/plan-build-run/commit/f12d4af9f8762ed34e99659bc0edde12d2071477))
+* **config:** add Platform Settings step to /pbr:setup in all three plugins ([60e17bd](https://github.com/SienkLogic/plan-build-run/commit/60e17bdb8dc1ca0fbdeb285442c3a82f250f6962))
+* **config:** add platform_settings block to config fixture ([8af55e6](https://github.com/SienkLogic/plan-build-run/commit/8af55e6d4ffbde1b13b9c8f4889acfb7563069e9))
+* **model-profiles:** add --model CLI override to build/plan/review skills ([f09d4de](https://github.com/SienkLogic/plan-build-run/commit/f09d4de90348daf8ef0f7ae85718a15057fc202e))
+* **model-profiles:** add /pbr:profile skill and command to pbr plugin ([310719b](https://github.com/SienkLogic/plan-build-run/commit/310719b76fc6cc2bef3cc156baa22c212c566be1))
+* **model-profiles:** add /pbr:profile skill to cursor-pbr, copilot-pbr, codex-pbr ([02ae4d4](https://github.com/SienkLogic/plan-build-run/commit/02ae4d41f19b897ce9a5af6ff0c13d19a222730d))
+* **model-profiles:** add model_profiles to config-schema and update reference doc with config-only authority ([03f7009](https://github.com/SienkLogic/plan-build-run/commit/03f7009b3405c38aa1fc8222fffaa1a18c06ba9c))
+* **model-profiles:** sync --model argument-hint to cursor-pbr/copilot-pbr and add overrideModel to init.js ([cdba92f](https://github.com/SienkLogic/plan-build-run/commit/cdba92f7de3e33b54d190a8d4a6536e510d88cd2))
+* **worktree-hooks:** add worktree hooks to cursor-pbr and copilot-pbr ([954ddac](https://github.com/SienkLogic/plan-build-run/commit/954ddac1b492edaf9625fba23d5363ffd3503cb1))
+* **worktree-hooks:** add WorktreeCreate/WorktreeRemove to cross-plugin-compat test maps ([6dd2dd6](https://github.com/SienkLogic/plan-build-run/commit/6dd2dd61720651aaecd6a5eaf7cacee508cd4d94))
+* **worktree-hooks:** add WorktreeCreate/WorktreeRemove to pbr hooks.json ([23791ed](https://github.com/SienkLogic/plan-build-run/commit/23791ed181e66921bbb954cb7424fa339e4bf582))
+
+
+### Bug Fixes
+
+* **64-01:** add default model: sonnet in cursor derivative generator ([a51a2bf](https://github.com/SienkLogic/plan-build-run/commit/a51a2bf8fa2a6284f7f697a99de89c2649c95f12))
+* **64-01:** restore model: sonnet to cursor-pbr agent frontmatter ([bcaef58](https://github.com/SienkLogic/plan-build-run/commit/bcaef584abb962ad7ff17033f6ac714e29f3df9d))
+* **model-profiles:** restore model to derivative agents, update tests for config-only model ([ed8ab09](https://github.com/SienkLogic/plan-build-run/commit/ed8ab092c9084a9835efa07dd71e2acc50734f40))
+
 ## [2.58.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.57.0...plan-build-run-v2.58.0) (2026-03-05)
 
 
