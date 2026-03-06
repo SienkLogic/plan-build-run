@@ -28,6 +28,7 @@ Task({
     - .planning/STATE.md
     - .planning/ROADMAP.md
     - .planning/REQUIREMENTS.md
+    - .planning/PROJECT.md (if exists — project vision and scope)
     - .planning/CONTEXT.md
     - Any .planning/phases/*/CONTEXT.md files
     - .planning/research/SUMMARY.md (if exists)
@@ -65,6 +66,7 @@ Task({
     - .planning/STATE.md
     - .planning/ROADMAP.md
     - .planning/REQUIREMENTS.md
+    - .planning/PROJECT.md (if exists — project vision and scope)
     - .planning/CONTEXT.md
     - Any .planning/phases/*/CONTEXT.md files
     - .planning/HISTORY.md (if exists — scan for decisions relevant to '{topic}' only, do NOT summarize all history)
