@@ -24,8 +24,6 @@ const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
-const { resolveConfig } = require('./local-llm/health');
-const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
 const { syncContextToClaude } = require('./sync-context-to-claude');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
@@ -148,6 +146,8 @@ function main() {
       const normalizedPath = filePath.replace(/\\/g, '/');
       if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
         try {
+          const { resolveConfig } = require('./local-llm/health');
+          const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
           const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
           const planningDir = path.join(cwd, '.planning');
           const llmConfig = (() => {
