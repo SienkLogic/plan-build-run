@@ -2,7 +2,7 @@
 name: import
 description: "Import external plans. Validates context, detects conflicts, generates PLAN.md."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
-argument-hint: "<phase-number> [--from <filepath>] [--skip-checker]"
+argument-hint: "<phase-number> [--from <filepath>] [--skip-checker] | --prd <filepath>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -51,7 +51,15 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 1. Parse `$ARGUMENTS` for phase number
 2. Parse optional `--from <filepath>` flag (path to the external document to import)
 3. Parse optional `--skip-checker` flag (skip plan validation step)
+3b. Parse optional `--prd <filepath>` flag.
+    - If `--prd` is present: **branch into PRD Import Flow (Steps A–G below)** immediately after writing `.active-skill`.
+    - Do NOT proceed to Step 2 (standard import flow). The --prd branch is a completely separate execution path.
+    - If both `--prd` and `--from` are present: treat `--prd` as the primary flag; `--from` is ignored with an [INFO] note.
+    - If `--prd` is present but no filepath follows: display error "Missing filepath for --prd flag." and stop.
 4. **CRITICAL: Write .active-skill NOW.** Write the text "import" to `.planning/.active-skill` using the Write tool.
+
+**→ If --prd flag was set: jump to PRD Import Flow (Step A). Do not continue to Step 2.**
+
 5. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -60,6 +68,253 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    - If plans exist: ask user via AskUserQuestion: "Phase {N} already has plans. Replace them with imported plans?"
    - If yes: note that existing plans will be overwritten in Step 7
    - If no: stop
+
+---
+
+## PRD Import Flow
+
+> **Entered when `--prd <filepath>` is present in $ARGUMENTS. Steps A–G replace Steps 2–11 entirely for this path.**
+
+---
+
+### Step A: Read and Validate PRD File
+
+1. Read the file at the `--prd <filepath>` path.
+2. If the file does not exist: display the "Import file not found" error from the Error Handling section and stop.
+3. If the file is empty or < 100 characters: display error "PRD file appears empty or too short to extract meaningful content." and stop.
+4. Store the full PRD content for use in Steps B–E.
+
+---
+
+### Step B: Gap Detection — Identify Missing Sections (inline)
+
+Analyze the PRD content for the presence of these six required sections:
+
+| Section | What to look for |
+|---------|-----------------|
+| Project name / title | A clear product name or title |
+| Problem statement | What problem the product solves, who it's for |
+| Goals / success criteria | Measurable outcomes, KPIs, or acceptance tests |
+| Functional requirements | Feature list, user stories, or capabilities |
+| Non-functional requirements | Performance, security, reliability constraints |
+| Out of scope / deferred | Explicitly excluded features |
+
+For each section that is **absent or ambiguous**, record it as a gap.
+
+**If 1–3 gaps found:** Batch all gaps into ≤ 3 AskUserQuestion calls (max 4 options each). Ask the user to supply the missing info:
+
+- If 1 gap: one AskUserQuestion with a freeform prompt.
+- If 2–3 gaps: group into 2 AskUserQuestion calls of related topics (e.g., "Requirements" and "Constraints/Scope").
+- If > 3 gaps: group all into exactly 3 AskUserQuestion calls. Do NOT exceed 3 calls.
+
+Example AskUserQuestion for missing requirements:
+
+```
+Use AskUserQuestion:
+  question: "The PRD doesn't clearly specify functional requirements. Please describe the main features or capabilities this product must have."
+  header: "Fill Gap"
+  options: []   ← freeform (no options means free text input)
+  multiSelect: false
+```
+
+**If 0 gaps:** proceed directly to Step C with no prompts.
+
+Incorporate user answers into the extraction context used in Step C.
+
+---
+
+### Step C: Extract 3 Files Inline (PROJECT.md, REQUIREMENTS.md, CONTEXT.md)
+
+Using the PRD content (plus any gap-fill answers from Step B), generate the content for three files. Do this inline in your context — no subagents for these three files.
+
+**C1. Generate PROJECT.md content** using `templates/PROJECT.md.tmpl` as the structure:
+
+- `{project_name}`: extract from PRD title/header
+- `{ONE sentence core value statement}`: extract from problem statement / vision
+- Vision section: 2-3 sentences from PRD problem statement
+- Scope — In Scope: features from functional requirements section
+- Scope — Out of Scope: features from "out of scope" section (or mark "None specified" if absent)
+- Success Criteria: from goals/KPIs section
+- Stakeholders: extract if present; default to "Primary user: end users of the product"
+- Milestones line: leave as "Planned in {N} phases across 1 milestone — see .planning/ROADMAP.md"
+
+**C2. Generate REQUIREMENTS.md content** using `templates/REQUIREMENTS.md.tmpl` as the structure:
+
+- Functional Requirements: each feature/capability from PRD becomes one REQ-F-xxx row
+- Number from REQ-F-001 sequentially
+- Priority: "Must" for core features, "Should" for nice-to-haves (infer from PRD language)
+- Non-Functional Requirements: from performance/security/reliability section if present
+- Deferred Requirements: items from "out of scope" section
+- Traceability table: leave "Implemented In" and "Verified In" columns as "—"
+
+**C3. Generate CONTEXT.md content** using `templates/project-CONTEXT.md.tmpl` as the structure:
+
+- Locked Decisions: extract any explicit technology choices or constraints from PRD
+- User Constraints: extract deployment, team size, budget, timeline if mentioned
+- Deferred Ideas: items from "out of scope" section
+- Claude's Discretion Areas: leave empty (executor will fill as they work)
+
+---
+
+### Step D: Confirmation Gate
+
+**Check config:** Read `.planning/config.json`. If `prd.auto_extract` is `true`, skip this step entirely and proceed directly to Step E.
+
+**If prd.auto_extract is false (default):**
+
+Display a preview of the three generated files (show first 10 lines of each with a `...` truncation).
+
+Then present the confirmation gate using the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
+
+```
+Use AskUserQuestion:
+  question: "Approve these extracted files? (PROJECT.md, REQUIREMENTS.md, CONTEXT.md — ROADMAP.md will be generated next)"
+  header: "Approve?"
+  options:
+    - label: "Approve"          description: "Write files and generate ROADMAP.md"
+    - label: "Request changes"  description: "Describe what to adjust before writing"
+    - label: "Abort"            description: "Cancel PRD import"
+  multiSelect: false
+```
+
+- **Approve**: proceed to Step E.
+- **Request changes**: ask user what to change (AskUserQuestion freeform), revise the affected file(s) inline, and re-display the gate. Repeat until Approve or Abort.
+- **Abort**: delete `.planning/.active-skill` and stop with message: "PRD import cancelled."
+
+---
+
+### Step E: Check for Existing Files and Write PROJECT.md, REQUIREMENTS.md, CONTEXT.md
+
+For each of the three files (`PROJECT.md`, `REQUIREMENTS.md`, `CONTEXT.md` in `.planning/`):
+
+1. Check if the file already exists (Glob `.planning/PROJECT.md`, etc.).
+2. If it exists: use AskUserQuestion yes-no pattern:
+   ```
+   question: ".planning/{filename} already exists. Overwrite it?"
+   header: "Overwrite?"
+   options:
+     - label: "Yes"  description: "Replace existing file"
+     - label: "No"   description: "Keep existing, skip this file"
+   ```
+   - If No: skip writing that file.
+3. Write approved content to:
+   - `.planning/PROJECT.md`
+   - `.planning/REQUIREMENTS.md`
+   - `.planning/CONTEXT.md`
+
+---
+
+### Step F: Delegate ROADMAP.md Generation to pbr:planner
+
+Display: `◐ Generating ROADMAP.md via planner...`
+
+Spawn the planner subagent:
+
+```
+Task({
+  subagent_type: "pbr:planner",
+  prompt: "
+You are the planner agent in Roadmap Mode.
+
+<files_to_read>
+CRITICAL: Read these files BEFORE any other action:
+1. .planning/PROJECT.md
+2. .planning/REQUIREMENTS.md
+3. .planning/CONTEXT.md
+</files_to_read>
+
+Generate `.planning/ROADMAP.md` from the project files above.
+
+Use the roadmap template at `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`.
+Apply Requirement Coverage Validation: every requirement in REQUIREMENTS.md must appear in at least one phase.
+Apply the Dual Format requirement: Quick-scan checklist at top + detailed phase descriptions.
+Wrap all phases in a Milestone section named after the project.
+
+Write ROADMAP.md to `.planning/ROADMAP.md`.
+Output your completion marker when done: ## PLANNING COMPLETE
+"
+})
+```
+
+After the Task() completes:
+
+- Confirm `.planning/ROADMAP.md` exists (Glob check).
+- If missing: display error "Planner failed to generate ROADMAP.md. Run /pbr:plan to retry." and proceed to Step G anyway (the other 3 files are already written).
+
+---
+
+### Step G: State Updates, Commit, and Summary
+
+**G1. Initialize STATE.md** (if it does not already exist):
+
+- Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load`
+- If STATE.md does not exist: create `.planning/STATE.md` with frontmatter fields:
+  ```
+  project: {project_name from PROJECT.md}
+  current_phase: 1
+  status: planning
+  source: prd-import
+  prd_file: {filepath}
+  ```
+
+**G2. Update STATE.md** with PRD import status:
+
+- Set `status: planning`
+- Note `source: prd-import` and `prd_file: {filepath}`
+
+**G3. Commit (if planning.commit_docs is true in config):**
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
+
+```
+docs(planning): init project docs from PRD import
+```
+
+Stage: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/CONTEXT.md`, `.planning/ROADMAP.md` (if generated), `.planning/STATE.md`.
+
+**G4. Delete `.planning/.active-skill`.**
+
+**G5. Display completion banner:**
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► PRD IMPORT COMPLETE ✓                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Project**: {project_name}
+**Source**: {prd_filepath}
+
+Files generated:
+  ✓ .planning/PROJECT.md
+  ✓ .planning/REQUIREMENTS.md
+  ✓ .planning/CONTEXT.md
+  {✓ or ✗} .planning/ROADMAP.md
+
+Requirements extracted: {count} REQ-IDs
+Gaps filled: {count} (via interactive prompts)
+
+
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Plan Phase 1** — generate execution plans for the first phase
+
+`/pbr:plan 1`
+
+<sub>`/clear` first → fresh context window</sub>
+
+
+
+**Also available:**
+- `/pbr:discuss` — review and refine decisions before planning
+- `/pbr:status` — see full project overview
+```
+
+---
+
+> **End of PRD Import Flow. Steps 2–11 below apply only to the standard --from flow.**
 
 ---
 
@@ -502,6 +757,22 @@ File not found: {filepath}
 **To fix:** Check the path and try again.
 ```
 
+### PRD file too short
+If the PRD file is < 100 characters:
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+PRD file appears empty or too short to extract meaningful content.
+
+**To fix:** Provide a more complete PRD document (minimum ~100 characters).
+```
+
+### PRD import cancelled
+If user selects "Abort" at the confirmation gate (Step D):
+Display: "PRD import cancelled." and delete `.planning/.active-skill`.
+
 ### Import document too vague
 If the imported document contains no actionable tasks, display:
 ```
@@ -538,3 +809,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 | `.planning/ROADMAP.md` | Plans Complete + Status updated to `planned` | Step 8a |
 | `.planning/STATE.md` | Updated with plan status and import source | Step 8b |
 | `.planning/CONTEXT.md` | Updated if blockers surfaced new locked decisions | Step 8d |
+| `.planning/PROJECT.md` | Generated from PRD | Step E (PRD flow) |
+| `.planning/REQUIREMENTS.md` | Generated from PRD | Step E (PRD flow) |
+| `.planning/CONTEXT.md` | Generated from PRD | Step E (PRD flow) |
+| `.planning/ROADMAP.md` | Generated by planner subagent | Step F (PRD flow) |
