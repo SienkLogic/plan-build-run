@@ -8,6 +8,7 @@ depends_on: []
 files_modified:
   - src/index.js
   - package.json
+implements: []
 must_haves:
   truths:
     - "Project structure follows standard layout"

@@ -72,6 +72,7 @@ describe('post-write-dispatch.js', () => {
 phase: 01-init
 plan: 01
 wave: 1
+implements: [1]
 must_haves:
   truths: ["Server starts"]
   artifacts: ["src/server.ts"]

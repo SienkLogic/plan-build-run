@@ -34,6 +34,7 @@ const { checkReviewVerifierGate } = require('./lib/gates/review-verifier');
 const { checkMilestoneCompleteGate, getVerificationStatus } = require('./lib/gates/milestone-complete');
 const { checkBuildDependencyGate } = require('./lib/gates/build-dependency');
 const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('./lib/gates/advisories');
+const { checkDocExistence } = require('./lib/gates/doc-existence');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
@@ -209,6 +210,13 @@ function main() {
       if (activeSkillWarning) warnings.push(activeSkillWarning);
       if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
 
+      // Advisory: doc existence gate (PROJECT.md + REQUIREMENTS.md)
+      const docAdvisory = checkDocExistence(data);
+      if (docAdvisory && docAdvisory.advisory) {
+        logHook('validate-task', 'PreToolUse', 'warn', { warning: docAdvisory.message });
+        warnings.push(docAdvisory.message);
+      }
+
       // LLM task coherence check — advisory only
       try {
         const llmCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
@@ -239,5 +247,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, checkDocExistence, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -30,6 +30,7 @@ wave: 1
 depends_on: []
 files_modified: ["src/auth.ts"]
 autonomous: true
+implements: [114]
 must_haves:
   truths: ["Users can log in"]
   artifacts: ["src/auth.ts"]

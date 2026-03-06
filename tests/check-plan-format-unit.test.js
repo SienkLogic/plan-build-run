@@ -50,6 +50,7 @@ describe('checkPlanWrite', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+implements: [42]
 must_haves:
   truths: ["works"]
   artifacts: ["file.ts"]
@@ -269,6 +270,7 @@ describe('checkPlanWrite — LLM enrichment branch', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+implements: [42]
 must_haves:
   truths: ["works"]
   artifacts: ["file.ts"]
@@ -297,6 +299,7 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+implements: [42]
 must_haves:
   truths: ["works"]
   artifacts: ["file.ts"]
@@ -323,6 +326,7 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+implements: [42]
 must_haves:
   truths: ["works"]
   artifacts: ["file.ts"]
