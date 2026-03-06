@@ -2,7 +2,7 @@
 name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--gaps-only] [--team]"
+argument-hint: "<phase-number> [--gaps-only] [--team] [--model <model>]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -50,6 +50,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3` | Build phase 3 |
 | `3 --gaps-only` | Build only gap-closure plans in phase 3 |
 | `3 --team` | Use Agent Teams for complex inter-agent coordination |
+| `3 --model opus` | Use opus for all executor spawns in phase 3 (overrides config and adaptive selection) |
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what build would do for phase 3 without executing |
 
@@ -320,12 +321,15 @@ This is a read-only presentation step — extract descriptions from plan frontma
 
 **Model Selection (Adaptive)**:
 Before spawning the executor for each plan, determine the model:
+0. If `--model <value>` was parsed from `$ARGUMENTS` (valid values: sonnet, opus, haiku, inherit), use that model for ALL executor Task() spawns in this run. Skip steps 1-4. The --model flag is the highest precedence override.
 1. Read the plan's task elements for `complexity` and `model` attributes
 2. If ANY task has an explicit `model` attribute, use the most capable model among them (inherit > sonnet > haiku)
 3. Otherwise, use the HIGHEST complexity among the plan's tasks to select the model:
    - Look up `config.models.complexity_map.{complexity}` (defaults: simple->haiku, medium->sonnet, complex->inherit)
 4. If `config.models.executor` is set (non-null), it overrides adaptive selection entirely — use that model for all executors
 5. Pass the selected model to the Task() spawn
+
+If `--model <value>` is present in `$ARGUMENTS`, extract the value. Valid values: `sonnet`, `opus`, `haiku`, `inherit`. If an invalid value is provided, display an error and list valid values. Store as `override_model`.
 
 Reference: `references/model-selection.md` for full details.
 

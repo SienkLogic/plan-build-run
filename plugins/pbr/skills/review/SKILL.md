@@ -2,7 +2,7 @@
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--auto-fix] [--teams]"
+argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -52,6 +52,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3` | Review phase 3 |
 | `3 --auto-fix` | Review phase 3, automatically diagnose and create gap-closure plans for failures |
 | `3 --teams` | Review phase 3 with parallel specialist verifiers (functional + security + performance) |
+| `3 --model opus` | Use opus for all verifier spawns in phase 3 (overrides config verifier_model) |
 | (no number) | Use current phase from STATE.md |
 
 ---
@@ -67,6 +68,7 @@ Execute these steps in order.
 **Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
+   - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.
 2. Read `.planning/config.json`
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
