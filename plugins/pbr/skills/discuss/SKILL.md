@@ -2,7 +2,7 @@
 name: discuss
 description: "Talk through a phase before planning. Identifies gray areas and captures your decisions."
 allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
-argument-hint: "<phase-number>"
+argument-hint: "<phase-number> | --project"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -37,9 +37,12 @@ This skill runs **inline** (no Task delegation).
 
 ### Step 1: Parse Phase Number and Check for Existing Plans
 
-Parse `$ARGUMENTS` to get the phase number.
+Parse `$ARGUMENTS`:
+- If argument is `--project`: enter PROJECT mode (see Step 1-project below). Skip Steps 2-8.
+- If argument is a phase number: enter PHASE mode (existing flow — continue with Step 1 as-is).
+- If no argument: existing logic applies (read STATE.md for current phase).
 
-**Validation:**
+**Validation (PHASE mode):**
 - Must be a valid phase number (integer or decimal like `3.1`)
 - If no argument provided, read STATE.md to get the current phase
 - If no current phase and no argument: "Which phase do you want to discuss? Run `/pbr:status` to see available phases."
@@ -64,6 +67,53 @@ Phase {N} not found.
 2. If plan files exist:
    - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/pbr:plan {N}` after."
    - This is a **warning only** — do not block the discussion
+
+### Step 1-project: Project Discussion Mode (--project)
+
+When invoked with `--project`, discuss project-level cross-cutting decisions.
+This mode writes to `.planning/CONTEXT.md` (project-level), NOT a phase directory.
+
+**Check for existing project CONTEXT.md:**
+1. Use Glob to check if `.planning/CONTEXT.md` exists.
+2. If it exists, ask the user (using the context-handling pattern from
+   `skills/shared/gate-prompts.md`):
+   question: "Project CONTEXT.md already exists. How should we handle it?"
+   options: Overwrite | Append | Cancel
+3. If Cancel: stop and display the existing CONTEXT.md path.
+
+**Load project context:**
+- Read `.planning/PROJECT.md` (if exists) — project vision and scope
+- Read `.planning/REQUIREMENTS.md` (if exists) — requirements for constraint awareness
+- Read `.planning/CONTEXT.md` (if exists) — current locked decisions (for Append mode)
+
+**Run gray areas for project-level decisions (Steps 2.5-5 pattern):**
+- Identify 3-4 cross-cutting architectural decisions across ALL phases
+- Focus on: technology stack choices, infrastructure, security posture,
+  observability approach, deployment strategy, data storage decisions
+- Follow the same Steps 3-5 pattern (gray areas → options → follow-ups)
+
+**Write project CONTEXT.md:**
+1. Read `${CLAUDE_SKILL_DIR}/templates/project-CONTEXT.md.tmpl`
+2. Fill in from discussion decisions:
+   - Locked Decisions table: all decisions the user made (not "Let Claude decide")
+   - User Constraints: budget, team, timeline, hosting from the conversation
+   - Deferred Ideas: anything explicitly ruled out for this project
+   - Claude's Discretion: decisions marked "Let Claude decide"
+3. If Append mode: merge new decisions with existing CONTEXT.md content
+4. Write to `.planning/CONTEXT.md`
+
+**Update STATE.md pointer:**
+Add under Accumulated Context:
+```
+Project context: .planning/CONTEXT.md ({N} locked decisions, {N} deferred, {N} discretion)
+```
+
+**After writing:** Auto-sync to CLAUDE.md is handled by the post-write-dispatch hook.
+Display: `✓ Project CONTEXT.md written — locked decisions will auto-sync to CLAUDE.md`
+
+Skip to Cleanup step. Do NOT run Steps 2-8 of the phase flow.
+
+---
 
 ### Step 2: Load Phase Context
 
