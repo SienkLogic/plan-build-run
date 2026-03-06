@@ -175,6 +175,18 @@
       },
       "additionalProperties": false
     },
+    "prd": {
+      "type": "object",
+      "description": "Settings for PRD import via /pbr:import --prd.",
+      "properties": {
+        "auto_extract": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, skip the confirmation gate during PRD import and write files immediately. Default: false (confirm-first)."
+        }
+      },
+      "additionalProperties": false
+    },
     "depth_profiles": {
       "type": "object",
       "description": "Depth profile overrides. Each profile maps depth value to effective feature/gate settings.",
