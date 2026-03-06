@@ -21,7 +21,21 @@
 
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
+
+// Scripts that must run even without .planning/ (lifecycle hooks).
+// All per-tool-call hooks (PreToolUse, PostToolUse, etc.) are PBR-specific
+// and can early-exit when .planning/ doesn't exist, skipping their entire
+// require() chain (~10-20ms saved per hook invocation on non-PBR projects).
+const ALWAYS_RUN = new Set([
+  'progress-tracker.js',   // SessionStart — reports non-PBR status
+  'session-cleanup.js',    // SessionEnd — cleanup
+  'worktree-create.js',    // WorktreeCreate — creates .planning/ in worktrees
+  'worktree-remove.js',    // WorktreeRemove — cleans up worktrees
+  'instructions-loaded.js', // InstructionsLoaded — detects instruction changes
+  'check-config-change.js', // ConfigChange — monitors config
+]);
 
 /**
  * Fix MSYS-style paths on Windows.
@@ -73,6 +87,20 @@ if (scriptName) {
 
 function runScript(name, args) {
   args = args || [];
+
+  // Early-exit for non-PBR projects: skip loading the target script entirely.
+  // This avoids the full require() chain (~10-20ms) for every hook invocation
+  // in projects that don't use Plan-Build-Run.
+  if (!ALWAYS_RUN.has(name)) {
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    const planningDir = path.join(cwd, '.planning');
+    try {
+      fs.statSync(planningDir);
+    } catch (_e) {
+      process.exit(0);
+    }
+  }
+
   // Try __dirname first, then pluginRoot
   const candidates = [
     path.resolve(__dirname, name),

@@ -50,6 +50,7 @@ const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
 const { checkCommit, enrichCommitLlm } = require('./validate-commit');
 const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
+const { checkCrossPluginSync } = require('./check-cross-plugin-sync');
 
 function main() {
   let input = '';
@@ -102,6 +103,12 @@ function main() {
       const unmanagedCommitResult = checkUnmanagedCommit(data);
       if (unmanagedCommitResult) {
         warnings.push(unmanagedCommitResult.output.additionalContext);
+      }
+
+      // Cross-plugin sync advisory — warn when pbr changes lack cursor/copilot counterparts
+      const syncResult = checkCrossPluginSync(data);
+      if (syncResult) {
+        warnings.push(syncResult.additionalContext);
       }
 
       // LLM commit semantic classification — advisory only
