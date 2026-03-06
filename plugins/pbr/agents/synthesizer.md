@@ -1,7 +1,6 @@
 ---
 name: synthesizer
 description: "Fast synthesis of multiple research outputs into coherent recommendations. Resolves contradictions between sources."
-model: sonnet
 memory: none
 tools:
   - Read

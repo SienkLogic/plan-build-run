@@ -1,7 +1,6 @@
 ---
 name: audit
 description: "Analyzes Claude Code session logs for PBR workflow compliance, hook firing, state file hygiene, and user experience quality."
-model: sonnet
 memory: none
 tools:
   - Read
