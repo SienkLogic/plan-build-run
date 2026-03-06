@@ -170,6 +170,10 @@ function validatePlan(content, _filePath) {
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       }
+      // Advisory: implements:[] enables REQ-ID traceability (Phase 65 feature)
+      if (!frontmatter.includes('implements:')) {
+        warnings.push('Frontmatter missing "implements" field — add implements:[] to enable REQ-ID traceability');
+      }
     }
   }
 

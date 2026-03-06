@@ -26,6 +26,7 @@ const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
+const { syncContextToClaude } = require('./sync-context-to-claude');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -68,6 +69,22 @@ function checkRoadmapWrite(data) {
   return null;
 }
 
+/**
+ * Route .planning/CONTEXT.md writes to the sync hook.
+ * Syncs Locked Decisions from CONTEXT.md into project CLAUDE.md.
+ * Always returns null (advisory only — never short-circuits other checks).
+ * @param {Object} data - Parsed hook input
+ * @returns {null}
+ */
+function checkContextWrite(data) {
+  const filePath = data.tool_input?.file_path || '';
+  const normalized = filePath.replace(/\\/g, '/');
+  // Only trigger for project-level CONTEXT.md inside .planning/
+  if (!normalized.endsWith('.planning/CONTEXT.md')) return null;
+  syncContextToClaude(process.env.PBR_PROJECT_ROOT || process.cwd());
+  return null; // Advisory only — no output needed
+}
+
 function main() {
   let input = '';
 
@@ -76,6 +93,9 @@ function main() {
   process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
+
+      // Route CONTEXT.md writes to sync hook (runs first, always returns null)
+      checkContextWrite(data);
 
       // Plan format check (PLAN.md, SUMMARY*.md)
       // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
