@@ -298,5 +298,69 @@ function buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighl
   return parts.length > 2 ? parts.join('\n') : '';
 }
 
-module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents };
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns { additionalContext: "..." } or null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  const planningDir = reqBody && reqBody.planningDir;
+  const stateFile = planningDir && path.join(planningDir, 'STATE.md');
+
+  if (!stateFile || !fs.existsSync(stateFile)) return null;
+
+  try {
+    let content = fs.readFileSync(stateFile, 'utf8');
+    const timestamp = new Date().toISOString();
+
+    const activeOp = readActiveOperation(planningDir);
+    const roadmapSummary = readRoadmapSummary(planningDir);
+    const currentPlan = readCurrentPlan(planningDir, content);
+    const configHighlights = readConfigHighlights(planningDir);
+    const recentErrors = readRecentErrors(planningDir, 3);
+    const recentAgents = readRecentAgents(planningDir, 5);
+
+    const continuityParts = [
+      `Last session: ${timestamp}`,
+      'Compaction occurred: context was auto-compacted at this point'
+    ];
+    if (activeOp) continuityParts.push(`Active operation at compaction: ${activeOp}`);
+    if (roadmapSummary) continuityParts.push(`Roadmap progress:\n${roadmapSummary}`);
+    if (currentPlan) continuityParts.push(`Current plan: ${currentPlan}`);
+    if (configHighlights) continuityParts.push(`Config: ${configHighlights}`);
+    if (recentErrors.length > 0) continuityParts.push(`Recent errors:\n${recentErrors.map(e => '  - ' + e).join('\n')}`);
+    if (recentAgents.length > 0) continuityParts.push(`Recent agents: ${recentAgents.join(', ')}`);
+    continuityParts.push('Note: Some conversation context may have been lost. Check STATE.md and SUMMARY.md files for ground truth.');
+
+    const continuityHeader = '## Session Continuity';
+    const continuityContent = continuityParts.join('\n');
+
+    if (content.includes(continuityHeader)) {
+      content = content.replace(
+        /## Session Continuity[\s\S]*?(?=\n## |\n---|\s*$)/,
+        () => `${continuityHeader}\n${continuityContent}\n`
+      );
+    } else {
+      content = content.trimEnd() + `\n\n${continuityHeader}\n${continuityContent}\n`;
+    }
+
+    lockedFileUpdate(stateFile, () => content);
+
+    const recoveryContext = buildRecoveryContext(activeOp, roadmapSummary, currentPlan, configHighlights, recentErrors, recentAgents);
+    if (recoveryContext) {
+      logHook('context-budget-check', 'PreCompact', 'saved', {
+        stateFile: 'STATE.md',
+        hasRoadmap: !!roadmapSummary,
+        hasPlan: !!currentPlan,
+        hasConfig: !!configHighlights
+      });
+      return { additionalContext: recoveryContext };
+    }
+  } catch (e) {
+    logHook('context-budget-check', 'PreCompact', 'error', { error: e.message });
+  }
+  return null;
+}
+
+module.exports = { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

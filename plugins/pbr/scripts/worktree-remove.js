@@ -79,5 +79,50 @@ function main() {
   }
 }
 
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  try {
+    const data = (reqBody && reqBody.data) || {};
+    const worktreePath = data.worktree_path || process.env.PBR_PROJECT_ROOT || process.cwd();
+    const planningDir = path.join(worktreePath, '.planning');
+
+    if (!fs.existsSync(planningDir)) {
+      logHook('worktree-remove', 'WorktreeRemove', 'skip-no-planning', { worktree_path: worktreePath });
+      return null;
+    }
+
+    const stateMdPath = path.join(planningDir, 'STATE.md');
+    if (fs.existsSync(stateMdPath)) {
+      const stateContent = fs.readFileSync(stateMdPath, 'utf8');
+      if (!stateContent.includes('parent:')) {
+        logHook('worktree-remove', 'WorktreeRemove', 'skip-not-worktree', { worktree_path: worktreePath });
+        return null;
+      }
+    }
+
+    const sessionFiles = ['.session.json', '.session-start', '.active-skill', '.auto-next'];
+    for (const filename of sessionFiles) {
+      try {
+        const filePath = path.join(planningDir, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      } catch (_e) { /* non-fatal */ }
+    }
+
+    logHook('worktree-remove', 'WorktreeRemove', 'cleaned', {
+      worktree_path: worktreePath,
+      files_removed: ['session files']
+    });
+
+    return null;
+  } catch (err) {
+    logHook('worktree-remove', 'WorktreeRemove', 'error', { error: err.message });
+    return null;
+  }
+}
+
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { main };
+module.exports = { main, handleHttp };

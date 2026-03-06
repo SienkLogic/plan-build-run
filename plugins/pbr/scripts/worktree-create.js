@@ -89,5 +89,53 @@ initialized: ${new Date().toISOString()}
   }
 }
 
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns { additionalContext: "..." } or null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  try {
+    const data = (reqBody && reqBody.data) || {};
+    const worktreePath = data.worktree_path || process.env.PBR_PROJECT_ROOT || process.cwd();
+    const parentRoot = data.project_root || process.env.PBR_PROJECT_ROOT || process.cwd();
+
+    const planningDir = path.join(worktreePath, '.planning');
+    const parentPlanningDir = path.join(parentRoot, '.planning');
+
+    if (!fs.existsSync(parentPlanningDir)) {
+      logHook('worktree-create', 'WorktreeCreate', 'skip-no-parent', { worktree_path: worktreePath });
+      return null;
+    }
+
+    if (fs.existsSync(planningDir)) {
+      logHook('worktree-create', 'WorktreeCreate', 'skip-exists', { worktree_path: worktreePath });
+      return null;
+    }
+
+    fs.mkdirSync(planningDir, { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+
+    const stateMd = `# STATE\n\n## Current Position\nphase: (none)\nstatus: Worktree initialized — run /pbr:resume or /pbr:status for project state.\n\n## Source\nparent: ${parentRoot}\ninitialized: ${new Date().toISOString()}\n`;
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateMd, 'utf8');
+
+    try {
+      const srcConfig = path.join(parentPlanningDir, 'config.json');
+      const destConfig = path.join(planningDir, 'config.json');
+      if (fs.existsSync(srcConfig)) fs.copyFileSync(srcConfig, destConfig);
+    } catch (_e) { /* non-fatal */ }
+
+    logHook('worktree-create', 'WorktreeCreate', 'initialized', {
+      worktree_path: worktreePath,
+      parent_root: parentRoot
+    });
+
+    return { additionalContext: '[Plan-Build-Run] Worktree .planning/ initialized. Run /pbr:status to see project state.' };
+  } catch (err) {
+    logHook('worktree-create', 'WorktreeCreate', 'error', { error: err.message });
+    return null;
+  }
+}
+
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { main };
+module.exports = { main, handleHttp };

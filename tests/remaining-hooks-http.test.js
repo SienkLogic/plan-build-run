@@ -424,3 +424,356 @@ describe('task-completed.js handleHttp', () => {
     exitSpy.mockRestore();
   });
 });
+
+// ---------------------------------------------------------------------------
+// instructions-loaded.js
+// ---------------------------------------------------------------------------
+
+describe('instructions-loaded.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/instructions-loaded');
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    planningDir = makePlanningDir(tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = mod.handleHttp({ data: {}, planningDir: '/nonexistent/path' });
+    expect(result).toBeNull();
+  });
+
+  test('returns null on initial load (no .session.json)', () => {
+    const result = mod.handleHttp({ data: {}, planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns additionalContext on mid-session reload (session.json present)', () => {
+    fs.writeFileSync(
+      path.join(planningDir, '.session.json'),
+      JSON.stringify({ sessionStart: new Date().toISOString() })
+    );
+    const result = mod.handleHttp({ data: {}, planningDir });
+    expect(result).not.toBeNull();
+    expect(typeof result.additionalContext).toBe('string');
+    expect(result.additionalContext).toMatch(/reloaded mid-session/i);
+  });
+
+  test('returns null if session.json exists but has no sessionStart', () => {
+    fs.writeFileSync(path.join(planningDir, '.session.json'), JSON.stringify({ foo: 'bar' }));
+    const result = mod.handleHttp({ data: {}, planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ data: {}, planningDir });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// context-budget-check.js
+// ---------------------------------------------------------------------------
+
+describe('context-budget-check.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/context-budget-check');
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    planningDir = makePlanningDir(tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = mod.handleHttp({ planningDir: '/nonexistent/path' });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when STATE.md does not exist', () => {
+    fs.rmSync(path.join(planningDir, 'STATE.md'), { force: true });
+    const result = mod.handleHttp({ planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns additionalContext with recovery info when STATE.md exists', () => {
+    const result = mod.handleHttp({ planningDir });
+    // Recovery context should be returned since STATE.md exists
+    expect(result).not.toBeNull();
+    expect(typeof result.additionalContext).toBe('string');
+    expect(result.additionalContext).toMatch(/Post-Compaction Recovery|PBR WORKFLOW/i);
+  });
+
+  test('updates STATE.md with Session Continuity section', () => {
+    mod.handleHttp({ planningDir });
+    const stateContent = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+    expect(stateContent).toMatch(/## Session Continuity/);
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ planningDir });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// check-config-change.js
+// ---------------------------------------------------------------------------
+
+describe('check-config-change.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/check-config-change');
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    planningDir = makePlanningDir(tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = mod.handleHttp({ planningDir: '/nonexistent/path' });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when config.json does not exist', () => {
+    fs.rmSync(path.join(planningDir, 'config.json'), { force: true });
+    const result = mod.handleHttp({ planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('returns additionalContext with warnings for invalid config', () => {
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard' }) // missing required keys
+    );
+    const result = mod.handleHttp({ planningDir });
+    expect(result).not.toBeNull();
+    expect(typeof result.additionalContext).toBe('string');
+    expect(result.additionalContext).toMatch(/Config validation/i);
+  });
+
+  test('returns null for valid config', () => {
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({
+        version: 2,
+        features: { goal_verification: true },
+        models: { executor: 'sonnet', planner: 'opus' },
+        gates: { verification: true },
+        local_llm: { enabled: false, model: 'qwen2.5-coder:7b', endpoint: 'http://localhost:11434' }
+      })
+    );
+    const result = mod.handleHttp({ planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ planningDir });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// session-cleanup.js
+// ---------------------------------------------------------------------------
+
+describe('session-cleanup.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/session-cleanup');
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    planningDir = makePlanningDir(tmpDir);
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = mod.handleHttp({ data: {}, planningDir: '/nonexistent/path' });
+    expect(result).toBeNull();
+  });
+
+  test('returns null (cleanup is fire-and-forget)', () => {
+    const result = mod.handleHttp({ data: { reason: 'session_end' }, planningDir });
+    expect(result).toBeNull();
+  });
+
+  test('removes .active-skill if present', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    mod.handleHttp({ data: {}, planningDir });
+    expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
+  });
+
+  test('removes .session.json if present', () => {
+    fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
+    mod.handleHttp({ data: {}, planningDir });
+    expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ data: {}, planningDir });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// worktree-create.js
+// ---------------------------------------------------------------------------
+
+describe('worktree-create.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/worktree-create');
+  let tmpDir;
+  let worktreeDir;
+  let parentDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    parentDir = path.join(tmpDir, 'parent');
+    worktreeDir = path.join(tmpDir, 'worktree');
+    fs.mkdirSync(parentDir, { recursive: true });
+    fs.mkdirSync(worktreeDir, { recursive: true });
+    fs.mkdirSync(path.join(parentDir, '.planning'), { recursive: true });
+    fs.writeFileSync(
+      path.join(parentDir, '.planning', 'config.json'),
+      JSON.stringify({ version: 2 })
+    );
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when parent has no .planning/', () => {
+    const result = mod.handleHttp({
+      data: { worktree_path: worktreeDir, project_root: '/nonexistent/parent' }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('initializes .planning/ in worktree and returns additionalContext', () => {
+    const result = mod.handleHttp({
+      data: { worktree_path: worktreeDir, project_root: parentDir }
+    });
+    expect(result).not.toBeNull();
+    expect(typeof result.additionalContext).toBe('string');
+    expect(result.additionalContext).toMatch(/Worktree .planning\/ initialized/i);
+    expect(fs.existsSync(path.join(worktreeDir, '.planning', 'STATE.md'))).toBe(true);
+    expect(fs.existsSync(path.join(worktreeDir, '.planning', 'config.json'))).toBe(true);
+  });
+
+  test('returns null when worktree .planning/ already exists', () => {
+    fs.mkdirSync(path.join(worktreeDir, '.planning'), { recursive: true });
+    const result = mod.handleHttp({
+      data: { worktree_path: worktreeDir, project_root: parentDir }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ data: { worktree_path: worktreeDir, project_root: parentDir } });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// worktree-remove.js
+// ---------------------------------------------------------------------------
+
+describe('worktree-remove.js handleHttp', () => {
+  const mod = require('../plugins/pbr/scripts/worktree-remove');
+  let tmpDir;
+  let worktreeDir;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    worktreeDir = path.join(tmpDir, 'worktree');
+    fs.mkdirSync(worktreeDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('exports handleHttp as a function', () => {
+    expect(typeof mod.handleHttp).toBe('function');
+  });
+
+  test('returns null when no .planning/ in worktree', () => {
+    const result = mod.handleHttp({ data: { worktree_path: worktreeDir } });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when STATE.md has no parent: marker (not a worktree)', () => {
+    const planningDir = path.join(worktreeDir, '.planning');
+    fs.mkdirSync(planningDir, { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# STATE\n## Current Position\nstatus: building\n');
+    const result = mod.handleHttp({ data: { worktree_path: worktreeDir } });
+    expect(result).toBeNull();
+  });
+
+  test('cleans session files when STATE.md has parent: marker', () => {
+    const planningDir = path.join(worktreeDir, '.planning');
+    fs.mkdirSync(planningDir, { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# STATE\nparent: /some/parent\n');
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
+
+    const result = mod.handleHttp({ data: { worktree_path: worktreeDir } });
+    expect(result).toBeNull();
+    expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
+    expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
+  });
+
+  test('does not call process.exit', () => {
+    const exitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {});
+    mod.handleHttp({ data: { worktree_path: worktreeDir } });
+    expect(exitSpy).not.toHaveBeenCalled();
+    exitSpy.mockRestore();
+  });
+});

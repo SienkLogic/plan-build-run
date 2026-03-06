@@ -159,5 +159,30 @@ async function main() {
   process.exit(0);
 }
 
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns { additionalContext: "..." } or null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  const planningDir = (reqBody && reqBody.planningDir) || findPlanningDir();
+  if (!planningDir) return null;
+
+  const configPath = path.join(planningDir, 'config.json');
+  if (!fs.existsSync(configPath)) return null;
+
+  const warnings = validateConfig(configPath);
+  if (warnings.length > 0) {
+    const msg = `\u26a0\ufe0f Config validation (${warnings.length} issue${warnings.length > 1 ? 's' : ''}):\n${warnings.map(w => `  - ${w}`).join('\n')}`;
+    logHook('check-config-change', 'ConfigChange', 'warn', { warnings });
+    logEvent('workflow', 'config-change', { warnings });
+    return { additionalContext: msg };
+  }
+
+  logHook('check-config-change', 'ConfigChange', 'ok', {});
+  logEvent('workflow', 'config-change', { status: 'valid' });
+  return null;
+}
+
 if (require.main === module || process.argv[1] === __filename) main();
-module.exports = { validateConfig, findPlanningDir };
+module.exports = { validateConfig, findPlanningDir, handleHttp };

@@ -290,5 +290,40 @@ function main() {
   process.exit(0);
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles };
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  const data = (reqBody && reqBody.data) || {};
+  const planningDir = reqBody && reqBody.planningDir;
+  if (!planningDir || !fs.existsSync(planningDir)) return null;
+
+  const cleaned = [];
+  if (tryRemove(path.join(planningDir, '.session.json'))) cleaned.push('.session.json');
+  if (tryRemove(path.join(planningDir, '.active-operation'))) cleaned.push('.active-operation');
+  if (tryRemove(path.join(planningDir, '.active-skill'))) cleaned.push('.active-skill');
+  if (tryRemove(path.join(planningDir, '.active-plan'))) cleaned.push('.active-plan');
+
+  const staleCheckpoints = cleanStaleCheckpoints(planningDir);
+  cleaned.push(...staleCheckpoints);
+
+  const rotated = rotateHooksLog(planningDir);
+  const orphans = findOrphanedProgressFiles(planningDir);
+
+  writeSessionHistory(planningDir, data);
+
+  const decision = cleaned.length > 0 ? 'cleaned' : 'nothing';
+  logHook('session-cleanup', 'SessionEnd', decision, {
+    reason: data.reason || null,
+    removed: cleaned,
+    log_rotated: rotated,
+    orphaned_progress_files: orphans.length > 0 ? orphans : undefined
+  });
+
+  return null;
+}
+
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

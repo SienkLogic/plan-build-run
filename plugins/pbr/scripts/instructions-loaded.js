@@ -65,5 +65,36 @@ function main() {
   process.exit(0);
 }
 
+/**
+ * handleHttp — hook-server.js interface.
+ * reqBody = { event, tool, data, planningDir, cache }
+ * Returns { additionalContext: "..." } or null. Never calls process.exit().
+ */
+function handleHttp(reqBody) {
+  const data = (reqBody && reqBody.data) || {};
+  const planningDir = reqBody && reqBody.planningDir;
+  if (!planningDir || !fs.existsSync(planningDir)) return null;
+
+  let isMidSession = false;
+  try {
+    const sessionFile = path.join(planningDir, '.session.json');
+    if (fs.existsSync(sessionFile)) {
+      const session = JSON.parse(fs.readFileSync(sessionFile, 'utf8'));
+      if (session.sessionStart) isMidSession = true;
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  logHook('instructions-loaded', 'InstructionsLoaded', isMidSession ? 'mid-session-reload' : 'initial-load', {
+    instructions_file: data.instructions_file || null
+  });
+
+  if (isMidSession) {
+    return {
+      additionalContext: '[Plan-Build-Run] Project CLAUDE.md was reloaded mid-session. If PBR workflow rules changed, current skill invocation may be affected. Check .planning/STATE.md for current position.'
+    };
+  }
+  return null;
+}
+
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { main };
+module.exports = { main, handleHttp };
