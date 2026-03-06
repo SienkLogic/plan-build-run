@@ -239,6 +239,21 @@ function main() {
           source: 'bridge'
         });
         process.stdout.write(JSON.stringify(output));
+        process.exit(0);
+      }
+
+      // For Write|Edit tools, also run suggest-compact check in-process
+      // (eliminates a separate Node process spawn per Write/Edit).
+      // Detect Write|Edit by presence of file_path in tool_input.
+      const toolInput = data.tool_input || {};
+      if (toolInput.file_path || toolInput.path) {
+        try {
+          const { checkCompaction } = require('./suggest-compact');
+          const compactResult = checkCompaction(planningDir, cwd);
+          if (compactResult) {
+            process.stdout.write(JSON.stringify(compactResult));
+          }
+        } catch (_e) { /* best-effort — never block on compact check */ }
       }
 
       process.exit(0);

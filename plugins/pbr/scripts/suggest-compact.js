@@ -20,7 +20,6 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { configLoad, sessionSave } = require('./pbr-tools');
 const { loadBridge, TIER_MESSAGES } = require('./context-bridge');
 
 const DEFAULT_THRESHOLD = 50;
@@ -159,12 +158,14 @@ function saveCounter(counterPath, counter) {
   // Derive planningDir from counterPath (counterPath is planningDir/.compact-counter)
   try {
     const planningDir = path.dirname(counterPath);
+    const { sessionSave } = require('./pbr-tools');
     sessionSave(planningDir, { compactCounter: counter });
   } catch (_e) { /* non-fatal mirror */ }
 }
 
 function getThreshold(cwd) {
   const planningDir = path.join(cwd, '.planning');
+  const { configLoad } = require('./pbr-tools');
   const config = configLoad(planningDir);
   if (!config) return DEFAULT_THRESHOLD;
   return config.hooks?.compactThreshold || DEFAULT_THRESHOLD;
@@ -173,6 +174,7 @@ function getThreshold(cwd) {
 function resetCounter(planningDir) {
   // Primary: reset compactCounter in .session.json to 0
   try {
+    const { sessionSave } = require('./pbr-tools');
     sessionSave(planningDir, { compactCounter: { count: 0, lastSuggested: 0 } });
   } catch (_e) { /* best-effort */ }
 

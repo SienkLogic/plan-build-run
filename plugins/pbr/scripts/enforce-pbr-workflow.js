@@ -21,7 +21,6 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { sessionLoad } = require('./pbr-tools');
 
 /**
  * Load the enforcement configuration from .planning/config.json.
@@ -75,6 +74,7 @@ function checkUnmanagedSourceWrite(data) {
   if (!fs.existsSync(planningDir)) return null;
 
   // Skip if a PBR skill is active — try .session.json first, fall back to legacy .active-skill
+  const { sessionLoad } = require('./pbr-tools');
   let activeSkill = sessionLoad(planningDir).activeSkill || '';
   if (!activeSkill) {
     try { activeSkill = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) { /* legacy file missing */ }
@@ -240,6 +240,7 @@ function checkUnmanagedCommit(data) {
   if (!fs.existsSync(planningDir)) return null;
 
   // Skip if a PBR skill is active — try .session.json first, fall back to legacy .active-skill
+  const { sessionLoad } = require('./pbr-tools');
   let activeSkillCommit = sessionLoad(planningDir).activeSkill || '';
   if (!activeSkillCommit) {
     try { activeSkillCommit = fs.readFileSync(path.join(planningDir, '.active-skill'), 'utf8').trim(); } catch (_) { /* legacy file missing */ }
