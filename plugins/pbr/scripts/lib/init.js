@@ -17,8 +17,9 @@ const { phaseInfo, planIndex } = require('./phase');
  *
  * @param {string} phaseNum - Phase number
  * @param {string} [planningDir] - Path to .planning directory
+ * @param {string} [overrideModel] - Optional model override from --model CLI flag (sonnet|opus|haiku|inherit)
  */
-function initExecutePhase(phaseNum, planningDir) {
+function initExecutePhase(phaseNum, planningDir, overrideModel) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
@@ -36,8 +37,8 @@ function initExecutePhase(phaseNum, planningDir) {
     gitState = { branch, clean: status === "" };
   } catch (_e) { /* not a git repo */ }
   return {
-    executor_model: models.executor || "sonnet",
-    verifier_model: models.verifier || "sonnet",
+    executor_model: overrideModel || models.executor || "sonnet",
+    verifier_model: overrideModel || models.verifier || "sonnet",
     config: { depth: depthProfile.depth, mode: config.mode || "interactive", parallelization: config.parallelization || { enabled: false }, planning: config.planning || {}, gates: config.gates || {}, features: config.features || {} },
     phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, has_context: phase.has_context, status: phase.filesystem_status, plan_count: phase.plan_count, completed: phase.completed },
     plans: (plans.plans || []).map(p => ({ file: p.file, plan_id: p.plan_id, wave: p.wave, autonomous: p.autonomous, has_summary: p.has_summary, must_haves_count: p.must_haves_count, depends_on: p.depends_on })),
@@ -51,8 +52,9 @@ function initExecutePhase(phaseNum, planningDir) {
  *
  * @param {string} phaseNum - Phase number
  * @param {string} [planningDir] - Path to .planning directory
+ * @param {string} [overrideModel] - Optional model override from --model CLI flag (sonnet|opus|haiku|inherit)
  */
-function initPlanPhase(phaseNum, planningDir) {
+function initPlanPhase(phaseNum, planningDir, overrideModel) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
@@ -72,7 +74,7 @@ function initPlanPhase(phaseNum, planningDir) {
     if (rp) { phaseGoal = rp.goal; phaseDeps = rp.depends_on; }
   }
   return {
-    researcher_model: models.researcher || "sonnet", planner_model: models.planner || "sonnet", checker_model: models.planner || "sonnet",
+    researcher_model: overrideModel || models.researcher || "sonnet", planner_model: overrideModel || models.planner || "sonnet", checker_model: overrideModel || models.planner || "sonnet",
     config: { depth: depthProfile.depth, profile: depthProfile.profile, features: config.features || {}, planning: config.planning || {} },
     phase: { num: phaseNum, dir: phaseDirName, goal: phaseGoal, depends_on: phaseDeps },
     existing_artifacts: existingArtifacts,
@@ -109,8 +111,9 @@ function initQuick(description, planningDir) {
  *
  * @param {string} phaseNum - Phase number
  * @param {string} [planningDir] - Path to .planning directory
+ * @param {string} [overrideModel] - Optional model override from --model CLI flag (sonnet|opus|haiku|inherit)
  */
-function initVerifyWork(phaseNum, planningDir) {
+function initVerifyWork(phaseNum, planningDir, overrideModel) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const phase = phaseInfo(phaseNum, dir);
   if (phase.error) return { error: phase.error };
@@ -119,7 +122,7 @@ function initVerifyWork(phaseNum, planningDir) {
   let priorAttempts = 0;
   if (phase.verification) { priorAttempts = parseInt(phase.verification.attempt, 10) || 0; }
   return {
-    verifier_model: models.verifier || "sonnet",
+    verifier_model: overrideModel || models.verifier || "sonnet",
     phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, plan_count: phase.plan_count, completed: phase.completed },
     has_verification: !!phase.verification, prior_attempts: priorAttempts,
     prior_status: phase.verification ? (phase.verification.status || "unknown") : null,

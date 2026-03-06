@@ -1,7 +1,7 @@
 ---
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
-argument-hint: "<phase-number> [--auto-fix] [--teams]"
+argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -185,7 +185,7 @@ Task({
 
 #### Verifier Prompt Template
 
-Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
 
 **Prepend this block to the verifier prompt before sending:**
 ```
@@ -427,7 +427,7 @@ Task({
 
 ##### Debugger Prompt Template
 
-Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
 
 **Prepend this block to the debugger prompt before sending:**
 ```
@@ -459,7 +459,7 @@ Task({
 
 ##### Gap Planner Prompt Template
 
-Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
 
 **Prepend this block to the gap planner prompt before sending:**
 ```

@@ -48,6 +48,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3` | Build phase 3 |
 | `3 --gaps-only` | Build only gap-closure plans in phase 3 |
 | `3 --team` | Use Agent Teams for complex inter-agent coordination |
+| `3 --model opus` | Use opus for all executor spawns in phase 3 (overrides config and adaptive selection) |
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what build would do for phase 3 without executing |
 
@@ -318,12 +319,15 @@ This is a read-only presentation step — extract descriptions from plan frontma
 
 **Model Selection (Adaptive)**:
 Before spawning the executor for each plan, determine the model:
+0. If `--model <value>` was parsed from `$ARGUMENTS` (valid values: sonnet, opus, haiku, inherit), use that model for ALL executor Task() spawns in this run. Skip steps 1-4. The --model flag is the highest precedence override.
 1. Read the plan's task elements for `complexity` and `model` attributes
 2. If ANY task has an explicit `model` attribute, use the most capable model among them (inherit > sonnet > haiku)
 3. Otherwise, use the HIGHEST complexity among the plan's tasks to select the model:
    - Look up `config.models.complexity_map.{complexity}` (defaults: simple->haiku, medium->sonnet, complex->inherit)
 4. If `config.models.executor` is set (non-null), it overrides adaptive selection entirely — use that model for all executors
 5. Pass the selected model to the Task() spawn
+
+If `--model <value>` is present in `$ARGUMENTS`, extract the value. Valid values: `sonnet`, `opus`, `haiku`, `inherit`. If an invalid value is provided, display an error and list valid values. Store as `override_model`.
 
 Reference: `references/model-selection.md` for full details.
 
@@ -333,7 +337,7 @@ Reference: `references/model-selection.md` for full details.
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
 5. Read `.planning/config.json`
 
-Construct the executor prompt by reading `skills/build/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
+Construct the executor prompt by reading `${CLAUDE_SKILL_DIR}/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
 
 - `{NN}-{slug}` — phase directory (e.g., `02-authentication`)
 - `{plan_id}` — plan being executed (e.g., `02-01`)
@@ -455,7 +459,7 @@ For each plan that completed successfully in this wave:
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
 2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
-   Spawn `Task({ subagent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `skills/build/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
+   Spawn `Task({ subagent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `${CLAUDE_SKILL_DIR}/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
 
 3. If verifier reports FAIL for any file:
    - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
@@ -553,7 +557,7 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 
 Reference: `references/continuation-format.md` for the continuation protocol.
 
-Read `skills/build/templates/continuation-prompt.md.tmpl` and fill in:
+Read `${CLAUDE_SKILL_DIR}/templates/continuation-prompt.md.tmpl` and fill in:
 
 - `{NN}-{slug}`, `{plan_id}` — current phase and plan
 - `{plan_summary}` — the ## Summary section from PLAN.md
@@ -662,7 +666,7 @@ After verifier completes, check for completion marker: `## VERIFICATION COMPLETE
 
 #### Verifier Prompt Template
 
-Use the same verifier prompt template as defined in `/pbr:review`: read `skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
+Use the same verifier prompt template as defined in `/pbr:review`: read `${PLUGIN_ROOT}/skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
 
 **Prepend this block to the verifier prompt before sending:**
 ```

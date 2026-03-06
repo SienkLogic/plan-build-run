@@ -1,7 +1,7 @@
 ---
 name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
-argument-hint: "<phase-number> [--gaps-only] [--team]"
+argument-hint: "<phase-number> [--gaps-only] [--team] [--model <model>]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -334,7 +334,7 @@ Reference: `references/model-selection.md` for full details.
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
 5. Read `.planning/config.json`
 
-Construct the executor prompt by reading `skills/build/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
+Construct the executor prompt by reading `${CLAUDE_SKILL_DIR}/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
 
 - `{NN}-{slug}` — phase directory (e.g., `02-authentication`)
 - `{plan_id}` — plan being executed (e.g., `02-01`)
@@ -456,7 +456,7 @@ For each plan that completed successfully in this wave:
 1. Read the plan's SUMMARY.md to get `key_files` (the files this plan created/modified)
 2. Display to the user: `◐ Spawning inline verifier for plan {plan_id}...`
 
-   Spawn `Task({ subagent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `skills/build/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
+   Spawn `Task({ subagent_type: "pbr:verifier", model: "haiku", prompt: ... })`. Read `${CLAUDE_SKILL_DIR}/templates/inline-verifier-prompt.md.tmpl` and fill in `{NN}-{slug}`, `{plan_id}`, and `{comma-separated key_files list}` (key_files from PLAN.md frontmatter). Use the filled template as the `prompt` value.
 
 3. If verifier reports FAIL for any file:
    - Present the failure to the user: "Inline verify failed for plan {plan_id}: {details}"
@@ -554,7 +554,7 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 
 Reference: `references/continuation-format.md` for the continuation protocol.
 
-Read `skills/build/templates/continuation-prompt.md.tmpl` and fill in:
+Read `${CLAUDE_SKILL_DIR}/templates/continuation-prompt.md.tmpl` and fill in:
 
 - `{NN}-{slug}`, `{plan_id}` — current phase and plan
 - `{plan_summary}` — the ## Summary section from PLAN.md
@@ -663,7 +663,7 @@ After verifier completes, check for completion marker: `## VERIFICATION COMPLETE
 
 #### Verifier Prompt Template
 
-Use the same verifier prompt template as defined in `/pbr:review`: read `skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
+Use the same verifier prompt template as defined in `/pbr:review`: read `${PLUGIN_ROOT}/skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
 
 **Prepend this block to the verifier prompt before sending:**
 ```
