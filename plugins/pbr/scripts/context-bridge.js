@@ -264,6 +264,49 @@ function main() {
   });
 }
 
+/**
+ * HTTP handler for hook-server.js.
+ * Called directly instead of spawning a subprocess.
+ *
+ * @param {Object} reqBody - Full hook request body { event, tool, data, planningDir, cache }
+ * @param {Object} _cache - Server in-memory cache (unused by this handler)
+ * @returns {{ additionalContext: string }|null}
+ */
+function handleHttp(reqBody, _cache) {
+  try {
+    const planningDir = reqBody.planningDir;
+    const data = reqBody.data || {};
+    if (!planningDir || !fs.existsSync(planningDir)) {
+      return null;
+    }
+
+    const { output } = updateBridge(planningDir, data);
+
+    if (output) {
+      logHook('context-bridge', 'PostToolUse', 'warn', {
+        percent: output.additionalContext.match(/(\d+)%/)?.[1],
+        source: 'bridge'
+      });
+    }
+
+    // For Write|Edit tools, also run suggest-compact check in-process
+    const toolInput = data.tool_input || {};
+    if (!output && (toolInput.file_path || toolInput.path)) {
+      try {
+        const { checkCompaction } = require('./suggest-compact');
+        const compactResult = checkCompaction(planningDir, reqBody.planningDir ? reqBody.planningDir.replace(/[/\\]\.planning$/, '') : process.cwd());
+        if (compactResult) {
+          return compactResult;
+        }
+      } catch (_e) { /* best-effort — never block on compact check */ }
+    }
+
+    return output || null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 module.exports = {
   getTier,
   loadBridge,
@@ -271,6 +314,7 @@ module.exports = {
   estimateFromHeuristic,
   shouldWarn,
   updateBridge,
+  handleHttp,
   TIERS,
   TIER_MESSAGES,
   DEBOUNCE_INTERVAL,

@@ -28,6 +28,165 @@ const UNIQUE_FILE_MILESTONE = 10;    // warn every 10 unique files
 const CHAR_MILESTONE = 50000;        // warn every 50k chars
 const LARGE_FILE_THRESHOLD = 5000;   // warn if single read > 5k chars
 
+/**
+ * Core event processing logic for track-context-budget.
+ * Extracted so it can be called directly by hook-server.js (HTTP mode)
+ * or via stdin in command mode.
+ *
+ * @param {Object} data - Hook event data (tool_input, tool_output, etc.)
+ * @param {string} planningDir - Absolute path to .planning/ directory
+ * @param {Object} [opts] - Optional overrides
+ * @param {string} [opts.pluginRoot] - Override for CLAUDE_PLUGIN_ROOT
+ * @returns {{ additionalContext: string }|null} Warning output or null
+ */
+function processEvent(data, planningDir, opts) {
+  const filePath = data.tool_input?.file_path || '';
+  if (!filePath) {
+    return null;
+  }
+
+  // Skip plugin-internal files — these are loaded by the plugin system,
+  // not by the orchestrator, so they shouldn't count against context budget
+  const pluginRoot = (opts && opts.pluginRoot != null) ? opts.pluginRoot : (process.env.CLAUDE_PLUGIN_ROOT || '');
+  if (pluginRoot) {
+    const normalizedFile = path.resolve(filePath);
+    const normalizedPlugin = path.resolve(pluginRoot);
+    if (normalizedFile.startsWith(normalizedPlugin + path.sep) || normalizedFile === normalizedPlugin) {
+      return null;
+    }
+  }
+
+  // Estimate chars read from actual output or limit, with a conservative default.
+  // Previous default of 80k (2000 lines × 40 chars) caused every read to cross
+  // the 50k milestone, flooding logs with warnings on every single Read call.
+  const limit = data.tool_input?.limit;
+  const estimatedChars = limit ? limit * 40 : 8000;
+  // Use actual output length if available
+  const actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
+
+  const trackerPath = path.join(planningDir, '.context-tracker');
+  const skillPath = path.join(planningDir, '.active-skill');
+
+  // Check if active skill changed (reset tracker)
+  const currentSkill = readFileSafe(skillPath);
+  let tracker = loadTracker(trackerPath);
+
+  if (tracker.skill !== currentSkill) {
+    tracker = { skill: currentSkill, reads: 0, total_chars: 0, files: [] };
+  } else if (tracker.files.length > 200) {
+    logHook('track-context-budget', 'PostToolUse', 'warn', {
+      reason: 'tracker reset at 200 files',
+      reads: tracker.reads,
+      total_chars: tracker.total_chars,
+      unique_files: tracker.files.length,
+    });
+    const prevCharsTotal = tracker.total_chars;
+    const resetWarning = {
+      additionalContext: `[Context Budget] Tracker reset: ${tracker.files.length} unique files read (~${Math.round(tracker.total_chars / 1000)}k chars). File list cleared but char total preserved. Consider delegating remaining work to a Task() subagent.`
+    };
+    tracker = { skill: currentSkill, reads: 0, total_chars: prevCharsTotal, files: [] };
+    // Save reset tracker before returning the warning
+    try {
+      const tmpPath = trackerPath + '.' + process.pid;
+      fs.writeFileSync(tmpPath, JSON.stringify(tracker), 'utf8');
+      fs.renameSync(tmpPath, trackerPath);
+    } catch (_e) {
+      try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
+    }
+    return resetWarning;
+  }
+
+  // Update tracker
+  const prevFileCount = tracker.files.length;
+  tracker.reads += 1;
+  tracker.total_chars += actualChars;
+  if (!tracker.files.includes(filePath)) {
+    tracker.files.push(filePath);
+  }
+
+  // Save tracker (atomic write to avoid corruption from concurrent hooks)
+  try {
+    const tmpPath = trackerPath + '.' + process.pid;
+    fs.writeFileSync(tmpPath, JSON.stringify(tracker), 'utf8');
+    fs.renameSync(tmpPath, trackerPath);
+  } catch (_e) {
+    // Best-effort — clean up temp file if rename failed
+    try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
+  }
+
+  // Check bridge file for tier-based context warnings
+  const bridgeTier = checkBridge(planningDir);
+  if (bridgeTier) {
+    // Bridge is fresh and providing tier warnings — skip heuristic milestones
+    // (the bridge's context-bridge.js already handles tier debounce)
+    logHook('track-context-budget', 'PostToolUse', 'bridge-active', {
+      reads: tracker.reads,
+      total_chars: tracker.total_chars,
+      tier: bridgeTier,
+    });
+    return null;
+  }
+
+  // Check thresholds — only warn at milestone crossings, not every read
+  const warnings = [];
+
+  // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
+  const curUniqueFiles = tracker.files.length;
+  if (curUniqueFiles >= UNIQUE_FILE_MILESTONE &&
+      Math.floor(curUniqueFiles / UNIQUE_FILE_MILESTONE) > Math.floor(prevFileCount / UNIQUE_FILE_MILESTONE)) {
+    warnings.push(`${curUniqueFiles} unique files read (milestone: every ${UNIQUE_FILE_MILESTONE})`);
+  }
+
+  // Milestone: total chars crosses a multiple of CHAR_MILESTONE
+  const prevChars = tracker.total_chars - actualChars;
+  if (tracker.total_chars >= CHAR_MILESTONE &&
+      Math.floor(tracker.total_chars / CHAR_MILESTONE) > Math.floor(prevChars / CHAR_MILESTONE)) {
+    const kChars = Math.round(tracker.total_chars / 1000);
+    warnings.push(`~${kChars}k chars read (milestone: every ${CHAR_MILESTONE / 1000}k)`);
+  }
+
+  // Single large file warning
+  if (actualChars >= LARGE_FILE_THRESHOLD) {
+    const kChars = Math.round(actualChars / 1000);
+    warnings.push(`large file read (~${kChars}k chars): ${path.basename(filePath)}`);
+  }
+
+  if (warnings.length > 0) {
+    logHook('track-context-budget', 'PostToolUse', 'warn', {
+      reads: tracker.reads,
+      total_chars: tracker.total_chars,
+      unique_files: tracker.files.length,
+    });
+
+    return {
+      additionalContext: `[Context Budget Warning] ${warnings.join(', ')}. ${tracker.files.length} unique files read. Consider delegating remaining reads to a Task() subagent to protect orchestrator context.`
+    };
+  }
+
+  return null;
+}
+
+/**
+ * HTTP handler for hook-server.js.
+ * Called directly instead of spawning a subprocess.
+ *
+ * @param {Object} reqBody - Full hook request body { event, tool, data, planningDir, cache }
+ * @param {Object} _cache - Server in-memory cache (unused by this handler)
+ * @returns {{ additionalContext: string }|null}
+ */
+function handleHttp(reqBody, _cache) {
+  try {
+    const planningDir = reqBody.planningDir;
+    const data = reqBody.data || {};
+    if (!planningDir || !fs.existsSync(planningDir)) {
+      return null;
+    }
+    return processEvent(data, planningDir, {});
+  } catch (_e) {
+    return null;
+  }
+}
+
 function main() {
   let input = '';
 
@@ -42,121 +201,12 @@ function main() {
       }
 
       const data = JSON.parse(input);
-      const filePath = data.tool_input?.file_path || '';
-      if (!filePath) {
-        process.exit(0);
-      }
+      const result = processEvent(data, planningDir, {});
 
-      // Skip plugin-internal files — these are loaded by the plugin system,
-      // not by the orchestrator, so they shouldn't count against context budget
-      const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || '';
-      if (pluginRoot) {
-        const normalizedFile = path.resolve(filePath);
-        const normalizedPlugin = path.resolve(pluginRoot);
-        if (normalizedFile.startsWith(normalizedPlugin + path.sep) || normalizedFile === normalizedPlugin) {
-          process.exit(0);
-        }
-      }
-
-      // Estimate chars read from actual output or limit, with a conservative default.
-      // Previous default of 80k (2000 lines × 40 chars) caused every read to cross
-      // the 50k milestone, flooding logs with warnings on every single Read call.
-      const limit = data.tool_input?.limit;
-      const estimatedChars = limit ? limit * 40 : 8000;
-      // Use actual output length if available
-      const actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
-
-      const trackerPath = path.join(planningDir, '.context-tracker');
-      const skillPath = path.join(planningDir, '.active-skill');
-
-      // Check if active skill changed (reset tracker)
-      const currentSkill = readFileSafe(skillPath);
-      let tracker = loadTracker(trackerPath);
-
-      if (tracker.skill !== currentSkill) {
-        tracker = { skill: currentSkill, reads: 0, total_chars: 0, files: [] };
-      } else if (tracker.files.length > 200) {
-        logHook('track-context-budget', 'PostToolUse', 'warn', {
-          reason: 'tracker reset at 200 files',
-          reads: tracker.reads,
-          total_chars: tracker.total_chars,
-          unique_files: tracker.files.length,
-        });
-        const prevCharsTotal = tracker.total_chars;
-        // Emit user-visible warning before resetting (was previously silent)
-        const resetWarning = {
-          additionalContext: `[Context Budget] Tracker reset: ${tracker.files.length} unique files read (~${Math.round(tracker.total_chars / 1000)}k chars). File list cleared but char total preserved. Consider delegating remaining work to a Task() subagent.`
-        };
-        process.stdout.write(JSON.stringify(resetWarning));
-        tracker = { skill: currentSkill, reads: 0, total_chars: prevCharsTotal, files: [] };
-      }
-
-      // Update tracker
-      const prevFileCount = tracker.files.length;
-      tracker.reads += 1;
-      tracker.total_chars += actualChars;
-      if (!tracker.files.includes(filePath)) {
-        tracker.files.push(filePath);
-      }
-
-      // Save tracker (atomic write to avoid corruption from concurrent hooks)
-      try {
-        const tmpPath = trackerPath + '.' + process.pid;
-        fs.writeFileSync(tmpPath, JSON.stringify(tracker), 'utf8');
-        fs.renameSync(tmpPath, trackerPath);
-      } catch (_e) {
-        // Best-effort — clean up temp file if rename failed
-        try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
-      }
-
-      // Check bridge file for tier-based context warnings
-      const bridgeTier = checkBridge(planningDir);
-      if (bridgeTier) {
-        // Bridge is fresh and providing tier warnings — skip heuristic milestones
-        // (the bridge's context-bridge.js already handles tier debounce)
-        logHook('track-context-budget', 'PostToolUse', 'bridge-active', {
-          reads: tracker.reads,
-          total_chars: tracker.total_chars,
-          tier: bridgeTier,
-        });
-        process.exit(0);
-      }
-
-      // Check thresholds — only warn at milestone crossings, not every read
-      const warnings = [];
-
-      // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
-      const curUniqueFiles = tracker.files.length;
-      if (curUniqueFiles >= UNIQUE_FILE_MILESTONE &&
-          Math.floor(curUniqueFiles / UNIQUE_FILE_MILESTONE) > Math.floor(prevFileCount / UNIQUE_FILE_MILESTONE)) {
-        warnings.push(`${curUniqueFiles} unique files read (milestone: every ${UNIQUE_FILE_MILESTONE})`);
-      }
-
-      // Milestone: total chars crosses a multiple of CHAR_MILESTONE
-      const prevChars = tracker.total_chars - actualChars;
-      if (tracker.total_chars >= CHAR_MILESTONE &&
-          Math.floor(tracker.total_chars / CHAR_MILESTONE) > Math.floor(prevChars / CHAR_MILESTONE)) {
-        const kChars = Math.round(tracker.total_chars / 1000);
-        warnings.push(`~${kChars}k chars read (milestone: every ${CHAR_MILESTONE / 1000}k)`);
-      }
-
-      // Single large file warning
-      if (actualChars >= LARGE_FILE_THRESHOLD) {
-        const kChars = Math.round(actualChars / 1000);
-        warnings.push(`large file read (~${kChars}k chars): ${path.basename(filePath)}`);
-      }
-
-      if (warnings.length > 0) {
-        logHook('track-context-budget', 'PostToolUse', 'warn', {
-          reads: tracker.reads,
-          total_chars: tracker.total_chars,
-          unique_files: tracker.files.length,
-        });
-
-        const output = {
-          additionalContext: `[Context Budget Warning] ${warnings.join(', ')}. ${tracker.files.length} unique files read. Consider delegating remaining reads to a Task() subagent to protect orchestrator context.`
-        };
-        process.stdout.write(JSON.stringify(output));
+      if (result) {
+        // In command mode: write reset warnings that were previously written inline
+        // processEvent returns them all, so just output here
+        process.stdout.write(JSON.stringify(result));
       }
 
       process.exit(0);
@@ -214,6 +264,6 @@ function checkBridge(planningDir) {
   }
 }
 
-module.exports = { checkBridge, BRIDGE_STALENESS_MS };
+module.exports = { checkBridge, BRIDGE_STALENESS_MS, processEvent, handleHttp };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
