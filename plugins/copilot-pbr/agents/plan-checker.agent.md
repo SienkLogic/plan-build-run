@@ -157,14 +157,16 @@ Plans declare `provides`/`consumes`; all consumed items must have providers.
 | Missing provides/consumes for exports | INFO |
 
 ### D9: Requirement Traceability
-Plans declare `requirement_ids` with bidirectional coverage. Forward: IDs trace to REQUIREMENTS.md (or ROADMAP.md goals). Backward: every requirement covered by at least one plan.
+Plans declare `implements` with bidirectional coverage. Forward: IDs trace to REQUIREMENTS.md (or ROADMAP.md goals). Backward: every requirement covered by at least one plan.
+
+> **Note:** `requirement_ids:` is a deprecated alias for `implements:` — treat as equivalent during transition.
 
 | Condition | Severity |
 |-----------|----------|
-| requirement_id references nonexistent requirement | BLOCKER |
+| implements: ID references nonexistent requirement | BLOCKER |
 | Requirement not covered by any plan | WARNING |
 | ROADMAP goal not covered (no REQUIREMENTS.md) | WARNING |
-| Plan missing requirement_ids entirely | INFO |
+| Plan missing implements: entirely | WARNING |
 
 ### D10: Test Plan Coverage
 Code-producing tasks should include test expectations. Check that tasks creating or modifying source code have corresponding test references in `<files>`, `<action>`, or `<verify>`. Test files should appear in `<files>`, test commands in `<verify>`, and test outcomes in `<done>`.

@@ -23,6 +23,11 @@ anti_patterns:
   console_logs: {count}
   skipped_tests: {count}
   hardcoded_secrets: {count}
+# populated by verifier from implements:[] in plan frontmatter
+satisfied:
+  - "REQ-F-001"    # REQ-IDs confirmed verified in this phase
+unsatisfied:
+  - "REQ-F-002"    # REQ-IDs that failed verification
 ---
 
 # Phase Verification: {phase_name}
