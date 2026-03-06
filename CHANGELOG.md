@@ -5,6 +5,15 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.61.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.60.0...plan-build-run-v2.61.0) (2026-03-06)
+
+
+### Features
+
+* **prd-import:** add --prd flag and Steps A-G to import skill ([1260658](https://github.com/SienkLogic/plan-build-run/commit/1260658fc4341f61f7e5c7e8bc47b70932f34bd8))
+* **prd-import:** add prd.auto_extract config schema key ([5ba6b8a](https://github.com/SienkLogic/plan-build-run/commit/5ba6b8a57c6d99ef7ceb8279dda8e25acf5352fb))
+* **prd-import:** sync --prd import flow to derivative plugins ([0d5fa67](https://github.com/SienkLogic/plan-build-run/commit/0d5fa67dcf0b84411dbe09b3ba77f278d7c178cc))
+
 ## [2.60.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.59.0...plan-build-run-v2.60.0) (2026-03-06)
 
 
