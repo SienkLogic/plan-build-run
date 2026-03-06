@@ -294,11 +294,11 @@ describe('hooks.json Structure', () => {
 });
 
 describe('Anti-Pattern Checks', () => {
-  test('synthesizer agent uses sonnet model', () => {
+  test('synthesizer agent has no model in frontmatter (config-only since phase 64)', () => {
     const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
-    expect(frontmatter).toMatch(/model:\s*sonnet/);
+    expect(frontmatter).not.toMatch(/model:\s*\w+/);
   });
 
   test('no agent files reference "haiku" as their model', () => {
@@ -357,7 +357,7 @@ describe('Anti-Pattern Checks', () => {
     expect(matches).toEqual([]);
   });
 
-  test('config.json synthesizer model matches agent definition', () => {
+  test('config.json synthesizer model is defined (agent has no frontmatter model since phase 64)', () => {
     const configPath = path.resolve(
       __dirname, '..', '.planning', 'config.json'
     );
@@ -365,13 +365,7 @@ describe('Anti-Pattern Checks', () => {
     if (!fs.existsSync(configPath)) return;
 
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
-    const content = fs.readFileSync(synthPath, 'utf8');
-    const frontmatter = content.split('---')[1];
-    const modelMatch = frontmatter.match(/model:\s*(\w+)/);
-
-    if (modelMatch && config.models && config.models.synthesizer) {
-      expect(config.models.synthesizer).toBe(modelMatch[1]);
-    }
+    expect(config.models).toBeDefined();
+    expect(config.models.synthesizer).toBeDefined();
   });
 });

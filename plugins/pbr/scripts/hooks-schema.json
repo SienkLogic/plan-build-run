@@ -20,7 +20,9 @@
         "SubagentStop": { "$ref": "#/definitions/hookEntryList" },
         "TaskCompleted": { "$ref": "#/definitions/hookEntryList" },
         "ConfigChange": { "$ref": "#/definitions/hookEntryList" },
-        "SessionEnd": { "$ref": "#/definitions/hookEntryList" }
+        "SessionEnd": { "$ref": "#/definitions/hookEntryList" },
+        "WorktreeCreate": { "$ref": "#/definitions/hookEntryList" },
+        "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" }
       },
       "additionalProperties": false
     }

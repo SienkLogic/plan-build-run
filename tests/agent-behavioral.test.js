@@ -45,9 +45,9 @@ describe('Universal agent patterns', () => {
     expect(content).toMatch(/\ndescription:/);
   });
 
-  test.each(coreAgents)('%s has model field in frontmatter', (file) => {
+  test.each(coreAgents)('%s has no model field in frontmatter (config-only since phase 64)', (file) => {
     const content = readAgent(file);
-    expect(content).toMatch(/\nmodel:\s*(sonnet|inherit|haiku)/);
+    expect(content).not.toMatch(/\nmodel:\s*(sonnet|inherit|haiku)/);
   });
 
   test.each(coreAgents)('%s has tools list in frontmatter', (file) => {

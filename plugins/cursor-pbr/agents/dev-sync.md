@@ -1,7 +1,6 @@
 ---
 name: dev-sync
 description: "Syncs PBR plugin changes to cursor-pbr and copilot-pbr derivatives with format adjustments."
-model: sonnet
 readonly: false
 ---
 

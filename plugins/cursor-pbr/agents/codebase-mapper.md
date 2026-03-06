@@ -1,7 +1,6 @@
 ---
 name: codebase-mapper
 description: "Explores existing codebases and writes structured analysis documents. Four focus areas: tech, arch, quality, concerns."
-model: sonnet
 readonly: false
 ---
 

@@ -1,7 +1,6 @@
 ---
 name: general
 description: "Lightweight Plan-Build-Run-aware agent for ad-hoc tasks that don't fit specialized roles."
-model: sonnet
 readonly: false
 ---
 
