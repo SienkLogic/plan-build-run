@@ -5,6 +5,36 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.60.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.59.0...plan-build-run-v2.60.0) (2026-03-06)
+
+
+### Features
+
+* **65-01:** add project-CONTEXT.md.tmpl with planner-embeds pattern to all 4 plugins ([683f67c](https://github.com/SienkLogic/plan-build-run/commit/683f67c48197df79b17fb6199081914c663f458b))
+* **65-01:** add PROJECT.md.tmpl to all 4 plugin template directories ([6416490](https://github.com/SienkLogic/plan-build-run/commit/6416490bdbd20867c2bc5f418c526d70b7f651e9))
+* **65-01:** add REQUIREMENTS.md.tmpl with REQ-F/REQ-NF schema to all 4 plugins ([f293660](https://github.com/SienkLogic/plan-build-run/commit/f293660572dec225e7f3a25c137b199097af8d84))
+* **65-02:** add --project flag and Step 1-project mode to discuss/SKILL.md across all 4 plugins ([35a40c4](https://github.com/SienkLogic/plan-build-run/commit/35a40c4a1ea24cf6b68fa076ca82e268cd208bb1))
+* **65-02:** add PROJECT.md to context-loader-task.md briefing file lists across all 4 plugins ([12d4668](https://github.com/SienkLogic/plan-build-run/commit/12d46688632e6578e1e120ea123ff5de02bb781f))
+* **65-02:** update begin/SKILL.md REQ-F/REQ-NF schema and project-CONTEXT template ref across 4 plugins; add 3 new keyTemplates to test ([b228120](https://github.com/SienkLogic/plan-build-run/commit/b228120d422cb3b8bd992cef1b4cada67cb11f3e))
+* **65-03:** add doc-existence gate to validate-task; update test fixtures for implements advisory ([c5fc1e3](https://github.com/SienkLogic/plan-build-run/commit/c5fc1e3d6a360908d0652131173a784c5a7db427))
+* **65-03:** GREEN - implement sync-context-to-claude.js ([65784a0](https://github.com/SienkLogic/plan-build-run/commit/65784a057622d600fc26891dc9ece84c8c53a2dd))
+* **65-04:** add advisory warnings to health skill for missing PROJECT.md, REQUIREMENTS.md, CONTEXT.md across all 4 plugins ([182df09](https://github.com/SienkLogic/plan-build-run/commit/182df09681130b3927a09821f9d464b2546441ee))
+* **65-04:** update planner agent for dual-source CONTEXT.md loading and plan/SKILL.md compliance check ([bd6cf41](https://github.com/SienkLogic/plan-build-run/commit/bd6cf4112b6f723459c5127be8bfc74efc98e370))
+* **65-04:** update status skill to display PROJECT.md, REQUIREMENTS.md, CONTEXT.md presence across all 4 plugins ([60df410](https://github.com/SienkLogic/plan-build-run/commit/60df4104fa39d406b1833311a99df493922475d2))
+* **xml-plan-format:** add auto_checkpoints to config-schema and satisfied/unsatisfied to VERIFICATION template ([72d08e8](https://github.com/SienkLogic/plan-build-run/commit/72d08e8dccf58e5011485bfb16a39db4e972ecef))
+* **xml-plan-format:** add automated wrapper, feature type, and implements field to plan-format.md ([3ee897a](https://github.com/SienkLogic/plan-build-run/commit/3ee897a89016fe28b968266f33ff286f90de7671))
+* **xml-plan-format:** enforce implements: blocking, add feature task validation, satisfied/unsatisfied advisory ([4d78e8e](https://github.com/SienkLogic/plan-build-run/commit/4d78e8eeccda91733b11f206c0d19ed075fd9fe7))
+* **xml-plan-format:** sync cursor-pbr and copilot-pbr agents for implements:/automated/satisfied traceability ([753d4ed](https://github.com/SienkLogic/plan-build-run/commit/753d4ed0b3c4f486496781012d6dcef951d42076))
+* **xml-plan-format:** update planner/executor/verifier/plan-checker for implements: traceability and must_haves locking ([98cc23f](https://github.com/SienkLogic/plan-build-run/commit/98cc23f7e5cfca60c188809b737c4156ceb49028))
+
+
+### Bug Fixes
+
+* **cross-plugin-sync:** align status skill Step 1d heading order in cursor-pbr and copilot-pbr ([dc8419e](https://github.com/SienkLogic/plan-build-run/commit/dc8419e33c1184a2224cdb22d6383bf572d41d58))
+* **cross-plugin-sync:** sync phase 66 references, templates, and agents to codex-pbr, copilot-pbr, cursor-pbr ([e143d9e](https://github.com/SienkLogic/plan-build-run/commit/e143d9ecfc4792fb8085f62ed9227738324ea69f))
+* **doc-gates:** add 3-part format to doc-existence blocking reason ([ba2d732](https://github.com/SienkLogic/plan-build-run/commit/ba2d732e1fd89afce266a50057b2b1411152903e))
+* **doc-gates:** upgrade doc-existence gate from advisory to blocking ([a4eeb3f](https://github.com/SienkLogic/plan-build-run/commit/a4eeb3fa015b0a81d4130dd7a9e4c220f124bf7d))
+
 ## [2.59.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.58.0...plan-build-run-v2.59.0) (2026-03-06)
 
 
