@@ -141,7 +141,8 @@
         "confirm_research": { "type": "boolean" },
         "confirm_seeds": { "type": "boolean" },
         "confirm_deferred": { "type": "boolean" },
-        "confirm_commit_docs": { "type": "boolean" }
+        "confirm_commit_docs": { "type": "boolean" },
+        "auto_checkpoints": { "type": "boolean", "default": false, "description": "When true, executor auto-resolves checkpoint:human-verify tasks by running automated verify and approving if it passes. checkpoint:decision and checkpoint:human-action always require human input." }
       },
       "additionalProperties": false
     },
