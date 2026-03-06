@@ -69,8 +69,8 @@ describe('AskUserQuestion skill audit', () => {
   // - note: lightweight utility, no gate checks
   const EXCLUDED_SKILLS = ['continue', 'dashboard', 'help', 'note', 'pause'];
 
-  test('found expected number of skills (27)', () => {
-    expect(skillDirs.length).toBe(27);
+  test('found expected number of skills (28)', () => {
+    expect(skillDirs.length).toBe(28);
   });
 
   test('excluded skills do not have AskUserQuestion in allowed-tools', () => {
