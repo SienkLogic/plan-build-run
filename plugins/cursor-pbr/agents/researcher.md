@@ -1,6 +1,7 @@
 ---
 name: researcher
 description: "Unified research agent for project domains, phase implementation approaches, and synthesis. Follows source-hierarchy methodology with confidence levels."
+model: sonnet
 readonly: false
 ---
 

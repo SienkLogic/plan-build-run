@@ -1,6 +1,7 @@
 ---
 name: integration-checker
 description: "Cross-phase integration and E2E flow verification. Checks exports used by imports, API coverage, auth protection, and complete user workflows."
+model: sonnet
 readonly: false
 ---
 

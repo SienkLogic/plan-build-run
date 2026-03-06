@@ -1,6 +1,7 @@
 ---
 name: verifier
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
+model: sonnet
 isolation: worktree
 readonly: false
 ---
