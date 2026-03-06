@@ -185,7 +185,7 @@ Display to the user: `◐ Spawning debugger...`
 
 Spawn `Task(subagent_type: "pbr:debugger")` with the prompt template.
 
-Read `skills/debug/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
+Read `${CLAUDE_SKILL_DIR}/templates/initial-investigation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and symptom placeholders with values from the debug file created above.
 
 ### Step 3b: Resume Flow
 
@@ -209,7 +209,7 @@ Continuing investigation...
 
    Spawn `Task(subagent_type: "pbr:debugger")` with the continuation prompt template.
 
-   Read `skills/debug/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
+   Read `${CLAUDE_SKILL_DIR}/templates/continuation-prompt.md.tmpl` for the spawn prompt. Fill in the `{NNN}`, `{slug}`, and `{paste investigation log...}` placeholders with data from the debug file.
 
 ### Step 4: Handle Debugger Results
 

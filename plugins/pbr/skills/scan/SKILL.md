@@ -90,7 +90,7 @@ Before spawning agents, do a quick scan to identify what we're working with. Thi
 4. **Read existing docs** — README.md, architecture docs, .env.example
 5. **Write `.planning/codebase/RECON.md`** with project type, scale, key directories, entry points, and quick stats
 
-Refer to the "Reconnaissance Detection Reference" section of `skills/scan/templates/mapper-prompt.md.tmpl` for the full detection checklists.
+Refer to the "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` for the full detection checklists.
 
 ### Step 3: Spawn Analysis Agents
 
@@ -119,7 +119,7 @@ Display to the user:
 
 Spawn `{mapper_count}` parallel `Task(subagent_type: "pbr:codebase-mapper")` agents, one for each area in `scan.mapper_areas`. All should be spawned in a single response for maximum parallelism.
 
-For each agent, read `skills/scan/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
+For each agent, read `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
 - `{focus_area}`: one of `tech`, `arch`, `quality`, `concerns`
 - `{project_path}`: the working directory
 - `{recon_data}`: contents of RECON.md

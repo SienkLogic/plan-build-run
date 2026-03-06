@@ -129,7 +129,7 @@ Write the handoff file to the current phase directory:
 
 **Content:**
 
-Read `skills/pause/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3.
+Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3.
 
 ### Step 5: Update STATE.md
 

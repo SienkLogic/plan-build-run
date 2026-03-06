@@ -186,7 +186,7 @@ Task({
 
 #### Verifier Prompt Template
 
-Read `skills/review/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/verifier-prompt.md.tmpl` and use its content as the verifier prompt.
 
 **Prepend this block to the verifier prompt before sending:**
 ```
@@ -428,7 +428,7 @@ Task({
 
 ##### Debugger Prompt Template
 
-Read `skills/review/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/debugger-prompt.md.tmpl` and use its content as the debugger prompt.
 
 **Prepend this block to the debugger prompt before sending:**
 ```
@@ -460,7 +460,7 @@ Task({
 
 ##### Gap Planner Prompt Template
 
-Read `skills/review/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
+Read `${CLAUDE_SKILL_DIR}/templates/gap-planner-prompt.md.tmpl` and use its content as the gap planner prompt.
 
 **Prepend this block to the gap planner prompt before sending:**
 ```

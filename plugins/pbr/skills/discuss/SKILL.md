@@ -116,7 +116,7 @@ Before jumping into specific gray areas, give the user space to share their ment
 
 Analyze the phase goal, requirements, and what's already built. Identify **3-4 gray areas** where the user's preference matters. Gray areas fall into these categories:
 
-Read `skills/discuss/templates/decision-categories.md` for the category reference table.
+Read `${CLAUDE_SKILL_DIR}/templates/decision-categories.md` for the category reference table.
 
 **How to identify gray areas:**
 1. Look at the phase requirements — where are there multiple valid approaches?
@@ -200,7 +200,7 @@ Write the CONTEXT.md file to the phase directory:
 
 **Content:**
 
-Read `skills/discuss/templates/CONTEXT.md.tmpl` for the template structure.
+Read `${CLAUDE_SKILL_DIR}/templates/CONTEXT.md.tmpl` for the template structure.
 
 **Placeholders to fill:**
 - `{N}` -- the phase number

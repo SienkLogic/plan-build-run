@@ -35,9 +35,9 @@ Check if the user passed `--repair`:
 
 ## How Checks Work
 
-Each check follows the common pattern. Read `skills/health/templates/check-pattern.md.tmpl` for the shared execution flow: target files, validate against rules, classify as PASS/FAIL/WARN/INFO, and record the result with a fix suggestion for any failures.
+Each check follows the common pattern. Read `${CLAUDE_SKILL_DIR}/templates/check-pattern.md.tmpl` for the shared execution flow: target files, validate against rules, classify as PASS/FAIL/WARN/INFO, and record the result with a fix suggestion for any failures.
 
-Read `skills/health/templates/output-format.md.tmpl` for the output format: summary table, status indicators, issues list, optional recent decisions, and final result line.
+Read `${CLAUDE_SKILL_DIR}/templates/output-format.md.tmpl` for the output format: summary table, status indicators, issues list, optional recent decisions, and final result line.
 
 ---
 

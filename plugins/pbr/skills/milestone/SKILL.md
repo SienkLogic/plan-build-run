@@ -162,7 +162,7 @@ Start a new milestone cycle with new phases.
    docs(planning): start milestone "{name}" (phases {start}-{end})
    ```
 
-10. **Confirm** with branded output — read `skills/milestone/templates/new-output.md.tmpl` and fill in `{name}` (milestone name), `{count}` (phase count), `{N}` (first phase number).
+10. **Confirm** with branded output — read `${CLAUDE_SKILL_DIR}/templates/new-output.md.tmpl` and fill in `{name}` (milestone name), `{count}` (phase count), `{N}` (first phase number).
 
 ---
 
@@ -333,7 +333,7 @@ Archive a completed milestone and prepare for the next one.
 
    **Stats file content:**
 
-   Read `skills/milestone/templates/stats-file.md.tmpl` for the stats file format. Fill in all `{variable}` placeholders with actual data gathered in Steps 3-4.
+   Read `${CLAUDE_SKILL_DIR}/templates/stats-file.md.tmpl` for the stats file format. Fill in all `{variable}` placeholders with actual data gathered in Steps 3-4.
 
 6. **Update PROJECT.md:**
    - Move milestone from "Active" to "Completed"
@@ -450,7 +450,7 @@ If `config.deployment.smoke_test_command` is set and non-empty:
 
    This is advisory only — the milestone is already archived. Surface it as a potential issue for the user to investigate.
 
-10. **Confirm** with branded output — read `skills/milestone/templates/complete-output.md.tmpl` and fill in `{version}`, `{count}` (phases, plans, commits), `{lines}`, `{duration}`.
+10. **Confirm** with branded output — read `${CLAUDE_SKILL_DIR}/templates/complete-output.md.tmpl` and fill in `{version}`, `{count}` (phases, plans, commits), `{lines}`, `{duration}`.
 
 ---
 
@@ -473,7 +473,7 @@ Verify milestone completion with cross-phase integration checks.
 
    Display to the user: `◐ Spawning integration checker...`
 
-   Spawn `Task(subagent_type: "pbr:integration-checker")`. Read `skills/milestone/templates/integration-checker-prompt.md.tmpl`, fill in `{version or "current"}`, `{list of phase directories}`, and `{phase SUMMARY.md paths}`, then use the filled template as the Task() prompt.
+   Spawn `Task(subagent_type: "pbr:integration-checker")`. Read `${CLAUDE_SKILL_DIR}/templates/integration-checker-prompt.md.tmpl`, fill in `{version or "current"}`, `{list of phase directories}`, and `{phase SUMMARY.md paths}`, then use the filled template as the Task() prompt.
 
 4. **Check integration-checker completion:**
 
@@ -490,11 +490,11 @@ Verify milestone completion with cross-phase integration checks.
 
    Create `.planning/{version}-MILESTONE-AUDIT.md` using the template:
 
-   Read `skills/milestone/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
+   Read `${CLAUDE_SKILL_DIR}/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
 
    **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
 
-7. **Report to user** using branded banners — read `skills/milestone/templates/audit-output.md.tmpl`. The template contains all 3 variants (PASSED, GAPS FOUND, TECH DEBT). Select the appropriate section based on audit result. Fill in `{version}`, `{count}`, `{gap 1}`, `{gap 2}` as applicable.
+7. **Report to user** using branded banners — read `${CLAUDE_SKILL_DIR}/templates/audit-output.md.tmpl`. The template contains all 3 variants (PASSED, GAPS FOUND, TECH DEBT). Select the appropriate section based on audit result. Fill in `{version}`, `{count}`, `{gap 1}`, `{gap 2}` as applicable.
 
 ---
 
@@ -574,7 +574,7 @@ Create phases to close gaps found during an audit.
    docs(planning): add gap-closure phases from milestone audit
    ```
 
-9. **Confirm** with branded output — read `skills/milestone/templates/gaps-output.md.tmpl` and fill in `{count}` (gap-closure phases created), `{N}` (first gap phase number), `{name}` (phase name).
+9. **Confirm** with branded output — read `${CLAUDE_SKILL_DIR}/templates/gaps-output.md.tmpl` and fill in `{count}` (gap-closure phases created), `{N}` (first gap phase number), `{name}` (phase name).
 
 ---
 
@@ -605,7 +605,7 @@ Tags (complete only):
 
 ## Edge Cases
 
-For all edge case handling, see `skills/milestone/templates/edge-cases.md`.
+For all edge case handling, see `${CLAUDE_SKILL_DIR}/templates/edge-cases.md`.
 Key scenarios: no ROADMAP.md, no phases, no gaps found, version collision, partially verified, large milestone (8+ phases).
 
 ---
