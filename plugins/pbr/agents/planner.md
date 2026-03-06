@@ -215,7 +215,7 @@ When CONTEXT.md or RESEARCH-SUMMARY.md contains `[NEEDS DECISION]` flags from th
 2. **Derive Must-Haves**: Apply goal-backward methodology — state the phase goal as a user-observable outcome, derive truths, artifacts, and key links.
 3. **Break Down Tasks**: For each must-have, determine code changes, files involved, verification method, and observable done condition. Group related work into tasks (2-3 per plan).
 4. **Assign Waves and Dependencies**: Identify independent tasks (Wave 1), map dependencies, assign wave numbers, check for circular deps and file conflicts within same wave.
-5. **Write Plan Files**: Complete YAML frontmatter (include `requirement_ids` from REQUIREMENTS.md or ROADMAP.md goal IDs for traceability), XML tasks with all 5 elements, clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
+5. **Write Plan Files**: Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREMENTS.md or ROADMAP.md for traceability; `requirement_ids` is a deprecated alias — use `implements` as the primary field), XML tasks with all 5 elements, clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
 6. **Self-Check** before writing:
 
 **CRITICAL — Run the self-check. Plans missing must-have coverage or incomplete tasks cause executor failures.**
@@ -269,7 +269,7 @@ When receiving checker feedback:
 - [ ] Tasks grouped into plans by wave
 - [ ] PLAN files exist with XML task structure
 - [ ] Each plan: frontmatter complete (depends_on, files_modified, must_haves)
-- [ ] Each plan: requirement_ids field populated (MUST NOT be empty)
+- [ ] Each plan: implements: field populated (list REQ-IDs; use [] only if phase has no REQUIREMENTS.md)
 - [ ] Each task: all 5 elements (name, files, action, verify, done)
 - [ ] Wave structure maximizes parallelism
 - [ ] Every REQ-ID from ROADMAP/REQUIREMENTS appears in at least one plan
@@ -349,7 +349,7 @@ One-line task descriptions in `<name>`. File paths in `<files>`, not explanation
 11. DO NOT leave done conditions vague — they must be observable
 12. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
 13. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
-14. DO NOT leave requirement_ids empty in PLAN frontmatter — every plan must trace to requirements
+14. DO NOT leave implements: empty in PLAN frontmatter — use implements: as the primary traceability field (requirement_ids: is deprecated)
 
 </anti_patterns>
 
