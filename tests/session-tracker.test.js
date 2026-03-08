@@ -1,0 +1,262 @@
+const { resetTracker, incrementTracker, loadTracker, TRACKER_FILE } = require('../hooks/session-tracker');
+const { handleHttp } = require('../hooks/event-handler');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { execSync } = require('child_process');
+
+describe('session-tracker', () => {
+  let tmpDirs = [];
+
+  function makeTmpDir() {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-st-'));
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir, { recursive: true });
+    tmpDirs.push(tmpDir);
+    return { tmpDir, planningDir };
+  }
+
+  afterEach(() => {
+    for (const dir of tmpDirs) {
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch (_e) { /* best effort */ }
+    }
+    tmpDirs = [];
+  });
+
+  describe('TRACKER_FILE constant', () => {
+    test('equals .session-tracker', () => {
+      expect(TRACKER_FILE).toBe('.session-tracker');
+    });
+  });
+
+  describe('resetTracker', () => {
+    test('creates .session-tracker with phases_completed=0', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(0);
+    });
+
+    test('sets session_start to valid ISO date', () => {
+      const { planningDir } = makeTmpDir();
+      const before = new Date().toISOString();
+      resetTracker(planningDir);
+      const after = new Date().toISOString();
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(new Date(data.session_start).toISOString()).toBe(data.session_start);
+      expect(data.session_start >= before).toBe(true);
+      expect(data.session_start <= after).toBe(true);
+    });
+
+    test('sets last_phase_completed to null', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.last_phase_completed).toBeNull();
+    });
+
+    test('overwrites existing tracker on reset', () => {
+      const { planningDir } = makeTmpDir();
+      const trackerPath = path.join(planningDir, TRACKER_FILE);
+      fs.writeFileSync(trackerPath, JSON.stringify({ phases_completed: 5 }), 'utf8');
+      resetTracker(planningDir);
+      const data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
+      expect(data.phases_completed).toBe(0);
+    });
+  });
+
+  describe('incrementTracker', () => {
+    test('increments phases_completed by 1', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      incrementTracker(planningDir);
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(1);
+    });
+
+    test('returns new count', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const count = incrementTracker(planningDir);
+      expect(count).toBe(1);
+    });
+
+    test('increments multiple times', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      incrementTracker(planningDir);
+      incrementTracker(planningDir);
+      const count = incrementTracker(planningDir);
+      expect(count).toBe(3);
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(3);
+    });
+
+    test('updates last_phase_completed timestamp', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const before = new Date().toISOString();
+      incrementTracker(planningDir);
+      const after = new Date().toISOString();
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.last_phase_completed).not.toBeNull();
+      expect(data.last_phase_completed >= before).toBe(true);
+      expect(data.last_phase_completed <= after).toBe(true);
+    });
+
+    test('creates tracker if missing', () => {
+      const { planningDir } = makeTmpDir();
+      const count = incrementTracker(planningDir);
+      expect(count).toBe(1);
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(1);
+    });
+
+    test('preserves session_start across increments', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const data1 = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      const originalStart = data1.session_start;
+      incrementTracker(planningDir);
+      incrementTracker(planningDir);
+      const data2 = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data2.session_start).toBe(originalStart);
+    });
+  });
+
+  describe('loadTracker', () => {
+    test('returns parsed tracker data', () => {
+      const { planningDir } = makeTmpDir();
+      resetTracker(planningDir);
+      const data = loadTracker(planningDir);
+      expect(data).not.toBeNull();
+      expect(data).toHaveProperty('phases_completed', 0);
+      expect(data).toHaveProperty('session_start');
+      expect(data).toHaveProperty('last_phase_completed', null);
+    });
+
+    test('returns null when file missing', () => {
+      const { planningDir } = makeTmpDir();
+      expect(loadTracker(planningDir)).toBeNull();
+    });
+
+    test('returns null on corrupted JSON', () => {
+      const { planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, TRACKER_FILE), '{not valid json!!!', 'utf8');
+      expect(loadTracker(planningDir)).toBeNull();
+    });
+  });
+
+  describe('config schema', () => {
+    test('session_phase_limit is in schema with correct constraints', () => {
+      const schema = require('../plan-build-run/bin/config-schema.json');
+      const prop = schema.properties.session_phase_limit;
+      expect(prop).toBeDefined();
+      expect(prop.type).toBe('integer');
+      expect(prop.minimum).toBe(0);
+      expect(prop.maximum).toBe(20);
+      expect(prop.default).toBe(3);
+    });
+  });
+
+  describe('progress-tracker integration', () => {
+    test('progress-tracker module loads without error (proves session-tracker require works)', () => {
+      const progressTracker = require('../hooks/progress-tracker');
+      expect(progressTracker).toBeDefined();
+    });
+
+    test('session tracker file is reset after progress-tracker runs', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+
+      // Pre-write a .session-tracker with phases_completed: 5
+      fs.writeFileSync(path.join(planningDir, TRACKER_FILE),
+        JSON.stringify({ phases_completed: 5, session_start: new Date().toISOString(), last_phase_completed: null }), 'utf8');
+
+      // Create minimal STATE.md and config.json for progress-tracker
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        '# Project State\n\nPhase: 79 of 81\n**Status**: building\n', 'utf8');
+      fs.writeFileSync(path.join(planningDir, 'config.json'), '{}', 'utf8');
+
+      // Initialize git repo in tmpDir (progress-tracker runs git commands)
+      execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'ignore' });
+      execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'ignore' });
+
+      // Run progress-tracker.js with PBR_PROJECT_ROOT pointing to tmpDir
+      try {
+        execSync(`node "${path.join(process.cwd(), 'hooks/progress-tracker.js')}"`, {
+          env: { ...process.env, PBR_PROJECT_ROOT: tmpDir },
+          cwd: tmpDir,
+          stdio: 'pipe',
+          timeout: 10000
+        });
+      } catch (_e) {
+        // progress-tracker may error on missing deps, but resetTracker runs early
+      }
+
+      // Assert: .session-tracker has phases_completed: 0
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(0);
+    });
+  });
+
+  describe('event-handler integration', () => {
+    function makeEventDir() {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // Create logs dir for logHook
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+      return { tmpDir, planningDir };
+    }
+
+    test('incrementTracker is called on executor SubagentStop', () => {
+      const { planningDir } = makeEventDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ features: { goal_verification: true } }), 'utf8');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        '# Project State\n\nPhase: 79 of 81\n**Status**: building\n', 'utf8');
+
+      handleHttp({ data: { agent_type: 'pbr:executor' }, planningDir });
+
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(1);
+    });
+
+    test('counter increments even when auto-verify is disabled', () => {
+      const { planningDir } = makeEventDir();
+      // depth: "quick" disables auto-verify
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ depth: 'quick' }), 'utf8');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        '# Project State\n\nPhase: 79 of 81\n**Status**: building\n', 'utf8');
+
+      handleHttp({ data: { agent_type: 'pbr:executor' }, planningDir });
+
+      const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+      expect(data.phases_completed).toBe(1);
+    });
+
+    test('counter does not increment for non-executor agents', () => {
+      const { planningDir } = makeEventDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ features: { goal_verification: true } }), 'utf8');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        '# Project State\n\nPhase: 79 of 81\n**Status**: building\n', 'utf8');
+
+      handleHttp({ data: { agent_type: 'pbr:verifier' }, planningDir });
+
+      expect(fs.existsSync(path.join(planningDir, TRACKER_FILE))).toBe(false);
+    });
+
+    test('counter does not increment when status is not building', () => {
+      const { planningDir } = makeEventDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ features: { goal_verification: true } }), 'utf8');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        '# Project State\n\nPhase: 79 of 81\n**Status**: planning\n', 'utf8');
+
+      handleHttp({ data: { agent_type: 'pbr:executor' }, planningDir });
+
+      expect(fs.existsSync(path.join(planningDir, TRACKER_FILE))).toBe(false);
+    });
+  });
+});
