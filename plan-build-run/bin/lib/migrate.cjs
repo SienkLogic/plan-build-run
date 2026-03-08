@@ -14,7 +14,7 @@ const path = require('path');
 const { atomicWrite } = require('./core.cjs');
 
 /** The current schema version supported by this version of PBR. */
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 /**
  * Migration registry. Each entry describes one schema version step.
@@ -29,6 +29,85 @@ const MIGRATIONS = [
     description: 'Add schema_version field',
     migrate(config) {
       config.schema_version = 1;
+    }
+  },
+  {
+    from: 1,
+    to: 2,
+    description: 'Normalize GSD config format to PBR structure',
+    migrate(config) {
+      // mode: "yolo" -> "autonomous"
+      if (config.mode === 'yolo') config.mode = 'autonomous';
+
+      // depth: old names -> new names
+      const depthMap = { lean: 'quick', balanced: 'standard', thorough: 'comprehensive' };
+      if (config.depth && depthMap[config.depth]) {
+        config.depth = depthMap[config.depth];
+      }
+
+      // parallelization: boolean -> object
+      if (typeof config.parallelization === 'boolean') {
+        config.parallelization = { enabled: config.parallelization };
+      }
+
+      // branching_strategy (flat) -> git.branching (nested)
+      if (config.branching_strategy !== undefined) {
+        if (!config.git) config.git = {};
+        config.git.branching = config.branching_strategy;
+        delete config.branching_strategy;
+      }
+
+      // Top-level feature booleans -> features object
+      const featureMap = {
+        research: 'research_phase',
+        plan_checker: 'plan_checking',
+        verifier: 'goal_verification',
+      };
+      if (!config.features) config.features = {};
+      for (const [oldKey, newKey] of Object.entries(featureMap)) {
+        if (config[oldKey] !== undefined) {
+          config.features[newKey] = config[oldKey];
+          delete config[oldKey];
+        }
+      }
+
+      // Top-level commit_docs -> planning.commit_docs
+      if (config.commit_docs !== undefined) {
+        if (!config.planning) config.planning = {};
+        config.planning.commit_docs = config.commit_docs;
+        delete config.commit_docs;
+      }
+
+      // Top-level search_gitignored -> planning.search_gitignored
+      if (config.search_gitignored !== undefined) {
+        if (!config.planning) config.planning = {};
+        config.planning.search_gitignored = config.search_gitignored;
+        delete config.search_gitignored;
+      }
+
+      // Top-level model_profile (string) -> delete (not a PBR field, depth replaces it)
+      if (config.model_profile !== undefined) {
+        // Map old model_profile to depth if depth not set
+        if (!config.depth) {
+          const profileToDepth = { quality: 'comprehensive', balanced: 'standard', budget: 'quick' };
+          config.depth = profileToDepth[config.model_profile] || 'standard';
+        }
+        delete config.model_profile;
+      }
+
+      // Clean up GSD-only fields
+      const gsdOnlyFields = ['brave_search', 'phase_branch_template', 'milestone_branch_template'];
+      for (const f of gsdOnlyFields) {
+        if (config[f] !== undefined) delete config[f];
+      }
+
+      // workflow object: keep if present, it maps well to PBR
+      // (workflow.research, workflow.plan_check, etc. are valid in both)
+
+      // Ensure version is set
+      if (!config.version) config.version = 2;
+
+      config.schema_version = 2;
     }
   }
 ];
