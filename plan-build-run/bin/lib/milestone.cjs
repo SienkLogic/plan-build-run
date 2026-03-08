@@ -235,7 +235,11 @@ function cmdMilestoneComplete(cwd, version, options, raw) {
   output(result, raw);
 }
 
+// Delegate milestoneStats to phase.cjs where it was consolidated
+const milestoneStats = (...args) => require('./phase.cjs').milestoneStats(...args);
+
 module.exports = {
   cmdRequirementsMarkComplete,
   cmdMilestoneComplete,
+  milestoneStats,
 };
