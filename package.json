@@ -11,7 +11,8 @@
     "plan-build-run",
     "agents",
     "hooks/dist",
-    "scripts"
+    "scripts",
+    "dashboard"
   ],
   "keywords": [
     "plan-build-run",
@@ -45,6 +46,8 @@
     "esbuild": "^0.24.0"
   },
   "scripts": {
+    "dashboard:install": "cd dashboard && npm install && cd server && npm install",
+    "dashboard": "node dashboard/bin/cli.cjs",
     "build:hooks": "node scripts/build-hooks.js",
     "prepublishOnly": "npm run build:hooks",
     "test": "node scripts/run-tests.cjs",
