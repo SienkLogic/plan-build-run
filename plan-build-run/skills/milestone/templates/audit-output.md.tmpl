@@ -1,0 +1,76 @@
+## If PASSED
+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► MILESTONE AUDIT PASSED ✓                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+All phases verified, integration checks passed, requirements covered.
+
+
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Complete the milestone** — archive and tag
+
+`/pbr:milestone complete {version}`
+
+<sub>`/clear` first → fresh context window</sub>
+
+
+
+**Also available:**
+- `/pbr:milestone gaps` — address any minor issues first
+- `/pbr:status` — see project status
+
+
+## If GAPS FOUND
+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► MILESTONE AUDIT — GAPS FOUND ⚠             ║
+╚══════════════════════════════════════════════════════════════╝
+
+Found {count} gaps:
+- {gap 1}
+- {gap 2}
+
+
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Close the gaps** — create fix phases
+
+`/pbr:milestone gaps`
+
+<sub>`/clear` first → fresh context window</sub>
+
+
+
+**Also available:**
+- `/pbr:milestone complete` — proceed despite gaps
+- `/pbr:status` — see project status
+
+
+## If TECH DEBT
+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► MILESTONE AUDIT — TECH DEBT ⚠              ║
+╚══════════════════════════════════════════════════════════════╝
+
+Milestone functional but has {count} tech debt items.
+
+
+
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Address tech debt or proceed**
+
+`/pbr:milestone gaps` — create cleanup phases
+`/pbr:milestone complete` — proceed as-is
+
+<sub>`/clear` first → fresh context window</sub>

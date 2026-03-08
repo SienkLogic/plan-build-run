@@ -1,0 +1,47 @@
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning researcher agents during project initialization -->
+
+<downstream_consumer>
+Your output will be consumed by:
+- **Synthesizer agent:** Reads all research files to produce SUMMARY.md. Needs: structured findings with confidence levels, source attributions, clear recommendations. Missing confidence levels prevent the synthesizer from assessing reliability.
+- **Planner agent:** Uses synthesized research for phase planning. Needs: technology recommendations, architecture patterns, and pitfall warnings to shape plan verification steps.
+- **Dashboard ResearchTab:** Displays research confidence and coverage. Needs: frontmatter with confidence and coverage fields.
+</downstream_consumer>
+
+<quality_gates>
+Before completing your output, verify:
+- [ ] Every finding has a confidence level (HIGH/MEDIUM/LOW)
+- [ ] Every recommendation cites at least one source
+- [ ] Coverage assessment table is filled in (COMPLETE/PARTIAL/INSUFFICIENT)
+- [ ] Gaps are explicitly listed, not hidden behind confident language
+- [ ] Output file matches the research output template format
+</quality_gates>
+
+<project_context>
+Project: {project name from questioning}
+Description: {2-3 sentence description from questioning}
+Technology constraints: {any locked technology choices}
+User constraints: {budget, timeline, skill level, etc.}
+</project_context>
+
+<research_assignment>
+Topic: {topic - e.g., "Technology Stack Analysis"}
+Output file: .planning/research/{TOPIC}.md
+Mode: project-research
+
+Research these specific questions:
+{topic-specific questions - see below}
+</research_assignment>
+
+<output_contract>
+Your output MUST follow the template at `{resolved_plugin_root}/templates/research-outputs/{TOPIC}.md.tmpl` where {TOPIC} is one of: STACK, FEATURES, ARCHITECTURE, PITFALLS.
+
+Your output MUST include YAML frontmatter with the following required fields:
+- `confidence`: HIGH | MEDIUM | LOW (overall confidence in findings)
+- `sources_checked`: integer (number of sources consulted)
+
+Write your output to `.planning/research/{TOPIC}.md`. Do NOT commit the file -- the synthesizer will commit all research files together after producing SUMMARY.md.
+</output_contract>
+
+Write your findings to the output file using the Project Research output format from your agent definition. Use the Write tool to create the file.
+
+When complete, end your output with `## RESEARCH COMPLETE` if successful, or `## RESEARCH BLOCKED` with a reason if unable to complete.
