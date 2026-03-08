@@ -9,12 +9,12 @@ From `$ARGUMENTS`:
 - Extract flags (prefixed with `--`)
 - Remaining text is description (for insert/add commands)
 
-## Using gsd-tools
+## Using pbr-tools
 
 The `find-phase` command handles normalization and validation in one step:
 
 ```bash
-PHASE_INFO=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" find-phase "${PHASE}")
+PHASE_INFO=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" find-phase "${PHASE}")
 ```
 
 Returns JSON with:
@@ -45,7 +45,7 @@ fi
 Use `roadmap get-phase` to validate phase exists:
 
 ```bash
-PHASE_CHECK=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" roadmap get-phase "${PHASE}")
+PHASE_CHECK=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" roadmap get-phase "${PHASE}")
 if [ "$(printf '%s\n' "$PHASE_CHECK" | jq -r '.found')" = "false" ]; then
   echo "ERROR: Phase ${PHASE} not found in roadmap"
   exit 1
@@ -57,5 +57,5 @@ fi
 Use `find-phase` for directory lookup:
 
 ```bash
-PHASE_DIR=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" find-phase "${PHASE}" --raw)
+PHASE_DIR=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" find-phase "${PHASE}" --raw)
 ```

@@ -11,7 +11,7 @@ Instantly restore full project context so "Where were we?" has an immediate, com
 </purpose>
 
 <required_reading>
-@~/.claude/get-shit-done/references/continuation-format.md
+@~/.claude/plan-build-run/references/continuation-format.md
 </required_reading>
 
 <process>
@@ -20,7 +20,7 @@ Instantly restore full project context so "Where were we?" has an immediate, com
 Load all context in one call:
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init resume)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init resume)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -28,7 +28,7 @@ Parse JSON for: `state_exists`, `roadmap_exists`, `project_exists`, `planning_ex
 
 **If `state_exists` is true:** Proceed to load_state
 **If `state_exists` is false but `roadmap_exists` or `project_exists` is true:** Offer to reconstruct STATE.md
-**If `planning_exists` is false:** This is a new project - route to /gsd:new-project
+**If `planning_exists` is false:** This is a new project - route to /pbr:new-project
 </step>
 
 <step name="load_state">
@@ -125,7 +125,7 @@ Present complete project status to user:
     Resume with: Task tool (resume parameter with agent ID)
 
 [If pending todos exist:]
-📋 [N] pending todos — /gsd:check-todos to review
+📋 [N] pending todos — /pbr:check-todos to review
 
 [If blockers exist:]
 ⚠️  Carried concerns:
@@ -181,11 +181,11 @@ What would you like to do?
 [Primary action based on state - e.g.:]
 1. Resume interrupted agent [if interrupted agent found]
    OR
-1. Execute phase (/gsd:execute-phase {phase})
+1. Execute phase (/pbr:execute-phase {phase})
    OR
-1. Discuss Phase 3 context (/gsd:discuss-phase 3) [if CONTEXT.md missing]
+1. Discuss Phase 3 context (/pbr:discuss-phase 3) [if CONTEXT.md missing]
    OR
-1. Plan Phase 3 (/gsd:plan-phase 3) [if CONTEXT.md exists or discuss option declined]
+1. Plan Phase 3 (/pbr:plan-phase 3) [if CONTEXT.md exists or discuss option declined]
 
 [Secondary options:]
 2. Review current phase status
@@ -216,7 +216,7 @@ Based on user selection, route to appropriate workflow:
 
   **{phase}-{plan}: [Plan Name]** — [objective from PLAN.md]
 
-  `/gsd:execute-phase {phase}`
+  `/pbr:execute-phase {phase}`
 
   <sub>`/clear` first → fresh context window</sub>
 
@@ -230,15 +230,15 @@ Based on user selection, route to appropriate workflow:
 
   **Phase [N]: [Name]** — [Goal from ROADMAP.md]
 
-  `/gsd:plan-phase [phase-number]`
+  `/pbr:plan-phase [phase-number]`
 
   <sub>`/clear` first → fresh context window</sub>
 
   ---
 
   **Also available:**
-  - `/gsd:discuss-phase [N]` — gather context first
-  - `/gsd:research-phase [N]` — investigate unknowns
+  - `/pbr:discuss-phase [N]` — gather context first
+  - `/pbr:research-phase [N]` — investigate unknowns
 
   ---
   ```

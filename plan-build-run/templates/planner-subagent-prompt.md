@@ -1,6 +1,6 @@
 # Planner Subagent Prompt Template
 
-Template for spawning gsd-planner agent. The agent contains all planning expertise - this template provides planning context only.
+Template for spawning pbr-planner agent. The agent contains all planning expertise - this template provides planning context only.
 
 ---
 
@@ -34,7 +34,7 @@ Template for spawning gsd-planner agent. The agent contains all planning experti
 </planning_context>
 
 <downstream_consumer>
-Output consumed by /gsd:execute-phase
+Output consumed by /pbr:execute-phase
 Plans must be executable prompts with:
 - Frontmatter (wave, depends_on, files_modified, autonomous)
 - Tasks in XML format
@@ -68,20 +68,20 @@ Before returning PLANNING COMPLETE:
 
 ## Usage
 
-**From /gsd:plan-phase (standard mode):**
+**From /pbr:plan-phase (standard mode):**
 ```python
 Task(
   prompt=filled_template,
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   description="Plan Phase {phase}"
 )
 ```
 
-**From /gsd:plan-phase --gaps (gap closure mode):**
+**From /pbr:plan-phase --gaps (gap closure mode):**
 ```python
 Task(
   prompt=filled_template,  # with mode: gap_closure
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   description="Plan gaps for Phase {phase}"
 )
 ```
@@ -114,4 +114,4 @@ Continue: {standard | gap_closure}
 
 ---
 
-**Note:** Planning methodology, task breakdown, dependency analysis, wave assignment, TDD detection, and goal-backward derivation are baked into the gsd-planner agent. This template only passes context.
+**Note:** Planning methodology, task breakdown, dependency analysis, wave assignment, TDD detection, and goal-backward derivation are baked into the pbr-planner agent. This template only passes context.

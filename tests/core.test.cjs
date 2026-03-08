@@ -1,5 +1,5 @@
 /**
- * GSD Tools Tests - core.cjs
+ * PBR Tools Tests - core.cjs
  *
  * Tests for the foundational module's exports including regressions
  * for known bugs (REG-01: loadConfig model_overrides, REG-02: getRoadmapPhaseInternal export).
@@ -26,7 +26,7 @@ const {
   getRoadmapPhaseInternal,
   searchPhaseInDir,
   findPhaseInternal,
-} = require('../get-shit-done/bin/lib/core.cjs');
+} = require('../plan-build-run/bin/lib/core.cjs');
 
 // ─── loadConfig ────────────────────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ describe('loadConfig', () => {
   let originalCwd;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
     originalCwd = process.cwd();
   });
@@ -83,9 +83,9 @@ describe('loadConfig', () => {
 
   // Bug: loadConfig previously omitted model_overrides from return value
   test('returns model_overrides when present (REG-01)', () => {
-    writeConfig({ model_overrides: { 'gsd-executor': 'opus' } });
+    writeConfig({ model_overrides: { 'pbr-executor': 'opus' } });
     const config = loadConfig(tmpDir);
-    assert.deepStrictEqual(config.model_overrides, { 'gsd-executor': 'opus' });
+    assert.deepStrictEqual(config.model_overrides, { 'pbr-executor': 'opus' });
   });
 
   test('returns model_overrides as null when not in config', () => {
@@ -129,7 +129,7 @@ describe('resolveModelInternal', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
@@ -146,7 +146,7 @@ describe('resolveModelInternal', () => {
 
   describe('model profile structural validation', () => {
     test('all known agents resolve to a valid string for each profile', () => {
-      const knownAgents = ['gsd-planner', 'gsd-executor', 'gsd-phase-researcher', 'gsd-codebase-mapper'];
+      const knownAgents = ['pbr-planner', 'pbr-executor', 'pbr-phase-researcher', 'pbr-codebase-mapper'];
       const profiles = ['quality', 'balanced', 'budget'];
       const validValues = ['inherit', 'sonnet', 'haiku', 'opus'];
 
@@ -167,38 +167,38 @@ describe('resolveModelInternal', () => {
     test('per-agent override takes precedence over profile', () => {
       writeConfig({
         model_profile: 'balanced',
-        model_overrides: { 'gsd-executor': 'haiku' },
+        model_overrides: { 'pbr-executor': 'haiku' },
       });
-      assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-executor'), 'haiku');
+      assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-executor'), 'haiku');
     });
 
     test('opus override resolves to inherit', () => {
       writeConfig({
-        model_overrides: { 'gsd-executor': 'opus' },
+        model_overrides: { 'pbr-executor': 'opus' },
       });
-      assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-executor'), 'inherit');
+      assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-executor'), 'inherit');
     });
 
     test('agents not in override fall back to profile', () => {
       writeConfig({
         model_profile: 'quality',
-        model_overrides: { 'gsd-executor': 'haiku' },
+        model_overrides: { 'pbr-executor': 'haiku' },
       });
-      // gsd-planner not overridden, should use quality profile -> opus -> inherit
-      assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-planner'), 'inherit');
+      // pbr-planner not overridden, should use quality profile -> opus -> inherit
+      assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-planner'), 'inherit');
     });
   });
 
   describe('edge cases', () => {
     test('returns sonnet for unknown agent type', () => {
       writeConfig({ model_profile: 'balanced' });
-      assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-nonexistent'), 'sonnet');
+      assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-nonexistent'), 'sonnet');
     });
 
     test('defaults to balanced profile when model_profile missing', () => {
       writeConfig({});
-      // balanced profile, gsd-planner -> opus -> inherit
-      assert.strictEqual(resolveModelInternal(tmpDir, 'gsd-planner'), 'inherit');
+      // balanced profile, pbr-planner -> opus -> inherit
+      assert.strictEqual(resolveModelInternal(tmpDir, 'pbr-planner'), 'inherit');
     });
   });
 });
@@ -326,7 +326,7 @@ describe('safeReadFile', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
   });
 
   afterEach(() => {
@@ -350,7 +350,7 @@ describe('pathExistsInternal', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
@@ -377,7 +377,7 @@ describe('getMilestoneInfo', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
@@ -483,7 +483,7 @@ describe('searchPhaseInDir', () => {
   let phasesDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     phasesDir = path.join(tmpDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
   });
@@ -551,7 +551,7 @@ describe('findPhaseInternal', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
   });
 
@@ -592,7 +592,7 @@ describe('getRoadmapPhaseInternal', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
   });
 
@@ -674,7 +674,7 @@ describe('getMilestonePhaseFilter', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gsd-core-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-core-test-'));
     fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
   });
 

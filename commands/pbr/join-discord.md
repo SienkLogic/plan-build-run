@@ -1,16 +1,16 @@
 ---
 name: gsd:join-discord
-description: Join the GSD Discord community
+description: Join the PBR Discord community
 ---
 
 <objective>
-Display the Discord invite link for the GSD community server.
+Display the Discord invite link for the PBR community server.
 </objective>
 
 <output>
-# Join the GSD Discord
+# Join the PBR Discord
 
-Connect with other GSD users, get help, share what you're building, and stay updated.
+Connect with other PBR users, get help, share what you're building, and stay updated.
 
 **Invite link:** https://discord.gg/gsd
 

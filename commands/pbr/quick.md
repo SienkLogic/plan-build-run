@@ -1,6 +1,6 @@
 ---
 name: gsd:quick
-description: Execute a quick task with GSD guarantees (atomic commits, state tracking) but skip optional agents
+description: Execute a quick task with PBR guarantees (atomic commits, state tracking) but skip optional agents
 argument-hint: "[--full] [--discuss]"
 allowed-tools:
   - Read
@@ -13,10 +13,10 @@ allowed-tools:
   - AskUserQuestion
 ---
 <objective>
-Execute small, ad-hoc tasks with GSD guarantees (atomic commits, STATE.md tracking).
+Execute small, ad-hoc tasks with PBR guarantees (atomic commits, STATE.md tracking).
 
 Quick mode is the same system with a shorter path:
-- Spawns gsd-planner (quick mode) + gsd-executor(s)
+- Spawns pbr-planner (quick mode) + pbr-executor(s)
 - Quick tasks live in `.planning/quick/` separate from planned phases
 - Updates STATE.md "Quick Tasks Completed" table (NOT ROADMAP.md)
 
@@ -30,7 +30,7 @@ Flags are composable: `--discuss --full` gives discussion + plan-checking + veri
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/quick.md
+@~/.claude/plan-build-run/workflows/quick.md
 </execution_context>
 
 <context>
@@ -40,6 +40,6 @@ Context files are resolved inside the workflow (`init quick`) and delegated via 
 </context>
 
 <process>
-Execute the quick workflow from @~/.claude/get-shit-done/workflows/quick.md end-to-end.
+Execute the quick workflow from @~/.claude/plan-build-run/workflows/quick.md end-to-end.
 Preserve all workflow gates (validation, task description, planning, execution, state updates, commits).
 </process>

@@ -1,5 +1,5 @@
 <purpose>
-Interactive configuration of GSD workflow agents (research, plan_check, verifier) and model profile selection via multi-question prompt. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.gsd/defaults.json) for future projects.
+Interactive configuration of PBR workflow agents (research, plan_check, verifier) and model profile selection via multi-question prompt. Updates .planning/config.json with user preferences. Optionally saves settings as global defaults (~/.pbr/defaults.json) for future projects.
 </purpose>
 
 <required_reading>
@@ -12,8 +12,8 @@ Read all files referenced by the invoking prompt's execution_context before star
 Ensure config exists and load current state:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-ensure-section
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state load)
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-ensure-section
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -100,8 +100,8 @@ AskUserQuestion([
     multiSelect: false,
     options: [
       { label: "None (Recommended)", description: "Commit directly to current branch" },
-      { label: "Per Phase", description: "Create branch for each phase (gsd/phase-{N}-{name})" },
-      { label: "Per Milestone", description: "Create branch for entire milestone (gsd/{version}-{name})" }
+      { label: "Per Phase", description: "Create branch for each phase (pbr/phase-{N}-{name})" },
+      { label: "Per Milestone", description: "Create branch for entire milestone (pbr/{version}-{name})" }
     ]
   }
 ])
@@ -141,20 +141,20 @@ AskUserQuestion([
     header: "Defaults",
     multiSelect: false,
     options: [
-      { label: "Yes", description: "New projects start with these settings (saved to ~/.gsd/defaults.json)" },
+      { label: "Yes", description: "New projects start with these settings (saved to ~/.pbr/defaults.json)" },
       { label: "No", description: "Only apply to this project" }
     ]
   }
 ])
 ```
 
-If "Yes": write the same config object (minus project-specific fields like `brave_search`) to `~/.gsd/defaults.json`:
+If "Yes": write the same config object (minus project-specific fields like `brave_search`) to `~/.pbr/defaults.json`:
 
 ```bash
-mkdir -p ~/.gsd
+mkdir -p ~/.pbr
 ```
 
-Write `~/.gsd/defaults.json` with:
+Write `~/.pbr/defaults.json` with:
 ```json
 {
   "mode": <current>,
@@ -179,7 +179,7 @@ Display:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► SETTINGS UPDATED
+ PBR ► SETTINGS UPDATED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 | Setting              | Value |
@@ -193,13 +193,13 @@ Display:
 | Git Branching        | {None/Per Phase/Per Milestone} |
 | Saved as Defaults    | {Yes/No} |
 
-These settings apply to future /gsd:plan-phase and /gsd:execute-phase runs.
+These settings apply to future /pbr:plan-phase and /pbr:execute-phase runs.
 
 Quick commands:
-- /gsd:set-profile <profile> — switch model profile
-- /gsd:plan-phase --research — force research
-- /gsd:plan-phase --skip-research — skip research
-- /gsd:plan-phase --skip-verify — skip plan check
+- /pbr:set-profile <profile> — switch model profile
+- /pbr:plan-phase --research — force research
+- /pbr:plan-phase --skip-research — skip research
+- /pbr:plan-phase --skip-verify — skip plan check
 ```
 </step>
 
@@ -209,6 +209,6 @@ Quick commands:
 - [ ] Current config read
 - [ ] User presented with 7 settings (profile + 5 workflow toggles + git branching)
 - [ ] Config updated with model_profile, workflow, and git sections
-- [ ] User offered to save as global defaults (~/.gsd/defaults.json)
+- [ ] User offered to save as global defaults (~/.pbr/defaults.json)
 - [ ] Changes confirmed to user
 </success_criteria>

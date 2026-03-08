@@ -1,13 +1,13 @@
 ---
 name: gsd:update
-description: Update GSD to latest version with changelog display
+description: Update PBR to latest version with changelog display
 allowed-tools:
   - Bash
   - AskUserQuestion
 ---
 
 <objective>
-Check for GSD updates, install if available, and display what changed.
+Check for PBR updates, install if available, and display what changed.
 
 Routes to the update workflow which handles:
 - Version detection (local vs global installation)
@@ -19,11 +19,11 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/update.md
+@~/.claude/plan-build-run/workflows/update.md
 </execution_context>
 
 <process>
-**Follow the update workflow** from `@~/.claude/get-shit-done/workflows/update.md`.
+**Follow the update workflow** from `@~/.claude/plan-build-run/workflows/update.md`.
 
 The workflow handles all logic including:
 1. Installed version detection (local/global)

@@ -23,7 +23,7 @@ Check if `--auto` flag is present in $ARGUMENTS.
 
 **Document requirement:**
 Auto mode requires an idea document — either:
-- File reference: `/gsd:new-project --auto @prd.md`
+- File reference: `/pbr:new-project --auto @prd.md`
 - Pasted/written text in the prompt
 
 If no document content provided, error:
@@ -32,8 +32,8 @@ If no document content provided, error:
 Error: --auto requires an idea document.
 
 Usage:
-  /gsd:new-project --auto @your-idea.md
-  /gsd:new-project --auto [paste or write your idea here]
+  /pbr:new-project --auto @your-idea.md
+  /pbr:new-project --auto [paste or write your idea here]
 
 The document should describe what you want to build.
 ```
@@ -46,13 +46,13 @@ The document should describe what you want to build.
 **MANDATORY FIRST STEP — Execute these checks before ANY user interaction:**
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init new-project)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init new-project)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Parse JSON for: `researcher_model`, `synthesizer_model`, `roadmapper_model`, `commit_docs`, `project_exists`, `has_codebase_map`, `planning_exists`, `has_existing_code`, `has_package_file`, `is_brownfield`, `needs_codebase_map`, `has_git`, `project_path`.
 
-**If `project_exists` is true:** Error — project already initialized. Use `/gsd:progress`.
+**If `project_exists` is true:** Error — project already initialized. Use `/pbr:progress`.
 
 **If `has_git` is false:** Initialize git:
 ```bash
@@ -69,12 +69,12 @@ Use AskUserQuestion:
 - header: "Codebase"
 - question: "I detected existing code in this directory. Would you like to map the codebase first?"
 - options:
-  - "Map codebase first" — Run /gsd:map-codebase to understand existing architecture (Recommended)
+  - "Map codebase first" — Run /pbr:map-codebase to understand existing architecture (Recommended)
   - "Skip mapping" — Proceed with project initialization
 
 **If "Map codebase first":**
 ```
-Run `/gsd:map-codebase` first, then return to `/gsd:new-project`
+Run `/pbr:map-codebase` first, then return to `/pbr:new-project`
 ```
 Exit command.
 
@@ -190,13 +190,13 @@ Create `.planning/config.json` with mode set to "yolo":
 
 ```bash
 mkdir -p .planning
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "chore: add project config" --files .planning/config.json
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "chore: add project config" --files .planning/config.json
 ```
 
 **Persist auto-advance chain flag to config (survives context compaction):**
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active true
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-set workflow._auto_chain_active true
 ```
 
 Proceed to Step 4 (skip Steps 3 and 5).
@@ -209,7 +209,7 @@ Proceed to Step 4 (skip Steps 3 and 5).
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► QUESTIONING
+ PBR ► QUESTIONING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -340,19 +340,19 @@ Do not compress. Capture everything gathered.
 
 ```bash
 mkdir -p .planning
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: initialize project" --files .planning/PROJECT.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: initialize project" --files .planning/PROJECT.md
 ```
 
 ## 5. Workflow Preferences
 
 **If auto mode:** Skip — config was collected in Step 2a. Proceed to Step 5.5.
 
-**Check for global defaults** at `~/.gsd/defaults.json`. If the file exists, offer to use saved defaults:
+**Check for global defaults** at `~/.pbr/defaults.json`. If the file exists, offer to use saved defaults:
 
 ```
 AskUserQuestion([
   {
-    question: "Use your saved default settings? (from ~/.gsd/defaults.json)",
+    question: "Use your saved default settings? (from ~/.pbr/defaults.json)",
     header: "Defaults",
     multiSelect: false,
     options: [
@@ -363,9 +363,9 @@ AskUserQuestion([
 ])
 ```
 
-If "Yes": read `~/.gsd/defaults.json`, use those values for config.json, and skip directly to **Commit config.json** below.
+If "Yes": read `~/.pbr/defaults.json`, use those values for config.json, and skip directly to **Commit config.json** below.
 
-If "No" or `~/.gsd/defaults.json` doesn't exist: proceed with the questions below.
+If "No" or `~/.pbr/defaults.json` doesn't exist: proceed with the questions below.
 
 **Round 1 — Core workflow settings (4 questions):**
 
@@ -493,10 +493,10 @@ Create `.planning/config.json` with all settings:
 **Commit config.json:**
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "chore: add project config" --files .planning/config.json
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "chore: add project config" --files .planning/config.json
 ```
 
-**Note:** Run `/gsd:settings` anytime to update these preferences.
+**Note:** Run `/pbr:settings` anytime to update these preferences.
 
 ## 5.5. Resolve Model Profile
 
@@ -518,7 +518,7 @@ Use AskUserQuestion:
 Display stage banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► RESEARCHING
+ PBR ► RESEARCHING
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Researching [domain] ecosystem...
@@ -544,7 +544,7 @@ Display spawning indicator:
   → Pitfalls research
 ```
 
-Spawn 4 parallel gsd-project-researcher agents with path references:
+Spawn 4 parallel pbr-project-researcher agents with path references:
 
 ```
 Task(prompt="<research_type>
@@ -581,9 +581,9 @@ Your STACK.md feeds into roadmap creation. Be prescriptive:
 
 <output>
 Write to: .planning/research/STACK.md
-Use template: ~/.claude/get-shit-done/templates/research-project/STACK.md
+Use template: ~/.claude/plan-build-run/templates/research-project/STACK.md
 </output>
-", subagent_type="gsd-project-researcher", model="{researcher_model}", description="Stack research")
+", subagent_type="pbr-project-researcher", model="{researcher_model}", description="Stack research")
 
 Task(prompt="<research_type>
 Project Research — Features dimension for [domain].
@@ -619,9 +619,9 @@ Your FEATURES.md feeds into requirements definition. Categorize clearly:
 
 <output>
 Write to: .planning/research/FEATURES.md
-Use template: ~/.claude/get-shit-done/templates/research-project/FEATURES.md
+Use template: ~/.claude/plan-build-run/templates/research-project/FEATURES.md
 </output>
-", subagent_type="gsd-project-researcher", model="{researcher_model}", description="Features research")
+", subagent_type="pbr-project-researcher", model="{researcher_model}", description="Features research")
 
 Task(prompt="<research_type>
 Project Research — Architecture dimension for [domain].
@@ -657,9 +657,9 @@ Your ARCHITECTURE.md informs phase structure in roadmap. Include:
 
 <output>
 Write to: .planning/research/ARCHITECTURE.md
-Use template: ~/.claude/get-shit-done/templates/research-project/ARCHITECTURE.md
+Use template: ~/.claude/plan-build-run/templates/research-project/ARCHITECTURE.md
 </output>
-", subagent_type="gsd-project-researcher", model="{researcher_model}", description="Architecture research")
+", subagent_type="pbr-project-researcher", model="{researcher_model}", description="Architecture research")
 
 Task(prompt="<research_type>
 Project Research — Pitfalls dimension for [domain].
@@ -695,9 +695,9 @@ Your PITFALLS.md prevents mistakes in roadmap/planning. For each pitfall:
 
 <output>
 Write to: .planning/research/PITFALLS.md
-Use template: ~/.claude/get-shit-done/templates/research-project/PITFALLS.md
+Use template: ~/.claude/plan-build-run/templates/research-project/PITFALLS.md
 </output>
-", subagent_type="gsd-project-researcher", model="{researcher_model}", description="Pitfalls research")
+", subagent_type="pbr-project-researcher", model="{researcher_model}", description="Pitfalls research")
 ```
 
 After all 4 agents complete, spawn synthesizer to create SUMMARY.md:
@@ -717,16 +717,16 @@ Synthesize research outputs into SUMMARY.md.
 
 <output>
 Write to: .planning/research/SUMMARY.md
-Use template: ~/.claude/get-shit-done/templates/research-project/SUMMARY.md
+Use template: ~/.claude/plan-build-run/templates/research-project/SUMMARY.md
 Commit after writing.
 </output>
-", subagent_type="gsd-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
+", subagent_type="pbr-research-synthesizer", model="{synthesizer_model}", description="Synthesize research")
 ```
 
 Display research complete banner and key findings:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► RESEARCH COMPLETE ✓
+ PBR ► RESEARCH COMPLETE ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ## Key Findings
@@ -745,7 +745,7 @@ Files: `.planning/research/`
 Display stage banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► DEFINING REQUIREMENTS
+ PBR ► DEFINING REQUIREMENTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -882,7 +882,7 @@ If "adjust": Return to scoping.
 **Commit requirements:**
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: define v1 requirements" --files .planning/REQUIREMENTS.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: define v1 requirements" --files .planning/REQUIREMENTS.md
 ```
 
 ## 8. Create Roadmap
@@ -890,13 +890,13 @@ node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: define v1 req
 Display stage banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► CREATING ROADMAP
+ PBR ► CREATING ROADMAP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning roadmapper...
 ```
 
-Spawn gsd-roadmapper agent with path references:
+Spawn pbr-roadmapper agent with path references:
 
 ```
 Task(prompt="
@@ -922,7 +922,7 @@ Create roadmap:
 
 Write files first, then return. This ensures artifacts persist even if context is lost.
 </instructions>
-", subagent_type="gsd-roadmapper", model="{roadmapper_model}", description="Create roadmap")
+", subagent_type="pbr-roadmapper", model="{roadmapper_model}", description="Create roadmap")
 ```
 
 **Handle roadmapper return:**
@@ -1002,7 +1002,7 @@ Use AskUserQuestion:
   Update the roadmap based on feedback. Edit files in place.
   Return ROADMAP REVISED with changes made.
   </revision>
-  ", subagent_type="gsd-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
+  ", subagent_type="pbr-roadmapper", model="{roadmapper_model}", description="Revise roadmap")
   ```
 - Present revised roadmap
 - Loop until user approves
@@ -1012,7 +1012,7 @@ Use AskUserQuestion:
 **Commit roadmap (after approval or auto mode):**
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: create roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: create roadmap ([N] phases)" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md
 ```
 
 ## 9. Done
@@ -1021,7 +1021,7 @@ Present completion summary:
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PROJECT INITIALIZED ✓
+ PBR ► PROJECT INITIALIZED ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **[Project Name]**
@@ -1045,7 +1045,7 @@ Present completion summary:
 ╚══════════════════════════════════════════╝
 ```
 
-Exit skill and invoke SlashCommand("/gsd:discuss-phase 1 --auto")
+Exit skill and invoke SlashCommand("/pbr:discuss-phase 1 --auto")
 
 **If interactive mode:**
 
@@ -1056,14 +1056,14 @@ Exit skill and invoke SlashCommand("/gsd:discuss-phase 1 --auto")
 
 **Phase 1: [Phase Name]** — [Goal from ROADMAP.md]
 
-/gsd:discuss-phase 1 — gather context and clarify approach
+/pbr:discuss-phase 1 — gather context and clarify approach
 
 <sub>/clear first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- /gsd:plan-phase 1 — skip discussion, plan directly
+- /pbr:plan-phase 1 — skip discussion, plan directly
 
 ───────────────────────────────────────────────────────────────
 ```
@@ -1098,13 +1098,13 @@ Exit skill and invoke SlashCommand("/gsd:discuss-phase 1 --auto")
 - [ ] Requirements gathered (from research or conversation)
 - [ ] User scoped each category (v1/v2/out of scope)
 - [ ] REQUIREMENTS.md created with REQ-IDs → **committed**
-- [ ] gsd-roadmapper spawned with context
+- [ ] pbr-roadmapper spawned with context
 - [ ] Roadmap files written immediately (not draft)
 - [ ] User feedback incorporated (if any)
 - [ ] ROADMAP.md created with phases, requirement mappings, success criteria
 - [ ] STATE.md initialized
 - [ ] REQUIREMENTS.md traceability updated
-- [ ] User knows next step is `/gsd:discuss-phase 1`
+- [ ] User knows next step is `/pbr:discuss-phase 1`
 
 **Atomic commits:** Each phase commits its artifacts immediately. If context is lost, artifacts persist.
 

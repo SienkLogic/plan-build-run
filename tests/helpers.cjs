@@ -1,21 +1,21 @@
 /**
- * GSD Tools Test Helpers
+ * PBR Tools Test Helpers
  */
 
 const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TOOLS_PATH = path.join(__dirname, '..', 'get-shit-done', 'bin', 'gsd-tools.cjs');
+const TOOLS_PATH = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
 
 /**
- * Run gsd-tools command.
+ * Run pbr-tools command.
  *
  * @param {string|string[]} args - Command string (shell-interpreted) or array
  *   of arguments (shell-bypassed via execFileSync, safe for JSON and dollar signs).
  * @param {string} cwd - Working directory.
  */
-function runGsdTools(args, cwd = process.cwd()) {
+function runPbrTools(args, cwd = process.cwd()) {
   try {
     let result;
     if (Array.isArray(args)) {
@@ -43,14 +43,14 @@ function runGsdTools(args, cwd = process.cwd()) {
 
 // Create temp directory structure
 function createTempProject() {
-  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'gsd-test-'));
+  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-test-'));
   fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
   return tmpDir;
 }
 
 // Create temp directory with initialized git repo and at least one commit
 function createTempGitProject() {
-  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'gsd-test-'));
+  const tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-test-'));
   fs.mkdirSync(path.join(tmpDir, '.planning', 'phases'), { recursive: true });
 
   execSync('git init', { cwd: tmpDir, stdio: 'pipe' });
@@ -72,4 +72,4 @@ function cleanup(tmpDir) {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 }
 
-module.exports = { runGsdTools, createTempProject, createTempGitProject, cleanup, TOOLS_PATH };
+module.exports = { runPbrTools, createTempProject, createTempGitProject, cleanup, TOOLS_PATH };

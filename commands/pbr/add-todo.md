@@ -10,7 +10,7 @@ allowed-tools:
 ---
 
 <objective>
-Capture an idea, task, or issue that surfaces during a GSD session as a structured todo for later work.
+Capture an idea, task, or issue that surfaces during a PBR session as a structured todo for later work.
 
 Routes to the add-todo workflow which handles:
 - Directory structure creation
@@ -23,7 +23,7 @@ Routes to the add-todo workflow which handles:
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/add-todo.md
+@~/.claude/plan-build-run/workflows/add-todo.md
 </execution_context>
 
 <context>
@@ -33,7 +33,7 @@ State is resolved in-workflow via `init todos` and targeted reads.
 </context>
 
 <process>
-**Follow the add-todo workflow** from `@~/.claude/get-shit-done/workflows/add-todo.md`.
+**Follow the add-todo workflow** from `@~/.claude/plan-build-run/workflows/add-todo.md`.
 
 The workflow handles all logic including:
 1. Directory ensuring

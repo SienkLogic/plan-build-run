@@ -12,7 +12,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 **Load progress context (paths only):**
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init progress)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init progress)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -23,26 +23,26 @@ If `project_exists` is false (no `.planning/` directory):
 ```
 No planning structure found.
 
-Run /gsd:new-project to start a new project.
+Run /pbr:new-project to start a new project.
 ```
 
 Exit.
 
-If missing STATE.md: suggest `/gsd:new-project`.
+If missing STATE.md: suggest `/pbr:new-project`.
 
 **If ROADMAP.md missing but PROJECT.md exists:**
 
 This means a milestone was completed and archived. Go to **Route F** (between milestones).
 
-If missing both ROADMAP.md and PROJECT.md: suggest `/gsd:new-project`.
+If missing both ROADMAP.md and PROJECT.md: suggest `/pbr:new-project`.
 </step>
 
 <step name="load">
-**Use structured extraction from gsd-tools:**
+**Use structured extraction from pbr-tools:**
 
 Instead of reading full files, use targeted tools to get only the data needed for the report:
-- `ROADMAP=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" roadmap analyze)`
-- `STATE=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state-snapshot)`
+- `ROADMAP=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" roadmap analyze)`
+- `STATE=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" state-snapshot)`
 
 This minimizes orchestrator context usage.
 </step>
@@ -51,7 +51,7 @@ This minimizes orchestrator context usage.
 **Get comprehensive roadmap analysis (replaces manual parsing):**
 
 ```bash
-ROADMAP=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" roadmap analyze)
+ROADMAP=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" roadmap analyze)
 ```
 
 This returns structured JSON with:
@@ -70,7 +70,7 @@ Use this instead of manually reading/parsing ROADMAP.md.
 - Find the 2-3 most recent SUMMARY.md files
 - Use `summary-extract` for efficient parsing:
   ```bash
-  node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" summary-extract <path> --fields one_liner
+  node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" summary-extract <path> --fields one_liner
   ```
 - This shows "what we've been working on"
   </step>
@@ -85,11 +85,11 @@ Use this instead of manually reading/parsing ROADMAP.md.
   </step>
 
 <step name="report">
-**Generate progress bar from gsd-tools, then present rich status report:**
+**Generate progress bar from pbr-tools, then present rich status report:**
 
 ```bash
 # Get formatted progress bar
-PROGRESS_BAR=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" progress bar --raw)
+PROGRESS_BAR=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" progress bar --raw)
 ```
 
 Present:
@@ -118,10 +118,10 @@ CONTEXT: [✓ if has_context | - if not]
 - [e.g. jq -r '.blockers[].text' from state-snapshot]
 
 ## Pending Todos
-- [count] pending — /gsd:check-todos to review
+- [count] pending — /pbr:check-todos to review
 
 ## Active Debug Sessions
-- [count] active — /gsd:debug to continue
+- [count] active — /pbr:debug to continue
 (Only show this section if count > 0)
 
 ## What's Next
@@ -180,7 +180,7 @@ Read its `<objective>` section.
 
 **{phase}-{plan}: [Plan Name]** — [objective summary from PLAN.md]
 
-`/gsd:execute-phase {phase}`
+`/pbr:execute-phase {phase}`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -203,7 +203,7 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 **Phase {N}: {Name}** — {Goal from ROADMAP.md}
 <sub>✓ Context gathered, ready to plan</sub>
 
-`/gsd:plan-phase {phase-number}`
+`/pbr:plan-phase {phase-number}`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -219,15 +219,15 @@ Check if `{phase_num}-CONTEXT.md` exists in phase directory.
 
 **Phase {N}: {Name}** — {Goal from ROADMAP.md}
 
-`/gsd:discuss-phase {phase}` — gather context and clarify approach
+`/pbr:discuss-phase {phase}` — gather context and clarify approach
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd:plan-phase {phase}` — skip discussion, plan directly
-- `/gsd:list-phase-assumptions {phase}` — see Claude's assumptions
+- `/pbr:plan-phase {phase}` — skip discussion, plan directly
+- `/pbr:list-phase-assumptions {phase}` — see Claude's assumptions
 
 ---
 ```
@@ -245,15 +245,15 @@ UAT.md exists with gaps (diagnosed issues). User needs to plan fixes.
 
 **{phase_num}-UAT.md** has {N} gaps requiring fixes.
 
-`/gsd:plan-phase {phase} --gaps`
+`/pbr:plan-phase {phase} --gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd:execute-phase {phase}` — execute phase plans
-- `/gsd:verify-work {phase}` — run more UAT testing
+- `/pbr:execute-phase {phase}` — execute phase plans
+- `/pbr:verify-work {phase}` — run more UAT testing
 
 ---
 ```
@@ -292,15 +292,15 @@ Read ROADMAP.md to get the next phase's name and goal.
 
 **Phase {Z+1}: {Name}** — {Goal from ROADMAP.md}
 
-`/gsd:discuss-phase {Z+1}` — gather context and clarify approach
+`/pbr:discuss-phase {Z+1}` — gather context and clarify approach
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd:plan-phase {Z+1}` — skip discussion, plan directly
-- `/gsd:verify-work {Z}` — user acceptance test before continuing
+- `/pbr:plan-phase {Z+1}` — skip discussion, plan directly
+- `/pbr:verify-work {Z}` — user acceptance test before continuing
 
 ---
 ```
@@ -320,14 +320,14 @@ All {N} phases finished!
 
 **Complete Milestone** — archive and prepare for next
 
-`/gsd:complete-milestone`
+`/pbr:complete-milestone`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd:verify-work` — user acceptance test before completing milestone
+- `/pbr:verify-work` — user acceptance test before completing milestone
 
 ---
 ```
@@ -351,7 +351,7 @@ Ready to plan the next milestone.
 
 **Start Next Milestone** — questioning → research → requirements → roadmap
 
-`/gsd:new-milestone`
+`/pbr:new-milestone`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -363,10 +363,10 @@ Ready to plan the next milestone.
 <step name="edge_cases">
 **Handle edge cases:**
 
-- Phase complete but next phase not planned → offer `/gsd:plan-phase [next]`
+- Phase complete but next phase not planned → offer `/pbr:plan-phase [next]`
 - All work complete → offer milestone completion
 - Blockers present → highlight before offering to continue
-- Handoff file exists → mention it, offer `/gsd:resume-work`
+- Handoff file exists → mention it, offer `/pbr:resume-work`
   </step>
 
 </process>
@@ -376,7 +376,7 @@ Ready to plan the next milestone.
 - [ ] Rich context provided (recent work, decisions, issues)
 - [ ] Current position clear with visual progress
 - [ ] What's next clearly explained
-- [ ] Smart routing: /gsd:execute-phase if plans exist, /gsd:plan-phase if not
+- [ ] Smart routing: /pbr:execute-phase if plans exist, /pbr:plan-phase if not
 - [ ] User confirms before any action
-- [ ] Seamless handoff to appropriate gsd command
+- [ ] Seamless handoff to appropriate pbr command
       </success_criteria>

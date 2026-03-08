@@ -1,5 +1,5 @@
 <purpose>
-Create all phases necessary to close gaps identified by `/gsd:audit-milestone`. Reads MILESTONE-AUDIT.md, groups gaps into logical phases, creates phase entries in ROADMAP.md, and offers to plan each phase. One command creates all fix phases — no manual `/gsd:add-phase` per gap.
+Create all phases necessary to close gaps identified by `/pbr:audit-milestone`. Reads MILESTONE-AUDIT.md, groups gaps into logical phases, creates phase entries in ROADMAP.md, and offers to plan each phase. One command creates all fix phases — no manual `/pbr:add-phase` per gap.
 </purpose>
 
 <required_reading>
@@ -22,7 +22,7 @@ Parse YAML frontmatter to extract structured gaps:
 
 If no audit file exists or has no gaps, error:
 ```
-No audit gaps found. Run `/gsd:audit-milestone` first.
+No audit gaps found. Run `/pbr:audit-milestone` first.
 ```
 
 ## 2. Prioritize Gaps
@@ -65,7 +65,7 @@ Gap: Flow "View dashboard" broken at data fetch
 Find highest existing phase:
 ```bash
 # Get sorted phase list, extract last one
-PHASES=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" phases list)
+PHASES=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" phases list)
 HIGHEST=$(printf '%s\n' "$PHASES" | jq -r '.directories[-1]')
 ```
 
@@ -147,7 +147,7 @@ mkdir -p ".planning/phases/{NN}-{name}"
 ## 9. Commit Roadmap and Requirements Update
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs(roadmap): add gap closure phases {N}-{M}" --files .planning/ROADMAP.md .planning/REQUIREMENTS.md
 ```
 
 ## 10. Offer Next Steps
@@ -164,22 +164,22 @@ node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(roadmap): add 
 
 **Plan first gap closure phase**
 
-`/gsd:plan-phase {N}`
+`/pbr:plan-phase {N}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- `/gsd:execute-phase {N}` — if plans already exist
+- `/pbr:execute-phase {N}` — if plans already exist
 - `cat .planning/ROADMAP.md` — see updated roadmap
 
 ---
 
 **After all gap phases complete:**
 
-`/gsd:audit-milestone` — re-audit to verify gaps closed
-`/gsd:complete-milestone {version}` — archive when audit passes
+`/pbr:audit-milestone` — re-audit to verify gaps closed
+`/pbr:complete-milestone {version}` — archive when audit passes
 ```
 
 </process>
@@ -270,5 +270,5 @@ becomes:
 - [ ] Coverage count updated in REQUIREMENTS.md
 - [ ] Phase directories created
 - [ ] Changes committed (includes REQUIREMENTS.md)
-- [ ] User knows to run `/gsd:plan-phase` next
+- [ ] User knows to run `/pbr:plan-phase` next
 </success_criteria>

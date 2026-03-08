@@ -26,7 +26,7 @@ Documents are reference material for Claude when planning/executing. Always incl
 Load codebase mapping context:
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init map-codebase)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init map-codebase)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -83,17 +83,17 @@ Continue to spawn_agents.
 </step>
 
 <step name="spawn_agents">
-Spawn 4 parallel gsd-codebase-mapper agents.
+Spawn 4 parallel pbr-codebase-mapper agents.
 
-Use Task tool with `subagent_type="gsd-codebase-mapper"`, `model="{mapper_model}"`, and `run_in_background=true` for parallel execution.
+Use Task tool with `subagent_type="pbr-codebase-mapper"`, `model="{mapper_model}"`, and `run_in_background=true` for parallel execution.
 
-**CRITICAL:** Use the dedicated `gsd-codebase-mapper` agent, NOT `Explore`. The mapper agent writes documents directly.
+**CRITICAL:** Use the dedicated `pbr-codebase-mapper` agent, NOT `Explore`. The mapper agent writes documents directly.
 
 **Agent 1: Tech Focus**
 
 ```
 Task(
-  subagent_type="gsd-codebase-mapper",
+  subagent_type="pbr-codebase-mapper",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase tech stack",
@@ -113,7 +113,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="gsd-codebase-mapper",
+  subagent_type="pbr-codebase-mapper",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase architecture",
@@ -133,7 +133,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="gsd-codebase-mapper",
+  subagent_type="pbr-codebase-mapper",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase conventions",
@@ -153,7 +153,7 @@ Explore thoroughly. Write documents directly using templates. Return confirmatio
 
 ```
 Task(
-  subagent_type="gsd-codebase-mapper",
+  subagent_type="pbr-codebase-mapper",
   model="{mapper_model}",
   run_in_background=true,
   description="Map codebase concerns",
@@ -251,7 +251,7 @@ Continue to commit_codebase_map.
 Commit the codebase map:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: map existing codebase" --files .planning/codebase/*.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: map existing codebase" --files .planning/codebase/*.md
 ```
 
 Continue to offer_next.
@@ -286,14 +286,14 @@ Created .planning/codebase/:
 
 **Initialize project** — use codebase context for planning
 
-`/gsd:new-project`
+`/pbr:new-project`
 
 <sub>`/clear` first → fresh context window</sub>
 
 ---
 
 **Also available:**
-- Re-run mapping: `/gsd:map-codebase`
+- Re-run mapping: `/pbr:map-codebase`
 - Review specific file: `cat .planning/codebase/STACK.md`
 - Edit any document before proceeding
 
@@ -307,10 +307,10 @@ End workflow.
 
 <success_criteria>
 - .planning/codebase/ directory created
-- 4 parallel gsd-codebase-mapper agents spawned with run_in_background=true
+- 4 parallel pbr-codebase-mapper agents spawned with run_in_background=true
 - Agents write documents directly (orchestrator doesn't receive document contents)
 - Read agent output files to collect confirmations
 - All 7 codebase documents exist
 - Clear completion summary with line counts
-- User offered clear next steps in GSD style
+- User offered clear next steps in PBR style
 </success_criteria>

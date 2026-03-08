@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Check for GSD updates in background, write result to cache
+// Check for PBR updates in background, write result to cache
 // Called by SessionStart hook - runs once per session
 
 const fs = require('fs');
@@ -15,11 +15,11 @@ const cwd = process.cwd();
 function detectConfigDir(baseDir) {
   // Check env override first (supports multi-account setups)
   const envDir = process.env.CLAUDE_CONFIG_DIR;
-  if (envDir && fs.existsSync(path.join(envDir, 'get-shit-done', 'VERSION'))) {
+  if (envDir && fs.existsSync(path.join(envDir, 'plan-build-run', 'VERSION'))) {
     return envDir;
   }
   for (const dir of ['.config/opencode', '.opencode', '.gemini', '.claude']) {
-    if (fs.existsSync(path.join(baseDir, dir, 'get-shit-done', 'VERSION'))) {
+    if (fs.existsSync(path.join(baseDir, dir, 'plan-build-run', 'VERSION'))) {
       return path.join(baseDir, dir);
     }
   }
@@ -32,8 +32,8 @@ const cacheDir = path.join(globalConfigDir, 'cache');
 const cacheFile = path.join(cacheDir, 'gsd-update-check.json');
 
 // VERSION file locations (check project first, then global)
-const projectVersionFile = path.join(projectConfigDir, 'get-shit-done', 'VERSION');
-const globalVersionFile = path.join(globalConfigDir, 'get-shit-done', 'VERSION');
+const projectVersionFile = path.join(projectConfigDir, 'plan-build-run', 'VERSION');
+const globalVersionFile = path.join(globalConfigDir, 'plan-build-run', 'VERSION');
 
 // Ensure cache directory exists
 if (!fs.existsSync(cacheDir)) {
@@ -61,7 +61,7 @@ const child = spawn(process.execPath, ['-e', `
 
   let latest = null;
   try {
-    latest = execSync('npm view get-shit-done-cc version', { encoding: 'utf8', timeout: 10000, windowsHide: true }).trim();
+    latest = execSync('npm view @sienklogic/plan-build-run version', { encoding: 'utf8', timeout: 10000, windowsHide: true }).trim();
   } catch (e) {}
 
   const result = {

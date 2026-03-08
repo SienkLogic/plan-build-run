@@ -1,5 +1,5 @@
 <purpose>
-Switch the model profile used by GSD agents. Controls which Claude model each agent uses, balancing quality vs token spend.
+Switch the model profile used by PBR agents. Controls which Claude model each agent uses, balancing quality vs token spend.
 </purpose>
 
 <required_reading>
@@ -23,8 +23,8 @@ if $ARGUMENTS.profile not in ["quality", "balanced", "budget"]:
 Ensure config exists and load current state:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-ensure-section
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state load)
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-ensure-section
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -52,14 +52,14 @@ Display confirmation with model table for selected profile:
 
 Agents will now use:
 
-[Show table from MODEL_PROFILES in gsd-tools.cjs for selected profile]
+[Show table from MODEL_PROFILES in pbr-tools.cjs for selected profile]
 
 Example:
 | Agent | Model |
 |-------|-------|
-| gsd-planner | opus |
-| gsd-executor | sonnet |
-| gsd-verifier | haiku |
+| pbr-planner | opus |
+| pbr-executor | sonnet |
+| pbr-verifier | haiku |
 | ... | ... |
 
 Next spawned agents will use the new profile.

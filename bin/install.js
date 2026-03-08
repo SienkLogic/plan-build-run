@@ -14,20 +14,20 @@ const dim = '\x1b[2m';
 const reset = '\x1b[0m';
 
 // Codex config.toml constants
-const GSD_CODEX_MARKER = '# GSD Agent Configuration \u2014 managed by get-shit-done installer';
+const PBR_CODEX_MARKER = '# PBR Agent Configuration \u2014 managed by plan-build-run installer';
 
 const CODEX_AGENT_SANDBOX = {
-  'gsd-executor': 'workspace-write',
-  'gsd-planner': 'workspace-write',
-  'gsd-phase-researcher': 'workspace-write',
-  'gsd-project-researcher': 'workspace-write',
-  'gsd-research-synthesizer': 'workspace-write',
-  'gsd-verifier': 'workspace-write',
-  'gsd-codebase-mapper': 'workspace-write',
-  'gsd-roadmapper': 'workspace-write',
-  'gsd-debugger': 'workspace-write',
-  'gsd-plan-checker': 'read-only',
-  'gsd-integration-checker': 'read-only',
+  'pbr-executor': 'workspace-write',
+  'pbr-planner': 'workspace-write',
+  'pbr-phase-researcher': 'workspace-write',
+  'pbr-project-researcher': 'workspace-write',
+  'pbr-research-synthesizer': 'workspace-write',
+  'pbr-verifier': 'workspace-write',
+  'pbr-codebase-mapper': 'workspace-write',
+  'pbr-roadmapper': 'workspace-write',
+  'pbr-debugger': 'workspace-write',
+  'pbr-plan-checker': 'read-only',
+  'pbr-integration-checker': 'read-only',
 };
 
 // Get version from package.json
@@ -182,7 +182,7 @@ const banner = '\n' +
   '  ╚██████╔╝███████║██████╔╝\n' +
   '   ╚═════╝ ╚══════╝╚═════╝' + reset + '\n' +
   '\n' +
-  '  Get Shit Done ' + dim + 'v' + pkg.version + reset + '\n' +
+  '  Plan-Build-Run ' + dim + 'v' + pkg.version + reset + '\n' +
   '  A meta-prompting, context engineering and spec-driven\n' +
   '  development system for Claude Code, OpenCode, Gemini, and Codex by TÂCHES.\n';
 
@@ -218,7 +218,7 @@ console.log(banner);
 
 // Show help if requested
 if (hasHelp) {
-  console.log(`  ${yellow}Usage:${reset} npx get-shit-done-cc [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall GSD (remove all GSD files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx get-shit-done-cc\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx get-shit-done-cc --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx get-shit-done-cc --gemini --global\n\n    ${dim}# Install for Codex globally${reset}\n    npx get-shit-done-cc --codex --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx get-shit-done-cc --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx get-shit-done-cc --codex --global --config-dir ~/.codex-work\n\n    ${dim}# Install to current project only${reset}\n    npx get-shit-done-cc --claude --local\n\n    ${dim}# Uninstall GSD from Codex globally${reset}\n    npx get-shit-done-cc --codex --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME environment variables.\n`);
+  console.log(`  ${yellow}Usage:${reset} npx @sienklogic/plan-build-run [options]\n\n  ${yellow}Options:${reset}\n    ${cyan}-g, --global${reset}              Install globally (to config directory)\n    ${cyan}-l, --local${reset}               Install locally (to current directory)\n    ${cyan}--claude${reset}                  Install for Claude Code only\n    ${cyan}--opencode${reset}                Install for OpenCode only\n    ${cyan}--gemini${reset}                  Install for Gemini only\n    ${cyan}--codex${reset}                   Install for Codex only\n    ${cyan}--all${reset}                     Install for all runtimes\n    ${cyan}-u, --uninstall${reset}           Uninstall PBR (remove all PBR files)\n    ${cyan}-c, --config-dir <path>${reset}   Specify custom config directory\n    ${cyan}-h, --help${reset}                Show this help message\n    ${cyan}--force-statusline${reset}        Replace existing statusline config\n\n  ${yellow}Examples:${reset}\n    ${dim}# Interactive install (prompts for runtime and location)${reset}\n    npx @sienklogic/plan-build-run\n\n    ${dim}# Install for Claude Code globally${reset}\n    npx @sienklogic/plan-build-run --claude --global\n\n    ${dim}# Install for Gemini globally${reset}\n    npx @sienklogic/plan-build-run --gemini --global\n\n    ${dim}# Install for Codex globally${reset}\n    npx @sienklogic/plan-build-run --codex --global\n\n    ${dim}# Install for all runtimes globally${reset}\n    npx @sienklogic/plan-build-run --all --global\n\n    ${dim}# Install to custom config directory${reset}\n    npx @sienklogic/plan-build-run --codex --global --config-dir ~/.codex-work\n\n    ${dim}# Install to current project only${reset}\n    npx @sienklogic/plan-build-run --claude --local\n\n    ${dim}# Uninstall PBR from Codex globally${reset}\n    npx @sienklogic/plan-build-run --codex --global --uninstall\n\n  ${yellow}Notes:${reset}\n    The --config-dir option is useful when you have multiple configurations.\n    It takes priority over CLAUDE_CONFIG_DIR / GEMINI_CONFIG_DIR / CODEX_HOME environment variables.\n`);
   process.exit(0);
 }
 
@@ -453,16 +453,16 @@ function extractFrontmatterField(frontmatter, fieldName) {
 }
 
 function convertSlashCommandsToCodexSkillMentions(content) {
-  let converted = content.replace(/\/gsd:([a-z0-9-]+)/gi, (_, commandName) => {
-    return `$gsd-${String(commandName).toLowerCase()}`;
+  let converted = content.replace(/\/pbr:([a-z0-9-]+)/gi, (_, commandName) => {
+    return `$pbr-${String(commandName).toLowerCase()}`;
   });
-  converted = converted.replace(/\/gsd-help\b/g, '$gsd-help');
+  converted = converted.replace(/\/pbr-help\b/g, '$pbr-help');
   return converted;
 }
 
 function convertClaudeToCodexMarkdown(content) {
   let converted = convertSlashCommandsToCodexSkillMentions(content);
-  converted = converted.replace(/\$ARGUMENTS\b/g, '{{GSD_ARGS}}');
+  converted = converted.replace(/\$ARGUMENTS\b/g, '{{PBR_ARGS}}');
   return converted;
 }
 
@@ -471,11 +471,11 @@ function getCodexSkillAdapterHeader(skillName) {
   return `<codex_skill_adapter>
 ## A. Skill Invocation
 - This skill is invoked by mentioning \`${invocation}\`.
-- Treat all user text after \`${invocation}\` as \`{{GSD_ARGS}}\`.
-- If no arguments are present, treat \`{{GSD_ARGS}}\` as empty.
+- Treat all user text after \`${invocation}\` as \`{{PBR_ARGS}}\`.
+- If no arguments are present, treat \`{{PBR_ARGS}}\` as empty.
 
 ## B. AskUserQuestion → request_user_input Mapping
-GSD workflows use \`AskUserQuestion\` (Claude Code syntax). Translate to Codex \`request_user_input\`:
+PBR workflows use \`AskUserQuestion\` (Claude Code syntax). Translate to Codex \`request_user_input\`:
 
 Parameter mapping:
 - \`header\` → \`header\`
@@ -493,12 +493,12 @@ Execute mode fallback:
 - When \`request_user_input\` is rejected (Execute mode), present a plain-text numbered list and pick a reasonable default.
 
 ## C. Task() → spawn_agent Mapping
-GSD workflows use \`Task(...)\` (Claude Code syntax). Translate to Codex collaboration tools:
+PBR workflows use \`Task(...)\` (Claude Code syntax). Translate to Codex collaboration tools:
 
 Direct mapping:
 - \`Task(subagent_type="X", prompt="Y")\` → \`spawn_agent(agent_type="X", message="Y")\`
 - \`Task(model="...")\` → omit (Codex uses per-role config, not inline model selection)
-- \`fork_context: false\` by default — GSD agents load their own context via \`<files_to_read>\` blocks
+- \`fork_context: false\` by default — PBR agents load their own context via \`<files_to_read>\` blocks
 
 Parallel fan-out:
 - Spawn multiple agents → collect agent IDs → \`wait(ids)\` for all to complete
@@ -512,7 +512,7 @@ Result parsing:
 function convertClaudeCommandToCodexSkill(content, skillName) {
   const converted = convertClaudeToCodexMarkdown(content);
   const { frontmatter, body } = extractFrontmatterAndBody(converted);
-  let description = `Run GSD workflow ${skillName}.`;
+  let description = `Run PBR workflow ${skillName}.`;
   if (frontmatter) {
     const maybeDescription = extractFrontmatterField(frontmatter, 'description');
     if (maybeDescription) {
@@ -571,12 +571,12 @@ function generateCodexAgentToml(agentName, agentContent) {
 }
 
 /**
- * Generate the GSD config block for Codex config.toml.
+ * Generate the PBR config block for Codex config.toml.
  * @param {Array<{name: string, description: string}>} agents
  */
 function generateCodexConfigBlock(agents) {
   const lines = [
-    GSD_CODEX_MARKER,
+    PBR_CODEX_MARKER,
     '[features]',
     'multi_agent = true',
     'default_mode_request_user_input = true',
@@ -598,16 +598,16 @@ function generateCodexConfigBlock(agents) {
 }
 
 /**
- * Strip GSD sections from Codex config.toml content.
+ * Strip PBR sections from Codex config.toml content.
  * Returns cleaned content, or null if file would be empty.
  */
-function stripGsdFromCodexConfig(content) {
-  const markerIndex = content.indexOf(GSD_CODEX_MARKER);
+function stripPbrFromCodexConfig(content) {
+  const markerIndex = content.indexOf(PBR_CODEX_MARKER);
 
   if (markerIndex !== -1) {
-    // Has GSD marker — remove everything from marker to EOF
+    // Has PBR marker — remove everything from marker to EOF
     let before = content.substring(0, markerIndex).trimEnd();
-    // Also strip GSD-injected feature keys above the marker (Case 3 inject)
+    // Also strip PBR-injected feature keys above the marker (Case 3 inject)
     before = before.replace(/^multi_agent\s*=\s*true\s*\n?/m, '');
     before = before.replace(/^default_mode_request_user_input\s*=\s*true\s*\n?/m, '');
     before = before.replace(/^\[features\]\s*\n(?=\[|$)/m, '');
@@ -616,13 +616,13 @@ function stripGsdFromCodexConfig(content) {
     return before + '\n';
   }
 
-  // No marker but may have GSD-injected feature keys
+  // No marker but may have PBR-injected feature keys
   let cleaned = content;
   cleaned = cleaned.replace(/^multi_agent\s*=\s*true\s*\n?/m, '');
   cleaned = cleaned.replace(/^default_mode_request_user_input\s*=\s*true\s*\n?/m, '');
 
-  // Remove [agents.gsd-*] sections (from header to next section or EOF)
-  cleaned = cleaned.replace(/^\[agents\.gsd-[^\]]+\]\n(?:(?!\[)[^\n]*\n?)*/gm, '');
+  // Remove [agents.pbr-*] sections (from header to next section or EOF)
+  cleaned = cleaned.replace(/^\[agents\.pbr-[^\]]+\]\n(?:(?!\[)[^\n]*\n?)*/gm, '');
 
   // Remove [features] section if now empty (only header, no keys before next section)
   cleaned = cleaned.replace(/^\[features\]\s*\n(?=\[|$)/m, '');
@@ -638,25 +638,25 @@ function stripGsdFromCodexConfig(content) {
 }
 
 /**
- * Merge GSD config block into an existing or new config.toml.
- * Three cases: new file, existing with GSD marker, existing without marker.
+ * Merge PBR config block into an existing or new config.toml.
+ * Three cases: new file, existing with PBR marker, existing without marker.
  */
-function mergeCodexConfig(configPath, gsdBlock) {
+function mergeCodexConfig(configPath, pbrBlock) {
   // Case 1: No config.toml — create fresh
   if (!fs.existsSync(configPath)) {
-    fs.writeFileSync(configPath, gsdBlock + '\n');
+    fs.writeFileSync(configPath, pbrBlock + '\n');
     return;
   }
 
   const existing = fs.readFileSync(configPath, 'utf8');
-  const markerIndex = existing.indexOf(GSD_CODEX_MARKER);
+  const markerIndex = existing.indexOf(PBR_CODEX_MARKER);
 
-  // Case 2: Has GSD marker — truncate and re-append
+  // Case 2: Has PBR marker — truncate and re-append
   if (markerIndex !== -1) {
     let before = existing.substring(0, markerIndex).trimEnd();
     if (before) {
-      // Strip any GSD-managed sections that leaked above the marker from previous installs
-      before = before.replace(/^\[agents\.gsd-[^\]]+\]\n(?:(?!\[)[^\n]*\n?)*/gm, '');
+      // Strip any PBR-managed sections that leaked above the marker from previous installs
+      before = before.replace(/^\[agents\.pbr-[^\]]+\]\n(?:(?!\[)[^\n]*\n?)*/gm, '');
       before = before.replace(/^\[agents\]\n(?:(?!\[)[^\n]*\n?)*/m, '');
       before = before.replace(/\n{3,}/g, '\n\n').trimEnd();
 
@@ -670,13 +670,13 @@ function mergeCodexConfig(configPath, gsdBlock) {
           before = before.replace(/^\[features\].*$/m, '$&\ndefault_mode_request_user_input = true');
         }
       }
-      // Skip [features] from gsdBlock if user already has it
+      // Skip [features] from pbrBlock if user already has it
       const block = hasFeatures
-        ? GSD_CODEX_MARKER + '\n' + gsdBlock.substring(gsdBlock.indexOf('[agents]'))
-        : gsdBlock;
+        ? PBR_CODEX_MARKER + '\n' + pbrBlock.substring(pbrBlock.indexOf('[agents]'))
+        : pbrBlock;
       fs.writeFileSync(configPath, before + '\n\n' + block + '\n');
     } else {
-      fs.writeFileSync(configPath, gsdBlock + '\n');
+      fs.writeFileSync(configPath, pbrBlock + '\n');
     }
     return;
   }
@@ -693,11 +693,11 @@ function mergeCodexConfig(configPath, gsdBlock) {
     if (!content.includes('default_mode_request_user_input')) {
       content = content.replace(/^\[features\].*$/m, '$&\ndefault_mode_request_user_input = true');
     }
-    // Append agents block (skip the [features] section from gsdBlock)
-    const agentsBlock = gsdBlock.substring(gsdBlock.indexOf('[agents]'));
-    content = content.trimEnd() + '\n\n' + GSD_CODEX_MARKER + '\n' + agentsBlock + '\n';
+    // Append agents block (skip the [features] section from pbrBlock)
+    const agentsBlock = pbrBlock.substring(pbrBlock.indexOf('[agents]'));
+    content = content.trimEnd() + '\n\n' + PBR_CODEX_MARKER + '\n' + agentsBlock + '\n';
   } else {
-    content = content.trimEnd() + '\n\n' + gsdBlock + '\n';
+    content = content.trimEnd() + '\n\n' + pbrBlock + '\n';
   }
 
   fs.writeFileSync(configPath, content);
@@ -712,7 +712,7 @@ function installCodexConfig(targetDir, agentsSrc) {
   const agentsTomlDir = path.join(targetDir, 'agents');
   fs.mkdirSync(agentsTomlDir, { recursive: true });
 
-  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('gsd-') && f.endsWith('.md'));
+  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('pbr-') && f.endsWith('.md'));
   const agents = [];
 
   // Compute the Codex pathPrefix for replacing .claude paths
@@ -733,8 +733,8 @@ function installCodexConfig(targetDir, agentsSrc) {
     fs.writeFileSync(path.join(agentsTomlDir, `${name}.toml`), tomlContent);
   }
 
-  const gsdBlock = generateCodexConfigBlock(agents);
-  mergeCodexConfig(configPath, gsdBlock);
+  const pbrBlock = generateCodexConfigBlock(agents);
+  mergeCodexConfig(configPath, pbrBlock);
 
   return agents.length;
 }
@@ -828,7 +828,7 @@ function convertClaudeToGeminiAgent(content) {
   // Escape ${VAR} patterns in agent body for Gemini CLI compatibility.
   // Gemini's templateString() treats all ${word} patterns as template variables
   // and throws "Template validation failed: Missing required input parameters"
-  // when they can't be resolved. GSD agents use ${PHASE}, ${PLAN}, etc. as
+  // when they can't be resolved. PBR agents use ${PHASE}, ${PLAN}, etc. as
   // shell variables in bash code blocks — convert to $VAR (no braces) which
   // is equivalent bash and invisible to Gemini's /\$\{(\w+)\}/g regex.
   const escapedBody = body.replace(/\$\{(\w+)\}/g, '$$$1');
@@ -842,8 +842,8 @@ function convertClaudeToOpencodeFrontmatter(content) {
   convertedContent = convertedContent.replace(/\bAskUserQuestion\b/g, 'question');
   convertedContent = convertedContent.replace(/\bSlashCommand\b/g, 'skill');
   convertedContent = convertedContent.replace(/\bTodoWrite\b/g, 'todowrite');
-  // Replace /gsd:command with /gsd-command for opencode (flat command structure)
-  convertedContent = convertedContent.replace(/\/gsd:/g, '/gsd-');
+  // Replace /pbr:command with /pbr-command for opencode (flat command structure)
+  convertedContent = convertedContent.replace(/\/pbr:/g, '/pbr-');
   // Replace ~/.claude and $HOME/.claude with OpenCode's config location
   convertedContent = convertedContent.replace(/~\/\.claude\b/g, '~/.config/opencode');
   convertedContent = convertedContent.replace(/\$HOME\/\.claude\b/g, '$HOME/.config/opencode');
@@ -986,12 +986,12 @@ function convertClaudeToGeminiToml(content) {
 
 /**
  * Copy commands to a flat structure for OpenCode
- * OpenCode expects: command/gsd-help.md (invoked as /gsd-help)
- * Source structure: commands/gsd/help.md
+ * OpenCode expects: command/pbr-help.md (invoked as /pbr-help)
+ * Source structure: commands/pbr/help.md
  * 
- * @param {string} srcDir - Source directory (e.g., commands/gsd/)
+ * @param {string} srcDir - Source directory (e.g., commands/pbr/)
  * @param {string} destDir - Destination directory (e.g., command/)
- * @param {string} prefix - Prefix for filenames (e.g., 'gsd')
+ * @param {string} prefix - Prefix for filenames (e.g., 'pbr')
  * @param {string} pathPrefix - Path prefix for file references
  * @param {string} runtime - Target runtime ('claude' or 'opencode')
  */
@@ -1000,7 +1000,7 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
     return;
   }
   
-  // Remove old gsd-*.md files before copying new ones
+  // Remove old pbr-*.md files before copying new ones
   if (fs.existsSync(destDir)) {
     for (const file of fs.readdirSync(destDir)) {
       if (file.startsWith(`${prefix}-`) && file.endsWith('.md')) {
@@ -1018,10 +1018,10 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
     
     if (entry.isDirectory()) {
       // Recurse into subdirectories, adding to prefix
-      // e.g., commands/gsd/debug/start.md -> command/gsd-debug-start.md
+      // e.g., commands/pbr/debug/start.md -> command/pbr-debug-start.md
       copyFlattenedCommands(srcPath, destDir, `${prefix}-${entry.name}`, pathPrefix, runtime);
     } else if (entry.name.endsWith('.md')) {
-      // Flatten: help.md -> gsd-help.md
+      // Flatten: help.md -> pbr-help.md
       const baseName = entry.name.replace('.md', '');
       const destName = `${prefix}-${baseName}.md`;
       const destPath = path.join(destDir, destName);
@@ -1043,7 +1043,7 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
   }
 }
 
-function listCodexSkillNames(skillsDir, prefix = 'gsd-') {
+function listCodexSkillNames(skillsDir, prefix = 'pbr-') {
   if (!fs.existsSync(skillsDir)) return [];
   const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
   return entries
@@ -1060,7 +1060,7 @@ function copyCommandsAsCodexSkills(srcDir, skillsDir, prefix, pathPrefix, runtim
 
   fs.mkdirSync(skillsDir, { recursive: true });
 
-  // Remove previous GSD Codex skills to avoid stale command skills.
+  // Remove previous PBR Codex skills to avoid stale command skills.
   const existing = fs.readdirSync(skillsDir, { withFileTypes: true });
   for (const entry of existing) {
     if (entry.isDirectory() && entry.name.startsWith(`${prefix}-`)) {
@@ -1172,12 +1172,12 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand
 }
 
 /**
- * Clean up orphaned files from previous GSD versions
+ * Clean up orphaned files from previous PBR versions
  */
 function cleanupOrphanedFiles(configDir) {
   const orphanedFiles = [
-    'hooks/gsd-notify.sh',  // Removed in v1.6.x
-    'hooks/statusline.js',  // Renamed to gsd-statusline.js in v1.9.0
+    'hooks/pbr-notify.sh',  // Removed in v1.6.x
+    'hooks/statusline.js',  // Renamed to pbr-statusline.js in v1.9.0
   ];
 
   for (const relPath of orphanedFiles) {
@@ -1194,11 +1194,11 @@ function cleanupOrphanedFiles(configDir) {
  */
 function cleanupOrphanedHooks(settings) {
   const orphanedHookPatterns = [
-    'gsd-notify.sh',  // Removed in v1.6.x
-    'hooks/statusline.js',  // Renamed to gsd-statusline.js in v1.9.0
-    'gsd-intel-index.js',  // Removed in v1.9.2
-    'gsd-intel-session.js',  // Removed in v1.9.2
-    'gsd-intel-prune.js',  // Removed in v1.9.2
+    'pbr-notify.sh',  // Removed in v1.6.x
+    'hooks/statusline.js',  // Renamed to pbr-statusline.js in v1.9.0
+    'pbr-intel-index.js',  // Removed in v1.9.2
+    'pbr-intel-session.js',  // Removed in v1.9.2
+    'pbr-intel-prune.js',  // Removed in v1.9.2
   ];
 
   let cleanedHooks = false;
@@ -1231,24 +1231,24 @@ function cleanupOrphanedHooks(settings) {
     console.log(`  ${green}✓${reset} Removed orphaned hook registrations`);
   }
 
-  // Fix #330: Update statusLine if it points to old GSD statusline.js path
-  // Only match the specific old GSD path pattern (hooks/statusline.js),
+  // Fix #330: Update statusLine if it points to old PBR statusline.js path
+  // Only match the specific old PBR path pattern (hooks/statusline.js),
   // not third-party statusline scripts that happen to contain 'statusline.js'
   if (settings.statusLine && settings.statusLine.command &&
       /hooks[\/\\]statusline\.js/.test(settings.statusLine.command)) {
     settings.statusLine.command = settings.statusLine.command.replace(
       /hooks([\/\\])statusline\.js/,
-      'hooks$1gsd-statusline.js'
+      'hooks$1pbr-statusline.js'
     );
-    console.log(`  ${green}✓${reset} Updated statusline path (hooks/statusline.js → hooks/gsd-statusline.js)`);
+    console.log(`  ${green}✓${reset} Updated statusline path (hooks/statusline.js → hooks/pbr-statusline.js)`);
   }
 
   return settings;
 }
 
 /**
- * Uninstall GSD from the specified directory for a specific runtime
- * Removes only GSD-specific files/directories, preserves user content
+ * Uninstall PBR from the specified directory for a specific runtime
+ * Removes only PBR-specific files/directories, preserves user content
  * @param {boolean} isGlobal - Whether to uninstall from global or local
  * @param {string} runtime - Target runtime ('claude', 'opencode', 'gemini', 'codex')
  */
@@ -1271,7 +1271,7 @@ function uninstall(isGlobal, runtime = 'claude') {
   if (runtime === 'gemini') runtimeLabel = 'Gemini';
   if (runtime === 'codex') runtimeLabel = 'Codex';
 
-  console.log(`  Uninstalling GSD from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
+  console.log(`  Uninstalling PBR from ${cyan}${runtimeLabel}${reset} at ${cyan}${locationLabel}${reset}\n`);
 
   // Check if target directory exists
   if (!fs.existsSync(targetDir)) {
@@ -1282,28 +1282,28 @@ function uninstall(isGlobal, runtime = 'claude') {
 
   let removedCount = 0;
 
-  // 1. Remove GSD commands/skills
+  // 1. Remove PBR commands/skills
   if (isOpencode) {
-    // OpenCode: remove command/gsd-*.md files
+    // OpenCode: remove command/pbr-*.md files
     const commandDir = path.join(targetDir, 'command');
     if (fs.existsSync(commandDir)) {
       const files = fs.readdirSync(commandDir);
       for (const file of files) {
-        if (file.startsWith('gsd-') && file.endsWith('.md')) {
+        if (file.startsWith('pbr-') && file.endsWith('.md')) {
           fs.unlinkSync(path.join(commandDir, file));
           removedCount++;
         }
       }
-      console.log(`  ${green}✓${reset} Removed GSD commands from command/`);
+      console.log(`  ${green}✓${reset} Removed PBR commands from command/`);
     }
   } else if (isCodex) {
-    // Codex: remove skills/gsd-*/SKILL.md skill directories
+    // Codex: remove skills/pbr-*/SKILL.md skill directories
     const skillsDir = path.join(targetDir, 'skills');
     if (fs.existsSync(skillsDir)) {
       let skillCount = 0;
       const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.isDirectory() && entry.name.startsWith('gsd-')) {
+        if (entry.isDirectory() && entry.name.startsWith('pbr-')) {
           fs.rmSync(path.join(skillsDir, entry.name), { recursive: true });
           skillCount++;
         }
@@ -1314,13 +1314,13 @@ function uninstall(isGlobal, runtime = 'claude') {
       }
     }
 
-    // Codex: remove GSD agent .toml config files
+    // Codex: remove PBR agent .toml config files
     const codexAgentsDir = path.join(targetDir, 'agents');
     if (fs.existsSync(codexAgentsDir)) {
       const tomlFiles = fs.readdirSync(codexAgentsDir);
       let tomlCount = 0;
       for (const file of tomlFiles) {
-        if (file.startsWith('gsd-') && file.endsWith('.toml')) {
+        if (file.startsWith('pbr-') && file.endsWith('.toml')) {
           fs.unlinkSync(path.join(codexAgentsDir, file));
           tomlCount++;
         }
@@ -1331,63 +1331,63 @@ function uninstall(isGlobal, runtime = 'claude') {
       }
     }
 
-    // Codex: clean GSD sections from config.toml
+    // Codex: clean PBR sections from config.toml
     const configPath = path.join(targetDir, 'config.toml');
     if (fs.existsSync(configPath)) {
       const content = fs.readFileSync(configPath, 'utf8');
-      const cleaned = stripGsdFromCodexConfig(content);
+      const cleaned = stripPbrFromCodexConfig(content);
       if (cleaned === null) {
         // File is empty after stripping — delete it
         fs.unlinkSync(configPath);
         removedCount++;
-        console.log(`  ${green}✓${reset} Removed config.toml (was GSD-only)`);
+        console.log(`  ${green}✓${reset} Removed config.toml (was PBR-only)`);
       } else if (cleaned !== content) {
         fs.writeFileSync(configPath, cleaned);
         removedCount++;
-        console.log(`  ${green}✓${reset} Cleaned GSD sections from config.toml`);
+        console.log(`  ${green}✓${reset} Cleaned PBR sections from config.toml`);
       }
     }
   } else {
-    // Claude Code & Gemini: remove commands/gsd/ directory
-    const gsdCommandsDir = path.join(targetDir, 'commands', 'gsd');
-    if (fs.existsSync(gsdCommandsDir)) {
-      fs.rmSync(gsdCommandsDir, { recursive: true });
+    // Claude Code & Gemini: remove commands/pbr/ directory
+    const pbrCommandsDir = path.join(targetDir, 'commands', 'gsd');
+    if (fs.existsSync(pbrCommandsDir)) {
+      fs.rmSync(pbrCommandsDir, { recursive: true });
       removedCount++;
-      console.log(`  ${green}✓${reset} Removed commands/gsd/`);
+      console.log(`  ${green}✓${reset} Removed commands/pbr/`);
     }
   }
 
-  // 2. Remove get-shit-done directory
-  const gsdDir = path.join(targetDir, 'get-shit-done');
-  if (fs.existsSync(gsdDir)) {
-    fs.rmSync(gsdDir, { recursive: true });
+  // 2. Remove plan-build-run directory
+  const pbrDir = path.join(targetDir, 'plan-build-run');
+  if (fs.existsSync(pbrDir)) {
+    fs.rmSync(pbrDir, { recursive: true });
     removedCount++;
-    console.log(`  ${green}✓${reset} Removed get-shit-done/`);
+    console.log(`  ${green}✓${reset} Removed plan-build-run/`);
   }
 
-  // 3. Remove GSD agents (gsd-*.md files only)
+  // 3. Remove PBR agents (gsd-*.md files only)
   const agentsDir = path.join(targetDir, 'agents');
   if (fs.existsSync(agentsDir)) {
     const files = fs.readdirSync(agentsDir);
     let agentCount = 0;
     for (const file of files) {
-      if (file.startsWith('gsd-') && file.endsWith('.md')) {
+      if (file.startsWith('pbr-') && file.endsWith('.md')) {
         fs.unlinkSync(path.join(agentsDir, file));
         agentCount++;
       }
     }
     if (agentCount > 0) {
       removedCount++;
-      console.log(`  ${green}✓${reset} Removed ${agentCount} GSD agents`);
+      console.log(`  ${green}✓${reset} Removed ${agentCount} PBR agents`);
     }
   }
 
-  // 4. Remove GSD hooks
+  // 4. Remove PBR hooks
   const hooksDir = path.join(targetDir, 'hooks');
   if (fs.existsSync(hooksDir)) {
-    const gsdHooks = ['gsd-statusline.js', 'gsd-check-update.js', 'gsd-check-update.sh', 'gsd-context-monitor.js'];
+    const pbrHooks = ['pbr-statusline.js', 'pbr-check-update.js', 'pbr-check-update.sh', 'pbr-context-monitor.js'];
     let hookCount = 0;
-    for (const hook of gsdHooks) {
+    for (const hook of pbrHooks) {
       const hookPath = path.join(hooksDir, hook);
       if (fs.existsSync(hookPath)) {
         fs.unlinkSync(hookPath);
@@ -1396,11 +1396,11 @@ function uninstall(isGlobal, runtime = 'claude') {
     }
     if (hookCount > 0) {
       removedCount++;
-      console.log(`  ${green}✓${reset} Removed ${hookCount} GSD hooks`);
+      console.log(`  ${green}✓${reset} Removed ${hookCount} PBR hooks`);
     }
   }
 
-  // 5. Remove GSD package.json (CommonJS mode marker)
+  // 5. Remove PBR package.json (CommonJS mode marker)
   const pkgJsonPath = path.join(targetDir, 'package.json');
   if (fs.existsSync(pkgJsonPath)) {
     try {
@@ -1409,43 +1409,43 @@ function uninstall(isGlobal, runtime = 'claude') {
       if (content === '{"type":"commonjs"}') {
         fs.unlinkSync(pkgJsonPath);
         removedCount++;
-        console.log(`  ${green}✓${reset} Removed GSD package.json`);
+        console.log(`  ${green}✓${reset} Removed PBR package.json`);
       }
     } catch (e) {
       // Ignore read errors
     }
   }
 
-  // 6. Clean up settings.json (remove GSD hooks and statusline)
+  // 6. Clean up settings.json (remove PBR hooks and statusline)
   const settingsPath = path.join(targetDir, 'settings.json');
   if (fs.existsSync(settingsPath)) {
     let settings = readSettings(settingsPath);
     let settingsModified = false;
 
-    // Remove GSD statusline if it references our hook
+    // Remove PBR statusline if it references our hook
     if (settings.statusLine && settings.statusLine.command &&
-        settings.statusLine.command.includes('gsd-statusline')) {
+        settings.statusLine.command.includes('pbr-statusline')) {
       delete settings.statusLine;
       settingsModified = true;
-      console.log(`  ${green}✓${reset} Removed GSD statusline from settings`);
+      console.log(`  ${green}✓${reset} Removed PBR statusline from settings`);
     }
 
-    // Remove GSD hooks from SessionStart
+    // Remove PBR hooks from SessionStart
     if (settings.hooks && settings.hooks.SessionStart) {
       const before = settings.hooks.SessionStart.length;
       settings.hooks.SessionStart = settings.hooks.SessionStart.filter(entry => {
         if (entry.hooks && Array.isArray(entry.hooks)) {
-          // Filter out GSD hooks
-          const hasGsdHook = entry.hooks.some(h =>
-            h.command && (h.command.includes('gsd-check-update') || h.command.includes('gsd-statusline'))
+          // Filter out PBR hooks
+          const hasPbrHook = entry.hooks.some(h =>
+            h.command && (h.command.includes('pbr-check-update') || h.command.includes('pbr-statusline'))
           );
-          return !hasGsdHook;
+          return !hasPbrHook;
         }
         return true;
       });
       if (settings.hooks.SessionStart.length < before) {
         settingsModified = true;
-        console.log(`  ${green}✓${reset} Removed GSD hooks from settings`);
+        console.log(`  ${green}✓${reset} Removed PBR hooks from settings`);
       }
       // Clean up empty array
       if (settings.hooks.SessionStart.length === 0) {
@@ -1453,16 +1453,16 @@ function uninstall(isGlobal, runtime = 'claude') {
       }
     }
 
-    // Remove GSD hooks from PostToolUse and AfterTool (Gemini uses AfterTool)
+    // Remove PBR hooks from PostToolUse and AfterTool (Gemini uses AfterTool)
     for (const eventName of ['PostToolUse', 'AfterTool']) {
       if (settings.hooks && settings.hooks[eventName]) {
         const before = settings.hooks[eventName].length;
         settings.hooks[eventName] = settings.hooks[eventName].filter(entry => {
           if (entry.hooks && Array.isArray(entry.hooks)) {
-            const hasGsdHook = entry.hooks.some(h =>
-              h.command && h.command.includes('gsd-context-monitor')
+            const hasPbrHook = entry.hooks.some(h =>
+              h.command && h.command.includes('pbr-context-monitor')
             );
-            return !hasGsdHook;
+            return !hasPbrHook;
           }
           return true;
         });
@@ -1500,13 +1500,13 @@ function uninstall(isGlobal, runtime = 'claude') {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         let modified = false;
 
-        // Remove GSD permission entries
+        // Remove PBR permission entries
         if (config.permission) {
           for (const permType of ['read', 'external_directory']) {
             if (config.permission[permType]) {
               const keys = Object.keys(config.permission[permType]);
               for (const key of keys) {
-                if (key.includes('get-shit-done')) {
+                if (key.includes('plan-build-run')) {
                   delete config.permission[permType][key];
                   modified = true;
                 }
@@ -1525,7 +1525,7 @@ function uninstall(isGlobal, runtime = 'claude') {
         if (modified) {
           fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
           removedCount++;
-          console.log(`  ${green}✓${reset} Removed GSD permissions from opencode.json`);
+          console.log(`  ${green}✓${reset} Removed PBR permissions from opencode.json`);
         }
       } catch (e) {
         // Ignore JSON parse errors
@@ -1534,11 +1534,11 @@ function uninstall(isGlobal, runtime = 'claude') {
   }
 
   if (removedCount === 0) {
-    console.log(`  ${yellow}⚠${reset} No GSD files found to remove.`);
+    console.log(`  ${yellow}⚠${reset} No PBR files found to remove.`);
   }
 
   console.log(`
-  ${green}Done!${reset} GSD has been uninstalled from ${runtimeLabel}.
+  ${green}Done!${reset} PBR has been uninstalled from ${runtimeLabel}.
   Your other files and settings have been preserved.
 `);
 }
@@ -1605,8 +1605,8 @@ function parseJsonc(content) {
 }
 
 /**
- * Configure OpenCode permissions to allow reading GSD reference docs
- * This prevents permission prompts when GSD accesses the get-shit-done directory
+ * Configure OpenCode permissions to allow reading PBR reference docs
+ * This prevents permission prompts when PBR accesses the plan-build-run directory
  * @param {boolean} isGlobal - Whether this is a global or local install
  */
 function configureOpencodePermissions(isGlobal = true) {
@@ -1640,12 +1640,12 @@ function configureOpencodePermissions(isGlobal = true) {
     config.permission = {};
   }
 
-  // Build the GSD path using the actual config directory
+  // Build the PBR path using the actual config directory
   // Use ~ shorthand if it's in the default location, otherwise use full path
   const defaultConfigDir = path.join(os.homedir(), '.config', 'opencode');
-  const gsdPath = opencodeConfigDir === defaultConfigDir
-    ? '~/.config/opencode/get-shit-done/*'
-    : `${opencodeConfigDir.replace(/\\/g, '/')}/get-shit-done/*`;
+  const pbrPath = opencodeConfigDir === defaultConfigDir
+    ? '~/.config/opencode/plan-build-run/*'
+    : `${opencodeConfigDir.replace(/\\/g, '/')}/plan-build-run/*`;
   
   let modified = false;
 
@@ -1653,8 +1653,8 @@ function configureOpencodePermissions(isGlobal = true) {
   if (!config.permission.read || typeof config.permission.read !== 'object') {
     config.permission.read = {};
   }
-  if (config.permission.read[gsdPath] !== 'allow') {
-    config.permission.read[gsdPath] = 'allow';
+  if (config.permission.read[pbrPath] !== 'allow') {
+    config.permission.read[pbrPath] = 'allow';
     modified = true;
   }
 
@@ -1662,8 +1662,8 @@ function configureOpencodePermissions(isGlobal = true) {
   if (!config.permission.external_directory || typeof config.permission.external_directory !== 'object') {
     config.permission.external_directory = {};
   }
-  if (config.permission.external_directory[gsdPath] !== 'allow') {
-    config.permission.external_directory[gsdPath] = 'allow';
+  if (config.permission.external_directory[pbrPath] !== 'allow') {
+    config.permission.external_directory[pbrPath] = 'allow';
     modified = true;
   }
 
@@ -1673,7 +1673,7 @@ function configureOpencodePermissions(isGlobal = true) {
 
   // Write config back
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
-  console.log(`  ${green}✓${reset} Configured read permission for GSD docs`);
+  console.log(`  ${green}✓${reset} Configured read permission for PBR docs`);
 }
 
 /**
@@ -1718,8 +1718,8 @@ function verifyFileInstalled(filePath, description) {
 // Local Patch Persistence
 // ──────────────────────────────────────────────────────
 
-const PATCHES_DIR_NAME = 'gsd-local-patches';
-const MANIFEST_NAME = 'gsd-file-manifest.json';
+const PATCHES_DIR_NAME = 'pbr-local-patches';
+const MANIFEST_NAME = 'pbr-file-manifest.json';
 
 /**
  * Compute SHA256 hash of file contents
@@ -1755,26 +1755,26 @@ function generateManifest(dir, baseDir) {
 function writeManifest(configDir, runtime = 'claude') {
   const isOpencode = runtime === 'opencode';
   const isCodex = runtime === 'codex';
-  const gsdDir = path.join(configDir, 'get-shit-done');
-  const commandsDir = path.join(configDir, 'commands', 'gsd');
+  const pbrDir = path.join(configDir, 'plan-build-run');
+  const commandsDir = path.join(configDir, 'commands', 'pbr');
   const opencodeCommandDir = path.join(configDir, 'command');
   const codexSkillsDir = path.join(configDir, 'skills');
   const agentsDir = path.join(configDir, 'agents');
   const manifest = { version: pkg.version, timestamp: new Date().toISOString(), files: {} };
 
-  const gsdHashes = generateManifest(gsdDir);
-  for (const [rel, hash] of Object.entries(gsdHashes)) {
-    manifest.files['get-shit-done/' + rel] = hash;
+  const pbrHashes = generateManifest(pbrDir);
+  for (const [rel, hash] of Object.entries(pbrHashes)) {
+    manifest.files['plan-build-run/' + rel] = hash;
   }
   if (!isOpencode && !isCodex && fs.existsSync(commandsDir)) {
     const cmdHashes = generateManifest(commandsDir);
     for (const [rel, hash] of Object.entries(cmdHashes)) {
-      manifest.files['commands/gsd/' + rel] = hash;
+      manifest.files['commands/pbr/' + rel] = hash;
     }
   }
   if (isOpencode && fs.existsSync(opencodeCommandDir)) {
     for (const file of fs.readdirSync(opencodeCommandDir)) {
-      if (file.startsWith('gsd-') && file.endsWith('.md')) {
+      if (file.startsWith('pbr-') && file.endsWith('.md')) {
         manifest.files['command/' + file] = fileHash(path.join(opencodeCommandDir, file));
       }
     }
@@ -1790,7 +1790,7 @@ function writeManifest(configDir, runtime = 'claude') {
   }
   if (fs.existsSync(agentsDir)) {
     for (const file of fs.readdirSync(agentsDir)) {
-      if (file.startsWith('gsd-') && file.endsWith('.md')) {
+      if (file.startsWith('pbr-') && file.endsWith('.md')) {
         manifest.files['agents/' + file] = fileHash(path.join(agentsDir, file));
       }
     }
@@ -1801,8 +1801,8 @@ function writeManifest(configDir, runtime = 'claude') {
 }
 
 /**
- * Detect user-modified GSD files by comparing against install manifest.
- * Backs up modified files to gsd-local-patches/ for reapply after update.
+ * Detect user-modified PBR files by comparing against install manifest.
+ * Backs up modified files to pbr-local-patches/ for reapply after update.
  */
 function saveLocalPatches(configDir) {
   const manifestPath = path.join(configDir, MANIFEST_NAME);
@@ -1833,7 +1833,7 @@ function saveLocalPatches(configDir) {
       files: modified
     };
     fs.writeFileSync(path.join(patchesDir, 'backup-meta.json'), JSON.stringify(meta, null, 2));
-    console.log('  ' + yellow + 'i' + reset + '  Found ' + modified.length + ' locally modified GSD file(s) — backed up to ' + PATCHES_DIR_NAME + '/');
+    console.log('  ' + yellow + 'i' + reset + '  Found ' + modified.length + ' locally modified PBR file(s) — backed up to ' + PATCHES_DIR_NAME + '/');
     for (const f of modified) {
       console.log('     ' + dim + f + reset);
     }
@@ -1854,10 +1854,10 @@ function reportLocalPatches(configDir, runtime = 'claude') {
 
   if (meta.files && meta.files.length > 0) {
     const reapplyCommand = runtime === 'opencode'
-      ? '/gsd-reapply-patches'
+      ? '/pbr-reapply-patches'
       : runtime === 'codex'
-        ? '$gsd-reapply-patches'
-        : '/gsd:reapply-patches';
+        ? '$pbr-reapply-patches'
+        : '/pbr:reapply-patches';
     console.log('');
     console.log('  ' + yellow + 'Local patches detected' + reset + ' (from v' + meta.from_version + '):');
     for (const f of meta.files) {
@@ -1905,60 +1905,60 @@ function install(isGlobal, runtime = 'claude') {
   // Track installation failures
   const failures = [];
 
-  // Save any locally modified GSD files before they get wiped
+  // Save any locally modified PBR files before they get wiped
   saveLocalPatches(targetDir);
 
   // Clean up orphaned files from previous versions
   cleanupOrphanedFiles(targetDir);
 
-  // OpenCode uses command/ (flat), Codex uses skills/, Claude/Gemini use commands/gsd/
+  // OpenCode uses command/ (flat), Codex uses skills/, Claude/Gemini use commands/pbr/
   if (isOpencode) {
     // OpenCode: flat structure in command/ directory
     const commandDir = path.join(targetDir, 'command');
     fs.mkdirSync(commandDir, { recursive: true });
     
-    // Copy commands/gsd/*.md as command/gsd-*.md (flatten structure)
-    const gsdSrc = path.join(src, 'commands', 'gsd');
-    copyFlattenedCommands(gsdSrc, commandDir, 'gsd', pathPrefix, runtime);
-    if (verifyInstalled(commandDir, 'command/gsd-*')) {
-      const count = fs.readdirSync(commandDir).filter(f => f.startsWith('gsd-')).length;
+    // Copy commands/pbr/*.md as command/pbr-*.md (flatten structure)
+    const pbrSrc = path.join(src, 'commands', 'gsd');
+    copyFlattenedCommands(pbrSrc, commandDir, 'gsd', pathPrefix, runtime);
+    if (verifyInstalled(commandDir, 'command/pbr-*')) {
+      const count = fs.readdirSync(commandDir).filter(f => f.startsWith('pbr-')).length;
       console.log(`  ${green}✓${reset} Installed ${count} commands to command/`);
     } else {
-      failures.push('command/gsd-*');
+      failures.push('command/pbr-*');
     }
   } else if (isCodex) {
     const skillsDir = path.join(targetDir, 'skills');
-    const gsdSrc = path.join(src, 'commands', 'gsd');
-    copyCommandsAsCodexSkills(gsdSrc, skillsDir, 'gsd', pathPrefix, runtime);
+    const pbrSrc = path.join(src, 'commands', 'gsd');
+    copyCommandsAsCodexSkills(pbrSrc, skillsDir, 'gsd', pathPrefix, runtime);
     const installedSkillNames = listCodexSkillNames(skillsDir);
     if (installedSkillNames.length > 0) {
       console.log(`  ${green}✓${reset} Installed ${installedSkillNames.length} skills to skills/`);
     } else {
-      failures.push('skills/gsd-*');
+      failures.push('skills/pbr-*');
     }
   } else {
     // Claude Code & Gemini: nested structure in commands/ directory
     const commandsDir = path.join(targetDir, 'commands');
     fs.mkdirSync(commandsDir, { recursive: true });
     
-    const gsdSrc = path.join(src, 'commands', 'gsd');
-    const gsdDest = path.join(commandsDir, 'gsd');
-    copyWithPathReplacement(gsdSrc, gsdDest, pathPrefix, runtime, true);
-    if (verifyInstalled(gsdDest, 'commands/gsd')) {
-      console.log(`  ${green}✓${reset} Installed commands/gsd`);
+    const pbrSrc = path.join(src, 'commands', 'gsd');
+    const pbrDest = path.join(commandsDir, 'gsd');
+    copyWithPathReplacement(pbrSrc, pbrDest, pathPrefix, runtime, true);
+    if (verifyInstalled(pbrDest, 'commands/pbr')) {
+      console.log(`  ${green}✓${reset} Installed commands/pbr`);
     } else {
-      failures.push('commands/gsd');
+      failures.push('commands/pbr');
     }
   }
 
-  // Copy get-shit-done skill with path replacement
-  const skillSrc = path.join(src, 'get-shit-done');
-  const skillDest = path.join(targetDir, 'get-shit-done');
+  // Copy plan-build-run skill with path replacement
+  const skillSrc = path.join(src, 'plan-build-run');
+  const skillDest = path.join(targetDir, 'plan-build-run');
   copyWithPathReplacement(skillSrc, skillDest, pathPrefix, runtime);
-  if (verifyInstalled(skillDest, 'get-shit-done')) {
-    console.log(`  ${green}✓${reset} Installed get-shit-done`);
+  if (verifyInstalled(skillDest, 'plan-build-run')) {
+    console.log(`  ${green}✓${reset} Installed plan-build-run`);
   } else {
-    failures.push('get-shit-done');
+    failures.push('plan-build-run');
   }
 
   // Copy agents to agents directory
@@ -1967,10 +1967,10 @@ function install(isGlobal, runtime = 'claude') {
     const agentsDest = path.join(targetDir, 'agents');
     fs.mkdirSync(agentsDest, { recursive: true });
 
-    // Remove old GSD agents (gsd-*.md) before copying new ones
+    // Remove old PBR agents (gsd-*.md) before copying new ones
     if (fs.existsSync(agentsDest)) {
       for (const file of fs.readdirSync(agentsDest)) {
-        if (file.startsWith('gsd-') && file.endsWith('.md')) {
+        if (file.startsWith('pbr-') && file.endsWith('.md')) {
           fs.unlinkSync(path.join(agentsDest, file));
         }
       }
@@ -2007,7 +2007,7 @@ function install(isGlobal, runtime = 'claude') {
 
   // Copy CHANGELOG.md
   const changelogSrc = path.join(src, 'CHANGELOG.md');
-  const changelogDest = path.join(targetDir, 'get-shit-done', 'CHANGELOG.md');
+  const changelogDest = path.join(targetDir, 'plan-build-run', 'CHANGELOG.md');
   if (fs.existsSync(changelogSrc)) {
     fs.copyFileSync(changelogSrc, changelogDest);
     if (verifyFileInstalled(changelogDest, 'CHANGELOG.md')) {
@@ -2018,7 +2018,7 @@ function install(isGlobal, runtime = 'claude') {
   }
 
   // Write VERSION file
-  const versionDest = path.join(targetDir, 'get-shit-done', 'VERSION');
+  const versionDest = path.join(targetDir, 'plan-build-run', 'VERSION');
   fs.writeFileSync(versionDest, pkg.version);
   if (verifyFileInstalled(versionDest, 'VERSION')) {
     console.log(`  ${green}✓${reset} Wrote VERSION (${pkg.version})`);
@@ -2027,7 +2027,7 @@ function install(isGlobal, runtime = 'claude') {
   }
 
   if (!isCodex) {
-    // Write package.json to force CommonJS mode for GSD scripts
+    // Write package.json to force CommonJS mode for PBR scripts
     // Prevents "require is not defined" errors when project has "type": "module"
     // Node.js walks up looking for package.json - this stops inheritance from project
     const pkgJsonDest = path.join(targetDir, 'package.json');
@@ -2123,14 +2123,14 @@ function install(isGlobal, runtime = 'claude') {
   const settingsPath = path.join(targetDir, 'settings.json');
   const settings = cleanupOrphanedHooks(readSettings(settingsPath));
   const statuslineCommand = isGlobal
-    ? buildHookCommand(targetDir, 'gsd-statusline.js')
-    : 'node ' + dirName + '/hooks/gsd-statusline.js';
+    ? buildHookCommand(targetDir, 'pbr-statusline.js')
+    : 'node ' + dirName + '/hooks/pbr-statusline.js';
   const updateCheckCommand = isGlobal
-    ? buildHookCommand(targetDir, 'gsd-check-update.js')
-    : 'node ' + dirName + '/hooks/gsd-check-update.js';
+    ? buildHookCommand(targetDir, 'pbr-check-update.js')
+    : 'node ' + dirName + '/hooks/pbr-check-update.js';
   const contextMonitorCommand = isGlobal
-    ? buildHookCommand(targetDir, 'gsd-context-monitor.js')
-    : 'node ' + dirName + '/hooks/gsd-context-monitor.js';
+    ? buildHookCommand(targetDir, 'pbr-context-monitor.js')
+    : 'node ' + dirName + '/hooks/pbr-context-monitor.js';
 
   // Enable experimental agents for Gemini CLI (required for custom sub-agents)
   if (isGemini) {
@@ -2152,11 +2152,11 @@ function install(isGlobal, runtime = 'claude') {
       settings.hooks.SessionStart = [];
     }
 
-    const hasGsdUpdateHook = settings.hooks.SessionStart.some(entry =>
-      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('gsd-check-update'))
+    const hasPbrUpdateHook = settings.hooks.SessionStart.some(entry =>
+      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pbr-check-update'))
     );
 
-    if (!hasGsdUpdateHook) {
+    if (!hasPbrUpdateHook) {
       settings.hooks.SessionStart.push({
         hooks: [
           {
@@ -2174,7 +2174,7 @@ function install(isGlobal, runtime = 'claude') {
     }
 
     const hasContextMonitorHook = settings.hooks[postToolEvent].some(entry =>
-      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('gsd-context-monitor'))
+      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pbr-context-monitor'))
     );
 
     if (!hasContextMonitorHook) {
@@ -2223,13 +2223,13 @@ function finishInstall(settingsPath, settings, statuslineCommand, shouldInstallS
   if (runtime === 'gemini') program = 'Gemini';
   if (runtime === 'codex') program = 'Codex';
 
-  let command = '/gsd:new-project';
-  if (runtime === 'opencode') command = '/gsd-new-project';
-  if (runtime === 'codex') command = '$gsd-new-project';
+  let command = '/pbr:new-project';
+  if (runtime === 'opencode') command = '/pbr-new-project';
+  if (runtime === 'codex') command = '$pbr-new-project';
   console.log(`
   ${green}Done!${reset} Open a blank directory in ${program} and run ${cyan}${command}${reset}.
 
-  ${cyan}Join the community:${reset} https://discord.gg/gsd
+  ${cyan}Join the community:${reset} https://discord.gg/pbr
 `);
 }
 
@@ -2268,13 +2268,13 @@ function handleStatusline(settings, isInteractive, callback) {
   Your current statusline:
     ${dim}command: ${existingCmd}${reset}
 
-  GSD includes a statusline showing:
+  PBR includes a statusline showing:
     • Model name
     • Current task (from todo list)
     • Context window usage (color-coded)
 
   ${cyan}1${reset}) Keep existing
-  ${cyan}2${reset}) Replace with GSD statusline
+  ${cyan}2${reset}) Replace with PBR statusline
 `);
 
   rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
@@ -2374,7 +2374,7 @@ function promptLocation(runtimes) {
 }
 
 /**
- * Install GSD for all selected runtimes
+ * Install PBR for all selected runtimes
  */
 function installAllRuntimes(runtimes, isGlobal, isInteractive) {
   const results = [];
@@ -2409,17 +2409,17 @@ function installAllRuntimes(runtimes, isGlobal, isInteractive) {
 }
 
 // Test-only exports — skip main logic when loaded as a module for testing
-if (process.env.GSD_TEST_MODE) {
+if (process.env.PBR_TEST_MODE) {
   module.exports = {
     getCodexSkillAdapterHeader,
     convertClaudeAgentToCodexAgent,
     generateCodexAgentToml,
     generateCodexConfigBlock,
-    stripGsdFromCodexConfig,
+    stripPbrFromCodexConfig,
     mergeCodexConfig,
     installCodexConfig,
     convertClaudeCommandToCodexSkill,
-    GSD_CODEX_MARKER,
+    PBR_CODEX_MARKER,
     CODEX_AGENT_SANDBOX,
   };
 } else {
@@ -2461,4 +2461,4 @@ if (hasGlobal && hasLocal) {
   }
 }
 
-} // end of else block for GSD_TEST_MODE
+} // end of else block for PBR_TEST_MODE

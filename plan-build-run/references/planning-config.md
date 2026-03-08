@@ -10,8 +10,8 @@ Configuration options for `.planning/` directory behavior.
 },
 "git": {
   "branching_strategy": "none",
-  "phase_branch_template": "gsd/phase-{phase}-{slug}",
-  "milestone_branch_template": "gsd/{milestone}-{slug}"
+  "phase_branch_template": "pbr/phase-{phase}-{slug}",
+  "milestone_branch_template": "pbr/{milestone}-{slug}"
 }
 ```
 
@@ -20,8 +20,8 @@ Configuration options for `.planning/` directory behavior.
 | `commit_docs` | `true` | Whether to commit planning artifacts to git |
 | `search_gitignored` | `false` | Add `--no-ignore` to broad rg searches |
 | `git.branching_strategy` | `"none"` | Git branching approach: `"none"`, `"phase"`, or `"milestone"` |
-| `git.phase_branch_template` | `"gsd/phase-{phase}-{slug}"` | Branch template for phase strategy |
-| `git.milestone_branch_template` | `"gsd/{milestone}-{slug}"` | Branch template for milestone strategy |
+| `git.phase_branch_template` | `"pbr/phase-{phase}-{slug}"` | Branch template for phase strategy |
+| `git.milestone_branch_template` | `"pbr/{milestone}-{slug}"` | Branch template for milestone strategy |
 </config_schema>
 
 <commit_docs_behavior>
@@ -36,19 +36,19 @@ Configuration options for `.planning/` directory behavior.
 - User must add `.planning/` to `.gitignore`
 - Useful for: OSS contributions, client projects, keeping planning private
 
-**Using gsd-tools.cjs (preferred):**
+**Using pbr-tools.cjs (preferred):**
 
 ```bash
 # Commit with automatic commit_docs + gitignore checks:
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: update state" --files .planning/STATE.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: update state" --files .planning/STATE.md
 
 # Load config via state load (returns JSON):
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state load)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 # commit_docs is available in the JSON output
 
 # Or use init commands which include commit_docs:
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init execute-phase "1")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init execute-phase "1")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 # commit_docs is included in all init command outputs
 ```
@@ -58,7 +58,7 @@ if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 **Commit via CLI (handles checks automatically):**
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs: update state" --files .planning/STATE.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs: update state" --files .planning/STATE.md
 ```
 
 The CLI checks `commit_docs` config and gitignore status internally — no manual conditionals needed.
@@ -76,7 +76,7 @@ The CLI checks `commit_docs` config and gitignore status internally — no manua
 - Add `--no-ignore` to broad rg searches that should include `.planning/`
 - Only needed when searching entire repo and expecting `.planning/` matches
 
-**Note:** Most GSD operations use direct file reads or explicit paths, which work regardless of gitignore status.
+**Note:** Most PBR operations use direct file reads or explicit paths, which work regardless of gitignore status.
 
 </search_behavior>
 
@@ -119,18 +119,18 @@ To use uncommitted mode:
 
 **When `git.branching_strategy: "none"` (default):**
 - All work commits to current branch
-- Standard GSD behavior
+- Standard PBR behavior
 
 **When `git.branching_strategy: "phase"`:**
 - `execute-phase` creates/switches to a branch before execution
-- Branch name from `phase_branch_template` (e.g., `gsd/phase-03-authentication`)
+- Branch name from `phase_branch_template` (e.g., `pbr/phase-03-authentication`)
 - All plan commits go to that branch
 - User merges branches manually after phase completion
 - `complete-milestone` offers to merge all phase branches
 
 **When `git.branching_strategy: "milestone"`:**
 - First `execute-phase` of milestone creates the milestone branch
-- Branch name from `milestone_branch_template` (e.g., `gsd/v1.0-mvp`)
+- Branch name from `milestone_branch_template` (e.g., `pbr/v1.0-mvp`)
 - All phases in milestone commit to same branch
 - `complete-milestone` offers to merge milestone branch to main
 
@@ -146,14 +146,14 @@ To use uncommitted mode:
 
 Use `init execute-phase` which returns all config as JSON:
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init execute-phase "1")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init execute-phase "1")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 # JSON output includes: branching_strategy, phase_branch_template, milestone_branch_template
 ```
 
 Or use `state load` for the config values:
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" state load)
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" state load)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 # Parse branching_strategy, phase_branch_template, milestone_branch_template from JSON
 ```

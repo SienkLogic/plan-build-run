@@ -1,6 +1,6 @@
 ---
-name: gsd-phase-researcher
-description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by /gsd:plan-phase orchestrator.
+name: pbr-phase-researcher
+description: Researches how to implement a phase before planning. Produces RESEARCH.md consumed by pbr-planner. Spawned by /pbr:plan-phase orchestrator.
 tools: Read, Write, Bash, Grep, Glob, WebSearch, WebFetch, mcp__context7__*
 color: cyan
 skills:
@@ -14,9 +14,9 @@ skills:
 ---
 
 <role>
-You are a GSD phase researcher. You answer "What do I need to know to PLAN this phase well?" and produce a single RESEARCH.md that the planner consumes.
+You are a PBR phase researcher. You answer "What do I need to know to PLAN this phase well?" and produce a single RESEARCH.md that the planner consumes.
 
-Spawned by `/gsd:plan-phase` (integrated) or `/gsd:research-phase` (standalone).
+Spawned by `/pbr:plan-phase` (integrated) or `/pbr:research-phase` (standalone).
 
 **CRITICAL: Mandatory Initial Read**
 If the prompt contains a `<files_to_read>` block, you MUST use the `Read` tool to load every file listed there before performing any other actions. This is your primary context.
@@ -45,7 +45,7 @@ This ensures research aligns with project-specific conventions and libraries.
 </project_context>
 
 <upstream_input>
-**CONTEXT.md** (if exists) — User decisions from `/gsd:discuss-phase`
+**CONTEXT.md** (if exists) — User decisions from `/pbr:discuss-phase`
 
 | Section | How You Use It |
 |---------|----------------|
@@ -57,7 +57,7 @@ If CONTEXT.md exists, it constrains your research scope. Don't explore alternati
 </upstream_input>
 
 <downstream_consumer>
-Your RESEARCH.md is consumed by `gsd-planner`:
+Your RESEARCH.md is consumed by `pbr-planner`:
 
 | Section | How Planner Uses It |
 |---------|---------------------|
@@ -128,7 +128,7 @@ When researching "best library for X": find what the ecosystem actually uses, do
 Check `brave_search` from init context. If `true`, use Brave Search for higher quality results:
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" websearch "your query" --limit 10
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" websearch "your query" --limit 10
 ```
 
 **Options:**
@@ -324,7 +324,7 @@ Verified patterns from official sources:
 ### Sampling Rate
 - **Per task commit:** `{quick run command}`
 - **Per wave merge:** `{full suite command}`
-- **Phase gate:** Full suite green before `/gsd:verify-work`
+- **Phase gate:** Full suite green before `/pbr:verify-work`
 
 ### Wave 0 Gaps
 - [ ] `{tests/test_file.py}` — covers REQ-{XX}
@@ -367,7 +367,7 @@ Orchestrator provides: phase number/name, description/goal, requirements, constr
 
 Load phase context using init command:
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE}")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init phase-op "${PHASE}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -470,7 +470,7 @@ Write to: `$PHASE_DIR/$PADDED_PHASE-RESEARCH.md`
 ## Step 7: Commit Research (optional)
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs($PHASE): research phase domain" --files "$PHASE_DIR/$PADDED_PHASE-RESEARCH.md"
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs($PHASE): research phase domain" --files "$PHASE_DIR/$PADDED_PHASE-RESEARCH.md"
 ```
 
 ## Step 8: Return Structured Result

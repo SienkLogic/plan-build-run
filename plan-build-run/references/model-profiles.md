@@ -1,23 +1,23 @@
 # Model Profiles
 
-Model profiles control which Claude model each GSD agent uses. This allows balancing quality vs token spend.
+Model profiles control which Claude model each PBR agent uses. This allows balancing quality vs token spend.
 
 ## Profile Definitions
 
 | Agent | `quality` | `balanced` | `budget` |
 |-------|-----------|------------|----------|
-| gsd-planner | opus | opus | sonnet |
-| gsd-roadmapper | opus | sonnet | sonnet |
-| gsd-executor | opus | sonnet | sonnet |
-| gsd-phase-researcher | opus | sonnet | haiku |
-| gsd-project-researcher | opus | sonnet | haiku |
-| gsd-research-synthesizer | sonnet | sonnet | haiku |
-| gsd-debugger | opus | sonnet | sonnet |
-| gsd-codebase-mapper | sonnet | haiku | haiku |
-| gsd-verifier | sonnet | sonnet | haiku |
-| gsd-plan-checker | sonnet | sonnet | haiku |
-| gsd-integration-checker | sonnet | sonnet | haiku |
-| gsd-nyquist-auditor | sonnet | sonnet | haiku |
+| pbr-planner | opus | opus | sonnet |
+| pbr-roadmapper | opus | sonnet | sonnet |
+| pbr-executor | opus | sonnet | sonnet |
+| pbr-phase-researcher | opus | sonnet | haiku |
+| pbr-project-researcher | opus | sonnet | haiku |
+| pbr-research-synthesizer | sonnet | sonnet | haiku |
+| pbr-debugger | opus | sonnet | sonnet |
+| pbr-codebase-mapper | sonnet | haiku | haiku |
+| pbr-verifier | sonnet | sonnet | haiku |
+| pbr-plan-checker | sonnet | sonnet | haiku |
+| pbr-integration-checker | sonnet | sonnet | haiku |
+| pbr-nyquist-auditor | sonnet | sonnet | haiku |
 
 ## Profile Philosophy
 
@@ -56,8 +56,8 @@ Override specific agents without changing the entire profile:
 {
   "model_profile": "balanced",
   "model_overrides": {
-    "gsd-executor": "opus",
-    "gsd-planner": "haiku"
+    "pbr-executor": "opus",
+    "pbr-planner": "haiku"
   }
 }
 ```
@@ -66,7 +66,7 @@ Overrides take precedence over the profile. Valid values: `opus`, `sonnet`, `hai
 
 ## Switching Profiles
 
-Runtime: `/gsd:set-profile <profile>`
+Runtime: `/pbr:set-profile <profile>`
 
 Per-project default: Set in `.planning/config.json`:
 ```json
@@ -77,17 +77,17 @@ Per-project default: Set in `.planning/config.json`:
 
 ## Design Rationale
 
-**Why Opus for gsd-planner?**
+**Why Opus for pbr-planner?**
 Planning involves architecture decisions, goal decomposition, and task design. This is where model quality has the highest impact.
 
-**Why Sonnet for gsd-executor?**
+**Why Sonnet for pbr-executor?**
 Executors follow explicit PLAN.md instructions. The plan already contains the reasoning; execution is implementation.
 
 **Why Sonnet (not Haiku) for verifiers in balanced?**
 Verification requires goal-backward reasoning - checking if code *delivers* what the phase promised, not just pattern matching. Sonnet handles this well; Haiku may miss subtle gaps.
 
-**Why Haiku for gsd-codebase-mapper?**
+**Why Haiku for pbr-codebase-mapper?**
 Read-only exploration and pattern extraction. No reasoning required, just structured output from file contents.
 
 **Why `inherit` instead of passing `opus` directly?**
-Claude Code's `"opus"` alias maps to a specific model version. Organizations may block older opus versions while allowing newer ones. GSD returns `"inherit"` for opus-tier agents, causing them to use whatever opus version the user has configured in their session. This avoids version conflicts and silent fallbacks to Sonnet.
+Claude Code's `"opus"` alias maps to a specific model version. Organizations may block older opus versions while allowing newer ones. PBR returns `"inherit"` for opus-tier agents, causing them to use whatever opus version the user has configured in their session. This avoids version conflicts and silent fallbacks to Sonnet.

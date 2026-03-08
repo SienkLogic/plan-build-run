@@ -16,7 +16,7 @@ Read STATE.md before any operation to load project context.
 Load all context in one call:
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init execute-phase "${PHASE_ARG}")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init execute-phase "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -31,7 +31,7 @@ When `parallelization` is false, plans within a wave execute sequentially.
 **Sync chain flag with intent** — if user invoked manually (no `--auto`), clear the ephemeral chain flag from any previous interrupted `--auto` chain. This does NOT touch `workflow.auto_advance` (the user's persistent settings preference). Must happen before any config reads (checkpoint handling also reads auto-advance flags):
 ```bash
 if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-  node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+  node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
 fi
 ```
 </step>
@@ -59,7 +59,7 @@ Report: "Found {plan_count} plans in {phase_dir} ({incomplete_count} incomplete)
 Load plan inventory with wave grouping in one call:
 
 ```bash
-PLAN_INDEX=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" phase-plan-index "${PHASE_NUMBER}")
+PLAN_INDEX=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" phase-plan-index "${PHASE_NUMBER}")
 ```
 
 Parse JSON for: `phase`, `plans[]` (each with `id`, `wave`, `autonomous`, `objective`, `files_modified`, `task_count`, `has_summary`), `waves` (map of wave number → plan IDs), `incomplete`, `has_checkpoints`.
@@ -109,7 +109,7 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
 
    ```
    Task(
-     subagent_type="gsd-executor",
+     subagent_type="pbr-executor",
      model="{executor_model}",
      prompt="
        <objective>
@@ -118,10 +118,10 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
        </objective>
 
        <execution_context>
-       @~/.claude/get-shit-done/workflows/execute-plan.md
-       @~/.claude/get-shit-done/templates/summary.md
-       @~/.claude/get-shit-done/references/checkpoints.md
-       @~/.claude/get-shit-done/references/tdd.md
+       @~/.claude/plan-build-run/workflows/execute-plan.md
+       @~/.claude/plan-build-run/templates/summary.md
+       @~/.claude/plan-build-run/references/checkpoints.md
+       @~/.claude/plan-build-run/references/tdd.md
        </execution_context>
 
        <files_to_read>
@@ -173,7 +173,7 @@ Execute each wave in sequence. Within a wave: parallel if `PARALLELIZATION=true`
 
 5. **Handle failures:**
 
-   **Known Claude Code bug (classifyHandoffIfNeeded):** If an agent reports "failed" with error containing `classifyHandoffIfNeeded is not defined`, this is a Claude Code runtime bug — not a GSD or agent issue. The error fires in the completion handler AFTER all tool calls finish. In this case: run the same spot-checks as step 4 (SUMMARY.md exists, git commits present, no Self-Check: FAILED). If spot-checks PASS → treat as **successful**. If spot-checks FAIL → treat as real failure below.
+   **Known Claude Code bug (classifyHandoffIfNeeded):** If an agent reports "failed" with error containing `classifyHandoffIfNeeded is not defined`, this is a Claude Code runtime bug — not a PBR or agent issue. The error fires in the completion handler AFTER all tool calls finish. In this case: run the same spot-checks as step 4 (SUMMARY.md exists, git commits present, no Self-Check: FAILED). If spot-checks PASS → treat as **successful**. If spot-checks FAIL → treat as real failure below.
 
    For real failures: report which plan failed → ask "Continue?" or "Stop?" → if continue, dependent plans may also fail. If stop, partial completion report.
 
@@ -189,8 +189,8 @@ Plans with `autonomous: false` require user interaction.
 
 Read auto-advance config (chain flag + user preference):
 ```bash
-AUTO_CHAIN=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-AUTO_CFG=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+AUTO_CHAIN=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+AUTO_CFG=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
 ```
 
 When executor returns a checkpoint AND (`AUTO_CHAIN` is `"true"` OR `AUTO_CFG` is `"true"`):
@@ -265,7 +265,7 @@ fi
 
 **2. Find parent UAT file:**
 ```bash
-PARENT_INFO=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" find-phase "${PARENT_PHASE}" --raw)
+PARENT_INFO=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" find-phase "${PARENT_PHASE}" --raw)
 # Extract directory from PARENT_INFO JSON, then find UAT file in that directory
 ```
 
@@ -296,7 +296,7 @@ mv .planning/debug/{slug}.md .planning/debug/resolved/
 
 **6. Commit updated artifacts:**
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(phase-${PARENT_PHASE}): resolve UAT gaps and debug sessions after ${PHASE_NUMBER} gap closure" --files .planning/phases/*${PARENT_PHASE}*/*-UAT.md .planning/debug/resolved/*.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs(phase-${PARENT_PHASE}): resolve UAT gaps and debug sessions after ${PHASE_NUMBER} gap closure" --files .planning/phases/*${PARENT_PHASE}*/*-UAT.md .planning/debug/resolved/*.md
 ```
 </step>
 
@@ -312,7 +312,7 @@ Phase requirement IDs: {phase_req_ids}
 Check must_haves against actual codebase.
 Cross-reference requirement IDs from PLAN frontmatter against REQUIREMENTS.md — every ID MUST be accounted for.
 Create VERIFICATION.md.",
-  subagent_type="gsd-verifier",
+  subagent_type="pbr-verifier",
   model="{verifier_model}"
 )
 ```
@@ -326,7 +326,7 @@ grep "^status:" "$PHASE_DIR"/*-VERIFICATION.md | cut -d: -f2 | tr -d ' '
 |--------|--------|
 | `passed` | → update_roadmap |
 | `human_needed` | Present items for human testing, get approval or feedback |
-| `gaps_found` | Present gap summary, offer `/gsd:plan-phase {phase} --gaps` |
+| `gaps_found` | Present gap summary, offer `/pbr:plan-phase {phase} --gaps` |
 
 **If human_needed:**
 ```
@@ -352,22 +352,22 @@ All automated checks passed. {N} items need human testing:
 ---
 ## ▶ Next Up
 
-`/gsd:plan-phase {X} --gaps`
+`/pbr:plan-phase {X} --gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
 Also: `cat {phase_dir}/{phase_num}-VERIFICATION.md` — full report
-Also: `/gsd:verify-work {X}` — manual testing first
+Also: `/pbr:verify-work {X}` — manual testing first
 ```
 
-Gap closure cycle: `/gsd:plan-phase {X} --gaps` reads VERIFICATION.md → creates gap plans with `gap_closure: true` → user runs `/gsd:execute-phase {X} --gaps-only` → verifier re-runs.
+Gap closure cycle: `/pbr:plan-phase {X} --gaps` reads VERIFICATION.md → creates gap plans with `gap_closure: true` → user runs `/pbr:execute-phase {X} --gaps-only` → verifier re-runs.
 </step>
 
 <step name="update_roadmap">
 **Mark phase complete and update all tracking files:**
 
 ```bash
-COMPLETION=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" phase complete "${PHASE_NUMBER}")
+COMPLETION=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" phase complete "${PHASE_NUMBER}")
 ```
 
 The CLI handles:
@@ -380,13 +380,13 @@ The CLI handles:
 Extract from result: `next_phase`, `next_phase_name`, `is_last_phase`.
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md {phase_dir}/*-VERIFICATION.md
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/REQUIREMENTS.md {phase_dir}/*-VERIFICATION.md
 ```
 </step>
 
 <step name="offer_next">
 
-**Exception:** If `gaps_found`, the `verify_phase_goal` step already presents the gap-closure path (`/gsd:plan-phase {X} --gaps`). No additional routing needed — skip auto-advance.
+**Exception:** If `gaps_found`, the `verify_phase_goal` step already presents the gap-closure path (`/pbr:plan-phase {X} --gaps`). No additional routing needed — skip auto-advance.
 
 **No-transition check (spawned by auto-advance chain):**
 
@@ -416,8 +416,8 @@ STOP. Do not proceed to auto-advance or transition.
 1. Parse `--auto` flag from $ARGUMENTS
 2. Read both the chain flag and user preference (chain flag already synced in init step):
    ```bash
-   AUTO_CHAIN=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true (AND verification passed with no gaps):**
@@ -431,11 +431,11 @@ STOP. Do not proceed to auto-advance or transition.
 
 Execute the transition workflow inline (do NOT use Task — orchestrator context is ~10-15%, transition needs phase completion data already in context):
 
-Read and follow `~/.claude/get-shit-done/workflows/transition.md`, passing through the `--auto` flag so it propagates to the next phase invocation.
+Read and follow `~/.claude/plan-build-run/workflows/transition.md`, passing through the `--auto` flag so it propagates to the next phase invocation.
 
 **If neither `--auto` nor `AUTO_CFG` is true:**
 
-The workflow ends. The user runs `/gsd:progress` or invokes the transition workflow manually.
+The workflow ends. The user runs `/pbr:progress` or invokes the transition workflow manually.
 </step>
 
 </process>
@@ -445,7 +445,7 @@ Orchestrator: ~10-15% context. Subagents: fresh 200k each. No polling (Task bloc
 </context_efficiency>
 
 <failure_handling>
-- **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not GSD. Spot-check (SUMMARY exists, commits present) → if pass, treat as success
+- **classifyHandoffIfNeeded false failure:** Agent reports "failed" but error is `classifyHandoffIfNeeded is not defined` → Claude Code bug, not PBR. Spot-check (SUMMARY exists, commits present) → if pass, treat as success
 - **Agent fails mid-plan:** Missing SUMMARY.md → report, ask user how to proceed
 - **Dependency chain breaks:** Wave 1 fails → Wave 2 dependents likely fail → user chooses attempt or skip
 - **All agents in wave fail:** Systemic issue → stop, report for investigation
@@ -453,7 +453,7 @@ Orchestrator: ~10-15% context. Subagents: fresh 200k each. No polling (Task bloc
 </failure_handling>
 
 <resumption>
-Re-run `/gsd:execute-phase {phase}` → discover_plans finds completed SUMMARYs → skips them → resumes from first incomplete plan → continues wave execution.
+Re-run `/pbr:execute-phase {phase}` → discover_plans finds completed SUMMARYs → skips them → resumes from first incomplete plan → continues wave execution.
 
 STATE.md tracks: last completed plan, current wave, pending checkpoints.
 </resumption>

@@ -1,11 +1,11 @@
 <purpose>
-Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates gsd-phase-researcher, gsd-planner, and gsd-plan-checker agents with a revision loop (max 3 iterations).
+Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification. Default flow: Research (if needed) -> Plan -> Verify -> Done. Orchestrates pbr-phase-researcher, pbr-planner, and pbr-plan-checker agents with a revision loop (max 3 iterations).
 </purpose>
 
 <required_reading>
 Read all files referenced by the invoking prompt's execution_context before starting.
 
-@~/.claude/get-shit-done/references/ui-brand.md
+@~/.claude/plan-build-run/references/ui-brand.md
 </required_reading>
 
 <process>
@@ -15,7 +15,7 @@ Read all files referenced by the invoking prompt's execution_context before star
 Load all context in one call (paths only to minimize orchestrator context):
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init plan-phase "$PHASE")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init plan-phase "$PHASE")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
@@ -23,7 +23,7 @@ Parse JSON for: `researcher_model`, `planner_model`, `checker_model`, `research_
 
 **File paths (for <files_to_read> blocks):** `state_path`, `roadmap_path`, `requirements_path`, `context_path`, `research_path`, `verification_path`, `uat_path`. These are null if files don't exist.
 
-**If `planning_exists` is false:** Error — run `/gsd:new-project` first.
+**If `planning_exists` is false:** Error — run `/pbr:new-project` first.
 
 ## 2. Parse and Normalize Arguments
 
@@ -43,7 +43,7 @@ mkdir -p ".planning/phases/${padded_phase}-${phase_slug}"
 ## 3. Validate Phase
 
 ```bash
-PHASE_INFO=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" roadmap get-phase "${PHASE}")
+PHASE_INFO=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" roadmap get-phase "${PHASE}")
 ```
 
 **If `found` is false:** Error with available phases. **If `found` is true:** Extract `phase_number`, `phase_name`, `goal` from JSON.
@@ -66,7 +66,7 @@ fi
 2. Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PRD EXPRESS PATH
+ PBR ► PRD EXPRESS PATH
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Using PRD: {PRD_FILE}
@@ -129,7 +129,7 @@ Generating CONTEXT.md from requirements...
 
 5. Commit:
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(${padded_phase}): generate context from PRD" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs(${padded_phase}): generate context from PRD" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 6. Set `context_content` to the generated CONTEXT.md content and continue to step 5 (Handle Research).
@@ -154,7 +154,7 @@ Use AskUserQuestion:
   - "Run discuss-phase first" — Capture design decisions before planning
 
 If "Continue without context": Proceed to step 5.
-If "Run discuss-phase first": Display `/gsd:discuss-phase {X}` and exit workflow.
+If "Run discuss-phase first": Display `/pbr:discuss-phase {X}` and exit workflow.
 
 ## 5. Handle Research
 
@@ -167,16 +167,16 @@ If "Run discuss-phase first": Display `/gsd:discuss-phase {X}` and exit workflow
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► RESEARCHING PHASE {X}
+ PBR ► RESEARCHING PHASE {X}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning researcher...
 ```
 
-### Spawn gsd-phase-researcher
+### Spawn pbr-phase-researcher
 
 ```bash
-PHASE_DESC=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" roadmap get-phase "${PHASE}" | jq -r '.section')
+PHASE_DESC=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" roadmap get-phase "${PHASE}" | jq -r '.section')
 ```
 
 Research prompt:
@@ -188,7 +188,7 @@ Answer: "What do I need to know to PLAN this phase well?"
 </objective>
 
 <files_to_read>
-- {context_path} (USER DECISIONS from /gsd:discuss-phase)
+- {context_path} (USER DECISIONS from /pbr:discuss-phase)
 - {requirements_path} (Project requirements)
 - {state_path} (Project decisions and history)
 </files_to_read>
@@ -209,7 +209,7 @@ Write to: {phase_dir}/{phase_num}-RESEARCH.md
 ```
 Task(
   prompt=research_prompt,
-  subagent_type="gsd-phase-researcher",
+  subagent_type="pbr-phase-researcher",
   model="{researcher_model}",
   description="Research Phase {phase}"
 )
@@ -229,7 +229,7 @@ grep -l "## Validation Architecture" "${PHASE_DIR}"/*-RESEARCH.md 2>/dev/null
 ```
 
 **If found:**
-1. Read template: `~/.claude/get-shit-done/templates/VALIDATION.md`
+1. Read template: `~/.claude/plan-build-run/templates/VALIDATION.md`
 2. Write to `${PHASE_DIR}/${PADDED_PHASE}-VALIDATION.md` (use Write tool)
 3. Fill frontmatter: `{N}` → phase number, `{phase-slug}` → slug, `{date}` → current date
 4. Verify:
@@ -272,18 +272,18 @@ VALIDATION_EXISTS=$(ls "${PHASE_DIR}"/*-VALIDATION.md 2>/dev/null | head -1)
 ```
 
 If missing and Nyquist enabled — ask user:
-1. Re-run: `/gsd:plan-phase {PHASE} --research`
+1. Re-run: `/pbr:plan-phase {PHASE} --research`
 2. Disable Nyquist in config
 3. Continue anyway (plans fail Dimension 8)
 
 Proceed to Step 8 only if user selects 2 or 3.
 
-## 8. Spawn gsd-planner Agent
+## 8. Spawn pbr-planner Agent
 
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PLANNING PHASE {X}
+ PBR ► PLANNING PHASE {X}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning planner...
@@ -300,7 +300,7 @@ Planner prompt:
 - {state_path} (Project State)
 - {roadmap_path} (Roadmap)
 - {requirements_path} (Requirements)
-- {context_path} (USER DECISIONS from /gsd:discuss-phase)
+- {context_path} (USER DECISIONS from /pbr:discuss-phase)
 - {research_path} (Technical Research)
 - {verification_path} (Verification Gaps - if --gaps)
 - {uat_path} (UAT Gaps - if --gaps)
@@ -313,7 +313,7 @@ Planner prompt:
 </planning_context>
 
 <downstream_consumer>
-Output consumed by /gsd:execute-phase. Plans need:
+Output consumed by /pbr:execute-phase. Plans need:
 - Frontmatter (wave, depends_on, files_modified, autonomous)
 - Tasks in XML format
 - Verification criteria
@@ -333,7 +333,7 @@ Output consumed by /gsd:execute-phase. Plans need:
 ```
 Task(
   prompt=filled_prompt,
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   model="{planner_model}",
   description="Plan Phase {phase}"
 )
@@ -345,12 +345,12 @@ Task(
 - **`## CHECKPOINT REACHED`:** Present to user, get response, spawn continuation (step 12)
 - **`## PLANNING INCONCLUSIVE`:** Show attempts, offer: Add context / Retry / Manual
 
-## 10. Spawn gsd-plan-checker Agent
+## 10. Spawn pbr-plan-checker Agent
 
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► VERIFYING PLANS
+ PBR ► VERIFYING PLANS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning plan checker...
@@ -367,7 +367,7 @@ Checker prompt:
 - {PHASE_DIR}/*-PLAN.md (Plans to verify)
 - {roadmap_path} (Roadmap)
 - {requirements_path} (Requirements)
-- {context_path} (USER DECISIONS from /gsd:discuss-phase)
+- {context_path} (USER DECISIONS from /pbr:discuss-phase)
 - {research_path} (Technical Research — includes Validation Architecture)
 </files_to_read>
 
@@ -386,7 +386,7 @@ Checker prompt:
 ```
 Task(
   prompt=checker_prompt,
-  subagent_type="gsd-plan-checker",
+  subagent_type="pbr-plan-checker",
   model="{checker_model}",
   description="Verify Phase {phase} plans"
 )
@@ -414,7 +414,7 @@ Revision prompt:
 
 <files_to_read>
 - {PHASE_DIR}/*-PLAN.md (Existing plans)
-- {context_path} (USER DECISIONS from /gsd:discuss-phase)
+- {context_path} (USER DECISIONS from /pbr:discuss-phase)
 </files_to_read>
 
 **Checker issues:** {structured_issues_from_checker}
@@ -430,7 +430,7 @@ Return what changed.
 ```
 Task(
   prompt=revision_prompt,
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   model="{planner_model}",
   description="Revise Phase {phase} plans"
 )
@@ -456,13 +456,13 @@ Check for auto-advance trigger:
 2. **Sync chain flag with intent** — if user invoked manually (no `--auto`), clear the ephemeral chain flag from any previous interrupted `--auto` chain. This does NOT touch `workflow.auto_advance` (the user's persistent settings preference):
    ```bash
    if [[ ! "$ARGUMENTS" =~ --auto ]]; then
-     node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
+     node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-set workflow._auto_chain_active false 2>/dev/null
    fi
    ```
 3. Read both the chain flag and user preference:
    ```bash
-   AUTO_CHAIN=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
-   AUTO_CFG=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
+   AUTO_CHAIN=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow._auto_chain_active 2>/dev/null || echo "false")
+   AUTO_CFG=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config-get workflow.auto_advance 2>/dev/null || echo "false")
    ```
 
 **If `--auto` flag present OR `AUTO_CHAIN` is true OR `AUTO_CFG` is true:**
@@ -470,7 +470,7 @@ Check for auto-advance trigger:
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► AUTO-ADVANCING TO EXECUTE
+ PBR ► AUTO-ADVANCING TO EXECUTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Plans ready. Launching execute-phase...
@@ -478,7 +478,7 @@ Plans ready. Launching execute-phase...
 
 Launch execute-phase using the Skill tool to avoid nested Task sessions (which cause runtime freezes due to deep agent nesting):
 ```
-Skill(skill="gsd:execute-phase", args="${PHASE} --auto --no-transition")
+Skill(skill="pbr:execute-phase", args="${PHASE} --auto --no-transition")
 ```
 
 The `--no-transition` flag tells execute-phase to return status after verification instead of chaining further. This keeps the auto-advance chain flat — each phase runs at the same nesting level rather than spawning deeper Task agents.
@@ -487,19 +487,19 @@ The `--no-transition` flag tells execute-phase to return status after verificati
 - **PHASE COMPLETE** → Display final summary:
   ```
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   GSD ► PHASE ${PHASE} COMPLETE ✓
+   PBR ► PHASE ${PHASE} COMPLETE ✓
   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   Auto-advance pipeline finished.
 
-  Next: /gsd:discuss-phase ${NEXT_PHASE} --auto
+  Next: /pbr:discuss-phase ${NEXT_PHASE} --auto
   ```
 - **GAPS FOUND / VERIFICATION FAILED** → Display result, stop chain:
   ```
   Auto-advance stopped: Execution needs review.
 
   Review the output above and continue manually:
-  /gsd:execute-phase ${PHASE}
+  /pbr:execute-phase ${PHASE}
   ```
 
 **If neither `--auto` nor config enabled:**
@@ -511,7 +511,7 @@ Route to `<offer_next>` (existing behavior).
 Output this markdown directly (not as a code block):
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE {X} PLANNED ✓
+ PBR ► PHASE {X} PLANNED ✓
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Phase {X}: {Name}** — {N} plan(s) in {M} wave(s)
@@ -530,7 +530,7 @@ Verification: {Passed | Passed with override | Skipped}
 
 **Execute Phase {X}** — run all {N} plans
 
-/gsd:execute-phase {X}
+/pbr:execute-phase {X}
 
 <sub>/clear first → fresh context window</sub>
 
@@ -538,7 +538,7 @@ Verification: {Passed | Passed with override | Skipped}
 
 **Also available:**
 - cat .planning/phases/{phase-dir}/*-PLAN.md — review plans
-- /gsd:plan-phase {X} --research — re-research first
+- /pbr:plan-phase {X} --research — re-research first
 
 ───────────────────────────────────────────────────────────────
 </offer_next>
@@ -549,11 +549,11 @@ Verification: {Passed | Passed with override | Skipped}
 - [ ] Phase directory created if needed
 - [ ] CONTEXT.md loaded early (step 4) and passed to ALL agents
 - [ ] Research completed (unless --skip-research or --gaps or exists)
-- [ ] gsd-phase-researcher spawned with CONTEXT.md
+- [ ] pbr-phase-researcher spawned with CONTEXT.md
 - [ ] Existing plans checked
-- [ ] gsd-planner spawned with CONTEXT.md + RESEARCH.md
+- [ ] pbr-planner spawned with CONTEXT.md + RESEARCH.md
 - [ ] Plans created (PLANNING COMPLETE or CHECKPOINT handled)
-- [ ] gsd-plan-checker spawned with CONTEXT.md
+- [ ] pbr-plan-checker spawned with CONTEXT.md
 - [ ] Verification passed OR user override OR max iterations with user decision
 - [ ] User sees status between agent spawns
 - [ ] User knows next steps

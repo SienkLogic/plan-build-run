@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Claude Code Statusline - GSD Edition
+// Claude Code Statusline - PBR Edition
 // Shows: model | current task | directory | context usage
 
 const fs = require('fs');
@@ -90,14 +90,14 @@ process.stdin.on('end', () => {
       }
     }
 
-    // GSD update available?
+    // PBR update available?
     let gsdUpdate = '';
     const cacheFile = path.join(claudeDir, 'cache', 'gsd-update-check.json');
     if (fs.existsSync(cacheFile)) {
       try {
         const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
         if (cache.update_available) {
-          gsdUpdate = '\x1b[33m⬆ /gsd:update\x1b[0m │ ';
+          gsdUpdate = '\x1b[33m⬆ /pbr:update\x1b[0m │ ';
         }
       } catch (e) {}
     }

@@ -3,7 +3,7 @@ Audit Nyquist validation gaps for a completed phase. Generate missing tests. Upd
 </purpose>
 
 <required_reading>
-@~/.claude/get-shit-done/references/ui-brand.md
+@~/.claude/plan-build-run/references/ui-brand.md
 </required_reading>
 
 <process>
@@ -11,20 +11,20 @@ Audit Nyquist validation gaps for a completed phase. Generate missing tests. Upd
 ## 0. Initialize
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init phase-op "${PHASE_ARG}")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init phase-op "${PHASE_ARG}")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Parse: `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`.
 
 ```bash
-AUDITOR_MODEL=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" resolve-model gsd-nyquist-auditor --raw)
-NYQUIST_CFG=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" config get workflow.nyquist_validation --raw)
+AUDITOR_MODEL=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" resolve-model pbr-nyquist-auditor --raw)
+NYQUIST_CFG=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" config get workflow.nyquist_validation --raw)
 ```
 
-If `NYQUIST_CFG` is `false`: exit with "Nyquist validation is disabled. Enable via /gsd:settings."
+If `NYQUIST_CFG` is `false`: exit with "Nyquist validation is disabled. Enable via /pbr:settings."
 
-Display banner: `GSD > VALIDATE PHASE {N}: {name}`
+Display banner: `PBR > VALIDATE PHASE {N}: {name}`
 
 ## 1. Detect Input State
 
@@ -35,7 +35,7 @@ SUMMARY_FILES=$(ls "${PHASE_DIR}"/*-SUMMARY.md 2>/dev/null)
 
 - **State A** (`VALIDATION_FILE` non-empty): Audit existing
 - **State B** (`VALIDATION_FILE` empty, `SUMMARY_FILES` non-empty): Reconstruct from artifacts
-- **State C** (`SUMMARY_FILES` empty): Exit — "Phase {N} not executed. Run /gsd:execute-phase {N} first."
+- **State C** (`SUMMARY_FILES` empty): Exit — "Phase {N} not executed. Run /pbr:execute-phase {N} first."
 
 ## 2. Discovery
 
@@ -82,16 +82,16 @@ Call AskUserQuestion with gap table and options:
 2. "Skip — mark manual-only" → add to Manual-Only, Step 6
 3. "Cancel" → exit
 
-## 5. Spawn gsd-nyquist-auditor
+## 5. Spawn pbr-nyquist-auditor
 
 ```
 Task(
-  prompt="Read ~/.claude/agents/gsd-nyquist-auditor.md for instructions.\n\n" +
+  prompt="Read ~/.claude/agents/pbr-nyquist-auditor.md for instructions.\n\n" +
     "<files_to_read>{PLAN, SUMMARY, impl files, VALIDATION.md}</files_to_read>" +
     "<gaps>{gap list}</gaps>" +
     "<test_infrastructure>{framework, config, commands}</test_infrastructure>" +
     "<constraints>Never modify impl files. Max 3 debug iterations. Escalate impl bugs.</constraints>",
-  subagent_type="gsd-nyquist-auditor",
+  subagent_type="pbr-nyquist-auditor",
   model="{AUDITOR_MODEL}",
   description="Fill validation gaps for Phase {N}"
 )
@@ -105,7 +105,7 @@ Handle return:
 ## 6. Generate/Update VALIDATION.md
 
 **State B (create):**
-1. Read template from `~/.claude/get-shit-done/templates/VALIDATION.md`
+1. Read template from `~/.claude/plan-build-run/templates/VALIDATION.md`
 2. Fill: frontmatter, Test Infrastructure, Per-Task Map, Manual-Only, Sign-Off
 3. Write to `${PHASE_DIR}/${PADDED_PHASE}-VALIDATION.md`
 
@@ -128,23 +128,23 @@ Handle return:
 git add {test_files}
 git commit -m "test(phase-${PHASE}): add Nyquist validation tests"
 
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit-docs "docs(phase-${PHASE}): add/update validation strategy"
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit-docs "docs(phase-${PHASE}): add/update validation strategy"
 ```
 
 ## 8. Results + Routing
 
 **Compliant:**
 ```
-GSD > PHASE {N} IS NYQUIST-COMPLIANT
+PBR > PHASE {N} IS NYQUIST-COMPLIANT
 All requirements have automated verification.
-▶ Next: /gsd:audit-milestone
+▶ Next: /pbr:audit-milestone
 ```
 
 **Partial:**
 ```
-GSD > PHASE {N} VALIDATED (PARTIAL)
+PBR > PHASE {N} VALIDATED (PARTIAL)
 {M} automated, {K} manual-only.
-▶ Retry: /gsd:validate-phase {N}
+▶ Retry: /pbr:validate-phase {N}
 ```
 
 Display `/clear` reminder.

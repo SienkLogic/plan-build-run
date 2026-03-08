@@ -1,5 +1,5 @@
 <purpose>
-Execute small, ad-hoc tasks with GSD guarantees (atomic commits, STATE.md tracking). Quick mode spawns gsd-planner (quick mode) + gsd-executor(s), tracks tasks in `.planning/quick/`, and updates STATE.md's "Quick Tasks Completed" table.
+Execute small, ad-hoc tasks with PBR guarantees (atomic commits, STATE.md tracking). Quick mode spawns pbr-planner (quick mode) + pbr-executor(s), tracks tasks in `.planning/quick/`, and updates STATE.md's "Quick Tasks Completed" table.
 
 With `--discuss` flag: lightweight discussion phase before planning. Surfaces assumptions, clarifies gray areas, captures decisions in CONTEXT.md so the planner treats them as locked.
 
@@ -39,7 +39,7 @@ Display banner based on active flags:
 If `$DISCUSS_MODE` and `$FULL_MODE`:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► QUICK TASK (DISCUSS + FULL)
+ PBR ► QUICK TASK (DISCUSS + FULL)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Discussion + plan checking + verification enabled
@@ -48,7 +48,7 @@ If `$DISCUSS_MODE` and `$FULL_MODE`:
 If `$DISCUSS_MODE` only:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► QUICK TASK (DISCUSS)
+ PBR ► QUICK TASK (DISCUSS)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Discussion phase enabled — surfacing gray areas before planning
@@ -57,7 +57,7 @@ If `$DISCUSS_MODE` only:
 If `$FULL_MODE` only:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► QUICK TASK (FULL MODE)
+ PBR ► QUICK TASK (FULL MODE)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Plan checking + verification enabled
@@ -68,13 +68,13 @@ If `$FULL_MODE` only:
 **Step 2: Initialize**
 
 ```bash
-INIT=$(node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" init quick "$DESCRIPTION")
+INIT=$(node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" init quick "$DESCRIPTION")
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
 ```
 
 Parse JSON for: `planner_model`, `executor_model`, `checker_model`, `verifier_model`, `commit_docs`, `next_num`, `slug`, `date`, `timestamp`, `quick_dir`, `task_dir`, `roadmap_exists`, `planning_exists`.
 
-**If `roadmap_exists` is false:** Error — Quick mode requires an active project with ROADMAP.md. Run `/gsd:new-project` first.
+**If `roadmap_exists` is false:** Error — Quick mode requires an active project with ROADMAP.md. Run `/pbr:new-project` first.
 
 Quick tasks can run mid-phase - validation only checks ROADMAP.md exists, not phase status.
 
@@ -114,7 +114,7 @@ Skip this step entirely if NOT `$DISCUSS_MODE`.
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► DISCUSSING QUICK TASK
+ PBR ► DISCUSSING QUICK TASK
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Surfacing gray areas for: ${DESCRIPTION}
@@ -264,7 +264,7 @@ Write plan to: ${QUICK_DIR}/${next_num}-PLAN.md
 Return: ## PLANNING COMPLETE with plan path
 </output>
 ",
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   model="{planner_model}",
   description="Quick plan: ${DESCRIPTION}"
 )
@@ -286,7 +286,7 @@ Skip this step entirely if NOT `$FULL_MODE`.
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► CHECKING PLAN
+ PBR ► CHECKING PLAN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning plan checker...
@@ -326,7 +326,7 @@ ${DISCUSS_MODE ? '- Context compliance: Does the plan honor locked decisions fro
 ```
 Task(
   prompt=checker_prompt,
-  subagent_type="gsd-plan-checker",
+  subagent_type="pbr-plan-checker",
   model="{checker_model}",
   description="Check quick plan: ${DESCRIPTION}"
 )
@@ -369,7 +369,7 @@ Return what changed.
 ```
 Task(
   prompt=revision_prompt,
-  subagent_type="gsd-planner",
+  subagent_type="pbr-planner",
   model="{planner_model}",
   description="Revise quick plan: ${DESCRIPTION}"
 )
@@ -387,7 +387,7 @@ Offer: 1) Force proceed, 2) Abort
 
 **Step 6: Spawn executor**
 
-Spawn gsd-executor with plan reference:
+Spawn pbr-executor with plan reference:
 
 ```
 Task(
@@ -408,7 +408,7 @@ Execute quick task ${next_num}.
 - Do NOT update ROADMAP.md (quick tasks are separate from planned phases)
 </constraints>
 ",
-  subagent_type="gsd-executor",
+  subagent_type="pbr-executor",
   model="{executor_model}",
   description="Execute: ${DESCRIPTION}"
 )
@@ -434,7 +434,7 @@ Skip this step entirely if NOT `$FULL_MODE`.
 Display banner:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► VERIFYING RESULTS
+ PBR ► VERIFYING RESULTS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ Spawning verifier...
@@ -451,7 +451,7 @@ Task goal: ${DESCRIPTION}
 </files_to_read>
 
 Check must_haves against actual codebase. Create VERIFICATION.md at ${QUICK_DIR}/${next_num}-VERIFICATION.md.",
-  subagent_type="gsd-verifier",
+  subagent_type="pbr-verifier",
   model="{verifier_model}",
   description="Verify: ${DESCRIPTION}"
 )
@@ -539,7 +539,7 @@ Build file list:
 - If `$FULL_MODE` and verification file exists: `${QUICK_DIR}/${next_num}-VERIFICATION.md`
 
 ```bash
-node "$HOME/.claude/get-shit-done/bin/gsd-tools.cjs" commit "docs(quick-${next_num}): ${DESCRIPTION}" --files ${file_list}
+node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs(quick-${next_num}): ${DESCRIPTION}" --files ${file_list}
 ```
 
 Get final commit hash:
@@ -553,7 +553,7 @@ Display completion output:
 ```
 ---
 
-GSD > QUICK TASK COMPLETE (FULL MODE)
+PBR > QUICK TASK COMPLETE (FULL MODE)
 
 Quick Task ${next_num}: ${DESCRIPTION}
 
@@ -563,14 +563,14 @@ Commit: ${commit_hash}
 
 ---
 
-Ready for next task: /gsd:quick
+Ready for next task: /pbr:quick
 ```
 
 **If NOT `$FULL_MODE`:**
 ```
 ---
 
-GSD > QUICK TASK COMPLETE
+PBR > QUICK TASK COMPLETE
 
 Quick Task ${next_num}: ${DESCRIPTION}
 
@@ -579,7 +579,7 @@ Commit: ${commit_hash}
 
 ---
 
-Ready for next task: /gsd:quick
+Ready for next task: /pbr:quick
 ```
 
 </process>

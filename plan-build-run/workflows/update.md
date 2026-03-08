@@ -1,5 +1,5 @@
 <purpose>
-Check for GSD updates via npm, display changelog for versions between installed and latest, obtain user confirmation, and execute clean installation with cache clearing.
+Check for PBR updates via npm, display changelog for versions between installed and latest, obtain user confirmation, and execute clean installation with cache clearing.
 </purpose>
 
 <required_reading>
@@ -9,25 +9,25 @@ Read all files referenced by the invoking prompt's execution_context before star
 <process>
 
 <step name="get_installed_version">
-Detect whether GSD is installed locally or globally by checking both locations and validating install integrity:
+Detect whether PBR is installed locally or globally by checking both locations and validating install integrity:
 
 ```bash
 # Check local first (takes priority only if valid)
 # Detect runtime config directory (supports Claude, OpenCode, Gemini)
 LOCAL_VERSION_FILE="" LOCAL_MARKER_FILE="" LOCAL_DIR=""
 for dir in .claude .config/opencode .opencode .gemini; do
-  if [ -f "./$dir/get-shit-done/VERSION" ]; then
-    LOCAL_VERSION_FILE="./$dir/get-shit-done/VERSION"
-    LOCAL_MARKER_FILE="./$dir/get-shit-done/workflows/update.md"
+  if [ -f "./$dir/plan-build-run/VERSION" ]; then
+    LOCAL_VERSION_FILE="./$dir/plan-build-run/VERSION"
+    LOCAL_MARKER_FILE="./$dir/plan-build-run/workflows/update.md"
     LOCAL_DIR="$(cd "./$dir" 2>/dev/null && pwd)"
     break
   fi
 done
 GLOBAL_VERSION_FILE="" GLOBAL_MARKER_FILE="" GLOBAL_DIR=""
 for dir in .claude .config/opencode .opencode .gemini; do
-  if [ -f "$HOME/$dir/get-shit-done/VERSION" ]; then
-    GLOBAL_VERSION_FILE="$HOME/$dir/get-shit-done/VERSION"
-    GLOBAL_MARKER_FILE="$HOME/$dir/get-shit-done/workflows/update.md"
+  if [ -f "$HOME/$dir/plan-build-run/VERSION" ]; then
+    GLOBAL_VERSION_FILE="$HOME/$dir/plan-build-run/VERSION"
+    GLOBAL_MARKER_FILE="$HOME/$dir/plan-build-run/workflows/update.md"
     GLOBAL_DIR="$(cd "$HOME/$dir" 2>/dev/null && pwd)"
     break
   fi
@@ -59,7 +59,7 @@ Parse output:
 
 **If VERSION file missing:**
 ```
-## GSD Update
+## PBR Update
 
 **Installed version:** Unknown
 
@@ -75,14 +75,14 @@ Proceed to install step (treat as version 0.0.0 for comparison).
 Check npm for latest version:
 
 ```bash
-npm view get-shit-done-cc version 2>/dev/null
+npm view @sienklogic/plan-build-run version 2>/dev/null
 ```
 
 **If npm check fails:**
 ```
 Couldn't check for updates (offline or npm unavailable).
 
-To update manually: `npx get-shit-done-cc --global`
+To update manually: `npx @sienklogic/plan-build-run --global`
 ```
 
 Exit.
@@ -93,7 +93,7 @@ Compare installed vs latest:
 
 **If installed == latest:**
 ```
-## GSD Update
+## PBR Update
 
 **Installed:** X.Y.Z
 **Latest:** X.Y.Z
@@ -105,7 +105,7 @@ Exit.
 
 **If installed > latest:**
 ```
-## GSD Update
+## PBR Update
 
 **Installed:** X.Y.Z
 **Latest:** A.B.C
@@ -124,7 +124,7 @@ Exit.
 3. Display preview and ask for confirmation:
 
 ```
-## GSD Update Available
+## PBR Update Available
 
 **Installed:** 1.5.10
 **Latest:** 1.5.15
@@ -144,20 +144,20 @@ Exit.
 
 ────────────────────────────────────────────────────────────
 
-⚠️  **Note:** The installer performs a clean install of GSD folders:
-- `commands/gsd/` will be wiped and replaced
-- `get-shit-done/` will be wiped and replaced
-- `agents/gsd-*` files will be replaced
+⚠️  **Note:** The installer performs a clean install of PBR folders:
+- `commands/pbr/` will be wiped and replaced
+- `plan-build-run/` will be wiped and replaced
+- `agents/pbr-*` files will be replaced
 
 (Paths are relative to your install location: `~/.claude/` for global, `./.claude/` for local)
 
 Your custom files in other locations are preserved:
-- Custom commands not in `commands/gsd/` ✓
-- Custom agents not prefixed with `gsd-` ✓
+- Custom commands not in `commands/pbr/` ✓
+- Custom agents not prefixed with `pbr-` ✓
 - Custom hooks ✓
 - Your CLAUDE.md files ✓
 
-If you've modified any GSD files directly, they'll be automatically backed up to `gsd-local-patches/` and can be reapplied with `/gsd:reapply-patches` after the update.
+If you've modified any PBR files directly, they'll be automatically backed up to `pbr-local-patches/` and can be reapplied with `/pbr:reapply-patches` after the update.
 ```
 
 Use AskUserQuestion:
@@ -174,12 +174,12 @@ Run the update using the install type detected in step 1:
 
 **If LOCAL install:**
 ```bash
-npx -y get-shit-done-cc@latest --local
+npx -y @sienklogic/plan-build-run@latest --local
 ```
 
 **If GLOBAL install (or unknown):**
 ```bash
-npx -y get-shit-done-cc@latest --global
+npx -y @sienklogic/plan-build-run@latest --global
 ```
 
 Capture output. If install fails, show error and exit.
@@ -189,12 +189,12 @@ Clear the update cache so statusline indicator disappears:
 ```bash
 # Clear update cache across all runtime directories
 for dir in .claude .config/opencode .opencode .gemini; do
-  rm -f "./$dir/cache/gsd-update-check.json"
-  rm -f "$HOME/$dir/cache/gsd-update-check.json"
+  rm -f "./$dir/cache/pbr-update-check.json"
+  rm -f "$HOME/$dir/cache/pbr-update-check.json"
 done
 ```
 
-The SessionStart hook (`gsd-check-update.js`) writes to the detected runtime's cache directory, so all paths must be cleared to prevent stale update indicators.
+The SessionStart hook (`pbr-check-update.js`) writes to the detected runtime's cache directory, so all paths must be cleared to prevent stale update indicators.
 </step>
 
 <step name="display_result">
@@ -202,12 +202,12 @@ Format completion message (changelog was already shown in confirmation step):
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║  GSD Updated: v1.5.10 → v1.5.15                           ║
+║  PBR Updated: v1.5.10 → v1.5.15                           ║
 ╚═══════════════════════════════════════════════════════════╝
 
 ⚠️  Restart Claude Code to pick up the new commands.
 
-[View full changelog](https://github.com/glittercowboy/get-shit-done/blob/main/CHANGELOG.md)
+[View full changelog](https://github.com/glittercowboy/plan-build-run/blob/main/CHANGELOG.md)
 ```
 </step>
 
@@ -215,13 +215,13 @@ Format completion message (changelog was already shown in confirmation step):
 <step name="check_local_patches">
 After update completes, check if the installer detected and backed up any locally modified files:
 
-Check for gsd-local-patches/backup-meta.json in the config directory.
+Check for pbr-local-patches/backup-meta.json in the config directory.
 
 **If patches found:**
 
 ```
 Local patches were backed up before the update.
-Run /gsd:reapply-patches to merge your modifications into the new version.
+Run /pbr:reapply-patches to merge your modifications into the new version.
 ```
 
 **If no patches:** Continue normally.

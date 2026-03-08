@@ -1,6 +1,6 @@
 # Phase Prompt Template
 
-> **Note:** Planning methodology is in `agents/gsd-planner.md`.
+> **Note:** Planning methodology is in `agents/pbr-planner.md`.
 > This template defines the PLAN.md output format that the agent produces.
 
 Template for `.planning/phases/XX-name/{phase}-{plan}-PLAN.md` - executable phase plans optimized for parallel execution.
@@ -38,10 +38,10 @@ Output: [What artifacts will be created]
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/execute-plan.md
-@~/.claude/get-shit-done/templates/summary.md
+@~/.claude/plan-build-run/workflows/execute-plan.md
+@~/.claude/plan-build-run/templates/summary.md
 [If plan contains checkpoint tasks (type="checkpoint:*"), add:]
-@~/.claude/get-shit-done/references/checkpoints.md
+@~/.claude/plan-build-run/references/checkpoints.md
 </execution_context>
 
 <context>
@@ -76,7 +76,7 @@ Output: [What artifacts will be created]
   <done>[Acceptance criteria]</done>
 </task>
 
-<!-- For checkpoint task examples and patterns, see @~/.claude/get-shit-done/references/checkpoints.md -->
+<!-- For checkpoint task examples and patterns, see @~/.claude/plan-build-run/references/checkpoints.md -->
 <!-- Key rule: Claude starts dev server BEFORE human-verify checkpoints. User only visits URLs. -->
 
 <task type="checkpoint:decision" gate="blocking">
@@ -134,7 +134,7 @@ After completion, create `.planning/phases/XX-name/{phase}-{plan}-SUMMARY.md`
 | `user_setup` | No | Array of human-required setup items (external services) |
 | `must_haves` | Yes | Goal-backward verification criteria (see below) |
 
-**Wave is pre-computed:** Wave numbers are assigned during `/gsd:plan-phase`. Execute-phase reads `wave` directly from frontmatter and groups plans by wave number. No runtime dependency analysis needed.
+**Wave is pre-computed:** Wave numbers are assigned during `/pbr:plan-phase`. Execute-phase reads `wave` directly from frontmatter and groups plans by wave number. No runtime dependency analysis needed.
 
 **Must-haves enable verification:** The `must_haves` field carries goal-backward requirements from planning to execution. After all plans complete, execute-phase spawns a verification subagent that checks these criteria against the actual codebase.
 
@@ -270,7 +270,7 @@ TDD features get dedicated plans with `type: tdd`.
 → Yes: Create a TDD plan
 → No: Standard task in standard plan
 
-See `~/.claude/get-shit-done/references/tdd.md` for TDD plan structure.
+See `~/.claude/plan-build-run/references/tdd.md` for TDD plan structure.
 
 ---
 
@@ -374,9 +374,9 @@ Output: Working dashboard component.
 </objective>
 
 <execution_context>
-@~/.claude/get-shit-done/workflows/execute-plan.md
-@~/.claude/get-shit-done/templates/summary.md
-@~/.claude/get-shit-done/references/checkpoints.md
+@~/.claude/plan-build-run/workflows/execute-plan.md
+@~/.claude/plan-build-run/templates/summary.md
+@~/.claude/plan-build-run/references/checkpoints.md
 </execution_context>
 
 <context>
@@ -499,7 +499,7 @@ user_setup:
 
 **Result:** Execute-plan generates `{phase}-USER-SETUP.md` with checklist for the user.
 
-See `~/.claude/get-shit-done/templates/user-setup.md` for full schema and examples
+See `~/.claude/plan-build-run/templates/user-setup.md` for full schema and examples
 
 ---
 
@@ -566,4 +566,4 @@ Task completion ≠ Goal achievement. A task "create chat component" can complet
 5. Gaps found → fix plans created → execute → re-verify
 6. All must_haves pass → phase complete
 
-See `~/.claude/get-shit-done/workflows/verify-phase.md` for verification logic.
+See `~/.claude/plan-build-run/workflows/verify-phase.md` for verification logic.
