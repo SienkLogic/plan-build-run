@@ -29,7 +29,7 @@ function detectConfigDir(baseDir) {
 const globalConfigDir = detectConfigDir(homeDir);
 const projectConfigDir = detectConfigDir(cwd);
 const cacheDir = path.join(globalConfigDir, 'cache');
-const cacheFile = path.join(cacheDir, 'gsd-update-check.json');
+const cacheFile = path.join(cacheDir, 'pbr-update-check.json');
 
 // VERSION file locations (check project first, then global)
 const projectVersionFile = path.join(projectConfigDir, 'plan-build-run', 'VERSION');
