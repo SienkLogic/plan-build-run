@@ -1,19 +1,21 @@
 {
-  "name": "get-shit-done-cc",
-  "version": "1.22.4",
-  "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code, OpenCode, Gemini and Codex by TÂCHES.",
+  "name": "@sienklogic/plan-build-run",
+  "version": "2.0.0",
+  "description": "Plan it, Build it, Run it -- structured development workflow for Claude Code, OpenCode, Gemini and Codex",
   "bin": {
-    "get-shit-done-cc": "bin/install.js"
+    "plan-build-run": "bin/install.js"
   },
   "files": [
     "bin",
     "commands",
-    "get-shit-done",
+    "plan-build-run",
     "agents",
     "hooks/dist",
     "scripts"
   ],
   "keywords": [
+    "plan-build-run",
+    "pbr",
     "claude",
     "claude-code",
     "ai",
@@ -25,15 +27,15 @@
     "codex",
     "codex-cli"
   ],
-  "author": "TÂCHES",
+  "author": "SienkLogic",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/glittercowboy/get-shit-done.git"
+    "url": "git+https://github.com/SienkLogic/plan-build-run.git"
   },
-  "homepage": "https://github.com/glittercowboy/get-shit-done",
+  "homepage": "https://github.com/SienkLogic/plan-build-run",
   "bugs": {
-    "url": "https://github.com/glittercowboy/get-shit-done/issues"
+    "url": "https://github.com/SienkLogic/plan-build-run/issues"
   },
   "engines": {
     "node": ">=16.7.0"
@@ -46,6 +48,6 @@
     "build:hooks": "node scripts/build-hooks.js",
     "prepublishOnly": "npm run build:hooks",
     "test": "node scripts/run-tests.cjs",
-    "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'get-shit-done/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
+    "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'plan-build-run/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
   }
 }
