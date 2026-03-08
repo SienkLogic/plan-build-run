@@ -43,14 +43,15 @@
   },
   "devDependencies": {
     "c8": "^11.0.0",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "jest": "^29.0.0"
   },
   "scripts": {
     "dashboard:install": "cd dashboard && npm install && cd server && npm install",
     "dashboard": "node dashboard/bin/cli.cjs",
     "build:hooks": "node scripts/build-hooks.js",
     "prepublishOnly": "npm run build:hooks",
-    "test": "node scripts/run-tests.cjs",
-    "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'plan-build-run/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
+    "test": "jest --forceExit",
+    "test:coverage": "jest --coverage --forceExit"
   }
 }
