@@ -1,16 +1,132 @@
 /**
- * Core — Shared utilities, constants, and internal helpers
+ * lib/core.cjs — Foundation utilities for Plan-Build-Run tools.
+ *
+ * Pure utility functions with no dependencies on other lib modules.
+ * Provides: output/error formatting, YAML frontmatter parsing, status transitions,
+ * file operations (atomicWrite, lockedFileUpdate, findFiles, tailLines),
+ * session management, phase claiming, path utilities, and shared constants.
+ *
+ * Hybrid module merging PBR reference features with GSD-unique utilities.
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 
-// ─── Path helpers ────────────────────────────────────────────────────────────
+// ─── Module-level planningDir with MSYS path bridging ─────────────────────────
 
-/** Normalize a relative path to always use forward slashes (cross-platform). */
-function toPosixPath(p) {
-  return p.split(path.sep).join('/');
+let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+
+// MSYS path bridging: convert /c/Users/... to C:\Users\... on Windows
+const msysMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
+if (msysMatch) cwd = msysMatch[1] + ':' + path.sep + msysMatch[2];
+
+let planningDir = path.join(cwd, '.planning');
+
+/**
+ * Override the working directory for subagent use.
+ * Updates both cwd and planningDir.
+ *
+ * @param {string} newCwd - New working directory path
+ */
+function setCwd(newCwd) {
+  cwd = newCwd;
+  // Apply MSYS bridging to the new cwd as well
+  const m = cwd.match(/^\/([a-zA-Z])\/(.*)/);
+  if (m) cwd = m[1] + ':' + path.sep + m[2];
+  planningDir = path.join(cwd, '.planning');
+}
+
+// ─── Canonical agent list ─────────────────────────────────────────────────────
+
+/**
+ * Canonical list of known PBR agent types.
+ * Used by validate-task and check-subagent-output to avoid drift.
+ */
+const KNOWN_AGENTS = [
+  'pbr-executor',
+  'pbr-planner',
+  'pbr-verifier',
+  'pbr-researcher',
+  'pbr-synthesizer',
+  'pbr-plan-checker',
+  'pbr-integration-checker',
+  'pbr-debugger',
+  'pbr-codebase-mapper',
+  'pbr-audit',
+  'pbr-general',
+  'pbr-dev-sync'
+];
+
+// ─── Phase status transition state machine ────────────────────────────────────
+
+/**
+ * Valid phase status transitions. Each key is a current status, and its value
+ * is an array of statuses that are legal to transition to. This is advisory —
+ * invalid transitions produce a stderr warning but are not blocked.
+ *
+ * State machine:
+ *   pending -> planned, skipped
+ *   planned -> building
+ *   building -> built, partial, needs_fixes
+ *   built -> verified, needs_fixes
+ *   partial -> building, needs_fixes
+ *   verified -> building (re-execution)
+ *   needs_fixes -> planned, building
+ *   skipped -> pending (unskip)
+ */
+const VALID_STATUS_TRANSITIONS = {
+  pending:     ['planned', 'skipped'],
+  planned:     ['building'],
+  building:    ['built', 'partial', 'needs_fixes'],
+  built:       ['verified', 'needs_fixes'],
+  partial:     ['building', 'needs_fixes'],
+  verified:    ['building'],
+  needs_fixes: ['planned', 'building'],
+  skipped:     ['pending']
+};
+
+/**
+ * Human-readable labels for plan/phase statuses.
+ */
+const STATUS_LABELS = {
+  pending:     'Pending',
+  planned:     'Planned',
+  building:    'Building',
+  built:       'Built',
+  partial:     'Partial',
+  verified:    'Verified',
+  needs_fixes: 'Needs Fixes',
+  skipped:     'Skipped',
+  discussed:   'Discussed',
+  not_started: 'Not Started',
+  reviewed:    'Reviewed'
+};
+
+/**
+ * Check whether a phase status transition is valid according to the state machine.
+ * Returns { valid, warning? } — never blocks, only advises.
+ *
+ * @param {string} oldStatus - Current phase status
+ * @param {string} newStatus - Desired phase status
+ * @returns {{ valid: boolean, warning?: string }}
+ */
+function validateStatusTransition(oldStatus, newStatus) {
+  const from = (oldStatus || '').trim().toLowerCase();
+  const to = (newStatus || '').trim().toLowerCase();
+
+  if (from === to) return { valid: true };
+
+  if (!VALID_STATUS_TRANSITIONS[from]) return { valid: true };
+
+  const allowed = VALID_STATUS_TRANSITIONS[from];
+  if (allowed.includes(to)) return { valid: true };
+
+  return {
+    valid: false,
+    warning: `Suspicious status transition: "${from}" -> "${to}". Expected one of: [${allowed.join(', ')}]. Proceeding anyway (advisory).`
+  };
 }
 
 // ─── Model Profile Table ─────────────────────────────────────────────────────
@@ -30,131 +146,113 @@ const MODEL_PROFILES = {
   'pbr-nyquist-auditor':      { quality: 'sonnet', balanced: 'sonnet', budget: 'haiku' },
 };
 
+// ─── Path helpers ─────────────────────────────────────────────────────────────
+
+/** Normalize a path to always use forward slashes (cross-platform). */
+function toPosixPath(p) {
+  return p.split(path.sep).join('/');
+}
+
 // ─── Output helpers ───────────────────────────────────────────────────────────
 
-function output(result, raw, rawValue) {
+function output(data, raw, rawValue) {
   if (raw && rawValue !== undefined) {
     process.stdout.write(String(rawValue));
   } else {
-    const json = JSON.stringify(result, null, 2);
-    // Large payloads exceed Claude Code's Bash tool buffer (~50KB).
-    // Write to tmpfile and output the path prefixed with @file: so callers can detect it.
+    const json = JSON.stringify(data, null, 2);
     if (json.length > 50000) {
-      const tmpPath = path.join(require('os').tmpdir(), `pbr-${Date.now()}.json`);
-      fs.writeFileSync(tmpPath, json, 'utf-8');
-      process.stdout.write('@file:' + tmpPath);
+      const tmpPath = path.join(os.tmpdir(), `pbr-${Date.now()}.json`);
+      fs.writeFileSync(tmpPath, json, 'utf8');
+      process.stdout.write('@file:' + tmpPath + '\n');
     } else {
-      process.stdout.write(json);
+      process.stdout.write(json + '\n');
     }
   }
   process.exit(0);
 }
 
-function error(message) {
-  process.stderr.write('Error: ' + message + '\n');
+function error(msg) {
+  process.stderr.write('Error: ' + msg + '\n');
   process.exit(1);
 }
 
-// ─── File & Config utilities ──────────────────────────────────────────────────
+// ─── File & path utilities ────────────────────────────────────────────────────
 
+/**
+ * Read a file safely, returning null on any error.
+ *
+ * @param {string} filePath - Absolute path to the file
+ * @returns {string|null} File contents or null
+ */
 function safeReadFile(filePath) {
   try {
-    return fs.readFileSync(filePath, 'utf-8');
+    return fs.readFileSync(filePath, 'utf8');
   } catch {
     return null;
   }
 }
 
-function loadConfig(cwd) {
-  const configPath = path.join(cwd, '.planning', 'config.json');
-  const defaults = {
-    model_profile: 'balanced',
-    commit_docs: true,
-    search_gitignored: false,
-    branching_strategy: 'none',
-    phase_branch_template: 'pbr/phase-{phase}-{slug}',
-    milestone_branch_template: 'pbr/{milestone}-{slug}',
-    research: true,
-    plan_checker: true,
-    verifier: true,
-    nyquist_validation: true,
-    parallelization: true,
-    brave_search: false,
-  };
+/**
+ * Ensure a directory exists, creating it recursively if needed.
+ *
+ * @param {string} dirPath - Directory path to ensure
+ */
+function ensureDir(dirPath) {
+  fs.mkdirSync(dirPath, { recursive: true });
+}
 
+/**
+ * Find files in a directory matching a regex pattern.
+ *
+ * @param {string} dir - Directory to search
+ * @param {RegExp} pattern - Pattern to match filenames against
+ * @returns {string[]} Sorted array of matching filenames
+ */
+function findFiles(dir, pattern) {
   try {
-    const raw = fs.readFileSync(configPath, 'utf-8');
-    const parsed = JSON.parse(raw);
+    return fs.readdirSync(dir).filter(f => pattern.test(f)).sort();
+  } catch (_) {
+    return [];
+  }
+}
 
-    // Migrate deprecated "depth" key to "granularity" with value mapping
-    if ('depth' in parsed && !('granularity' in parsed)) {
-      const depthToGranularity = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
-      parsed.granularity = depthToGranularity[parsed.depth] || parsed.depth;
-      delete parsed.depth;
-      try { fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf-8'); } catch {}
-    }
-
-    const get = (key, nested) => {
-      if (parsed[key] !== undefined) return parsed[key];
-      if (nested && parsed[nested.section] && parsed[nested.section][nested.field] !== undefined) {
-        return parsed[nested.section][nested.field];
-      }
-      return undefined;
-    };
-
-    const parallelization = (() => {
-      const val = get('parallelization');
-      if (typeof val === 'boolean') return val;
-      if (typeof val === 'object' && val !== null && 'enabled' in val) return val.enabled;
-      return defaults.parallelization;
-    })();
-
-    return {
-      model_profile: get('model_profile') ?? defaults.model_profile,
-      commit_docs: get('commit_docs', { section: 'planning', field: 'commit_docs' }) ?? defaults.commit_docs,
-      search_gitignored: get('search_gitignored', { section: 'planning', field: 'search_gitignored' }) ?? defaults.search_gitignored,
-      branching_strategy: get('branching_strategy', { section: 'git', field: 'branching_strategy' }) ?? defaults.branching_strategy,
-      phase_branch_template: get('phase_branch_template', { section: 'git', field: 'phase_branch_template' }) ?? defaults.phase_branch_template,
-      milestone_branch_template: get('milestone_branch_template', { section: 'git', field: 'milestone_branch_template' }) ?? defaults.milestone_branch_template,
-      research: get('research', { section: 'workflow', field: 'research' }) ?? defaults.research,
-      plan_checker: get('plan_checker', { section: 'workflow', field: 'plan_check' }) ?? defaults.plan_checker,
-      verifier: get('verifier', { section: 'workflow', field: 'verifier' }) ?? defaults.verifier,
-      nyquist_validation: get('nyquist_validation', { section: 'workflow', field: 'nyquist_validation' }) ?? defaults.nyquist_validation,
-      parallelization,
-      brave_search: get('brave_search') ?? defaults.brave_search,
-      model_overrides: parsed.model_overrides || null,
-    };
-  } catch {
-    return defaults;
+/**
+ * Read the last N lines from a file.
+ *
+ * @param {string} filePath - Absolute path to the file
+ * @param {number} n - Number of trailing lines to return
+ * @returns {string[]} Array of line strings
+ */
+function tailLines(filePath, n) {
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    const content = fs.readFileSync(filePath, 'utf8').trim();
+    if (!content) return [];
+    const lines = content.replace(/\r\n/g, '\n').split('\n');
+    if (lines.length <= n) return lines;
+    return lines.slice(lines.length - n);
+  } catch (_e) {
+    return [];
   }
 }
 
 // ─── Git utilities ────────────────────────────────────────────────────────────
 
-function isGitIgnored(cwd, targetPath) {
-  try {
-    // --no-index checks .gitignore rules regardless of whether the file is tracked.
-    // Without it, git check-ignore returns "not ignored" for tracked files even when
-    // .gitignore explicitly lists them — a common source of confusion when .planning/
-    // was committed before being added to .gitignore.
-    execSync('git check-ignore -q --no-index -- ' + targetPath.replace(/[^a-zA-Z0-9._\-/]/g, ''), {
-      cwd,
-      stdio: 'pipe',
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function execGit(cwd, args) {
+/**
+ * Execute a git command and return the result.
+ *
+ * @param {string} gitCwd - Working directory for git
+ * @param {string[]} args - Git command arguments
+ * @returns {{ exitCode: number, stdout: string, stderr: string }}
+ */
+function execGit(gitCwd, args) {
   try {
     const escaped = args.map(a => {
       if (/^[a-zA-Z0-9._\-/=:@]+$/.test(a)) return a;
       return "'" + a.replace(/'/g, "'\\''") + "'";
     });
     const stdout = execSync('git ' + escaped.join(' '), {
-      cwd,
+      cwd: gitCwd,
       stdio: 'pipe',
       encoding: 'utf-8',
     });
@@ -168,7 +266,270 @@ function execGit(cwd, args) {
   }
 }
 
-// ─── Phase utilities ──────────────────────────────────────────────────────────
+/**
+ * Check if a path is git-ignored.
+ *
+ * @param {string} gitCwd - Working directory
+ * @param {string} targetPath - Path to check
+ * @returns {boolean}
+ */
+function isGitIgnored(gitCwd, targetPath) {
+  try {
+    execSync('git check-ignore -q --no-index -- ' + targetPath.replace(/[^a-zA-Z0-9._\-/]/g, ''), {
+      cwd: gitCwd,
+      stdio: 'pipe',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ─── YAML frontmatter parsing ─────────────────────────────────────────────────
+
+/**
+ * Parse YAML frontmatter from markdown content.
+ * Handles flat key-value pairs, inline arrays, and multi-line arrays.
+ *
+ * @param {string} content - Markdown content with optional frontmatter
+ * @returns {object} Parsed frontmatter as a plain object
+ */
+function parseYamlFrontmatter(content) {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const match = normalized.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!match) return {};
+
+  const yaml = match[1];
+  const result = {};
+
+  const lines = yaml.split('\n');
+  let currentKey = null;
+
+  for (const line of lines) {
+    // Array item
+    if (/^\s+-\s+/.test(line) && currentKey) {
+      const val = line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, '');
+      if (!result[currentKey]) result[currentKey] = [];
+      if (Array.isArray(result[currentKey])) {
+        result[currentKey].push(val);
+      }
+      continue;
+    }
+
+    // Key-value pair
+    const kvMatch = line.match(/^(\w[\w_]*)\s*:\s*(.*)/);
+    if (kvMatch) {
+      currentKey = kvMatch[1];
+      let val = kvMatch[2].trim();
+
+      if (val === '' || val === '|') continue;
+
+      // Handle arrays on same line: [a, b, c]
+      if (val.startsWith('[') && val.endsWith(']')) {
+        result[currentKey] = val.slice(1, -1).split(',')
+          .map(v => v.trim().replace(/^["']|["']$/g, ''))
+          .filter(Boolean);
+        continue;
+      }
+
+      // Clean quotes
+      val = val.replace(/^["']|["']$/g, '');
+
+      // Type coercion
+      if (val === 'true') val = true;
+      else if (val === 'false') val = false;
+      else if (/^\d+$/.test(val)) val = parseInt(val, 10);
+
+      result[currentKey] = val;
+    }
+  }
+
+  // Handle must_haves as a nested object
+  if (yaml.includes('must_haves:')) {
+    result.must_haves = parseMustHaves(yaml);
+  }
+
+  return result;
+}
+
+/**
+ * Parse the must_haves section from YAML frontmatter.
+ *
+ * @param {string} yaml - Raw YAML content (without --- delimiters)
+ * @returns {{ truths: string[], artifacts: string[], key_links: string[] }}
+ */
+function parseMustHaves(yaml) {
+  const result = { truths: [], artifacts: [], key_links: [] };
+  let section = null;
+
+  const inMustHaves = yaml.replace(/\r\n/g, '\n').split('\n');
+  let collecting = false;
+
+  for (const line of inMustHaves) {
+    if (/^\s*must_haves:/.test(line)) {
+      collecting = true;
+      continue;
+    }
+    if (collecting) {
+      if (/^\s{2}truths:/.test(line)) { section = 'truths'; continue; }
+      if (/^\s{2}artifacts:/.test(line)) { section = 'artifacts'; continue; }
+      if (/^\s{2}key_links:/.test(line)) { section = 'key_links'; continue; }
+      if (/^\w/.test(line)) break;
+
+      if (section && /^\s+-\s+/.test(line)) {
+        result[section].push(line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, ''));
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Set/update YAML frontmatter fields in markdown content.
+ * Creates frontmatter block if none exists.
+ *
+ * @param {string} content - Markdown content
+ * @param {object} updates - Key-value pairs to set in frontmatter
+ * @returns {string} Updated content
+ */
+function setYamlFrontmatter(content, updates) {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const match = normalized.match(/^---\s*\n([\s\S]*?)\n---/);
+
+  if (!match) {
+    // No existing frontmatter — create one
+    const lines = Object.entries(updates).map(([k, v]) => {
+      if (Array.isArray(v)) {
+        return `${k}:\n${v.map(item => `  - ${item}`).join('\n')}`;
+      }
+      if (typeof v === 'string' && (v.includes(':') || v.includes('#'))) {
+        return `${k}: "${v}"`;
+      }
+      return `${k}: ${v}`;
+    });
+    return `---\n${lines.join('\n')}\n---\n${normalized}`;
+  }
+
+  let yaml = match[1];
+
+  for (const [key, value] of Object.entries(updates)) {
+    const keyRegex = new RegExp(`^(${key})\\s*:.*$`, 'm');
+    const formatted = typeof value === 'string' && (value.includes(':') || value.includes('#'))
+      ? `"${value}"`
+      : String(value);
+
+    if (keyRegex.test(yaml)) {
+      yaml = yaml.replace(keyRegex, `${key}: ${formatted}`);
+    } else {
+      yaml += `\n${key}: ${formatted}`;
+    }
+  }
+
+  return normalized.replace(/^---\s*\n[\s\S]*?\n---/, `---\n${yaml}\n---`);
+}
+
+// ─── Misc utilities ───────────────────────────────────────────────────────────
+
+function countMustHaves(mustHaves) {
+  if (!mustHaves) return 0;
+  return (mustHaves.truths || []).length +
+    (mustHaves.artifacts || []).length +
+    (mustHaves.key_links || []).length;
+}
+
+function determinePhaseStatus(planCount, completedCount, summaryCount, hasVerification, phaseDir) {
+  if (planCount === 0) {
+    if (fs.existsSync(path.join(phaseDir, 'CONTEXT.md'))) return 'discussed';
+    return 'not_started';
+  }
+  if (completedCount === 0 && summaryCount === 0) return 'planned';
+  if (completedCount < planCount) return 'building';
+  if (!hasVerification) return 'built';
+  try {
+    const vContent = fs.readFileSync(path.join(phaseDir, 'VERIFICATION.md'), 'utf8');
+    if (/status:\s*["']?passed/i.test(vContent)) return 'verified';
+    if (/status:\s*["']?gaps_found/i.test(vContent)) return 'needs_fixes';
+    return 'reviewed';
+  } catch (_) {
+    return 'built';
+  }
+}
+
+function calculateProgress(pDir) {
+  const phasesDir = path.join(pDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { total: 0, completed: 0, percentage: 0 };
+  }
+
+  let total = 0;
+  let completed = 0;
+
+  const entries = fs.readdirSync(phasesDir, { withFileTypes: true })
+    .filter(e => e.isDirectory());
+
+  for (const entry of entries) {
+    const dir = path.join(phasesDir, entry.name);
+    const plans = findFiles(dir, /PLAN.*\.md$/i);
+    total += plans.length;
+
+    const summaries = findFiles(dir, /^SUMMARY-.*\.md$/);
+    for (const s of summaries) {
+      const content = fs.readFileSync(path.join(dir, s), 'utf8');
+      if (/status:\s*["']?complete/i.test(content)) completed++;
+    }
+  }
+
+  return {
+    total,
+    completed,
+    percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+  };
+}
+
+/**
+ * Return an ISO 8601 UTC timestamp string.
+ *
+ * @returns {string} ISO timestamp
+ */
+function currentTimestamp() {
+  return new Date().toISOString();
+}
+
+/**
+ * Generate a URL-safe slug from a string.
+ *
+ * @param {string} text - Input text
+ * @returns {string|null} Slugified string or null
+ */
+function generateSlug(text) {
+  if (!text) return null;
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Resolve the model name for an agent type based on config.
+ *
+ * @param {string} agentType - Agent type key (e.g., 'pbr-executor')
+ * @param {object} config - Config object with model_profile and optional model_overrides
+ * @returns {string} Resolved model name
+ */
+function resolveModel(agentType, config) {
+  // Check per-agent override first
+  const override = config && config.model_overrides && config.model_overrides[agentType];
+  if (override) {
+    return override === 'opus' ? 'inherit' : override;
+  }
+
+  // Fall back to profile lookup
+  const profile = (config && config.model_profile) || 'balanced';
+  const agentModels = MODEL_PROFILES[agentType];
+  if (!agentModels) return 'sonnet';
+  const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
+  return resolved === 'opus' ? 'inherit' : resolved;
+}
+
+// ─── Regex and phase utilities ────────────────────────────────────────────────
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -189,7 +550,6 @@ function comparePhaseNum(a, b) {
   if (!pa || !pb) return String(a).localeCompare(String(b));
   const intDiff = parseInt(pa[1], 10) - parseInt(pb[1], 10);
   if (intDiff !== 0) return intDiff;
-  // No letter sorts before letter: 12 < 12A < 12B
   const la = (pa[2] || '').toUpperCase();
   const lb = (pb[2] || '').toUpperCase();
   if (la !== lb) {
@@ -197,7 +557,6 @@ function comparePhaseNum(a, b) {
     if (!lb) return 1;
     return la < lb ? -1 : 1;
   }
-  // Segment-by-segment decimal comparison: 12A < 12A.1 < 12A.1.2 < 12A.2
   const aDecParts = pa[3] ? pa[3].slice(1).split('.').map(p => parseInt(p, 10)) : [];
   const bDecParts = pb[3] ? pb[3].slice(1).split('.').map(p => parseInt(p, 10)) : [];
   const maxLen = Math.max(aDecParts.length, bDecParts.length);
@@ -256,18 +615,16 @@ function searchPhaseInDir(baseDir, relBase, normalized) {
   }
 }
 
-function findPhaseInternal(cwd, phase) {
+function findPhaseInternal(phaseCwd, phase) {
   if (!phase) return null;
 
-  const phasesDir = path.join(cwd, '.planning', 'phases');
+  const phasesDir = path.join(phaseCwd, '.planning', 'phases');
   const normalized = normalizePhaseName(phase);
 
-  // Search current phases first
   const current = searchPhaseInDir(phasesDir, '.planning/phases', normalized);
   if (current) return current;
 
-  // Search archived milestone phases (newest first)
-  const milestonesDir = path.join(cwd, '.planning', 'milestones');
+  const milestonesDir = path.join(phaseCwd, '.planning', 'milestones');
   if (!fs.existsSync(milestonesDir)) return null;
 
   try {
@@ -288,20 +645,19 @@ function findPhaseInternal(cwd, phase) {
         return result;
       }
     }
-  } catch {}
+  } catch { /* best effort */ }
 
   return null;
 }
 
-function getArchivedPhaseDirs(cwd) {
-  const milestonesDir = path.join(cwd, '.planning', 'milestones');
+function getArchivedPhaseDirs(archCwd) {
+  const milestonesDir = path.join(archCwd, '.planning', 'milestones');
   const results = [];
 
   if (!fs.existsSync(milestonesDir)) return results;
 
   try {
     const milestoneEntries = fs.readdirSync(milestonesDir, { withFileTypes: true });
-    // Find v*-phases directories, sort newest first
     const phaseDirs = milestoneEntries
       .filter(e => e.isDirectory() && /^v[\d.]+-phases$/.test(e.name))
       .map(e => e.name)
@@ -323,20 +679,20 @@ function getArchivedPhaseDirs(cwd) {
         });
       }
     }
-  } catch {}
+  } catch { /* best effort */ }
 
   return results;
 }
 
-// ─── Roadmap & model utilities ────────────────────────────────────────────────
+// ─── Roadmap & milestone utilities ────────────────────────────────────────────
 
-function getRoadmapPhaseInternal(cwd, phaseNum) {
+function getRoadmapPhaseInternal(rmCwd, phaseNum) {
   if (!phaseNum) return null;
-  const roadmapPath = path.join(cwd, '.planning', 'ROADMAP.md');
+  const roadmapPath = path.join(rmCwd, '.planning', 'ROADMAP.md');
   if (!fs.existsSync(roadmapPath)) return null;
 
   try {
-    const content = fs.readFileSync(roadmapPath, 'utf-8');
+    const content = fs.readFileSync(roadmapPath, 'utf8');
     const escapedPhase = escapeRegex(phaseNum.toString());
     const phasePattern = new RegExp(`#{2,4}\\s*Phase\\s+${escapedPhase}:\\s*([^\\n]+)`, 'i');
     const headerMatch = content.match(phasePattern);
@@ -364,47 +720,11 @@ function getRoadmapPhaseInternal(cwd, phaseNum) {
   }
 }
 
-function resolveModelInternal(cwd, agentType) {
-  const config = loadConfig(cwd);
-
-  // Check per-agent override first
-  const override = config.model_overrides?.[agentType];
-  if (override) {
-    return override === 'opus' ? 'inherit' : override;
-  }
-
-  // Fall back to profile lookup
-  const profile = config.model_profile || 'balanced';
-  const agentModels = MODEL_PROFILES[agentType];
-  if (!agentModels) return 'sonnet';
-  const resolved = agentModels[profile] || agentModels['balanced'] || 'sonnet';
-  return resolved === 'opus' ? 'inherit' : resolved;
-}
-
-// ─── Misc utilities ───────────────────────────────────────────────────────────
-
-function pathExistsInternal(cwd, targetPath) {
-  const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(cwd, targetPath);
+function getMilestoneInfo(miCwd) {
   try {
-    fs.statSync(fullPath);
-    return true;
-  } catch {
-    return false;
-  }
-}
+    const roadmap = fs.readFileSync(path.join(miCwd, '.planning', 'ROADMAP.md'), 'utf8');
 
-function generateSlugInternal(text) {
-  if (!text) return null;
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-}
-
-function getMilestoneInfo(cwd) {
-  try {
-    const roadmap = fs.readFileSync(path.join(cwd, '.planning', 'ROADMAP.md'), 'utf-8');
-
-    // First: check for list-format roadmaps using 🚧 (in-progress) marker
-    // e.g. "- 🚧 **v2.1 Belgium** — Phases 24-28 (in progress)"
-    const inProgressMatch = roadmap.match(/🚧\s*\*\*v(\d+\.\d+)\s+([^*]+)\*\*/);
+    const inProgressMatch = roadmap.match(/\u{1F6A7}\s*\*\*v(\d+\.\d+)\s+([^*]+)\*\*/u);
     if (inProgressMatch) {
       return {
         version: 'v' + inProgressMatch[1],
@@ -412,9 +732,7 @@ function getMilestoneInfo(cwd) {
       };
     }
 
-    // Second: heading-format roadmaps — strip shipped milestones in <details> blocks
     const cleaned = roadmap.replace(/<details>[\s\S]*?<\/details>/gi, '');
-    // Extract version and name from the same ## heading for consistency
     const headingMatch = cleaned.match(/## .*v(\d+\.\d+)[:\s]+([^\n(]+)/);
     if (headingMatch) {
       return {
@@ -422,7 +740,6 @@ function getMilestoneInfo(cwd) {
         name: headingMatch[2].trim(),
       };
     }
-    // Fallback: try bare version match
     const versionMatch = cleaned.match(/v(\d+\.\d+)/);
     return {
       version: versionMatch ? versionMatch[0] : 'v1.0',
@@ -436,18 +753,17 @@ function getMilestoneInfo(cwd) {
 /**
  * Returns a filter function that checks whether a phase directory belongs
  * to the current milestone based on ROADMAP.md phase headings.
- * If no ROADMAP exists or no phases are listed, returns a pass-all filter.
  */
-function getMilestonePhaseFilter(cwd) {
+function getMilestonePhaseFilter(filterCwd) {
   const milestonePhaseNums = new Set();
   try {
-    const roadmap = fs.readFileSync(path.join(cwd, '.planning', 'ROADMAP.md'), 'utf-8');
+    const roadmap = fs.readFileSync(path.join(filterCwd, '.planning', 'ROADMAP.md'), 'utf8');
     const phasePattern = /#{2,4}\s*Phase\s+(\d+[A-Z]?(?:\.\d+)*)\s*:/gi;
     let m;
     while ((m = phasePattern.exec(roadmap)) !== null) {
       milestonePhaseNums.add(m[1]);
     }
-  } catch {}
+  } catch { /* best effort */ }
 
   if (milestonePhaseNums.size === 0) {
     const passAll = () => true;
@@ -460,33 +776,772 @@ function getMilestonePhaseFilter(cwd) {
   );
 
   function isDirInMilestone(dirName) {
-    const m = dirName.match(/^0*(\d+[A-Za-z]?(?:\.\d+)*)/);
-    if (!m) return false;
-    return normalized.has(m[1].toLowerCase());
+    const dm = dirName.match(/^0*(\d+[A-Za-z]?(?:\.\d+)*)/);
+    if (!dm) return false;
+    return normalized.has(dm[1].toLowerCase());
   }
   isDirInMilestone.phaseCount = milestonePhaseNums.size;
   return isDirInMilestone;
 }
 
+// ─── Atomic file operations ───────────────────────────────────────────────────
+
+/**
+ * Write content to a file atomically: write to .tmp, backup original to .bak,
+ * rename .tmp over original. On failure, restore from .bak if available.
+ *
+ * @param {string} filePath - Target file path
+ * @param {string} content - Content to write
+ * @returns {{success: boolean, error?: string}} Result
+ */
+function atomicWrite(filePath, content) {
+  const tmpPath = filePath + '.tmp';
+  const bakPath = filePath + '.bak';
+
+  try {
+    fs.writeFileSync(tmpPath, content, 'utf8');
+
+    if (fs.existsSync(filePath)) {
+      try { fs.copyFileSync(filePath, bakPath); } catch (_e) { /* non-fatal */ }
+    }
+
+    fs.renameSync(tmpPath, filePath);
+
+    try {
+      if (fs.existsSync(bakPath)) fs.unlinkSync(bakPath);
+    } catch (_e) { /* non-fatal */ }
+
+    return { success: true };
+  } catch (e) {
+    try {
+      if (fs.existsSync(bakPath)) fs.copyFileSync(bakPath, filePath);
+    } catch (_restoreErr) { /* nothing more we can do */ }
+    try {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+    } catch (_cleanupErr) { /* best effort */ }
+
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Locked file update: read-modify-write with exclusive lockfile.
+ * Prevents concurrent writes to STATE.md and ROADMAP.md.
+ *
+ * @param {string} filePath - Absolute path to the file to update
+ * @param {function} updateFn - Receives current content, returns new content
+ * @param {object} opts - Options: { retries: 3, retryDelayMs: 100, timeoutMs: 5000 }
+ * @returns {object} { success, content?, error? }
+ */
+function lockedFileUpdate(filePath, updateFn, opts = {}) {
+  const retries = opts.retries || 3;
+  const retryDelayMs = opts.retryDelayMs || 100;
+  const timeoutMs = opts.timeoutMs || 5000;
+  const lockPath = filePath + '.lock';
+
+  let lockFd = null;
+  let lockAcquired = false;
+
+  try {
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        lockFd = fs.openSync(lockPath, 'wx');
+        lockAcquired = true;
+        break;
+      } catch (e) {
+        if (e.code === 'EEXIST') {
+          try {
+            const stats = fs.statSync(lockPath);
+            if (Date.now() - stats.mtimeMs > timeoutMs) {
+              fs.unlinkSync(lockPath);
+              continue;
+            }
+          } catch (_statErr) {
+            continue;
+          }
+
+          if (attempt < retries - 1) {
+            const waitMs = retryDelayMs * (attempt + 1);
+            try {
+              Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
+            } catch (_atomicsErr) {
+              const end = Date.now() + waitMs;
+              while (Date.now() < end) { /* last-resort fallback */ }
+            }
+            continue;
+          }
+          return { success: false, error: `Could not acquire lock for ${path.basename(filePath)} after ${retries} attempts` };
+        }
+        throw e;
+      }
+    }
+
+    if (!lockAcquired) {
+      return { success: false, error: `Could not acquire lock for ${path.basename(filePath)}` };
+    }
+
+    fs.writeSync(lockFd, `${process.pid}`);
+    fs.closeSync(lockFd);
+    lockFd = null;
+
+    let content = '';
+    if (fs.existsSync(filePath)) {
+      content = fs.readFileSync(filePath, 'utf8');
+    }
+
+    const newContent = updateFn(content);
+
+    const writeResult = atomicWrite(filePath, newContent);
+    if (!writeResult.success) {
+      return { success: false, error: writeResult.error };
+    }
+
+    return { success: true, content: newContent };
+  } catch (e) {
+    return { success: false, error: e.message };
+  } finally {
+    try {
+      if (lockFd !== null) fs.closeSync(lockFd);
+    } catch (_e) { /* ignore */ }
+    if (lockAcquired) {
+      try { fs.unlinkSync(lockPath); } catch (_e) { /* ignore */ }
+    }
+  }
+}
+
+// ─── Lightweight JSON Schema validator ────────────────────────────────────────
+
+/**
+ * Validate an object against a simple JSON Schema subset.
+ * Supports type, enum, properties, additionalProperties, minimum, maximum.
+ *
+ * @param {*} value - Value to validate
+ * @param {object} schema - JSON Schema subset
+ * @param {string} prefix - Path prefix for error messages
+ * @param {string[]} errors - Array to push errors to
+ * @param {string[]} warnings - Array to push warnings to
+ */
+function validateObject(value, schema, prefix, errors, warnings) {
+  if (schema.type) {
+    const types = Array.isArray(schema.type) ? schema.type : [schema.type];
+    const actualType = typeof value;
+    const typeMatch = types.some(t => {
+      if (t === 'integer') return actualType === 'number' && Number.isInteger(value);
+      return actualType === t;
+    });
+    if (!typeMatch) {
+      errors.push(`${prefix || 'root'}: expected ${types.join('|')}, got ${actualType}`);
+      return;
+    }
+  }
+
+  if (schema.enum && !schema.enum.includes(value)) {
+    errors.push(`${prefix || 'root'}: value "${value}" not in allowed values [${schema.enum.join(', ')}]`);
+    return;
+  }
+
+  if (schema.minimum !== undefined && value < schema.minimum) {
+    errors.push(`${prefix || 'root'}: value ${value} is below minimum ${schema.minimum}`);
+  }
+  if (schema.maximum !== undefined && value > schema.maximum) {
+    errors.push(`${prefix || 'root'}: value ${value} is above maximum ${schema.maximum}`);
+  }
+
+  if (schema.type === 'object' && schema.properties) {
+    const knownKeys = new Set(Object.keys(schema.properties));
+    for (const key of Object.keys(value)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      if (!knownKeys.has(key)) {
+        if (schema.additionalProperties === false) {
+          warnings.push(`${fullKey}: unrecognized key (possible typo?)`);
+        }
+        continue;
+      }
+      validateObject(value[key], schema.properties[key], fullKey, errors, warnings);
+    }
+  }
+}
+
+// ─── Session-scoped path resolution ───────────────────────────────────────────
+
+const STALE_SESSION_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+/**
+ * Resolve a session-scoped file path.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} filename - Filename to resolve
+ * @param {string} sessionId - Session identifier
+ * @returns {string} Resolved path
+ */
+function resolveSessionPath(pDir, filename, sessionId) {
+  return path.join(pDir, '.sessions', sessionId, filename);
+}
+
+/**
+ * Ensure session directory exists and write meta.json.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ */
+function ensureSessionDir(pDir, sessionId) {
+  const dirPath = path.join(pDir, '.sessions', sessionId);
+  fs.mkdirSync(dirPath, { recursive: true });
+  const metaPath = path.join(dirPath, 'meta.json');
+  if (!fs.existsSync(metaPath)) {
+    fs.writeFileSync(metaPath, JSON.stringify({
+      session_id: sessionId,
+      created: new Date().toISOString(),
+      pid: process.pid
+    }, null, 2), 'utf8');
+  }
+}
+
+/**
+ * Remove a session directory and all its contents.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ */
+function removeSessionDir(pDir, sessionId) {
+  const dirPath = path.join(pDir, '.sessions', sessionId);
+  if (fs.existsSync(dirPath)) {
+    fs.rmSync(dirPath, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Remove stale session directories older than STALE_SESSION_MS.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @returns {Array<{sessionId: string, age: number}>} Removed sessions
+ */
+function cleanStaleSessions(pDir) {
+  const sessionsDir = path.join(pDir, '.sessions');
+  if (!fs.existsSync(sessionsDir)) return [];
+
+  const removed = [];
+  try {
+    const entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const dirPath = path.join(sessionsDir, entry.name);
+      let ageMs = 0;
+
+      const metaPath = path.join(dirPath, 'meta.json');
+      try {
+        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        ageMs = Date.now() - new Date(meta.created).getTime();
+      } catch (_e) {
+        try {
+          const stats = fs.statSync(dirPath);
+          ageMs = Date.now() - stats.mtimeMs;
+        } catch (_statErr) {
+          continue;
+        }
+      }
+
+      if (ageMs > STALE_SESSION_MS) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+        removed.push({ sessionId: entry.name, age: ageMs });
+      }
+    }
+  } catch (_e) { /* best effort */ }
+
+  return removed;
+}
+
+// ─── Session state management ─────────────────────────────────────────────────
+
+const SESSION_ALLOWED_KEYS = ['activeSkill', 'compactCounter', 'sessionStart', 'activeOperation', 'activePlan'];
+
+/**
+ * Load .session.json from .planning/ directory.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {string} [sessionId] - Session identifier for session-scoped path
+ * @returns {object} Parsed session data or empty object
+ */
+function sessionLoad(dir, sessionId) {
+  const sessionPath = sessionId
+    ? resolveSessionPath(dir, '.session.json', sessionId)
+    : path.join(dir, '.session.json');
+  try {
+    if (!fs.existsSync(sessionPath)) return {};
+    const content = fs.readFileSync(sessionPath, 'utf8');
+    return JSON.parse(content);
+  } catch (_e) {
+    return {};
+  }
+}
+
+/**
+ * Save data to .session.json using atomic write.
+ * Merges provided data with existing session data.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {object} data - Key-value pairs to merge into session
+ * @param {string} [sessionId] - Session identifier for session-scoped path
+ * @returns {{ success: boolean, error?: string }}
+ */
+function sessionSave(dir, data, sessionId) {
+  const sessionPath = sessionId
+    ? resolveSessionPath(dir, '.session.json', sessionId)
+    : path.join(dir, '.session.json');
+  const tmpPath = sessionPath + '.tmp';
+  try {
+    if (sessionId) ensureSessionDir(dir, sessionId);
+    const existing = sessionLoad(dir, sessionId);
+    const merged = Object.assign(existing, data);
+    fs.writeFileSync(tmpPath, JSON.stringify(merged, null, 2), 'utf8');
+    fs.renameSync(tmpPath, sessionPath);
+    return { success: true };
+  } catch (e) {
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* cleanup */ }
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Clear session data by removing the .session.json file.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {string} [sessionId] - Session identifier for session-scoped path
+ * @returns {{ success: boolean, error?: string }}
+ */
+function sessionClear(dir, sessionId) {
+  const sessionPath = sessionId
+    ? resolveSessionPath(dir, '.session.json', sessionId)
+    : path.join(dir, '.session.json');
+  try {
+    if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Dump all session data as a JSON object for debugging.
+ *
+ * @param {string} dir - Path to .planning/ directory
+ * @param {string} [sessionId] - Session identifier for session-scoped path
+ * @returns {object} Session data including metadata
+ */
+function sessionDump(dir, sessionId) {
+  const data = sessionLoad(dir, sessionId);
+  const sessionPath = sessionId
+    ? resolveSessionPath(dir, '.session.json', sessionId)
+    : path.join(dir, '.session.json');
+  return {
+    path: sessionPath,
+    exists: fs.existsSync(sessionPath),
+    data,
+    keys: Object.keys(data)
+  };
+}
+
+/**
+ * Write .active-skill with OS-level mutual exclusion.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} skillName - Skill name to write
+ * @param {string} [sessionId] - Session identifier for session-scoped path
+ * @returns {{success: boolean, warning?: string}} Result
+ */
+function writeActiveSkill(pDir, skillName, sessionId) {
+  const skillFile = sessionId
+    ? resolveSessionPath(pDir, '.active-skill', sessionId)
+    : path.join(pDir, '.active-skill');
+  const lockFile = skillFile + '.lock';
+  const staleThresholdMs = 60 * 60 * 1000;
+
+  if (sessionId) ensureSessionDir(pDir, sessionId);
+
+  let lockFd = null;
+  try {
+    lockFd = fs.openSync(lockFile, 'wx');
+    fs.writeSync(lockFd, `${process.pid}`);
+    fs.closeSync(lockFd);
+    lockFd = null;
+
+    let warning = null;
+    if (fs.existsSync(skillFile)) {
+      try {
+        const stats = fs.statSync(skillFile);
+        const ageMs = Date.now() - stats.mtimeMs;
+        if (ageMs < staleThresholdMs) {
+          const existing = fs.readFileSync(skillFile, 'utf8').trim();
+          warning = `.active-skill already set to "${existing}" (${Math.round(ageMs / 60000)}min ago). Overwriting.`;
+        }
+      } catch (_e) { /* file disappeared */ }
+    }
+
+    fs.writeFileSync(skillFile, skillName, 'utf8');
+    try { sessionSave(pDir, { activeSkill: skillName }, sessionId); } catch (_e) { /* non-fatal */ }
+    try { fs.unlinkSync(lockFile); } catch (_e) { /* best effort */ }
+
+    return { success: true, warning };
+  } catch (e) {
+    try { if (lockFd !== null) fs.closeSync(lockFd); } catch (_e) { /* ignore */ }
+
+    if (e.code === 'EEXIST') {
+      try {
+        const lockStats = fs.statSync(lockFile);
+        const lockAgeMs = Date.now() - lockStats.mtimeMs;
+        if (lockAgeMs > staleThresholdMs) {
+          fs.unlinkSync(lockFile);
+          return writeActiveSkill(pDir, skillName, sessionId);
+        }
+      } catch (_statErr) {
+        return writeActiveSkill(pDir, skillName, sessionId);
+      }
+      return { success: false, warning: `.active-skill.lock held by another process.` };
+    }
+
+    try {
+      fs.writeFileSync(skillFile, skillName, 'utf8');
+      return { success: true, warning: `Lock failed (${e.code}), wrote without lock` };
+    } catch (writeErr) {
+      return { success: false, warning: `Failed to write .active-skill: ${writeErr.message}` };
+    }
+  }
+}
+
+// ─── Phase claiming ───────────────────────────────────────────────────────────
+
+/**
+ * Check whether a claim is stale (its session directory no longer exists).
+ *
+ * @param {object} claimData - Parsed .claim JSON (must have session_id)
+ * @param {string} pDir - Path to .planning/ directory
+ * @returns {{ stale: boolean, reason?: string }}
+ */
+function isClaimStale(claimData, pDir) {
+  const sessionDir = path.join(pDir, '.sessions', claimData.session_id);
+  if (!fs.existsSync(sessionDir)) {
+    return { stale: true, reason: 'session_dir_missing' };
+  }
+  return { stale: false };
+}
+
+/**
+ * Acquire a phase claim for a session. Auto-releases stale claims.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} phaseDir - Absolute path to the phase directory
+ * @param {string} sessionId - Session identifier
+ * @param {string} skill - Skill name acquiring the claim
+ * @returns {{ acquired: boolean, conflict?: object, auto_released?: object }}
+ */
+function acquireClaim(pDir, phaseDir, sessionId, skill) {
+  const claimPath = path.join(phaseDir, '.claim');
+  let autoReleased = null;
+
+  if (fs.existsSync(claimPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(claimPath, 'utf8'));
+      if (existing.session_id !== sessionId) {
+        const staleCheck = isClaimStale(existing, pDir);
+        if (staleCheck.stale) {
+          fs.unlinkSync(claimPath);
+          autoReleased = existing;
+        } else {
+          return {
+            acquired: false,
+            conflict: {
+              session_id: existing.session_id,
+              skill: existing.skill,
+              started: existing.started,
+              pid: existing.pid
+            },
+            auto_released: null
+          };
+        }
+      }
+    } catch (_e) {
+      try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* best effort */ }
+    }
+  }
+
+  const claimData = {
+    session_id: sessionId,
+    skill: skill,
+    started: new Date().toISOString(),
+    pid: process.pid
+  };
+  fs.writeFileSync(claimPath, JSON.stringify(claimData, null, 2), 'utf8');
+
+  return { acquired: true, conflict: null, auto_released: autoReleased };
+}
+
+/**
+ * Release a phase claim owned by a specific session.
+ *
+ * @param {string} _pDir - Path to .planning/ directory (unused, for API consistency)
+ * @param {string} phaseDir - Absolute path to the phase directory
+ * @param {string} sessionId - Session identifier
+ * @returns {{ released: boolean, reason?: string, owner?: string }}
+ */
+function releaseClaim(_pDir, phaseDir, sessionId) {
+  const claimPath = path.join(phaseDir, '.claim');
+
+  if (!fs.existsSync(claimPath)) {
+    return { released: false, reason: 'no_claim' };
+  }
+
+  try {
+    const claim = JSON.parse(fs.readFileSync(claimPath, 'utf8'));
+    if (claim.session_id !== sessionId) {
+      return { released: false, reason: 'not_owner', owner: claim.session_id };
+    }
+    fs.unlinkSync(claimPath);
+    return { released: true };
+  } catch (_e) {
+    try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* best effort */ }
+    return { released: true };
+  }
+}
+
+/**
+ * List all active phase claims.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @returns {{ claims: Array<object> }}
+ */
+function listClaims(pDir) {
+  const phasesDir = path.join(pDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { claims: [] };
+  }
+
+  const results = [];
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const claimPath = path.join(phasesDir, entry.name, '.claim');
+      if (!fs.existsSync(claimPath)) continue;
+      try {
+        const claimData = JSON.parse(fs.readFileSync(claimPath, 'utf8'));
+        results.push({
+          phase: entry.name,
+          ...claimData,
+          stale: isClaimStale(claimData, pDir).stale
+        });
+      } catch (_e) { /* skip malformed */ }
+    }
+  } catch (_e) { /* best effort */ }
+
+  return { claims: results };
+}
+
+/**
+ * Release all claims held by a specific session across all phase directories.
+ *
+ * @param {string} pDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ * @returns {{ released: string[] }}
+ */
+function releaseSessionClaims(pDir, sessionId) {
+  const phasesDir = path.join(pDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { released: [] };
+  }
+
+  const released = [];
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const claimPath = path.join(phasesDir, entry.name, '.claim');
+      if (!fs.existsSync(claimPath)) continue;
+      try {
+        const claimData = JSON.parse(fs.readFileSync(claimPath, 'utf8'));
+        if (claimData.session_id === sessionId) {
+          fs.unlinkSync(claimPath);
+          released.push(entry.name);
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  } catch (_e) { /* best effort */ }
+
+  return { released };
+}
+
+// ─── Config loader (lightweight, used by core only) ───────────────────────────
+
+function loadConfig(configCwd) {
+  const configPath = path.join(configCwd, '.planning', 'config.json');
+  const defaults = {
+    model_profile: 'balanced',
+    commit_docs: true,
+    search_gitignored: false,
+    branching_strategy: 'none',
+    phase_branch_template: 'pbr/phase-{phase}-{slug}',
+    milestone_branch_template: 'pbr/{milestone}-{slug}',
+    research: true,
+    plan_checker: true,
+    verifier: true,
+    nyquist_validation: true,
+    parallelization: true,
+    brave_search: false,
+  };
+
+  try {
+    const raw = fs.readFileSync(configPath, 'utf8');
+    const parsed = JSON.parse(raw);
+
+    if ('depth' in parsed && !('granularity' in parsed)) {
+      const depthToGranularity = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
+      parsed.granularity = depthToGranularity[parsed.depth] || parsed.depth;
+      delete parsed.depth;
+      try { fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf8'); } catch { /* best effort */ }
+    }
+
+    const get = (key, nested) => {
+      if (parsed[key] !== undefined) return parsed[key];
+      if (nested && parsed[nested.section] && parsed[nested.section][nested.field] !== undefined) {
+        return parsed[nested.section][nested.field];
+      }
+      return undefined;
+    };
+
+    const parallelization = (() => {
+      const val = get('parallelization');
+      if (typeof val === 'boolean') return val;
+      if (typeof val === 'object' && val !== null && 'enabled' in val) return val.enabled;
+      return defaults.parallelization;
+    })();
+
+    return {
+      model_profile: get('model_profile') ?? defaults.model_profile,
+      commit_docs: get('commit_docs', { section: 'planning', field: 'commit_docs' }) ?? defaults.commit_docs,
+      search_gitignored: get('search_gitignored', { section: 'planning', field: 'search_gitignored' }) ?? defaults.search_gitignored,
+      branching_strategy: get('branching_strategy', { section: 'git', field: 'branching_strategy' }) ?? defaults.branching_strategy,
+      phase_branch_template: get('phase_branch_template', { section: 'git', field: 'phase_branch_template' }) ?? defaults.phase_branch_template,
+      milestone_branch_template: get('milestone_branch_template', { section: 'git', field: 'milestone_branch_template' }) ?? defaults.milestone_branch_template,
+      research: get('research', { section: 'workflow', field: 'research' }) ?? defaults.research,
+      plan_checker: get('plan_checker', { section: 'workflow', field: 'plan_check' }) ?? defaults.plan_checker,
+      verifier: get('verifier', { section: 'workflow', field: 'verifier' }) ?? defaults.verifier,
+      nyquist_validation: get('nyquist_validation', { section: 'workflow', field: 'nyquist_validation' }) ?? defaults.nyquist_validation,
+      parallelization,
+      brave_search: get('brave_search') ?? defaults.brave_search,
+      model_overrides: parsed.model_overrides || null,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+/**
+ * Check if a path is git-ignored, scoped to a cwd.
+ *
+ * @param {string} igCwd - Working directory
+ * @param {string} targetPath - Path to check
+ * @returns {boolean}
+ */
+function pathExistsInternal(peCwd, targetPath) {
+  const fullPath = path.isAbsolute(targetPath) ? targetPath : path.join(peCwd, targetPath);
+  try {
+    fs.statSync(fullPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveModelInternal(rmCwd, agentType) {
+  const config = loadConfig(rmCwd);
+  return resolveModel(agentType, config);
+}
+
+// ─── Exports ──────────────────────────────────────────────────────────────────
+
 module.exports = {
+  // Module-level state
+  setCwd,
+
+  // Constants
+  KNOWN_AGENTS,
+  VALID_STATUS_TRANSITIONS,
+  STATUS_LABELS,
   MODEL_PROFILES,
+  SESSION_ALLOWED_KEYS,
+  STALE_SESSION_MS,
+
+  // Status transitions
+  validateStatusTransition,
+
+  // Output
   output,
   error,
+
+  // Path & file utilities
+  toPosixPath,
   safeReadFile,
-  loadConfig,
-  isGitIgnored,
-  execGit,
+  ensureDir,
+  findFiles,
+  tailLines,
   escapeRegex,
+
+  // Git utilities
+  execGit,
+  isGitIgnored,
+
+  // YAML frontmatter
+  parseYamlFrontmatter,
+  parseMustHaves,
+  setYamlFrontmatter,
+
+  // Misc utilities
+  countMustHaves,
+  determinePhaseStatus,
+  calculateProgress,
+  currentTimestamp,
+  generateSlug,
+  resolveModel,
+
+  // Phase utilities
   normalizePhaseName,
   comparePhaseNum,
   searchPhaseInDir,
   findPhaseInternal,
   getArchivedPhaseDirs,
+
+  // Roadmap & milestone
   getRoadmapPhaseInternal,
-  resolveModelInternal,
-  pathExistsInternal,
-  generateSlugInternal,
   getMilestoneInfo,
   getMilestonePhaseFilter,
-  toPosixPath,
+
+  // Config loader (lightweight)
+  loadConfig,
+  pathExistsInternal,
+  resolveModelInternal,
+  generateSlugInternal: generateSlug,
+
+  // Atomic operations
+  atomicWrite,
+  lockedFileUpdate,
+
+  // Schema validation
+  validateObject,
+
+  // Session management
+  resolveSessionPath,
+  ensureSessionDir,
+  removeSessionDir,
+  cleanStaleSessions,
+  sessionLoad,
+  sessionSave,
+  sessionClear,
+  sessionDump,
+  writeActiveSkill,
+
+  // Phase claiming
+  isClaimStale,
+  acquireClaim,
+  releaseClaim,
+  listClaims,
+  releaseSessionClaims,
 };
