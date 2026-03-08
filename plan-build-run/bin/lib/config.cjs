@@ -110,6 +110,12 @@ function configValidate(configOrDir, planningDir) {
     }
   }
 
+  // Check schema_version for migration needs (lazy require to avoid circular deps)
+  const { CURRENT_SCHEMA_VERSION } = require('./migrate.cjs');
+  if (config.schema_version !== undefined && config.schema_version < CURRENT_SCHEMA_VERSION) {
+    warnings.push(`config.json schema_version (${config.schema_version}) is behind current (${CURRENT_SCHEMA_VERSION}) — run "pbr-tools migrate" to update`);
+  }
+
   // Local LLM endpoint must be localhost-only for security
   if (config.local_llm && config.local_llm.enabled === true && config.local_llm.endpoint) {
     try {
@@ -160,7 +166,7 @@ function configValidate(configOrDir, planningDir) {
  * for each depth level. User config.depth_profiles overrides these.
  */
 const DEPTH_PROFILE_DEFAULTS = {
-  lean: {
+  quick: {
     'features.research_phase': false,
     'features.plan_checking': false,
     'features.goal_verification': false,
@@ -169,7 +175,7 @@ const DEPTH_PROFILE_DEFAULTS = {
     'scan.mapper_areas': ['tech', 'arch'],
     'debug.max_hypothesis_rounds': 3
   },
-  balanced: {
+  standard: {
     'features.research_phase': true,
     'features.plan_checking': true,
     'features.goal_verification': true,
@@ -178,7 +184,7 @@ const DEPTH_PROFILE_DEFAULTS = {
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 5
   },
-  thorough: {
+  comprehensive: {
     'features.research_phase': true,
     'features.plan_checking': true,
     'features.goal_verification': true,
@@ -213,8 +219,8 @@ function configResolveDepth(dirOrConfig) {
     config = dirOrConfig;
   }
 
-  const depth = (config && config.depth) || 'balanced';
-  const defaults = DEPTH_PROFILE_DEFAULTS[depth] || DEPTH_PROFILE_DEFAULTS.balanced;
+  const depth = (config && config.depth) || 'standard';
+  const defaults = DEPTH_PROFILE_DEFAULTS[depth] || DEPTH_PROFILE_DEFAULTS.standard;
 
   // Merge user overrides if present
   const userOverrides = (config && config.depth_profiles && config.depth_profiles[depth]) || {};
@@ -244,20 +250,26 @@ function configLoadDefaults(planningDir) {
 
   // No config found — return hardcoded defaults
   return {
-    model_profile: 'balanced',
-    commit_docs: true,
-    search_gitignored: false,
-    branching_strategy: 'none',
-    phase_branch_template: 'pbr/phase-{phase}-{slug}',
-    milestone_branch_template: 'pbr/{milestone}-{slug}',
-    workflow: {
-      research: true,
-      plan_check: true,
-      verifier: true,
-      nyquist_validation: true,
+    version: 2,
+    schema_version: 1,
+    mode: 'interactive',
+    depth: 'standard',
+    features: {
+      structured_planning: true,
+      goal_verification: true,
+      research_phase: true,
+      plan_checking: true,
     },
-    parallelization: true,
-    brave_search: false,
+    planning: {
+      commit_docs: true,
+      search_gitignored: false,
+    },
+    git: {
+      branching: 'none',
+    },
+    parallelization: {
+      enabled: true,
+    },
   };
 }
 
@@ -507,25 +519,34 @@ function cmdConfigEnsureSection(cwdArg, raw) {
   const userDefaults = loadUserDefaults() || {};
 
   const hardcoded = {
-    model_profile: 'balanced',
-    commit_docs: true,
-    search_gitignored: false,
-    branching_strategy: 'none',
-    phase_branch_template: 'pbr/phase-{phase}-{slug}',
-    milestone_branch_template: 'pbr/{milestone}-{slug}',
-    workflow: {
-      research: true,
-      plan_check: true,
-      verifier: true,
-      nyquist_validation: true,
+    version: 2,
+    schema_version: 1,
+    mode: 'interactive',
+    depth: 'standard',
+    features: {
+      structured_planning: true,
+      goal_verification: true,
+      research_phase: true,
+      plan_checking: true,
     },
-    parallelization: true,
-    brave_search: hasBraveSearch,
+    planning: {
+      commit_docs: true,
+      search_gitignored: false,
+    },
+    git: {
+      branching: 'none',
+    },
+    parallelization: {
+      enabled: true,
+    },
   };
   const defaults = {
     ...hardcoded,
     ...userDefaults,
-    workflow: { ...hardcoded.workflow, ...(userDefaults.workflow || {}) },
+    features: { ...hardcoded.features, ...(userDefaults.features || {}) },
+    planning: { ...hardcoded.planning, ...(userDefaults.planning || {}) },
+    git: { ...hardcoded.git, ...(userDefaults.git || {}) },
+    parallelization: { ...hardcoded.parallelization, ...(userDefaults.parallelization || {}) },
   };
 
   try {
