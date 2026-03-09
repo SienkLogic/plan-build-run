@@ -610,15 +610,15 @@ test('researcher with old .md file (>30min) returns stale warning', () => {
   });
 
   describe('KNOWN_AGENTS sync (B3 fix)', () => {
-    test('validate-task.js KNOWN_AGENTS matches pbr-tools.js', () => {
+    test('validate-task.js KNOWN_AGENTS matches core.cjs', () => {
       const vtKnown = require(path.join(__dirname, '..', 'hooks', 'validate-task')).KNOWN_AGENTS;
-      const ptKnown = require(path.join(__dirname, '..', 'hooks', 'pbr-tools')).KNOWN_AGENTS;
-      expect(vtKnown).toEqual(ptKnown);
+      const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+      expect(vtKnown).toEqual(coreKnown);
     });
 
     test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', () => {
-      const ptKnown = require(path.join(__dirname, '..', 'hooks', 'pbr-tools')).KNOWN_AGENTS;
-      const prefixed = ptKnown.map(a => 'pbr:' + a);
+      const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+      const prefixed = coreKnown.map(a => 'pbr:' + a);
       for (const key of Object.keys(AGENT_OUTPUTS)) {
         expect(prefixed).toContain(key);
       }

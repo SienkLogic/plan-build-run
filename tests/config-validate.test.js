@@ -43,7 +43,7 @@ describe('config validate', () => {
   test('valid config passes with no errors or warnings', () => {
     writeConfig({
       version: 2,
-      schema_version: 1,
+      schema_version: 2,
       mode: 'interactive',
       depth: 'standard',
       context_strategy: 'aggressive',
@@ -241,7 +241,7 @@ describe('config validate', () => {
   test('no conflict warnings for compatible config', () => {
     writeConfig({
       version: 2,
-      schema_version: 1,
+      schema_version: 2,
       mode: 'autonomous',
       features: { auto_continue: true },
       gates: {},
@@ -256,7 +256,7 @@ describe('config validate', () => {
     test('prd.auto_extract: false is valid', () => {
       writeConfig({
         version: 2,
-        schema_version: 1,
+        schema_version: 2,
         mode: 'interactive',
         depth: 'standard',
         prd: { auto_extract: false }
@@ -269,7 +269,7 @@ describe('config validate', () => {
     test('prd.auto_extract: true is valid', () => {
       writeConfig({
         version: 2,
-        schema_version: 1,
+        schema_version: 2,
         mode: 'interactive',
         depth: 'standard',
         prd: { auto_extract: true }
@@ -282,7 +282,7 @@ describe('config validate', () => {
     test('prd with unknown key warns (unrecognized key)', () => {
       writeConfig({
         version: 2,
-        schema_version: 1,
+        schema_version: 2,
         mode: 'interactive',
         depth: 'standard',
         prd: { auto_extract: false, unknown_key: 'oops' }
@@ -296,7 +296,7 @@ describe('config validate', () => {
     test('prd.auto_extract: non-boolean is invalid', () => {
       writeConfig({
         version: 2,
-        schema_version: 1,
+        schema_version: 2,
         mode: 'interactive',
         depth: 'standard',
         prd: { auto_extract: 'yes' }
@@ -387,7 +387,7 @@ describe('user defaults', () => {
     test('returns null when file does not exist', () => {
       // USER_DEFAULTS_PATH may or may not exist
       // We test the merge path handles null gracefully (loadUserDefaults returns null for missing file)
-      expect(USER_DEFAULTS_PATH).toMatch(/pbr-defaults\.json$/);
+      expect(USER_DEFAULTS_PATH).toMatch(/defaults\.json$/);
       const result = mergeUserDefaults({ mode: 'interactive' }, null);
       expect(result.mode).toBe('interactive');
     });

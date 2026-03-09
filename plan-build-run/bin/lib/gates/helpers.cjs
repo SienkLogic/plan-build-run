@@ -19,7 +19,7 @@ const { resolveSessionPath } = require('../core.cjs');
 function readActiveSkill(planningDir, sessionId) {
   // Check .session.json first (consistent with check-subagent-output and log-subagent)
   try {
-    const { sessionLoad } = require('../../pbr-tools.cjs');
+    const { sessionLoad } = require('../core.cjs');
     const session = sessionLoad(planningDir, sessionId);
     if (session && session.activeSkill) return session.activeSkill;
   } catch (_e) { /* pbr-tools unavailable */ }

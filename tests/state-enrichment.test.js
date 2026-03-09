@@ -11,7 +11,7 @@ const os = require('os');
 const http = require('http');
 const { spawn } = require('child_process');
 
-const HOOK_SERVER = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server.js');
+const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
 const { readEventLogTail } = require('../hooks/hook-server');
 const { getEnrichedContext } = require('../hooks/progress-tracker');
 

@@ -55,7 +55,7 @@ describe('spotCheck', () => {
 
   test('returns ok:true when SUMMARY exists, key_files exist, commits non-empty', () => {
     // Create real files for key_files to check
-    const file1 = path.join(tmpDir, 'plugins', 'pbr', 'scripts', 'lib', 'spot-check.js');
+    const file1 = path.join(tmpDir, 'plan-build-run', 'bin', 'lib', 'spot-check.cjs');
     const file2 = path.join(tmpDir, 'tests', 'spot-check.test.js');
     fs.mkdirSync(path.dirname(file1), { recursive: true });
     fs.mkdirSync(path.dirname(file2), { recursive: true });
@@ -67,7 +67,7 @@ describe('spotCheck', () => {
       'plan: "49-01"',
       'status: complete',
       'key_files:',
-      '  - plan-build-run/bin/lib/spot-check.js',
+      '  - plan-build-run/bin/lib/spot-check.cjs',
       '  - tests/spot-check.test.js',
       'commits: ["abc1234", "def5678"]'
     ].join('\n'), 'Done.');
@@ -159,7 +159,7 @@ describe('spotCheck', () => {
 
   test('handles key_files list with fewer than 2 entries — checks only what is available', () => {
     // Create only one file
-    const file1 = path.join(tmpDir, 'plugins', 'pbr', 'scripts', 'lib', 'spot-check.js');
+    const file1 = path.join(tmpDir, 'plan-build-run', 'bin', 'lib', 'spot-check.cjs');
     fs.mkdirSync(path.dirname(file1), { recursive: true });
     fs.writeFileSync(file1, '// spot-check', 'utf8');
 
@@ -168,7 +168,7 @@ describe('spotCheck', () => {
       'plan: "49-01"',
       'status: complete',
       'key_files:',
-      '  - plan-build-run/bin/lib/spot-check.js',
+      '  - plan-build-run/bin/lib/spot-check.cjs',
       'commits: ["abc1234"]'
     ].join('\n'), 'Done.');
 

@@ -45,18 +45,18 @@ function setCwd(newCwd) {
  * Used by validate-task and check-subagent-output to avoid drift.
  */
 const KNOWN_AGENTS = [
-  'pbr-executor',
-  'pbr-planner',
-  'pbr-verifier',
-  'pbr-researcher',
-  'pbr-synthesizer',
-  'pbr-plan-checker',
-  'pbr-integration-checker',
-  'pbr-debugger',
-  'pbr-codebase-mapper',
-  'pbr-audit',
-  'pbr-general',
-  'pbr-dev-sync'
+  'executor',
+  'planner',
+  'verifier',
+  'researcher',
+  'synthesizer',
+  'plan-checker',
+  'integration-checker',
+  'debugger',
+  'codebase-mapper',
+  'audit',
+  'general',
+  'dev-sync'
 ];
 
 // ─── Phase status transition state machine ────────────────────────────────────

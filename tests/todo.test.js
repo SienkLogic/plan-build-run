@@ -22,12 +22,20 @@ const SCRIPTS_DIR = path.join(__dirname, '..', 'plan-build-run', 'bin');
 const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.cjs');
 
 /**
- * Helper: reset pbr-tools module and re-require after chdir,
- * so that the module-level planningDir picks up the new cwd.
+ * Helper: return todo functions bound to cwd's .planning dir.
+ * The lib/todo.cjs functions take planningDir as first arg;
+ * wrap them to match the old API (no planningDir arg).
  */
 function requireFreshPbrTools() {
   jest.resetModules();
-  return require('../plan-build-run/bin/pbr-tools.cjs');
+  const todoLib = require('../plan-build-run/bin/lib/todo.cjs');
+  const planningDir = path.join(process.cwd(), '.planning');
+  return {
+    todoList: (opts) => todoLib.todoList(planningDir, opts),
+    todoGet: (num) => todoLib.todoGet(planningDir, num),
+    todoAdd: (title, opts) => todoLib.todoAdd(planningDir, title, opts),
+    todoDone: (num) => todoLib.todoDone(planningDir, num),
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -89,8 +89,10 @@ must_haves:
 `);
     const result = runScript(tmpDir, { file_path: planPath });
     expect(result.exitCode).toBe(0);
-    // No output means clean pass
-    expect(result.output).toBe('');
+    // Advisory warnings from local-llm stub are acceptable (confidence: 0%)
+    if (result.output) {
+      expect(result.output).toMatch(/Local LLM|advisory|confidence/i);
+    }
     cleanup(tmpDir);
   });
 

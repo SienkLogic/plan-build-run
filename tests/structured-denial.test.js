@@ -140,10 +140,10 @@ function readScriptContent(script) {
   if (script !== 'validate-task.js') return content;
 
   // Aggregate gate module files so blocking reason checks still work
-  const gatesDir = path.join(SCRIPTS_DIR, 'lib', 'gates');
+  const gatesDir = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'gates');
   let aggregated = content;
   try {
-    const gateFiles = fs.readdirSync(gatesDir).filter(f => f.endsWith('.js'));
+    const gateFiles = fs.readdirSync(gatesDir).filter(f => f.endsWith('.js') || f.endsWith('.cjs'));
     for (const gf of gateFiles) {
       aggregated += '\n' + fs.readFileSync(path.join(gatesDir, gf), 'utf8');
     }

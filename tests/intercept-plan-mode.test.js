@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'intercept-plan-mode.js');
+const SCRIPT = path.join(__dirname, '..', 'hooks', 'intercept-plan-mode.js');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ipm-'));

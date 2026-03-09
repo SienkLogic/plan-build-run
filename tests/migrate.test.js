@@ -81,10 +81,10 @@ describe('applyMigrations', () => {
     const result = await migrate.applyMigrations(planningDir, {});
     expect(result.migrated).toBe(true);
     expect(result.fromVersion).toBe(0);
-    expect(result.toVersion).toBe(1);
+    expect(result.toVersion).toBe(2);
     expect(result.applied).toContain('Add schema_version field');
     const written = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
-    expect(written.schema_version).toBe(1);
+    expect(written.schema_version).toBe(2);
   });
 
   test('creates backup at .migration-backup/config.json.bak', async () => {
@@ -99,7 +99,7 @@ describe('applyMigrations', () => {
     await migrate.applyMigrations(planningDir, {});
     const result2 = await migrate.applyMigrations(planningDir, {});
     expect(result2.migrated).toBe(false);
-    expect(result2.version).toBe(1);
+    expect(result2.version).toBe(2);
   });
 
   test('dry-run returns migrated:true with applied list but does NOT modify files', async () => {
