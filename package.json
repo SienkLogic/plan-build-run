@@ -12,7 +12,12 @@
     "agents",
     "hooks/dist",
     "scripts",
-    "dashboard"
+    "dashboard",
+    "plugins/",
+    "CLAUDE.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
   ],
   "keywords": [
     "plan-build-run",
@@ -44,6 +49,7 @@
   "devDependencies": {
     "c8": "^11.0.0",
     "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
     "jest": "^29.0.0"
   },
   "scripts": {
@@ -54,6 +60,10 @@
     "test": "jest --forceExit",
     "test:coverage": "jest --coverage --forceExit",
     "test:dashboard": "cd dashboard && npx vitest run",
-    "test:cjs": "jest --forceExit --testPathPattern=\"tests/(locked-file-update|concurrent-access|integration|local-llm)\""
+    "test:cjs": "jest --forceExit --testPathPattern=\"tests/(locked-file-update|concurrent-access|integration|local-llm)\"",
+    "lint": "eslint plugins/pbr/scripts/ tests/",
+    "validate": "node plugins/pbr/scripts/validate-plugin-structure.js",
+    "sync:generate": "node scripts/generate-derivatives.js",
+    "sync:verify": "node scripts/generate-derivatives.js --verify"
   }
 }
