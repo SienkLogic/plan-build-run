@@ -1349,7 +1349,7 @@ function uninstall(isGlobal, runtime = 'claude') {
     }
   } else {
     // Claude Code & Gemini: remove commands/pbr/ directory
-    const pbrCommandsDir = path.join(targetDir, 'commands', 'gsd');
+    const pbrCommandsDir = path.join(targetDir, 'commands', 'pbr');
     if (fs.existsSync(pbrCommandsDir)) {
       fs.rmSync(pbrCommandsDir, { recursive: true });
       removedCount++;
@@ -1365,7 +1365,7 @@ function uninstall(isGlobal, runtime = 'claude') {
     console.log(`  ${green}✓${reset} Removed plan-build-run/`);
   }
 
-  // 3. Remove PBR agents (gsd-*.md files only)
+  // 3. Remove PBR agents (pbr-*.md files only)
   const agentsDir = path.join(targetDir, 'agents');
   if (fs.existsSync(agentsDir)) {
     const files = fs.readdirSync(agentsDir);
@@ -1918,8 +1918,8 @@ function install(isGlobal, runtime = 'claude') {
     fs.mkdirSync(commandDir, { recursive: true });
     
     // Copy commands/pbr/*.md as command/pbr-*.md (flatten structure)
-    const pbrSrc = path.join(src, 'commands', 'gsd');
-    copyFlattenedCommands(pbrSrc, commandDir, 'gsd', pathPrefix, runtime);
+    const pbrSrc = path.join(src, 'commands', 'pbr');
+    copyFlattenedCommands(pbrSrc, commandDir, 'pbr', pathPrefix, runtime);
     if (verifyInstalled(commandDir, 'command/pbr-*')) {
       const count = fs.readdirSync(commandDir).filter(f => f.startsWith('pbr-')).length;
       console.log(`  ${green}✓${reset} Installed ${count} commands to command/`);
@@ -1928,8 +1928,8 @@ function install(isGlobal, runtime = 'claude') {
     }
   } else if (isCodex) {
     const skillsDir = path.join(targetDir, 'skills');
-    const pbrSrc = path.join(src, 'commands', 'gsd');
-    copyCommandsAsCodexSkills(pbrSrc, skillsDir, 'gsd', pathPrefix, runtime);
+    const pbrSrc = path.join(src, 'commands', 'pbr');
+    copyCommandsAsCodexSkills(pbrSrc, skillsDir, 'pbr', pathPrefix, runtime);
     const installedSkillNames = listCodexSkillNames(skillsDir);
     if (installedSkillNames.length > 0) {
       console.log(`  ${green}✓${reset} Installed ${installedSkillNames.length} skills to skills/`);
@@ -1941,8 +1941,8 @@ function install(isGlobal, runtime = 'claude') {
     const commandsDir = path.join(targetDir, 'commands');
     fs.mkdirSync(commandsDir, { recursive: true });
     
-    const pbrSrc = path.join(src, 'commands', 'gsd');
-    const pbrDest = path.join(commandsDir, 'gsd');
+    const pbrSrc = path.join(src, 'commands', 'pbr');
+    const pbrDest = path.join(commandsDir, 'pbr');
     copyWithPathReplacement(pbrSrc, pbrDest, pathPrefix, runtime, true);
     if (verifyInstalled(pbrDest, 'commands/pbr')) {
       console.log(`  ${green}✓${reset} Installed commands/pbr`);
@@ -1967,7 +1967,7 @@ function install(isGlobal, runtime = 'claude') {
     const agentsDest = path.join(targetDir, 'agents');
     fs.mkdirSync(agentsDest, { recursive: true });
 
-    // Remove old PBR agents (gsd-*.md) before copying new ones
+    // Remove old PBR agents (pbr-*.md) before copying new ones
     if (fs.existsSync(agentsDest)) {
       for (const file of fs.readdirSync(agentsDest)) {
         if (file.startsWith('pbr-') && file.endsWith('.md')) {
