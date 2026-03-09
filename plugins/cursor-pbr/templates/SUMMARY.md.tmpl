@@ -1,0 +1,81 @@
+# SUMMARY.md Template
+
+> Referenced by: executor agent, build skill, review skill
+> Do not edit this template during execution — copy the structure into your output.
+
+## Frontmatter (YAML)
+
+```yaml
+---
+phase: "{phase_id}"
+plan: "{plan_id}"
+status: "complete"           # complete | partial | checkpoint
+subsystem: "{main subsystem affected}"
+tags:
+  - "{tag1}"
+  - "{tag2}"
+requires:                    # What this plan needs from other plans
+  - "{plan_id}: {artifact}"
+provides:                    # What this plan produces for other plans
+  - "{export/artifact description}"
+affects:
+  - "{affected area 1}"
+  - "{affected area 2}"
+tech_stack:
+  - "{technology used}"
+key_files:
+  - "{file1}: {what it does}"
+  - "{file2}: {what it does}"
+key_decisions:
+  - "{decision 1}: {rationale}"
+patterns:
+  - "{pattern used}: {where}"
+metrics:
+  duration_minutes: {n}
+  tasks_completed: {n}
+  tasks_total: {n}
+  commits: {n}
+  files_created: {n}
+  files_modified: {n}
+deferred:
+  - "{thing noticed but not implemented}"
+self_check_failures:         # Only present if self-check found issues
+  - "{failure description}"
+---
+```
+
+## Body Structure
+
+```markdown
+# Plan Summary: {plan_id}
+
+## What Was Built
+
+{2-3 paragraph description of what was accomplished}
+
+## Task Results
+
+| Task | Status | Commit | Files | Verify |
+|------|--------|--------|-------|--------|
+| {task_id}: {name} | done | {hash} | {count} | passed |
+
+## Key Implementation Details
+
+{Important details about HOW things were implemented that future plans need to know}
+
+## Known Issues
+
+{Any issues discovered during execution that weren't blockers but should be tracked}
+
+## Dependencies Provided
+
+{What other plans can now depend on — exports, files, APIs created}
+```
+
+## Status Values
+
+| Status | Meaning |
+|--------|---------|
+| `complete` | All tasks completed successfully |
+| `partial` | Some tasks completed, execution stopped |
+| `checkpoint` | Execution paused at a checkpoint task, waiting for human |

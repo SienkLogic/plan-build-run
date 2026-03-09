@@ -1,0 +1,105 @@
+<!-- Downstream consumers:
+  - Planner agent: reads phase goals/dependencies for plan creation. Needs: phase Goal, Provides, Depends on fields.
+  - Build agent: reads current phase details for execution context. Needs: phase name, goal, planned plans.
+  - Status skill: reads progress table for completion tracking. Needs: Progress table with Plans Complete column.
+  - check-plan-format.js (validateRoadmap): parses ## Milestone: sections and ### Phase NN: headings. Needs: exact heading format, **Goal:**, **Provides:**, **Depends on:** in each phase.
+  - check-roadmap-sync.js: parses progress table rows against STATE.md phase status. Needs: progress table structure unchanged.
+  - Dashboard parseRoadmapMd: parses Phase Overview table. Needs: standard table format.
+  Breaks if missing: Planner creates plans without dependency awareness; validators reject malformed roadmaps; dashboard shows empty roadmap.
+-->
+# Project Roadmap
+
+> Generated: {date}
+> Total phases: {n}
+> Estimated plans: {n}
+
+## Dependency Graph
+
+<!-- Guidelines: ASCII art showing phase dependencies. Arrow direction = "depends on".
+     Keep it simple -- complex graphs should reference a separate dependency map file. -->
+```
+Phase 01 ──> Phase 02 ──> Phase 04
+         └──> Phase 03 ──> Phase 05
+                       └──> Phase 04
+```
+
+---
+
+## Milestone: {project name} v1.0
+
+<!-- Guidelines: Milestone heading MUST use exact format "## Milestone: {name}".
+     The validator splits content by this heading pattern. -->
+**Goal:** {overall project goal from requirements}
+**Phases:** 1 - {n}
+**Requirement coverage:** {covered}/{total} requirements mapped
+
+### Phase Checklist
+<!-- Guidelines: One checkbox per phase. Format: "- [ ] Phase NN: {name} -- {one-line goal}".
+     Check off phases as they complete. -->
+- [ ] Phase 01: {name} -- {one-line goal summary}
+- [ ] Phase 02: {name} -- {one-line goal summary}
+- [ ] Phase 03: {name} -- {one-line goal summary}
+
+## Phase Details
+
+### Phase 01: Project Setup
+
+<!-- Guidelines: Phase heading MUST use exact format "### Phase NN: {name}".
+     Each phase MUST include **Goal:**, **Provides:**, and **Depends on:** fields.
+     The validator checks for all three -- missing any triggers a warning. -->
+**Goal**: {goal statement}
+**Provides**:
+- {what this phase delivers for downstream phases}
+**Depends on**: None (starting phase)
+
+**Must-Haves**:
+- {truth 1}
+- {truth 2}
+
+**Planned Plans**:
+<!-- Guidelines: Numbered list of plans within this phase. Include wave and autonomy level.
+     Wave indicates parallelization grouping. Autonomous plans need no human checkpoints. -->
+1. {plan name} (Wave 1, autonomous)
+2. {plan name} (Wave 1, autonomous)
+
+### Phase 02: {name}
+
+**Goal**: {goal statement}
+**Provides**:
+- {deliverable}
+**Depends on**: Phase 01
+
+**Must-Haves**:
+- {truth 1}
+
+**Planned Plans**:
+1. {plan name} (Wave 1, autonomous)
+
+## Progress
+
+<!-- Guidelines: Progress table MUST include "Plans Complete" column header with proper separator row.
+     The validator checks for this exact column name and separator format (|---|---|...).
+     Update this table as plans complete. -->
+| Phase | Plans Complete | Status |
+|-------|---------------|--------|
+| Phase 01 | 0/2 | Not Started |
+| Phase 02 | 0/1 | Not Started |
+
+## Evolution
+
+This document evolves through the project lifecycle:
+- **Created by:** `/pbr:begin` during roadmap generation
+- **Updated by:** `/pbr:build` as phases and plans complete (progress table, phase checklist)
+- **Updated by:** `/pbr:discuss` if scope changes require phase restructuring
+- **Referenced by:** `/pbr:plan` for phase scoping and dependency resolution
+
+## Quality Criteria
+
+A good ROADMAP.md satisfies:
+- [ ] Every phase has **Goal:**, **Provides:**, and **Depends on:** fields
+- [ ] Phase numbers are sequential with no gaps
+- [ ] Progress table row count matches phase count
+- [ ] Dependencies form a DAG (no circular dependencies)
+- [ ] Phase Checklist items match Phase Details sections 1:1
+- [ ] Requirement coverage line accounts for all Must-priority requirements
+- [ ] Dependency graph is consistent with phase **Depends on:** declarations

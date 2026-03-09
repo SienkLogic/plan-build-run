@@ -1,0 +1,98 @@
+<!-- Downstream consumers:
+  - Planner agent (primary consumer): reads SUMMARY.md for all phase planning decisions. Needs: stack recommendation, architecture recommendation, key risks, feature priorities, confidence assessment.
+  - Begin skill: presents synthesis to user for approval before roadmap creation. Needs: executive summary, consolidated recommendations.
+  - Dashboard ResearchTab: displays synthesis with confidence levels. Needs: confidence assessment table, research coverage.
+  Breaks if missing: Planner makes phase decisions without research backing; user approves roadmap without seeing synthesis; dashboard shows empty research card.
+-->
+# Research Synthesis
+
+**Synthesized:** {date}
+**Input documents:** {count}
+**Confidence:** {overall_confidence}
+
+## Executive Summary
+
+{Unified findings across all research dimensions in under 200 words. State: what was researched, key conclusions, primary recommendation, and confidence level.}
+
+## Stack Recommendation
+
+**Recommended stack:** {one_line_summary}
+
+{Key technology choices with rationale, sourced from STACK research.}
+
+- **{technology}:** {version} -- {why_chosen}
+
+## Architecture Recommendation
+
+**Recommended pattern:** {pattern_name}
+
+{Architecture approach with component overview, sourced from ARCHITECTURE research.}
+
+- **{component}:** {responsibility}
+
+## Key Risks
+
+{Top risks from PITFALLS research, ordered by impact.}
+
+1. **{risk}** -- {mitigation}
+2. **{risk}** -- {mitigation}
+3. **{risk}** -- {mitigation}
+
+## Feature Priorities
+
+{Prioritized feature summary from FEATURES research.}
+
+**Must-have:** {must_have_features}
+**Should-have:** {should_have_features}
+**Deferred:** {deferred_features}
+
+## Consolidated Recommendations
+
+{Actionable recommendations that integrate findings across all dimensions.}
+
+1. {recommendation}
+2. {recommendation}
+3. {recommendation}
+
+## Confidence Assessment
+
+| Dimension | Confidence | Gaps |
+|-----------|------------|------|
+| Stack | {HIGH/MEDIUM/LOW} | {gaps_or_none} |
+| Features | {HIGH/MEDIUM/LOW} | {gaps_or_none} |
+| Architecture | {HIGH/MEDIUM/LOW} | {gaps_or_none} |
+| Pitfalls | {HIGH/MEDIUM/LOW} | {gaps_or_none} |
+
+**Overall confidence:** {confidence}
+
+## Research Coverage
+
+| Dimension | Status | Notes |
+|-----------|--------|-------|
+| Stack | {COMPLETE/PARTIAL/MISSING} | {notes} |
+| Features | {COMPLETE/PARTIAL/MISSING} | {notes} |
+| Architecture | {COMPLETE/PARTIAL/MISSING} | {notes} |
+| Pitfalls | {COMPLETE/PARTIAL/MISSING} | {notes} |
+
+**Dimensions researched:** {count}/4
+**Gaps requiring attention:** {list_or_none}
+
+## Quality Gates
+
+- [ ] Executive summary is under 200 words
+- [ ] All 4 research dimensions referenced (Stack, Features, Architecture, Pitfalls)
+- [ ] Confidence gaps explicitly listed for each dimension
+- [ ] Recommendations are prescriptive and actionable (not "consider" or "evaluate")
+- [ ] Partial failure handled -- missing dimensions noted, not silently omitted
+- [ ] Sources consolidated from all input documents
+
+## Sources
+
+### Primary (HIGH confidence)
+- {source}
+
+### Secondary (MEDIUM confidence)
+- {source}
+
+### Tertiary (LOW confidence)
+- {source}

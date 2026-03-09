@@ -1,0 +1,64 @@
+<!-- Downstream consumers:
+  - Synthesizer agent: merges feature findings into SUMMARY.md. Needs: categorized feature list with priorities and effort estimates.
+  - Planner agent: uses feature priorities for requirement prioritization and phase scoping. Needs: must-have/should-have/defer categorization, effort estimates.
+  - Begin skill: presents feature inventory to user for scope discussion. Needs: clear feature descriptions with competitive context.
+  Breaks if missing: Planner scopes phases without feature priority data; synthesizer produces SUMMARY with no feature guidance.
+-->
+# Features Research
+
+**Researched:** {date}
+**Domain:** {domain}
+**Confidence:** {confidence}
+
+## Feature Inventory
+
+| Feature | Category | Priority | Effort | Description |
+|---------|----------|----------|--------|-------------|
+| {feature} | {category} | {must-have/should-have/defer} | {S/M/L/XL} | {brief_description} |
+
+## Competitive Analysis
+
+| Feature | Our Approach | Alternative 1 | Alternative 2 | Tradeoff |
+|---------|-------------|---------------|---------------|----------|
+| {feature} | {our_approach} | {alt_1} | {alt_2} | {tradeoff_analysis} |
+
+## Prioritization Rationale
+
+### Must-Have (table stakes)
+
+{Features users expect as baseline. Without these, the product is not viable.}
+
+- **{feature}:** {why_must_have}
+
+### Should-Have (competitive)
+
+{Features that differentiate from alternatives. Important but not blocking launch.}
+
+- **{feature}:** {why_should_have}
+
+### Defer (v2+)
+
+{Features explicitly excluded from initial scope with rationale.}
+
+- **{feature}:** {why_defer}
+
+## Deferred Features
+
+| Feature | Reason Deferred | Revisit When | Effort if Added Later |
+|---------|----------------|--------------|----------------------|
+| {feature} | {reason} | {trigger} | {effort_estimate} |
+
+## Quality Gates
+
+- [ ] Every feature categorized as must-have, should-have, or defer
+- [ ] Effort estimates present for all features (S/M/L/XL)
+- [ ] Competitive analysis has at least 2 alternatives per major feature
+- [ ] Must-have features have clear rationale for why they are table stakes
+- [ ] Deferred features include revisit triggers
+- [ ] Sources include at least one market or user research reference
+
+## Sources
+
+| # | Type | URL/Description | Confidence |
+|---|------|----------------|------------|
+| S1 | {type} | {url_or_description} | {HIGH/MEDIUM/LOW} |
