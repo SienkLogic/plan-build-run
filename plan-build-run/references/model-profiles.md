@@ -9,9 +9,8 @@ Model profiles control which Claude model each PBR agent uses. This allows balan
 | pbr-planner | opus | opus | sonnet |
 | pbr-roadmapper | opus | sonnet | sonnet |
 | pbr-executor | opus | sonnet | sonnet |
-| pbr-phase-researcher | opus | sonnet | haiku |
-| pbr-project-researcher | opus | sonnet | haiku |
-| pbr-research-synthesizer | sonnet | sonnet | haiku |
+| pbr-researcher | opus | sonnet | haiku |
+| pbr-synthesizer | sonnet | sonnet | haiku |
 | pbr-debugger | opus | sonnet | sonnet |
 | pbr-codebase-mapper | sonnet | haiku | haiku |
 | pbr-verifier | sonnet | sonnet | haiku |

@@ -169,16 +169,17 @@ tools: Read, Grep, Glob
 // ─── CODEX_AGENT_SANDBOX mapping ────────────────────────────────────────────────
 
 describe('CODEX_AGENT_SANDBOX', () => {
-  test('has all 11 agents mapped', () => {
+  test('has all 14 agents mapped', () => {
     const agentNames = Object.keys(CODEX_AGENT_SANDBOX);
-    assert.strictEqual(agentNames.length, 11, 'has 11 agents');
+    assert.strictEqual(agentNames.length, 14, 'has 14 agents');
   });
 
   test('workspace-write agents have write tools', () => {
     const writeAgents = [
-      'pbr-executor', 'pbr-planner', 'pbr-phase-researcher',
-      'pbr-project-researcher', 'pbr-research-synthesizer', 'pbr-verifier',
-      'pbr-codebase-mapper', 'pbr-roadmapper', 'pbr-debugger',
+      'pbr-codebase-mapper', 'pbr-debugger', 'pbr-dev-sync',
+      'pbr-executor', 'pbr-general', 'pbr-planner',
+      'pbr-researcher', 'pbr-roadmapper', 'pbr-synthesizer',
+      'pbr-verifier',
     ];
     for (const name of writeAgents) {
       assert.strictEqual(CODEX_AGENT_SANDBOX[name], 'workspace-write', `${name} is workspace-write`);
@@ -186,7 +187,7 @@ describe('CODEX_AGENT_SANDBOX', () => {
   });
 
   test('read-only agents have no write tools', () => {
-    const readOnlyAgents = ['pbr-plan-checker', 'pbr-integration-checker'];
+    const readOnlyAgents = ['pbr-audit', 'pbr-integration-checker', 'pbr-nyquist-auditor', 'pbr-plan-checker'];
     for (const name of readOnlyAgents) {
       assert.strictEqual(CODEX_AGENT_SANDBOX[name], 'read-only', `${name} is read-only`);
     }

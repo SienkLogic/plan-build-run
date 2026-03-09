@@ -17,17 +17,20 @@ const reset = '\x1b[0m';
 const PBR_CODEX_MARKER = '# PBR Agent Configuration \u2014 managed by plan-build-run installer';
 
 const CODEX_AGENT_SANDBOX = {
-  'pbr-executor': 'workspace-write',
-  'pbr-planner': 'workspace-write',
-  'pbr-phase-researcher': 'workspace-write',
-  'pbr-project-researcher': 'workspace-write',
-  'pbr-research-synthesizer': 'workspace-write',
-  'pbr-verifier': 'workspace-write',
+  'pbr-audit': 'read-only',
   'pbr-codebase-mapper': 'workspace-write',
-  'pbr-roadmapper': 'workspace-write',
   'pbr-debugger': 'workspace-write',
-  'pbr-plan-checker': 'read-only',
+  'pbr-dev-sync': 'workspace-write',
+  'pbr-executor': 'workspace-write',
+  'pbr-general': 'workspace-write',
   'pbr-integration-checker': 'read-only',
+  'pbr-nyquist-auditor': 'read-only',
+  'pbr-plan-checker': 'read-only',
+  'pbr-planner': 'workspace-write',
+  'pbr-researcher': 'workspace-write',
+  'pbr-roadmapper': 'workspace-write',
+  'pbr-synthesizer': 'workspace-write',
+  'pbr-verifier': 'workspace-write',
 };
 
 // Get version from package.json

@@ -83,7 +83,7 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/bin/pbr-tools.cjs init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.

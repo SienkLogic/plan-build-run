@@ -294,7 +294,7 @@ describe('hooks.json Structure', () => {
 
 describe('Anti-Pattern Checks', () => {
   test('synthesizer agent has no model in frontmatter (config-only)', () => {
-    const synthPath = path.join(AGENTS_DIR, 'pbr-research-synthesizer.md');
+    const synthPath = path.join(AGENTS_DIR, 'pbr-synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
     expect(frontmatter).not.toMatch(/model:\s*\w+/);

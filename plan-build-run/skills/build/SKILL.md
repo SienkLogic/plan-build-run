@@ -199,7 +199,7 @@ If config validation fails for a specific field, use conversational recovery:
 
 ### Step 2: Load Config (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/bin/pbr-tools.cjs init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
 

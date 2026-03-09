@@ -353,7 +353,7 @@ describe('Researcher agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Synthesizer agent patterns', () => {
-  const content = readAgent('pbr-research-synthesizer.md');
+  const content = readAgent('pbr-synthesizer.md');
 
   test('has findings matrix step', () => {
     expect(content).toMatch(/Findings Matrix/i);

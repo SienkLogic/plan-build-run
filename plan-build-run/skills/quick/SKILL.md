@@ -65,7 +65,7 @@ Strip these flags from `$ARGUMENTS` before using the remainder as the task descr
 
 ### Step 1: Check Project Context
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/bin/pbr-tools.cjs init quick "{description}"` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init quick "{description}"` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings

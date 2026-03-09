@@ -319,9 +319,8 @@ Disable these to speed up phases in familiar domains or when conserving tokens.
 | pbr-planner | Opus | Opus | Sonnet |
 | pbr-roadmapper | Opus | Sonnet | Sonnet |
 | pbr-executor | Opus | Sonnet | Sonnet |
-| pbr-phase-researcher | Opus | Sonnet | Haiku |
-| pbr-project-researcher | Opus | Sonnet | Haiku |
-| pbr-research-synthesizer | Sonnet | Sonnet | Haiku |
+| pbr-researcher | Opus | Sonnet | Haiku |
+| pbr-synthesizer | Sonnet | Sonnet | Haiku |
 | pbr-debugger | Opus | Sonnet | Sonnet |
 | pbr-codebase-mapper | Sonnet | Haiku | Haiku |
 | pbr-verifier | Sonnet | Sonnet | Haiku |

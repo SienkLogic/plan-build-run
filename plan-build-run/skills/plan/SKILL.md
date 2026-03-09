@@ -189,7 +189,7 @@ If `--preview` is present in `$ARGUMENTS`:
 
 ### Step 2: Load Context (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/bin/pbr-tools.cjs init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
