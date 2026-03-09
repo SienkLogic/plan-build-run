@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { logHook } = require('./hook-logger');
-const { configLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
 const { loadTracker } = require('./session-tracker');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
 

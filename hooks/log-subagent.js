@@ -17,7 +17,8 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad, sessionLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+const { sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
 
 function readStdin() {

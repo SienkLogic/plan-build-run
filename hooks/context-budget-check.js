@@ -21,7 +21,8 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad, tailLines, lockedFileUpdate, sessionLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+const { tailLines, lockedFileUpdate, sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
 // Session-scoped paths: sessionLoad accepts sessionId, delegates to resolveSessionPath internally
 
 function main() {

@@ -15,7 +15,8 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad, sessionSave } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+const { sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
 const { ensureSessionDir, cleanStaleSessions } = require('../plan-build-run/bin/lib/core.cjs');
 const { resolveConfig, checkHealth, warmUp } = require('../plan-build-run/bin/lib/local-llm/index.cjs');
 
@@ -216,7 +217,7 @@ function buildContext(planningDir, stateFile) {
         if (ageMinutes > 30) {
           // Auto-repair: reset stale "Building" status back to "Planned"
           try {
-            const { stateUpdate } = require('../plan-build-run/bin/pbr-tools.cjs');
+            const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
             stateUpdate(planningDir, { status: 'planned' });
             parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:build to retry.`);
             logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
@@ -249,7 +250,7 @@ function buildContext(planningDir, stateFile) {
     // Validate config against schema (reuse already-loaded config)
     const schemaPath = path.join(__dirname, 'config-schema.json');
     if (fs.existsSync(schemaPath)) {
-      const { configValidate } = require('../plan-build-run/bin/pbr-tools.cjs');
+      const { configValidate } = require('../plan-build-run/bin/lib/config.cjs');
       const validation = configValidate(config);
       if (validation.warnings.length > 0) {
         parts.push(`\nConfig warnings: ${validation.warnings.join('; ')}`);
@@ -307,7 +308,7 @@ function buildContext(planningDir, stateFile) {
   // Check for stale .active-skill (multi-session conflict detection)
   // Try .session.json first (new), fall back to .active-skill file (legacy)
   const activeSkillFile = path.join(planningDir, '.active-skill');
-  const { sessionLoad: _sessionLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+  const { sessionLoad: _sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
   const sessionData = _sessionLoad(planningDir);
   const sessionActiveSkill = sessionData.activeSkill || null;
 

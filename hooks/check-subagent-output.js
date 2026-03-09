@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { KNOWN_AGENTS, sessionLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { KNOWN_AGENTS, sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
 const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
 const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');

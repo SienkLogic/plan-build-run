@@ -159,7 +159,7 @@ function saveCounter(counterPath, counter) {
   // Derive planningDir from counterPath (counterPath is planningDir/.compact-counter)
   try {
     const planningDir = path.dirname(counterPath);
-    const { sessionSave } = require('../plan-build-run/bin/pbr-tools.cjs');
+    const { sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
     // Note: saveCounter doesn't have sessionId context — mirror to legacy path
     sessionSave(planningDir, { compactCounter: counter });
   } catch (_e) { /* non-fatal mirror */ }
@@ -167,7 +167,7 @@ function saveCounter(counterPath, counter) {
 
 function getThreshold(cwd) {
   const planningDir = path.join(cwd, '.planning');
-  const { configLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+  const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
   const config = configLoad(planningDir);
   if (!config) return DEFAULT_THRESHOLD;
   return config.hooks?.compactThreshold || DEFAULT_THRESHOLD;
@@ -176,7 +176,7 @@ function getThreshold(cwd) {
 function resetCounter(planningDir, sessionId) {
   // Primary: reset compactCounter in .session.json to 0
   try {
-    const { sessionSave } = require('../plan-build-run/bin/pbr-tools.cjs');
+    const { sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
     sessionSave(planningDir, { compactCounter: { count: 0, lastSuggested: 0 } }, sessionId);
   } catch (_e) { /* best-effort */ }
 

@@ -20,7 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { tailLines, configLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+const { tailLines } = require('../plan-build-run/bin/lib/core.cjs');
 const { removeSessionDir, releaseSessionClaims } = require('../plan-build-run/bin/lib/core.cjs');
 const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('../plan-build-run/bin/lib/local-llm/index.cjs');
 

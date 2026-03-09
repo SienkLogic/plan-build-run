@@ -23,7 +23,7 @@ const { logHook } = require('./hook-logger');
 const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
 const { validateTask: llmValidateTask } = require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
-const { KNOWN_AGENTS } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { KNOWN_AGENTS } = require('../plan-build-run/bin/lib/core.cjs');
 
 // Gate modules
 const { checkQuickExecutorGate } = require('../plan-build-run/bin/lib/gates/quick-executor.cjs');

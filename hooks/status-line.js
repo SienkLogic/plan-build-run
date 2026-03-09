@@ -14,7 +14,7 @@ const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 const { logHook } = require('./hook-logger');
-const { configLoad } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
 const llmMetricsModule = require('../plan-build-run/bin/lib/local-llm/metrics.cjs');
 
 // ANSI color codes
