@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const HELPERS_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'gates', 'helpers');
+const HELPERS_PATH = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'gates', 'helpers');
 
 describe('helpers.js readActiveSkill', () => {
   let tmpDir, planningDir;

@@ -4,7 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { stateUpdate, stateRecordActivity, stateUpdateProgress, configClearCache } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { stateUpdate, stateRecordActivity, stateUpdateProgress } = require('../plan-build-run/bin/lib/state.cjs');
+const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
 const { syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
 
 const STATE_FM = [

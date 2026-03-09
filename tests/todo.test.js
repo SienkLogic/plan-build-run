@@ -19,7 +19,7 @@ const {
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'fake-project');
 const SCRIPTS_DIR = path.join(__dirname, '..', 'plan-build-run', 'bin');
-const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.js');
+const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.cjs');
 
 /**
  * Helper: reset pbr-tools module and re-require after chdir,

@@ -225,13 +225,13 @@ describe('configValidate', () => {
 // --- resolveDepthProfile ---
 describe('resolveDepthProfile', () => {
   test('returns standard defaults for null config', () => {
-    const result = configLib.resolveDepthProfile(null);
+    const result = configLib.configResolveDepth(null);
     expect(result.depth).toBe('standard');
     expect(result.profile['features.research_phase']).toBe(true);
   });
 
   test('returns quick profile when depth=quick', () => {
-    const result = configLib.resolveDepthProfile({ depth: 'quick' });
+    const result = configLib.configResolveDepth({ depth: 'quick' });
     expect(result.depth).toBe('quick');
     expect(result.profile['features.research_phase']).toBe(false);
     expect(result.profile['scan.mapper_count']).toBe(2);
@@ -242,13 +242,13 @@ describe('resolveDepthProfile', () => {
       depth: 'quick',
       depth_profiles: { quick: { 'scan.mapper_count': 1 } }
     };
-    const result = configLib.resolveDepthProfile(config);
+    const result = configLib.configResolveDepth(config);
     expect(result.profile['scan.mapper_count']).toBe(1);
     expect(result.profile['features.research_phase']).toBe(false); // still from defaults
   });
 
   test('falls back to standard for unknown depth', () => {
-    const result = configLib.resolveDepthProfile({ depth: 'unknown-depth' });
+    const result = configLib.configResolveDepth({ depth: 'unknown-depth' });
     expect(result.depth).toBe('unknown-depth');
     // Should use standard defaults as fallback
     expect(result.profile['features.research_phase']).toBe(true);
@@ -771,7 +771,9 @@ describe('atomicWrite', () => {
 });
 
 // --- validateProject (pbr-tools.js — direct import for coverage) ---
-const pbrTools = require('../plan-build-run/bin/pbr-tools.cjs');
+// validateProject is defined inside pbr-tools.cjs dispatcher (not exported from lib modules)
+// These tests will need validateProject to be extracted to a lib module in a future plan
+const pbrTools = { configClearCache: configLib.configClearCache };
 
 describe('validateProject', () => {
   let tmpDir, planningDir;

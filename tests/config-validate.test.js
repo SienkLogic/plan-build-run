@@ -7,7 +7,7 @@ const {
   saveUserDefaults,
   mergeUserDefaults,
   USER_DEFAULTS_PATH
-} = require(path.join(SCRIPTS, 'pbr-tools.cjs'));
+} = require(path.join(SCRIPTS, 'lib', 'config.cjs'));
 
 // configValidate reads from process.cwd()/.planning/config.json
 // We need to test it via CLI execution in a temp directory

@@ -1,27 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const {
-  parseStateMd,
-  parseRoadmapMd,
-  parseYamlFrontmatter,
-  parseMustHaves,
-  countMustHaves,
-  atomicWrite,
-  configLoad,
-  configClearCache,
-  updateLegacyStateField,
-  updateFrontmatterField,
-  updateTableRow,
-  findRoadmapRow,
-  resolveDepthProfile,
-  historyAppend,
-  historyLoad,
-  VALID_STATUS_TRANSITIONS,
-  validateStatusTransition,
-  sessionLoad,
-  sessionSave
-} = require('../plan-build-run/bin/pbr-tools.cjs');
+const { parseStateMd, updateLegacyStateField, updateFrontmatterField } = require('../plan-build-run/bin/lib/state.cjs');
+const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plan-build-run/bin/lib/roadmap.cjs');
+const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, validateStatusTransition, sessionLoad, sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
+const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plan-build-run/bin/lib/config.cjs');
+const { historyAppend, historyLoad } = require('../plan-build-run/bin/lib/history.cjs');
 
 describe('pbr-tools.cjs', () => {
   describe('parseStateMd', () => {
@@ -790,7 +774,7 @@ next_top_level: something`;
   });
 
   describe('llm subcommands', () => {
-    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.cjs');
+    const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
     const { execFileSync } = require('child_process');
     let tmpDir;
 
@@ -844,7 +828,7 @@ next_top_level: something`;
   });
 
   describe('learnings subcommands', () => {
-    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.cjs');
+    const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
     const { execFileSync } = require('child_process');
     let tmpDir;
 
@@ -1168,7 +1152,7 @@ describe('referenceGet / lib/reference', () => {
 // ─── milestoneStats tests ────────────────────────────────────────────────────
 // Uses PBR_PROJECT_ROOT + configClearCache() to redirect module-level planningDir
 
-const { milestoneStats } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { milestoneStats } = require('../plan-build-run/bin/lib/phase.cjs');
 
 describe('milestoneStats', () => {
   let tmpDir;
@@ -1274,7 +1258,7 @@ describe('milestoneStats', () => {
 
 // --- stateBundle / initStateBundle tests ---
 
-const { initStateBundle } = require('../plan-build-run/bin/pbr-tools.cjs');
+const { initStateBundle } = require('../plan-build-run/bin/lib/init.cjs');
 const { contextTriage: contextTriageLib } = require('../plan-build-run/bin/lib/context.cjs');
 
 const BUNDLE_STATE_FM = [
@@ -2059,7 +2043,7 @@ describe('rollback', () => {
 // ─── session subcommand tests ───────────────────────────────────────────────
 
 describe('session subcommand (pbr-tools)', () => {
-  const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.cjs');
+  const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
   const { execFileSync } = require('child_process');
   let tmpDir;
 
