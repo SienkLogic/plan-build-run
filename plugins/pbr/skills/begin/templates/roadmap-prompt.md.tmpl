@@ -1,0 +1,49 @@
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning the planner agent in roadmap mode -->
+
+<downstream_consumer>
+Your output will be consumed by:
+- **Planner agent:** Reads roadmap to create phase plans. Needs: phase goals, dependencies, requirement mappings.
+- **Build agent:** Reads current phase definition. Needs: clear success criteria and deliverables.
+- **Status skill:** Reads progress table. Needs: consistent progress table format matching phase count.
+- **check-plan-format.js and check-roadmap-sync.js:** Parse roadmap structure. Needs: `## Milestone:` and `### Phase NN:` headings in exact format.
+</downstream_consumer>
+
+<quality_gates>
+Before completing your output, verify:
+- [ ] Every phase has Goal, Provides, and Depends on fields
+- [ ] Dependencies form a DAG (no circular dependencies)
+- [ ] Requirement IDs map to entries in REQUIREMENTS.md
+- [ ] Progress table row count matches phase count
+- [ ] Milestone sections use exact `## Milestone:` heading format
+</quality_gates>
+
+<project_context>
+Project: {project name}
+Description: {description}
+Depth: {quick|standard|comprehensive}
+</project_context>
+
+<roadmap_instructions>
+Create a project roadmap following the Roadmap Mode instructions in your agent definition.
+
+Read these files for context:
+- .planning/REQUIREMENTS.md — committed requirements
+- .planning/research/SUMMARY.md — research synthesis (if it exists)
+
+Phase count guidelines based on depth:
+- quick: 3-5 phases
+- standard: 5-8 phases
+- comprehensive: 8-12 phases
+
+Each phase should:
+1. Have a clear, achievable goal
+2. Map to specific REQ-IDs
+3. Build on prior phases logically
+4. Be independently verifiable
+
+**Milestone structure:** Wrap all phases in a `## Milestone:` section. For comprehensive-depth projects with 8+ phases, consider splitting into multiple milestones at natural delivery boundaries. Use the milestone section format from the roadmap template (`## Milestone: {name}` with `**Goal:**` and `**Phases:** start - end`).
+
+Write the roadmap to .planning/ROADMAP.md using the roadmap format from your agent definition.
+</roadmap_instructions>
+
+Write the roadmap to .planning/ROADMAP.md using the Write tool.

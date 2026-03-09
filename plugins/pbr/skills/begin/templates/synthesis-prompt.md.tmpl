@@ -1,0 +1,44 @@
+<!-- Source: begin/SKILL.md | Purpose: Prompt template for spawning the synthesis agent after research completes -->
+
+<downstream_consumer>
+Your output will be consumed by:
+- **Planner agent (primary consumer):** Reads SUMMARY.md for all planning decisions. Needs: stack recommendation, architecture recommendation, key risks, feature priorities. If synthesis omits a dimension, the planner makes decisions without that research.
+- **Begin skill:** Presents synthesis to user for approval before roadmap creation. Needs: executive summary and consolidated recommendations.
+- **Dashboard ResearchTab:** Displays synthesis with confidence levels. Needs: confidence assessment table and research coverage fields.
+</downstream_consumer>
+
+<quality_gates>
+Before completing your output, verify:
+- [ ] All available research dimensions referenced (Stack, Features, Architecture, Pitfalls)
+- [ ] Confidence gaps noted for any missing dimensions
+- [ ] Executive summary is under 200 words
+- [ ] Recommendations are prescriptive ("Use X") not exploratory ("Consider X or Y")
+- [ ] Partial failure handled -- missing dimensions noted explicitly, not silently omitted
+</quality_gates>
+
+<research_documents>
+Read ALL .md files in the `.planning/research/` directory (excluding SUMMARY.md). These are your research inputs. Discover files dynamically at runtime -- do not rely on a hardcoded list.
+</research_documents>
+
+<partial_failure_handling>
+Some research dimensions may be missing. For each of the 4 dimensions (Stack, Features, Architecture, Pitfalls):
+- If the corresponding file exists: synthesize its findings
+- If the file is missing: mark the dimension as MISSING in the Research Coverage table and LOW confidence in the Confidence Assessment table
+- Never fail or block due to missing input files. Produce SUMMARY.md with whatever inputs are available.
+</partial_failure_handling>
+
+<synthesis_instructions>
+1. Read all research documents found in `.planning/research/` (excluding SUMMARY.md)
+2. Identify consensus findings
+3. Resolve contradictions (higher source level wins per S0-S6 hierarchy)
+4. Produce a unified summary with clear recommendations
+5. Your output MUST follow the template at `{resolved_plugin_root}/templates/research-outputs/SUMMARY.md.tmpl`
+6. Your output MUST include a **Research Coverage** table showing COMPLETE/PARTIAL/MISSING per dimension
+7. Your output MUST include a **Confidence Assessment** table showing confidence levels per dimension
+8. Write the synthesis to .planning/research/SUMMARY.md using the Synthesis output format
+9. After writing SUMMARY.md, commit ALL files in `.planning/research/` together with message: `docs(research): complete research synthesis`
+</synthesis_instructions>
+
+Write the synthesis to .planning/research/SUMMARY.md using the Write tool.
+
+When complete, end your output with `## SYNTHESIS COMPLETE` if successful, or `## SYNTHESIS BLOCKED` with a reason if unable to complete.

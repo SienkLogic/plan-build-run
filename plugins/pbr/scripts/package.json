@@ -1,0 +1,1 @@
+{"type": "commonjs", "scripts": {"test": "node --test test/*.test.js"}}
