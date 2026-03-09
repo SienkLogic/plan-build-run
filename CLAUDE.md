@@ -25,7 +25,7 @@ npm run dashboard           # Launch dashboard UI
 npm run dashboard:install   # Install dashboard dependencies
 ```
 
-Coverage thresholds (enforced in `package.json`): 58% statements, 54% branches, 62% functions, 58% lines.
+Coverage thresholds (enforced in `jest.config.cjs`): 58% statements, 54% branches, 62% functions, 58% lines.
 
 Dashboard (separate dependency tree):
 ```bash
