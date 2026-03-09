@@ -52,6 +52,8 @@
     "build:hooks": "node scripts/build-hooks.js",
     "prepublishOnly": "npm run build:hooks",
     "test": "jest --forceExit",
-    "test:coverage": "jest --coverage --forceExit"
+    "test:coverage": "jest --coverage --forceExit",
+    "test:dashboard": "cd dashboard && npx vitest run",
+    "test:cjs": "jest --forceExit --testPathPattern=\"tests/(locked-file-update|concurrent-access|integration|local-llm)\""
   }
 }
