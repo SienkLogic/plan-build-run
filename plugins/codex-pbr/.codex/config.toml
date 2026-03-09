@@ -1,0 +1,101 @@
+# PBR Workflow Configuration for Codex CLI
+# Copy this file to your project's .codex/config.toml and customize as needed.
+#
+# Each [profiles.*] section defines a named agent profile that can be selected
+# when Codex runs PBR skills. Uncomment and adjust the fields you want to change.
+#
+# Reference: https://github.com/openai/codex
+
+# ---------------------------------------------------------------------------
+# Sandbox Settings
+# ---------------------------------------------------------------------------
+# Controls which shell commands Codex is allowed to run during builds.
+# Adjust based on your project's build toolchain.
+
+[sandbox]
+# allow = ["bash", "git", "npm", "node", "python", "pip", "cargo", "make"]
+# deny  = ["curl", "wget", "ssh"]
+
+# ---------------------------------------------------------------------------
+# PBR Agent Profiles
+# ---------------------------------------------------------------------------
+# Each profile corresponds to a PBR agent role. Codex selects the appropriate
+# profile based on the active skill. You can override model and instructions
+# per role to tune cost/quality tradeoffs.
+
+# Research agent — explores domain, reads docs, summarizes findings.
+# Called by: $pbr-explore, $pbr-begin, $pbr-plan (research phase)
+[profiles.pbr-researcher]
+# description = "Research agent: investigates domain and summarizes findings"
+# model = "o4-mini"
+# instructions = "Focus on gathering factual information. Cite sources."
+
+# Planner agent — creates detailed, task-level phase plans.
+# Called by: $pbr-plan, $pbr-begin
+[profiles.pbr-planner]
+# description = "Planner agent: produces structured PLAN.md files"
+# model = "o3"
+# instructions = "Output valid PLAN.md frontmatter. Define must_haves precisely."
+
+# Executor agent — implements tasks from a PLAN.md, commits each task.
+# Called by: $pbr-build
+[profiles.pbr-executor]
+# description = "Executor agent: implements plan tasks with atomic commits"
+# model = "o4-mini"
+# instructions = "One task per commit. Follow the plan exactly. No scope creep."
+
+# Verifier agent — checks build output against plan must_haves.
+# Called by: $pbr-review
+[profiles.pbr-verifier]
+# description = "Verifier agent: produces VERIFICATION.md with evidence"
+# model = "o4-mini"
+# instructions = "Check evidence in the codebase. Do not assume correctness."
+
+# Integration checker agent — validates cross-component integration.
+# Called by: $pbr-health, $pbr-scan
+[profiles.pbr-integration-checker]
+# description = "Integration checker: validates cross-component contracts"
+# model = "o4-mini"
+# instructions = "Focus on interface boundaries and data flow between modules."
+
+# Debugger agent — hypothesis-driven bug investigation.
+# Called by: $pbr-debug
+[profiles.pbr-debugger]
+# description = "Debugger agent: systematic hypothesis-driven investigation"
+# model = "o3"
+# instructions = "Form falsifiable hypotheses. Test each before moving on."
+
+# Codebase mapper agent — creates ARCHITECTURE.md and related codebase docs.
+# Called by: $pbr-explore, $pbr-begin
+[profiles.pbr-mapper]
+# description = "Mapper agent: documents codebase structure and architecture"
+# model = "o4-mini"
+# instructions = "Be concise. Focus on structure over implementation details."
+
+# Synthesizer agent — aggregates research and produces structured summaries.
+# Called by: $pbr-explore, $pbr-discuss
+[profiles.pbr-synthesizer]
+# description = "Synthesizer agent: aggregates findings into structured output"
+# model = "o4-mini"
+# instructions = "Extract key insights. Surface tensions and open questions."
+
+# General agent — handles ad-hoc tasks and one-off instructions.
+# Called by: $pbr-do, $pbr-discuss
+[profiles.pbr-general]
+# description = "General agent: flexible agent for miscellaneous PBR tasks"
+# model = "o4-mini"
+# instructions = "Follow PBR workflow rules. Commit with correct format."
+
+# Audit agent — analyzes session logs for workflow compliance.
+# Called by: $pbr-audit
+[profiles.pbr-audit]
+# description = "Audit agent: reviews session logs and produces compliance reports"
+# model = "o4-mini"
+# instructions = "Be objective. Report findings without judgment."
+
+# Dev-sync agent — synchronizes changes across plugin derivatives.
+# Called internally — not a user-facing skill.
+[profiles.pbr-dev-sync]
+# description = "Dev-sync agent: propagates pbr/ changes to cursor-pbr/ and codex-pbr/"
+# model = "o4-mini"
+# instructions = "Apply diffs exactly. Do not add scope beyond the sync target."
