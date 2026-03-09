@@ -54,7 +54,7 @@ Markdown files with YAML frontmatter defining slash commands (`/pbr:begin`, `/pb
 
 Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "pbr:{name}"` — auto-loaded by Claude Code.
 
-14 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, nyquist-auditor, plan-checker, planner, research-synthesizer, researcher, roadmapper, verifier.
+14 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, nyquist-auditor, plan-checker, planner, researcher, roadmapper, synthesizer, verifier.
 
 ### Hook Scripts (`hooks/*.js`)
 
