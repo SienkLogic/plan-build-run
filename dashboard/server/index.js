@@ -13,6 +13,7 @@ const createTelemetryRouter = require('./routes/telemetry');
 const createAgentsRouter = require('./routes/agents');
 const createMemoryRouter = require('./routes/memory');
 const createRoadmapRouter = require('./routes/roadmap');
+const createRequirementsRouter = require('./routes/requirements');
 const { setupStatic } = require('./middleware/static');
 const { setupWebSocket } = require('./ws');
 const { FileWatcher } = require('./services/file-watcher');
@@ -31,9 +32,9 @@ function createApp(options = {}) {
   const resolved = {
     planningDir: options.planningDir || path.join(process.cwd(), '.planning'),
     distDir: options.distDir || path.join(__dirname, '..', 'dist'),
-    port: options.port || Number(process.env.PBR_DASHBOARD_PORT) || (() => {
+    port: options.port != null ? options.port : (Number(process.env.PBR_DASHBOARD_PORT) || (() => {
       throw new Error('Port is required: pass via options.port or PBR_DASHBOARD_PORT env var');
-    })(),
+    })()),
   };
 
   const app = express();
@@ -62,6 +63,7 @@ function createApp(options = {}) {
   app.use('/api/errors', (req, res, next) => { req.url = '/errors' + req.url; agentsRouter(req, res, next); });
   app.use('/api/memory', createMemoryRouter({ planningDir: resolved.planningDir, planningReader }));
   app.use('/api/roadmap', createRoadmapRouter(planningReader));
+  app.use('/api/requirements', createRequirementsRouter(planningReader));
 
   // 404 handler for unmatched /api/* routes
   app.all(/^\/api\//, (_req, res) => {

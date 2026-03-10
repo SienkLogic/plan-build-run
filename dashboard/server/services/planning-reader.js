@@ -662,4 +662,4 @@ class PlanningReader {
   }
 }
 
-module.exports = { PlanningReader, parseFrontmatter };
+module.exports = { PlanningReader, parseFrontmatter, safeReadFile };
