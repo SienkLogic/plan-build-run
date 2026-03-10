@@ -2121,8 +2121,9 @@ function install(isGlobal, runtime = 'claude') {
   }
 
   // Configure statusline and hooks in settings.json
-  // Gemini uses AfterTool instead of PostToolUse for post-tool hooks
+  // Gemini uses AfterTool/BeforeTool instead of PostToolUse/PreToolUse for tool hooks
   const postToolEvent = runtime === 'gemini' ? 'AfterTool' : 'PostToolUse';
+  const preToolEvent = runtime === 'gemini' ? 'BeforeTool' : 'PreToolUse';
   const settingsPath = path.join(targetDir, 'settings.json');
   const settings = cleanupOrphanedHooks(readSettings(settingsPath));
   const statuslineCommand = isGlobal
@@ -2135,6 +2136,17 @@ function install(isGlobal, runtime = 'claude') {
     ? buildHookCommand(targetDir, 'pbr-context-monitor.js')
     : 'node ' + dirName + '/hooks/pbr-context-monitor.js';
 
+  // Build hook commands for dashboard hooks (hook-server-client and run-hook)
+  const hookServerClientCmd = isGlobal
+    ? buildHookCommand(targetDir, 'hook-server-client.js')
+    : 'node ' + dirName + '/hooks/hook-server-client.js';
+  const runHookCmd = isGlobal
+    ? buildHookCommand(targetDir, 'run-hook.js')
+    : 'node ' + dirName + '/hooks/run-hook.js';
+  const hookServerCmd = isGlobal
+    ? buildHookCommand(targetDir, 'hook-server.js')
+    : 'node ' + dirName + '/hooks/hook-server.js';
+
   // Enable experimental agents for Gemini CLI (required for custom sub-agents)
   if (isGemini) {
     if (!settings.experimental) {
@@ -2146,50 +2158,144 @@ function install(isGlobal, runtime = 'claude') {
     }
   }
 
-  // Configure SessionStart hook for update checking (skip for opencode)
+  // Configure all hooks (skip for opencode which doesn't support settings.json hooks)
+  // Only add hook entries if the script files actually exist at the target location
   if (!isOpencode) {
+    const hooksDir = path.join(targetDir, 'hooks');
+
     if (!settings.hooks) {
       settings.hooks = {};
     }
-    if (!settings.hooks.SessionStart) {
-      settings.hooks.SessionStart = [];
+
+    // --- Helper to add a hook entry if it doesn't already exist ---
+    function addHookEntry(event, matcher, commandSuffix, identifier) {
+      if (!settings.hooks[event]) {
+        settings.hooks[event] = [];
+      }
+      const hasHook = settings.hooks[event].some(entry =>
+        entry.hooks && entry.hooks.some(h => h.command && h.command.includes(identifier))
+      );
+      if (!hasHook) {
+        const entry = {
+          hooks: [{ type: 'command', command: commandSuffix }]
+        };
+        if (matcher) {
+          entry.matcher = matcher;
+        }
+        settings.hooks[event].push(entry);
+        return true;
+      }
+      return false;
     }
 
-    const hasPbrUpdateHook = settings.hooks.SessionStart.some(entry =>
-      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pbr-check-update'))
-    );
-
-    if (!hasPbrUpdateHook) {
-      settings.hooks.SessionStart.push({
-        hooks: [
-          {
-            type: 'command',
-            command: updateCheckCommand
-          }
-        ]
-      });
-      console.log(`  ${green}✓${reset} Configured update check hook`);
+    // --- SessionStart: update checker ---
+    const updateCheckScript = path.join(hooksDir, 'pbr-check-update.js');
+    if (fs.existsSync(updateCheckScript)) {
+      if (addHookEntry('SessionStart', null, updateCheckCommand, 'pbr-check-update')) {
+        console.log(`  ${green}✓${reset} Configured update check hook`);
+      }
+    } else {
+      console.log(`  ${yellow}⚠${reset} Skipping update check hook (script not found)`);
     }
 
-    // Configure post-tool hook for context window monitoring
-    if (!settings.hooks[postToolEvent]) {
-      settings.hooks[postToolEvent] = [];
+    // --- SessionStart: hook-server spawn (detached background process) ---
+    const hookServerScript = path.join(hooksDir, 'hook-server.js');
+    if (fs.existsSync(hookServerScript)) {
+      if (!settings.hooks.SessionStart) {
+        settings.hooks.SessionStart = [];
+      }
+      const hasHookServer = settings.hooks.SessionStart.some(entry =>
+        entry.hooks && entry.hooks.some(h => h.command && h.command.includes('hook-server'))
+      );
+      if (!hasHookServer) {
+        // Spawn hook-server as detached process so SessionStart doesn't block
+        const spawnCmd = `node -e "const{spawn}=require('child_process');const p=spawn('node',['${hookServerScript.replace(/\\/g, '/')}','--dir','.'],{detached:true,stdio:'ignore'});p.unref();"`;
+        settings.hooks.SessionStart.push({
+          hooks: [{ type: 'command', command: spawnCmd }],
+          timeout: 5000
+        });
+        console.log(`  ${green}✓${reset} Configured hook-server spawn`);
+      }
+    } else {
+      console.log(`  ${yellow}⚠${reset} Skipping hook-server spawn (script not found)`);
     }
 
-    const hasContextMonitorHook = settings.hooks[postToolEvent].some(entry =>
-      entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pbr-context-monitor'))
-    );
+    // --- PreToolUse: Bash, Write, Edit dispatchers ---
+    const hookServerClientScript = path.join(hooksDir, 'hook-server-client.js');
+    if (fs.existsSync(hookServerClientScript)) {
+      if (addHookEntry(preToolEvent, 'Bash', hookServerClientCmd + ' pre-bash-dispatch', 'pre-bash-dispatch')) {
+        console.log(`  ${green}✓${reset} Configured PreToolUse:Bash hook`);
+      }
+      if (addHookEntry(preToolEvent, 'Write', hookServerClientCmd + ' pre-write-dispatch', 'pre-write-dispatch')) {
+        console.log(`  ${green}✓${reset} Configured PreToolUse:Write hook`);
+      }
+      // Edit uses the same pre-write-dispatch handler
+      const hasEditPre = settings.hooks[preToolEvent] && settings.hooks[preToolEvent].some(entry =>
+        entry.matcher === 'Edit' && entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pre-write-dispatch'))
+      );
+      if (!hasEditPre) {
+        if (!settings.hooks[preToolEvent]) settings.hooks[preToolEvent] = [];
+        settings.hooks[preToolEvent].push({
+          matcher: 'Edit',
+          hooks: [{ type: 'command', command: hookServerClientCmd + ' pre-write-dispatch' }]
+        });
+        console.log(`  ${green}✓${reset} Configured PreToolUse:Edit hook`);
+      }
 
-    if (!hasContextMonitorHook) {
-      settings.hooks[postToolEvent].push({
-        hooks: [
-          {
-            type: 'command',
-            command: contextMonitorCommand
-          }
-        ]
-      });
-      console.log(`  ${green}✓${reset} Configured context window monitor hook`);
+      // --- PostToolUse: Read, Write, Edit, Bash dispatchers ---
+      if (addHookEntry(postToolEvent, 'Read', hookServerClientCmd + ' track-context-budget', 'track-context-budget')) {
+        console.log(`  ${green}✓${reset} Configured PostToolUse:Read hook`);
+      }
+      if (addHookEntry(postToolEvent, 'Write', hookServerClientCmd + ' post-write-dispatch', 'post-write-dispatch')) {
+        console.log(`  ${green}✓${reset} Configured PostToolUse:Write hook`);
+      }
+      // Edit uses the same post-write-dispatch handler
+      const hasEditPost = settings.hooks[postToolEvent] && settings.hooks[postToolEvent].some(entry =>
+        entry.matcher === 'Edit' && entry.hooks && entry.hooks.some(h => h.command && h.command.includes('post-write-dispatch'))
+      );
+      if (!hasEditPost) {
+        if (!settings.hooks[postToolEvent]) settings.hooks[postToolEvent] = [];
+        settings.hooks[postToolEvent].push({
+          matcher: 'Edit',
+          hooks: [{ type: 'command', command: hookServerClientCmd + ' post-write-dispatch' }]
+        });
+        console.log(`  ${green}✓${reset} Configured PostToolUse:Edit hook`);
+      }
+      if (addHookEntry(postToolEvent, 'Bash', hookServerClientCmd + ' suggest-compact', 'suggest-compact')) {
+        console.log(`  ${green}✓${reset} Configured PostToolUse:Bash hook`);
+      }
+
+      // --- SubagentStop: log-subagent (server-side merges with check-subagent-output) ---
+      if (addHookEntry('SubagentStop', null, hookServerClientCmd + ' log-subagent', 'log-subagent')) {
+        console.log(`  ${green}✓${reset} Configured SubagentStop hook`);
+      }
+
+      // --- PreCompact: context-budget-check ---
+      if (addHookEntry('PreCompact', null, hookServerClientCmd + ' context-budget-check', 'context-budget-check')) {
+        console.log(`  ${green}✓${reset} Configured PreCompact hook`);
+      }
+    } else {
+      console.log(`  ${yellow}⚠${reset} Skipping dashboard hooks (hook-server-client.js not found)`);
+    }
+
+    // --- SessionEnd: session-cleanup (uses run-hook.js directly, not hook-server-client) ---
+    const runHookScript = path.join(hooksDir, 'run-hook.js');
+    if (fs.existsSync(runHookScript)) {
+      if (addHookEntry('SessionEnd', null, runHookCmd + ' session-cleanup.js', 'session-cleanup')) {
+        console.log(`  ${green}✓${reset} Configured SessionEnd hook`);
+      }
+    } else {
+      console.log(`  ${yellow}⚠${reset} Skipping SessionEnd hook (run-hook.js not found)`);
+    }
+
+    // --- Legacy: context monitor (kept for backward compat) ---
+    const contextMonitorScript = path.join(hooksDir, 'pbr-context-monitor.js');
+    if (fs.existsSync(contextMonitorScript)) {
+      if (addHookEntry(postToolEvent, null, contextMonitorCommand, 'pbr-context-monitor')) {
+        console.log(`  ${green}✓${reset} Configured context window monitor hook`);
+      }
+    } else {
+      console.log(`  ${yellow}⚠${reset} Skipping context monitor hook (script not found)`);
     }
   }
 
