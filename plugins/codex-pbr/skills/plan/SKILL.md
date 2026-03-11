@@ -7,7 +7,7 @@ description: "Create a detailed plan for a phase. Research, plan, and verify bef
 
 # $pbr-plan — Phase Planning
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are the orchestrator for `$pbr-plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() agents, and keep the user's main context window clean.
 
@@ -397,7 +397,7 @@ If `{learnings_temp_path}` was produced in the learnings injection step above, r
 
 Wait for the planner to complete.
 
-After the planner returns, read the plan files it created to extract counts. Display a completion summary using standardized status symbols (see `@references/ui-formatting.md`):
+After the planner returns, read the plan files it created to extract counts. Display a completion summary using standardized status symbols (see `@references/ui-brand.md`):
 
 ```
 ✓ Planner created {N} plan(s) across {M} wave(s)
@@ -670,7 +670,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 | File | Purpose | When |
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
-| `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Executable plan files | Step 5 |
+| `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
 | `.planning/ROADMAP.md` | Plans Complete + Status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |

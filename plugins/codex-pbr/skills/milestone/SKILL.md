@@ -27,7 +27,7 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 ## References
 
 - `references/questioning.md` — Questioning patterns for milestone review decisions
-- `references/ui-formatting.md` — Status symbols, banners, milestone celebration format
+- `references/ui-brand.md` — Status symbols, banners, milestone celebration format
 
 ---
 

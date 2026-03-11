@@ -18,9 +18,9 @@ argument-hint: "<phase-number> | --project"
 
 Then proceed to Step 1.
 
-# /pbr:discuss — Pre-Planning Discussion
+# /pbr:discuss-phase — Pre-Planning Discussion
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are running the **discuss** skill. Your job is to help the user think through a phase BEFORE planning begins. You identify gray areas where the user's preference matters, ask structured questions, and capture every decision in a CONTEXT.md file that the planner must honor.
 
@@ -36,7 +36,7 @@ Before any phase-modifying operations (writing CONTEXT.md, updating STATE.md), a
 acquireClaim(phaseDir, sessionId)
 ```
 
-If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:status` to see active claims."
+If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:progress` to see active claims."
 
 On completion or error (including all exit paths), release the claim:
 
@@ -62,7 +62,7 @@ Parse `$ARGUMENTS`:
 **Validation (PHASE mode):**
 - Must be a valid phase number (integer or decimal like `3.1`)
 - If no argument provided, read STATE.md to get the current phase
-- If no current phase and no argument: "Which phase do you want to discuss? Run `/pbr:status` to see available phases."
+- If no current phase and no argument: "Which phase do you want to discuss? Run `/pbr:progress` to see available phases."
 
 **Phase directory resolution:**
 1. List directories in `.planning/phases/`
@@ -76,13 +76,13 @@ Parse `$ARGUMENTS`:
 
 Phase {N} not found.
 
-**To fix:** Run `/pbr:status` to see available phases.
+**To fix:** Run `/pbr:progress` to see available phases.
 ```
 
 **Check for existing plans** (after resolving the phase directory):
 1. Check for `PLAN.md` or `PLAN-*.md` files in the phase directory
 2. If plan files exist:
-   - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/pbr:plan {N}` after."
+   - Warn: "Phase {N} already has plans. Decisions from this discussion won't retroactively change them. Consider re-planning with `/pbr:plan-phase {N}` after."
    - This is a **warning only** — do not block the discussion
 
 ### Step 1-project: Project Discussion Mode (--project)
@@ -310,11 +310,11 @@ Add under the `### Decisions` subsection:
 Phase {N} discussion: .planning/phases/{NN}-{slug}/CONTEXT.md ({count} locked, {count} deferred, {count} discretion)
 ```
 
-This creates a pointer so `/pbr:resume` and `progress-tracker.js` know that phase-specific decisions exist and where to find them.
+This creates a pointer so `/pbr:resume-work` and `progress-tracker.js` know that phase-specific decisions exist and where to find them.
 
 ### Step 8: Confirm and Route
 
-After writing CONTEXT.md, display branded output per `@references/ui-formatting.md`:
+After writing CONTEXT.md, display branded output per `@references/ui-brand.md`:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -331,12 +331,12 @@ After writing CONTEXT.md, display branded output per `@references/ui-formatting.
 
 **Plan this phase** — your decisions will be honored
 
-`/pbr:plan {N}`
+`/pbr:plan-phase {N}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 **Also available:**
-- `/pbr:status` — see project status
+- `/pbr:progress` — see project status
 - `/pbr:explore` — explore ideas further
 ```
 
@@ -398,7 +398,7 @@ These come from:
 
 ### User wants to discuss multiple phases
 - Handle one at a time
-- After completing one, suggest: "Want to discuss Phase {N+1} too? Run `/pbr:discuss {N+1}`."
+- After completing one, suggest: "Want to discuss Phase {N+1} too? Run `/pbr:discuss-phase {N+1}`."
 
 ### User disagrees with all options
 - Ask: "What would you prefer instead?" — this is freeform text, do NOT use AskUserQuestion.
@@ -414,7 +414,7 @@ These come from:
 
 ## State Integration
 
-This skill updates STATE.md's Accumulated Context section with a pointer to the phase CONTEXT.md file. It does NOT change the project position (current phase/plan). STATE.md position is updated when `/pbr:plan` runs.
+This skill updates STATE.md's Accumulated Context section with a pointer to the phase CONTEXT.md file. It does NOT change the project position (current phase/plan). STATE.md position is updated when `/pbr:plan-phase` runs.
 
 ---
 

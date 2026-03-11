@@ -17,7 +17,7 @@ description: "Analyze an existing codebase. Maps structure, architecture, conven
 
 Then proceed to Step 1.
 
-# /pbr:scan — Codebase Analysis
+# /pbr:map-codebase — Codebase Analysis
 
 You are running the **scan** skill. Your job is to analyze an existing codebase and produce a comprehensive map of its structure, architecture, conventions, and concerns. This is the entry point for brownfield projects — codebases that already have code before Plan-Build-Run is introduced.
 
@@ -191,12 +191,12 @@ For any missing files, display:
 Missing analysis output: {filename}
 Agent that failed: {focus_area} mapper
 
-**To fix:** Re-run with `/pbr:scan` and select "Refresh a specific area" → {focus_area}.
+**To fix:** Re-run with `/pbr:map-codebase` and select "Refresh a specific area" → {focus_area}.
 ```
 
 ### Step 6: Present Summary
 
-Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-formatting.md`:
+Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-brand.md`:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -236,15 +236,15 @@ Then use the "Next Up" routing block:
 
 **Start a project** — use the scan results to plan your work
 
-`/pbr:begin`
+`/pbr:new-project`
 
 <sub>`/clear` first → fresh context window</sub>
 
 
 
 **Also available:**
-- `/pbr:milestone new` — create a milestone to address concerns
-- `/pbr:status` — see project status
+- `/pbr:new-milestone` — create a milestone to address concerns
+- `/pbr:progress` — see project status
 
 
 ```
@@ -299,7 +299,7 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 - Note their existence in STRUCTURE.md
 - Flag large committed binaries as a concern
 
-### Scan before /pbr:begin
+### Scan before /pbr:new-project
 - This is a valid and encouraged workflow
 - Scan results become input for the begin skill
 - Create `.planning/` and `.planning/codebase/` if needed

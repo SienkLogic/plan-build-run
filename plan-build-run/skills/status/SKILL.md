@@ -18,7 +18,7 @@ allowed-tools: Read, Glob, Grep, Bash, AskUserQuestion
 
 Then proceed to Step 1.
 
-# /pbr:status — Project Status Dashboard
+# /pbr:progress — Project Status Dashboard
 
 You are running the **status** skill. Your job is to read the project state and present a clear, actionable status dashboard. You suggest the most logical next action based on where the project is.
 
@@ -27,7 +27,7 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 ## References
 
 - `references/questioning.md` — Questioning philosophy (for routing intelligence)
-- `references/ui-formatting.md` — Status symbols, banners, progress display format
+- `references/ui-brand.md` — Status symbols, banners, progress display format
 
 ---
 
@@ -62,7 +62,7 @@ Read the following files (skip any that don't exist):
 
      No Plan-Build-Run project found.
 
-     **To fix:** Run `/pbr:begin` to start a new project, or `/pbr:scan` to analyze an existing codebase.
+     **To fix:** Run `/pbr:new-project` to start a new project, or `/pbr:map-codebase` to analyze an existing codebase.
      ```
    - Stop here if no project found.
 
@@ -172,7 +172,7 @@ Warning: STATE.md is {N} lines (limit: 150). Run any build/review command to aut
 - Does the plan count match? If not: `Warning: STATE.md says {X} plans but filesystem has {Y}.`
 - Does the status match? If STATE.md says "verified" but no `VERIFICATION.md` exists: `Warning: STATE.md says "verified" but no VERIFICATION.md found.`
 
-If any discrepancy found, add: `Run /pbr:resume to auto-reconcile STATE.md.`
+If any discrepancy found, add: `Run /pbr:resume-work to auto-reconcile STATE.md.`
 
 ### Step 3: Check for Special Conditions
 
@@ -194,7 +194,7 @@ If any discrepancy found, add: `Run /pbr:resume to auto-reconcile STATE.md.`
 - **Dependency fingerprint check**: For each planned phase with `dependency_fingerprints` in plan frontmatter:
   1. Compare the fingerprints against current dependency SUMMARY.md files
   2. If any fingerprint is stale (dependency was re-built after the plan was created):
-     - Flag: "WARN: Phase {N} plans may be stale — dependency phase {M} was re-built since planning. Consider re-planning with `/pbr:plan {N}`."
+     - Flag: "WARN: Phase {N} plans may be stale — dependency phase {M} was re-built since planning. Consider re-planning with `/pbr:plan-phase {N}`."
 
 #### Active Debug Sessions
 - Check `.planning/debug/` for files with `status: active`
@@ -244,8 +244,8 @@ Phase Status:
 **Project documents:**
 | File | Status |
 |------|--------|
-| PROJECT.md | {exists / not found -- run /pbr:begin} (includes ## Context section) |
-| REQUIREMENTS.md | {exists / not found -- run /pbr:begin} |
+| PROJECT.md | {exists / not found -- run /pbr:new-project} (includes ## Context section) |
+| REQUIREMENTS.md | {exists / not found -- run /pbr:new-project} |
 
 {If context tier is DEGRADING, POOR, or CRITICAL:}
 ⚠ Context: {percentage}% used ({tier}) — {recommendation_text}
@@ -269,19 +269,19 @@ Blockers:
 Blockers: None
 
 {If paused work:}
-Paused: Phase {N} has a checkpoint at plan {M}. Run `/pbr:resume` to continue.
+Paused: Phase {N} has a checkpoint at plan {M}. Run `/pbr:resume-work` to continue.
 
 {If verification gaps:}
-Gaps: Phase {N} verification found {count} gaps. Run `/pbr:plan {N} --gaps` to address.
+Gaps: Phase {N} verification found {count} gaps. Run `/pbr:plan-phase {N} --gaps` to address.
 
 {If cross-phase re-planning needed:}
-Warning: Phase {N} was planned before Phase {M} was built. Consider re-planning with `/pbr:plan {N}`.
+Warning: Phase {N} was planned before Phase {M} was built. Consider re-planning with `/pbr:plan-phase {N}`.
 
 {If active debug sessions:}
 Debug: {count} active session(s). Run `/pbr:debug` to continue.
 
 {If pending todos:}
-Todos: {count} pending. Run `/pbr:todo list` to see them.
+Todos: {count} pending. Run `/pbr:check-todos` to see them.
 
 {If notes exist:}
 Notes: {count} quick capture(s). `/pbr:note list` to review.
@@ -314,7 +314,7 @@ Use Unicode block characters:
 
 ### Status Indicators
 
-Use the standardized symbol set from `references/ui-formatting.md`:
+Use the standardized symbol set from `references/ui-brand.md`:
 
 | Status | Indicator |
 |--------|-----------|
@@ -333,30 +333,30 @@ Based on the project state, suggest the single most logical next action:
 
 ```
 1. Is there paused work (.continue-here.md)?
-   YES → "Resume your work: `/pbr:resume`"
+   YES → "Resume your work: `/pbr:resume-work`"
 
 2. Is there a verification with gaps?
-   YES → "Fix verification gaps: `/pbr:plan {N} --gaps`"
+   YES → "Fix verification gaps: `/pbr:plan-phase {N} --gaps`"
 
 3. Is the current phase planned but not built?
-   YES → "Build the current phase: `/pbr:build {N}`"
+   YES → "Build the current phase: `/pbr:execute-phase {N}`"
 
 4. Is the current phase built but not reviewed?
-   YES → "Review what was built: `/pbr:review {N}`"
+   YES → "Review what was built: `/pbr:verify-work {N}`"
 
 5. Is the current phase verified (complete)?
    YES → Is there a next phase?
      YES → Was next phase already planned?
        YES → Does it need re-planning? (dependency phase changed)
-         YES → "Re-plan with updated context: `/pbr:plan {N+1}`"
-         NO → "Build the next phase: `/pbr:build {N+1}`"
-       NO → "Plan the next phase: `/pbr:plan {N+1}`"
-     NO → Check for existing `*-MILESTONE-AUDIT.md` in `.planning/`:\n       IF audit passed → "All phases complete and audited! `/pbr:milestone complete` to archive and tag."\n       IF audit has gaps → "Audit found gaps. `/pbr:milestone gaps` to address them."\n       IF no audit → "All phases complete! `/pbr:milestone audit` to verify cross-phase integration (recommended), then `/pbr:milestone complete`."
+         YES → "Re-plan with updated context: `/pbr:plan-phase {N+1}`"
+         NO → "Build the next phase: `/pbr:execute-phase {N+1}`"
+       NO → "Plan the next phase: `/pbr:plan-phase {N+1}`"
+     NO → Check for existing `*-MILESTONE-AUDIT.md` in `.planning/`:\n       IF audit passed → "All phases complete and audited! `/pbr:complete-milestone` to archive and tag."\n       IF audit has gaps → "Audit found gaps. `/pbr:plan-milestone-gaps` to address them."\n       IF no audit → "All phases complete! `/pbr:audit-milestone` to verify cross-phase integration (recommended), then `/pbr:complete-milestone`."
 
 6. Is the current phase not started?
    YES → Has it been discussed?
-     YES → "Plan this phase: `/pbr:plan {N}`"
-     NO → "Start with a discussion: `/pbr:discuss {N}` or jump to `/pbr:plan {N}`"
+     YES → "Plan this phase: `/pbr:plan-phase {N}`"
+     NO → "Start with a discussion: `/pbr:discuss-phase {N}` or jump to `/pbr:plan-phase {N}`"
 
 7. Active debug sessions?
    YES → "Continue debugging: `/pbr:debug`"
@@ -365,7 +365,7 @@ Based on the project state, suggest the single most logical next action:
    YES → "Review notes: `/pbr:note list`"
 
 9. Nothing active?
-   → "Start your project: `/pbr:begin`"
+   → "Start your project: `/pbr:new-project`"
 
 Other skills available for routing:
 - `/pbr:explore` — open-ended idea exploration
@@ -420,8 +420,8 @@ Build options dynamically from the decision tree results. Always include "Someth
 
 ### No `.planning/` directory at all
 - Display: "No Plan-Build-Run project found."
-- Suggest: `/pbr:begin` to start a new project
-- Also mention: `/pbr:scan` if there's an existing codebase to analyze first
+- Suggest: `/pbr:new-project` to start a new project
+- Also mention: `/pbr:map-codebase` if there's an existing codebase to analyze first
 
 ### STATE.md exists but is outdated
 - STATE.md may not reflect the actual file system state
@@ -432,11 +432,11 @@ Build options dynamically from the decision tree results. Always include "Someth
 ### All phases complete
 - Celebrate briefly: "All phases complete!"
 - Check for existing audit report: look for `*-MILESTONE-AUDIT.md` in `.planning/`
-  - **If audit exists and passed:** Suggest `/pbr:milestone complete` to archive (audit already done)
-  - **If audit exists with gaps:** Suggest `/pbr:milestone gaps` to address issues
-  - **If no audit exists:** Suggest `/pbr:milestone audit` to verify cross-phase integration (recommended first)
-- Then: `/pbr:milestone complete` to archive the milestone and tag it
-- Or: `/pbr:milestone new` to start the next set of features
+  - **If audit exists and passed:** Suggest `/pbr:complete-milestone` to archive (audit already done)
+  - **If audit exists with gaps:** Suggest `/pbr:plan-milestone-gaps` to address issues
+  - **If no audit exists:** Suggest `/pbr:audit-milestone` to verify cross-phase integration (recommended first)
+- Then: `/pbr:complete-milestone` to archive the milestone and tag it
+- Or: `/pbr:new-milestone` to start the next set of features
 
 ### ROADMAP.md has phases but no phase directories
 - This is normal for future phases

@@ -6,11 +6,11 @@ argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--mod
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
-# /pbr:plan — Phase Planning
+# /pbr:plan-phase — Phase Planning
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `/pbr:plan`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() agents, and keep the user's main context window clean.
+You are the orchestrator for `/pbr:plan-phase`. This skill creates detailed, executable plans for a specific phase. Plans are the bridge between the roadmap and actual code — they must be specific enough for an executor agent to follow mechanically. Your job is to stay lean, delegate heavy work to Task() agents, and keep the user's main context window clean.
 
 ## Context Budget
 
@@ -40,7 +40,7 @@ Before any phase-modifying operations (writing PLAN files, updating STATE.md/ROA
 acquireClaim(phaseDir, sessionId)
 ```
 
-If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:status` to see active claims."
+If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:progress` to see active claims."
 
 On completion or error (including all exit paths), release the claim:
 
@@ -50,7 +50,7 @@ releaseClaim(phaseDir, sessionId)
 
 ## Prerequisites
 
-- `.planning/config.json` exists (run `/pbr:begin` first)
+- `.planning/config.json` exists (run `/pbr:new-project` first)
 - `.planning/ROADMAP.md` exists with at least one phase
 - `.planning/REQUIREMENTS.md` exists
 
@@ -62,7 +62,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 
 ### Standard Invocation
 
-`/pbr:plan <N>` — Plan phase N
+`/pbr:plan-phase <N>` — Plan phase N
 
 Parse the phase number and optional flags:
 
@@ -98,14 +98,14 @@ Parse the phase number and optional flags:
 If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
 
 ```
-`/pbr:plan` expects a phase number or subcommand.
+`/pbr:plan-phase` expects a phase number or subcommand.
 
 Usage:
-  /pbr:plan <N>              Plan phase N
-  /pbr:plan <N> --gaps       Create gap-closure plans
-  /pbr:plan add              Add a new phase
-  /pbr:plan insert <N>       Insert a phase at position N
-  /pbr:plan remove <N>       Remove phase N
+  /pbr:plan-phase <N>              Plan phase N
+  /pbr:plan-phase <N> --gaps       Create gap-closure plans
+  /pbr:plan-phase add              Add a new phase
+  /pbr:plan-phase insert <N>       Insert a phase at position N
+  /pbr:plan-phase remove <N>       Remove phase N
 ```
 
 Then suggest the appropriate skill based on the text content:
@@ -114,7 +114,7 @@ Then suggest the appropriate skill based on the text content:
 |---------------------------|---------|
 | A task, idea, or feature request | `/pbr:todo` to capture it, or `/pbr:explore` to investigate |
 | A bug or debugging request | `/pbr:debug` to investigate the issue |
-| A review or quality concern | `/pbr:review` to assess existing work |
+| A review or quality concern | `/pbr:verify-work` to assess existing work |
 | Anything else | `/pbr:explore` for open-ended work |
 
 Do NOT proceed with planning. The user needs to use the correct skill.
@@ -125,7 +125,7 @@ Do NOT proceed with planning. The user needs to use the correct skill.
 
 ## Orchestration Flow: Standard Planning
 
-Execute these steps in order for standard `/pbr:plan <N>` invocations.
+Execute these steps in order for standard `/pbr:plan-phase <N>` invocations.
 
 ---
 
@@ -143,7 +143,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
 5. If no phase number given, read current phase from `.planning/STATE.md`
-6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
+6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss-phase {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
 
 #### --preview mode
 
@@ -154,7 +154,7 @@ If `--preview` is present in `$ARGUMENTS`:
 
    ```
    ╔══════════════════════════════════════════════════════════════╗
-   ║  DRY RUN — /pbr:plan {N} --preview                           ║
+   ║  DRY RUN — /pbr:plan-phase {N} --preview                           ║
    ║  No researchers or planners will be spawned                  ║
    ╚══════════════════════════════════════════════════════════════╝
    ```
@@ -398,7 +398,7 @@ If `{learnings_temp_path}` was produced in the learnings injection step above, r
 
 Wait for the planner to complete.
 
-After the planner returns, read the plan files it created to extract counts. Display a completion summary using standardized status symbols (see `@references/ui-formatting.md`):
+After the planner returns, read the plan files it created to extract counts. Display a completion summary using standardized status symbols (see `@references/ui-brand.md`):
 
 ```
 ✓ Planner created {N} plan(s) across {M} wave(s)
@@ -544,9 +544,9 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   6. Save the file — do NOT skip this step
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
-**Tooling shortcut**: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan {N}"}'`
+**Tooling shortcut**: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
 - **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
-- **Otherwise:** Suggest next action: `/pbr:build {N}`
+- **Otherwise:** Suggest next action: `/pbr:execute-phase {N}`
 
 ---
 
@@ -564,7 +564,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 6. Append phase to ROADMAP.md
 7. Create phase directory: `.planning/phases/{NN}-{slug}/`
 8. Update STATE.md if needed
-9. Suggest: `/pbr:plan {N}` to plan the new phase
+9. Suggest: `/pbr:plan-phase {N}` to plan the new phase
 10. Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `insert <N>`
@@ -582,7 +582,7 @@ Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rul
 4. Insert phase into ROADMAP.md at the correct position
 5. Create phase directory: `.planning/phases/{NN.M}-{slug}/`
 6. Update dependencies of subsequent phases if affected
-7. Suggest: `/pbr:plan {N.M}` to plan the new phase
+7. Suggest: `/pbr:plan-phase {N.M}` to plan the new phase
 8. Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `remove <N>`
@@ -609,7 +609,7 @@ Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rul
 When invoked with `--gaps`:
 
 1. Read `.planning/phases/{NN}-{slug}/VERIFICATION.md`
-   - If no VERIFICATION.md exists: tell user "No verification report found. Run `/pbr:review {N}` first."
+   - If no VERIFICATION.md exists: tell user "No verification report found. Run `/pbr:verify-work {N}` first."
 2. Extract all gaps from the verification report
 3. Spawn planner Task() in Gap Closure mode:
 
@@ -621,7 +621,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/gap-closure-prompt.md.tmpl` and use it as th
 4. After gap-closure plans are created:
    - Run plan checker (if enabled)
    - Present to user for approval
-   - Suggest: `/pbr:build {N} --gaps-only`
+   - Suggest: `/pbr:execute-phase {N} --gaps-only`
 
 ---
 
@@ -645,7 +645,7 @@ If REQUIREMENTS.md or ROADMAP.md don't exist, use conversational recovery:
 1. Run: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {phase}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what is already complete and what is missing.
-4. Use AskUserQuestion to offer: "Run /pbr:build {prerequisite-phase} first, or continue anyway?"
+4. Use AskUserQuestion to offer: "Run /pbr:execute-phase {prerequisite-phase} first, or continue anyway?"
    - If user chooses to continue: proceed with planning (note missing prereqs in plan frontmatter).
    - If user chooses to build first: stop and display the suggested build command.
 
@@ -666,12 +666,12 @@ Present remaining issues and ask user to decide: proceed or intervene.
 
 ---
 
-## Files Created/Modified by /pbr:plan
+## Files Created/Modified by /pbr:plan-phase
 
 | File | Purpose | When |
 |------|---------|------|
 | `.planning/phases/{NN}-{slug}/RESEARCH.md` | Phase-specific research | Step 4 |
-| `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Executable plan files | Step 5 |
+| `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md` | Executable plan files | Step 5 |
 | `.planning/CONTEXT.md` | Updated with assumptions | Step 3 (--assumptions) |
 | `.planning/ROADMAP.md` | Plans Complete + Status → `planned`; updated for add/insert/remove | Step 8, Subcommands |
 | `.planning/STATE.md` | Updated with plan status | Step 8 |

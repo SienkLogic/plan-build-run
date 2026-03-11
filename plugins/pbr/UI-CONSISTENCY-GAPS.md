@@ -30,7 +30,7 @@ Tracks remaining gaps found after initial UI consistency pass.
 
 | # | Skill | Issue | Status |
 |---|-------|-------|--------|
-| 3.1 | build | References ui-formatting.md templates but never shows banner inline | DONE |
+| 3.1 | build | References ui-brand.md templates but never shows banner inline | DONE |
 | 3.2 | discuss | No completion banner at all | DONE |
 | 3.3 | debug | No banner for resolved case | DONE |
 | 3.4 | todo | Plain `✓` lines, no branded banner | DONE |

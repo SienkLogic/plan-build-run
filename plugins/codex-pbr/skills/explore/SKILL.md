@@ -30,7 +30,7 @@ This skill runs **inline** (no Task delegation), with optional Task() spawns for
 ## References
 
 - `references/questioning.md` — Questioning philosophy, progressive depth layers, Socratic patterns, anti-patterns (checklist walking, corporate speak)
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes, progress display
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes, progress display
 
 ---
 

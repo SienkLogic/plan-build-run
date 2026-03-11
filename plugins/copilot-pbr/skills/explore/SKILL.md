@@ -30,7 +30,7 @@ This skill runs **inline** (no Task delegation), with optional Task() spawns for
 ## References
 
 - `references/questioning.md` — Questioning philosophy, progressive depth layers, Socratic patterns, anti-patterns (checklist walking, corporate speak)
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes, progress display
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes, progress display
 
 ---
 
@@ -44,9 +44,9 @@ Additionally for this skill:
 
 ---
 
-## How /pbr:explore Differs from /pbr:discuss
+## How /pbr:explore Differs from /pbr:discuss-phase
 
-| | /pbr:discuss | /pbr:explore |
+| | /pbr:discuss-phase | /pbr:explore |
 |---|---|---|
 | Purpose | Make decisions for a phase | Discover what you actually want |
 | Structure | Pre-computed gray areas with options | Open-ended Socratic conversation |
@@ -293,11 +293,11 @@ After creating artifacts (or if user chose "Skip"), display:
 
 {Smart routing — pick the most relevant primary command:}
 - If a todo was created: **Manage tasks** → `/pbr:todo`
-- If a phase decision was captured: **Plan the phase** → `/pbr:plan {N}`
-- If a new phase was added: **Discuss the new phase** → `/pbr:discuss {N}`
-- If research questions were logged: **Plan with research** → `/pbr:plan {N}`
-- If current milestone is complete (STATE.md status is "milestone-complete"): **Start next milestone** → `/pbr:milestone new`
-- Default: **See project status** → `/pbr:status`
+- If a phase decision was captured: **Plan the phase** → `/pbr:plan-phase {N}`
+- If a new phase was added: **Discuss the new phase** → `/pbr:discuss-phase {N}`
+- If research questions were logged: **Plan with research** → `/pbr:plan-phase {N}`
+- If current milestone is complete (STATE.md status is "milestone-complete"): **Start next milestone** → `/pbr:new-milestone`
+- Default: **See project status** → `/pbr:progress`
 
 `{primary command}`
 
@@ -306,9 +306,9 @@ After creating artifacts (or if user chose "Skip"), display:
 
 
 **Also available:**
-- `/pbr:status` — see project status
+- `/pbr:progress` — see project status
 - `/pbr:continue` — execute next logical step
-- `/pbr:milestone new` — start a new milestone with new phases
+- `/pbr:new-milestone` — start a new milestone with new phases
 
 
 ```

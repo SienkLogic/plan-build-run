@@ -5,7 +5,7 @@
 
 These patterns provide consistent, structured prompts for user decision points. Skills reference these patterns by name to ensure all gate checks use the same format.
 
-**For checkpoint box format details, see `@references/ui-formatting.md`** — checkpoint boxes use double-line border drawing with 62-character inner width. All gate types (approval, decision, information) should use the standardized checkpoint box format from ui-formatting.md when presenting user-facing decision points.
+**For checkpoint box format details, see `@references/ui-brand.md`** — checkpoint boxes use double-line border drawing with 62-character inner width. All gate types (approval, decision, information) should use the standardized checkpoint box format from ui-brand.md when presenting user-facing decision points.
 
 ## Rules
 

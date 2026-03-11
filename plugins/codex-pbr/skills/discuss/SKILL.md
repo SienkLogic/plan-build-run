@@ -19,7 +19,7 @@ Then proceed to Step 1.
 
 # $pbr-discuss — Pre-Planning Discussion
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are running the **discuss** skill. Your job is to help the user think through a phase BEFORE planning begins. You identify gray areas where the user's preference matters, ask structured questions, and capture every decision in a CONTEXT.md file that the planner must honor.
 
@@ -313,7 +313,7 @@ This creates a pointer so `$pbr-resume` and `progress-tracker.js` know that phas
 
 ### Step 8: Confirm and Route
 
-After writing CONTEXT.md, display branded output per `@references/ui-formatting.md`:
+After writing CONTEXT.md, display branded output per `@references/ui-brand.md`:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗

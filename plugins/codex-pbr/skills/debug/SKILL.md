@@ -28,7 +28,7 @@ This skill **spawns Task(subagent_type: "pbr:debugger")** for investigation work
 ## References
 
 - `references/questioning.md` — Investigation questioning patterns: progressive depth, exploratory questions, concrete options (not open-ended)
-- `references/ui-formatting.md` — Status symbols, banners, error boxes for issue reporting
+- `references/ui-brand.md` — Status symbols, banners, error boxes for issue reporting
 
 ---
 

@@ -7,7 +7,7 @@ description: "Start a new project. Deep questioning, research, requirements, and
 
 # $pbr-begin — Project Initialization
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are the orchestrator for `$pbr-begin`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() agents and keep the user's main context window clean.
 
@@ -834,9 +834,9 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 ## Completion
 
-After all steps complete, present the final summary using the stage banner format from Read `references/ui-formatting.md`:
+After all steps complete, present the final summary using the stage banner format from Read `references/ui-brand.md`:
 
-Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-formatting.md) pointing to `$pbr-discuss 1` with alternatives: `$pbr-explore`, `$pbr-plan 1`, `$pbr-milestone new`, `$pbr-config`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
+Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-brand.md) pointing to `$pbr-discuss 1` with alternatives: `$pbr-explore`, `$pbr-plan 1`, `$pbr-milestone new`, `$pbr-config`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
 
 **Auto-mode chaining to first phase discussion:** If `config.mode === 'autonomous'`, after displaying the completion banner, automatically chain to the first phase discussion:
 - Display: "PBR > Auto-mode: advancing to phase 1 discussion..."

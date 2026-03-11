@@ -196,7 +196,7 @@ Agent that failed: {focus_area} mapper
 
 ### Step 6: Present Summary
 
-Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-formatting.md`:
+Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-brand.md`:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗

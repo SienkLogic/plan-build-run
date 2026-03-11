@@ -29,7 +29,7 @@ Then proceed to Step 1.
 ## References
 
 - `references/questioning.md` — Questioning philosophy and progressive depth patterns
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes, progress display
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes, progress display
 
 ## Context Budget
 
@@ -44,7 +44,7 @@ Additionally for this skill:
 
 Parse `$ARGUMENTS` for optional flags before extracting the task description:
 
-- **`--discuss`**: Include a brief discussion step before building. When passed, after Step 3 (Validate Scope), ask 2-3 clarifying questions about the approach before generating the plan. This adds a lightweight discussion without the full `/pbr:discuss` overhead.
+- **`--discuss`**: Include a brief discussion step before building. When passed, after Step 3 (Validate Scope), ask 2-3 clarifying questions about the approach before generating the plan. This adds a lightweight discussion without the full `/pbr:discuss-phase` overhead.
 - **`--full`**: Run the complete begin-plan-build chain. When passed, instead of the quick task flow, chain directly: `Skill({ skill: "pbr:plan", args: "" })` with the task description carried over. This escalates to the full pipeline including research.
 
 Strip these flags from `$ARGUMENTS` before using the remainder as the task description.
@@ -69,7 +69,7 @@ Strip these flags from `$ARGUMENTS` before using the remainder as the task descr
 
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings
-   - If no: create **both** `.planning/` and `.planning/quick/` directories, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:begin` first for full project tracking."
+   - If no: create **both** `.planning/` and `.planning/quick/` directories, then warn "No Plan-Build-Run project found. This will create a standalone quick task. Consider running `/pbr:new-project` first for full project tracking."
 
 2. If `.planning/` exists but `.planning/quick/` does not: create `.planning/quick/` now. **Every quick task gets tracked in `.planning/quick/` — this directory MUST exist before Step 4.**
 
@@ -103,7 +103,7 @@ Use AskUserQuestion:
   header: "Scope"
   options:
     - label: "Quick task"  description: "Execute as lightweight task"
-    - label: "Full plan"   description: "Switch to /pbr:plan for proper planning"
+    - label: "Full plan"   description: "Switch to /pbr:plan-phase for proper planning"
     - label: "Revise"      description: "Let me rewrite the task description"
   multiSelect: false
 
@@ -319,7 +319,7 @@ Files: {list of files changed}
 
 **Continue your workflow** — task complete
 
-`/pbr:status`
+`/pbr:progress`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -327,7 +327,7 @@ Files: {list of files changed}
 
 **Also available:**
 - `/pbr:continue` — execute next logical step
-- `/pbr:todo list` — see pending todos
+- `/pbr:check-todos` — see pending todos
 
 
 ```
@@ -433,6 +433,6 @@ Choose verification based on context:
 6. **DO NOT** skip the SUMMARY.md — even quick tasks need documentation
 7. **DO NOT** use `git add .` — stage specific files only
 8. **DO NOT** skip verification — every task needs a verify step
-9. **DO NOT** create a quick task for something that needs planning — suggest `/pbr:plan`
+9. **DO NOT** create a quick task for something that needs planning — suggest `/pbr:plan-phase`
 10. **DO NOT** modify STATE.md if it doesn't exist (other than warning)
 11. **DO NOT** break the numbering sequence — always find the next number

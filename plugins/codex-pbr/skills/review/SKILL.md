@@ -7,7 +7,7 @@ description: "Verify the build matched the plan. Automated checks + walkthrough 
 
 # $pbr-review — Phase Review and Verification
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are the orchestrator for `$pbr-review`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
 
@@ -303,7 +303,7 @@ Use AskUserQuestion (pattern: multi-option-escalation from `skills/shared/gate-p
 - **If user selects "Debug":** Suggest `$pbr-debug` with the gap details as starting context.
 - **If user selects "Retry":** Continue with normal Step 5 flow.
 
-**Otherwise**, present results normally using standardized status symbols (`✓` pass, `✗` fail, `⚠` warning — see `@references/ui-formatting.md`):
+**Otherwise**, present results normally using standardized status symbols (`✓` pass, `✗` fail, `⚠` warning — see `@references/ui-brand.md`):
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -410,7 +410,7 @@ If all automated checks and UAT items passed:
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
-Use the branded output from `references/ui-formatting.md`:
+Use the branded output from `references/ui-brand.md`:
 - If more phases remain: use the "Phase Complete" banner template
 - If this was the last phase in the current milestone: use the "Milestone Complete" banner template
 - **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
@@ -672,7 +672,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 ## Completion
 
-After review completes, always present a clear next action using the completion banners from Read `references/ui-formatting.md` § "Completion Summary Templates":
+After review completes, always present a clear next action using the completion banners from Read `references/ui-brand.md` § "Completion Summary Templates":
 
 - **If verified (not final phase):** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.

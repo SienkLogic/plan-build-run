@@ -26,7 +26,7 @@ This skill runs **inline**. It is read-only by default, but offers an optional *
 ## References
 
 - `references/questioning.md` — Questioning philosophy for diagnostic probing
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes
 
 ## Argument Parsing
 

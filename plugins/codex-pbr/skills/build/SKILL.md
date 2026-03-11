@@ -7,7 +7,7 @@ description: "Execute all plans in a phase. Spawns agents to build in parallel, 
 
 # $pbr-build — Phase Execution
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are the orchestrator for `$pbr-build`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() agents, and keep the user's main context window clean.
 
@@ -458,7 +458,7 @@ After all executors in the wave complete, read all SUMMARY frontmatter and:
 - Present a brief wave summary to the user:
   "Wave {W} complete. {N} plans done. {D} deferred ideas logged. {A} architectural issues."
 
-Build a wave results table using standardized status symbols (`✓` complete, `✗` failed, `◆` in-progress, `○` pending — see `@references/ui-formatting.md`):
+Build a wave results table using standardized status symbols (`✓` complete, `✗` failed, `◆` in-progress, `○` pending — see `@references/ui-brand.md`):
 
 ```
 Wave {W} Results:
@@ -883,7 +883,7 @@ Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 **8f. Present completion summary:**
 
-Use the branded output templates from `references/ui-formatting.md`. Route based on status:
+Use the branded output templates from `references/ui-brand.md`. Route based on status:
 
 | Status | Template |
 |--------|----------|
@@ -912,7 +912,7 @@ Total files modified: {count}
 Deviations: {count}
 ```
 
-Then present the appropriate branded banner from Read `references/ui-formatting.md` § "Completion Summary Templates":
+Then present the appropriate branded banner from Read `references/ui-brand.md` § "Completion Summary Templates":
 
 - **If `passed` + more phases:** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.

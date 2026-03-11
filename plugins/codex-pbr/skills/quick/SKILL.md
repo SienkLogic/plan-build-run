@@ -28,7 +28,7 @@ Then proceed to Step 1.
 ## References
 
 - `references/questioning.md` — Questioning philosophy and progressive depth patterns
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes, progress display
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes, progress display
 
 ## Context Budget
 

@@ -1,6 +1,6 @@
 # Deep Questioning Guide
 
-Techniques for understanding a user's project vision during `/pbr:begin`. The goal is to build a complete mental model of what needs to be built, not just a feature list.
+Techniques for understanding a user's project vision during `/pbr:new-project`. The goal is to build a complete mental model of what needs to be built, not just a feature list.
 
 > Skills are being migrated to these patterns. See Phase 5 for skill-level updates.
 
@@ -244,7 +244,7 @@ Users can modify a presented option without selecting "Other":
 
 When a user modifies an option, accept the modification as their decision. Do not re-present options or ask them to pick from the original list.
 
-For AskUserQuestion structural rules (max 4 options, 12-char header, multiSelect), see `references/ui-formatting.md`.
+For AskUserQuestion structural rules (max 4 options, 12-char header, multiSelect), see `references/ui-brand.md`.
 
 ---
 

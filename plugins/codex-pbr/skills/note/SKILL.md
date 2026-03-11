@@ -25,7 +25,7 @@ This skill runs **inline** — no Task, no AskUserQuestion, no Bash.
 
 ## References
 
-- `references/ui-formatting.md` — Status symbols, banners, formatting for note display output
+- `references/ui-brand.md` — Status symbols, banners, formatting for note display output
 
 ---
 

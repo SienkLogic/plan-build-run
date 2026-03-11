@@ -7,11 +7,11 @@ argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>]"
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
-# /pbr:review — Phase Review and Verification
+# /pbr:verify-work — Phase Review and Verification
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `/pbr:review`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
+You are the orchestrator for `/pbr:verify-work`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.
 
 ## Context Budget
 
@@ -40,7 +40,7 @@ Before any phase-modifying operations (writing VERIFICATION.md, updating STATE.m
 acquireClaim(phaseDir, sessionId)
 ```
 
-If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:status` to see active claims."
+If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:progress` to see active claims."
 
 On completion or error (including all exit paths), release the claim:
 
@@ -57,7 +57,7 @@ releaseClaim(phaseDir, sessionId)
 
 When `features.goal_verification` is enabled and depth is "standard" or "comprehensive", the `event-handler.js` hook automatically queues verification after executor completion. The hook writes `.planning/.auto-verify` as a signal file. The build skill's orchestrator detects this signal and spawns the verifier agent.
 
-**This is additive**: `/pbr:review` can always be invoked manually regardless of auto-verification settings. If auto-verification already ran, `/pbr:review` re-runs verification (useful for re-checking after fixes).
+**This is additive**: `/pbr:verify-work` can always be invoked manually regardless of auto-verification settings. If auto-verification already ran, `/pbr:verify-work` re-runs verification (useful for re-checking after fixes).
 
 ---
 
@@ -118,7 +118,7 @@ If no SUMMARY.md files:
 
 Phase {N} hasn't been built yet.
 
-**To fix:** Run `/pbr:build {N}` first.
+**To fix:** Run `/pbr:execute-phase {N}` first.
 ```
 
 If no PLAN.md files:
@@ -129,7 +129,7 @@ If no PLAN.md files:
 
 Phase {N} has no plans.
 
-**To fix:** Run `/pbr:plan {N}` first.
+**To fix:** Run `/pbr:plan-phase {N}` first.
 ```
 
 ---
@@ -138,7 +138,7 @@ Phase {N} has no plans.
 
 Reference: `skills/shared/config-loading.md` for the tooling shortcut (`phase-info`) and config field reference.
 
-Check if a VERIFICATION.md already exists from `/pbr:build`'s auto-verification step:
+Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verification step:
 
 1. Look for `.planning/phases/{NN}-{slug}/VERIFICATION.md`
 2. If it exists:
@@ -265,7 +265,7 @@ After the verifier completes and writes VERIFICATION.md, if `config.local_llm.en
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
 ```
 
-- If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:review {N}."`
+- If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:verify-work {N}."`
 - If the command fails or returns null: skip silently (local LLM unavailable)
 - This is advisory only — never block on the result
 
@@ -289,7 +289,7 @@ Use AskUserQuestion (pattern: multi-option-escalation from `skills/shared/gate-p
   header: "Escalate"
   options:
     - label: "Accept gaps"   description: "Mark as complete-with-gaps and move on"
-    - label: "Re-plan"       description: "Go back to /pbr:plan {N} with gap context"
+    - label: "Re-plan"       description: "Go back to /pbr:plan-phase {N} with gap context"
     - label: "Debug"         description: "Spawn /pbr:debug to investigate root causes"
     - label: "Retry"         description: "Try one more verification cycle"
 
@@ -301,11 +301,11 @@ Use AskUserQuestion (pattern: multi-option-escalation from `skills/shared/gate-p
       - label: "Pick specific"  description: "Choose which gaps to mark as false positives"
   - If "Accept all": Update STATE.md status to `complete-with-gaps`, update ROADMAP.md to `verified*`, add a note in VERIFICATION.md about accepted gaps. Proceed to next phase.
   - If "Pick specific": Use the override flow from Step 6 "Gaps Found" section (present each gap for selection).
-- **If user selects "Re-plan":** Suggest `/pbr:plan {N} --gaps` to create targeted fix plans.
+- **If user selects "Re-plan":** Suggest `/pbr:plan-phase {N} --gaps` to create targeted fix plans.
 - **If user selects "Debug":** Suggest `/pbr:debug` with the gap details as starting context.
 - **If user selects "Retry":** Continue with normal Step 5 flow.
 
-**Otherwise**, present results normally using standardized status symbols (`✓` pass, `✗` fail, `⚠` warning — see `@references/ui-formatting.md`):
+**Otherwise**, present results normally using standardized status symbols (`✓` pass, `✗` fail, `⚠` warning — see `@references/ui-brand.md`):
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
@@ -342,7 +342,7 @@ Walk the user through each deliverable one by one. This is an interactive conver
 
 **For each plan in the phase:**
 
-0. **Filter out ineligible plans**: Read each plan's SUMMARY.md `status` field. Skip plans with `status: failed`, `status: incomplete`, or `status: partial` that have zero committed tasks (check `commits` frontmatter field). Only walk through plans that completed successfully (`status: complete`) or partially with at least one committed task. For each skipped plan, note it to the user: "Skipping plan {plan_id} ({status}) — not eligible for UAT." If ALL plans in the phase are skipped, display: "No plans eligible for UAT walkthrough. All plans in Phase {N} are incomplete or failed. Run `/pbr:build {N}` to retry." and stop.
+0. **Filter out ineligible plans**: Read each plan's SUMMARY.md `status` field. Skip plans with `status: failed`, `status: incomplete`, or `status: partial` that have zero committed tasks (check `commits` frontmatter field). Only walk through plans that completed successfully (`status: complete`) or partially with at least one committed task. For each skipped plan, note it to the user: "Skipping plan {plan_id} ({status}) — not eligible for UAT." If ALL plans in the phase are skipped, display: "No plans eligible for UAT walkthrough. All plans in Phase {N} are incomplete or failed. Run `/pbr:execute-phase {N}` to retry." and stop.
 1. Read the plan's must-haves and SUMMARY.md
 2. Present what was built:
 
@@ -412,7 +412,7 @@ If all automated checks and UAT items passed:
 3. Update VERIFICATION.md with UAT results (append UAT section)
 3. Present completion:
 
-Use the branded output from `references/ui-formatting.md`:
+Use the branded output from `references/ui-brand.md`:
 - If more phases remain: use the "Phase Complete" banner template
 - If this was the last phase in the current milestone: use the "Milestone Complete" banner template
 - **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
@@ -425,7 +425,7 @@ Use the branded output from `references/ui-formatting.md`:
      options:
        - label: "Yes"  description: "Proceed to plan Phase {N+1}"
        - label: "No"   description: "Stay on Phase {N} for now"
-   - If "Yes": suggest `/pbr:plan {N+1}`
+   - If "Yes": suggest `/pbr:plan-phase {N+1}`
    - If "No" or "Other": stop
 
 5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
@@ -508,7 +508,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 If `features.plan_checking` is true in config:
 - Display to the user: `◆ Spawning plan checker...`
 - Spawn plan checker Task() on the new gap-closure plans
-- Same process as `/pbr:plan` Step 6
+- Same process as `/pbr:plan-phase` Step 6
 
 **Step 6d: Present gap-closure plans to user**
 
@@ -531,7 +531,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
     - label: "Review first"     description: "Let me review the plans before approving"
     - label: "Fix manually"     description: "I'll fix these gaps myself"
 
-- If "Approve": suggest `/pbr:build {N} --gaps-only`
+- If "Approve": suggest `/pbr:execute-phase {N} --gaps-only`
 - If "Review first" or "Other": present the full plan files for inspection
 - If "Fix manually": suggest relevant files to inspect based on gap details
 
@@ -657,7 +657,7 @@ Ask user: "Would you like to proceed with gap-closure plans without root cause a
 
 ---
 
-## Files Created/Modified by /pbr:review
+## Files Created/Modified by /pbr:verify-work
 
 | File | Purpose | When |
 |------|---------|------|
@@ -674,7 +674,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 ## Completion
 
-After review completes, always present a clear next action using the completion banners from Read `references/ui-formatting.md` § "Completion Summary Templates":
+After review completes, always present a clear next action using the completion banners from Read `references/ui-brand.md` § "Completion Summary Templates":
 
 - **If verified (not final phase):** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If gaps remain:** Use the "Gaps Found" template. Fill in phase number, name, gap count, and gap summaries.
@@ -689,7 +689,7 @@ Include `<sub>/clear first → fresh context window</sub>` inside the Next Up ro
 For user-friendly interpretation of verification results, see `references/reading-verification.md`.
 
 - The verifier agent has NO Write/Edit tools for project source code — it can only read, check, and write VERIFICATION.md
-- Re-running `/pbr:review` after gap closure triggers fresh verification
+- Re-running `/pbr:verify-work` after gap closure triggers fresh verification
 - UAT results are conversational — user responses are captured inline
 - VERIFICATION.md is persistent and serves as the ground truth for gap closure
 - The three-layer check (existence -> substantiveness -> wiring) catches progressively deeper issues

@@ -26,7 +26,7 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 ## References
 
 - `references/questioning.md` — Questioning philosophy (for routing intelligence)
-- `references/ui-formatting.md` — Status symbols, banners, progress display format
+- `references/ui-brand.md` — Status symbols, banners, progress display format
 
 ---
 
@@ -313,7 +313,7 @@ Use Unicode block characters:
 
 ### Status Indicators
 
-Use the standardized symbol set from `references/ui-formatting.md`:
+Use the standardized symbol set from `references/ui-brand.md`:
 
 | Status | Indicator |
 |--------|-----------|

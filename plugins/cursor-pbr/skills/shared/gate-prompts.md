@@ -5,7 +5,7 @@
 
 These patterns provide consistent, structured prompts for user decision points. Skills reference these patterns by name to ensure all gate checks use the same format.
 
-**For checkpoint box format details, see `@references/ui-formatting.md`** — checkpoint boxes use double-line border drawing with 62-character inner width. All gate types (approval, decision, information) should use the standardized checkpoint box format from ui-formatting.md when presenting user-facing decision points.
+**For checkpoint box format details, see `@references/ui-brand.md`** — checkpoint boxes use double-line border drawing with 62-character inner width. All gate types (approval, decision, information) should use the standardized checkpoint box format from ui-brand.md when presenting user-facing decision points.
 
 ## Rules
 
@@ -109,7 +109,7 @@ Use AskUserQuestion:
   header: "Escalate"
   options:
     - label: "Accept gaps"  description: "Mark as complete-with-gaps and move on"
-    - label: "Re-plan"      description: "Go back to /pbr:plan with gap context"
+    - label: "Re-plan"      description: "Go back to /pbr:plan-phase with gap context"
     - label: "Debug"        description: "Spawn /pbr:debug to investigate root causes"
     - label: "Retry"        description: "Try one more verification cycle"
   multiSelect: false
@@ -259,7 +259,7 @@ Use AskUserQuestion:
   header: "Scope"
   options:
     - label: "Quick task"  description: "Execute as lightweight task"
-    - label: "Full plan"   description: "Switch to /pbr:plan for proper planning"
+    - label: "Full plan"   description: "Switch to /pbr:plan-phase for proper planning"
     - label: "Revise"      description: "Let me rewrite the task description"
   multiSelect: false
 ```

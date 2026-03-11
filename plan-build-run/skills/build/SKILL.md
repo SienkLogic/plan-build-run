@@ -7,11 +7,11 @@ argument-hint: "<phase-number> [--gaps-only] [--team] [--model <model>]"
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
-# /pbr:build — Phase Execution
+# /pbr:execute-phase — Phase Execution
 
-**References:** `@references/questioning.md`, `@references/ui-formatting.md`
+**References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `/pbr:build`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() subagents, and keep the user's main context window clean.
+You are the orchestrator for `/pbr:execute-phase`. This skill executes all plans in a phase by spawning executor agents. Plans are grouped by wave and executed in order — independent plans run in parallel, dependent plans wait. Your job is to stay lean, delegate ALL building work to Task() subagents, and keep the user's main context window clean.
 
 ## Context Budget
 
@@ -43,7 +43,7 @@ Before any phase-modifying operations (spawning executors, writing SUMMARY.md, u
 acquireClaim(phaseDir, sessionId)
 ```
 
-If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:status` to see active claims."
+If the claim fails (another session owns this phase), display: "Another session owns this phase. Use `/pbr:progress` to see active claims."
 
 On completion or error (including all exit paths), release the claim:
 
@@ -90,7 +90,7 @@ If `--preview` is present in `$ARGUMENTS`:
 
    ```
    ╔══════════════════════════════════════════════════════════════╗
-   ║  DRY RUN — /pbr:build {N} --preview                          ║
+   ║  DRY RUN — /pbr:execute-phase {N} --preview                          ║
    ║  No executor agents will be spawned                          ║
    ╚══════════════════════════════════════════════════════════════╝
 
@@ -146,7 +146,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    options:
      - label: "Yes"  description: "Start building Phase {N}"
      - label: "No"   description: "Cancel — review plans first"
-   If "No" or "Other": stop and suggest `/pbr:plan {N}` to review plans
+   If "No" or "Other": stop and suggest `/pbr:plan-phase {N}` to review plans
 8. If `git.branching` is `phase` (the recommended default — see config Quick Start): create and switch to branch `plan-build-run/phase-{NN}-{name}` before any build work begins
 9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
@@ -160,7 +160,7 @@ node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs staleness-check {phase-slug}
 Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
 - Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
   question: "Plan {plan_id} may be stale — {reason}"
-  options: ["Continue anyway", "Re-plan with /pbr:plan {N}"]
+  options: ["Continue anyway", "Re-plan with /pbr:plan-phase {N}"]
 - If "Re-plan": stop. If "Continue anyway": proceed.
 If `stale: false`: proceed silently.
 
@@ -174,7 +174,7 @@ If no plans found:
 
 Phase {N} has no plans.
 
-**To fix:** Run `/pbr:plan {N}` first.
+**To fix:** Run `/pbr:plan-phase {N}` first.
 ```
 
 If dependencies incomplete, use conversational recovery:
@@ -183,7 +183,7 @@ If dependencies incomplete, use conversational recovery:
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what summaries exist and what is still missing.
 4. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`) to offer:
-   - "Build {dependency-phase} first" — stop and show: `/pbr:build {dependency-phase}`
+   - "Build {dependency-phase} first" — stop and show: `/pbr:execute-phase {dependency-phase}`
    - "Continue anyway (skip dependency check)" — proceed with build, note unmet deps in output
 
 If config validation fails for a specific field, use conversational recovery:
@@ -223,7 +223,7 @@ This returns a JSON object with `plans` (array with plan_id, wave, depends_on, a
 4. Sort plans by plan number
 
 **If no plans match filters:**
-- With `--gaps-only`: "No gap-closure plans found. Run `/pbr:plan {N} --gaps` first."
+- With `--gaps-only`: "No gap-closure plans found. Run `/pbr:plan-phase {N} --gaps` first."
 - Without filter: "No plans found in phase directory."
 
 ---
@@ -248,7 +248,7 @@ Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
     - label: "Yes"  description: "Delete existing SUMMARYs and re-execute all plans"
     - label: "No"   description: "Keep existing build — review instead"
 - If "Yes": delete SUMMARY files and proceed
-- If "No" or "Other": suggest `/pbr:review {N}`
+- If "No" or "Other": suggest `/pbr:verify-work {N}`
 
 ---
 
@@ -460,7 +460,7 @@ After all executors in the wave complete, read all SUMMARY frontmatter and:
 - Present a brief wave summary to the user:
   "Wave {W} complete. {N} plans done. {D} deferred ideas logged. {A} architectural issues."
 
-Build a wave results table using standardized status symbols (`✓` complete, `✗` failed, `◆` in-progress, `○` pending — see `@references/ui-formatting.md`):
+Build a wave results table using standardized status symbols (`✓` complete, `✗` failed, `◆` in-progress, `○` pending — see `@references/ui-brand.md`):
 
 ```
 Wave {W} Results:
@@ -555,7 +555,7 @@ Returns `{ ok, rolled_back_to, plans_invalidated, files_deleted, warnings }`.
 **If user selects 'Abort':**
 - Update STATE.md with current progress
 - Present what was completed before the abort
-- Suggest: "Fix the issue and run `/pbr:build {N}` to resume (completed plans will be skipped)"
+- Suggest: "Fix the issue and run `/pbr:execute-phase {N}` to resume (completed plans will be skipped)"
 
 #### 6e. Handle Checkpoints
 
@@ -665,7 +665,7 @@ To check: run `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth
 This implements budget mode's "skip verifier for < 3 tasks" rule: small phases in quick mode don't need a full verification pass.
 
 **If skipping because `features.goal_verification` is `false`:**
-Note for Step 8f completion summary: append "Note: Automatic verification was skipped (goal_verification: false). Run `/pbr:review {N}` to verify what was built."
+Note for Step 8f completion summary: append "Note: Automatic verification was skipped (goal_verification: false). Run `/pbr:verify-work {N}` to verify what was built."
 
 **If verification is enabled:**
 
@@ -688,7 +688,7 @@ After verifier completes, check for completion marker: `## VERIFICATION COMPLETE
 
 #### Verifier Prompt Template
 
-Use the same verifier prompt template as defined in `/pbr:review`: read `${CLAUDE_PLUGIN_ROOT}/skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
+Use the same verifier prompt template as defined in `/pbr:verify-work`: read `${CLAUDE_PLUGIN_ROOT}/skills/review/templates/verifier-prompt.md.tmpl` and fill in its placeholders with the phase's PLAN.md must_haves and SUMMARY.md file paths. This avoids maintaining duplicate verifier prompts across skills.
 
 **Prepend this block to the verifier prompt before sending:**
 ```
@@ -719,7 +719,7 @@ If `--gaps-only` flag was used AND `features.goal_verification` is `true`:
 2. Re-run the verifier using the same Step 7 process — this produces a fresh `VERIFICATION.md` that accounts for the gap-closure work
 3. Read the new verification status for use in determining `final_status` below
 
-This ensures that `/pbr:review` after a `--gaps-only` build sees the updated verification state, not stale gaps from before the fix.
+This ensures that `/pbr:verify-work` after a `--gaps-only` build sees the updated verification state, not stale gaps from before the fix.
 
 **8-pre-b. Determine final status based on verification:**
 - If verification ran and status is `passed`: final_status = "built"
@@ -732,7 +732,7 @@ This ensures that `/pbr:review` after a `--gaps-only` build sees the updated ver
 **CRITICAL (no hook): Run codebase map update if conditions are met. Do NOT skip this step.**
 
 Only run if ALL of these are true:
-- `.planning/codebase/` directory exists (project was previously scanned with `/pbr:scan`)
+- `.planning/codebase/` directory exists (project was previously scanned with `/pbr:map-codebase`)
 - Build was not aborted
 - `git diff --name-only {pre_build_commit}..HEAD` shows >5 files changed OR `package.json`/`requirements.txt`/`go.mod`/`Cargo.toml` was modified
 
@@ -847,14 +847,14 @@ Chain to the next skill directly within this session. This eliminates manual pha
 |-------------|-------------|-----|
 | Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
 | Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
-| Verification gaps found | **HARD STOP** — present gaps to user | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:review {N}` before stopping. Do NOT auto-advance past failures. |
-| Last phase in current milestone | **HARD STOP** — milestone boundary | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:milestone complete` before stopping. Suggest `/pbr:milestone audit`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
-| Build errors occurred | **HARD STOP** — errors need human review | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:build {N}` before stopping. Do NOT auto-advance past errors. |
+| Verification gaps found | **HARD STOP** — present gaps to user | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:verify-work {N}` before stopping. Do NOT auto-advance past failures. |
+| Last phase in current milestone | **HARD STOP** — milestone boundary | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:complete-milestone` before stopping. Suggest `/pbr:audit-milestone`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
+| Build errors occurred | **HARD STOP** — errors need human review | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:execute-phase {N}` before stopping. Do NOT auto-advance past errors. |
 
 After invoking the chained skill, it runs within the same session. When it completes, the chained skill may itself chain further (review→plan, plan→build) if auto_advance remains true. This creates the full cycle: build→review→plan→build→...
 
 **Else if `features.auto_continue` is `true`:**
-Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:plan {N+1}` or `/pbr:review {N}`)
+Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:plan-phase {N+1}` or `/pbr:verify-work {N}`)
 - This file signals to the user or to wrapper scripts that the next step is ready
 
 **Completion check:** Before proceeding to 8f, confirm ALL of:
@@ -885,7 +885,7 @@ Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 **8f. Present completion summary:**
 
-Use the branded output templates from `references/ui-formatting.md`. Route based on status:
+Use the branded output templates from `references/ui-brand.md`. Route based on status:
 
 | Status | Template |
 |--------|----------|
@@ -914,7 +914,7 @@ Total files modified: {count}
 Deviations: {count}
 ```
 
-Then present the appropriate branded banner from Read `references/ui-formatting.md` § "Completion Summary Templates":
+Then present the appropriate branded banner from Read `references/ui-brand.md` § "Completion Summary Templates":
 
 - **If `passed` + more phases:** Use the "Phase Complete" template. Fill in phase number, name, plan count, and next phase details.
 - **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.
@@ -973,7 +973,7 @@ If `git.branching` is `phase` but we're not on the phase branch:
 
 ---
 
-## Files Created/Modified by /pbr:build
+## Files Created/Modified by /pbr:execute-phase
 
 | File | Purpose | When |
 |------|---------|------|

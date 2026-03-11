@@ -27,7 +27,7 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 ## References
 
 - `references/questioning.md` — Questioning patterns for milestone review decisions
-- `references/ui-formatting.md` — Status symbols, banners, milestone celebration format
+- `references/ui-brand.md` — Status symbols, banners, milestone celebration format
 
 ---
 
@@ -50,7 +50,7 @@ Before any phase-modifying operations (archiving phases, updating ROADMAP.md/STA
 acquireClaim(planningDir, sessionId)
 ```
 
-If the claim fails (another session owns this project), display: "Another session owns this project. Use `/pbr:status` to see active claims."
+If the claim fails (another session owns this project), display: "Another session owns this project. Use `/pbr:progress` to see active claims."
 
 On completion or error (including all exit paths), release the claim:
 
@@ -118,7 +118,7 @@ Start a new milestone cycle with new phases.
    - Example: if phases 1-5 exist, new milestone starts at phase 6
 
 4. **Mini roadmap session:**
-   Run a condensed version of the `/pbr:begin` questioning flow:
+   Run a condensed version of the `/pbr:new-project` questioning flow:
 
    a. Ask about major components needed (via AskUserQuestion):
       - "What are the 2-5 major areas of work for this milestone?"
@@ -237,7 +237,7 @@ Dry-run of milestone completion — shows what would happen without making any c
    Archive location: .planning/milestones/v{version}/
    Git tag: v{version}
 
-   Ready to complete? Run: /pbr:milestone complete v{version}
+   Ready to complete? Run: /pbr:complete-milestone v{version}
    ```
 
 **CRITICAL (no hook)**: This subcommand is READ-ONLY. Do not create directories, move files, modify STATE.md, modify ROADMAP.md, or create git tags. Only read and display.
@@ -269,7 +269,7 @@ Archive a completed milestone and prepare for the next one.
        header: "Unverified"
        options:
          - label: "Continue anyway"  description: "Proceed despite unverified phases (not recommended)"
-         - label: "Stop and review"  description: "Run /pbr:review for unverified phases first"
+         - label: "Stop and review"  description: "Run /pbr:verify-work for unverified phases first"
      - If "Stop and review" or "Other": stop and suggest the review commands for each unverified phase
      - If "Continue anyway": proceed with warning noted
 
@@ -283,7 +283,7 @@ Archive a completed milestone and prepare for the next one.
      question: "{count} phases were modified after verification. Re-verify or continue?"
      header: "Stale"
      options:
-       - label: "Re-verify"        description: "Run /pbr:review for affected phases (recommended)"
+       - label: "Re-verify"        description: "Run /pbr:verify-work for affected phases (recommended)"
        - label: "Continue anyway"   description: "Proceed with potentially outdated verification"
    - If "Re-verify" or "Other": suggest the review commands for affected phases and stop
    - If "Continue anyway": proceed with warning noted
@@ -522,7 +522,7 @@ Create phases to close gaps found during an audit.
 1. **Find most recent audit:**
    - Search for `*-MILESTONE-AUDIT.md` in `.planning/`
    - If multiple, use the most recent
-   - If none: "No audit found. Run `/pbr:milestone audit` first."
+   - If none: "No audit found. Run `/pbr:audit-milestone` first."
 
 2. **Read audit report:**
    - Extract all gaps and tech debt items

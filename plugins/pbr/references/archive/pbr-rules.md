@@ -26,7 +26,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 12. **Never** read full subagent output — read frontmatter only (first 10-20 lines).
 13. Read STATE.md and config.json fully. Read ROADMAP.md by section. Read PLAN.md/SUMMARY.md/VERIFICATION.md frontmatter only.
 14. Use the `limit` parameter on Read to restrict line counts.
-15. Proactively suggest `/pbr:pause` when context gets heavy — before compaction, not after.
+15. Proactively suggest `/pbr:pause-work` when context gets heavy — before compaction, not after.
 15b. **After compaction or context recovery**, always read `.planning/STATE.md` (especially the `## Session Continuity` section) before proceeding with any work. The PreCompact hook writes recovery state there automatically.
 
 ---
@@ -74,7 +74,7 @@ Condensed from the 3,100-line `docs/DEVELOPMENT-GUIDE.md`. When in doubt, these 
 39. Mark each step as `(inline)` or `(delegate)` — inline for light work, delegate for analysis.
 40. Reference templates and references by filename — never inline them.
 41. Gate checks: read config toggle → display summary → ask user → proceed/abort/revise.
-42. Use branded UI elements from `references/ui-formatting.md`.
+42. Use branded UI elements from `references/ui-brand.md`.
 
 ---
 

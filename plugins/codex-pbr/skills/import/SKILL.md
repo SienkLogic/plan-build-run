@@ -23,7 +23,7 @@ You are the orchestrator for `$pbr-import`. This skill imports an external plan 
 
 ## References
 
-- `references/ui-formatting.md` — Status symbols, banners, checkpoint boxes for import display output
+- `references/ui-brand.md` — Status symbols, banners, checkpoint boxes for import display output
 - `references/questioning.md` — Questioning patterns for gap-fill prompts during PRD import
 
 ## Context Budget
@@ -804,7 +804,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 
 | File | Purpose | When |
 |------|---------|------|
-| `.planning/phases/{NN}-{slug}/PLAN-{NN}.md` | Imported plan files | Step 7 |
+| `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md` | Imported plan files | Step 7 |
 | `.planning/ROADMAP.md` | Plans Complete + Status updated to `planned` | Step 8a |
 | `.planning/STATE.md` | Updated with plan status and import source | Step 8b |
 | `.planning/CONTEXT.md` | Updated if blockers surfaced new locked decisions | Step 8d |
