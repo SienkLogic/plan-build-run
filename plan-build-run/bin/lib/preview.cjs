@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * lib/preview.cjs -- Dry-run preview for /pbr:build and /pbr:plan.
+ * lib/preview.cjs -- Dry-run preview for /pbr:execute-phase and /pbr:plan-phase.
  *
  * Reads PLAN.md frontmatter from a phase directory, aggregates file lists,
  * counts task tags, and builds a structured preview object without executing
@@ -75,7 +75,7 @@ function buildPreview(phaseSlug, _options, planningDir, _pluginRoot) {
     return { error: `Phase not found: ${phaseSlug}` };
   }
 
-  // Find all PLAN-*.md files
+  // Find all plan files (matches both NN-MM-PLAN.md and legacy PLAN-NN.md naming)
   const planFiles = findFiles(phaseDir, /^PLAN.*\.md$/i);
 
   if (planFiles.length === 0) {

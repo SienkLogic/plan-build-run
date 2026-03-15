@@ -74,7 +74,7 @@ function stalenessCheck(phaseSlug, planningDir) {
     return { error: 'Phase not found: ' + phaseSlug };
   }
 
-  // Find all PLAN-*.md files in the phase directory
+  // Find all plan files (matches both NN-MM-PLAN.md and legacy PLAN-NN.md naming)
   let planFiles;
   try {
     planFiles = fs.readdirSync(phaseDir).filter(f => /^PLAN.*\.md$/i.test(f));
