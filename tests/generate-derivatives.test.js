@@ -322,10 +322,10 @@ describe('codex target', () => {
 
   describe('transformBody with codex', () => {
     test('replaces /pbr: with $pbr-', () => {
-      const input = 'Run /pbr:plan to create a plan, then /pbr:build to execute.';
+      const input = 'Run /pbr:plan-phase to create a plan, then /pbr:execute-phase to execute.';
       const result = transformBody(input, 'codex');
       expect(result).toContain('$pbr-plan');
-      expect(result).toContain('$pbr-build');
+      expect(result).toContain('$pbr-execute-phase');
       expect(result).not.toContain('/pbr:');
     });
 
@@ -344,9 +344,9 @@ describe('codex target', () => {
     });
 
     test('cursor target does NOT replace /pbr:', () => {
-      const input = 'Run /pbr:plan to start.';
+      const input = 'Run /pbr:plan-phase to start.';
       const result = transformBody(input, 'cursor');
-      expect(result).toContain('/pbr:plan');
+      expect(result).toContain('/pbr:plan-phase');
       expect(result).not.toContain('$pbr-');
     });
   });
