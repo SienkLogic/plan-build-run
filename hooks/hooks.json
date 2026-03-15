@@ -13,7 +13,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" progress-tracker.js",
-            "statusMessage": "Loading project state..."
+            "statusMessage": "◆ PBR: Loading project state..."
           }
         ]
       }
@@ -24,7 +24,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js instructions-loaded",
-            "statusMessage": "Detecting instruction reload..."
+            "statusMessage": "◆ PBR: Detecting instruction reload..."
           }
         ]
       }
@@ -35,7 +35,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js worktree-create",
-            "statusMessage": "Initializing worktree .planning/..."
+            "statusMessage": "◆ PBR: Initializing worktree planning..."
           }
         ]
       }
@@ -46,7 +46,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js worktree-remove",
-            "statusMessage": "Cleaning up worktree state..."
+            "statusMessage": "◆ PBR: Cleaning up worktree state..."
           }
         ]
       }
@@ -58,7 +58,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" post-write-dispatch.js",
-            "statusMessage": "Validating write output..."
+            "statusMessage": "◆ PBR: Checking plan/state sync..."
           }
         ]
       },
@@ -68,7 +68,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js check-subagent-output",
-            "statusMessage": "Validating agent output..."
+            "statusMessage": "◆ PBR: Validating agent deliverables..."
           }
         ]
       },
@@ -78,17 +78,17 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" post-bash-triage.js",
-            "statusMessage": "Triaging test output..."
+            "statusMessage": "◆ PBR: Analyzing test results..."
           }
         ]
       },
       {
-        "matcher": "Read",
+        "matcher": "Read|Glob|Grep",
         "hooks": [
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" track-context-budget.js",
-            "statusMessage": "Tracking context budget..."
+            "statusMessage": "◆ PBR: Tracking context usage..."
           }
         ]
       },
@@ -98,7 +98,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" context-bridge.js",
-            "statusMessage": "Updating context monitor..."
+            "statusMessage": "◆ PBR: Monitoring context health..."
           }
         ]
       }
@@ -109,7 +109,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js log-tool-failure",
-            "statusMessage": "Logging tool failure..."
+            "statusMessage": "⚠ PBR: Recording tool failure..."
           }
         ]
       }
@@ -121,7 +121,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" block-skill-self-read.js",
-            "statusMessage": "Checking skill self-read..."
+            "statusMessage": "◆ PBR: Guarding skill context..."
           }
         ]
       },
@@ -131,7 +131,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" pre-bash-dispatch.js",
-            "statusMessage": "Validating Bash command..."
+            "statusMessage": "◆ PBR: Checking Bash safety..."
           }
         ]
       },
@@ -141,7 +141,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" pre-write-dispatch.js",
-            "statusMessage": "Checking write rules..."
+            "statusMessage": "◆ PBR: Enforcing write policies..."
           }
         ]
       },
@@ -151,7 +151,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" validate-task.js",
-            "statusMessage": "Validating Task() call..."
+            "statusMessage": "◆ PBR: Validating agent dispatch..."
           }
         ]
       },
@@ -161,7 +161,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" validate-skill-args.js",
-            "statusMessage": "Validating skill arguments..."
+            "statusMessage": "◆ PBR: Parsing skill arguments..."
           }
         ]
       },
@@ -171,7 +171,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" intercept-plan-mode.js",
-            "statusMessage": "Checking plan mode compatibility..."
+            "statusMessage": "◆ PBR: Checking plan mode..."
           }
         ]
       }
@@ -182,7 +182,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js context-budget-check",
-            "statusMessage": "Preserving state before compaction..."
+            "statusMessage": "◆ PBR: Preserving state for compaction..."
           }
         ]
       }
@@ -193,7 +193,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" auto-continue.js",
-            "statusMessage": "Checking for auto-continue..."
+            "statusMessage": "◆ PBR: Checking auto-continue..."
           }
         ]
       }
@@ -204,7 +204,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js log-subagent-start",
-            "statusMessage": "Logging agent spawn..."
+            "statusMessage": "◆ PBR: Agent spawning..."
           }
         ]
       }
@@ -215,7 +215,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js log-subagent",
-            "statusMessage": "Logging agent completion..."
+            "statusMessage": "✓ PBR: Agent completed"
           }
         ]
       },
@@ -224,7 +224,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js event-handler",
-            "statusMessage": "Checking for auto-verification..."
+            "statusMessage": "◆ PBR: Checking auto-verify..."
           }
         ]
       }
@@ -235,7 +235,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js task-completed",
-            "statusMessage": "Processing task completion..."
+            "statusMessage": "✓ PBR: Processing task result..."
           }
         ]
       }
@@ -246,7 +246,7 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js check-config-change",
-            "statusMessage": "Validating configuration..."
+            "statusMessage": "◆ PBR: Validating config..."
           }
         ]
       }
@@ -257,7 +257,29 @@
           {
             "type": "command",
             "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" hook-server-client.js session-cleanup",
-            "statusMessage": "Cleaning up session..."
+            "statusMessage": "◆ PBR: Session cleanup..."
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" log-notification.js",
+            "statusMessage": "◆ PBR: Logging notification..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" prompt-routing.js",
+            "statusMessage": "◆ PBR: Routing prompt..."
           }
         ]
       }
