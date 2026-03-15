@@ -89,8 +89,9 @@ describe('hook-logger.js', () => {
     // Should not throw
     expect(() => logHook('test', 'Event', 'allow')).not.toThrow();
 
-    // And no log file should be created
-    expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl'))).toBe(false);
+    // getLogPath() now auto-creates .planning/logs/ with recursive: true,
+    // so the log file WILL be created even when .planning was missing.
+    expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl'))).toBe(true);
   });
 
   test('includes extra details in entry', () => {

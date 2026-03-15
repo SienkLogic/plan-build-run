@@ -143,11 +143,13 @@ describe('log-tool-failure.js handleHttp', () => {
     expect(result.additionalContext).toMatch(/Bash|failed/i);
   });
 
-  test('returns null for non-Bash tool failures', () => {
+  test('returns advisory context for Write tool failures', () => {
     const result = mod.handleHttp({
       data: { tool_name: 'Write', error: 'ENOENT', is_interrupt: false }
     });
-    expect(result).toBeNull();
+    // log-tool-failure.js now provides recovery hints for Write/Edit failures
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toMatch(/Write failed/i);
   });
 
   test('returns null when Bash failure is an interrupt', () => {

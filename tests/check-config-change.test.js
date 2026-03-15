@@ -246,7 +246,14 @@ describe('check-config-change', () => {
       const result = findPlanningDir();
       process.chdir(originalCwd);
       fs.rmSync(tmpDir, { recursive: true, force: true });
-      expect(result).toBeNull();
+      // findPlanningDir walks up the directory tree, so it may find a
+      // .planning dir in a parent/ancestor of tmpdir (e.g. user home).
+      // The key invariant is that it does NOT find one inside tmpDir itself.
+      if (result !== null) {
+        expect(result).not.toContain(tmpDir);
+      } else {
+        expect(result).toBeNull();
+      }
     });
   });
 });

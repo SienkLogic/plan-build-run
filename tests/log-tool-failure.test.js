@@ -80,7 +80,7 @@ describe('log-tool-failure.js', () => {
     }
   });
 
-  test('no additionalContext for non-Bash failures', () => {
+  test('returns advisory context for Write failures', () => {
     const result = runScript({
       tool_name: 'Write',
       error: 'Permission denied',
@@ -88,8 +88,9 @@ describe('log-tool-failure.js', () => {
       tool_input: { file_path: '/some/file.txt' }
     });
     expect(result.exitCode).toBe(0);
-    // Write failures should not output recovery hints
-    expect(result.output).toBe('');
+    // Write failures now return recovery hints
+    const parsed = JSON.parse(result.output);
+    expect(parsed.additionalContext).toMatch(/Write failed/i);
   });
 
   test('no additionalContext for interrupted Bash', () => {
@@ -186,11 +187,13 @@ describe('log-tool-failure.js exports', () => {
     expect(result.additionalContext).toContain('/pbr:debug');
   });
 
-  test('handleHttp returns null for non-Bash tool failure', () => {
+  test('handleHttp returns advisory context for Write tool failure', () => {
     const result = handleHttp({
       data: { tool_name: 'Write', error: 'permission denied', is_interrupt: false, tool_input: { file_path: '/x' } }
     });
-    expect(result).toBeNull();
+    // Write/Edit failures now return recovery hints
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toMatch(/Write failed/i);
   });
 
   test('handleHttp returns null for interrupted Bash', () => {
