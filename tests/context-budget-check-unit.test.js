@@ -6,7 +6,8 @@ const os = require('os');
 
 const {
   readRoadmapSummary, readCurrentPlan, readConfigHighlights,
-  buildRecoveryContext, readRecentErrors, readRecentAgents, handleHttp
+  buildRecoveryContext, readRecentErrors, readRecentAgents, handleHttp,
+  readBlockers, readPendingTodos
 } = require('../hooks/context-budget-check');
 
 let tmpDir;
@@ -298,5 +299,105 @@ describe('handleHttp', () => {
     fs.writeFileSync(statePath, '# State\n\n**Phase**: 01\n\n## Session Continuity\nOld content\n\n## Next\nSomething');
     // Should not throw; replaces existing section
     expect(() => handleHttp({ planningDir })).not.toThrow();
+  });
+});
+
+describe('readBlockers', () => {
+  test('returns empty string for content without Blockers section', () => {
+    const content = '---\nphase: 1\n---\n\n## Current Phase\nWorking\n';
+    expect(readBlockers(content)).toBe('');
+  });
+
+  test('returns empty string when section says "None"', () => {
+    const content = '## Blockers/Concerns\nNone\n\n## Other\n';
+    expect(readBlockers(content)).toBe('');
+  });
+
+  test('returns empty string when section says "none" (case insensitive)', () => {
+    const content = '## Blockers/Concerns\nnone\n';
+    expect(readBlockers(content)).toBe('');
+  });
+
+  test('extracts first 3 lines of blocker text', () => {
+    const content = `## Blockers/Concerns
+- Missing API key for auth service
+- Database migration not run
+- CI pipeline broken
+- Fourth blocker should be excluded
+`;
+    const result = readBlockers(content);
+    expect(result).toContain('Missing API key');
+    expect(result).toContain('Database migration');
+    expect(result).toContain('CI pipeline broken');
+    expect(result).not.toContain('Fourth blocker');
+  });
+
+  test('handles single blocker line', () => {
+    const content = '## Blockers/Concerns\n- Waiting on review\n';
+    const result = readBlockers(content);
+    expect(result).toContain('Waiting on review');
+  });
+});
+
+describe('readPendingTodos', () => {
+  test('returns empty array when todos/pending/ does not exist', () => {
+    expect(readPendingTodos(planningDir, 5)).toEqual([]);
+  });
+
+  test('returns todo titles from .md files, limited by maxTodos', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+
+    for (let i = 1; i <= 4; i++) {
+      fs.writeFileSync(path.join(todosDir, `todo-${i}.md`), `# Todo Item ${i}\n\nDescription`);
+    }
+
+    const result = readPendingTodos(planningDir, 2);
+    expect(result).toHaveLength(2);
+  });
+
+  test('extracts title from # Title heading in .md file', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+
+    fs.writeFileSync(path.join(todosDir, 'fix-auth.md'), '# Fix authentication timeout\n\nDetails here.');
+
+    const result = readPendingTodos(planningDir, 5);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe('Fix authentication timeout');
+  });
+
+  test('falls back to filename when no heading found', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+
+    fs.writeFileSync(path.join(todosDir, 'no-heading.md'), 'Just some text without a heading');
+
+    const result = readPendingTodos(planningDir, 5);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe('no-heading');
+  });
+
+  test('ignores non-.md files', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+
+    fs.writeFileSync(path.join(todosDir, 'todo.md'), '# A Todo\n');
+    fs.writeFileSync(path.join(todosDir, 'notes.txt'), 'not a todo');
+
+    const result = readPendingTodos(planningDir, 5);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe('A Todo');
+  });
+
+  test('truncates long titles to 60 characters', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+
+    const longTitle = 'A'.repeat(80);
+    fs.writeFileSync(path.join(todosDir, 'long.md'), `# ${longTitle}\n`);
+
+    const result = readPendingTodos(planningDir, 5);
+    expect(result[0].length).toBeLessThanOrEqual(60);
   });
 });
