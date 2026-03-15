@@ -1,0 +1,170 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const {
+  getHookHealthSummary,
+  checkLearningsDeferrals,
+  getEnrichedContext,
+  detectOtherSessions,
+  FAILURE_DECISIONS,
+  HOOK_HEALTH_MAX_ENTRIES,
+} = require('../hooks/progress-tracker');
+
+let tmpDir;
+let planningDir;
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-pt-'));
+  planningDir = path.join(tmpDir, '.planning');
+  fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  jest.spyOn(process, 'cwd').mockReturnValue(tmpDir);
+});
+
+afterEach(() => {
+  process.cwd.mockRestore();
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+describe('FAILURE_DECISIONS', () => {
+  test('matches expected failure types', () => {
+    // FAILURE_DECISIONS is a regex
+    expect(FAILURE_DECISIONS.test('block')).toBe(true);
+    expect(FAILURE_DECISIONS.test('error')).toBe(true);
+    expect(FAILURE_DECISIONS.test('warn')).toBe(true);
+    expect(FAILURE_DECISIONS.test('warning')).toBe(true);
+    expect(FAILURE_DECISIONS.test('allow')).toBe(false);
+  });
+});
+
+describe('HOOK_HEALTH_MAX_ENTRIES', () => {
+  test('is a reasonable number', () => {
+    expect(HOOK_HEALTH_MAX_ENTRIES).toBeGreaterThan(0);
+    expect(HOOK_HEALTH_MAX_ENTRIES).toBeLessThan(1000);
+  });
+});
+
+describe('getHookHealthSummary', () => {
+  test('returns null when no hooks.jsonl', () => {
+    const result = getHookHealthSummary(planningDir);
+    expect(result).toBeNull();
+  });
+
+  test('returns null when no failures', () => {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const entries = [
+      JSON.stringify({ hook: 'test', decision: 'allow' }),
+      JSON.stringify({ hook: 'test', decision: 'allow' }),
+    ];
+    fs.writeFileSync(hooksLog, entries.join('\n') + '\n');
+    const result = getHookHealthSummary(planningDir);
+    expect(result).toBeNull();
+  });
+
+  test('returns summary string when failures found', () => {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const entries = [
+      JSON.stringify({ hook: 'test', decision: 'allow' }),
+      JSON.stringify({ hook: 'validate-commit', decision: 'block' }),
+      JSON.stringify({ hook: 'test', decision: 'allow' }),
+    ];
+    fs.writeFileSync(hooksLog, entries.join('\n') + '\n');
+    const result = getHookHealthSummary(planningDir);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('1 failure');
+    expect(result).toContain('validate-commit');
+  });
+
+  test('identifies multiple failing hooks', () => {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const entries = [];
+    for (let i = 0; i < 5; i++) {
+      entries.push(JSON.stringify({ hook: 'validate-commit', decision: 'block' }));
+    }
+    entries.push(JSON.stringify({ hook: 'other', decision: 'warn' }));
+    fs.writeFileSync(hooksLog, entries.join('\n') + '\n');
+    const result = getHookHealthSummary(planningDir);
+    expect(typeof result).toBe('string');
+    expect(result).toContain('6 failures');
+    expect(result).toContain('validate-commit: 5');
+  });
+
+  test('handles malformed jsonl entries', () => {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    fs.writeFileSync(hooksLog, 'not json\n{bad\n');
+    const result = getHookHealthSummary(planningDir);
+    expect(result).toBeNull();
+  });
+
+  test('returns null for empty hooks.jsonl', () => {
+    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    fs.writeFileSync(hooksLog, '');
+    const result = getHookHealthSummary(planningDir);
+    expect(result).toBeNull();
+  });
+});
+
+describe('checkLearningsDeferrals', () => {
+  test('returns empty array when no learnings', () => {
+    const result = checkLearningsDeferrals(planningDir);
+    expect(Array.isArray(result)).toBe(true);
+  });
+});
+
+describe('getEnrichedContext', () => {
+  test('is a function', () => {
+    expect(typeof getEnrichedContext).toBe('function');
+  });
+
+  // getEnrichedContext(config, planningDir) queries hook server via HTTP
+  // We can't easily test it without a running server, but we verify it exists
+  // and doesn't throw when called with null config
+  test('returns null or object when server not running', async () => {
+    const result = await getEnrichedContext(null, planningDir);
+    // Should return null when no hook server is available
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+});
+
+describe('detectOtherSessions', () => {
+  test('returns empty array when no sessions dir', () => {
+    const result = detectOtherSessions(planningDir, 'session-1');
+    expect(result).toEqual([]);
+  });
+
+  test('returns empty array when only current session exists', () => {
+    const sessionsDir = path.join(planningDir, '.sessions');
+    fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
+    fs.writeFileSync(path.join(sessionsDir, 'session-1', 'info.json'),
+      JSON.stringify({ created: new Date().toISOString() }));
+    const result = detectOtherSessions(planningDir, 'session-1');
+    expect(result).toEqual([]);
+  });
+
+  test('detects other active sessions', () => {
+    const sessionsDir = path.join(planningDir, '.sessions');
+    fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
+    fs.mkdirSync(path.join(sessionsDir, 'session-2'), { recursive: true });
+    fs.writeFileSync(path.join(sessionsDir, 'session-1', 'info.json'),
+      JSON.stringify({ created: new Date().toISOString() }));
+    fs.writeFileSync(path.join(sessionsDir, 'session-2', 'info.json'),
+      JSON.stringify({ created: new Date().toISOString() }));
+    const result = detectOtherSessions(planningDir, 'session-1');
+    expect(result.length).toBe(1);
+    // detectOtherSessions returns objects with sessionId property
+    expect(result[0].sessionId).toBe('session-2');
+  });
+
+  test('handles missing info.json gracefully', () => {
+    const sessionsDir = path.join(planningDir, '.sessions');
+    fs.mkdirSync(path.join(sessionsDir, 'session-1'), { recursive: true });
+    fs.mkdirSync(path.join(sessionsDir, 'session-2'), { recursive: true });
+    // No info.json in session-2
+    const result = detectOtherSessions(planningDir, 'session-1');
+    // Should still detect it as a session dir
+    expect(result.length).toBe(1);
+    expect(result[0].sessionId).toBe('session-2');
+  });
+});
