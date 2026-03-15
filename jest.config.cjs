@@ -32,5 +32,9 @@ module.exports = {
     '!hooks/pre-bash-dispatch.js',
     '!hooks/pre-write-dispatch.js',
     '!hooks/run-hook.js',
+    // progress-tracker.js: 727-line SessionStart hook whose main() reads stdin synchronously,
+    // spawns background processes, and calls process.exit(). Tested via subprocess in
+    // progress-tracker.test.js. Exported utility functions tested in progress-tracker-unit.test.js.
+    '!hooks/progress-tracker.js',
   ],
 };

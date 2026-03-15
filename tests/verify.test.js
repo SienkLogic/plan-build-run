@@ -79,6 +79,39 @@ describe('cmdVerifyPlanStructure', () => {
     expect(out).toContain('Missing');
   });
 
+  test('warns when task missing verify/done/files', () => {
+    const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
+    fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><name>T1</name><action>Do it</action></task>');
+    try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('verify');
+    expect(out).toContain('done');
+  });
+
+  test('errors when task missing name', () => {
+    const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
+    fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><action>Do it</action></task>');
+    try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('name');
+  });
+
+  test('warns on wave > 1 with empty depends_on', () => {
+    const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
+    fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 2\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="code"><name>T1</name><action>Do</action><verify>Check</verify><done>Done</done></task>');
+    try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('Wave');
+  });
+
+  test('errors on checkpoint tasks with autonomous true', () => {
+    const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
+    fs.writeFileSync(planPath, '---\nphase: 01\nplan: 01\ntype: execute\nwave: 1\ndepends_on: []\nfiles_modified: []\nautonomous: true\nmust_haves:\n  truths: []\n---\n\n<task type="checkpoint"><name>Review</name><action>Check</action></task>');
+    try { cmdVerifyPlanStructure(tmpDir, '.planning/phases/01-foundation/PLAN.md', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('checkpoint');
+  });
+
   test('validates complete plan structure', () => {
     const planPath = path.join(tmpDir, '.planning', 'phases', '01-foundation', 'PLAN.md');
     const content = [
@@ -117,7 +150,28 @@ describe('cmdVerifyPlanStructure', () => {
 });
 
 describe('cmdVerifyPhaseCompleteness', () => {
-  test('checks phase completeness', () => {
+  test('checks phase completeness with plans and summaries', () => {
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
+    fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\nphase: 01\nplan: 01\n---\n');
+    fs.writeFileSync(path.join(phaseDir, '01-01-SUMMARY.md'), '---\nstatus: complete\n---\n');
+    try { cmdVerifyPhaseCompleteness(tmpDir, '1', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('complete');
+  });
+
+  test('reports incomplete plans', () => {
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
+    fs.writeFileSync(path.join(phaseDir, '01-01-PLAN.md'), '---\n---\n');
+    // No corresponding SUMMARY
+    try { cmdVerifyPhaseCompleteness(tmpDir, '1', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out).toContain('01-01');
+  });
+
+  test('reports orphan summaries', () => {
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-foundation');
+    fs.writeFileSync(path.join(phaseDir, '01-02-SUMMARY.md'), '---\n---\n');
+    // No corresponding PLAN
     try { cmdVerifyPhaseCompleteness(tmpDir, '1', false); } catch (_e) { /* exit */ }
     const out = getOutput();
     expect(out.length).toBeGreaterThan(0);
