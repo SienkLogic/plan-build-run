@@ -424,8 +424,14 @@ CRITICAL (no hook): Verify planner output before proceeding.
 2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
 3. **Task structure**: Verify at least one `<task>` block exists in each plan file
 4. **Plan count matches**: Number of PLAN files matches what the planner reported
+5. **implements field**: Read frontmatter of each PLAN file — verify `implements:` field exists and is non-empty (contains at least one REQ-ID). If empty or missing: flag as spot-check failure.
+6. **Summary section**: Check each PLAN file for `## Summary` heading. If missing: flag as spot-check failure.
+7. **Done conditions**: Scan each `<done>` element — if any contains only "Code was written", "File was created", "Feature is implemented", or similar vague text (< 10 characters): flag as warning.
 
-If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
+If ANY spot-check fails:
+- Display which checks failed with specific details (e.g., 'Plan 04-02 missing implements field', 'Plan 04-01 missing ## Summary section')
+- If only warnings (vague done conditions): proceed to Step 6 (checker will catch these)
+- If errors (missing implements, missing Summary, missing frontmatter, no tasks): present options: **Retry** (re-spawn planner with explicit instructions to fix) / **Continue anyway** / **Abort**
 
 ---
 
