@@ -1,7 +1,10 @@
 const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../hooks/context-budget-check');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+const SCRIPT_PATH = path.resolve(__dirname, '..', 'hooks', 'context-budget-check.js');
 
 function makeTmpDir() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-cbc-'));
@@ -246,6 +249,133 @@ Implement JWT authentication middleware
       const result = buildRecoveryContext('', '', '03-api/PLAN.md — Build REST endpoints', '');
       expect(result).toContain('Current plan: 03-api/PLAN.md');
       expect(result).not.toContain('Active operation');
+    });
+  });
+
+  describe('STATE.md preservation (integration)', () => {
+    test('preserves existing STATE.md content and adds Session Continuity', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+
+      // Create STATE.md with frontmatter and body
+      const stateContent = `---
+phase: 2
+status: executing
+---
+
+## Current Phase
+Building authentication module
+
+## Blockers/Concerns
+None
+`;
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
+
+      // Create ROADMAP.md with Progress table
+      const roadmap = `# ROADMAP
+
+## Progress
+
+| Phase | Name | Goal | Status |
+|-------|------|------|--------|
+| 1 | Setup | Scaffolding | verified |
+| 2 | Auth | Authentication | executing |
+`;
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      // Create config.json
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard', mode: 'autonomous' }));
+
+      // Run the script with cwd set to tmpDir
+      execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' });
+
+      // Read STATE.md after execution
+      const result = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+
+      // Original content preserved
+      expect(result).toContain('phase: 2');
+      expect(result).toContain('status: executing');
+      expect(result).toContain('Building authentication module');
+
+      // Session Continuity section appended
+      expect(result).toContain('## Session Continuity');
+      expect(result).toContain('Compaction occurred');
+      expect(result).toContain('Phase 1');
+      expect(result).toContain('Phase 2');
+
+      cleanup(tmpDir);
+    });
+
+    test('updates existing Session Continuity section on repeated compaction', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+
+      // Create STATE.md with an existing Session Continuity section
+      const stateContent = `---
+phase: 1
+status: built
+---
+
+## Current Phase
+Setup complete
+
+## Session Continuity
+Last session: 2026-01-01T00:00:00Z
+Old continuity data here
+`;
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
+      fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
+
+      // Run twice
+      execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' });
+      execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' });
+
+      const result = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+
+      // Only one Session Continuity section
+      const matches = result.match(/## Session Continuity/g);
+      expect(matches).toHaveLength(1);
+
+      // Old content replaced
+      expect(result).not.toContain('Old continuity data here');
+
+      cleanup(tmpDir);
+    });
+
+    test('exits 0 with no output when STATE.md missing', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // planningDir exists but no STATE.md
+
+      const result = execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' });
+      expect(result.toString()).toBe('');
+
+      cleanup(tmpDir);
+    });
+
+    test('outputs recovery context to stdout', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+
+      // Create full state
+      const stateContent = `---
+phase: 1
+status: executing
+---
+
+## Current Phase
+Working on setup
+`;
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+
+      // Create .active-operation
+      fs.writeFileSync(path.join(planningDir, '.active-operation'), 'building phase 1');
+
+      const stdout = execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' }).toString();
+
+      // Parse JSON output
+      const output = JSON.parse(stdout);
+      expect(output.additionalContext).toContain('Post-Compaction Recovery');
+      expect(output.additionalContext).toContain('building phase 1');
+
+      cleanup(tmpDir);
     });
   });
 });
