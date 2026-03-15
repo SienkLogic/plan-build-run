@@ -58,7 +58,7 @@ function main() {
 
 ## Current Position
 phase: (none)
-status: Worktree initialized — run /pbr:resume or /pbr:status for project state.
+status: Worktree initialized — run /pbr:resume-work or /pbr:progress for project state.
 
 ## Source
 parent: ${parentRoot}
@@ -81,7 +81,7 @@ initialized: ${new Date().toISOString()}
     });
 
     process.stdout.write(JSON.stringify({
-      additionalContext: '[Plan-Build-Run] Worktree .planning/ initialized. Run /pbr:status to see project state.'
+      additionalContext: '[Plan-Build-Run] Worktree .planning/ initialized. Run /pbr:progress to see project state.'
     }));
 
     process.exit(0);
@@ -119,7 +119,7 @@ function handleHttp(reqBody) {
     fs.mkdirSync(planningDir, { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
 
-    const stateMd = `# STATE\n\n## Current Position\nphase: (none)\nstatus: Worktree initialized — run /pbr:resume or /pbr:status for project state.\n\n## Source\nparent: ${parentRoot}\ninitialized: ${new Date().toISOString()}\n`;
+    const stateMd = `# STATE\n\n## Current Position\nphase: (none)\nstatus: Worktree initialized — run /pbr:resume-work or /pbr:progress for project state.\n\n## Source\nparent: ${parentRoot}\ninitialized: ${new Date().toISOString()}\n`;
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateMd, 'utf8');
 
     try {
@@ -133,7 +133,7 @@ function handleHttp(reqBody) {
       parent_root: parentRoot
     });
 
-    return { additionalContext: '[Plan-Build-Run] Worktree .planning/ initialized. Run /pbr:status to see project state.' };
+    return { additionalContext: '[Plan-Build-Run] Worktree .planning/ initialized. Run /pbr:progress to see project state.' };
   } catch (err) {
     logHook('worktree-create', 'WorktreeCreate', 'error', { error: err.message });
     return { additionalContext: `[Plan-Build-Run] Worktree init error: ${err.message}` };

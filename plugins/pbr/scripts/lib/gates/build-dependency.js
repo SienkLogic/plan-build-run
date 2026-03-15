@@ -79,14 +79,14 @@ function checkBuildDependencyGate(data) {
       if (pDirs.length === 0) {
         return {
           block: true,
-          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:review ${paddedPhase} to verify the dependency phase first.`
+          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the dependency phase first.`
         };
       }
       const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
       if (!hasVerification) {
         return {
           block: true,
-          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:review ${paddedPhase} to verify the dependency phase first.`
+          reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the dependency phase first.`
         };
       }
     }

@@ -29,7 +29,7 @@ function checkPlanExecutorGate(data) {
 
   return {
     block: true,
-    reason: 'Plan skill cannot spawn executors.\n\nThe plan skill creates plans; the build skill executes them. Spawning an executor from the plan skill violates the separation of concerns.\n\nRun /pbr:build to execute plans instead.'
+    reason: 'Plan skill cannot spawn executors.\n\nThe plan skill creates plans; the build skill executes them. Spawning an executor from the plan skill violates the separation of concerns.\n\nRun /pbr:execute-phase to execute plans instead.'
   };
 }
 

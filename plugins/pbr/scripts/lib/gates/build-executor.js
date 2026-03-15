@@ -40,7 +40,7 @@ function checkBuildExecutorGate(data) {
     if (!fs.existsSync(phasesDir)) {
       return {
         block: true,
-        reason: 'Cannot spawn executor: .planning/phases/ directory does not exist.\n\nThe build skill requires a phases directory with at least one PLAN.md before an executor can run.\n\nRun /pbr:plan {N} to create plans first.'
+        reason: 'Cannot spawn executor: .planning/phases/ directory does not exist.\n\nThe build skill requires a phases directory with at least one PLAN.md before an executor can run.\n\nRun /pbr:plan-phase {N} to create plans first.'
       };
     }
 
@@ -48,7 +48,7 @@ function checkBuildExecutorGate(data) {
     if (dirs.length === 0) {
       return {
         block: true,
-        reason: `Cannot spawn executor: no phase directory found for phase ${currentPhase}.\n\nThe build skill needs a phase directory (e.g., .planning/phases/${currentPhase}-slug/) containing PLAN.md files.\n\nRun /pbr:plan ${currentPhase} to create plans first.`
+        reason: `Cannot spawn executor: no phase directory found for phase ${currentPhase}.\n\nThe build skill needs a phase directory (e.g., .planning/phases/${currentPhase}-slug/) containing PLAN.md files.\n\nRun /pbr:plan-phase ${currentPhase} to create plans first.`
       };
     }
 
@@ -66,7 +66,7 @@ function checkBuildExecutorGate(data) {
     if (!hasPlan) {
       return {
         block: true,
-        reason: `Cannot spawn executor: no PLAN.md found in .planning/phases/${dirs[0]}/.\n\nThe phase directory exists but contains no PLAN.md files. The executor needs at least one non-empty PLAN.md to work from.\n\nRun /pbr:plan ${currentPhase} to create plans first.`
+        reason: `Cannot spawn executor: no PLAN.md found in .planning/phases/${dirs[0]}/.\n\nThe phase directory exists but contains no PLAN.md files. The executor needs at least one non-empty PLAN.md to work from.\n\nRun /pbr:plan-phase ${currentPhase} to create plans first.`
       };
     }
   } catch (_e) {

@@ -14,7 +14,7 @@ const STATE_V2 = [
   'status: "building"',
   'progress_percent: 45',
   'last_activity: "2026-03-01"',
-  'last_command: "/pbr:build 3"',
+  'last_command: "/pbr:execute-phase 3"',
   'blockers: []',
   'plans_complete: 2',
   'plans_total: 5',

@@ -102,7 +102,7 @@ function checkUnmanagedSourceWrite(data) {
 
   const message =
     'PBR workflow required: You are editing source code without an active PBR skill. ' +
-    'Route this work through a PBR command: /pbr:quick (small fix), /pbr:build (planned work), ' +
+    'Route this work through a PBR command: /pbr:quick (small fix), /pbr:execute-phase (planned work), ' +
     'or /pbr:do (auto-route). Set workflow.enforce_pbr_skills: off in config to disable.';
 
   if (config.level === 'block') {

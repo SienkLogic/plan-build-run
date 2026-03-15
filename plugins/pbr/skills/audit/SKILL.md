@@ -302,8 +302,8 @@ Full report: .planning/audits/{filename}
 
 {Smart routing based on findings:}
 - If critical issues found: **Fix workflow** → `/pbr:quick`
-- If todos identified: **Create todos** → `/pbr:todo add "{description}"`
-- Default: **See project status** → `/pbr:status`
+- If todos identified: **Create todos** → `/pbr:add-todo "{description}"`
+- Default: **See project status** → `/pbr:progress`
 
 <sub>`/clear` first → fresh context window</sub>
 ```

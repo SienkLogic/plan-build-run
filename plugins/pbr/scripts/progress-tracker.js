@@ -218,7 +218,7 @@ function buildContext(planningDir, stateFile) {
           try {
             const { stateUpdate } = require('./pbr-tools');
             stateUpdate(planningDir, { status: 'planned' });
-            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:build to retry.`);
+            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
             logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
           } catch (_repairErr) {
             parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
@@ -228,7 +228,7 @@ function buildContext(planningDir, stateFile) {
       } catch (_e) { /* best-effort */ }
     }
   } else {
-    parts.push('\nNo STATE.md found. Run /pbr:begin to initialize or /pbr:status to check.');
+    parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
   }
 
   // Check for .continue-here.md files
@@ -237,7 +237,7 @@ function buildContext(planningDir, stateFile) {
     const continueFiles = findContinueFiles(phasesDir);
     if (continueFiles.length > 0) {
       parts.push(`\nPaused work found: ${continueFiles.join(', ')}`);
-      parts.push('Run /pbr:resume to pick up where you left off.');
+      parts.push('Run /pbr:resume-work to pick up where you left off.');
     }
   }
 
@@ -362,7 +362,7 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\nLearnings deferral triggers ready:\n${learningsThresholds.join('\n')}`);
   }
 
-  parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan N\n- Build from a plan → /pbr:build N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
+  parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
 }

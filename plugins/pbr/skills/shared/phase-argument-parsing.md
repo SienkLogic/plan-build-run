@@ -24,9 +24,9 @@ Input       → Normalized  → Directory Name
 1. Phase number must be numeric (integer or decimal with one decimal place)
 2. Phase must exist in ROADMAP.md (or be a valid target for insert/add)
 3. Phase must be in the expected state for the operation:
-   - `/pbr:plan N` — phase must not already have plans (unless re-planning)
-   - `/pbr:build N` — phase must have plans
-   - `/pbr:review N` — phase must have been built (SUMMARY.md files exist)
+   - `/pbr:plan-phase N` — phase must not already have plans (unless re-planning)
+   - `/pbr:execute-phase N` — phase must have plans
+   - `/pbr:verify-work N` — phase must have been built (SUMMARY.md files exist)
 
 ## Finding Phase Directory
 
@@ -40,6 +40,6 @@ Given phase number N:
 
 ## Error Messages
 
-- No argument and no current phase: "Which phase? Specify a number or run /pbr:status to see where you are."
-- Phase not found: "Phase {N} not found in .planning/phases/. Run /pbr:status to see available phases."
-- Wrong state: "Phase {N} hasn't been planned yet. Run /pbr:plan {N} first."
+- No argument and no current phase: "Which phase? Specify a number or run /pbr:progress to see where you are."
+- Phase not found: "Phase {N} not found in .planning/phases/. Run /pbr:progress to see available phases."
+- Wrong state: "Phase {N} hasn't been planned yet. Run /pbr:plan-phase {N} first."

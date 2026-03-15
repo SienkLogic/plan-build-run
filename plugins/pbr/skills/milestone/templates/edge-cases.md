@@ -10,7 +10,7 @@
 
 No roadmap found.
 
-**To fix:** Run `/pbr:begin` or `/pbr:milestone new` first.
+**To fix:** Run `/pbr:new-project` or `/pbr:new-milestone` first.
 ```
 
 ## Milestone has no phases

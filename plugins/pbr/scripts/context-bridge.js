@@ -11,7 +11,7 @@
  *   PEAK      (0-30%)  — no warnings
  *   GOOD      (30-50%) — no warnings
  *   DEGRADING (50-70%) — suggest subagent delegation
- *   POOR      (70-85%) — recommend /pbr:pause
+ *   POOR      (70-85%) — recommend /pbr:pause-work
  *   CRITICAL  (85%+)   — urgent stop, context rot imminent
  *
  * Debounce: same-tier warnings suppressed for 5 tool calls (2 for CRITICAL).
@@ -35,8 +35,8 @@ const TIERS = [
 
 const TIER_MESSAGES = {
   DEGRADING: 'Context at ~50-70%. Delegate heavy reads and analysis to Task() subagents to preserve orchestrator quality.',
-  POOR: 'Context at ~70-85%. Run /pbr:pause soon to save state before quality degrades.',
-  CRITICAL: 'STOP — Context at 85%+. Run /pbr:pause NOW. Context rot is imminent — further work risks hallucinations and skipped steps.'
+  POOR: 'Context at ~70-85%. Run /pbr:pause-work soon to save state before quality degrades.',
+  CRITICAL: 'STOP — Context at 85%+. Run /pbr:pause-work NOW. Context rot is imminent — further work risks hallucinations and skipped steps.'
 };
 
 const DEBOUNCE_INTERVAL = 5; // tool calls between same-tier warnings

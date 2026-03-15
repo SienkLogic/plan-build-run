@@ -34,9 +34,9 @@ Display:
 No Plan-Build-Run project found in this directory.
 
 /pbr:setup is for reconfiguring existing projects.
-To start a new project, run: /pbr:begin
+To start a new project, run: /pbr:new-project
 
-/pbr:begin includes everything /pbr:setup used to do, plus deep requirements gathering and roadmap creation.
+/pbr:new-project includes everything /pbr:setup used to do, plus deep requirements gathering and roadmap creation.
 ```
 Stop. Do not proceed further.
 
@@ -129,7 +129,7 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 - Project state: `.planning/STATE.md` (source of truth for current phase and progress)
 - Configuration: `.planning/config.json`
-- Run `/pbr:status` to see current project state and suggested next action.
+- Run `/pbr:progress` to see current project state and suggested next action.
 
 **After compaction or context recovery**: Read `.planning/STATE.md` (especially the `## Session Continuity` section) before proceeding with any work. The PreCompact hook writes recovery state there automatically.
 ```
@@ -225,7 +225,7 @@ Updated:
 - CLAUDE.md: {updated/skipped}
 - Platform settings: {".claude/settings.json updated" or "already in sync" or "no managed settings"}
 
-Run /pbr:status to see current project state.
+Run /pbr:progress to see current project state.
 ```
 
 ---

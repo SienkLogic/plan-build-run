@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * lib/preview.js — Dry-run preview for /pbr:build and /pbr:plan.
+ * lib/preview.js — Dry-run preview for /pbr:execute-phase and /pbr:plan-phase.
  *
  * Reads PLAN.md frontmatter from a phase directory, aggregates file lists,
  * counts task tags, and builds a structured preview object without executing

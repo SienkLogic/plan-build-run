@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Bash, Glob
 
 Then proceed to Step 1.
 
-# /pbr:pause — Save Session State
+# /pbr:pause-work — Save Session State
 
 You are running the **pause** skill. Your job is to capture the current session state so the user can resume exactly where they left off in a future conversation. This creates a `.continue-here.md` handoff file with everything the next session needs.
 
@@ -56,7 +56,7 @@ Read the following files to understand where things stand:
 
      No Plan-Build-Run project state found. Nothing to pause.
 
-     **To fix:** Run `/pbr:begin` to initialize a project first.
+     **To fix:** Run `/pbr:new-project` to initialize a project first.
      ```
 
 2. **`.planning/config.json`** — Project settings
@@ -100,7 +100,7 @@ Scan for plan files without corresponding SUMMARY.md files:
 
 #### Key Decisions Made
 Check for:
-- Recent CONTEXT.md files (from `/pbr:discuss`)
+- Recent CONTEXT.md files (from `/pbr:discuss-phase`)
 - Key decisions in recent SUMMARY.md files
 - Any deviations noted in summaries
 
@@ -112,7 +112,7 @@ From STATE.md blockers section and any:
 - Unresolved issues noted in summaries
 
 #### What to Do Next
-Determine the logical next action (same routing logic as `/pbr:status`):
+Determine the logical next action (same routing logic as `/pbr:progress`):
 - If mid-plan execution: "Continue building phase N"
 - If between plans in a phase: "Execute next plan (plan M)"
 - If phase complete, not reviewed: "Review phase N"
@@ -136,7 +136,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file 
 **CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body. Both must be updated atomically.**
 
 First, update the STATE.md YAML frontmatter:
-- Set `last_command: "/pbr:pause"`
+- Set `last_command: "/pbr:pause-work"`
 - Set `last_activity: {ISO datetime}`
 
 Then update the Session Continuity section of STATE.md:
@@ -191,7 +191,7 @@ Remaining: {count} plans in this phase
 
 **Resume in your next session**
 
-`/pbr:resume`
+`/pbr:resume-work`
 
 <sub>`/clear` first → fresh context window</sub>
 

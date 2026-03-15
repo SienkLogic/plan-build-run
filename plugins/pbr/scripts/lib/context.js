@@ -200,7 +200,7 @@ function contextTriage(options, planningDir) {
   }
 
   const safeLabel = recommendation === 'PROCEED' ? 'Safe to continue.'
-    : recommendation === 'CHECKPOINT' ? 'Suggest /pbr:pause after current agent completes.'
+    : recommendation === 'CHECKPOINT' ? 'Suggest /pbr:pause-work after current agent completes.'
       : 'Suggest running /compact immediately.';
   reason += ' ' + safeLabel;
 

@@ -162,7 +162,7 @@ function prerequisiteAlternatives(phase, planningDir) {
     phase,
     existing_summaries,
     missing_summaries,
-    suggested_action: `Run /pbr:build ${phase} to generate missing summaries`
+    suggested_action: `Run /pbr:execute-phase ${phase} to generate missing summaries`
   };
 }
 

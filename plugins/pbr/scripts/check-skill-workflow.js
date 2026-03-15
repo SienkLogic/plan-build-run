@@ -10,7 +10,7 @@
  *   - /pbr:quick: Cannot write files outside .planning/ until a PLAN.md
  *     exists in .planning/quick/. This prevents the orchestrator from
  *     skipping the planning steps and jumping straight to implementation.
- *   - /pbr:milestone, /pbr:explore, /pbr:import, /pbr:scan: Read-only skills
+ *   - /pbr:milestone, /pbr:explore, /pbr:import, /pbr:map-codebase: Read-only skills
  *     that cannot write files outside .planning/.
  *
  * Skills opt in by writing .planning/.active-skill at the start of
@@ -191,7 +191,7 @@ function checkQuickRules(filePath, isInPlanning, planningDir) {
 }
 
 /**
- * /pbr:build rules:
+ * /pbr:execute-phase rules:
  * - Cannot write files outside .planning/ unless a PLAN.md exists for the current phase
  */
 function checkBuildRules(filePath, isInPlanning, planningDir) {
@@ -203,7 +203,7 @@ function checkBuildRules(filePath, isInPlanning, planningDir) {
   if (!fs.existsSync(phasesDir)) {
     return {
       rule: 'build-requires-plan',
-      message: `Workflow violation: /pbr:build requires a planned phase before writing source code.\n\nBlocked: ${filePath}\n\nRun /pbr:plan first to create a phase plan.`
+      message: `Workflow violation: /pbr:execute-phase requires a planned phase before writing source code.\n\nBlocked: ${filePath}\n\nRun /pbr:plan-phase first to create a phase plan.`
     };
   }
 
@@ -225,7 +225,7 @@ function checkBuildRules(filePath, isInPlanning, planningDir) {
 
     return {
       rule: 'build-requires-plan',
-      message: `Workflow violation: /pbr:build requires a PLAN.md for phase ${currentPhase} before writing source code.\n\nBlocked: ${filePath}\n\nRun /pbr:plan ${currentPhase} first.`
+      message: `Workflow violation: /pbr:execute-phase requires a PLAN.md for phase ${currentPhase} before writing source code.\n\nBlocked: ${filePath}\n\nRun /pbr:plan-phase ${currentPhase} first.`
     };
   } catch (_e) {
     return null;

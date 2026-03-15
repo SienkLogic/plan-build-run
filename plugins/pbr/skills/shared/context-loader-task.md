@@ -84,7 +84,7 @@ Task({
 
 ## Variation: Scan Reconnaissance
 
-For `/pbr:scan`, the pattern adapts to codebase analysis rather than project state:
+For `/pbr:map-codebase`, the pattern adapts to codebase analysis rather than project state:
 
 1. The orchestrator performs a quick inline scan (detect project type, scale, key directories)
 2. Writes the results to `.planning/codebase/RECON.md`

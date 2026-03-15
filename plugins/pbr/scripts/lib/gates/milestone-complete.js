@@ -87,7 +87,7 @@ function checkMilestoneCompleteGate(data) {
         if (pDirs.length === 0) {
           return {
             block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} directory not found.\n\nAll milestone phases must exist and have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:review ${paddedPhase} to verify the phase (it must reach status: passed).`
+            reason: `Milestone complete gate: phase ${paddedPhase} directory not found.\n\nAll milestone phases must exist and have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the phase (it must reach status: passed).`
           };
         }
         const verificationFile = path.join(phasesDir, pDirs[0], 'VERIFICATION.md');
@@ -95,14 +95,14 @@ function checkMilestoneCompleteGate(data) {
         if (!hasVerification) {
           return {
             block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md.\n\nAll milestone phases must have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:review ${paddedPhase} to verify the phase (it must reach status: passed).`
+            reason: `Milestone complete gate: phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md.\n\nAll milestone phases must have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the phase (it must reach status: passed).`
           };
         }
         const verStatus = getVerificationStatus(verificationFile);
         if (verStatus === 'gaps_found') {
           return {
             block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} VERIFICATION.md has status: gaps_found.\n\nAll gaps must be closed before the milestone can be completed. The verifier found issues that need resolution.\n\nRun /pbr:review ${paddedPhase} to close gaps (phase must reach status: passed).`
+            reason: `Milestone complete gate: phase ${paddedPhase} VERIFICATION.md has status: gaps_found.\n\nAll gaps must be closed before the milestone can be completed. The verifier found issues that need resolution.\n\nRun /pbr:verify-work ${paddedPhase} to close gaps (phase must reach status: passed).`
           };
         }
       }

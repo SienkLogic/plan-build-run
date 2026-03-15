@@ -48,7 +48,7 @@ function checkReviewPlannerGate(data) {
     if (!hasVerification) {
       return {
         block: true,
-        reason: 'Review planner gate: cannot spawn planner without VERIFICATION.md.\n\nGap closure requires an existing VERIFICATION.md to identify which gaps need closing. Without it, the planner has no input.\n\nRun /pbr:review {N} to create VERIFICATION.md first.'
+        reason: 'Review planner gate: cannot spawn planner without VERIFICATION.md.\n\nGap closure requires an existing VERIFICATION.md to identify which gaps need closing. Without it, the planner has no input.\n\nRun /pbr:verify-work {N} to create VERIFICATION.md first.'
       };
     }
   } catch (_e) {

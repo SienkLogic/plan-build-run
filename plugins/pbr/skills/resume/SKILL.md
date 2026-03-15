@@ -18,7 +18,7 @@ allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
 
 Then proceed to Step 1.
 
-# /pbr:resume — Resume Previous Session
+# /pbr:resume-work — Resume Previous Session
 
 You are running the **resume** skill. Your job is to find the last pause point, restore context for the user, and suggest the next action so they can continue seamlessly.
 
@@ -205,7 +205,7 @@ Use AskUserQuestion:
   options:
     - label: "{continue-here suggestion}"   description: "Resume from pause point"
     - label: "{filesystem-inferred action}"  description: "Based on current state"
-    - label: "Show status"                   description: "Run /pbr:status for full overview"
+    - label: "Show status"                   description: "Run /pbr:progress for full overview"
     - label: "Something else"                description: "Enter a different command"
   multiSelect: false
 
@@ -236,7 +236,7 @@ Progress: {completed}/{total} plans complete
 {Plans with summaries listed as complete}
 {Plans without summaries listed as remaining}
 
-Note: No detailed pause context available. Run `/pbr:status` for a full overview.
+Note: No detailed pause context available. Run `/pbr:progress` for a full overview.
 ```
 
 5. Suggest the next action based on phase state using the **action-routing** pattern:
@@ -245,10 +245,10 @@ Use AskUserQuestion:
   question: "What would you like to do next?"
   header: "Next Step"
   options: (build dynamically from phase state)
-    - label: "/pbr:build {N}"       description: "Continue building (plans remaining)"
-    - label: "/pbr:review {N}"      description: "Review completed phase"
-    - label: "/pbr:plan {N} --gaps" description: "Fix verification gaps"
-    - label: "/pbr:plan {N+1}"      description: "Plan the next phase"
+    - label: "/pbr:execute-phase {N}"       description: "Continue building (plans remaining)"
+    - label: "/pbr:verify-work {N}"      description: "Review completed phase"
+    - label: "/pbr:plan-phase {N} --gaps" description: "Fix verification gaps"
+    - label: "/pbr:plan-phase {N+1}"      description: "Plan the next phase"
   multiSelect: false
 
 Show only the options that apply to the current state (1-3 real options + "Something else").
@@ -266,7 +266,7 @@ When neither .continue-here.md nor STATE.md position data exists:
 
      No Plan-Build-Run project found.
 
-     **To fix:** Run `/pbr:begin` to start a new project, or `/pbr:scan` to analyze an existing codebase.
+     **To fix:** Run `/pbr:new-project` to start a new project, or `/pbr:map-codebase` to analyze an existing codebase.
      ```
    - Stop here.
 
@@ -303,7 +303,7 @@ Phase {N}: {name}
 - {X} of {Y} plans completed
 - Last activity: {date from most recent SUMMARY.md or git log}
 
-Suggested: Run `/pbr:status` for a full overview, then choose your next action.
+Suggested: Run `/pbr:progress` for a full overview, then choose your next action.
 ```
 
 ---
@@ -314,13 +314,13 @@ After displaying context, route to the appropriate action:
 
 | Situation | Suggested Action |
 |-----------|-----------------|
-| Mid-phase, plans remaining | `/pbr:build {N}` (executor will skip completed plans) |
-| Phase complete, not reviewed | `/pbr:review {N}` |
-| Phase reviewed, has gaps | `/pbr:plan {N} --gaps` |
-| Phase complete and verified | `/pbr:plan {N+1}` |
-| Between milestones | `/pbr:milestone new` |
+| Mid-phase, plans remaining | `/pbr:execute-phase {N}` (executor will skip completed plans) |
+| Phase complete, not reviewed | `/pbr:verify-work {N}` |
+| Phase reviewed, has gaps | `/pbr:plan-phase {N} --gaps` |
+| Phase complete and verified | `/pbr:plan-phase {N+1}` |
+| Between milestones | `/pbr:new-milestone` |
 | Active debug session | `/pbr:debug` (will offer to resume) |
-| Pending todos exist | Mention: "Also {count} pending todos. `/pbr:todo list`" |
+| Pending todos exist | Mention: "Also {count} pending todos. `/pbr:check-todos`" |
 
 ---
 
@@ -350,7 +350,7 @@ For each plan file in the current phase:
 
 If .continue-here.md is more than 7 days old:
 - Warn: "This pause point is {N} days old. The codebase may have changed."
-- Suggest: "Run `/pbr:status` to verify the current state before continuing."
+- Suggest: "Run `/pbr:progress` to verify the current state before continuing."
 
 ---
 
@@ -360,7 +360,7 @@ If .continue-here.md is more than 7 days old:
 - Warn about each missing file
 - Attempt to find equivalent files (renamed, moved)
 - If phase directory is gone: "Phase {N} directory was removed. This pause point is invalid."
-- Suggest `/pbr:status` for recovery
+- Suggest `/pbr:progress` for recovery
 
 ### Git history doesn't match .continue-here.md
 - Commits referenced in the handoff may have been rebased, amended, or rolled back
@@ -387,7 +387,7 @@ If .continue-here.md is more than 7 days old:
 
   Project was initialized but no work has been done.
 
-  **To fix:** Run `/pbr:plan 1` to start planning, or `/pbr:discuss 1` to talk through the first phase.
+  **To fix:** Run `/pbr:plan-phase 1` to start planning, or `/pbr:discuss-phase 1` to talk through the first phase.
   ```
 
 ---

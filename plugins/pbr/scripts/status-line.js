@@ -38,7 +38,7 @@ const c = {
 // Default status_line config — works out of the box with zero config
 const DEFAULTS = {
   sections: ['phase', 'plan', 'status', 'git', 'context', 'llm'],
-  brand_text: '\u25C6 Plan-Build-Run',
+  brand_text: '\u25C6 PBR',
   max_status_length: 50,
   context_bar: {
     width: 10,
@@ -281,15 +281,18 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   // Prefer frontmatter (always up-to-date) over body text (may be stale)
   const fm = parseFrontmatter(content);
 
-  const parts = [];
+  // Line 1: project state (milestone, phase, plan, status)
+  // Line 2: environment info (git, hooks, model, cost, duration, context)
+  const line1 = [];
+  const line2 = [];
 
   // Milestone section — show active milestone from ROADMAP.md
   if (sections.includes('milestone') && planningDir) {
     const milestone = getMilestone(planningDir);
     if (milestone) {
-      parts.push(`${c.boldCyan}${brandText}${c.reset} ${c.magenta}${milestone}${c.reset}`);
+      line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.magenta}${milestone}${c.reset}`);
     } else {
-      parts.push(`${c.boldCyan}${brandText}${c.reset}`);
+      line1.push(`${c.boldCyan}${brandText}${c.reset}`);
     }
   }
 
@@ -308,12 +311,12 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
 
     if (phaseNum && phaseTotal) {
-      parts.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseNum}/${phaseTotal}${c.reset}`);
+      line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseNum}/${phaseTotal}${c.reset}`);
       if (phaseName) {
-        parts.push(`${c.magenta}${phaseName}${c.reset}`);
+        line1.push(`${c.magenta}${phaseName}${c.reset}`);
       }
     } else {
-      parts.push(`${c.boldCyan}${brandText}${c.reset}`);
+      line1.push(`${c.boldCyan}${brandText}${c.reset}`);
     }
   }
 
@@ -328,7 +331,7 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 
     if (done != null && total != null && total > 0) {
       const planColor = done === total ? c.green : c.white;
-      parts.push(`${planColor}Plan ${done}/${total}${c.reset}`);
+      line1.push(`${planColor}Plan ${done}/${total}${c.reset}`);
     }
   }
 
@@ -339,7 +342,7 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     const text = fmStatus || (statusMatch && statusMatch[1].trim());
     if (text) {
       const short = text.length > maxLen ? text.slice(0, maxLen - 3) + '...' : text;
-      parts.push(`${statusColor(text)}${short}${c.reset}`);
+      line1.push(`${statusColor(text)}${short}${c.reset}`);
     }
   }
 
@@ -348,7 +351,7 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     const gitInfo = getGitInfo();
     if (gitInfo) {
       const dirtyMark = gitInfo.dirty ? `${c.yellow}*${c.reset}` : '';
-      parts.push(`${c.cyan}${gitInfo.branch}${c.reset}${dirtyMark}`);
+      line2.push(`${c.cyan}${gitInfo.branch}${c.reset}${dirtyMark}`);
     }
   }
 
@@ -356,15 +359,15 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   if (sections.includes('hooks')) {
     const running = isHookServerRunning(19836);
     if (running) {
-      parts.push(`${c.green}\u25CF${c.reset}`);
+      line2.push(`${c.green}\u25CF${c.reset}`);
     } else {
-      parts.push(`${c.red}\u25CB${c.reset}`);
+      line2.push(`${c.red}\u25CB${c.reset}`);
     }
   }
 
   // Model section — current model display name from stdin
   if (sections.includes('model') && sd.model && sd.model.display_name) {
-    parts.push(`${c.dim}${sd.model.display_name}${c.reset}`);
+    line2.push(`${c.dim}${sd.model.display_name}${c.reset}`);
   }
 
   // Cost section — session cost from stdin
@@ -374,12 +377,12 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     let costColor = c.dim;
     if (cost > 5) costColor = c.red;
     else if (cost > 1) costColor = c.yellow;
-    parts.push(`${costColor}${costStr}${c.reset}`);
+    line2.push(`${costColor}${costStr}${c.reset}`);
   }
 
   // Duration section — session wall-clock time from stdin
   if (sections.includes('duration') && sd.cost && sd.cost.total_duration_ms != null) {
-    parts.push(`${c.dim}${formatDuration(sd.cost.total_duration_ms)}${c.reset}`);
+    line2.push(`${c.dim}${formatDuration(sd.cost.total_duration_ms)}${c.reset}`);
   }
 
   // Context bar section
@@ -388,12 +391,16 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
       thresholds: barCfg.thresholds || DEFAULTS.context_bar.thresholds,
       chars: barCfg.chars || DEFAULTS.context_bar.chars
     });
-    parts.push(`${bar} ${c.dim}${ctxPercent}%${c.reset}`);
+    line2.push(`${bar} ${c.dim}${ctxPercent}%${c.reset}`);
   }
 
-  if (parts.length === 0) return null;
+  if (line1.length === 0 && line2.length === 0) return null;
 
-  let output = parts.join(` ${c.dim}\u2502${c.reset} `);
+  const sep = ` ${c.dim}\u2502${c.reset} `;
+  let output = line1.join(sep);
+  if (line2.length > 0) {
+    output += '\n' + line2.join(sep);
+  }
 
   // LLM offload section — renders on a second line below the main status
   // Shows session stats + lifetime total when both are available

@@ -4,7 +4,7 @@
  * PreToolUse hook: Validates Skill tool arguments before execution.
  *
  * Currently validates:
- *   - /pbr:plan — blocks freeform text arguments that don't match
+ *   - /pbr:plan-phase — blocks freeform text arguments that don't match
  *     valid patterns (phase number, subcommand, flags).
  *
  * When freeform text is detected, analyzes it to suggest the most
@@ -12,13 +12,13 @@
  *
  * Exit codes:
  *   0 = allowed (valid args or non-plan skill)
- *   2 = blocked (freeform text detected for /pbr:plan)
+ *   2 = blocked (freeform text detected for /pbr:plan-phase)
  */
 
 const { logHook } = require('./hook-logger');
 
 /**
- * Valid argument patterns for /pbr:plan.
+ * Valid argument patterns for /pbr:plan-phase.
  *
  * Matches:
  *   - Empty / whitespace only
@@ -46,7 +46,7 @@ const ROUTE_PATTERNS = [
   },
   {
     pattern: /\b(refactor|redesign|architect|migrate|restructure|overhaul|rewrite|multi-?phase|complex|system|infrastructure)\b/i,
-    skill: '/pbr:plan add',
+    skill: '/pbr:plan-phase add',
     reason: 'Looks like a complex task that needs full planning'
   },
   {
@@ -79,7 +79,7 @@ function checkSkillArgs(data) {
   const skill = toolInput.skill || '';
   const args = toolInput.args || '';
 
-  // Only validate /pbr:plan for now
+  // Only validate /pbr:plan-phase for now
   if (skill !== 'pbr:plan') {
     return null;
   }
@@ -103,16 +103,16 @@ function checkSkillArgs(data) {
     output: {
       decision: 'block',
       reason: [
-        'BLOCKED: /pbr:plan received freeform text instead of a phase number.',
+        'BLOCKED: /pbr:plan-phase received freeform text instead of a phase number.',
         '',
         'The arguments "' + args.substring(0, 80) + (args.length > 80 ? '...' : '') + '" do not match any valid pattern.',
         '',
-        'Valid /pbr:plan usage:',
-        '  /pbr:plan <N>              Plan phase N',
-        '  /pbr:plan <N> --gaps       Create gap-closure plans',
-        '  /pbr:plan add              Add a new phase',
-        '  /pbr:plan insert <N>       Insert a phase at position N',
-        '  /pbr:plan remove <N>       Remove phase N',
+        'Valid /pbr:plan-phase usage:',
+        '  /pbr:plan-phase <N>              Plan phase N',
+        '  /pbr:plan-phase <N> --gaps       Create gap-closure plans',
+        '  /pbr:plan-phase add              Add a new phase',
+        '  /pbr:plan-phase insert <N>       Insert a phase at position N',
+        '  /pbr:plan-phase remove <N>       Remove phase N',
         '',
         'Suggested skill for this text:',
         '  ' + suggestion.skill + ' — ' + suggestion.reason,

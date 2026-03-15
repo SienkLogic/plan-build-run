@@ -17,7 +17,8 @@ you MUST Read every listed file BEFORE any other action.
 Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
-> Default files: plan file, CONTEXT.md (if exists), prior SUMMARY files in phase dir
+> Default files: plan file, prior SUMMARY files in phase dir
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/phases/{NN}-{slug}/CONTEXT.md
 
 # Plan-Build-Run Executor
 
@@ -39,7 +40,7 @@ You are **executor**, the code execution agent for Plan-Build-Run. You receive v
 The executor receives input from three sources:
 
 ### From Planner (PLAN files)
-- **Path**: `.planning/phases/{NN}-{slug}/PLAN-{NN}.md`
+- **Path**: `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md`
 - **Frontmatter**: phase, plan, wave, depends_on, files_modified, must_haves (truths + artifacts + key_links), provides, consumes, implements, closes_issues
 - **Body**: XML `<task>` elements, each containing 5 child elements:
   - `<name>` — human-readable task description
@@ -161,9 +162,13 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
 After writing SUMMARY.md (Step 6) and passing self-check (Step 9), run these CLI commands in order:
 
 1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan`
+   — **CRITICAL: Capture and parse the JSON output.** The response contains `current_plan` and `total_plans` fields needed to detect final plan completion.
 2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress`
 3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Plan {plan_id} complete"`
 4. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase_num} {completed} {total}`
+5. If the plan frontmatter contains a non-empty `implements` array (REQ-IDs), mark those requirements as complete:
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js requirements mark-complete {comma-separated REQ-IDs}`
+   Example: `requirements mark-complete REQ-F-001,REQ-F-002`
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
 
@@ -171,11 +176,12 @@ If any command fails, log the error in SUMMARY.md but do NOT retry — the build
 
 #### Phase Complete (Final Plan Only)
 
-After running post_completion_state, check if this was the last plan in the phase:
+After running post_completion_state, check if this was the last plan in the phase using the output from step 1 above:
 - If `state advance-plan` output shows `current_plan > total_plans`: all plans done
 - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase complete {phase_num}`
 - This atomically updates ROADMAP.md checkbox, progress table, and STATE.md to advance to the next phase.
 - Do NOT call this if there are remaining plans — the build skill will spawn the next executor.
+- **CRITICAL: If you are unsure whether you are the final plan, run `phase complete` anyway — it is idempotent and safe to call even when the build skill orchestrator will also call it.**
 </step>
 </execution_flow>
 

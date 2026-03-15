@@ -7,7 +7,7 @@ argument-hint: "[quality|balanced|budget|adaptive|<custom>]"
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Begin executing Step 0 immediately.**
 
-# /pbr:profile — Model Profile Manager
+# /pbr:set-profile — Model Profile Manager
 
 You are running the **profile** skill. Your job is to show the current model profile or switch to a new one by writing model assignments to `.planning/config.json`.
 
@@ -30,7 +30,7 @@ Read `.planning/config.json`.
 If the file does not exist, output:
 
 ```
-Error: .planning/config.json not found. Run /pbr:begin first.
+Error: .planning/config.json not found. Run /pbr:new-project first.
 ```
 
 Stop immediately.
@@ -79,7 +79,7 @@ Custom profiles:
   <profile-name>  — <key count> model overrides
 ```
 
-Output: "Run `/pbr:profile <name>` to switch profiles."
+Output: "Run `/pbr:set-profile <name>` to switch profiles."
 
 Stop. Do not write anything.
 
@@ -99,7 +99,7 @@ Error: Unknown profile "<name>".
 Valid presets: quality, balanced, budget, adaptive
 <list any custom profile names from config.json model_profiles, if any>
 
-Run `/pbr:profile` to see the current status.
+Run `/pbr:set-profile` to see the current status.
 ```
 
 Stop immediately.
@@ -167,7 +167,7 @@ Model assignments updated:
   synthesizer         : <value>
 
 Config written to .planning/config.json.
-Run /pbr:profile to verify.
+Run /pbr:set-profile to verify.
 ```
 
 Stop. Done.

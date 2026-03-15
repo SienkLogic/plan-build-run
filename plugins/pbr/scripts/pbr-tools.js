@@ -57,7 +57,7 @@
  *   skill-section <skill> <section>       — Extract a section from a skill's SKILL.md → JSON
  *   skill-section --list <skill>          — List all headings in a skill → JSON
  *   step-verify [skill] [step] [checklist-json]  — Validate per-step completion checklist → JSON
- *   build-preview [phase-slug]            — Preview what /pbr:build would do for a phase → JSON
+ *   build-preview [phase-slug]            — Preview what /pbr:execute-phase would do for a phase → JSON
  *   claim acquire <phase-slug> --session-id <id> --skill <name> — Acquire phase claim
  *   claim release <phase-slug> --session-id <id>              — Release phase claim
  *   claim list                                                 — List all active phase claims

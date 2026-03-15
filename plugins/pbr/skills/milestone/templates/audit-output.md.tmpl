@@ -14,15 +14,15 @@ All phases verified, integration checks passed, requirements covered.
 
 **Complete the milestone** — archive and tag
 
-`/pbr:milestone complete {version}`
+`/pbr:complete-milestone {version}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 
 
 **Also available:**
-- `/pbr:milestone gaps` — address any minor issues first
-- `/pbr:status` — see project status
+- `/pbr:plan-milestone-gaps` — address any minor issues first
+- `/pbr:progress` — see project status
 
 
 ## If GAPS FOUND
@@ -43,15 +43,15 @@ Found {count} gaps:
 
 **Close the gaps** — create fix phases
 
-`/pbr:milestone gaps`
+`/pbr:plan-milestone-gaps`
 
 <sub>`/clear` first → fresh context window</sub>
 
 
 
 **Also available:**
-- `/pbr:milestone complete` — proceed despite gaps
-- `/pbr:status` — see project status
+- `/pbr:complete-milestone` — proceed despite gaps
+- `/pbr:progress` — see project status
 
 
 ## If TECH DEBT
@@ -70,7 +70,7 @@ Milestone functional but has {count} tech debt items.
 
 **Address tech debt or proceed**
 
-`/pbr:milestone gaps` — create cleanup phases
-`/pbr:milestone complete` — proceed as-is
+`/pbr:plan-milestone-gaps` — create cleanup phases
+`/pbr:complete-milestone` — proceed as-is
 
 <sub>`/clear` first → fresh context window</sub>

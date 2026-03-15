@@ -480,7 +480,7 @@ function validatePostMilestone(roadmapContent, completedMilestone) {
     const details = unverified.map(u => `Phase ${u.phase} (${u.status})`).join(', ');
     return {
       decision: 'block',
-      reason: `Cannot complete milestone ${completedMilestone}: unverified phases remain.\n\nThe following phases are not yet Verified or Archived: ${details}. All phases must reach Verified or Archived status before milestone completion.\n\nRun /pbr:review on each unverified phase to advance it to Verified status.`
+      reason: `Cannot complete milestone ${completedMilestone}: unverified phases remain.\n\nThe following phases are not yet Verified or Archived: ${details}. All phases must reach Verified or Archived status before milestone completion.\n\nRun /pbr:verify-work on each unverified phase to advance it to Verified status.`
     };
   }
 

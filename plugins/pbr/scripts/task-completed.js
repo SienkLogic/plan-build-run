@@ -70,7 +70,7 @@ function checkHaltConditions(data, planningDir) {
           if (status === 'gaps_found' || status === 'failed') {
             return {
               continue: false,
-              stopReason: `Verifier found critical gaps in Phase ${phaseNum} (status: ${status}). Run /pbr:review to address gaps before continuing.`
+              stopReason: `Verifier found critical gaps in Phase ${phaseNum} (status: ${status}). Run /pbr:verify-work to address gaps before continuing.`
             };
           }
         }
@@ -90,7 +90,7 @@ function checkHaltConditions(data, planningDir) {
         if (target && !fs.existsSync(target)) {
           return {
             continue: false,
-            stopReason: `Executor completed Phase ${phaseNum} but produced no SUMMARY.md. Review executor output and re-run /pbr:build.`
+            stopReason: `Executor completed Phase ${phaseNum} but produced no SUMMARY.md. Review executor output and re-run /pbr:execute-phase.`
           };
         }
       }

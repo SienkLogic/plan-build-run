@@ -56,7 +56,7 @@ function checkReviewVerifierGate(data) {
     if (!hasSummary) {
       return {
         block: true,
-        reason: 'Review verifier gate: cannot spawn verifier without SUMMARY.md.\n\nThe verifier checks executor output against the plan. Without a SUMMARY.md, there is nothing to verify.\n\nRun /pbr:build {N} to create SUMMARY.md first.'
+        reason: 'Review verifier gate: cannot spawn verifier without SUMMARY.md.\n\nThe verifier checks executor output against the plan. Without a SUMMARY.md, there is nothing to verify.\n\nRun /pbr:execute-phase {N} to create SUMMARY.md first.'
       };
     }
   } catch (_e) {
