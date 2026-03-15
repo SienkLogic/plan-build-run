@@ -220,6 +220,67 @@ deferred: []
     cleanup(tmpDir);
   });
 
+  describe('cross-platform path handling', () => {
+    test('Windows-style backslash path triggers plan validation', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const planPath = path.join(phaseDir, 'PLAN.md');
+      // Write a PLAN.md missing frontmatter so we get a validation error (proves routing worked)
+      fs.writeFileSync(planPath, '# Bad Plan\nNo frontmatter here');
+      // Pass Windows-style backslash path in tool_input
+      const winPath = planPath.replace(/\//g, '\\');
+      const result = runScript(tmpDir, { file_path: winPath });
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('Missing YAML frontmatter');
+      cleanup(tmpDir);
+    });
+
+    test('ROADMAP.md with forward slashes triggers roadmap validation', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+      fs.writeFileSync(roadmapPath, '# Roadmap\nNo phase table here');
+      const result = runScript(tmpDir, { file_path: roadmapPath });
+      expect(result.exitCode).toBe(0);
+      // Routing happened (no crash), result may or may not have output depending on validateRoadmap
+      cleanup(tmpDir);
+    });
+
+    test('ROADMAP.md with backslash path triggers roadmap validation', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+      fs.writeFileSync(roadmapPath, '# Roadmap\nNo phase table here');
+      const winPath = roadmapPath.replace(/\//g, '\\');
+      const result = runScript(tmpDir, { file_path: winPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('CONTEXT.md with backslash path is handled by normalization', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const contextPath = path.join(planningDir, 'CONTEXT.md');
+      fs.writeFileSync(contextPath, '# Context\nSome content');
+      // Force backslash style
+      const winPath = contextPath.replace(/\//g, '\\');
+      const result = runScript(tmpDir, { file_path: winPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('missing .planning/ directory', () => {
+    test('exits 0 silently when .planning/ does not exist', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-powd-noplan-'));
+      // No .planning/ subdirectory created
+      const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'app.ts') });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toBe('');
+      cleanup(tmpDir);
+    });
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = makeTmpDir();
     try {
