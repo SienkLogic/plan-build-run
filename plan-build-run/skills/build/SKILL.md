@@ -35,6 +35,8 @@ Additionally for this skill:
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
+**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 5: {Name} ──────────────────────` before each major step begins. Steps: Load State, Check Dependencies, Spawn Executors, Verify Results, Write Report.
+
 ## Multi-Session Sync
 
 Before any phase-modifying operations (spawning executors, writing SUMMARY.md, updating STATE.md/ROADMAP.md), acquire a claim:

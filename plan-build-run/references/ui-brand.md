@@ -97,6 +97,33 @@ Plans: 3/5 complete
 
 ---
 
+## Step Progress
+
+Use between major steps in multi-step skills to show the user where they are:
+
+```
+── Step {N} of {total}: {Step Name} ──────────────────────
+```
+
+Rules:
+- Use `──` (em-dash box-drawing) for the horizontal rule
+- Pad the right side with `─` to approximately 58 characters total
+- Only use in skills with 4+ distinct steps
+- Step name should be 2-4 words describing the current action
+- Display BEFORE the step's work begins, not after
+
+Examples:
+```
+── Step 1 of 6: Detect Brownfield ──────────────────────
+── Step 2 of 6: Deep Questioning ───────────────────────
+── Step 3 of 6: Workflow Preferences ───────────────────
+── Step 4 of 6: Research Decision ──────────────────────
+── Step 5 of 6: Requirements Scoping ───────────────────
+── Step 6 of 6: Roadmap Generation ─────────────────────
+```
+
+---
+
 ## Next Up Block
 
 Always at end of major completions.

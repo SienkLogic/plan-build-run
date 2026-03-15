@@ -33,6 +33,8 @@ Additionally for this skill:
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
 
+**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 6: {Name} ──────────────────────` before each major step begins. Steps: Parse Arguments, Load Context, Research Phase, Generate Plans, Validate Plans, Approval Gate.
+
 ## Multi-Session Sync
 
 Before any phase-modifying operations (writing PLAN files, updating STATE.md/ROADMAP.md), acquire a claim:

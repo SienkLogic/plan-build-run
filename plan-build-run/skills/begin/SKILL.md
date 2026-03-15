@@ -32,6 +32,8 @@ Additionally for this skill:
 
 Then proceed to Step 1.
 
+**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 8: {Name} ──────────────────────` before each major step begins. Steps: Detect Brownfield, Deep Questioning, Workflow Preferences, Research Decision, Config Generation, Requirements Scoping, Roadmap Generation, State Init.
+
 ## Multi-Session Sync
 
 Before any phase-modifying operations, this skill acquires a claim on the project:

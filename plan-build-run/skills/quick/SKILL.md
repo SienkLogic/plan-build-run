@@ -26,6 +26,8 @@ This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution
 
 Then proceed to Step 1.
 
+**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 6: {Name} ──────────────────────` before each major step begins. Steps: Load Context, Describe Task, Scope Files, Generate Plan, Execute Tasks, Write Report.
+
 ## References
 
 - `references/questioning.md` — Questioning philosophy and progressive depth patterns
