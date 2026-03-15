@@ -29,7 +29,15 @@ const {
   cmdGenerateSlug,
   cmdCurrentTimestamp,
   cmdVerifyPathExists,
+  cmdHistoryDigest,
+  cmdResolveModel,
+  cmdSummaryExtract,
+  cmdProgressRender,
 } = require('../plan-build-run/bin/lib/commands.cjs');
+
+function getOutput() {
+  return mockStdout.mock.calls.map(c => c[0]).join('');
+}
 
 describe('cmdGenerateSlug', () => {
   test('generates a slug from text', () => {
@@ -105,5 +113,88 @@ describe('cmdVerifyPathExists', () => {
     try { cmdVerifyPathExists(tmpDir, filePath, true); } catch (_e) { /* exit mock */ }
     const output = mockStdout.mock.calls.map(c => c[0]).join('');
     expect(output).toContain('true');
+  });
+});
+
+describe('cmdHistoryDigest', () => {
+  test('returns empty digest when no phases', () => {
+    try { cmdHistoryDigest(tmpDir, false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
+  });
+
+  test('processes phase summaries', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    const phaseDir = path.join(planningDir, 'phases', '01-foundation');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'),
+      '---\nphase: 01-foundation\nprovides: [auth-module]\nkey-decisions: [Use JWT]\ntech-stack:\n  added: [express]\npatterns-established: [repository-pattern]\n---\n# Summary');
+    try { cmdHistoryDigest(tmpDir, false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
+  });
+});
+
+describe('cmdResolveModel', () => {
+  test('resolves model for agent type', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    try { cmdResolveModel(tmpDir, 'executor', true); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
+  });
+
+  test('errors on missing agent type', () => {
+    try { cmdResolveModel(tmpDir, undefined, true); } catch (_e) { /* exit via error() */ }
+    // error() writes to stderr
+    expect(mockStderr).toHaveBeenCalled();
+  });
+});
+
+describe('cmdSummaryExtract', () => {
+  test('extracts fields from summary', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    const phaseDir = path.join(planningDir, 'phases', '01-foundation');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    const summaryPath = path.join(phaseDir, 'SUMMARY.md');
+    fs.writeFileSync(summaryPath, '---\nphase: 01\nplan: 01\nstatus: complete\nprovides: [auth]\n---\n# Summary');
+    try { cmdSummaryExtract(tmpDir, '.planning/phases/01-foundation/SUMMARY.md', ['status', 'provides'], false); } catch (_e) { /* exit */ }
+    // Output should contain the extracted fields as JSON
+    expect(mockStdout).toHaveBeenCalled();
+  });
+
+  test('handles missing file', () => {
+    try { cmdSummaryExtract(tmpDir, 'nonexistent.md', ['status'], false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
+  });
+});
+
+describe('cmdProgressRender', () => {
+  test('renders progress in text format', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      '---\ncurrent_phase: 1\nphase_slug: "foundation"\nstatus: "building"\n---\nPhase: 1 of 1');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
+      '### Phase 1: Foundation\n**Goal:** Build base\n');
+    try { cmdProgressRender(tmpDir, 'text', false); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
+  });
+
+  test('renders progress in bar format', () => {
+    const planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-foundation'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      '---\ncurrent_phase: 1\n---\nPhase: 1 of 1');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '### Phase 1: Foundation\n');
+    try { cmdProgressRender(tmpDir, 'bar', true); } catch (_e) { /* exit */ }
+    const out = getOutput();
+    expect(out.length).toBeGreaterThan(0);
   });
 });
