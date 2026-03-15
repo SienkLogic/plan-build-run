@@ -36,5 +36,9 @@ module.exports = {
     // spawns background processes, and calls process.exit(). Tested via subprocess in
     // progress-tracker.test.js. Exported utility functions tested in progress-tracker-unit.test.js.
     '!hooks/progress-tracker.js',
+    // hook-server-client.js: HTTP client whose main() reads stdin and POSTs to hook server.
+    // Circuit breaker tested in hook-server-client-unit.test.js. HTTP client tested via
+    // hook-server-client.test.js subprocess integration tests.
+    '!hooks/hook-server-client.js',
   ],
 };
