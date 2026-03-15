@@ -98,6 +98,26 @@ Subcommands:
 
 ---
 
+## STATE.md Validation
+
+Before any subcommand that reads STATE.md, check:
+
+If `.planning/STATE.md` does not exist or is malformed (missing `---` frontmatter delimiters, no valid fields), display:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+STATE.md is missing or malformed.
+
+**To fix:** Run `/pbr:new-project` to initialize, or `/pbr:health` to repair.
+```
+
+Stop execution.
+
+---
+
 ## Subcommand: `new`
 
 Start a new milestone cycle with new phases.

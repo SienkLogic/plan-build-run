@@ -95,6 +95,20 @@ Execute these steps in order.
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
 5. If no phase number given, read current phase from `.planning/STATE.md`
+   - **Before reading STATE.md**, check it exists and is parseable:
+     If `.planning/STATE.md` does not exist or cannot be parsed (missing `---` frontmatter delimiters, no **Phase**: field), display:
+
+     ```
+     ╔══════════════════════════════════════════════════════════════╗
+     ║  ERROR                                                       ║
+     ╚══════════════════════════════════════════════════════════════╝
+
+     STATE.md is missing or malformed.
+
+     **To fix:** Run `/pbr:new-project` to initialize, or `/pbr:health` to repair.
+     ```
+
+     Stop execution.
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
 **Validation errors:**
