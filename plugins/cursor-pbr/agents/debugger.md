@@ -1,5 +1,6 @@
 ---
 name: debugger
+color: orange
 description: "Systematic debugging using scientific method. Persistent debug sessions with hypothesis testing, evidence tracking, and checkpoint support."
 model: sonnet
 readonly: false

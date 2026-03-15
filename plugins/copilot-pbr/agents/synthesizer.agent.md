@@ -1,5 +1,6 @@
 ---
 name: synthesizer
+color: purple
 description: "Fast synthesis of multiple research outputs into coherent recommendations. Resolves contradictions between sources."
 ---
 

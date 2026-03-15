@@ -1,5 +1,6 @@
 ---
 name: plan-checker
+color: green
 description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 10 dimensions."
 memory: none
 tools:

@@ -1,5 +1,6 @@
 ---
 name: audit
+color: "#8B5CF6"
 description: "Analyzes Claude Code session logs for PBR workflow compliance, hook firing, state file hygiene, and user experience quality."
 memory: none
 tools:

@@ -1,5 +1,6 @@
 ---
 name: integration-checker
+color: blue
 description: "Cross-phase integration and E2E flow verification. Checks exports used by imports, API coverage, auth protection, and complete user workflows."
 memory: none
 tools:
