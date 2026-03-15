@@ -13,7 +13,7 @@ describe('status-line.js', () => {
     test('builds full status line from complete STATE.md', () => {
       const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
       const result = strip(buildStatusLine(content, 45));
-      expect(result).toContain('\u25C6 Plan-Build-Run');
+      expect(result).toContain('\u25C6 PBR');
       expect(result).toContain('Phase 3/10');
       expect(result).toContain('building');
       expect(result).toContain('Plan 2/4');
@@ -23,7 +23,7 @@ describe('status-line.js', () => {
     test('includes phase info only', () => {
       const content = 'Phase: 1 of 5';
       const result = strip(buildStatusLine(content, null));
-      expect(result).toContain('Plan-Build-Run');
+      expect(result).toContain('PBR');
       expect(result).toContain('Phase 1/5');
     });
 
@@ -58,12 +58,12 @@ describe('status-line.js', () => {
 
     test('shows brand even with empty content', () => {
       const result = strip(buildStatusLine('', null));
-      expect(result).toContain('\u25C6 Plan-Build-Run');
+      expect(result).toContain('\u25C6 PBR');
     });
 
     test('shows brand even with no parseable fields', () => {
       const result = strip(buildStatusLine('Just some random text', null));
-      expect(result).toContain('\u25C6 Plan-Build-Run');
+      expect(result).toContain('\u25C6 PBR');
     });
 
     test('includes phase name as separate section', () => {
@@ -94,10 +94,10 @@ describe('status-line.js', () => {
       expect(result).toContain('\u2502');
     });
 
-    test('status with no phase still shows Plan-Build-Run brand', () => {
+    test('status with no phase still shows PBR brand', () => {
       const content = 'Status: idle';
       const result = strip(buildStatusLine(content, null));
-      expect(result).toContain('\u25C6 Plan-Build-Run');
+      expect(result).toContain('\u25C6 PBR');
       expect(result).toContain('idle');
     });
   });
@@ -188,12 +188,12 @@ describe('status-line.js', () => {
         expect(DEFAULTS.context_bar).toHaveProperty('chars');
       });
 
-      test('default sections include phase, plan, status, git, context, llm', () => {
-        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'git', 'context', 'llm']);
+      test('default sections include phase, plan, status, agent, git, context, llm', () => {
+        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'agent', 'git', 'context', 'llm']);
       });
 
-      test('default brand text is diamond Plan-Build-Run', () => {
-        expect(DEFAULTS.brand_text).toBe('\u25C6 Plan-Build-Run');
+      test('default brand text is diamond PBR', () => {
+        expect(DEFAULTS.brand_text).toBe('\u25C6 PBR');
       });
     });
 
@@ -201,7 +201,7 @@ describe('status-line.js', () => {
       test('uses default config when none provided', () => {
         const content = 'Phase: 3 of 10 (building)\nPlan: 2 of 4\nStatus: building';
         const result = strip(buildStatusLine(content, 45));
-        expect(result).toContain('\u25C6 Plan-Build-Run');
+        expect(result).toContain('\u25C6 PBR');
         expect(result).toContain('Phase 3/10');
         expect(result).toContain('Plan 2/4');
         expect(result).toContain('building');
@@ -660,14 +660,14 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase', 'model'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
       // Only phase brand should be present
-      expect(result).toContain('Plan-Build-Run');
+      expect(result).toContain('PBR');
     });
 
     test('omits duration when not in stdinData', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'duration'] };
       const result = strip(buildStatusLine(content, null, cfg, {}));
-      expect(result).toContain('Plan-Build-Run');
+      expect(result).toContain('PBR');
     });
 
     test('cost color yellow above $1', () => {
@@ -1026,7 +1026,7 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['milestone', 'phase'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
-      expect(result).toContain('\u25C6 Plan-Build-Run');
+      expect(result).toContain('\u25C6 PBR');
       expect(result).toContain('Phase 1/5');
     });
   });
