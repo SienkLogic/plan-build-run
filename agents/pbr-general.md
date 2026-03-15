@@ -1,5 +1,6 @@
 ---
 name: pbr-general
+color: cyan
 description: "Lightweight Plan-Build-Run-aware agent for ad-hoc tasks that don't fit specialized roles."
 memory: none
 tools:
@@ -81,7 +82,7 @@ All commits follow: `{type}({scope}): {description}`
 
 If your task hits any of these, STOP and recommend the appropriate agent:
 - **>30% context usage** — split into smaller tasks
-- **>3 files to create/modify** — suggest executor via `/pbr:quick` or `/pbr:plan`
+- **>3 files to create/modify** — suggest executor via `/pbr:quick` or `/pbr:plan-phase`
 - **Research needed** (docs, APIs, investigation) — suggest researcher
 - **Debugging errors** requiring systematic investigation — suggest debugger
 

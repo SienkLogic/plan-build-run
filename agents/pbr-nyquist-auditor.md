@@ -1,5 +1,6 @@
 ---
 name: pbr-nyquist-auditor
+color: "#8B5CF6"
 description: "Fills Nyquist validation gaps by generating tests and verifying coverage for phase requirements."
 memory: none
 tools:

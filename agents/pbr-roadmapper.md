@@ -1,5 +1,6 @@
 ---
 name: pbr-roadmapper
+color: purple
 description: "Creates project roadmaps with phase breakdown, requirement mapping, success criteria derivation, and coverage validation."
 memory: none
 tools:

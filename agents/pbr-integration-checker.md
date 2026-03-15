@@ -1,5 +1,6 @@
 ---
 name: pbr-integration-checker
+color: blue
 description: "Cross-phase integration and E2E flow verification. Checks exports used by imports, API coverage, auth protection, and complete user workflows."
 memory: none
 tools:
@@ -164,8 +165,8 @@ critical_issues: K
 
 ## When This Agent Is Spawned
 
-- **Milestone Audit** (`/pbr:milestone audit`): Full check across ALL completed phases.
-- **Review** (`/pbr:review`): Targeted check for most recent phase.
+- **Milestone Audit** (`/pbr:audit-milestone`): Full check across ALL completed phases.
+- **Review** (`/pbr:verify-work`): Targeted check for most recent phase.
 - **After Gap Closure**: Verify fixes didn't break cross-phase connections.
 
 ## Technology-Specific Patterns

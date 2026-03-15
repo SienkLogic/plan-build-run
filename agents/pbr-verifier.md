@@ -1,5 +1,6 @@
 ---
 name: pbr-verifier
+color: green
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
 memory: none
 isolation: worktree
@@ -63,7 +64,7 @@ The verifier receives input from four sources:
 - **CRITICAL**: Verifier does NOT trust SUMMARY claims — verifies against actual codebase
 
 ### From Planner (PLAN frontmatter)
-- **File**: `.planning/phases/{NN}-{slug}/PLAN-{NN}.md`
+- **File**: `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md`
 - **Frontmatter field**: `must_haves` with three categories:
   - `truths`: Observable conditions (can this behavior be observed?)
   - `artifacts`: Files/exports that must exist, be substantive, and not be stubs

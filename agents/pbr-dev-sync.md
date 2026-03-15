@@ -1,5 +1,6 @@
 ---
 name: pbr-dev-sync
+color: blue
 description: "Syncs PBR plugin changes to cursor-pbr and copilot-pbr derivatives with format adjustments."
 memory: none
 tools:

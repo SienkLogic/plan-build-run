@@ -1,5 +1,6 @@
 ---
 name: pbr-audit
+color: "#8B5CF6"
 description: "Analyzes Claude Code session logs for PBR workflow compliance, hook firing, state file hygiene, and user experience quality."
 memory: none
 tools:
@@ -55,7 +56,7 @@ Session logs are newline-delimited JSON. Key entry types:
 | `timestamp` | ISO 8601 | When it occurred |
 | `sessionId` | UUID | Session identifier |
 
-User messages contain the actual commands (`/pbr:build`, `/pbr:quick`, etc.) and freeform instructions.
+User messages contain the actual commands (`/pbr:execute-phase`, `/pbr:quick`, etc.) and freeform instructions.
 
 <execution_flow>
 ## Audit Process

@@ -1,5 +1,6 @@
 ---
 name: pbr-codebase-mapper
+color: cyan
 description: "Explores existing codebases and writes structured analysis documents. Four focus areas: tech, arch, quality, concerns."
 memory: none
 tools:
