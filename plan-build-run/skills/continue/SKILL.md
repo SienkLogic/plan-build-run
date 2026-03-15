@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill
 
 # /pbr:continue — Action-Oriented Resumption
 
-You are running the **continue** skill. Unlike `/pbr:status` which shows the dashboard and suggests the next action, `/pbr:continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
+You are running the **continue** skill. Unlike `/pbr:progress` which shows the dashboard and suggests the next action, `/pbr:continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
 
 This skill runs **inline** and may delegate to other skills via Task().
 
@@ -46,6 +46,20 @@ Additionally for this skill:
 
 ### Step 1: Read State
 
+Before reading STATE.md, check `.planning/config.json` exists. If it does not exist, display:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+No Plan-Build-Run project found.
+
+**To fix:** Run `/pbr:new-project` to start a new project.
+```
+
+Stop execution.
+
 Read `.planning/STATE.md` and determine current position:
 - Current phase number and name
 - Current plan progress
@@ -65,7 +79,7 @@ If STATE.md doesn't exist, display:
 
 No project state found.
 
-**To fix:** Run `/pbr:begin` first.
+**To fix:** Run `/pbr:new-project` first.
 ```
 
 #### Context Budget Guard
@@ -82,27 +96,30 @@ Before proceeding to priority evaluation, check for runaway continue chains:
 
 ```
 WARNING: Context budget warning: 6 consecutive auto-continues detected.
-Recommend running /pbr:pause then resuming in a fresh session.
+Recommend running /pbr:pause-work then resuming in a fresh session.
 ```
 
 Then present the user with a choice:
 - **"Continue"** — proceed with the next action
-- **"Pause"** — run `/pbr:pause` logic to save state and stop
+- **"Pause"** — run `/pbr:pause-work` logic to save state and stop
 
 This prevents runaway chains that fill the context window without a human checkpoint.
 
 ### Step 2: Scan for Priority Items
 
-Check the resumption priority hierarchy (same as /pbr:resume):
+Check the resumption priority hierarchy (same as /pbr:resume-work):
 
-1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `/pbr:plan {N} --gaps`
+1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `/pbr:plan-phase {N} --gaps`
 2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
 3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
-4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:build {N}`
-5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:review {N}`
-6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan {N+1}`
-7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:milestone audit` to verify cross-phase integration, then `/pbr:milestone complete` to archive."
-8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:milestone new` to start the next milestone, or `/pbr:milestone audit` if not yet audited."
+4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:execute-phase {N}`
+4b. **Empty phase directory**: Phase directory exists but contains no PLAN.md or SUMMARY.md files → Execute `/pbr:plan-phase {N}`
+5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:verify-work {N}`
+5b. **Verified with gaps**: VERIFICATION.md with `status: complete-with-gaps` → Display: "Phase {N} verified with accepted gaps. Proceeding to next phase." Then chain to `/pbr:plan-phase {N+1}` (same as item 6).
+6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan-phase {N+1}`
+7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:audit-milestone` to verify cross-phase integration, then `/pbr:complete-milestone` to archive."
+8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:new-milestone` to start the next milestone, or `/pbr:audit-milestone` if not yet audited."
+9. **Unknown state**: STATE.md exists but status field is empty, missing, or unrecognized → Display: "Could not determine workflow state from STATE.md. Status: '{raw_status}'." **To fix:** Run `/pbr:health` to diagnose and repair, or `/pbr:progress` to see current state. Stop execution (do not guess).
 
 ### Step 3: Execute
 
