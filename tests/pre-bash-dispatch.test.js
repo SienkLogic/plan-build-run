@@ -1,17 +1,18 @@
 const { execSync } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-bash-dispatch.js');
 
-function runScript(toolInput) {
+function runScript(toolInput, cwd) {
   const input = JSON.stringify({ tool_input: toolInput });
   try {
     const result = execSync(`node "${SCRIPT}"`, {
       input: input,
       encoding: 'utf8',
       timeout: 5000,
-      cwd: os.tmpdir(),
+      cwd: cwd || os.tmpdir(),
     });
     return { exitCode: 0, output: result };
   } catch (e) {
@@ -151,6 +152,36 @@ describe('pre-bash-dispatch.js', () => {
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
       expect(output.reason).toContain('reset --hard');
+    });
+  });
+
+  describe('missing .planning/ directory', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pbd-noplan-'));
+      // No .planning/ subdirectory created
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('benign command passes without .planning/', () => {
+      const result = runScript({ command: 'echo hello' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('valid git commit passes without .planning/', () => {
+      const result = runScript({ command: 'git commit -m "feat(test): add feature"' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('dangerous command still blocked without .planning/', () => {
+      const result = runScript({ command: 'git reset --hard' }, tmpDir);
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('block');
     });
   });
 
