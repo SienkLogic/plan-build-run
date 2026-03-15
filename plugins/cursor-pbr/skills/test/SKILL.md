@@ -194,7 +194,7 @@ Files tested:
 
 
 **Also available:**
-- `/pbr:review {N}` — verify the full phase
+- `/pbr:verify-work {N}` — verify the full phase
 - `/pbr:continue` — execute next logical step
 
 

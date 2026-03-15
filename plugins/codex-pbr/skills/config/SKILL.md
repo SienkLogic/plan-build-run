@@ -17,7 +17,7 @@ description: "Configure settings: depth, model profiles, features, git, and gate
 
 Then proceed to Step 1.
 
-# $pbr-config — Configure Plan-Build-Run
+# $pbr-settings — Configure Plan-Build-Run
 
 ## Overview
 
@@ -42,12 +42,12 @@ Read `.planning/config.json`. If it doesn't exist, display:
 
 No Plan-Build-Run project found.
 
-**To fix:** Run `$pbr-begin` first.
+**To fix:** Run `$pbr-new-project` first.
 ```
 
 ### 1b. Quick Start Path (no arguments, first-time configuration)
 
-If no `$ARGUMENTS` provided and this is the first time running `$pbr-config` interactively (no prior config changes detected), present:
+If no `$ARGUMENTS` provided and this is the first time running `$pbr-settings` interactively (no prior config changes detected), present:
 
 Use AskUserQuestion:
   question: "How would you like to configure?"
@@ -119,7 +119,7 @@ If `$ARGUMENTS` is provided, handle direct setting:
 - `model-profile quality|balanced|budget|adaptive` — set all models at once using a preset
 - `gate <gate-name> on|off` — toggle a gate
 - `feature <feature-name> on|off` — toggle a feature (e.g., `feature auto_continue on`). When the user specifies a feature name without the `features.` prefix, automatically prepend `features.` before writing to config.
-- `session_phase_limit <N>` — set the session phase limit directly (e.g., `$pbr-config session_phase_limit 5`). Validate N is an integer between 0 and 20. Write to config.json at top level: `"session_phase_limit": N`. Display: "Session phase limit set to {N}. PBR will suggest pausing after {N} phases per session. (0 = disabled)"
+- `session_phase_limit <N>` — set the session phase limit directly (e.g., `$pbr-settings session_phase_limit 5`). Validate N is an integer between 0 and 20. Write to config.json at top level: `"session_phase_limit": N`. Display: "Session phase limit set to {N}. PBR will suggest pausing after {N} phases per session. (0 = disabled)"
 - `git branching none|phase|milestone|disabled` — set branching strategy
 - `git mode disabled` — disable git integration entirely
 - `show` — display current config (default when no args)
@@ -211,7 +211,7 @@ To resolve the profile, run: `node ${PLUGIN_ROOT}/scripts/pbr-tools.js config re
 
 If the user wants to override a specific profile setting, they can set `depth_profiles.{depth}.{key}` directly.
 For example: to use quick mode but keep plan-checking, the user would set depth to quick and then override:
-  `$pbr-config` -> Features -> Plan checking -> Enable
+  `$pbr-settings` -> Features -> Plan checking -> Enable
 This writes `depth_profiles.quick.features.plan_checking: true` to config.json.
 
 If user selects "Model profile":
@@ -241,7 +241,7 @@ Use AskUserQuestion:
 
 Repeat for each feature the user wants to change. Show updated status after each toggle.
 
-For numeric settings like `session_phase_limit`, use the direct command: `$pbr-config session_phase_limit <N>`
+For numeric settings like `session_phase_limit`, use the direct command: `$pbr-settings session_phase_limit <N>`
 
 If user selects "Git settings":
 Use AskUserQuestion:
@@ -285,7 +285,7 @@ Updated:
 
 **Continue your workflow** — settings saved
 
-`$pbr-status`
+`$pbr-progress`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -293,7 +293,7 @@ Updated:
 
 **Also available:**
 - `$pbr-continue` — execute next logical step
-- `$pbr-config` — change more settings
+- `$pbr-settings` — change more settings
 
 
 ```

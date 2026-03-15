@@ -5,12 +5,12 @@ Agent Teams enable parallel specialist perspectives for critical phases. Teams a
 ## Activation
 
 - **Global**: Set `parallelization.use_teams: true` in `.planning/config.json`
-- **Per-invocation**: Use `--teams` flag on `/pbr:plan`, `/pbr:review`, or `/pbr:build --team`
+- **Per-invocation**: Use `--teams` flag on `/pbr:plan-phase`, `/pbr:verify-work`, or `/pbr:execute-phase --team`
 - Per-invocation flag takes precedence over global config
 
 ## Planning Teams
 
-When `/pbr:plan <N> --teams` is invoked, three specialist agents run in parallel:
+When `/pbr:plan-phase <N> --teams` is invoked, three specialist agents run in parallel:
 
 | Role | Agent | Focus | Output File |
 |------|-------|-------|-------------|
@@ -24,7 +24,7 @@ After all three complete, the synthesizer agent reads all team outputs and produ
 
 ## Review Teams
 
-When `/pbr:review <N>` runs with teams enabled, three review agents run in parallel:
+When `/pbr:verify-work <N>` runs with teams enabled, three review agents run in parallel:
 
 | Role | Agent | Focus | Output File |
 |------|-------|-------|-------------|

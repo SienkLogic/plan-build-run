@@ -109,7 +109,7 @@ Use AskUserQuestion:
   header: "Escalate"
   options:
     - label: "Accept gaps"  description: "Mark as complete-with-gaps and move on"
-    - label: "Re-plan"      description: "Go back to $pbr-plan with gap context"
+    - label: "Re-plan"      description: "Go back to $pbr-plan-phase with gap context"
     - label: "Debug"        description: "Spawn $pbr-debug to investigate root causes"
     - label: "Retry"        description: "Try one more verification cycle"
   multiSelect: false
@@ -259,7 +259,7 @@ Use AskUserQuestion:
   header: "Scope"
   options:
     - label: "Quick task"  description: "Execute as lightweight task"
-    - label: "Full plan"   description: "Switch to $pbr-plan for proper planning"
+    - label: "Full plan"   description: "Switch to $pbr-plan-phase for proper planning"
     - label: "Revise"      description: "Let me rewrite the task description"
   multiSelect: false
 ```

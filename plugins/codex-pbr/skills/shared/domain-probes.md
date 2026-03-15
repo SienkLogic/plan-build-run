@@ -1,6 +1,6 @@
 # Domain-Aware Probing Patterns
 
-Shared reference for `$pbr-explore`, `$pbr-begin`, and `$pbr-discuss`.
+Shared reference for `$pbr-explore`, `$pbr-new-project`, and `$pbr-discuss-phase`.
 
 When the user mentions a technology area, use these probes to ask insightful follow-up questions. Don't run through them as a checklist — pick the 2-3 most relevant based on context. The goal is to surface hidden assumptions and trade-offs the user may not have considered yet.
 

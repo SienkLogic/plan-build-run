@@ -35,7 +35,7 @@ Additionally for this skill:
 
 ## Prerequisites
 
-- `.planning/config.json` exists (run `$pbr-begin` first)
+- `.planning/config.json` exists (run `$pbr-new-project` first)
 - `.planning/ROADMAP.md` exists with at least one phase
 - `.planning/REQUIREMENTS.md` exists (optional — if absent, skip requirement ID cross-referencing and warn the user: "No REQUIREMENTS.md found. Skipping REQ-ID validation.")
 
@@ -239,7 +239,7 @@ Output your completion marker when done: ## PLANNING COMPLETE
 After the Task() completes:
 
 - Confirm `.planning/ROADMAP.md` exists (Glob check).
-- If missing: display error "Planner failed to generate ROADMAP.md. Run $pbr-plan to retry." and proceed to Step G anyway (the other 3 files are already written).
+- If missing: display error "Planner failed to generate ROADMAP.md. Run $pbr-plan-phase to retry." and proceed to Step G anyway (the other 3 files are already written).
 
 ---
 
@@ -300,15 +300,15 @@ Gaps filled: {count} (via interactive prompts)
 
 **Plan Phase 1** — generate execution plans for the first phase
 
-`$pbr-plan 1`
+`$pbr-plan-phase 1`
 
 <sub>`/clear` first → fresh context window</sub>
 
 
 
 **Also available:**
-- `$pbr-discuss` — review and refine decisions before planning
-- `$pbr-status` — see full project overview
+- `$pbr-discuss-phase` — review and refine decisions before planning
+- `$pbr-progress` — see full project overview
 ```
 
 ---
@@ -325,7 +325,7 @@ Read all relevant context files. This context is used for conflict detection in 
 1. ROADMAP.md — extract current phase goal, dependencies, requirements, success criteria
 2. REQUIREMENTS.md — extract REQ-IDs mapped to this phase
 3. CONTEXT.md (project-level, if exists) — extract locked decisions, deferred ideas, constraints
-4. Phase CONTEXT.md (if exists at .planning/phases/{NN}-{slug}/CONTEXT.md) — phase-specific locked decisions from $pbr-discuss
+4. Phase CONTEXT.md (if exists at .planning/phases/{NN}-{slug}/CONTEXT.md) — phase-specific locked decisions from $pbr-discuss-phase
 5. config.json — extract feature flags, depth, model settings
 6. Prior SUMMARY.md files — use digest-select depth per `skills/shared/digest-select.md` (direct deps: full body for conflict detection, transitive: frontmatter only, 2+ back: skip)
 7. Research SUMMARY.md (if exists at .planning/research/SUMMARY.md)
@@ -701,15 +701,15 @@ Requirements traced: {count}/{total} REQ-IDs covered
 
 **Build Phase {N}** — execute these imported plans
 
-`$pbr-build {N}`
+`$pbr-execute-phase {N}`
 
 <sub>`/clear` first → fresh context window</sub>
 
 
 
 **Also available:**
-- `$pbr-plan {N}` — re-plan from scratch if import needs rework
-- `$pbr-discuss {N}` — talk through details before building
+- `$pbr-plan-phase {N}` — re-plan from scratch if import needs rework
+- `$pbr-discuss-phase {N}` — talk through details before building
 
 
 ```
@@ -729,7 +729,7 @@ If the specified phase does not exist in ROADMAP.md, display:
 
 Phase {N} not found.
 
-**To fix:** Run `$pbr-status` to see available phases.
+**To fix:** Run `$pbr-progress` to see available phases.
 ```
 
 ### Missing prerequisites
@@ -741,7 +741,7 @@ If REQUIREMENTS.md or ROADMAP.md do not exist, display:
 
 Project not initialized.
 
-**To fix:** Run `$pbr-begin` first.
+**To fix:** Run `$pbr-new-project` first.
 ```
 
 ### Import file not found
@@ -781,7 +781,7 @@ If the imported document contains no actionable tasks, display:
 
 The imported document is too vague to convert into plans. No specific tasks, files, or implementation steps found.
 
-**To fix:** Provide a more detailed document, or use `$pbr-plan {N}` to generate plans from scratch.
+**To fix:** Provide a more detailed document, or use `$pbr-plan-phase {N}` to generate plans from scratch.
 ```
 
 ### Checker loops without resolution

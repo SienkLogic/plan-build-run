@@ -51,7 +51,7 @@ The `inherit` value means the agent uses whatever model the parent session is ru
 
 ## Model Profile Presets
 
-The `/pbr:config model-profile {preset}` command sets all agent models at once using a preset:
+The `/pbr:settings model-profile {preset}` command sets all agent models at once using a preset:
 
 | Profile | Researcher | Planner | Executor | Verifier | Int-Checker | Debugger | Mapper | Synthesizer |
 |---------|-----------|---------|----------|----------|-------------|----------|--------|-------------|
@@ -73,11 +73,11 @@ The `/pbr:config model-profile {preset}` command sets all agent models at once u
 
 ### Per-Agent Configuration
 
-Set an individual agent's model via `/pbr:config`:
+Set an individual agent's model via `/pbr:settings`:
 
 ```
-/pbr:config model executor sonnet
-/pbr:config model verifier opus
+/pbr:settings model executor sonnet
+/pbr:settings model verifier opus
 ```
 
 Or edit `config.json` directly:
@@ -126,7 +126,7 @@ The `model_profiles` key in `config.json` lets you define named profiles beyond 
 }
 ```
 
-Activate a custom profile with `/pbr:config model-profile my-profile`. The profile merges with the `balanced` preset: any agent not listed in your custom profile uses its `balanced` default.
+Activate a custom profile with `/pbr:settings model-profile my-profile`. The profile merges with the `balanced` preset: any agent not listed in your custom profile uses its `balanced` default.
 
 Partial profiles are allowed — you can override just the agents you care about. This is useful for temporarily upgrading a single agent without specifying the rest.
 

@@ -32,7 +32,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
     "status": "building",
     "progress_percent": 45,
     "last_activity": "2025-01-15",
-    "last_command": "/pbr:build",
+    "last_command": "/pbr:execute-phase",
     "blockers": []
   },
   "roadmap": {               // Parsed ROADMAP.md

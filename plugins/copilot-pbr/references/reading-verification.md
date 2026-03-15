@@ -95,20 +95,20 @@ You have several options:
 
 ### Option 1: Re-run the build (most common)
 ```
-/pbr:build <N>
+/pbr:execute-phase <N>
 ```
 The executor will detect what's already complete and only fix what's missing.
 
 ### Option 2: Create a gap-closure plan
 ```
-/pbr:plan <N> --gaps
+/pbr:plan-phase <N> --gaps
 ```
 This creates a focused plan that targets only the specific gaps found during verification.
 
 ### Option 3: Manual fix
 For small gaps (like a missing import), you can fix the code yourself and then re-run verification:
 ```
-/pbr:review <N>
+/pbr:verify-work <N>
 ```
 
 ### Option 4: Override (for false positives)

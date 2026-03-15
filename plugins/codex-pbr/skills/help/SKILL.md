@@ -40,10 +40,10 @@ Display the following reference to the user:
 
 | Command | Description | Cost |
 |---------|-------------|------|
-| `$pbr-begin` | Start a new project. Deep questioning, research, requirements, roadmap. | High (4-6 agents) |
-| `$pbr-plan <N>` | Plan a phase. Research, create plans, verify before building. | Medium (2-3 agents) |
-| `$pbr-build <N>` | Build a phase. Execute plans in parallel waves, verify results. | High (2-4 agents) |
-| `$pbr-review <N>` | Review what was built. Automated verification + walkthrough with you. | Low (1 agent) |
+| `$pbr-new-project` | Start a new project. Deep questioning, research, requirements, roadmap. | High (4-6 agents) |
+| `$pbr-plan-phase <N>` | Plan a phase. Research, create plans, verify before building. | Medium (2-3 agents) |
+| `$pbr-execute-phase <N>` | Build a phase. Execute plans in parallel waves, verify results. | High (2-4 agents) |
+| `$pbr-verify-work <N>` | Review what was built. Automated verification + walkthrough with you. | Low (1 agent) |
 | `$pbr-test <N>` | Generate tests for completed phase code. Detects framework automatically. | Medium (1-3 agents) |
 
 ### Planning & Discovery
@@ -51,21 +51,21 @@ Display the following reference to the user:
 | Command | Description |
 |---------|-------------|
 | `$pbr-explore [topic]` | Explore ideas, think through approaches. No phase number needed. |
-| `$pbr-discuss <N>` | Talk through a phase before planning. Captures decisions. |
-| `$pbr-plan <N> --assumptions` | Surface Claude's assumptions before planning. Zero cost. |
-| `$pbr-plan <N> --skip-research` | Plan without research phase. Faster. |
-| `$pbr-plan <N> --gaps` | Create gap-closure plans from verification failures. |
-| `$pbr-plan add` | Append a new phase to the roadmap. |
-| `$pbr-plan insert <N>` | Insert a phase using decimal numbering. |
-| `$pbr-plan remove <N>` | Remove a future phase and renumber. |
+| `$pbr-discuss-phase <N>` | Talk through a phase before planning. Captures decisions. |
+| `$pbr-plan-phase <N> --assumptions` | Surface Claude's assumptions before planning. Zero cost. |
+| `$pbr-plan-phase <N> --skip-research` | Plan without research phase. Faster. |
+| `$pbr-plan-phase <N> --gaps` | Create gap-closure plans from verification failures. |
+| `$pbr-plan-phase add` | Append a new phase to the roadmap. |
+| `$pbr-plan-phase insert <N>` | Insert a phase using decimal numbering. |
+| `$pbr-plan-phase remove <N>` | Remove a future phase and renumber. |
 
 ### Execution
 
 | Command | Description |
 |---------|-------------|
-| `$pbr-build <N>` | Execute all plans in a phase. |
-| `$pbr-build <N> --gaps-only` | Execute only gap-closure plans. |
-| `$pbr-build <N> --team` | Use Agent Teams for complex inter-agent coordination. |
+| `$pbr-execute-phase <N>` | Execute all plans in a phase. |
+| `$pbr-execute-phase <N> --gaps-only` | Execute only gap-closure plans. |
+| `$pbr-execute-phase <N> --team` | Use Agent Teams for complex inter-agent coordination. |
 | `$pbr-quick` | Quick ad-hoc task with atomic commit. Low cost. |
 | `$pbr-continue` | Execute the next logical step automatically. No prompts. |
 
@@ -73,37 +73,37 @@ Display the following reference to the user:
 
 | Command | Description |
 |---------|-------------|
-| `$pbr-review <N>` | Verify phase + conversational UAT. |
-| `$pbr-review <N> --auto-fix` | Auto-diagnose and fix verification failures. |
+| `$pbr-verify-work <N>` | Verify phase + conversational UAT. |
+| `$pbr-verify-work <N> --auto-fix` | Auto-diagnose and fix verification failures. |
 | `$pbr-test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
 | `$pbr-debug` | Systematic debugging with hypothesis testing. |
-| `$pbr-scan` | Analyze existing codebase (brownfield). |
+| `$pbr-map-codebase` | Analyze existing codebase (brownfield). |
 
 ### Session Management
 
 | Command | Description |
 |---------|-------------|
-| `$pbr-status` | Where am I? Shows progress and suggests next action. |
+| `$pbr-progress` | Where am I? Shows progress and suggests next action. |
 | `$pbr-health` | Check planning directory integrity. Find and fix corrupted state. |
-| `$pbr-pause` | Save session state for later. |
-| `$pbr-pause --checkpoint` | Save with a named checkpoint for easier resumption. |
-| `$pbr-resume` | Pick up where you left off. |
+| `$pbr-pause-work` | Save session state for later. |
+| `$pbr-pause-work --checkpoint` | Save with a named checkpoint for easier resumption. |
+| `$pbr-resume-work` | Pick up where you left off. |
 
 ### Project Management
 
 | Command | Description |
 |---------|-------------|
-| `$pbr-milestone new` | Start a new milestone cycle. |
-| `$pbr-milestone complete` | Archive completed milestone. |
+| `$pbr-new-milestone` | Start a new milestone cycle. |
+| `$pbr-complete-milestone` | Archive completed milestone. |
 | `$pbr-milestone preview` | Dry-run of complete — show what would happen. |
-| `$pbr-milestone audit` | Verify milestone completion. |
-| `$pbr-milestone gaps` | Create phases to close audit gaps. |
-| `$pbr-todo add\|list\|done` | Persistent file-based todos. |
+| `$pbr-audit-milestone` | Verify milestone completion. |
+| `$pbr-plan-milestone-gaps` | Create phases to close audit gaps. |
+| `$pbr-add-todo\|list\|done` | Persistent file-based todos. |
 | `$pbr-todo work <NNN>` | Work on a specific todo by ID. |
 | `$pbr-note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
 | `$pbr-note --global` | Save note to global notes directory (shared across projects). |
-| `$pbr-config session_phase_limit <N>` | Set max phases per session before auto-pause (0 = disabled, default 3). |
-| `$pbr-config` | Configure workflow settings. |
+| `$pbr-settings session_phase_limit <N>` | Set max phases per session before auto-pause (0 = disabled, default 3). |
+| `$pbr-settings` | Configure workflow settings. |
 | `$pbr-import <N>` | Import external plans (design docs, RFCs) into PBR format. |
 | `$pbr-import --from <path>` | Import from a specific file path. |
 | `$pbr-import --skip-checker` | Skip plan-checker validation on import. |
@@ -128,35 +128,35 @@ Not sure which command to use? Follow this guide:
 
 | I want to... | Command |
 |--------------|---------|
-| Start a new project | `$pbr-begin` |
+| Start a new project | `$pbr-new-project` |
 | Fix a bug or investigate an error | `$pbr-debug` |
 | Think through an idea or approach | `$pbr-explore` |
 | Do a small task (≤3 files) | `$pbr-quick` |
-| Plan a complex change (4+ files) | `$pbr-plan <N>` |
-| See where I am and what's next | `$pbr-status` |
+| Plan a complex change (4+ files) | `$pbr-plan-phase <N>` |
+| See where I am and what's next | `$pbr-progress` |
 | Auto-execute the next step | `$pbr-continue` |
 | Describe something and let PBR route it | `$pbr-do <description>` |
-| Lock decisions for a specific phase | `$pbr-discuss <N>` |
+| Lock decisions for a specific phase | `$pbr-discuss-phase <N>` |
 | Check project health | `$pbr-health` |
 
 ## Typical Workflow
 
 ```
-$pbr-begin              ← Start project, define requirements, create roadmap
-$pbr-discuss 1          ← (optional) Talk through phase details
-$pbr-plan 1             ← Plan the first phase
-$pbr-build 1            ← Build it
-$pbr-review 1           ← Verify it works
-$pbr-plan 2             ← Plan the next phase
+$pbr-new-project              ← Start project, define requirements, create roadmap
+$pbr-discuss-phase 1          ← (optional) Talk through phase details
+$pbr-plan-phase 1             ← Plan the first phase
+$pbr-execute-phase 1            ← Build it
+$pbr-verify-work 1           ← Verify it works
+$pbr-plan-phase 2             ← Plan the next phase
 ...                     ← Repeat plan → build → review
-$pbr-milestone complete ← Archive when done
+$pbr-complete-milestone ← Archive when done
 ```
 
-**Shortcut**: After `$pbr-begin`, run `$pbr-continue` repeatedly — it auto-advances through plan → build → review → next phase, stopping at milestones and errors.
+**Shortcut**: After `$pbr-new-project`, run `$pbr-continue` repeatedly — it auto-advances through plan → build → review → next phase, stopping at milestones and errors.
 
 ## status vs continue vs do
 
-| | `$pbr-status` | `$pbr-continue` | `$pbr-do <text>` |
+| | `$pbr-progress` | `$pbr-continue` | `$pbr-do <text>` |
 |-|---------------|-----------------|-------------------|
 | **Purpose** | Dashboard — show progress, suggest next | Auto-execute the next logical step | Route freeform text to a skill |
 | **Reads state?** | Yes (full scan) | Yes (minimal) | No |
@@ -170,11 +170,11 @@ $pbr-milestone complete ← Archive when done
 - **Context strategy**: `aggressive` (delegate everything) | `balanced` | `minimal` (run inline)
 - **Depth**: `quick` (skip research, ~50% cheaper) | `standard` | `comprehensive` (~2x cost)
 - **State files**: `.planning/STATE.md` (position), `.planning/ROADMAP.md` (phases), `.planning/config.json` (settings)
-- **Configure**: `$pbr-config` to change depth, models, gates, parallelization
+- **Configure**: `$pbr-settings` to change depth, models, gates, parallelization
 - **List agents**: Run `claude agents` in your terminal to see all registered PBR agents and verify loading
 - **Tip**: Use `$pbr-quick` for creative/visual work where structured planning adds overhead without benefit.
 - **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching: phase`) which squash-merges code-only changes to main.
-- **Session cycling**: After `session_phase_limit` phases (default 3), PBR auto-pauses and resumes with a fresh context. In TMUX, this is seamless. Configure via `$pbr-config session_phase_limit <N>`.
+- **Session cycling**: After `session_phase_limit` phases (default 3), PBR auto-pauses and resumes with a fresh context. In TMUX, this is seamless. Configure via `$pbr-settings session_phase_limit <N>`.
 - **Seeds**: `$pbr-explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
 
 ## Behavioral Contexts
@@ -185,11 +185,11 @@ Plan-Build-Run includes three behavioral contexts in `contexts/` that adjust how
 - **research** — Exploration mode: read widely, no code writing, high verbosity, evidence-based
 - **review** — Code review: read thoroughly, prioritize by severity, report don't fix
 
-Skills automatically activate the appropriate context: `$pbr-build` uses dev context, `$pbr-discuss` uses research context, `$pbr-review` uses review context.
+Skills automatically activate the appropriate context: `$pbr-execute-phase` uses dev context, `$pbr-discuss-phase` uses research context, `$pbr-verify-work` uses review context.
 
 ## When to Use Quick vs Plan+Build
 
-| Use `$pbr-quick` when... | Use `$pbr-plan` + `$pbr-build` when... |
+| Use `$pbr-quick` when... | Use `$pbr-plan-phase` + `$pbr-execute-phase` when... |
 |--------------------------|----------------------------------------|
 | Change touches ≤3 files | Change touches 4+ files |
 | ≤100 lines of code | 100+ lines of code |
@@ -199,14 +199,14 @@ Skills automatically activate the appropriate context: `$pbr-build` uses dev con
 
 ## Setup vs Begin
 
-- **`$pbr-begin`** — Use this to start a new project. It handles everything: questioning, research, requirements, roadmap, AND config initialization. This is the standard entry point.
+- **`$pbr-new-project`** — Use this to start a new project. It handles everything: questioning, research, requirements, roadmap, AND config initialization. This is the standard entry point.
 - **`$pbr-setup`** — Use this only to reconfigure an existing project's settings (model profiles, gates, depth, parallelization) without re-running the full begin flow.
 
-If you're unsure, start with `$pbr-begin`. It will detect existing config and offer to reuse or overwrite.
+If you're unsure, start with `$pbr-new-project`. It will detect existing config and offer to reuse or overwrite.
 
 ## Team Discussions
 
-The `features.team_discussions` config flag (and `$pbr-build --team`) enables **Agent Teams** for complex builds. When enabled, executor agents can coordinate with each other during parallel wave execution — sharing context about what they've built, resolving interface conflicts, and avoiding duplicate work. Best for phases where multiple plans have shared dependencies. Configure via `$pbr-config`.
+The `features.team_discussions` config flag (and `$pbr-execute-phase --team`) enables **Agent Teams** for complex builds. When enabled, executor agents can coordinate with each other during parallel wave execution — sharing context about what they've built, resolving interface conflicts, and avoiding duplicate work. Best for phases where multiple plans have shared dependencies. Configure via `$pbr-settings`.
 
 ## Getting Started
 
@@ -217,9 +217,9 @@ The `features.team_discussions` config flag (and `$pbr-build --team`) enables **
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
-- `$pbr-begin` — start a new project
-- `$pbr-status` — check current project status
-- `$pbr-config` — configure workflow settings
+- `$pbr-new-project` — start a new project
+- `$pbr-progress` — check current project status
+- `$pbr-settings` — configure workflow settings
 - `$pbr-help <command>` — detailed help for a specific command
 
 

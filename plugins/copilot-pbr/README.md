@@ -44,10 +44,10 @@ rm .github/agents/*.agent.md
 The core workflow follows four steps per phase:
 
 ```
-/pbr:begin     — Define your project: requirements, research, roadmap
-/pbr:plan 1    — Create a detailed plan for phase 1
-/pbr:build 1   — Execute the plan with atomic commits
-/pbr:review 1  — Verify the build matched the plan
+/pbr:new-project     — Define your project: requirements, research, roadmap
+/pbr:plan-phase 1    — Create a detailed plan for phase 1
+/pbr:execute-phase 1   — Execute the plan with atomic commits
+/pbr:verify-work 1  — Verify the build matched the plan
 ```
 
 Repeat `plan` / `build` / `review` for each phase in your roadmap.
@@ -107,7 +107,7 @@ Plan-Build-Run stores all state in a `.planning/` directory at your project root
 - `.planning/ROADMAP.md` — Phase structure, goals, and dependencies
 - `.planning/phases/NN-slug/` — Per-phase plans, summaries, and verification reports
 
-Run `/pbr:config` to interactively adjust settings like depth, model profiles, and gate behavior.
+Run `/pbr:settings` to interactively adjust settings like depth, model profiles, and gate behavior.
 
 ## Hook Compatibility
 

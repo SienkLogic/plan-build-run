@@ -268,7 +268,7 @@ Actions:
 
 **Continue your workflow** — the bug is fixed
 
-`$pbr-status`
+`$pbr-progress`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -276,7 +276,7 @@ Actions:
 
 **Also available:**
 - `$pbr-continue` — execute next logical step
-- `$pbr-review {N}` — verify the current phase
+- `$pbr-verify-work {N}` — verify the current phase
 
 
 ```
@@ -313,8 +313,8 @@ Actions:
 
 
 **Also available:**
-- `$pbr-plan` — for complex fixes that need planning
-- `$pbr-status` — see project status
+- `$pbr-plan-phase` — for complex fixes that need planning
+- `$pbr-progress` — see project status
 
 
 ```

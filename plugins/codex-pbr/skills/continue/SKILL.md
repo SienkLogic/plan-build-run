@@ -7,7 +7,7 @@ description: "Execute the next logical step automatically. No prompts, no decisi
 
 # $pbr-continue — Action-Oriented Resumption
 
-You are running the **continue** skill. Unlike `$pbr-status` which shows the dashboard and suggests the next action, `$pbr-continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
+You are running the **continue** skill. Unlike `$pbr-progress` which shows the dashboard and suggests the next action, `$pbr-continue` determines and EXECUTES the next logical step automatically. Stops safely at milestones, checkpoints, errors, and verification gaps.
 
 This skill runs **inline** and may delegate to other skills via Task().
 
@@ -64,7 +64,7 @@ If STATE.md doesn't exist, display:
 
 No project state found.
 
-**To fix:** Run `$pbr-begin` first.
+**To fix:** Run `$pbr-new-project` first.
 ```
 
 #### Context Budget Guard
@@ -81,27 +81,27 @@ Before proceeding to priority evaluation, check for runaway continue chains:
 
 ```
 WARNING: Context budget warning: 6 consecutive auto-continues detected.
-Recommend running $pbr-pause then resuming in a fresh session.
+Recommend running $pbr-pause-work then resuming in a fresh session.
 ```
 
 Then present the user with a choice:
 - **"Continue"** — proceed with the next action
-- **"Pause"** — run `$pbr-pause` logic to save state and stop
+- **"Pause"** — run `$pbr-pause-work` logic to save state and stop
 
 This prevents runaway chains that fill the context window without a human checkpoint.
 
 ### Step 2: Scan for Priority Items
 
-Check the resumption priority hierarchy (same as $pbr-resume):
+Check the resumption priority hierarchy (same as $pbr-resume-work):
 
-1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `$pbr-plan {N} --gaps`
+1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `$pbr-plan-phase {N} --gaps`
 2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
 3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
-4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `$pbr-build {N}`
-5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `$pbr-review {N}`
-6. **Phase complete, more phases exist**: Verification passed → Execute `$pbr-plan {N+1}`
-7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `$pbr-milestone audit` to verify cross-phase integration, then `$pbr-milestone complete` to archive."
-8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `$pbr-milestone new` to start the next milestone, or `$pbr-milestone audit` if not yet audited."
+4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `$pbr-execute-phase {N}`
+5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `$pbr-verify-work {N}`
+6. **Phase complete, more phases exist**: Verification passed → Execute `$pbr-plan-phase {N+1}`
+7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `$pbr-audit-milestone` to verify cross-phase integration, then `$pbr-complete-milestone` to archive."
+8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `$pbr-new-milestone` to start the next milestone, or `$pbr-audit-milestone` if not yet audited."
 
 ### Step 3: Execute
 

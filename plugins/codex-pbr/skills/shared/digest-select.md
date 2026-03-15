@@ -64,11 +64,11 @@ These fields give downstream skills enough context to build on prior work withou
 
 ## Skill-Specific Notes
 
-### $pbr-plan
+### $pbr-plan-phase
 - Direct dependencies: frontmatter + "Key Decisions" section (planner reads full bodies from disk)
 - Used in Step 2: Load Context
 
-### $pbr-build
+### $pbr-execute-phase
 - Direct dependencies (completed earlier waves): frontmatter only for prior work table
 - Used in Step 6a: Spawn Executors (prior_work section of executor prompt)
 

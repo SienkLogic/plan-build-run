@@ -200,7 +200,7 @@ Display completion banner:
 Reverted: {N} commit(s) from scope {scope}
 New revert commit: {hash} — revert({scope}): undo {description}
 
-$pbr-status — check current state
+$pbr-progress — check current state
 ```
 
 ---

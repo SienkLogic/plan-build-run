@@ -14,7 +14,7 @@ Every skill that spawns agents or reads significant content must follow these ru
 2. **Never** inline large files into Task() prompts — tell agents to read files from disk instead
 3. **Minimize** reading subagent output into main context — read only frontmatter, not full content
 4. **Delegate** heavy work to agents — the orchestrator routes, it doesn't execute
-5. **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
+5. **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause-work` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Context Degradation Awareness
 

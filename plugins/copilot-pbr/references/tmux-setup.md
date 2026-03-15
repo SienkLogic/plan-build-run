@@ -105,7 +105,7 @@ Usage:
 
 - `pbr-tmux` -- Interactive menu (uses gum if available, bash select otherwise)
 - `pbr-tmux launch` -- Launch a Claude Code session in a new pane
-- `pbr-tmux cycle` -- Send `/clear` + `/pbr:resume` to the Claude pane
+- `pbr-tmux cycle` -- Send `/clear` + `/pbr:resume-work` to the Claude pane
 - `pbr-tmux status` -- Show PBR project status
 - `pbr-tmux list` -- List active tmux sessions
 - `pbr-tmux --help` -- Full list of operations
@@ -165,7 +165,7 @@ in the side pane while Claude works in the main pane.
 sessions. Use `pbr-tmux switch` to jump between them.
 
 **Auto-cycle (Phase 80):** `pbr-tmux cycle --non-interactive` sends `/clear` then
-`/pbr:resume` to the Claude pane for hands-free workflow continuation.
+`/pbr:resume-work` to the Claude pane for hands-free workflow continuation.
 
 ### Automatic Session Cycling via auto-continue.js
 
@@ -176,15 +176,15 @@ When running in autonomous mode with `features.auto_continue: true`, PBR automat
 2. Counter resets to 0 at session start (via `progress-tracker.js`)
 3. Counter increments after each executor completion (via `event-handler.js`)
 4. When `auto-continue.js` detects the limit is reached AND `process.env.TMUX` is set:
-   - It spawns a detached process: `sleep 3 && tmux send-keys "/clear" Enter && sleep 1 && tmux send-keys "/pbr:resume" Enter`
+   - It spawns a detached process: `sleep 3 && tmux send-keys "/clear" Enter && sleep 1 && tmux send-keys "/pbr:resume-work" Enter`
    - The current session pauses, then a fresh session starts automatically
 5. Outside TMUX, a banner displays manual instructions instead
 
 **Configure the limit:**
 
 ```
-/pbr:config session_phase_limit 5   # pause after 5 phases
-/pbr:config session_phase_limit 0   # disable auto-pause
+/pbr:settings session_phase_limit 5   # pause after 5 phases
+/pbr:settings session_phase_limit 0   # disable auto-pause
 ```
 
 See `references/config-reference.md` for the full `session_phase_limit` specification.

@@ -95,8 +95,8 @@ theme: {inferred-theme}
 
 
 **Also available:**
-- `$pbr-todo list` — see all pending todos
-- `$pbr-status` — see project status
+- `$pbr-check-todos` — see all pending todos
+- `$pbr-progress` — see project status
 
 
 ```
@@ -132,7 +132,7 @@ Pending Todos:
 
 
 **Also available:**
-- `$pbr-status` — see project status
+- `$pbr-progress` — see project status
 
 
 ```
@@ -148,7 +148,7 @@ Pending Todos:
 
 Todo {NNN} not found in pending todos.
 
-**To fix:** Run `$pbr-todo list` to see available numbers.
+**To fix:** Run `$pbr-check-todos` to see available numbers.
 ```
 3. Ensure `.planning/todos/done/` directory exists (create if needed)
 4. Read the pending file content
@@ -187,7 +187,7 @@ Todo {NNN} not found in pending todos.
 
 **See remaining tasks**
 
-`$pbr-todo list`
+`$pbr-check-todos`
 
 <sub>`/clear` first → fresh context window</sub>
 
@@ -195,7 +195,7 @@ Todo {NNN} not found in pending todos.
 
 **Also available:**
 - `$pbr-continue` — execute next logical step
-- `$pbr-status` — see project status
+- `$pbr-progress` — see project status
 
 
 ```
@@ -203,7 +203,7 @@ Todo {NNN} not found in pending todos.
 ### `work <NNN>`
 
 1. Find `.planning/todos/pending/{NNN}-*.md` (match by number prefix)
-2. If not found, display the same error block as `done` — suggest `$pbr-todo list`
+2. If not found, display the same error block as `done` — suggest `$pbr-check-todos`
 3. Read the todo file content (frontmatter + body)
 4. Extract the `title` from frontmatter and the full body (Goal, Scope, Acceptance Criteria sections)
 
@@ -212,7 +212,7 @@ Todo {NNN} not found in pending todos.
 | Signal | Route to |
 |--------|----------|
 | Single file change, small fix, simple addition | `$pbr-quick` |
-| Multiple acceptance criteria, multi-file scope, architectural decisions, needs research | `$pbr-plan` (requires an active phase) |
+| Multiple acceptance criteria, multi-file scope, architectural decisions, needs research | `$pbr-plan-phase` (requires an active phase) |
 | Investigation needed, unclear root cause | `$pbr-debug` |
 | Open-ended exploration, no clear deliverable | `$pbr-explore` |
 
@@ -222,7 +222,7 @@ Todo {NNN} could be handled as a quick task or may need full planning.
 
 Which approach?
 - Quick task ($pbr-quick) — single executor, atomic commit
-- Full planning ($pbr-plan) — research, plan, build cycle
+- Full planning ($pbr-plan-phase) — research, plan, build cycle
 - Debug ($pbr-debug) — systematic investigation
 - Explore ($pbr-explore) — open-ended investigation
 ```
@@ -246,7 +246,7 @@ Context from todo {NNN}:
 {body content — Goal, Scope, Acceptance Criteria sections}
 ```
 
-For `$pbr-plan`, if no phase exists for this work yet, suggest the user run `$pbr-plan add` first to create one, then re-run `$pbr-todo work {NNN}`.
+For `$pbr-plan-phase`, if no phase exists for this work yet, suggest the user run `$pbr-plan-phase add` first to create one, then re-run `$pbr-todo work {NNN}`.
 
 8. When the skill completes, remind the user:
 

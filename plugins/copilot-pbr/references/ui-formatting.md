@@ -238,8 +238,8 @@ options:
 question: "What would you like to do next?"
 header: "Next Step"
 options:
-  - label: "/pbr:build 3"    description: "Execute phase 3 plans"
-  - label: "/pbr:review 2"   description: "Verify phase 2 results"
+  - label: "/pbr:execute-phase 3"    description: "Execute phase 3 plans"
+  - label: "/pbr:verify-work 2"   description: "Verify phase 2 results"
   - label: "Something else"  description: "Enter a different command"
 ```
 
@@ -281,9 +281,9 @@ Always present at end of major completions (phase complete, milestone complete, 
 **Shorter routing (for minor completions):**
 ```
 What's next?
-→ /pbr:plan 4 — plan the next phase
-→ /pbr:review 3 — review what was just built
-→ /pbr:status — see full project status
+→ /pbr:plan-phase 4 — plan the next phase
+→ /pbr:verify-work 3 — review what was just built
+→ /pbr:progress — see full project status
 ```
 
 ---
@@ -322,7 +322,7 @@ Use tables for structured data:
 ```
 ⚠ Budget check: This operation will spawn 4 agents (~400k tokens)
   Estimated: ~20% of 5-hour window
-  Continue? [/pbr:config to adjust depth first]
+  Continue? [/pbr:settings to adjust depth first]
 ```
 
 ---
@@ -347,13 +347,13 @@ Goal verified ✓
 
 **Phase {N+1}: {Name}** — {Goal from ROADMAP.md}
 
-/pbr:discuss {N+1} — gather context and clarify approach
+/pbr:discuss-phase {N+1} — gather context and clarify approach
 
 <sub>/clear first → fresh context window</sub>
 
 **Also available:**
-- /pbr:plan {N+1} — skip discussion, plan directly
-- /pbr:review {N} — manual acceptance testing before continuing
+- /pbr:plan-phase {N+1} — skip discussion, plan directly
+- /pbr:verify-work {N} — manual acceptance testing before continuing
 ```
 
 ### Milestone Complete
@@ -374,13 +374,13 @@ All phase goals verified ✓
 
 **Audit milestone** — verify requirements, cross-phase integration, E2E flows
 
-/pbr:milestone audit
+/pbr:audit-milestone
 
 <sub>/clear first → fresh context window</sub>
 
 **Also available:**
-- /pbr:review — manual acceptance testing
-- /pbr:milestone complete — archive milestone after audit passes
+- /pbr:verify-work — manual acceptance testing
+- /pbr:complete-milestone — archive milestone after audit passes
 ```
 
 ### Gaps Found
@@ -405,13 +405,13 @@ Report: .planning/phases/{phase_dir}/VERIFICATION.md
 
 **Plan gap closure** — create additional plans to complete the phase
 
-/pbr:plan {N} --gaps
+/pbr:plan-phase {N} --gaps
 
 <sub>/clear first → fresh context window</sub>
 
 **Also available:**
 - cat .planning/phases/{phase_dir}/VERIFICATION.md — see full report
-- /pbr:review {N} — manual testing before planning
+- /pbr:verify-work {N} — manual testing before planning
 ```
 
 ---

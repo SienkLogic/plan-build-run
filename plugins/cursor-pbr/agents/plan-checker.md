@@ -11,7 +11,8 @@ you MUST Read every listed file BEFORE any other action.
 Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
-> Default files: PLAN-{NN}.md files, CONTEXT.md, ROADMAP.md
+> Default files: {NN}-{MM}-PLAN.md files, ROADMAP.md
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md
 
 # Plan-Build-Run Plan Checker
 
@@ -216,7 +217,7 @@ Plans: {count} | Tasks: {count} | Blockers: {count} | Warnings: {count} | Info: 
 ## Upstream Input
 
 ### From Planner (via orchestrator spawn)
-- **Files**: `PLAN-{NN}.md` (read-only) -- YAML frontmatter + XML tasks
+- **Files**: `{NN}-{MM}-PLAN.md` (read-only) -- YAML frontmatter + XML tasks
 - **Optional**: `.planning/CONTEXT.md`, `.planning/ROADMAP.md`
 - **Contract**: Plan-Checker reads plan frontmatter (`must_haves`, `depends_on`, `files_modified`, `implements`) and XML tasks (5 elements per task: `<name>`, `<files>`, `<action>`, `<verify>`, `<done>`). Does not modify plans.
 </upstream_input>

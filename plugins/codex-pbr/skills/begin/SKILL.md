@@ -5,11 +5,11 @@ description: "Start a new project. Deep questioning, research, requirements, and
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
 
-# $pbr-begin — Project Initialization
+# $pbr-new-project — Project Initialization
 
 **References:** `@references/questioning.md`, `@references/ui-brand.md`
 
-You are the orchestrator for `$pbr-begin`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() agents and keep the user's main context window clean.
+You are the orchestrator for `$pbr-new-project`. This skill initializes a new Plan-Build-Run project through deep questioning, optional research, requirements scoping, and roadmap generation. Your job is to stay lean — delegate heavy work to Task() agents and keep the user's main context window clean.
 
 ## Context Budget
 
@@ -39,7 +39,7 @@ Before any phase-modifying operations, this skill acquires a claim on the projec
 acquireClaim(planningDir, sessionId)
 ```
 
-Where `planningDir` is the `.planning/` directory and `sessionId` is the current session identifier. If the claim fails (another session owns it), display: "Another session owns this project. Use `$pbr-status` to see active claims."
+Where `planningDir` is the `.planning/` directory and `sessionId` is the current session identifier. If the claim fails (another session owns it), display: "Another session owns this project. Use `$pbr-progress` to see active claims."
 
 On completion or error, release the claim:
 
@@ -77,11 +77,11 @@ Check if the current directory has existing code:
 
 **If existing code found:**
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
-  question: "This looks like an existing codebase. Run $pbr-scan to analyze what's here first?"
+  question: "This looks like an existing codebase. Run $pbr-map-codebase to analyze what's here first?"
   options:
-    - label: "Yes, scan"   description: "Run $pbr-scan first to analyze existing code"
-    - label: "No, begin"   description: "Proceed with $pbr-begin on top of existing code"
-- If user selects "Yes, scan": suggest `$pbr-scan` and stop
+    - label: "Yes, scan"   description: "Run $pbr-map-codebase first to analyze existing code"
+    - label: "No, begin"   description: "Proceed with $pbr-new-project on top of existing code"
+- If user selects "Yes, scan": suggest `$pbr-map-codebase` and stop
 - If user selects "No, begin": proceed to Step 2
 
 **If `.planning/` already exists:**
@@ -92,7 +92,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
     - label: "No"   description: "Cancel — keep existing planning"
 - If user selects "No": **STOP IMMEDIATELY. Do not ask again. Do not proceed to Step 2. End the skill with this message:**
   ```
-  Keeping existing .planning/ directory. Use `$pbr-status` to see current project state, or `$pbr-plan` to continue planning.
+  Keeping existing .planning/ directory. Use `$pbr-progress` to see current project state, or `$pbr-plan-phase` to continue planning.
   ```
   **Do NOT re-prompt the same question or any other question. The skill is finished.**
 - If user selects "Yes": proceed (existing directory will be overwritten during state initialization)
@@ -221,7 +221,7 @@ Use AskUserQuestion:
 - Write `.planning/.active-skill` with text "begin"
 - Write CLAUDE.md integration block (see Step 3d-claude below) using the project name gathered in Step 2
 - Skip to Step 4 (Research Decision)
-- Tell the user: "Quick start selected. Using all defaults — you can adjust later with `$pbr-config`."
+- Tell the user: "Quick start selected. Using all defaults — you can adjust later with `$pbr-settings`."
 
 **If user selects "Custom setup":** proceed to Step 3 normally.
 
@@ -330,7 +330,7 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 - Project state: `.planning/STATE.md` (source of truth for current phase and progress)
 - Configuration: `.planning/config.json`
-- Run `$pbr-status` to see current project state and suggested next action.
+- Run `$pbr-progress` to see current project state and suggested next action.
 
 **After compaction or context recovery**: Read `.planning/STATE.md` (especially the `## Session Continuity` section) before proceeding with any work. The PreCompact hook writes recovery state there automatically.
 ```
@@ -836,11 +836,11 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 After all steps complete, present the final summary using the stage banner format from Read `references/ui-brand.md`:
 
-Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-brand.md) pointing to `$pbr-discuss 1` with alternatives: `$pbr-explore`, `$pbr-plan 1`, `$pbr-milestone new`, `$pbr-config`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
+Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-brand.md) pointing to `$pbr-discuss-phase 1` with alternatives: `$pbr-explore`, `$pbr-plan-phase 1`, `$pbr-new-milestone`, `$pbr-settings`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
 
 **Auto-mode chaining to first phase discussion:** If `config.mode === 'autonomous'`, after displaying the completion banner, automatically chain to the first phase discussion:
 - Display: "PBR > Auto-mode: advancing to phase 1 discussion..."
-- Write `.planning/.auto-next` with `$pbr-discuss 1` to trigger auto-continue hook
+- Write `.planning/.auto-next` with `$pbr-discuss-phase 1` to trigger auto-continue hook
 - If any stage in the auto-mode chain fails, stop the chain and report: "PBR > Auto-mode chain stopped: {stage} failed. Resume manually with `$pbr-{next_command}`."
 
 ---
@@ -851,7 +851,7 @@ Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phas
 If a researcher Task() fails or times out:
 - Note which topic wasn't researched
 - Continue with available research
-- Display: `⚠ Research on {topic} failed. Proceeding without it. You can re-research during $pbr-plan.`
+- Display: `⚠ Research on {topic} failed. Proceeding without it. You can re-research during $pbr-plan-phase.`
 
 ### User wants to restart
 If user says they want to start over mid-flow:
@@ -872,7 +872,7 @@ Cannot create .planning/ directory.
 
 ---
 
-## Files Created by $pbr-begin
+## Files Created by $pbr-new-project
 
 | File | Purpose | When |
 |------|---------|------|

@@ -66,7 +66,7 @@ conflicts: N              # integer count of contradictions found
 
 ## Contract: Planner -> Executor
 
-**File**: `.planning/phases/{NN}-{slug}/PLAN-{NN}.md`
+**File**: `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md`
 **Direction**: Planner writes, Executor reads and executes sequentially
 
 ### Required Frontmatter
@@ -111,7 +111,7 @@ requirement_ids: []
 
 ## Contract: Planner -> Plan-Checker
 
-**File**: Same `PLAN-{NN}.md` files (read-only)
+**File**: Same `{NN}-{MM}-PLAN.md` files (read-only)
 **Direction**: Planner writes, Plan-Checker reads and returns text assessment
 **Returns**: Inline text report (no file output)
 

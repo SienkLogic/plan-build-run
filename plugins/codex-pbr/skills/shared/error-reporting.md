@@ -26,27 +26,27 @@ Continue execution after showing a warning.
 
 ### Phase not found
 Message: "Phase {N} not found in ROADMAP.md."
-Fix: "Run `$pbr-status` to see available phases."
+Fix: "Run `$pbr-progress` to see available phases."
 
 ### Missing prerequisites (no REQUIREMENTS.md or ROADMAP.md)
 Message: "Project not initialized. Missing REQUIREMENTS.md or ROADMAP.md."
-Fix: "Run `$pbr-begin` first."
+Fix: "Run `$pbr-new-project` first."
 
 ### No plans found for phase
 Message: "Phase {N} has no plans."
-Fix: "Run `$pbr-plan {N}` first."
+Fix: "Run `$pbr-plan-phase {N}` first."
 
 ### Dependency phase not complete
 Message: "Phase {N} depends on Phase {M}, which is not complete."
-Fix: "Build Phase {M} first with `$pbr-build {M}`."
+Fix: "Build Phase {M} first with `$pbr-execute-phase {M}`."
 
 ### Planner agent failure
 Message: "Planner agent failed for Phase {N}."
-Fix: "Try again with `$pbr-plan {N} --skip-research`. Check `.planning/CONTEXT.md` for conflicting constraints."
+Fix: "Try again with `$pbr-plan-phase {N} --skip-research`. Check `.planning/CONTEXT.md` for conflicting constraints."
 
 ### Checker loops (3+ iterations without pass)
 Message: "Plan checker failed to pass after 3 revision iterations for Phase {N}."
-Fix: "Review the remaining issues below and decide whether to proceed or revise manually. Run `$pbr-plan {N}` to restart planning from scratch."
+Fix: "Review the remaining issues below and decide whether to proceed or revise manually. Run `$pbr-plan-phase {N}` to restart planning from scratch."
 After displaying: present remaining issues and ask user to decide (proceed or intervene).
 
 ### Research agent failure

@@ -1,6 +1,6 @@
 # Config Reference Guide
 
-Complete reference for `.planning/config.json` -- the file that controls all Plan-Build-Run workflow behavior. Created by `/pbr:begin`, modifiable via `/pbr:config` or direct editing. Validated against `config-schema.json`.
+Complete reference for `.planning/config.json` -- the file that controls all Plan-Build-Run workflow behavior. Created by `/pbr:new-project`, modifiable via `/pbr:settings` or direct editing. Validated against `config-schema.json`.
 
 ---
 
@@ -63,8 +63,8 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 | `inline_verify` | `false` | Per-task verification after each executor commit; adds ~10-20s latency per plan |
 
 **Notable interactions:**
-- `goal_verification: false` skips post-build verification; the build skill suggests running `/pbr:review` manually.
-- `auto_continue: true` writes `.planning/.auto-next` containing the next command (e.g., `/pbr:plan 4`).
+- `goal_verification: false` skips post-build verification; the build skill suggests running `/pbr:verify-work` manually.
+- `auto_continue: true` writes `.planning/.auto-next` containing the next command (e.g., `/pbr:plan-phase 4`).
 - `auto_advance: true` requires `mode: autonomous` to function. Hard stops at checkpoints, verification gaps, errors, and milestone boundaries.
 - `inline_verify: true` spawns a haiku-model verifier after each plan within a wave, catching issues before dependent plans run.
 - `session_phase_limit: N` (top-level) triggers auto-pause after N phases when `auto_continue: true`. In TMUX, the pause auto-cycles to a fresh session.
@@ -180,10 +180,10 @@ Confirmation gates that pause execution to ask the user before proceeding. Setti
 
 | Property | Default | When Triggered |
 |----------|---------|----------------|
-| `confirm_project` | `true` | Before creating a new PBR project (`/pbr:begin`) |
+| `confirm_project` | `true` | Before creating a new PBR project (`/pbr:new-project`) |
 | `confirm_roadmap` | `true` | Before finalizing a roadmap |
 | `confirm_plan` | `true` | Before finalizing plans for a phase |
-| `confirm_execute` | `false` | Before starting phase execution (`/pbr:build`) |
+| `confirm_execute` | `false` | Before starting phase execution (`/pbr:execute-phase`) |
 | `confirm_transition` | `true` | Before transitioning to the next phase |
 | `issues_review` | `true` | Before proceeding when issues are detected |
 
@@ -201,7 +201,7 @@ Safety controls for destructive or external operations.
 | `always_confirm_external_services` | boolean | `true` | Always ask before calling external APIs or services |
 | `enforce_phase_boundaries` | boolean | `true` | Prevent agents from working outside their assigned phase scope |
 
-The `always_confirm_destructive` and `always_confirm_external_services` flags cannot be disabled via `/pbr:config`; they require direct editing of `config.json` as a deliberate action.
+The `always_confirm_destructive` and `always_confirm_external_services` flags cannot be disabled via `/pbr:settings`; they require direct editing of `config.json` as a deliberate action.
 
 ---
 
@@ -281,9 +281,9 @@ Controls how many phases PBR completes in a single session before suggesting a p
 | Value | Behavior |
 |-------|----------|
 | `0` | Disabled -- PBR never auto-pauses for session cycling |
-| `1`-`20` | After completing this many phases, PBR writes `/pbr:pause` to `.auto-next` and triggers a session cycle |
+| `1`-`20` | After completing this many phases, PBR writes `/pbr:pause-work` to `.auto-next` and triggers a session cycle |
 
-**Interaction with TMUX:** When running inside a TMUX session, the auto-pause automatically sends `/clear` and `/pbr:resume` to the current pane after a 3-second delay, creating a seamless session cycle. Outside TMUX, a banner instructs the user to manually run `/clear` then `/pbr:resume`.
+**Interaction with TMUX:** When running inside a TMUX session, the auto-pause automatically sends `/clear` and `/pbr:resume-work` to the current pane after a 3-second delay, creating a seamless session cycle. Outside TMUX, a banner instructs the user to manually run `/clear` then `/pbr:resume-work`.
 
 **Tracking:** Phase completions are tracked in `.planning/.session-tracker` (reset each session start). The counter increments when an executor subagent completes successfully.
 
@@ -450,7 +450,7 @@ Hands-free execution with no gates and automatic phase chaining. Suitable for CI
 
 ## Global Defaults File
 
-PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.json`. When creating a new project via `/pbr:begin` or `/pbr:config` Quick Start, these defaults pre-populate configuration fields instead of hardcoded values.
+PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.json`. When creating a new project via `/pbr:new-project` or `/pbr:settings` Quick Start, these defaults pre-populate configuration fields instead of hardcoded values.
 
 **Location:** `~/.claude/pbr-defaults.json` (created by `config save-defaults`)
 
@@ -470,7 +470,7 @@ PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.js
 
 Run validation with: `node plugins/pbr/scripts/pbr-tools.js config validate`
 
-**"config.json not found"** -- No `.planning/config.json` exists. Run `/pbr:begin` to create one, or create the file manually.
+**"config.json not found"** -- No `.planning/config.json` exists. Run `/pbr:new-project` to create one, or create the file manually.
 
 **"config.json is not valid JSON"** -- Syntax error in the JSON file. Check for trailing commas, missing quotes, or unescaped characters.
 
