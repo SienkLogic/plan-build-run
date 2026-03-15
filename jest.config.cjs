@@ -8,14 +8,13 @@ module.exports = {
     'generate-derivatives\\.test\\.js',
     'phase01-foundation-artifacts\\.test\\.js',
   ],
-  // Coverage thresholds calibrated to ported test suite (2026-03-09)
-  // Original target: 70/65/70/70 -- actual after port: 60/57/64/61
+  // Coverage thresholds — 70% minimum for all metrics (quick-001)
   coverageThreshold: {
     global: {
-      statements: 58,
-      branches: 54,
-      functions: 62,
-      lines: 58,
+      statements: 70,
+      branches: 68,
+      functions: 70,
+      lines: 70,
     },
   },
   testMatch: ['**/tests/**/*.test.js'],
