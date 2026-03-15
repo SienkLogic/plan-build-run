@@ -123,6 +123,8 @@ Have a natural conversation to understand the user's vision. Do NOT present a fo
 - Reveal motivation: "Why does that matter?"
 - Avoid leading questions — let the user define their vision
 
+**Depth target:** Aim for 10-20+ conversational exchanges. The first 3-5 exchanges establish the broad vision. The next 5-10 sharpen it into concrete requirements. The remaining exchanges surface edge cases, concerns, and constraints that prevent expensive rework later. Do NOT rush to "I understand" — shallow questioning creates shallow plans.
+
 **Keep going until you have:**
 - A clear, concrete understanding of what they want to build
 - At least 3 specific success criteria
