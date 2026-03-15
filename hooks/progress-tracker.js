@@ -19,6 +19,7 @@ const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
 const { sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
 const { ensureSessionDir, cleanStaleSessions } = require('../plan-build-run/bin/lib/core.cjs');
 const { resolveConfig, checkHealth, warmUp } = require('../plan-build-run/bin/lib/local-llm/index.cjs');
+const { syncContextToClaude } = require('./sync-context-to-claude');
 
 function readStdin() {
   try {
@@ -99,6 +100,9 @@ async function main() {
 
   const context = buildContext(planningDir, stateFile);
 
+  // Sync CONTEXT.md locked decisions to CLAUDE.md (idempotent, advisory)
+  try { syncContextToClaude(cwd); } catch (_e) { /* never block SessionStart */ }
+
   // Auto-launch dashboard if configured
   const config = configLoad(planningDir);
   if (config && config.dashboard && config.dashboard.auto_launch) {
@@ -173,38 +177,45 @@ function buildContext(planningDir, stateFile) {
 
   parts.push('[Plan-Build-Run Project Detected]');
 
-  // Git context
-  try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
-    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
-    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
-    const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
-    parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
-    if (recentCommits) {
-      parts.push(`Recent commits:\n${recentCommits}`);
-    }
-  } catch (_e) {
-    // Not a git repo or git not available — skip
-  }
+  // ── Critical path: STATE.md first (most important context) ──
+
+  // Read STATE.md once and cache for reuse in advisory checks below
+  let stateContent = null;
 
   // Read STATE.md if it exists
   if (fs.existsSync(stateFile)) {
     const state = fs.readFileSync(stateFile, 'utf8');
+    stateContent = state;
 
-    // Extract key sections
+    // Extract key sections using PBR symbol vocabulary
     const position = extractSection(state, 'Current Position');
     if (position) {
-      parts.push(`\nPosition:\n${position}`);
+      // Parse structured fields from position section
+      const phaseMatch = position.match(/Phase:\s*(\d+)\s+of\s+(\d+)\s*(?:\(([^)]+)\))?/i);
+      const statusMatch2 = position.match(/Status:\s*(\w+)/i);
+      const plansMatch = position.match(/Plans?:\s*(\d+)\/(\d+)/i);
+      if (phaseMatch) {
+        const phaseName = phaseMatch[3] ? phaseMatch[3].trim() : '';
+        const statusStr = statusMatch2 ? statusMatch2[1] : '';
+        const plansStr = plansMatch ? `Plans: ${plansMatch[1]}/${plansMatch[2]}` : '';
+        const details = [statusStr, plansStr].filter(Boolean).join(' │ ');
+        parts.push(`\n◆ Phase ${phaseMatch[1]}/${phaseMatch[2]}${phaseName ? ': ' + phaseName.charAt(0).toUpperCase() + phaseName.slice(1) : ''}`);
+        if (details) parts.push(`  ${details}`);
+      } else {
+        parts.push(`\n◆ ${position.split('\n')[0]}`);
+      }
     }
 
     const blockers = extractSection(state, 'Blockers/Concerns');
     if (blockers && !blockers.includes('None')) {
-      parts.push(`\nBlockers:\n${blockers}`);
+      parts.push(`⚠ Blockers: ${blockers.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
     }
 
     const continuity = extractSection(state, 'Session Continuity');
     if (continuity) {
-      parts.push(`\nLast Session:\n${continuity}`);
+      // Compact last session info with checkmark prefix
+      const lastLine = continuity.split('\n').map(l => l.trim()).filter(Boolean).join(' │ ');
+      parts.push(`✓ Last: ${lastLine}`);
     }
 
     // Detect stale "Building" status — likely a crashed executor
@@ -219,7 +230,7 @@ function buildContext(planningDir, stateFile) {
           try {
             const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
             stateUpdate(planningDir, { status: 'planned' });
-            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:build to retry.`);
+            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
             logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
           } catch (_repairErr) {
             parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
@@ -229,7 +240,7 @@ function buildContext(planningDir, stateFile) {
       } catch (_e) { /* best-effort */ }
     }
   } else {
-    parts.push('\nNo STATE.md found. Run /pbr:begin to initialize or /pbr:status to check.');
+    parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
   }
 
   // Check for .continue-here.md files
@@ -238,9 +249,32 @@ function buildContext(planningDir, stateFile) {
     const continueFiles = findContinueFiles(phasesDir);
     if (continueFiles.length > 0) {
       parts.push(`\nPaused work found: ${continueFiles.join(', ')}`);
-      parts.push('Run /pbr:resume to pick up where you left off.');
+      parts.push('Run /pbr:resume-work to pick up where you left off.');
     }
   }
+
+  // ── Git context (single combined command instead of 3 separate calls) ──
+  try {
+    // Combine branch + status + log into one shell invocation to halve startup overhead
+    const gitInfo = execSync(
+      'git rev-parse --abbrev-ref HEAD && git status --porcelain && echo "---GIT-LOG---" && git log -5 --oneline',
+      { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    const logSep = gitInfo.indexOf('---GIT-LOG---');
+    const preLog = logSep >= 0 ? gitInfo.substring(0, logSep).trim() : gitInfo;
+    const postLog = logSep >= 0 ? gitInfo.substring(logSep + '---GIT-LOG---'.length).trim() : '';
+    const preLines = preLog.split('\n');
+    const branch = preLines[0] || 'unknown';
+    const uncommitted = preLines.length > 1 ? preLines.length - 1 : 0;
+    parts.push(`\n  Git: ${branch} │ ${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''}`);
+    if (postLog) {
+      parts.push(`Recent commits:\n${postLog}`);
+    }
+  } catch (_e) {
+    // Not a git repo or git not available — skip
+  }
+
+  // ── Advisory checks (non-critical, lower priority) ──
 
   // Check for config and validate
   const config = configLoad(planningDir);
@@ -273,15 +307,14 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\nNotes: ${noteParts.join(', ')}. \`/pbr:note list\` to review.`);
   }
 
-  // Check ROADMAP/STATE sync (S>M-2)
+  // Check ROADMAP/STATE sync (S>M-2) — reuses cached stateContent
   const roadmapFile = path.join(planningDir, 'ROADMAP.md');
-  if (fs.existsSync(stateFile) && fs.existsSync(roadmapFile)) {
+  if (stateContent && fs.existsSync(roadmapFile)) {
     try {
       const roadmap = fs.readFileSync(roadmapFile, 'utf8');
-      const state = fs.readFileSync(stateFile, 'utf8');
 
-      // Extract current phase from STATE.md
-      const phaseMatch = state.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+      // Extract current phase from cached STATE.md
+      const phaseMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
       if (phaseMatch) {
         const currentPhase = parseInt(phaseMatch[1], 10);
         // Check if ROADMAP shows this phase as already verified/complete
@@ -363,7 +396,7 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\nLearnings deferral triggers ready:\n${learningsThresholds.join('\n')}`);
   }
 
-  parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan N\n- Build from a plan → /pbr:build N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
+  parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
 }
@@ -405,8 +438,13 @@ function countNotes(notesDir) {
     const files = fs.readdirSync(notesDir).filter(f => f.endsWith('.md'));
     let count = 0;
     for (const file of files) {
-      const content = fs.readFileSync(path.join(notesDir, file), 'utf8');
-      if (!content.includes('promoted: true')) count++;
+      // Only read frontmatter (first 200 bytes) — promoted: true is in YAML header
+      const fd = fs.openSync(path.join(notesDir, file), 'r');
+      const buf = Buffer.alloc(200);
+      const bytesRead = fs.readSync(fd, buf, 0, 200, 0);
+      fs.closeSync(fd);
+      const header = buf.toString('utf8', 0, bytesRead);
+      if (!header.includes('promoted: true')) count++;
     }
     return count;
   } catch (_e) {
@@ -474,7 +512,18 @@ function tryLaunchDashboard(port, _planningDir, projectDir) {
   });
   probe.on('error', () => {
     // Port is free — launch dashboard
-    const cliPath = path.join(__dirname, '..', 'dashboard', 'bin', 'cli.js');
+    // Dashboard lives in the PBR source repo, not the project. Resolve via manifest.
+    let cliPath = path.join(__dirname, '..', 'dashboard', 'bin', 'cli.cjs');
+    if (!fs.existsSync(cliPath)) {
+      // Fallback: read sourceDir from install manifest
+      try {
+        const manifestPath = path.join(projectDir, '.claude', 'pbr-file-manifest.json');
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (manifest.sourceDir) {
+          cliPath = path.join(manifest.sourceDir, 'dashboard', 'bin', 'cli.cjs');
+        }
+      } catch (_e) { /* manifest missing or unreadable */ }
+    }
     if (!fs.existsSync(cliPath)) {
       logHook('progress-tracker', 'SessionStart', 'dashboard-cli-missing', { cliPath });
       return;
@@ -531,25 +580,27 @@ function tryLaunchHookServer(config, planningDir) {
       if (process.platform === 'win32') {
         // On Windows, Node's detached: true doesn't escape the parent's Job Object.
         // Claude Code uses a Job Object with KILL_ON_JOB_CLOSE, so all child
-        // processes die when the session recycles. WMIC process call create
+        // processes die when the session recycles. PowerShell Start-Process
         // spawns a truly independent process outside any Job Object.
-        const { execSync } = require('child_process');
-        const cmdLine = `"${process.execPath}" "${serverPath}" --port ${port} --dir "${planningDir}"`;
+        const nodeExe = process.execPath.replace(/\\/g, '\\\\');
+        const serverArg = serverPath.replace(/\\/g, '\\\\');
+        const dirArg = planningDir.replace(/\\/g, '\\\\');
+        const psCmd = `Start-Process -FilePath '${nodeExe}' -ArgumentList '"""${serverArg}""" --port ${port} --dir """${dirArg}"""' -WindowStyle Hidden -PassThru | Select-Object -ExpandProperty Id`;
         try {
-          const wmicOut = execSync(`wmic process call create "${cmdLine.replace(/"/g, '\\"')}"`, {
-            timeout: 5000, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+          const psOut = execSync(`powershell -NoProfile -Command "${psCmd}"`, {
+            timeout: 10000, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
             windowsHide: true
           });
-          const pidMatch = wmicOut.match(/ProcessId\s*=\s*(\d+)/);
+          const pid = parseInt(psOut.trim(), 10) || null;
           logHook('progress-tracker', 'SessionStart', 'hook-server-launched', {
-            port, pid: pidMatch ? parseInt(pidMatch[1], 10) : null, method: 'wmic'
+            port, pid, method: 'powershell'
           });
-        } catch (wmicErr) {
+        } catch (psErr) {
           logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', {
-            error: wmicErr.message, method: 'wmic'
+            error: psErr.message, method: 'powershell'
           });
         }
-        return; // wmic doesn't return a child handle — skip unref below
+        return; // PowerShell doesn't return a child handle — skip unref below
       } else {
         child = spawn(process.execPath, [serverPath, '--port', String(port), '--dir', planningDir], {
           detached: true,

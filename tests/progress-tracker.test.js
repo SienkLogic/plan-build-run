@@ -62,8 +62,8 @@ describe('progress-tracker.js', () => {
 
     const output = run();
     const parsed = JSON.parse(output);
-    expect(parsed.additionalContext).toContain('Phase: 3 of 8 (API)');
-    expect(parsed.additionalContext).toContain('Status: built');
+    expect(parsed.additionalContext).toContain('Phase 3/8: API');
+    expect(parsed.additionalContext).toContain('built');
   });
 
   test('extracts Blockers when not "None"', () => {
@@ -95,7 +95,7 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('No STATE.md found');
-    expect(parsed.additionalContext).toContain('/pbr:begin');
+    expect(parsed.additionalContext).toContain('/pbr:new-project');
   });
 
   test('reads config.json depth and mode', () => {
@@ -128,13 +128,13 @@ describe('progress-tracker.js', () => {
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('Paused work found');
-    expect(parsed.additionalContext).toContain('/pbr:resume');
+    expect(parsed.additionalContext).toContain('/pbr:resume-work');
   });
 
   test('detects stale .auto-next signal older than 10 minutes', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
     const signalPath = path.join(planningDir, '.auto-next');
-    fs.writeFileSync(signalPath, '/pbr:build 1');
+    fs.writeFileSync(signalPath, '/pbr:execute-phase 1');
 
     // Backdate the file modification time by 15 minutes
     const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000);
@@ -147,7 +147,7 @@ describe('progress-tracker.js', () => {
 
   test('does not warn about fresh .auto-next signal', () => {
     writeState('# State\n\n## Current Position\nPhase: 1 of 3\n');
-    fs.writeFileSync(path.join(planningDir, '.auto-next'), '/pbr:build 1');
+    fs.writeFileSync(path.join(planningDir, '.auto-next'), '/pbr:execute-phase 1');
     // Fresh file -- no backdating
 
     const output = run();
@@ -162,7 +162,7 @@ describe('progress-tracker.js', () => {
     const parsed = JSON.parse(output);
     expect(parsed.additionalContext).toContain('PBR WORKFLOW REQUIRED');
     expect(parsed.additionalContext).toContain('/pbr:quick');
-    expect(parsed.additionalContext).toContain('/pbr:build');
+    expect(parsed.additionalContext).toContain('/pbr:execute-phase');
     expect(parsed.additionalContext).toContain('/pbr:do');
   });
 
@@ -205,8 +205,9 @@ describe('progress-tracker.js', () => {
 
     const output = run();
     const parsed = JSON.parse(output);
-    // Should contain lines 1-5 but not 6-10
-    expect(parsed.additionalContext).toContain('Line 5');
+    // Position section is now compacted with PBR symbols — first line is used as fallback
+    // extractSection still limits to 5 lines internally
+    expect(parsed.additionalContext).toContain('Line 1');
     expect(parsed.additionalContext).not.toContain('Line 6');
   });
 
@@ -242,7 +243,7 @@ Resume file: None
     const output = run();
     const parsed = JSON.parse(output);
     const ctx = parsed.additionalContext;
-    expect(ctx).toContain('Phase: 5 of 10');
+    expect(ctx).toContain('Phase 5/10: Dashboard');
     expect(ctx).not.toContain('Use PostgreSQL');
     expect(ctx).not.toContain('JWT for auth');
     expect(ctx).not.toContain('15 more old decisions');
