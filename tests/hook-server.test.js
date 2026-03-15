@@ -159,8 +159,8 @@ describe('hook-server.js integration', () => {
     expect(parsed.error).toBeDefined();
   });
 
-  test('POST /hook appends event to .hook-events.jsonl', async () => {
-    const logPath = path.join(planningDir, '.hook-events.jsonl');
+  test('POST /hook appends event to logs/hooks.jsonl', async () => {
+    const logPath = path.join(planningDir, 'logs/hooks.jsonl');
 
     // Remove the log if it exists so we have a clean baseline
     try { fs.unlinkSync(logPath); } catch (_e) { /* ok */ }
@@ -209,14 +209,14 @@ describe('hook-server.js exports', () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('appendEvent writes JSONL line to .hook-events.jsonl', () => {
+  test('appendEvent writes JSONL line to logs/hooks.jsonl', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-append-test-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
 
     appendEvent(planningDir, { ts: '2026-01-01T00:00:00Z', event: 'test' });
 
-    const logPath = path.join(planningDir, '.hook-events.jsonl');
+    const logPath = path.join(planningDir, 'logs/hooks.jsonl');
     expect(fs.existsSync(logPath)).toBe(true);
     const line = fs.readFileSync(logPath, 'utf8').trim();
     const parsed = JSON.parse(line);
@@ -284,13 +284,15 @@ describe('hook-server.js exports', () => {
   // -------------------------------------------------------------------------
 
   test('readEventLogTail returns empty array when file does not exist', () => {
-    const result = readEventLogTail('/nonexistent/path/.hook-events.jsonl', 10);
+    const result = readEventLogTail('/nonexistent/path/logs/hooks.jsonl', 10);
     expect(result).toEqual([]);
   });
 
   test('readEventLogTail returns empty array when file is empty', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
-    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const logsDir = path.join(tmpDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logFile = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logFile, '', 'utf8');
     const result = readEventLogTail(logFile, 10);
     expect(result).toEqual([]);
@@ -299,7 +301,9 @@ describe('hook-server.js exports', () => {
 
   test('readEventLogTail parses valid JSONL lines', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
-    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const logsDir = path.join(tmpDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logFile = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logFile, '{"event":"A"}\n{"event":"B"}\n', 'utf8');
     const result = readEventLogTail(logFile, 10);
     expect(result).toHaveLength(2);
@@ -310,7 +314,9 @@ describe('hook-server.js exports', () => {
 
   test('readEventLogTail skips malformed lines', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
-    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const logsDir = path.join(tmpDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logFile = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logFile, '{"event":"A"}\nnot-json\n{"event":"C"}\n', 'utf8');
     const result = readEventLogTail(logFile, 10);
     expect(result).toHaveLength(2);
@@ -321,7 +327,9 @@ describe('hook-server.js exports', () => {
 
   test('readEventLogTail respects maxLines limit', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
-    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const logsDir = path.join(tmpDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logFile = path.join(logsDir, 'hooks.jsonl');
     const lines = ['{"event":"1"}', '{"event":"2"}', '{"event":"3"}', '{"event":"4"}', '{"event":"5"}'];
     fs.writeFileSync(logFile, lines.join('\n') + '\n', 'utf8');
     const result = readEventLogTail(logFile, 3);
@@ -333,7 +341,9 @@ describe('hook-server.js exports', () => {
 
   test('readEventLogTail uses default maxLines of 500 when not provided', () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-evtlog-test-'));
-    const logFile = path.join(tmpDir, '.hook-events.jsonl');
+    const logsDir = path.join(tmpDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logFile = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logFile, '{"event":"X"}\n', 'utf8');
     // No second arg — exercises the undefined branch
     const result = readEventLogTail(logFile);
@@ -403,7 +413,9 @@ describe('hook-server.js exports', () => {
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
     // Write a log file with a few events
-    const logPath = path.join(planningDir, '.hook-events.jsonl');
+    const logsDir = path.join(planningDir, 'logs');
+    fs.mkdirSync(logsDir);
+    const logPath = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logPath, '{"event":"test","activeSkill":"plan"}\n{"event":"server_start"}\n', 'utf8');
     const server = createServer(planningDir);
     server.listen(0, '127.0.0.1', () => {
@@ -518,7 +530,7 @@ describe('hook-server.js exports', () => {
           expect(res.statusCode).toBe(200);
           // Verify the log file was written with the file entry
           setTimeout(() => {
-            const logPath = path.join(planningDir, '.hook-events.jsonl');
+            const logPath = path.join(planningDir, 'logs/hooks.jsonl');
             if (fs.existsSync(logPath)) {
               const logContent = fs.readFileSync(logPath, 'utf8');
               expect(logContent).toContain('important.md');

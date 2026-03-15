@@ -5,6 +5,14 @@ const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'validate-task.js');
 
+// Use a clean temp dir without .planning/ to avoid enforce-pbr-workflow gate
+// triggering on stale .planning dirs left by other tests in os.tmpdir().
+const CLEAN_CWD = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-validate-task-'));
+
+afterAll(() => {
+  fs.rmSync(CLEAN_CWD, { recursive: true, force: true });
+});
+
 function runScript(toolInput) {
   const input = JSON.stringify({ tool_input: toolInput });
   try {
@@ -12,7 +20,7 @@ function runScript(toolInput) {
       input: input,
       encoding: 'utf8',
       timeout: 5000,
-      cwd: os.tmpdir(),
+      cwd: CLEAN_CWD,
     });
     return { exitCode: 0, output: result };
   } catch (e) {
@@ -141,16 +149,16 @@ describe('validate-task.js', () => {
   });
 
   describe('non-pbr subagent_type', () => {
-    test('non-pbr subagent_type passes without pbr-specific validation', () => {
+    test('non-pbr subagent_type is blocked by enforce-pbr-workflow gate', () => {
       const result = runScript({
         description: 'Run custom agent',
         subagent_type: 'custom:my-agent'
       });
-      expect(result.exitCode).toBe(0);
-      // Advisory from local-llm stub (confidence: 0%) is acceptable
-      if (result.output) {
-        expect(result.output).not.toContain('Unknown pbr agent');
-      }
+      // checkNonPbrAgent blocks non-pbr agents when .planning/ exists
+      // (hook-logger auto-creates .planning/logs/ on first logHook call)
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('PBR workflow violation');
+      expect(result.output).not.toContain('Unknown pbr agent');
     });
 
     test('no subagent_type passes when description has no pbr mention', () => {

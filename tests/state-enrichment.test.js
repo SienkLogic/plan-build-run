@@ -179,7 +179,9 @@ describe('GET /context endpoint', () => {
       { ts: '2026-01-01T00:02:00Z', event: 'PostToolUse', tool: 'Read', activeSkill: 'build' },
       { ts: '2026-01-01T00:03:00Z', type: 'server_start' }
     ];
-    const logPath = path.join(planningDir, '.hook-events.jsonl');
+    const logsDir = path.join(planningDir, 'logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    const logPath = path.join(logsDir, 'hooks.jsonl');
     fs.writeFileSync(logPath, sampleEvents.map(e => JSON.stringify(e)).join('\n') + '\n', 'utf8');
 
     server = await startServer(planningDir, TEST_PORT);
