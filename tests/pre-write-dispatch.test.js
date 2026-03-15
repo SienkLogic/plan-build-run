@@ -187,6 +187,36 @@ describe('pre-write-dispatch.js', () => {
     });
   });
 
+  describe('missing .planning/ directory', () => {
+    test('exits 0 gracefully when .planning/ does not exist', () => {
+      const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pwd-noplan-')));
+      // No .planning/ subdirectory created
+      const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'app.ts') });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('cross-platform path handling', () => {
+    test('soft warning extracts phase number from backslash-separated path', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+      const phasesDir = path.join(planningDir, 'phases');
+      fs.mkdirSync(path.join(phasesDir, '02-auth'), { recursive: true });
+
+      // Build a backslash-style path into phase 02
+      const filePath = path.join(phasesDir, '02-auth', 'PLAN.md').replace(/\//g, '\\');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      if (result.output) {
+        const parsed = JSON.parse(result.output);
+        expect(parsed.additionalContext).toContain('phase 2');
+        expect(parsed.additionalContext).toContain('current phase is 1');
+      }
+      cleanup(tmpDir);
+    });
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = makeTmpDir();
     try {
