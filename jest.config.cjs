@@ -6,6 +6,7 @@ module.exports = {
     'cursor-plugin-validation\\.test\\.js',
     'check-cross-plugin-sync\\.test\\.js',
     'generate-derivatives\\.test\\.js',
+    'phase01-foundation-artifacts\\.test\\.js',
   ],
   // Coverage thresholds calibrated to ported test suite (2026-03-09)
   // Original target: 70/65/70/70 -- actual after port: 60/57/64/61
