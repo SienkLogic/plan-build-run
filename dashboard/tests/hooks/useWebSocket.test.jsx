@@ -84,6 +84,29 @@ describe('useWebSocket', () => {
     expect(result.current.status).toBe('reconnecting');
   });
 
+  it('receives file-change messages from file-watcher', async () => {
+    const { result } = renderHook(() => useWebSocket('ws://localhost:3141/ws'));
+
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+    });
+
+    const ws = MockWebSocket.instances[0];
+    const fileChangeEvent = {
+      type: 'phase',
+      source: 'file-watcher',
+      msg: 'change: STATE.md',
+    };
+
+    act(() => {
+      ws.onmessage({ data: JSON.stringify(fileChangeEvent) });
+    });
+
+    expect(result.current.events).toHaveLength(1);
+    expect(result.current.events[0]).toEqual(fileChangeEvent);
+    expect(result.current.events[0].source).toBe('file-watcher');
+  });
+
   it('clearEvents empties the events array', async () => {
     const { result } = renderHook(() => useWebSocket('ws://localhost:3141/ws'));
 
