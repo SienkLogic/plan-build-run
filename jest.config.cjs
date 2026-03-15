@@ -24,5 +24,13 @@ module.exports = {
     'plan-build-run/bin/lib/**/*.cjs',
     'hooks/**/*.js',
     '!hooks/dist/**',
+    // Subprocess-only hooks: tested via execSync integration tests (see corresponding *.test.js)
+    // but cannot contribute in-process branch coverage. Excluded to avoid inflating denominator.
+    '!hooks/auto-continue.js',
+    '!hooks/block-skill-self-read.js',
+    '!hooks/intercept-plan-mode.js',
+    '!hooks/pre-bash-dispatch.js',
+    '!hooks/pre-write-dispatch.js',
+    '!hooks/run-hook.js',
   ],
 };

@@ -175,3 +175,172 @@ describe('configValidate', () => {
     process.cwd.mockRestore();
   });
 });
+
+const {
+  configResolveDepth,
+  configLoadDefaults,
+  configSaveDefaults,
+  configGet,
+  configSet,
+} = require('../plan-build-run/bin/lib/config.cjs');
+
+describe('configResolveDepth', () => {
+  test('defaults to standard depth', () => {
+    const result = configResolveDepth({});
+    expect(result.depth).toBe('standard');
+    expect(result.profile).toBeDefined();
+  });
+
+  test('resolves quick depth', () => {
+    const result = configResolveDepth({ depth: 'quick' });
+    expect(result.depth).toBe('quick');
+    expect(result.profile['features.research_phase']).toBe(false);
+  });
+
+  test('resolves comprehensive depth', () => {
+    const result = configResolveDepth({ depth: 'comprehensive' });
+    expect(result.depth).toBe('comprehensive');
+    expect(result.profile['features.inline_verify']).toBe(true);
+  });
+
+  test('resolves research-heavy depth', () => {
+    const result = configResolveDepth({ depth: 'research-heavy' });
+    expect(result.depth).toBe('research-heavy');
+    expect(result.profile['scan.mapper_count']).toBe(6);
+  });
+
+  test('merges user overrides', () => {
+    const result = configResolveDepth({
+      depth: 'standard',
+      depth_profiles: {
+        standard: { 'scan.mapper_count': 8 }
+      }
+    });
+    expect(result.profile['scan.mapper_count']).toBe(8);
+  });
+
+  test('handles string arg (planningDir)', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'quick' }));
+    const result = configResolveDepth(planningDir);
+    expect(result.depth).toBe('quick');
+  });
+
+  test('falls back to standard for unknown depth', () => {
+    const result = configResolveDepth({ depth: 'nonexistent' });
+    expect(result.depth).toBe('nonexistent');
+    // Should use standard defaults as fallback
+    expect(result.profile).toBeDefined();
+  });
+});
+
+describe('configLoadDefaults', () => {
+  test('returns hardcoded defaults when no config', () => {
+    const result = configLoadDefaults(planningDir);
+    expect(result.mode).toBe('interactive');
+    expect(result.depth).toBe('standard');
+  });
+
+  test('returns config when it exists', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'deep', mode: 'autonomous' }));
+    const result = configLoadDefaults(planningDir);
+    expect(result.depth).toBe('deep');
+  });
+});
+
+describe('configSaveDefaults', () => {
+  test('saves config to disk', () => {
+    configSaveDefaults(planningDir, { depth: 'test' });
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.depth).toBe('test');
+  });
+});
+
+describe('configGet', () => {
+  test('gets top-level value', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard', mode: 'interactive' }));
+    configClearCache();
+    expect(configGet(planningDir, 'depth')).toBe('standard');
+  });
+
+  test('gets nested value', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { research_phase: true } }));
+    configClearCache();
+    expect(configGet(planningDir, 'features.research_phase')).toBe(true);
+  });
+
+  test('returns undefined for missing key', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard' }));
+    configClearCache();
+    expect(configGet(planningDir, 'nonexistent')).toBeUndefined();
+  });
+
+  test('returns undefined for deep missing key', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard' }));
+    configClearCache();
+    expect(configGet(planningDir, 'a.b.c')).toBeUndefined();
+  });
+
+  test('returns undefined when no config', () => {
+    configClearCache();
+    expect(configGet(planningDir, 'depth')).toBeUndefined();
+  });
+
+  test('returns undefined for null keyPath', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
+    configClearCache();
+    expect(configGet(planningDir, null)).toBeUndefined();
+  });
+});
+
+describe('configSet', () => {
+  test('sets top-level value', () => {
+    configClearCache();
+    configSet(planningDir, 'depth', 'quick');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.depth).toBe('quick');
+  });
+
+  test('sets nested value', () => {
+    configClearCache();
+    configSet(planningDir, 'features.research', 'true');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.features.research).toBe(true);
+  });
+
+  test('converts string booleans', () => {
+    configClearCache();
+    configSet(planningDir, 'flag', 'false');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.flag).toBe(false);
+  });
+
+  test('converts string numbers', () => {
+    configClearCache();
+    configSet(planningDir, 'count', '42');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.count).toBe(42);
+  });
+
+  test('creates nested objects as needed', () => {
+    configClearCache();
+    configSet(planningDir, 'a.b.c', 'deep');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.a.b.c).toBe('deep');
+  });
+
+  test('handles existing config', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ existing: 'value' }));
+    configClearCache();
+    configSet(planningDir, 'new_key', 'new_value');
+    const saved = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(saved.existing).toBe('value');
+    expect(saved.new_key).toBe('new_value');
+  });
+});
