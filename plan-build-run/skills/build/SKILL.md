@@ -221,6 +221,8 @@ This returns a JSON object with `plans` (array with plan_id, wave, depends_on, a
    - Dependencies (depends_on)
    - Whether autonomous
 4. Sort plans by plan number
+4b. Validate plan numbering: check that plan IDs follow {NN}-{MM} pattern where MM values are contiguous starting from 01. If gaps found (e.g., 04-01, 04-03 but no 04-02), display: "Non-contiguous plan numbering: missing plan(s) {list}. This is allowed but may indicate deleted plans. Continuing with found plans."
+5. **Plan count validation**: After listing all plans, display the count: "Found {N} plan(s) in {W} wave(s) for Phase {P}." If N is 0, display the branded error (already exists at line 226-227). If N > 10, display a warning: "Large phase: {N} plans found. Consider splitting this phase for faster iteration."
 
 **If no plans match filters:**
 - With `--gaps-only`: "No gap-closure plans found. Run `/pbr:plan-phase {N} --gaps` first."
@@ -297,6 +299,8 @@ This tracks execution for crash recovery and rollback. Read `.checkpoint-manifes
 4. If the plan IS in `checkpoints_resolved`, the progress file is stale — delete it.
 
 For each wave, in order (Wave 1, then Wave 2, etc.):
+
+Before spawning Wave {W} executors (for W > 1), verify all Wave {W-1} plans completed successfully by checking SUMMARY-{plan_id}.md existence and status. If any Wave {W-1} plan failed, stop and report: "Wave {W-1} plan {plan_id} failed. Cannot proceed to Wave {W}. Run `/pbr:execute-phase {N}` to retry."
 
 #### 6a. Spawn Executors
 
@@ -771,6 +775,13 @@ node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs roadmap update-plans {phase} {compl
 node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs roadmap update-status {phase} {final_status}
 ```
 These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`. Falls back to manual editing if unavailable.
+
+**Safety net — call `phase complete` if ALL plans succeeded:**
+If `{completed} == {total}` (all plans built successfully) AND the executor agents did not already call `phase complete`:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs phase complete {phase}
+```
+This is idempotent — safe to call even if the executor already ran it. It ensures the ROADMAP.md checklist and progress table are updated to "Complete" status regardless of whether individual executor agents properly detected they were the final plan.
 
 1. Open `.planning/ROADMAP.md`
 2. Find the `## Progress` table
