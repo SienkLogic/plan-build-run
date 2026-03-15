@@ -59,6 +59,23 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
   });
 
+  test('exits silently when config.json exists but features key is missing entirely', () => {
+    // Write config with no features key at all — REQ-F-019 edge case
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard' })
+    );
+    const output = run();
+    expect(output).toBe('');
+  });
+
+  test('exits silently when config.json is malformed JSON', () => {
+    // Write invalid JSON — configLoad should return null, script exits gracefully
+    fs.writeFileSync(path.join(planningDir, 'config.json'), '{bad json');
+    const output = run();
+    expect(output).toBe('');
+  });
+
   test('exits with no-signal log when no .auto-next file', () => {
     writeConfig();
     const output = run();
@@ -75,17 +92,17 @@ describe('auto-continue.js', () => {
 
   test('reads signal file and outputs block decision with next command', () => {
     writeConfig();
-    writeSignal('/pbr:build 3');
+    writeSignal('/pbr:execute-phase 3');
 
     const output = run();
     const parsed = JSON.parse(output);
     expect(parsed.decision).toBe('block');
-    expect(parsed.reason).toContain('/pbr:build 3');
+    expect(parsed.reason).toContain('/pbr:execute-phase 3');
   });
 
   test('exits silently when stop_hook_active is true (prevents infinite loops)', () => {
     writeConfig();
-    writeSignal('/pbr:build 3');
+    writeSignal('/pbr:execute-phase 3');
 
     const output = run(JSON.stringify({ stop_hook_active: true }));
     expect(output).toBe('');
@@ -97,7 +114,7 @@ describe('auto-continue.js', () => {
 
   test('deletes signal file after reading (one-shot)', () => {
     writeConfig();
-    writeSignal('/pbr:review 2');
+    writeSignal('/pbr:verify-work 2');
 
     run();
 
@@ -129,7 +146,7 @@ describe('auto-continue.js', () => {
 
   test('logs continue decision with next command', () => {
     writeConfig();
-    writeSignal('/pbr:plan 4');
+    writeSignal('/pbr:plan-phase 4');
 
     run();
 
@@ -138,7 +155,7 @@ describe('auto-continue.js', () => {
     const entry = JSON.parse(lines[lines.length - 1]);
     expect(entry.hook).toBe('auto-continue');
     expect(entry.decision).toBe('continue');
-    expect(entry.next).toBe('/pbr:plan 4');
+    expect(entry.next).toBe('/pbr:plan-phase 4');
   });
 
   test('does not crash when .planning dir is missing', () => {
@@ -151,13 +168,13 @@ describe('auto-continue.js', () => {
   describe('session length guard', () => {
     test('increments continue count on each continue', () => {
       writeConfig();
-      writeSignal('/pbr:build 1');
+      writeSignal('/pbr:execute-phase 1');
       run();
       const countPath = path.join(planningDir, '.continue-count');
       expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('1');
 
       // Second continue
-      writeSignal('/pbr:build 2');
+      writeSignal('/pbr:execute-phase 2');
       run();
       expect(fs.readFileSync(countPath, 'utf8').trim()).toBe('2');
     });
@@ -167,7 +184,7 @@ describe('auto-continue.js', () => {
       const countPath = path.join(planningDir, '.continue-count');
       // Set count to 3 so next increment = 4 (> 3)
       fs.writeFileSync(countPath, '3');
-      writeSignal('/pbr:build 4');
+      writeSignal('/pbr:execute-phase 4');
       const output = run();
       const parsed = JSON.parse(output);
       expect(parsed.decision).toBe('block');
@@ -179,7 +196,7 @@ describe('auto-continue.js', () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       fs.writeFileSync(countPath, '2');
-      writeSignal('/pbr:build 3');
+      writeSignal('/pbr:execute-phase 3');
       const output = run();
       const parsed = JSON.parse(output);
       expect(parsed.decision).toBe('block');
@@ -190,7 +207,7 @@ describe('auto-continue.js', () => {
       writeConfig();
       const countPath = path.join(planningDir, '.continue-count');
       fs.writeFileSync(countPath, '6');
-      writeSignal('/pbr:build 7');
+      writeSignal('/pbr:execute-phase 7');
       const output = run();
       // Should NOT output block decision — just exit silently
       expect(output).toBe('');
@@ -231,12 +248,12 @@ describe('auto-continue.js', () => {
       const output = run();
       const parsed = JSON.parse(output);
       expect(parsed.decision).toBe('block');
-      expect(parsed.reason).toContain('/pbr:pause');
+      expect(parsed.reason).toContain('/pbr:pause-work');
 
-      // Signal file should exist with /pbr:pause content
+      // Signal file should exist with /pbr:pause-work content
       const signalPath = path.join(planningDir, '.auto-next');
       expect(fs.existsSync(signalPath)).toBe(true);
-      expect(fs.readFileSync(signalPath, 'utf8')).toBe('/pbr:pause');
+      expect(fs.readFileSync(signalPath, 'utf8')).toBe('/pbr:pause-work');
     });
 
     test('no cycle when session_phase_limit is 0 (disabled)', () => {
@@ -270,7 +287,7 @@ describe('auto-continue.js', () => {
       const output = run();
       const parsed = JSON.parse(output);
       expect(parsed.decision).toBe('block');
-      expect(parsed.reason).toContain('/pbr:pause');
+      expect(parsed.reason).toContain('/pbr:pause-work');
     });
 
     test('TMUX branch logs cycle-tmux', () => {
@@ -310,8 +327,8 @@ describe('auto-continue.js', () => {
       const output = runWithEnv('', env);
       const parsed = JSON.parse(output);
       expect(parsed.reason).toContain('/compact');
-      expect(parsed.reason).toContain('/pbr:pause');
-      expect(parsed.reason).toContain('/pbr:resume');
+      expect(parsed.reason).toContain('/pbr:pause-work');
+      expect(parsed.reason).toContain('/pbr:resume-work');
 
       // Check hook log for cycle-compact decision
       const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
@@ -347,12 +364,12 @@ describe('auto-continue.js', () => {
     test('normal auto-continue works when under limit', () => {
       writeConfig({ features: { auto_continue: true }, session_phase_limit: 5 });
       writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
-      writeSignal('/pbr:build 3');
+      writeSignal('/pbr:execute-phase 3');
 
       const output = run();
       const parsed = JSON.parse(output);
       expect(parsed.decision).toBe('block');
-      expect(parsed.reason).toContain('/pbr:build 3');
+      expect(parsed.reason).toContain('/pbr:execute-phase 3');
       // Should NOT contain cycle-related text
       expect(parsed.reason).not.toContain('SESSION CHECKPOINT');
       expect(parsed.reason).not.toContain('TMUX auto-cycle');
