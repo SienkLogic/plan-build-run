@@ -220,7 +220,7 @@ function loadUserDefaults() {
  */
 function saveUserDefaults(config) {
   const portableKeys = [
-    'mode', 'depth', 'context_strategy',
+    'mode', 'depth', 'context_strategy', 'context_window_tokens',
     'features', 'models', 'parallelization',
     'planning', 'git', 'gates', 'safety',
     'hooks', 'dashboard', 'status_line'
