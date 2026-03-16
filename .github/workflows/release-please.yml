@@ -15,6 +15,11 @@ permissions:
   contents: write
   pull-requests: write
 
+# Only one Release workflow at a time — prevents duplicate tags and publish races
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -30,11 +35,8 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      - name: Enable auto-merge on release PR
-        if: ${{ steps.release.outputs.pr }}
-        run: gh pr merge ${{ fromJSON(steps.release.outputs.pr).number }} --merge --auto --repo ${{ github.repository }}
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+      # Don't auto-merge — let releases be deliberate.
+      # Merge manually when ready: gh pr merge --merge
 
   clean-release-notes:
     needs: release-please
@@ -87,6 +89,20 @@ jobs:
       - run: npm test
       - run: npm run validate
 
-      - run: npm publish --provenance --access public
+      - name: Check if version already published
+        id: check-npm
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          if npm view "@sienklogic/plan-build-run@$VERSION" version 2>/dev/null; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION already on npm — skipping publish"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION not on npm — will publish"
+          fi
+
+      - name: Publish to npm
+        if: steps.check-npm.outputs.already_published != 'true'
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

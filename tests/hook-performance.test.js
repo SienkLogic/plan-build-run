@@ -4,8 +4,9 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 // CI environments may be slower; 500ms budget applies to production usage.
-// Tests use a generous 800ms threshold to avoid flaky CI failures.
-const PERFORMANCE_BUDGET_MS = 800;
+// Windows CI runners are especially slow (cold Node.js startup, antivirus).
+// Tests use a generous threshold to avoid flaky CI failures.
+const PERFORMANCE_BUDGET_MS = process.platform === 'win32' ? 1500 : 800;
 const PRODUCTION_TARGET_MS = 500;
 
 const HOOKS_DIR = path.join(__dirname, '..', 'hooks');
