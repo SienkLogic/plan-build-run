@@ -157,7 +157,7 @@ Return one of three completion formats below.
 8. DO NOT skip steps in your protocol, even for "obvious" cases
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
-11. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65); write incrementally
+11. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65) — only use values above 50 if `context_window_tokens` >= 500000 in the same config, otherwise fall back to 50; write incrementally
 12. DO NOT read agent .md files from agents/ — auto-loaded via subagent_type
 
 ### Agent-Specific

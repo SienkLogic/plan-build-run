@@ -429,7 +429,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 
 **At 1M (context_window_tokens >= 500,000):** VERIFICATION.md ≤ 2,000 tokens (hard limit 3,000). At 1M, verifiers can include fuller evidence rows, more complete anti-pattern scan results, and richer human verification guidance.
 
-**Context budget**: Stop before your configured checkpoint percentage of usage (read `agent_checkpoint_pct` from `.planning/config.json`, default 50, quality profile 65). Write findings incrementally. Prioritize: must-haves > key links > anti-patterns > human items. Skip anti-pattern scan if needed. Record any items you could not check in a "Not Verified" section.
+**Context budget**: Stop before your configured checkpoint percentage of usage (read `agent_checkpoint_pct` from `.planning/config.json`, default 50, quality profile 65; only apply values above 50 when `context_window_tokens` >= 500000). Write findings incrementally. Prioritize: must-haves > key links > anti-patterns > human items. Skip anti-pattern scan if needed. Record any items you could not check in a "Not Verified" section.
 
 ### Context Quality Tiers
 
@@ -557,7 +557,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 8. DO NOT skip steps in your protocol, even for "obvious" cases
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
-11. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65); write incrementally
+11. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65) — only use values above 50 if `context_window_tokens` >= 500000 in the same config, otherwise fall back to 50; write incrementally
 12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 ### Verifier-Specific Anti-Patterns
