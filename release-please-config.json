@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "bump-minor-pre-major": false,
+  "bootstrap-sha": "99ec00a030f76ff6e887c3fd3dfddcdeecc77e54",
+  "changelog-sections": [
+    { "type": "feat",     "section": "Features",         "hidden": false },
+    { "type": "fix",      "section": "Bug Fixes",        "hidden": false },
+    { "type": "docs",     "section": "Documentation",    "hidden": true  },
+    { "type": "refactor", "section": "Code Refactoring", "hidden": true  },
+    { "type": "test",     "section": "Tests",            "hidden": true  },
+    { "type": "chore",    "section": "Miscellaneous",    "hidden": true  },
+    { "type": "wip",      "section": "WIP",              "hidden": true  }
+  ],
+  "extra-files": [
+    {
+      "type": "json",
+      "path": "plugins/pbr/.claude-plugin/plugin.json",
+      "jsonpath": "$.version"
+    },
+    {
+      "type": "json",
+      "path": "plugins/cursor-pbr/.cursor-plugin/plugin.json",
+      "jsonpath": "$.version"
+    },
+    {
+      "type": "json",
+      "path": "plugins/copilot-pbr/plugin.json",
+      "jsonpath": "$.version"
+    }
+  ],
+  "packages": {
+    ".": {}
+  }
+}
