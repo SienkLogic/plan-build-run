@@ -33,6 +33,8 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** state reads — read only STATE.md lines 1-20 to determine next action
 - **Delegate** execution to the appropriate skill via Skill() or Task()
+- **At context >= 500k (context_window_tokens >= 500000)**: Read full ROADMAP.md (already required), glob phase frontmatters, read PROJECT.md out-of-scope section. Total additional reads: ~10-30 small frontmatter reads.
+- **At context < 500k (context_window_tokens < 500000)**: No change — reads only STATE.md lines 1-20 as before.
 
 ---
 
@@ -56,6 +58,65 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
 - Determine if the current phase is the **last phase** in that milestone section
 - If this is the last phase and it is verified/complete, warn: "This is the final phase of milestone {name}. After verification, run `/pbr:milestone` to complete it."
 - If the current phase's `Depends on` references a phase from the **previous** milestone that is not yet complete, warn: "Cross-milestone dependency: Phase {N} depends on Phase {M} from milestone {prev}, which is not yet complete."
+
+#### Lookahead Mode (context >= 500k)
+
+Before proceeding to Step 2, check the configured context window:
+
+```bash
+node scripts/pbr-tools.cjs config get context_window_tokens
+```
+
+If the returned value is **>= 500000**, perform the following lookahead reads before moving to Step 2. If the value is **< 500000** (or the command fails), skip this section entirely and proceed to Step 2 with no changes to behavior.
+
+**Lookahead reads:**
+
+1. You have already read full ROADMAP.md (required above). Extract every phase entry:
+   - Phase number (NN from slug)
+   - Phase slug
+   - `Depends on:` list
+
+2. Glob all phase summary and state frontmatters:
+   - `Glob({ pattern: ".planning/phases/*/SUMMARY-*.md" })` — read frontmatter only (lines 1-20) for each result
+   - `Glob({ pattern: ".planning/phases/*/STATE.md" })` — read frontmatter only (lines 1-10) for each result
+   - Build a map: `{ phase_slug -> { status, provides, requires } }`
+
+3. Read `PROJECT.md` section `## Out of Scope` (or `### Out of Scope`) — extract deferred items as a list.
+
+**Lookahead analysis (perform after reads above):**
+
+**A. Parallel phase candidates**
+
+For each pair of phases that are both Pending/Planning status:
+- Extract their `Depends on:` sets
+- If their dependency sets are **disjoint** (no shared dependency, and neither depends on the other), they are parallel candidates
+- Display:
+  ```
+  ► Parallel opportunity: Phase {A} and Phase {B} have no shared dependencies — they can be planned and built concurrently.
+  ```
+  Show at most 3 parallel pairs to avoid noise.
+
+**B. Dependency inversion warnings**
+
+For each phase entry in ROADMAP.md, for each item in its `Depends on:` list:
+- Extract the phase number of the dependency (parse `NN` from the slug prefix)
+- If dependency phase number > current phase number → dependency inversion detected
+- Display:
+  ```
+  ⚠ Dependency inversion: Phase {N} ({slug}) lists Phase {M} ({dep-slug}) as a dependency, but Phase M > Phase N. Check roadmap ordering.
+  ```
+
+**C. Deferred item surfacing**
+
+For each item in the PROJECT.md out-of-scope list:
+- Check if the item mentions a phase or capability that is now shown as Complete in the phase map
+- If so, display:
+  ```
+  ► Deferred item may be unblocked: "{item}" — the phase it depends on is now complete. Consider adding it to the next milestone.
+  ```
+  Surface at most 2 items to avoid noise.
+
+Display all findings BEFORE proceeding to Step 2. If no findings exist (no parallel pairs, no inversions, no unblocked deferred items), display nothing — do not add noise when there is nothing to report.
 
 If STATE.md doesn't exist, display:
 ```
