@@ -8,6 +8,8 @@ const SCRIPT = path.join(__dirname, '..', 'hooks', 'context-bridge.js');
 // Import module exports for unit tests
 const {
   getTier,
+  getAdaptiveThresholds,
+  getEffectiveThresholds,
   loadBridge,
   saveBridge,
   estimateFromHeuristic,
@@ -397,6 +399,66 @@ describe('context-bridge.js', () => {
 
       const { bridge } = updateBridge(planningDir, {});
       expect(bridge.chars_read).toBe(42000);
+    });
+  });
+
+  // --- adaptive thresholds ---
+  describe('adaptive thresholds', () => {
+    test('getAdaptiveThresholds(200000) returns base thresholds', () => {
+      const t = getAdaptiveThresholds(200000);
+      expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
+    });
+
+    test('getAdaptiveThresholds(1000000) returns target thresholds', () => {
+      const t = getAdaptiveThresholds(1000000);
+      expect(t).toEqual({ degrading: 60, poor: 75, critical: 85 });
+    });
+
+    test('getAdaptiveThresholds(500000) returns intermediate values', () => {
+      const t = getAdaptiveThresholds(500000);
+      expect(t.degrading).toBeGreaterThan(50);
+      expect(t.degrading).toBeLessThan(60);
+      expect(t.poor).toBeGreaterThan(70);
+      expect(t.poor).toBeLessThan(75);
+      expect(t.critical).toBe(85);
+    });
+
+    test('getAdaptiveThresholds(100000) returns base thresholds (below 200k clamps)', () => {
+      const t = getAdaptiveThresholds(100000);
+      expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
+    });
+
+    test('getTier(55, adaptive 1M thresholds) returns GOOD (not DEGRADING)', () => {
+      const thresholds = { degrading: 60, poor: 75, critical: 85 };
+      expect(getTier(55, thresholds).name).toBe('GOOD');
+    });
+
+    test('getTier(55) without thresholds returns DEGRADING (backward compat)', () => {
+      expect(getTier(55).name).toBe('DEGRADING');
+    });
+
+    test('getEffectiveThresholds returns linear thresholds when threshold_curve is linear', () => {
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+        context_window_tokens: 1000000,
+        context_budget: { threshold_curve: 'linear' }
+      }));
+      configClearCache();
+      const t = getEffectiveThresholds(planningDir);
+      expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
+      configClearCache();
+    });
+
+    test('getEffectiveThresholds returns adaptive thresholds when threshold_curve is adaptive', () => {
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+        context_window_tokens: 1000000,
+        context_budget: { threshold_curve: 'adaptive' }
+      }));
+      configClearCache();
+      const t = getEffectiveThresholds(planningDir);
+      expect(t).toEqual({ degrading: 60, poor: 75, critical: 85 });
+      configClearCache();
     });
   });
 

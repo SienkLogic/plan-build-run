@@ -138,6 +138,14 @@ function contextTriage(options, planningDir) {
   let percentage = null;
   let tier = null;
 
+  // Load adaptive thresholds for bridge percentage decisions
+  let bridgeThresholds = { degrading: 50, poor: 70 };
+  try {
+    const { getEffectiveThresholds } = require('../context-bridge');
+    const eff = getEffectiveThresholds(pd);
+    bridgeThresholds = { degrading: eff.degrading, poor: eff.poor };
+  } catch (_e) { /* use defaults */ }
+
   if (bridge && !bridge.stale) {
     // Fresh bridge data — authoritative
     dataSource = 'bridge';
@@ -147,9 +155,9 @@ function contextTriage(options, planningDir) {
     if (percentage === null) {
       // Bridge exists but has no percentage — fall through to heuristic
       dataSource = 'heuristic';
-    } else if (percentage < 50) {
+    } else if (percentage < bridgeThresholds.degrading) {
       recommendation = 'PROCEED';
-    } else if (percentage <= 70) {
+    } else if (percentage <= bridgeThresholds.poor) {
       recommendation = 'CHECKPOINT';
     } else {
       recommendation = 'COMPACT';

@@ -80,6 +80,41 @@ describe('Threshold scaling at 200k and 1M', () => {
     });
   });
 
+  describe('context-bridge adaptive thresholds', () => {
+    const { getAdaptiveThresholds, getEffectiveThresholds } = require('../plugins/pbr/scripts/context-bridge.js');
+
+    test('adaptive thresholds at 200k match base', () => {
+      const t = getAdaptiveThresholds(200000);
+      expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
+    });
+
+    test('adaptive thresholds at 1M match target', () => {
+      const t = getAdaptiveThresholds(1000000);
+      expect(t).toEqual({ degrading: 60, poor: 75, critical: 85 });
+    });
+
+    test('getEffectiveThresholds defaults to linear (base)', () => {
+      const { tmp, pd } = makeTmpDir();
+      const t = getEffectiveThresholds(pd);
+      expect(t).toEqual({ degrading: 50, poor: 70, critical: 85 });
+      cleanup(tmp);
+    });
+
+    test('getEffectiveThresholds returns adaptive at 1M when configured', () => {
+      const { tmp, pd } = makeTmpDir();
+      fs.writeFileSync(path.join(pd, 'config.json'), JSON.stringify({
+        context_window_tokens: 1000000,
+        context_budget: { threshold_curve: 'adaptive' }
+      }));
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      configClearCache();
+      const t = getEffectiveThresholds(pd);
+      expect(t).toEqual({ degrading: 60, poor: 75, critical: 85 });
+      configClearCache();
+      cleanup(tmp);
+    });
+  });
+
   describe('suggest-compact getScaledThreshold', () => {
     const { getScaledThreshold } = require('../plugins/pbr/scripts/suggest-compact.js');
 
