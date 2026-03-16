@@ -14,6 +14,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title follows conventional commit format
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Checking PR title: '$PR_TITLE'"
+          if echo "$PR_TITLE" | grep -qP '^(feat|fix|refactor|test|docs|chore|wip|perf|ci|build|revert)(\([a-zA-Z0-9_./-]+\))?!?: .+'; then
+            echo "PR title follows conventional commit format"
+          else
+            echo ""
+            echo "PR title does not follow conventional commit format!"
+            echo ""
+            echo "Required format: {type}({scope}): {description}"
+            echo "  Types: feat, fix, refactor, test, docs, chore, wip, perf, ci, build, revert"
+            echo "  Scope: optional but recommended (e.g., tools, planning, hooks)"
+            echo ""
+            echo "WHY: Release-please uses this to generate the changelog."
+            exit 1
+          fi
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - name: Lint markdown files
+        uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            plugins/pbr/agents/*.md
+            plugins/pbr/skills/**/SKILL.md
+            plugins/pbr/references/*.md
+            plugins/pbr/commands/*.md
+
   test:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
@@ -25,10 +67,10 @@ jobs:
         node-version: [18, 20, 22]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -37,8 +79,6 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        # c8 v11 requires Node 20+ (engines: ^20.0.0 || >=22.0.0). Node 18 EOL April 2025.
-        # Use bash on all platforms so shell glob expansion works on Windows.
         if: matrix.node-version != 18
         shell: bash
         run: npm run test:coverage
@@ -47,10 +87,6 @@ jobs:
         if: matrix.node-version == 18
         shell: bash
         run: npm test
-
-      - name: Lint
-        shell: bash
-        run: npm run lint
 
       - name: Install dashboard dependencies
         shell: bash
