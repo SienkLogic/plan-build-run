@@ -427,11 +427,11 @@ Archive a completed milestone and prepare for the next one.
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}
+node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs learnings ingest .planning/milestones/{version}/learnings.json
 ```
 
-- If the script outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
-- Display the aggregation summary line to the user (e.g., "Learnings aggregated: 12 new, 3 updated, 0 errors").
+- If the command outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
+- Display the aggregation summary line to the user (e.g., "Learnings ingested: 12 new, 3 updated, 0 errors").
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash

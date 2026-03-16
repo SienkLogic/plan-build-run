@@ -198,7 +198,7 @@ Read context file PATHS and metadata. Build lean context bundles for subagent pr
 ```
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
-3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
+3. Read .planning/PROJECT.md (if exists) — extract the `## Context` section (locked decisions, user constraints, deferred ideas). This is the primary context source. Fall back to .planning/CONTEXT.md if PROJECT.md has no ## Context section (backwards compat).
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
 5. Read .planning/config.json — extract feature flags, depth, model settings
 6. List prior SUMMARY.md file paths and extract frontmatter metadata only (status, provides, key_files). Do NOT read full SUMMARY bodies — agents pull these on-demand via Read tool.
@@ -390,10 +390,11 @@ Read `${CLAUDE_SKILL_DIR}/templates/planner-prompt.md.tmpl` and use it as the pr
 ```
 <files_to_read>
 CRITICAL (no hook): Read these files BEFORE any other action:
-1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
+1. .planning/PROJECT.md — project context, locked decisions, and constraints (primary source)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
-{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
+4. .planning/CONTEXT.md — legacy context file (backwards compat fallback, if exists)
+{if learnings_temp_path exists}5. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
 

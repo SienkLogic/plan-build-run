@@ -150,7 +150,7 @@ Use AskUserQuestion:
   header: "Setup mode"
   options:
     - label: "Quick start"
-      description: "Use all defaults — model balanced, depth standard, interactive mode, parallel on. Writes config in seconds."
+      description: "Use all defaults — model balanced, depth quick, interactive mode"
     - label: "Custom setup"
       description: "Walk through model selection, features, and preferences step by step."
 
@@ -162,7 +162,7 @@ Use AskUserQuestion:
     "version": 2,
     "context_strategy": "aggressive",
     "mode": "interactive",
-    "depth": "standard",
+    "depth": "quick",
     "features": {
       "structured_planning": true,
       "goal_verification": true,

@@ -47,3 +47,15 @@ jobs:
         if: matrix.node-version == 18
         shell: bash
         run: npm test
+
+      - name: Lint
+        shell: bash
+        run: npm run lint
+
+      - name: Install dashboard dependencies
+        shell: bash
+        run: npm run dashboard:install
+
+      - name: Run dashboard tests
+        shell: bash
+        run: npm run test:dashboard
