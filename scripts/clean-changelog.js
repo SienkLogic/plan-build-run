@@ -28,6 +28,24 @@ const INTERNAL_SCOPE_PATTERN = /\*\*(\d{1,2}-\d{1,2}|\d{1,2}|quick-\d{1,3}):\*\*
 // TDD markers at start of description
 const TDD_MARKER_PATTERN = /^(RED|GREEN|REFACTOR)\s*[-–—]\s*/i;
 
+// GSD → PBR rebranding: scopes, commands, paths, tool names
+const GSD_REPLACEMENTS = [
+  // Bold scopes: **gsd-tools:** → **pbr-tools:**
+  [/\*\*gsd-/g, '**pbr-'],
+  // Bold scopes: **gsd:** → **pbr:**
+  [/\*\*gsd:\*\*/g, '**pbr:**'],
+  // Slash commands: /gsd: → /pbr:
+  [/\/gsd:/g, '/pbr:'],
+  // Tool names: gsd-tools → pbr-tools
+  [/\bgsd-tools\b/g, 'pbr-tools'],
+  // Config paths: ~/.gsd/ → ~/.claude/
+  [/~\/\.gsd\//g, '~/.claude/'],
+  // Agent/tool names: gsd-{name} → pbr-{name} (broad catch for all gsd- prefixed names)
+  [/\bgsd-(?=[a-z])/g, 'pbr-'],
+  // Generic "GSD" in descriptive text (but not in URLs or commit hashes)
+  [/\bGSD\b(?![^(]*\))/g, 'PBR'],
+];
+
 function cleanChangelog(content) {
   // Normalize line endings to LF for consistent regex matching
   const normalized = content.replace(/\r\n/g, '\n');
@@ -40,6 +58,11 @@ function cleanChangelog(content) {
 
     // Strip internal scopes (phase-plan numbers) but keep descriptive scopes
     cleaned = cleaned.replace(INTERNAL_SCOPE_PATTERN, '');
+
+    // Rebrand GSD references to PBR
+    for (const [pattern, replacement] of GSD_REPLACEMENTS) {
+      cleaned = cleaned.replace(pattern, replacement);
+    }
 
     // Remove TDD markers from descriptions
     cleaned = cleaned.replace(/^(\* )(.*)$/, (match, prefix, desc) => {
