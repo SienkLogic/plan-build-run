@@ -119,6 +119,7 @@ function main() {
       }
 
       if (warnings.length > 0) {
+        logHook('pre-bash-dispatch', 'PreToolUse', 'warn', { warnings: warnings.length, cmd: command.substring(0, 80) });
         process.stdout.write(JSON.stringify({
           decision: 'allow',
           additionalContext: `[pbr] Advisory: ${warnings.join('; ')}.`
@@ -126,6 +127,8 @@ function main() {
         process.exit(0);
       }
 
+      // Log pass-through so hook activity is visible in logs
+      logHook('pre-bash-dispatch', 'PreToolUse', 'allow', { cmd: command.substring(0, 80) });
       process.exit(0);
     } catch (_e) {
       // Don't block on errors

@@ -59,6 +59,7 @@
  *   2 = blocked (workflow violation or phase boundary enforcement)
  */
 
+const { logHook } = require('./hook-logger');
 const { checkAgentStateWrite } = require('./check-agent-state-write');
 const { checkWorkflow } = require('./check-skill-workflow');
 const { checkSummaryGate } = require('./check-summary-gate');
@@ -145,6 +146,9 @@ function main() {
         }
       }
 
+      // Log pass-through so hook activity is visible in logs
+      const file = (data.tool_input?.file_path || data.tool_input?.path || '').split(/[/\\]/).pop();
+      logHook('pre-write-dispatch', 'PreToolUse', 'allow', { file });
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
