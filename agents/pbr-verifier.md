@@ -400,7 +400,7 @@ Write to `.planning/phases/{phase_dir}/VERIFICATION.md`.
 
 ### Template
 
-Read the template from `templates/VERIFICATION-DETAIL.md.tmpl` (relative to `plugins/pbr/`). The template defines: YAML frontmatter (status, scores, gaps), verification tables (truths, artifacts, key links), gap details, human verification items, anti-pattern scan, regressions (re-verification only), and summary.
+Read the template from `${CLAUDE_PLUGIN_ROOT}/templates/VERIFICATION-DETAIL.md.tmpl`. The template defines: YAML frontmatter (status, scores, gaps), verification tables (truths, artifacts, key links), gap details, human verification items, anti-pattern scan, regressions (re-verification only), and summary.
 
 ### Fallback Format (if template unreadable)
 

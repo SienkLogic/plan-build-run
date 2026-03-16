@@ -134,7 +134,7 @@ Produce final report with all findings by category.
 
 ## Output Format
 
-Read `templates/INTEGRATION-REPORT.md.tmpl` (relative to `plugins/pbr/`). Keep output concise: one row per check, evidence column brief. INTEGRATION-REPORT.md target 1,500 tokens (hard limit 2,500). Omit empty sections. Console output: score + critical issue count only.
+Read `${CLAUDE_PLUGIN_ROOT}/templates/INTEGRATION-REPORT.md.tmpl`. Keep output concise: one row per check, evidence column brief. INTEGRATION-REPORT.md target 1,500 tokens (hard limit 2,500). Omit empty sections. Console output: score + critical issue count only.
 
 ### Fallback Format (if template unreadable)
 
