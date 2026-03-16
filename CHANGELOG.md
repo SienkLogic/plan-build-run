@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.1.0...plan-build-run-v2.1.1) (2026-03-16)
+
+
+### Bug Fixes
+
+* **tools:** update validate script to use plugins/pbr/ as plugin root ([d77b233](https://github.com/SienkLogic/plan-build-run/commit/d77b233bed52b2743c1e078191e37c77c4dc4927))
+
 ## [2.1.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.0.0...plan-build-run-v2.1.0) (2026-03-16)
 
 
