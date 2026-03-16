@@ -1,3 +1,5 @@
+const { MIGRATIONS, getMigrationPath } = require('../plan-build-run/bin/lib/migrate.cjs');
+
 describe('config migration', () => {
   function migrateConfig(config) {
     // v1 → v2 migration
@@ -230,5 +232,100 @@ describe('config migration', () => {
     expect(v2.parallelization.enabled).toBe(false);
     expect(v2.parallelization.max_concurrent_agents).toBe(5);
     expect(v2.parallelization.use_teams).toBe(false); // Added default
+  });
+});
+
+describe('v2 to v3 migration', () => {
+  function applyV2ToV3(config) {
+    const clone = JSON.parse(JSON.stringify(config));
+    const path = getMigrationPath(2, 3);
+    for (const m of path) m.migrate(clone);
+    return clone;
+  }
+
+  test('adds all new workflow properties with defaults', () => {
+    const v2 = { schema_version: 2, workflow: { enforce_pbr_skills: 'advisory' } };
+    const v3 = applyV2ToV3(v2);
+
+    expect(v3.workflow.inline_execution).toBe(false);
+    expect(v3.workflow.inline_max_tasks).toBe(2);
+    expect(v3.workflow.inline_context_cap_pct).toBe(40);
+    expect(v3.workflow.phase_boundary_clear).toBe('off');
+    expect(v3.workflow.autonomous).toBe(false);
+    expect(v3.workflow.speculative_planning).toBe(false);
+    expect(v3.workflow.phase_replay).toBe(false);
+    // Existing property preserved
+    expect(v3.workflow.enforce_pbr_skills).toBe('advisory');
+  });
+
+  test('adds new top-level sections', () => {
+    const v2 = { schema_version: 2 };
+    const v3 = applyV2ToV3(v2);
+
+    expect(v3.intel).toEqual({ enabled: false, auto_update: false, inject_on_start: false });
+    expect(v3.context_ledger).toEqual({ enabled: false, stale_after_minutes: 60 });
+    expect(v3.learnings).toEqual({ enabled: false, read_depth: 3 });
+    expect(v3.verification).toEqual({ confidence_gate: false, confidence_threshold: 1.0 });
+    expect(v3.context_budget).toEqual({ threshold_curve: 'linear' });
+  });
+
+  test('adds planning.multi_phase and gates.checkpoint_auto_resolve', () => {
+    const v2 = {
+      schema_version: 2,
+      planning: { commit_docs: true, max_tasks_per_plan: 5 },
+      gates: { confirm_plan: true, auto_checkpoints: false },
+    };
+    const v3 = applyV2ToV3(v2);
+
+    expect(v3.planning.multi_phase).toBe(false);
+    expect(v3.planning.commit_docs).toBe(true);
+    expect(v3.planning.max_tasks_per_plan).toBe(5);
+    expect(v3.gates.checkpoint_auto_resolve).toBe('none');
+    expect(v3.gates.confirm_plan).toBe(true);
+    expect(v3.gates.auto_checkpoints).toBe(false);
+  });
+
+  test('is idempotent', () => {
+    const v2 = { schema_version: 2, workflow: { enforce_pbr_skills: 'block' } };
+    const first = applyV2ToV3(v2);
+    const second = applyV2ToV3(first);
+
+    expect(second).toEqual(first);
+  });
+
+  test('does not overwrite existing values', () => {
+    const v2 = {
+      schema_version: 2,
+      workflow: { inline_execution: true },
+      intel: { enabled: true, auto_update: true, inject_on_start: true },
+    };
+    const v3 = applyV2ToV3(v2);
+
+    expect(v3.workflow.inline_execution).toBe(true);
+    expect(v3.intel.enabled).toBe(true);
+    expect(v3.intel.auto_update).toBe(true);
+    // New defaults still added for other workflow properties
+    expect(v3.workflow.inline_max_tasks).toBe(2);
+  });
+
+  test('full path v0 to v3', () => {
+    const v0 = { mode: 'yolo', depth: 'lean' };
+    const path = getMigrationPath(0, 3);
+    expect(path.length).toBe(3);
+
+    const result = JSON.parse(JSON.stringify(v0));
+    for (const m of path) m.migrate(result);
+
+    expect(result.schema_version).toBe(3);
+    expect(result.mode).toBe('autonomous');
+    expect(result.depth).toBe('quick');
+    expect(result.intel).toBeDefined();
+    expect(result.learnings).toBeDefined();
+    expect(result.context_ledger).toBeDefined();
+    expect(result.verification).toBeDefined();
+    expect(result.context_budget).toBeDefined();
+    expect(result.workflow.inline_execution).toBe(false);
+    expect(result.planning.multi_phase).toBe(false);
+    expect(result.gates.checkpoint_auto_resolve).toBe('none');
   });
 });
