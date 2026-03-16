@@ -198,7 +198,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY.md'), 'content');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const result = AGENT_OUTPUTS['pbr:executor'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('executor check falls through to quick dir', () => {
@@ -207,13 +207,13 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     fs.mkdirSync(quickDir, { recursive: true });
     fs.writeFileSync(path.join(quickDir, 'SUMMARY.md'), 'content');
     const result = AGENT_OUTPUTS['pbr:executor'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('executor check returns empty when no summary anywhere', () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const result = AGENT_OUTPUTS['pbr:executor'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('planner check finds PLAN.md', () => {
@@ -222,7 +222,7 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'plan content');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     const result = AGENT_OUTPUTS['pbr:planner'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('verifier check finds VERIFICATION.md', () => {
@@ -231,34 +231,34 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), 'verified');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     const result = AGENT_OUTPUTS['pbr:verifier'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('researcher check finds research files', () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'STACK.md'), 'research');
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result[0]).toContain('research');
+    expect(result.files.length).toBeGreaterThan(0);
+    expect(result.files[0]).toContain('research');
   });
 
   test('researcher check returns empty when no research dir', () => {
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('researcher check returns empty for non-md files', () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:researcher'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('synthesizer check finds research files', () => {
     fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'research', 'SYNTHESIS.md'), 'synthesis');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('synthesizer check finds CONTEXT.md as fallback', () => {
@@ -266,54 +266,54 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     // No research .md files
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), 'context');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
-    expect(result).toEqual(['CONTEXT.md']);
+    expect(result.files).toEqual(['CONTEXT.md']);
   });
 
   test('synthesizer check returns empty when no research dir and no CONTEXT.md', () => {
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('synthesizer check returns empty when CONTEXT.md is empty', () => {
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), '');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('debugger check finds debug files', () => {
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'debug', 'session-001.md'), 'debug');
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('debugger check returns empty when no debug dir', () => {
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('codebase-mapper check finds codebase files', () => {
     fs.mkdirSync(path.join(planningDir, 'codebase'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'codebase', 'MAP.md'), 'map');
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
-    expect(result.length).toBeGreaterThan(0);
+    expect(result.files.length).toBeGreaterThan(0);
   });
 
   test('codebase-mapper check returns empty when no codebase dir', () => {
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('plan-checker returns empty (noFileExpected)', () => {
-    expect(AGENT_OUTPUTS['pbr:plan-checker'].check(planningDir)).toEqual([]);
+    expect(AGENT_OUTPUTS['pbr:plan-checker'].check(planningDir)).toEqual({ files: [], stale: false });
   });
 
   test('integration-checker returns empty (noFileExpected)', () => {
-    expect(AGENT_OUTPUTS['pbr:integration-checker'].check(planningDir)).toEqual([]);
+    expect(AGENT_OUTPUTS['pbr:integration-checker'].check(planningDir)).toEqual({ files: [], stale: false });
   });
 
   test('general returns empty (noFileExpected)', () => {
-    expect(AGENT_OUTPUTS['pbr:general'].check(planningDir)).toEqual([]);
+    expect(AGENT_OUTPUTS['pbr:general'].check(planningDir)).toEqual({ files: [], stale: false });
   });
 
   test('synthesizer check with research dir but only non-md files falls to CONTEXT.md', () => {
@@ -321,21 +321,21 @@ describe('AGENT_OUTPUTS check functions (direct calls)', () => {
     fs.writeFileSync(path.join(planningDir, 'research', 'data.json'), '{}');
     fs.writeFileSync(path.join(planningDir, 'CONTEXT.md'), 'has content');
     const result = AGENT_OUTPUTS['pbr:synthesizer'].check(planningDir);
-    expect(result).toEqual(['CONTEXT.md']);
+    expect(result.files).toEqual(['CONTEXT.md']);
   });
 
   test('debugger check ignores non-md files', () => {
     fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'debug', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:debugger'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 
   test('codebase-mapper check ignores non-md files', () => {
     fs.mkdirSync(path.join(planningDir, 'codebase'), { recursive: true });
     fs.writeFileSync(path.join(planningDir, 'codebase', 'data.json'), '{}');
     const result = AGENT_OUTPUTS['pbr:codebase-mapper'].check(planningDir);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ files: [], stale: false });
   });
 });
 

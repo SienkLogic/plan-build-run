@@ -45,36 +45,36 @@ const AGENT_OUTPUTS = {
     check: (planningDir) => {
       // Check phase directory first, then quick directory
       const phaseMatches = findInPhaseDir(planningDir, /^SUMMARY.*\.md$/i);
-      if (phaseMatches.length > 0) return phaseMatches;
-      return findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
+      if (phaseMatches.length > 0) return { files: phaseMatches, stale: false };
+      return { files: findInQuickDir(planningDir, /^SUMMARY.*\.md$/i), stale: false };
     }
   },
   'pbr:planner': {
     description: 'PLAN.md in the phase directory',
-    check: (planningDir) => findInPhaseDir(planningDir, /^PLAN.*\.md$/i)
+    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^PLAN.*\.md$/i), stale: false })
   },
   'pbr:verifier': {
     description: 'VERIFICATION.md in the phase directory',
-    check: (planningDir) => findInPhaseDir(planningDir, /^VERIFICATION\.md$/i)
+    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^VERIFICATION\.md$/i), stale: false })
   },
   'pbr:researcher': {
     description: 'research file in .planning/research/',
     check: (planningDir) => {
       const researchDir = path.join(planningDir, 'research');
-      if (!fs.existsSync(researchDir)) return [];
+      if (!fs.existsSync(researchDir)) return { files: [], stale: false };
       try {
         const allFiles = fs.readdirSync(researchDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('research', f));
-        if (allFiles.length === 0) return [];
+        if (allFiles.length === 0) return { files: [], stale: false };
         const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
         if (recentFiles.length === 0) {
           // Files exist but none are recent — return them but flag staleness
-          allFiles._stale = true;
+          return { files: allFiles, stale: true };
         }
-        return allFiles;
+        return { files: allFiles, stale: false };
       } catch (_e) {
-        return [];
+        return { files: [], stale: false };
       }
     }
   },
@@ -89,9 +89,9 @@ const AGENT_OUTPUTS = {
             const allFiles = files.map(f => path.join('research', f));
             const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
             if (recentFiles.length === 0) {
-              allFiles._stale = true;
+              return { files: allFiles, stale: true };
             }
-            return allFiles;
+            return { files: allFiles, stale: false };
           }
         } catch (_e) { /* best-effort */ }
       }
@@ -101,37 +101,36 @@ const AGENT_OUTPUTS = {
           const stat = fs.statSync(contextFile);
           if (stat.size > 0) {
             const result = ['CONTEXT.md'];
-            if (!isRecent(contextFile)) {
-              result._stale = true;
-            }
-            return result;
+            const stale = !isRecent(contextFile);
+            return { files: result, stale };
           }
         } catch (_e) { /* best-effort */ }
       }
-      return [];
+      return { files: [], stale: false };
     }
   },
   'pbr:plan-checker': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => []
+    check: () => ({ files: [], stale: false })
   },
   'pbr:integration-checker': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => []
+    check: () => ({ files: [], stale: false })
   },
   'pbr:debugger': {
     description: 'debug file in .planning/debug/',
     check: (planningDir) => {
       const debugDir = path.join(planningDir, 'debug');
-      if (!fs.existsSync(debugDir)) return [];
+      if (!fs.existsSync(debugDir)) return { files: [], stale: false };
       try {
-        return fs.readdirSync(debugDir)
+        const files = fs.readdirSync(debugDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('debug', f));
+        return { files, stale: false };
       } catch (_e) {
-        return [];
+        return { files: [], stale: false };
       }
     }
   },
@@ -139,39 +138,41 @@ const AGENT_OUTPUTS = {
     description: 'codebase map in .planning/codebase/',
     check: (planningDir) => {
       const codebaseDir = path.join(planningDir, 'codebase');
-      if (!fs.existsSync(codebaseDir)) return [];
+      if (!fs.existsSync(codebaseDir)) return { files: [], stale: false };
       try {
-        return fs.readdirSync(codebaseDir)
+        const files = fs.readdirSync(codebaseDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('codebase', f));
+        return { files, stale: false };
       } catch (_e) {
-        return [];
+        return { files: [], stale: false };
       }
     }
   },
   'pbr:general': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => []
+    check: () => ({ files: [], stale: false })
   },
   'pbr:audit': {
     description: 'audit report in .planning/audits/',
     check: (planningDir) => {
       const auditsDir = path.join(planningDir, 'audits');
-      if (!fs.existsSync(auditsDir)) return [];
+      if (!fs.existsSync(auditsDir)) return { files: [], stale: false };
       try {
-        return fs.readdirSync(auditsDir)
+        const files = fs.readdirSync(auditsDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('audits', f));
+        return { files, stale: false };
       } catch (_e) {
-        return [];
+        return { files: [], stale: false };
       }
     }
   },
   'pbr:dev-sync': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => []
+    check: () => ({ files: [], stale: false })
   }
 };
 
@@ -510,13 +511,35 @@ async function main() {
     try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
   }
 
+  // Check agent response size — warn if output may blow orchestrator context
+  const AGENT_OUTPUT_SIZE_WARN = 50000;   // 50k chars
+  const AGENT_OUTPUT_SIZE_CRITICAL = 100000; // 100k chars
+  const toolOutput = data.tool_output || '';
+  const outputSize = typeof toolOutput === 'string' ? toolOutput.length : 0;
+  if (outputSize > AGENT_OUTPUT_SIZE_CRITICAL) {
+    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
+      agent_type: agentType, size: outputSize
+    });
+    const sizeWarn = {
+      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
+    };
+    process.stdout.write(JSON.stringify(sizeWarn));
+    process.exit(0);
+  }
+
   // Check for expected outputs
-  const found = outputSpec.check(planningDir);
+  const foundResult = outputSpec.check(planningDir);
+  const found = foundResult.files;
+  const foundStale = foundResult.stale;
 
   const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
 
   // Skill-specific post-completion validation
   const skillWarnings = [];
+
+  if (outputSize > AGENT_OUTPUT_SIZE_WARN) {
+    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
+  }
 
   // ACTIVE-SKILL ENFORCEMENT: Warn when no .active-skill file exists.
   // Skills are instructed (with CRITICAL markers) to write this file, but LLMs
@@ -536,7 +559,7 @@ async function main() {
   }
 
   // Mtime-based recency check for researcher and synthesizer
-  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
     const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
     skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
   }
@@ -649,9 +672,29 @@ async function handleHttp(reqBody) {
     try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
   }
 
-  const found = outputSpec.check(planningDir);
+  // Output size check (HTTP path)
+  const AGENT_OUTPUT_SIZE_WARN_HTTP = 50000;
+  const AGENT_OUTPUT_SIZE_CRITICAL_HTTP = 100000;
+  const toolOutputHttp = data.tool_output || '';
+  const outputSizeHttp = typeof toolOutputHttp === 'string' ? toolOutputHttp.length : 0;
+  if (outputSizeHttp > AGENT_OUTPUT_SIZE_CRITICAL_HTTP) {
+    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
+      agent_type: agentType, size: outputSizeHttp
+    });
+    return {
+      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
+    };
+  }
+
+  const foundResult = outputSpec.check(planningDir);
+  const found = foundResult.files;
+  const foundStale = foundResult.stale;
   const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
   const skillWarnings = [];
+
+  if (outputSizeHttp > AGENT_OUTPUT_SIZE_WARN_HTTP) {
+    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
+  }
 
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
     skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
@@ -662,7 +705,7 @@ async function handleHttp(reqBody) {
     if (roadmapWarning) skillWarnings.push(roadmapWarning);
   }
 
-  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
     const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
     skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
   }

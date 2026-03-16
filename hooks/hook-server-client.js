@@ -26,12 +26,70 @@ const path = require('path');
 const DEFAULT_PORT = 19836;
 
 // ---------------------------------------------------------------------------
+// Circuit breaker — skip server route after consecutive failures
+// ---------------------------------------------------------------------------
+
+const CIRCUIT_FAILURE_THRESHOLD = 5;   // open circuit after N consecutive failures
+const CIRCUIT_COOLDOWN_MS = 30000;     // 30 seconds before retrying
+
+/**
+ * Check if the circuit breaker is open (server considered down).
+ * @param {string} planningDir - .planning/ directory path (null if not a PBR project)
+ * @returns {boolean} true if circuit is open and server should be skipped
+ */
+function isCircuitOpen(planningDir) {
+  if (!planningDir) return false;
+  const fs = require('fs');
+  const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
+  try {
+    const data = JSON.parse(fs.readFileSync(circuitPath, 'utf8'));
+    if (data.failures >= CIRCUIT_FAILURE_THRESHOLD) {
+      const elapsed = Date.now() - (data.openedAt || 0);
+      if (elapsed < CIRCUIT_COOLDOWN_MS) return true;
+      // Cooldown expired — half-open, allow one probe
+      return false;
+    }
+  } catch (_e) { /* no file or parse error */ }
+  return false;
+}
+
+/**
+ * Record a server failure. Opens circuit after threshold.
+ * @param {string} planningDir
+ */
+function recordFailure(planningDir) {
+  if (!planningDir) return;
+  const fs = require('fs');
+  const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
+  let data = { failures: 0, openedAt: 0 };
+  try {
+    data = JSON.parse(fs.readFileSync(circuitPath, 'utf8'));
+  } catch (_e) { /* start fresh */ }
+  data.failures = (data.failures || 0) + 1;
+  if (data.failures >= CIRCUIT_FAILURE_THRESHOLD && !data.openedAt) {
+    data.openedAt = Date.now();
+  }
+  try { fs.writeFileSync(circuitPath, JSON.stringify(data), 'utf8'); } catch (_e) { /* best-effort */ }
+}
+
+/**
+ * Record a server success. Resets circuit breaker.
+ * @param {string} planningDir
+ */
+function recordSuccess(planningDir) {
+  if (!planningDir) return;
+  const fs = require('fs');
+  const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
+  try { fs.unlinkSync(circuitPath); } catch (_e) { /* file may not exist */ }
+}
+
+// ---------------------------------------------------------------------------
 // HOOK_EVENT_MAP: maps hook script names to { event, tool } pairs
 // ---------------------------------------------------------------------------
 
 const HOOK_EVENT_MAP = {
-  'track-context-budget': { event: 'PostToolUse',        tool: 'Read'  },
-  'context-bridge':       { event: 'PostToolUse',        tool: 'Write' },
+  'track-context-budget': { event: 'PostToolUse',        tool: 'Read|Glob|Grep' },
+  'context-bridge':       { event: 'PostToolUse',        tool: 'Write|Edit|Bash|Task' },
   'post-write-dispatch':  { event: 'PostToolUse',        tool: 'Write' },
   'post-bash-triage':     { event: 'PostToolUse',        tool: 'Bash'  },
   'check-subagent-output':{ event: 'PostToolUse',        tool: 'Task'  },
@@ -127,7 +185,9 @@ function postHook(port, body, timeoutMs) {
 
 const DIRECT_FALLBACK_SCRIPTS = {
   'worktree-create': 'worktree-create',
-  'worktree-remove': 'worktree-remove'
+  'worktree-remove': 'worktree-remove',
+  'log-subagent-start': 'log-subagent',
+  'log-subagent': 'log-subagent'
 };
 
 /**
@@ -189,6 +249,24 @@ async function main() {
     return;
   }
 
+  // Resolve .planning/ directory for circuit breaker state
+  const cwd = inputData.cwd || process.env.PBR_PROJECT_ROOT || process.cwd();
+  const planningDir = require('path').join(cwd, '.planning');
+  const planningExists = (() => { try { require('fs').statSync(planningDir); return true; } catch (_e) { return false; } })();
+  const circuitDir = planningExists ? planningDir : null;
+
+  // Circuit breaker — skip server route if too many recent failures
+  if (isCircuitOpen(circuitDir)) {
+    const directFallback = tryDirectFallback(hookName, inputData);
+    if (directFallback) {
+      process.stdout.write(JSON.stringify(directFallback));
+    } else {
+      process.stdout.write('{}');
+    }
+    process.exit(0);
+    return;
+  }
+
   // Probe port before attempting HTTP call
   let reachable = false;
   try {
@@ -198,6 +276,7 @@ async function main() {
   }
 
   if (!reachable) {
+    recordFailure(circuitDir);
     // Server not running — try direct fallback for lifecycle hooks
     const directFallback = tryDirectFallback(hookName, inputData);
     if (directFallback) {
@@ -220,7 +299,9 @@ async function main() {
   let responseText = '';
   try {
     responseText = await postHook(port, payload, 200);
+    recordSuccess(circuitDir);
   } catch (_e) {
+    recordFailure(circuitDir);
     process.stdout.write('{}');
     process.exit(0);
     return;
@@ -249,10 +330,12 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(() => {
-  // Fail-open on any unhandled error — still produce output for hooks that require it
-  process.stdout.write('{}');
-  process.exit(0);
-});
+if (require.main === module) {
+  main().catch(() => {
+    // Fail-open on any unhandled error — still produce output for hooks that require it
+    process.stdout.write('{}');
+    process.exit(0);
+  });
+}
 
-module.exports = { probePort, postHook, HOOK_EVENT_MAP, DEFAULT_PORT };
+module.exports = { probePort, postHook, HOOK_EVENT_MAP, DEFAULT_PORT, isCircuitOpen, recordFailure, recordSuccess, CIRCUIT_FAILURE_THRESHOLD, CIRCUIT_COOLDOWN_MS };
