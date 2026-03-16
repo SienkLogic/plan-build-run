@@ -1,4 +1,4 @@
-const { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
+const { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -352,6 +352,106 @@ describe('suggest-compact.js', () => {
       // Should use counter-based message (no tier label)
       expect(result.additionalContext).toContain('[Context Budget]');
       expect(result.additionalContext).not.toContain('[Context Budget - ');
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('composition advice', () => {
+    test('returns null when no ledger file exists', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const result = buildCompositionAdvice(planningDir);
+      expect(result).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('returns null when ledger is empty array', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), '[]');
+      const result = buildCompositionAdvice(planningDir);
+      expect(result).toBeNull();
+      cleanup(tmpDir);
+    });
+
+    test('groups by phase and computes totals', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const now = new Date().toISOString();
+      const entries = [
+        { file: 'a.js', timestamp: now, est_tokens: 1000, phase: 'auth', stale: false },
+        { file: 'b.js', timestamp: now, est_tokens: 2000, phase: 'auth', stale: false },
+        { file: 'c.js', timestamp: now, est_tokens: 500, phase: 'config', stale: false },
+      ];
+      fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), JSON.stringify(entries));
+      const result = buildCompositionAdvice(planningDir);
+      expect(result).not.toBeNull();
+      expect(result).toContain('~4k tokens');
+      expect(result).toContain('3 reads');
+      // No stale entries, so no phase-level stale info and no /compact suggestion
+      expect(result).not.toContain('stale');
+      cleanup(tmpDir);
+    });
+
+    test('identifies stale entries', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      // Write config with stale_after_minutes: 60
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+        context_ledger: { enabled: true, stale_after_minutes: 60 }
+      }));
+      configClearCache();
+
+      const now = Date.now();
+      const oldTimestamp = new Date(now - 120 * 60 * 1000).toISOString(); // 120 min ago
+      const recentTimestamp = new Date(now - 5 * 60 * 1000).toISOString(); // 5 min ago
+      const entries = [
+        { file: 'old.js', timestamp: oldTimestamp, est_tokens: 3000, phase: 'auth', stale: false },
+        { file: 'new.js', timestamp: recentTimestamp, est_tokens: 1000, phase: 'auth', stale: false },
+      ];
+      fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), JSON.stringify(entries));
+      const result = buildCompositionAdvice(planningDir);
+      expect(result).not.toBeNull();
+      expect(result).toContain('1 stale reads');
+      expect(result).toContain('~3k');
+      expect(result).toContain('/compact');
+      configClearCache();
+      cleanup(tmpDir);
+    });
+
+    test('handles null phase as untracked', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const oldTimestamp = new Date(Date.now() - 120 * 60 * 1000).toISOString();
+      const entries = [
+        { file: 'x.js', timestamp: oldTimestamp, est_tokens: 500, phase: null, stale: false },
+      ];
+      fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), JSON.stringify(entries));
+      const result = buildCompositionAdvice(planningDir);
+      expect(result).not.toBeNull();
+      expect(result).toContain('untracked');
+      cleanup(tmpDir);
+    });
+
+    test('checkCompaction includes composition when bridge tier active and ledger exists', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      configClearCache();
+
+      // Set up bridge at DEGRADING tier (55%)
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      const timestamp = new Date().toISOString();
+      fs.writeFileSync(bridgePath, JSON.stringify({ estimated_percent: 55, timestamp }));
+
+      // Write ledger with stale entries
+      const oldTimestamp = new Date(Date.now() - 120 * 60 * 1000).toISOString();
+      const entries = [
+        { file: 'a.js', timestamp: oldTimestamp, est_tokens: 2000, phase: 'auth', stale: false },
+      ];
+      fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), JSON.stringify(entries));
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('[Context Budget - DEGRADING]');
+      expect(result.additionalContext).toContain('Context composition');
+      expect(result.additionalContext).toContain('stale');
+      configClearCache();
       cleanup(tmpDir);
     });
   });
