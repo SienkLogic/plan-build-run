@@ -344,6 +344,85 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 
 ---
 
+## Cross-Phase Verification Mode
+
+**Trigger:** Only active when `context_window_tokens >= 500000` in `.planning/config.json`. Skip this entire section if the value is below 500000 or absent.
+
+**Purpose:** Detect regressions — cases where the current phase's changes break a must-have that was previously verified as PASSED in an earlier phase. This supplements single-phase verification; it does not replace it.
+
+**When to run:** After Step 10 (Determine Overall Status). Run cross-phase checks regardless of single-phase status (even if the current phase passed, a regression may still exist).
+
+### Step 11b: Cross-Phase Regression Check
+
+1. **Check the gate:**
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get context_window_tokens
+   ```
+
+   If the returned value is < 500000 or the command fails, skip to Step 12 (Budget Management). Log: "Cross-phase verification skipped (context_window_tokens < 500000)."
+
+2. **Collect completed prior phases:**
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {current_phase_number}
+   ```
+
+   Returns a JSON array of `{ phase_number, slug, status }` entries. If the list is empty, skip cross-phase checks — there is nothing to regress against.
+
+3. **Collect current phase's modified files:**
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {current_phase_number}
+   ```
+
+   Extract `files_modified` from all PLAN.md frontmatters in the current phase. This is the change surface to check against.
+
+4. **For each completed prior phase**, collect its must-haves and provides:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {prior_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {prior_phase_number}
+   ```
+
+   Extract:
+   - `must_haves.artifacts` — file paths that must exist and be substantive
+   - `must_haves.key_links` — wiring connections that must hold
+   - `provides` from SUMMARY.md frontmatter — exported symbols/behaviors
+
+5. **For each prior-phase must-have**, check if any current-phase file from step 3 overlaps with the artifact's path or the key_link's source/target file:
+   - If NO overlap: mark `INTACT` (no risk of regression — current phase didn't touch those files)
+   - If overlap exists: perform targeted verification:
+     - **Artifact regression check**: Does the artifact still exist at L1 (exists) and L2 (not a stub)? Use `Glob` and `Grep` to verify.
+     - **Key-link regression check**: Does the import/wiring still resolve? `Grep` for the import at the call site.
+   - Classify as `INTACT` (verified still present) or `REGRESSION` (was passing, now broken).
+
+6. **Write cross-phase results to VERIFICATION.md** — append to the frontmatter `cross_phase_regressions` key:
+
+   ```yaml
+   cross_phase_regressions:
+     - phase: "02-hook-threshold-scaling"
+       must_have: "context-bridge.js reads context_window_tokens from config"
+       status: "INTACT"
+       evidence: "Line 47 of context-bridge.js still imports configLoad and reads context_window_tokens"
+     - phase: "03-agent-checkpoint-adaptation"
+       must_have: "all 14 agent .md files reference agent_checkpoint_pct"
+       status: "REGRESSION"
+       evidence: "verifier.md no longer contains agent_checkpoint_pct reference — was present at Phase 03 verification"
+       recommendation: "Restore agent_checkpoint_pct reference in verifier.md"
+   ```
+
+   If no prior phases exist or all are INTACT, write `cross_phase_regressions: []`.
+
+7. **Update overall status** — if ANY regression is found:
+   - Append each regression as an additional gap in the `gaps` frontmatter array with `source: cross_phase`
+   - If overall status was `passed`, change it to `gaps_found`
+   - Regressions are HIGH priority gaps — list them first in the gaps array
+
+8. **Output limit:** Cross-phase section in VERIFICATION.md body ≤ 300 tokens. One evidence line per must-have. Skip INTACT items from the body (only write regressions); all results go in the frontmatter array.
+
+---
+
 ## Budget Management
 
 **Output budget**: VERIFICATION.md ≤ 1,200 tokens (hard limit 1,800). Console output: final verdict + gap count only. One evidence row per must-have. Anti-pattern scan: blockers only. Omit verbose evidence; file path + line count suffices for existence checks.
@@ -422,6 +501,7 @@ gaps:
     recommendation: "{action to fix}"
 satisfied: []
 unsatisfied: []
+cross_phase_regressions: []
 ---
 ```
 
