@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/pbr_banner_logo.png" alt="Plan-Build-Run Logo" width="550" />
+  <img src="./docs/assets/pbr_banner_logo.png" alt="Plan-Build-Run Logo" width="550" />
 </p>
 
 <p align="center">
@@ -41,7 +41,7 @@ Claude Code is remarkably capable...until your context window fills up. As token
 **Plan-Build-Run solves this.** It keeps your main orchestrator under ~15% context usage by delegating heavy work to fresh subagent contexts, each getting a clean 200k token window. All state lives on disk. Sessions are killable at any second without data loss. Whether you're on a free tier or Max 5x, wasted context means wasted budget, and context rot is the biggest source of waste.
 
 <p align="center">
-  <img src="./assets/pbr-demo.gif" alt="Plan-Build-Run workflow demo" width="800" />
+  <img src="./docs/assets/pbr-demo.gif" alt="Plan-Build-Run workflow demo" width="800" />
 </p>
 
 Other spec-driven development tools exist, but they tend to either introduce unnecessary ceremony (sprint ceremonies, story points, stakeholder syncs) or lack real understanding of what you're building. PBR takes a different approach: the complexity is in the system, not in your workflow. Behind the scenes: context engineering, XML prompt formatting, subagent orchestration, state management. What you see: a few commands that just work.

@@ -1,33 +1,18 @@
 node_modules/
-.DS_Store
-TO-DOS.md
-CLAUDE.md
-/research.claude/
-commands.html
-
-# Local test installs
-.claude/
-
-# Build artifacts (committed to npm, not git)
-hooks/dist/
-
-# Coverage artifacts
+.env
+*.log
+nul
+.planning.bak/
+.planning-old/
+.planning-backup-*/
+.claude/agent-memory/
+.claude/settings.local.json
 coverage/
-
-# Animation assets
-animation/
-*.gif
-
-# Internal planning documents
-reports/
-RAILROAD_ARCHITECTURE.md
-.planning/
-analysis/
-docs/GSD-MASTER-ARCHITECTURE.md
-docs/GSD-RUST-IMPLEMENTATION-GUIDE.md
-docs/GSD-SYSTEM-SPECIFICATION.md
-gaps.md
-improve.md
-philosophy.md
+docs/assets/assets_backup/
+docs/assets/demo-script.sh
+docs/assets/demo.tape
 dashboard/package-lock.json
-dashboard/server/package-lock.json
+drafts/
+.planning/
+.hook-server-port
+*.PROGRESS-*
