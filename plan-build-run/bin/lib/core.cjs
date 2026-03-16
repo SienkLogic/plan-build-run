@@ -56,7 +56,9 @@ const KNOWN_AGENTS = [
   'codebase-mapper',
   'audit',
   'general',
-  'dev-sync'
+  'dev-sync',
+  'roadmapper',
+  'nyquist-auditor'
 ];
 
 // ─── Phase status transition state machine ────────────────────────────────────

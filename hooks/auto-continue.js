@@ -57,8 +57,8 @@ function main() {
     const tracker = loadTracker(planningDir, sessionId);
     const phaseLimit = (config.session_phase_limit !== undefined) ? config.session_phase_limit : 3;
     if (phaseLimit > 0 && tracker && tracker.phases_completed >= phaseLimit) {
-      // Write signal file with /pbr:pause to trigger the pause chain
-      try { fs.writeFileSync(signalPath, '/pbr:pause', 'utf8'); } catch (_writeErr) { /* ignore */ }
+      // Write signal file with /pbr:pause-work to trigger the pause chain
+      try { fs.writeFileSync(signalPath, '/pbr:pause-work', 'utf8'); } catch (_writeErr) { /* ignore */ }
 
       let reasonStr;
       const cyclingMethod = config.session_cycling || (process.env.TMUX ? 'tmux' : 'compact');
@@ -72,32 +72,32 @@ function main() {
           // Use pbr-tmux cycle which handles pane targeting via WSL tmux
           cycleCmd = 'sleep 3 && wsl.exe -d Ubuntu -- pbr-tmux cycle --non-interactive';
         } else {
-          cycleCmd = 'sleep 3 && tmux send-keys "/clear" Enter && sleep 1 && tmux send-keys "/pbr:resume" Enter';
+          cycleCmd = 'sleep 3 && tmux send-keys "/clear" Enter && sleep 1 && tmux send-keys "/pbr:resume-work" Enter';
         }
         const child = spawn('bash', ['-c', cycleCmd], { detached: true, stdio: 'ignore' });
         child.unref();
         logHook('auto-continue', 'Stop', 'cycle-tmux', { phases: tracker.phases_completed, limit: phaseLimit, bridge: isWindows ? 'wsl' : 'native' });
-        reasonStr = 'Auto-continue: execute /pbr:pause \u2014 Session checkpoint after ' + tracker.phases_completed + ' phases. TMUX auto-cycle will send /clear + /pbr:resume after pause completes.';
+        reasonStr = 'Auto-continue: execute /pbr:pause-work \u2014 Session checkpoint after ' + tracker.phases_completed + ' phases. TMUX auto-cycle will send /clear + /pbr:resume-work after pause completes.';
       } else if (cyclingMethod === 'compact') {
         // Compact mode: keep session alive, compress context, then continue
         logHook('auto-continue', 'Stop', 'cycle-compact', { phases: tracker.phases_completed, limit: phaseLimit });
         reasonStr = 'Auto-continue: session checkpoint after ' + tracker.phases_completed + ' phases.\n\n'
           + 'IMPORTANT: Context cycling required. You MUST do these steps IN ORDER:\n'
-          + '1. Run /pbr:pause to save session state\n'
+          + '1. Run /pbr:pause-work to save session state\n'
           + '2. Run /compact to compress context\n'
-          + '3. Run /pbr:resume to continue with fresh context\n\n'
-          + 'Execute /pbr:pause now.';
+          + '3. Run /pbr:resume-work to continue with fresh context\n\n'
+          + 'Execute /pbr:pause-work now.';
       } else {
         // Manual mode or unknown: show checkpoint banner with manual instructions
         logHook('auto-continue', 'Stop', 'cycle-banner', { phases: tracker.phases_completed, limit: phaseLimit });
-        reasonStr = 'Auto-continue: execute /pbr:pause \u2014 Session checkpoint after ' + tracker.phases_completed + ' phases.\n\n'
+        reasonStr = 'Auto-continue: execute /pbr:pause-work \u2014 Session checkpoint after ' + tracker.phases_completed + ' phases.\n\n'
           + '+==============================================================+\n'
           + '|  PLAN-BUILD-RUN > SESSION CHECKPOINT                         |\n'
           + '+==============================================================+\n\n'
           + 'Context cycling recommended after ' + tracker.phases_completed + ' phases completed.\n'
           + 'After pause completes, run:\n\n'
           + '  1. /clear\n'
-          + '  2. /pbr:resume\n';
+          + '  2. /pbr:resume-work\n';
       }
 
       process.stdout.write(JSON.stringify({ decision: 'block', reason: reasonStr }));
@@ -144,9 +144,7 @@ function main() {
             const buf = new SharedArrayBuffer(4);
             Atomics.wait(new Int32Array(buf), 0, 0, delay);
           } catch (_atomicsErr) {
-            // Fallback for environments without SharedArrayBuffer
-            const end = Date.now() + delay;
-            while (Date.now() < end) { /* fallback busy-wait */ }
+            // No SharedArrayBuffer — skip delay, retry immediately
           }
         }
       }
@@ -183,7 +181,7 @@ function main() {
     // Build reason string with optional advisory
     let reasonStr = `Auto-continue: execute ${nextCommand}${msgSuffix}`;
     if (continueCount > 3) {
-      reasonStr += `\n\n[pbr] Advisory: ${continueCount} consecutive continues. Consider /pbr:pause + fresh session to avoid context degradation.`;
+      reasonStr += `\n\n[pbr] Advisory: ${continueCount} consecutive continues. Consider /pbr:pause-work + fresh session to avoid context degradation.`;
     }
 
     // Block the stop and inject the next command as Claude's continuation reason.

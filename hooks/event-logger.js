@@ -21,10 +21,10 @@ const path = require('path');
 const MAX_ENTRIES = 1000;
 
 function getLogPath() {
-  const cwd = process.cwd();
-  const planningDir = path.join(cwd, '.planning');
-  if (!fs.existsSync(planningDir)) return null;
-  const logsDir = path.join(planningDir, 'logs');
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const logsDir = path.join(cwd, '.planning', 'logs');
+  // Auto-create .planning/logs/ if needed (recursive handles both levels).
+  // Ensures events are captured even before /pbr:begin creates .planning/.
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }

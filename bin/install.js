@@ -13,6 +13,15 @@ const yellow = '\x1b[33m';
 const dim = '\x1b[2m';
 const reset = '\x1b[0m';
 
+// Normalize WSL/Git Bash paths (/mnt/d/... -> D:\...) on Windows
+function normalizePath(p) {
+  if (os.platform() === 'win32' && /^\/mnt\/[a-z]\//i.test(p)) {
+    const drive = p.charAt(5).toUpperCase();
+    return drive + ':' + p.slice(6).replace(/\//g, '\\');
+  }
+  return p;
+}
+
 // Codex config.toml constants
 const PBR_CODEX_MARKER = '# PBR Agent Configuration \u2014 managed by plan-build-run installer';
 
@@ -1030,6 +1039,12 @@ function copyFlattenedCommands(srcDir, destDir, prefix, pathPrefix, runtime) {
       const destPath = path.join(destDir, destName);
 
       let content = fs.readFileSync(srcPath, 'utf8');
+
+      // Resolve skill stubs to inline full SKILL.md content
+      const repoRoot = path.resolve(srcDir, '..', '..');
+      const resolved = resolveSkillStub(content, repoRoot);
+      if (resolved) content = resolved;
+
       const globalClaudeRegex = /~\/\.claude\//g;
       const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
       const localClaudeRegex = /\.\/\.claude\//g;
@@ -1091,6 +1106,12 @@ function copyCommandsAsCodexSkills(srcDir, skillsDir, prefix, pathPrefix, runtim
       fs.mkdirSync(skillDir, { recursive: true });
 
       let content = fs.readFileSync(srcPath, 'utf8');
+
+      // Resolve skill stubs to inline full SKILL.md content
+      const repoRoot = path.resolve(currentSrcDir, '..', '..');
+      const resolved = resolveSkillStub(content, repoRoot);
+      if (resolved) content = resolved;
+
       const globalClaudeRegex = /~\/\.claude\//g;
       const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
       const localClaudeRegex = /\.\/\.claude\//g;
@@ -1117,6 +1138,67 @@ function copyCommandsAsCodexSkills(srcDir, skillsDir, prefix, pathPrefix, runtim
  * @param {string} pathPrefix - Path prefix for file references
  * @param {string} runtime - Target runtime ('claude', 'opencode', 'gemini', 'codex')
  */
+// Matches both forms:
+//   "This command is provided by the `pbr:audit` skill."
+//   "This command is provided by the `pbr:todo` skill with subcommand `add`."
+const SKILL_STUB_RE = /^This command is provided by the `pbr:([\w-]+)` skill(?:\s+with subcommand `([\w-]+)`)?\.\s*$/m;
+
+/**
+ * Resolve a command stub to its full SKILL.md content.
+ * Command stubs are thin wrappers like "This command is provided by the `pbr:audit` skill."
+ * This function finds the corresponding SKILL.md and merges its content into the command,
+ * preserving the command's frontmatter (with allowed-tools/argument-hint from the skill).
+ *
+ * For subcommand stubs (e.g., "with subcommand `add`"), the resolved content includes
+ * a subcommand directive so the skill knows which action to take.
+ *
+ * @param {string} content - The command file content
+ * @param {string} repoRoot - Root of the PBR repo (where plan-build-run/skills/ lives)
+ * @returns {string|null} Merged content, or null if not a stub or SKILL.md not found
+ */
+function resolveSkillStub(content, repoRoot) {
+  const match = content.match(SKILL_STUB_RE);
+  if (!match) return null;
+
+  const skillName = match[1];
+  const subcommand = match[2] || null;
+  const skillPath = path.join(repoRoot, 'plan-build-run', 'skills', skillName, 'SKILL.md');
+  if (!fs.existsSync(skillPath)) return null;
+
+  const skillContent = fs.readFileSync(skillPath, 'utf8');
+
+  // Parse command frontmatter
+  const cmdFmMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+  // Parse skill frontmatter
+  const skillFmMatch = skillContent.match(/^---\n([\s\S]*?)\n---\n/);
+  const skillBody = skillFmMatch
+    ? skillContent.slice(skillFmMatch[0].length)
+    : skillContent;
+
+  // Merge frontmatter: start with command's, add skill's allowed-tools and argument-hint
+  let mergedFm = cmdFmMatch ? cmdFmMatch[1] : '';
+  if (skillFmMatch) {
+    const skillFm = skillFmMatch[1];
+    // Add allowed-tools from skill if command doesn't have it
+    if (!mergedFm.includes('allowed-tools') && skillFm.includes('allowed-tools')) {
+      const toolsLine = skillFm.match(/^allowed-tools:.*$/m);
+      if (toolsLine) mergedFm += '\n' + toolsLine[0];
+    }
+    // Add argument-hint from skill if command doesn't have it
+    if (!mergedFm.includes('argument-hint') && skillFm.includes('argument-hint')) {
+      const hintLine = skillFm.match(/^argument-hint:.*$/m);
+      if (hintLine) mergedFm += '\n' + hintLine[0];
+    }
+  }
+
+  // For subcommand stubs, prepend a directive so the skill knows the active subcommand
+  const subcommandDirective = subcommand
+    ? `\n**SUBCOMMAND: \`${subcommand}\`** — Execute only the \`${subcommand}\` action from this skill.\n`
+    : '';
+
+  return `---\n${mergedFm}\n---\n${subcommandDirective}${skillBody}`;
+}
+
 function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand = false) {
   const isOpencode = runtime === 'opencode';
   const isCodex = runtime === 'codex';
@@ -1139,6 +1221,17 @@ function copyWithPathReplacement(srcDir, destDir, pathPrefix, runtime, isCommand
     } else if (entry.name.endsWith('.md')) {
       // Replace ~/.claude/ and $HOME/.claude/ and ./.claude/ with runtime-appropriate paths
       let content = fs.readFileSync(srcPath, 'utf8');
+
+      // Resolve command stubs: inline the full SKILL.md content so Claude Code
+      // gets the complete instructions when the user invokes /pbr:<command>.
+      // Without this, command files are thin stubs that say "provided by skill X"
+      // and Claude loops trying to load the skill content that never arrives.
+      if (isCommand) {
+        const repoRoot = path.resolve(srcDir, '..', '..');
+        const resolved = resolveSkillStub(content, repoRoot);
+        if (resolved) content = resolved;
+      }
+
       const globalClaudeRegex = /~\/\.claude\//g;
       const globalClaudeHomeRegex = /\$HOME\/\.claude\//g;
       const localClaudeRegex = /\.\/\.claude\//g;
@@ -1181,6 +1274,7 @@ function cleanupOrphanedFiles(configDir) {
   const orphanedFiles = [
     'hooks/pbr-notify.sh',  // Removed in v1.6.x
     'hooks/statusline.js',  // Renamed to pbr-statusline.js in v1.9.0
+    'hooks/pbr-context-monitor.js',  // Removed in v2.0 — merged into track-context-budget.js
   ];
 
   for (const relPath of orphanedFiles) {
@@ -1763,7 +1857,12 @@ function writeManifest(configDir, runtime = 'claude') {
   const opencodeCommandDir = path.join(configDir, 'command');
   const codexSkillsDir = path.join(configDir, 'skills');
   const agentsDir = path.join(configDir, 'agents');
-  const manifest = { version: pkg.version, timestamp: new Date().toISOString(), files: {} };
+  const manifest = {
+    version: pkg.version,
+    timestamp: new Date().toISOString(),
+    sourceDir: normalizePath(path.resolve(path.join(__dirname, '..'))),
+    files: {}
+  };
 
   const pbrHashes = generateManifest(pbrDir);
   for (const [rel, hash] of Object.entries(pbrHashes)) {
@@ -2076,6 +2175,14 @@ function install(isGlobal, runtime = 'claude') {
   writeManifest(targetDir, runtime);
   console.log(`  ${green}✓${reset} Wrote file manifest (${MANIFEST_NAME})`);
 
+  // Report dashboard availability
+  const dashboardDir = path.join(src, 'dashboard');
+  if (fs.existsSync(path.join(dashboardDir, 'bin', 'cli.cjs'))) {
+    console.log(`  ${green}✓${reset} Dashboard available ${dim}(served from source repo)${reset}`);
+  } else {
+    console.log(`  ${dim}-${reset} Dashboard not available ${dim}(not found in source repo)${reset}`);
+  }
+
   // Report any backed-up local patches
   reportLocalPatches(targetDir, runtime);
 
@@ -2132,17 +2239,13 @@ function install(isGlobal, runtime = 'claude') {
   const updateCheckCommand = isGlobal
     ? buildHookCommand(targetDir, 'pbr-check-update.js')
     : 'node ' + dirName + '/hooks/pbr-check-update.js';
-  const contextMonitorCommand = isGlobal
-    ? buildHookCommand(targetDir, 'pbr-context-monitor.js')
-    : 'node ' + dirName + '/hooks/pbr-context-monitor.js';
-
-  // Build hook commands for dashboard hooks (hook-server-client and run-hook)
-  const hookServerClientCmd = isGlobal
-    ? buildHookCommand(targetDir, 'hook-server-client.js')
-    : 'node ' + dirName + '/hooks/hook-server-client.js';
-  const runHookCmd = isGlobal
-    ? buildHookCommand(targetDir, 'run-hook.js')
-    : 'node ' + dirName + '/hooks/run-hook.js';
+  // Build direct hook commands (no hook-server-client middleman)
+  function directHookCmd(hookFile) {
+    return isGlobal
+      ? buildHookCommand(targetDir, hookFile)
+      : 'node ' + dirName + '/hooks/' + hookFile;
+  }
+  const runHookCmd = directHookCmd('run-hook.js');
   const hookServerCmd = isGlobal
     ? buildHookCommand(targetDir, 'hook-server.js')
     : 'node ' + dirName + '/hooks/hook-server.js';
@@ -2220,62 +2323,90 @@ function install(isGlobal, runtime = 'claude') {
       console.log(`  ${yellow}⚠${reset} Skipping hook-server spawn (script not found)`);
     }
 
-    // --- PreToolUse: Bash, Write, Edit dispatchers ---
-    const hookServerClientScript = path.join(hooksDir, 'hook-server-client.js');
-    if (fs.existsSync(hookServerClientScript)) {
-      if (addHookEntry(preToolEvent, 'Bash', hookServerClientCmd + ' pre-bash-dispatch', 'pre-bash-dispatch')) {
+    // --- PreToolUse: Bash, Write, Edit dispatchers (direct calls, no hook-server-client) ---
+    const preBashScript = path.join(hooksDir, 'pre-bash-dispatch.js');
+    if (fs.existsSync(preBashScript)) {
+      if (addHookEntry(preToolEvent, 'Bash', directHookCmd('pre-bash-dispatch.js'), 'pre-bash-dispatch')) {
         console.log(`  ${green}✓${reset} Configured PreToolUse:Bash hook`);
       }
-      if (addHookEntry(preToolEvent, 'Write', hookServerClientCmd + ' pre-write-dispatch', 'pre-write-dispatch')) {
+      // Also register validate-commit on Bash
+      if (fs.existsSync(path.join(hooksDir, 'validate-commit.js'))) {
+        addHookEntry(preToolEvent, 'Bash', directHookCmd('validate-commit.js'), 'validate-commit');
+      }
+    }
+    const preWriteScript = path.join(hooksDir, 'pre-write-dispatch.js');
+    if (fs.existsSync(preWriteScript)) {
+      if (addHookEntry(preToolEvent, 'Write', directHookCmd('pre-write-dispatch.js'), 'pre-write-dispatch')) {
         console.log(`  ${green}✓${reset} Configured PreToolUse:Write hook`);
       }
-      // Edit uses the same pre-write-dispatch handler
-      const hasEditPre = settings.hooks[preToolEvent] && settings.hooks[preToolEvent].some(entry =>
-        entry.matcher === 'Edit' && entry.hooks && entry.hooks.some(h => h.command && h.command.includes('pre-write-dispatch'))
-      );
-      if (!hasEditPre) {
-        if (!settings.hooks[preToolEvent]) settings.hooks[preToolEvent] = [];
-        settings.hooks[preToolEvent].push({
-          matcher: 'Edit',
-          hooks: [{ type: 'command', command: hookServerClientCmd + ' pre-write-dispatch' }]
-        });
-        console.log(`  ${green}✓${reset} Configured PreToolUse:Edit hook`);
-      }
+      // Edit uses the same handler
+      addHookEntry(preToolEvent, 'Edit', directHookCmd('pre-write-dispatch.js'), 'pre-write-dispatch');
+      console.log(`  ${green}✓${reset} Configured PreToolUse:Edit hook`);
 
-      // --- PostToolUse: Read, Write, Edit, Bash dispatchers ---
-      if (addHookEntry(postToolEvent, 'Read', hookServerClientCmd + ' track-context-budget', 'track-context-budget')) {
+      // Also register check-skill-workflow on Write/Edit
+      if (fs.existsSync(path.join(hooksDir, 'check-skill-workflow.js'))) {
+        addHookEntry(preToolEvent, 'Write', directHookCmd('check-skill-workflow.js'), 'check-skill-workflow');
+        addHookEntry(preToolEvent, 'Edit', directHookCmd('check-skill-workflow.js'), 'check-skill-workflow');
+      }
+    }
+
+    // --- PostToolUse: Read, Write, Edit, Bash, Task dispatchers ---
+    if (fs.existsSync(path.join(hooksDir, 'track-context-budget.js'))) {
+      if (addHookEntry(postToolEvent, 'Read', directHookCmd('track-context-budget.js'), 'track-context-budget')) {
         console.log(`  ${green}✓${reset} Configured PostToolUse:Read hook`);
       }
-      if (addHookEntry(postToolEvent, 'Write', hookServerClientCmd + ' post-write-dispatch', 'post-write-dispatch')) {
+    }
+    if (fs.existsSync(path.join(hooksDir, 'post-write-dispatch.js'))) {
+      if (addHookEntry(postToolEvent, 'Write', directHookCmd('post-write-dispatch.js'), 'post-write-dispatch')) {
         console.log(`  ${green}✓${reset} Configured PostToolUse:Write hook`);
       }
-      // Edit uses the same post-write-dispatch handler
-      const hasEditPost = settings.hooks[postToolEvent] && settings.hooks[postToolEvent].some(entry =>
-        entry.matcher === 'Edit' && entry.hooks && entry.hooks.some(h => h.command && h.command.includes('post-write-dispatch'))
-      );
-      if (!hasEditPost) {
-        if (!settings.hooks[postToolEvent]) settings.hooks[postToolEvent] = [];
-        settings.hooks[postToolEvent].push({
-          matcher: 'Edit',
-          hooks: [{ type: 'command', command: hookServerClientCmd + ' post-write-dispatch' }]
-        });
-        console.log(`  ${green}✓${reset} Configured PostToolUse:Edit hook`);
-      }
-      if (addHookEntry(postToolEvent, 'Bash', hookServerClientCmd + ' suggest-compact', 'suggest-compact')) {
+      addHookEntry(postToolEvent, 'Edit', directHookCmd('post-write-dispatch.js'), 'post-write-dispatch');
+      console.log(`  ${green}✓${reset} Configured PostToolUse:Edit hook`);
+    }
+    if (fs.existsSync(path.join(hooksDir, 'post-bash-dispatch.js'))) {
+      addHookEntry(postToolEvent, 'Bash', directHookCmd('post-bash-dispatch.js'), 'post-bash-dispatch');
+    }
+    if (fs.existsSync(path.join(hooksDir, 'suggest-compact.js'))) {
+      if (addHookEntry(postToolEvent, 'Bash', directHookCmd('suggest-compact.js'), 'suggest-compact')) {
         console.log(`  ${green}✓${reset} Configured PostToolUse:Bash hook`);
       }
+    }
+    if (fs.existsSync(path.join(hooksDir, 'check-subagent-output.js'))) {
+      if (addHookEntry(postToolEvent, 'Task', directHookCmd('check-subagent-output.js'), 'check-subagent-output')) {
+        console.log(`  ${green}✓${reset} Configured PostToolUse:Task hook`);
+      }
+    }
 
-      // --- SubagentStop: log-subagent (server-side merges with check-subagent-output) ---
-      if (addHookEntry('SubagentStop', null, hookServerClientCmd + ' log-subagent', 'log-subagent')) {
+    // --- PostToolUseFailure: log-tool-failure ---
+    if (fs.existsSync(path.join(hooksDir, 'log-tool-failure.js'))) {
+      if (addHookEntry('PostToolUseFailure', null, directHookCmd('log-tool-failure.js'), 'log-tool-failure')) {
+        console.log(`  ${green}✓${reset} Configured PostToolUseFailure hook`);
+      }
+    }
+
+    // --- SubagentStop: log-subagent + event-handler ---
+    if (fs.existsSync(path.join(hooksDir, 'log-subagent.js'))) {
+      if (addHookEntry('SubagentStop', null, directHookCmd('log-subagent.js'), 'log-subagent')) {
         console.log(`  ${green}✓${reset} Configured SubagentStop hook`);
       }
+    }
+    if (fs.existsSync(path.join(hooksDir, 'event-handler.js'))) {
+      addHookEntry('SubagentStop', null, directHookCmd('event-handler.js'), 'event-handler');
+    }
 
-      // --- PreCompact: context-budget-check ---
-      if (addHookEntry('PreCompact', null, hookServerClientCmd + ' context-budget-check', 'context-budget-check')) {
+    // --- PreCompact: context-budget-check ---
+    if (fs.existsSync(path.join(hooksDir, 'context-budget-check.js'))) {
+      if (addHookEntry('PreCompact', null, directHookCmd('context-budget-check.js'), 'context-budget-check')) {
         console.log(`  ${green}✓${reset} Configured PreCompact hook`);
       }
-    } else {
-      console.log(`  ${yellow}⚠${reset} Skipping dashboard hooks (hook-server-client.js not found)`);
+    }
+
+    // --- WorktreeCreate/Remove ---
+    if (fs.existsSync(path.join(hooksDir, 'worktree-create.js'))) {
+      addHookEntry('WorktreeCreate', null, directHookCmd('worktree-create.js'), 'worktree-create');
+    }
+    if (fs.existsSync(path.join(hooksDir, 'worktree-remove.js'))) {
+      addHookEntry('WorktreeRemove', null, directHookCmd('worktree-remove.js'), 'worktree-remove');
     }
 
     // --- SessionEnd: session-cleanup (uses run-hook.js directly, not hook-server-client) ---
@@ -2288,15 +2419,7 @@ function install(isGlobal, runtime = 'claude') {
       console.log(`  ${yellow}⚠${reset} Skipping SessionEnd hook (run-hook.js not found)`);
     }
 
-    // --- Legacy: context monitor (kept for backward compat) ---
-    const contextMonitorScript = path.join(hooksDir, 'pbr-context-monitor.js');
-    if (fs.existsSync(contextMonitorScript)) {
-      if (addHookEntry(postToolEvent, null, contextMonitorCommand, 'pbr-context-monitor')) {
-        console.log(`  ${green}✓${reset} Configured context window monitor hook`);
-      }
-    } else {
-      console.log(`  ${yellow}⚠${reset} Skipping context monitor hook (script not found)`);
-    }
+    // Legacy pbr-context-monitor removed -- functionality merged into track-context-budget.js
   }
 
   return { settingsPath, settings, statuslineCommand, runtime };
