@@ -264,7 +264,85 @@ Validate wave consistency:
 
 ---
 
+### Step 5a: Pre-Spawn Intra-Phase Conflict Detection (conditional)
+
+**Trigger:** Only run if `context_window_tokens` in `.planning/config.json` is >= 500000.
+
+If the condition is false, skip this step entirely and proceed to Step 5c.
+
+**Purpose:** Before spawning any executor, detect whether plans within this phase conflict with each other — specifically plans that are assigned to the same wave (and would run in parallel) but modify the same files or share import graph dependencies without an explicit `depends_on` relationship. This prevents silent data-race failures where two parallel executors clobber each other's writes.
+
+**Procedure:**
+
+1. Use the `plan-index` output already collected in Step 3. No additional file reads are needed. Extract from each plan:
+   - `plan_id`
+   - `wave`
+   - `depends_on` list
+   - `files_modified` list
+
+2. **Same-file conflict detection:** For every pair of plans in the same wave, compute the intersection of their `files_modified` lists. A non-empty intersection is a **direct conflict** — both plans write the same file in parallel.
+
+3. **Import graph overlap detection:** For every pair of plans in the same wave that do NOT share a direct file conflict, check for shared directory prefix overlap. If plan A modifies `src/auth/session.ts` and plan B modifies `src/auth/middleware.ts`, they share the `src/auth/` subtree — flag as a **potential conflict** (import graph sibling edits may cause merge conflicts or runtime breakage even without touching the same file).
+
+   Overlap rule: two files share a directory prefix if their paths share at least one path segment beyond the project root (e.g., both under `src/auth/` or both under `plugins/pbr/scripts/`).
+
+4. **Implicit dependency detection:** For every pair of plans across ANY waves (not just same-wave) where plan B's `files_modified` overlaps with plan A's `files_modified` BUT plan B does NOT list plan A in its `depends_on` (and plan A is in an earlier wave), flag as an **implicit dependency warning** — plan B will overwrite plan A's work without declaring the dependency.
+
+5. Build a conflict report:
+
+   ```
+   Intra-Phase Conflict Detection Results
+
+   Plans analyzed: {count} | Context: {context_window_tokens} tokens
+
+   {If direct conflicts found:}
+   DIRECT CONFLICTS (same file, same wave — parallel execution will clobber):
+
+   | File | Plan A | Plan B | Wave |
+   |------|--------|--------|------|
+   | {path} | {plan_id} | {plan_id} | {wave} |
+
+   {If potential conflicts found:}
+   POTENTIAL CONFLICTS (shared directory subtree, same wave):
+
+   | Shared Prefix | Plan A | Plan B | Wave |
+   |---------------|--------|--------|------|
+   | {prefix}/ | {plan_id} | {plan_id} | {wave} |
+
+   {If implicit dependencies found:}
+   IMPLICIT DEPENDENCIES (file overlap, no depends_on declared):
+
+   | File | Earlier Plan | Later Plan | Missing depends_on |
+   |------|-------------|------------|-------------------|
+   | {path} | {plan_id} (wave {W}) | {plan_id} (wave {W+N}) | {plan_id} not in depends_on |
+
+   {If conflicts found:}
+   Suggested wave reordering:
+   {For each direct conflict pair: "Move {plan_id} to wave {current_wave + 1} and add depends_on: ['{other_plan_id}']"}
+   {For each implicit dependency: "Add depends_on: ['{earlier_plan_id}'] to {later_plan_id}"}
+   ```
+
+6. If **any** conflicts or warnings were found, present the report and use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+
+   ```
+   question: "{N} conflict(s) detected between plans in this phase. Proceed anyway?"
+   header: "Intra-Phase Conflicts"
+   options:
+     - label: "Proceed"  description: "Continue — conflicts are intentional or I will fix them manually"
+     - label: "Abort"    description: "Stop — I need to re-plan with /pbr:plan-phase {N}"
+   ```
+
+   If user selects "Abort": stop the build. Display: "Re-run `/pbr:plan-phase {N}` and apply the suggested wave reordering above."
+
+   If user selects "Proceed": log a deviation — `DEVIATION: Intra-phase conflict(s) acknowledged by user. Plans: {conflicting plan IDs}.` — then continue to Step 5c.
+
+7. If **no conflicts found**: display `✓ No intra-phase conflicts detected. Proceeding.` and continue to Step 5c silently.
+
+---
+
 ### Step 5c: Pre-Spawn Cross-Phase Conflict Check (conditional)
+
+Runs after Step 5a (intra-phase conflict detection).
 
 **Trigger:** Only run if `--cross-check` flag is present in `$ARGUMENTS` AND `context_window_tokens` in `.planning/config.json` is >= 500000.
 
