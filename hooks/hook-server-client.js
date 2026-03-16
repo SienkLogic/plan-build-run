@@ -90,7 +90,7 @@ function recordSuccess(planningDir) {
 const HOOK_EVENT_MAP = {
   'track-context-budget': { event: 'PostToolUse',        tool: 'Read|Glob|Grep' },
   'context-bridge':       { event: 'PostToolUse',        tool: 'Write|Edit|Bash|Task' },
-  'post-write-dispatch':  { event: 'PostToolUse',        tool: 'Write' },
+  'post-write-dispatch':  { event: 'PostToolUse',        tool: 'Write|Edit' },
   'post-bash-triage':     { event: 'PostToolUse',        tool: 'Bash'  },
   'check-subagent-output':{ event: 'PostToolUse',        tool: 'Task'  },
   'log-tool-failure':     { event: 'PostToolUseFailure', tool: '*'     },

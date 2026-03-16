@@ -83,10 +83,10 @@ describe('DERIV-01: codex-pbr derivative is fully populated', () => {
     }
   });
 
-  test('codex-pbr has 12 agent files', () => {
+  test('codex-pbr has 14 agent files', () => {
     const agents = fs.readdirSync(path.join(CODEX_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
-    expect(agents.length).toBe(12);
+    expect(agents.length).toBe(14);
   });
 
   test('codex-pbr has 28 command files', () => {
@@ -128,10 +128,10 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
     }
   });
 
-  test('cursor-pbr has 12 agent files', () => {
+  test('cursor-pbr has 14 agent files', () => {
     const agents = fs.readdirSync(path.join(CURSOR_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
-    expect(agents.length).toBe(12);
+    expect(agents.length).toBe(14);
   });
 
   test('cursor-pbr has 28 command files', () => {
@@ -200,10 +200,10 @@ describe('DERIV-03: copilot-pbr derivative is fully populated', () => {
     }
   });
 
-  test('copilot-pbr has 12 agent files with .agent.md suffix', () => {
+  test('copilot-pbr has 14 agent files with .agent.md suffix', () => {
     const agents = fs.readdirSync(path.join(COPILOT_DIR, 'agents'))
       .filter(f => f.endsWith('.agent.md'));
-    expect(agents.length).toBe(12);
+    expect(agents.length).toBe(14);
   });
 
   test('copilot-pbr has 28 command files', () => {
