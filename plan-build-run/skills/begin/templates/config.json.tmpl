@@ -4,6 +4,7 @@
   "mode": "interactive",
   "depth": "standard",
   "session_phase_limit": 3,
+  "context_window_tokens": 200000,
   "features": {
     "structured_planning": true,
     "goal_verification": true,
@@ -41,7 +42,8 @@
   "planning": {
     "commit_docs": true,
     "max_tasks_per_plan": 3,
-    "search_gitignored": false
+    "search_gitignored": false,
+    "multi_phase": false
   },
   "git": {
     "branching": "none",
@@ -60,10 +62,42 @@
     "confirm_research": false,
     "confirm_seeds": false,
     "confirm_deferred": false,
-    "confirm_commit_docs": false
+    "confirm_commit_docs": false,
+    "auto_checkpoints": false,
+    "checkpoint_auto_resolve": "none"
   },
   "safety": {
     "always_confirm_destructive": true,
     "always_confirm_external_services": true
+  },
+  "workflow": {
+    "enforce_pbr_skills": "advisory",
+    "inline_execution": false,
+    "inline_max_tasks": 2,
+    "inline_context_cap_pct": 40,
+    "phase_boundary_clear": "off",
+    "autonomous": false,
+    "speculative_planning": false,
+    "phase_replay": false
+  },
+  "intel": {
+    "enabled": false,
+    "auto_update": false,
+    "inject_on_start": false
+  },
+  "context_ledger": {
+    "enabled": false,
+    "stale_after_minutes": 60
+  },
+  "learnings": {
+    "enabled": false,
+    "read_depth": 3
+  },
+  "verification": {
+    "confidence_gate": false,
+    "confidence_threshold": 1.0
+  },
+  "context_budget": {
+    "threshold_curve": "linear"
   }
 }
