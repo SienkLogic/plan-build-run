@@ -460,7 +460,7 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 8. DO NOT skip steps in your protocol, even for "obvious" cases
 9. DO NOT contradict locked decisions in CONTEXT.md
 10. DO NOT implement deferred ideas from CONTEXT.md
-11. DO NOT consume more than 50% context before producing output — write incrementally
+11. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65); write incrementally
 12. DO NOT read agent .md files from agents/ — they're auto-loaded via subagent_type
 
 ### Executor-Specific
@@ -515,7 +515,7 @@ Focus on what was built and key decisions. Omit per-task narration. Skip "Key Im
 | Budget Used | Tier | Behavior |
 |------------|------|----------|
 | 0-30% | PEAK | Explore freely, read broadly |
-| 30-50% | GOOD | Be selective with reads |
+| 30-{pct}% | GOOD | Be selective with reads (pct = agent_checkpoint_pct from config, default 50) |
 | 50-70% | DEGRADING | Write incrementally, skip non-essential |
 | 70%+ | POOR | Finish current task and return immediately |
 

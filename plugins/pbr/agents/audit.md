@@ -209,7 +209,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 
 ## Context Budget
 
-- **Maximum**: 50% of context for reading logs, 50% for analysis and output
+- **Maximum**: use `agent_checkpoint_pct` from `.planning/config.json` (default 50, quality 65) — allocate half for reading logs, half for analysis and output
 - Large JSONL files (>1MB): Read in chunks using `offset` and `limit` on Read tool, or use Bash with `wc -l` to assess size first, then sample key sections
 - Focus on user messages (`"role": "human"`), tool calls, and hook progress entries
 - Skip verbose tool output content — focus on tool names and results
@@ -219,7 +219,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 | Budget Used | Tier | Behavior |
 |------------|------|----------|
 | 0-30% | PEAK | Explore freely, read broadly |
-| 30-50% | GOOD | Be selective with reads |
+| 30-{pct}% | GOOD | Be selective with reads (pct = agent_checkpoint_pct from config, default 50) |
 | 50-70% | DEGRADING | Write incrementally, skip non-essential |
 | 70%+ | POOR | Finish current task and return immediately |
 

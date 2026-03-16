@@ -179,7 +179,7 @@ Verify the derivative files have correct frontmatter for their platform. Report 
 4. DO NOT skip Copilot's `.agent.md` extension rename
 5. DO NOT leave `allowed-tools` in Cursor or Copilot skills
 6. DO NOT leave `argument-hint` in Copilot skills
-7. DO NOT consume more than 50% context before producing output
+7. DO NOT consume more than your configured checkpoint percentage of context before producing output — read `agent_checkpoint_pct` from `.planning/config.json` (default: 50, quality profile: 65); write incrementally
 8. DO NOT spawn sub-agents — this agent performs only file read/write operations
 
 </anti_patterns>
