@@ -144,6 +144,28 @@ function processEvent(data, planningDir, opts, sessionId) {
     try { fs.unlinkSync(trackerPath + '.' + process.pid); } catch (_e2) { /* best-effort cleanup */ }
   }
 
+  // Write context ledger entry if enabled
+  try {
+    const { configLoad } = require('./pbr-tools');
+    const config = configLoad(planningDir);
+    if (config && config.context_ledger && config.context_ledger.enabled) {
+      const estTokens = Math.round(actualChars / 4);
+      let phase = null;
+      try {
+        const { stateLoad } = require('./pbr-tools');
+        const fullState = stateLoad(planningDir);
+        phase = (fullState && fullState.state && fullState.state.phase_name) || null;
+      } catch (_e) { /* best-effort phase detection */ }
+      writeLedgerEntry(planningDir, {
+        file: filePath,
+        timestamp: new Date().toISOString(),
+        est_tokens: estTokens,
+        phase: phase,
+        stale: false
+      });
+    }
+  } catch (_e) { /* fire-and-forget */ }
+
   // Check bridge file for tier-based context warnings
   const bridgeTier = checkBridge(planningDir);
   if (bridgeTier) {
@@ -297,6 +319,58 @@ function checkBridge(planningDir) {
   }
 }
 
-module.exports = { checkBridge, BRIDGE_STALENESS_MS, processEvent, handleHttp, getScaledMilestones, CHAR_MILESTONE, LARGE_FILE_THRESHOLD, UNIQUE_FILE_MILESTONE };
+/**
+ * Read the context ledger from .planning/.context-ledger.json.
+ * Returns an array of ledger entries, or [] on error/missing file.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {Array} Ledger entries
+ */
+function readLedger(planningDir) {
+  try {
+    const ledgerPath = path.join(planningDir, '.context-ledger.json');
+    const content = fs.readFileSync(ledgerPath, 'utf8');
+    return JSON.parse(content);
+  } catch (_e) {
+    return [];
+  }
+}
+
+/**
+ * Append a ledger entry to .planning/.context-ledger.json.
+ * Fire-and-forget: wraps in try/catch, never throws.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} entry - { file: string, timestamp: string, est_tokens: number, phase: string|null, stale: false }
+ */
+function writeLedgerEntry(planningDir, entry) {
+  try {
+    const ledgerPath = path.join(planningDir, '.context-ledger.json');
+    const entries = readLedger(planningDir);
+    entries.push(entry);
+    // Atomic write: tmp file + rename
+    const tmpPath = ledgerPath + '.' + process.pid;
+    fs.writeFileSync(tmpPath, JSON.stringify(entries, null, 2), 'utf8');
+    fs.renameSync(tmpPath, ledgerPath);
+  } catch (_e) {
+    // Fire-and-forget — never throw
+    try { fs.unlinkSync(path.join(planningDir, '.context-ledger.json.' + process.pid)); } catch (_e2) { /* best-effort cleanup */ }
+  }
+}
+
+/**
+ * Delete the context ledger file. Best-effort, no throw.
+ *
+ * @param {string} planningDir - Path to .planning/
+ */
+function resetLedger(planningDir) {
+  try {
+    fs.unlinkSync(path.join(planningDir, '.context-ledger.json'));
+  } catch (_e) {
+    // Best-effort — file may not exist
+  }
+}
+
+module.exports = { checkBridge, BRIDGE_STALENESS_MS, processEvent, handleHttp, getScaledMilestones, CHAR_MILESTONE, LARGE_FILE_THRESHOLD, UNIQUE_FILE_MILESTONE, writeLedgerEntry, readLedger, resetLedger };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
