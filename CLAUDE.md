@@ -58,7 +58,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 
 ### Hook Scripts (`hooks/*.js`)
 
-48 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
+49 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
 
 **Dispatch pattern**: Several hooks use dispatch scripts that fan out to sub-scripts based on the file being written/read:
 
@@ -78,6 +78,12 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 | SubagentStart/Stop | log-subagent.js | — (tracks lifecycle) |
 | SubagentStop | event-handler.js | — (auto-verification trigger) |
 | TaskCompleted | task-completed.js | — (processes task completion) |
+| InstructionsLoaded | hook-server-client.js | — (detects instruction reload) |
+| ConfigChange | hook-server-client.js | — (config change detection) |
+| WorktreeCreate | hook-server-client.js | — (worktree setup) |
+| WorktreeRemove | hook-server-client.js | — (worktree cleanup) |
+| Notification | log-notification.js | — (notification logging) |
+| UserPromptSubmit | prompt-routing.js | — (prompt routing) |
 | SessionEnd | session-cleanup.js | — (cleanup) |
 
 **Hook exit codes**: 0 = success, 2 = block (PreToolUse hooks that reject a tool call).
@@ -89,7 +95,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 - **`plan-build-run/bin/`** — CLI tools (`pbr-tools.cjs` + `lib/` modules)
 - **`plan-build-run/references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`plan-build-run/templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
-- **`commands/pbr/`** — 28 command registration files (one `.md` per command mapping to its skill)
+- **`commands/pbr/`** — 41 command registration files (one `.md` per command mapping to its skill)
 - **`plan-build-run/skills/shared/`** — 12 shared skill fragments extracted from repeated patterns across skills
 - **`plugins/`** — Derivative plugins (codex-pbr, cursor-pbr, copilot-pbr)
 - **`dashboard/`** — Vite + React 18 dashboard with Express backend
