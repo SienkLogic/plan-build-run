@@ -1,0 +1,118 @@
+#!/bin/bash
+set -euo pipefail
+
+REAL_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_PATH")" && pwd)"
+source "$SCRIPT_DIR/lib/gum-fallback.sh"
+source "$SCRIPT_DIR/lib/tmux-helpers.sh"
+source "$SCRIPT_DIR/lib/pbr-state.sh"
+source "$SCRIPT_DIR/operations.sh"
+
+NON_INTERACTIVE=false
+export NON_INTERACTIVE
+
+show_help() {
+  cat <<'HELP'
+pbr-tmux -- Interactive TMUX operations for PBR workflow
+
+Usage:
+  pbr-tmux                          Interactive menu (gum or bash select)
+  pbr-tmux <operation> [args...]    Direct execution
+  pbr-tmux <operation> --non-interactive [args...]
+  pbr-tmux --help
+
+Operations:
+  start         Select project, apply layout, launch Claude
+  launch        Launch Claude Code session
+  multi [N]     Launch N parallel Claude sessions (2-4, default 2)
+  cycle         Send /clear + /pbr:resume-work to Claude pane
+  watch         Live PBR state monitor in split pane
+  status        Show PBR status
+  dashboard     Open PBR dashboard in split pane
+  split-h       Horizontal split
+  split-v       Vertical split
+  rename-win    Rename window
+  rename-sess   Rename session
+  swap          Swap panes
+  kill-pane     Kill current pane
+  kill-session  Kill current session
+  detach        Detach from tmux
+  list          List sessions
+  switch        Switch session
+  mouse         Toggle mouse mode
+  copy          Enter copy mode
+  keys          Show key bindings
+
+Flags:
+  --non-interactive    Suppress all prompts (for scripted use)
+  --help, -h           Show this help
+HELP
+}
+
+# Map short subcommand names to operation function names
+SUBCOMMAND_MAP=(
+  "start:op_start"
+  "launch:op_launch_claude"
+  "multi:op_multi"
+  "cycle:op_cycle_session"
+  "watch:op_watch"
+  "status:op_show_pbr_status"
+  "dashboard:op_open_dashboard"
+  "split-h:op_split_horizontal"
+  "split-v:op_split_vertical"
+  "rename-win:op_rename_window"
+  "rename-sess:op_rename_session"
+  "swap:op_swap_panes"
+  "kill-pane:op_kill_pane"
+  "kill-session:op_kill_session"
+  "detach:op_detach"
+  "list:op_list_sessions"
+  "switch:op_switch_session"
+  "mouse:op_toggle_mouse"
+  "copy:op_copy_mode"
+  "keys:op_show_keys"
+)
+
+main() {
+  local args=()
+  for arg in "$@"; do
+    case "$arg" in
+      --non-interactive) NON_INTERACTIVE=true; export NON_INTERACTIVE ;;
+      --help|-h) show_help; exit 0 ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+
+  if [[ ${#args[@]} -eq 0 ]]; then
+    # Interactive menu mode
+    if [[ "$NON_INTERACTIVE" == "true" ]]; then
+      echo "Error: No operation specified in non-interactive mode" >&2
+      exit 1
+    fi
+    ui_header "PBR TMUX Operations"
+    local items
+    items=$(get_menu_items)
+    local choice
+    choice=$(echo "$items" | ui_choose "Select operation") || exit 0
+    run_operation "$choice"
+    exit $?
+  fi
+
+  # Direct subcommand mode
+  local subcmd="${args[0]}"
+  local shift_args=("${args[@]:1}")
+  for mapping in "${SUBCOMMAND_MAP[@]}"; do
+    local cmd="${mapping%%:*}"
+    local func="${mapping##*:}"
+    if [[ "$subcmd" == "$cmd" ]]; then
+      "$func" "${shift_args[@]+"${shift_args[@]}"}"
+      exit $?
+    fi
+  done
+
+  echo "Unknown subcommand: $subcmd" >&2
+  echo "Run 'pbr-tmux --help' for available operations." >&2
+  exit 1
+}
+
+main "$@"

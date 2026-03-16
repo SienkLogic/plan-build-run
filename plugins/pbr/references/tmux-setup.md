@@ -49,7 +49,7 @@ Copy the PBR-optimized tmux configuration:
 
 ```bash
 # From the plan-build-run repository root (WSL2 path):
-cp /mnt/d/Repos/plan-build-run/.tmux.conf ~/.tmux.conf
+cp /mnt/d/Repos/plan-build-run/tools/pbr-tmux/tmux.conf ~/.tmux.conf
 ```
 
 **CRITICAL:** The config sets `default-terminal "tmux-256color"`. Do NOT change this to
@@ -277,10 +277,12 @@ The status bar script cannot find `.planning/STATE.md`. Check:
 
 | File | Purpose |
 |------|---------|
-| `.tmux.conf` | TMUX configuration (repo root) |
+| `tools/pbr-tmux/tmux.conf` | TMUX configuration |
 | `tools/pbr-tmux/pbr-tmux` | Main CLI entry point |
-| `tools/pbr-tmux/operations.sh` | Operation implementations |
-| `tools/pbr-tmux/lib/pbr-state.sh` | Status bar script |
+| `tools/pbr-tmux/operations.sh` | Operation implementations (start, launch, cycle, watch, multi) |
+| `tools/pbr-tmux/setup.sh` | One-shot installer for WSL2 |
+| `tools/pbr-tmux/layouts/dev.sh` | Dev layout (Claude + PBR watch + shell) |
+| `tools/pbr-tmux/lib/pbr-state.sh` | Status bar script (phase + context tier) |
 | `tools/pbr-tmux/lib/tmux-helpers.sh` | Shared tmux helper functions |
 | `tools/pbr-tmux/lib/gum-fallback.sh` | UI abstraction (gum/bash fallback) |
 | `tools/pbr-tmux/windows-terminal-profile.json` | Windows Terminal profile fragment |

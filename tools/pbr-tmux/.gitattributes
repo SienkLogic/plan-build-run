@@ -1,0 +1,4 @@
+# Shell scripts must use LF line endings (run in WSL2/Linux)
+*.sh text eol=lf
+pbr-tmux text eol=lf
+tmux.conf text eol=lf

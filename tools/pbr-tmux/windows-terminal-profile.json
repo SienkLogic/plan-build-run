@@ -1,0 +1,11 @@
+{
+  "name": "PBR TMUX",
+  "commandline": "wsl.exe -d Ubuntu --cd /mnt/d/Repos -- bash -lc 'tmux new-session -s pbr-$RANDOM \"pbr-tmux start; exec bash\"'",
+  "font": {
+    "face": "JetBrains Mono",
+    "size": 14
+  },
+  "colorScheme": "Catppuccin Mocha",
+  "padding": "8",
+  "scrollbarState": "hidden"
+}

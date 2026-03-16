@@ -54,8 +54,15 @@ function main() {
     }
 
     // Phase-limit detection: check if session has completed enough phases to trigger a cycle
+    // Scale default limit with context window: 3 at 200k, 6 at 500k+, 8 at 1M
     const tracker = loadTracker(planningDir, sessionId);
-    const phaseLimit = (config.session_phase_limit !== undefined) ? config.session_phase_limit : 3;
+    let phaseLimit;
+    if (config.session_phase_limit !== undefined) {
+      phaseLimit = config.session_phase_limit;
+    } else {
+      const ctxTokens = config.context_window_tokens || 200000;
+      phaseLimit = ctxTokens >= 1000000 ? 8 : ctxTokens >= 500000 ? 6 : 3;
+    }
     if (phaseLimit > 0 && tracker && tracker.phases_completed >= phaseLimit) {
       // Write signal file with /pbr:pause-work to trigger the pause chain
       try { fs.writeFileSync(signalPath, '/pbr:pause-work', 'utf8'); } catch (_writeErr) { /* ignore */ }
