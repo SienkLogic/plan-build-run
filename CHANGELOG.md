@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.3.1...plan-build-run-v2.4.0) (2026-03-16)
+
+
+### Features
+
+* **tools:** add compact-first cycling, pane borders, two-line status bar, session search ([0cc3ee9](https://github.com/SienkLogic/plan-build-run/commit/0cc3ee99965d81b3b696d05091075573706255c7))
+
 ## [2.3.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.3.0...plan-build-run-v2.3.1) (2026-03-16)
 
 
