@@ -28,6 +28,33 @@ const INTERNAL_SCOPE_PATTERN = /\*\*(\d{1,2}-\d{1,2}|\d{1,2}|quick-\d{1,3}):\*\*
 // TDD markers at start of description
 const TDD_MARKER_PATTERN = /^(RED|GREEN|REFACTOR)\s*[-–—]\s*/i;
 
+// Keyword → scope mapping for entries that lost their scope after stripping phase numbers.
+// Order matters: first match wins. More specific patterns come first.
+const SCOPE_INFERENCE_RULES = [
+  [/\bhook[s]?\b|\bPostToolUse\b|\bPreToolUse\b|\bSessionStart\b|\bdispatch\b/i, 'hooks'],
+  [/\bagent[s]?\b|\bsubagent\b|\bcheckpoint\b|\bspawn/i, 'agents'],
+  [/\bconfig\b|\bprofile[s]?\b|\bsetting[s]?\b|\bdepth\b|\bmodel profile/i, 'config'],
+  [/\bskill[s]?\b|\bSKILL\.md\b|\bfrontmatter\b|\ballowed-tools/i, 'skills'],
+  [/\bdashboard\b|\bVite\b|\bReact\b|\bWebSocket/i, 'dashboard'],
+  [/\btest[s]?\b|\bcoverage\b|\bfixture[s]?\b|\bjest\b|\bvitest/i, 'tests'],
+  [/\binstall\b|\bnpx\b|\bsetup\.sh\b|\buninstall/i, 'install'],
+  [/\bCLI\b|\bpbr-tools\b|\bgsd-tools\b|\bcommand extraction/i, 'cli'],
+  [/\bgraph\b|\bSQLite\b|\bentit(?:y|ies)\b|\bintel/i, 'intel'],
+  [/\bcontext\b|\bbudget\b|\bcompact\b|\btoken[s]?\b|\b1M\b|\bscale\b|\bthreshold/i, 'context'],
+  [/\bverif(?:y|ication)\b|\bVERIFICATION\.md/i, 'verification'],
+  [/\bplan(?:ner)?\b|\bPLAN\.md\b|\bwave[s]?\b|\bexecut/i, 'workflow'],
+  [/\bresearch\b|\bsynthesize/i, 'research'],
+  [/\bgit\b|\bbranch\b|\bcommit\b|\btag\b|\bsquash/i, 'git'],
+  [/\bREADME\b|\bdoc[s]?\b|\bchangelog\b|\bCONTRIBUTING/i, 'docs'],
+  [/\bcodex\b/i, 'codex'],
+  [/\bcopilot\b/i, 'copilot'],
+  [/\bcursor\b/i, 'cursor'],
+  [/\bopencode\b|\bgemini\b/i, 'platforms'],
+  [/\bmilestone\b|\broadmap\b|\barchive/i, 'milestone'],
+  [/\bstatus\s*line\b|\bstatusline/i, 'statusline'],
+  [/\blearning[s]?\b/i, 'learnings'],
+];
+
 // GSD → PBR rebranding: scopes, commands, paths, tool names
 const GSD_REPLACEMENTS = [
   // Bold scopes: **gsd-tools:** → **pbr-tools:**
@@ -69,8 +96,18 @@ function cleanChangelog(content) {
       return prefix + desc.replace(TDD_MARKER_PATTERN, '');
     });
 
-    // Capitalize first letter after "* " if it's lowercase
-    cleaned = cleaned.replace(/^(\* )([a-z])/, (match, prefix, letter) => {
+    // Infer scope for entries that have none (after phase-number stripping)
+    if (/^\* [^*]/.test(cleaned) && !/^\* \*\*/.test(cleaned)) {
+      for (const [pattern, scope] of SCOPE_INFERENCE_RULES) {
+        if (pattern.test(cleaned)) {
+          cleaned = cleaned.replace(/^\* /, `* **${scope}:** `);
+          break;
+        }
+      }
+    }
+
+    // Capitalize first letter after "* " or "* **scope:** " if it's lowercase
+    cleaned = cleaned.replace(/^(\* (?:\*\*[^*]+:\*\* )?)([a-z])/, (match, prefix, letter) => {
       return prefix + letter.toUpperCase();
     });
 
