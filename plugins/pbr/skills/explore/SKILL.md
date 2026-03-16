@@ -42,7 +42,10 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 
 Additionally for this skill:
 - **Minimize** file reads — this is a thinking skill, not a code analysis skill
-- **Delegate** deep research to a researcher subagent if investigation exceeds 3-4 file reads
+- **Delegate** deep research to a researcher subagent if investigation exceeds the read threshold:
+  - At context_window_tokens < 500000 (200k model): delegate after 3-4 file reads
+  - At context_window_tokens >= 500000 (1M model): delegate after 12 file reads
+  Check `context_window_tokens` in `.planning/config.json` to determine which limit applies.
 
 ---
 

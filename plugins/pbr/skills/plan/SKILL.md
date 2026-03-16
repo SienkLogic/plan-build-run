@@ -18,7 +18,7 @@ You are the orchestrator for `/pbr:plan-phase`. This skill creates detailed, exe
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading subagent output — read only plan frontmatter for summaries
+- **Minimize** reading subagent output — read only plan frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full plan bodies is permitted when content is needed for inline decisions.
 - **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
 
 ## Step 0 — Immediate Output

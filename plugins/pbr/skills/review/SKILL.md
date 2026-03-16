@@ -18,7 +18,7 @@ You are the orchestrator for `/pbr:verify-work`. This skill verifies that what w
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries
+- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full VERIFICATION.md bodies is permitted when gap details are needed for inline presentation.
 
 ## Step 0 — Immediate Output
 

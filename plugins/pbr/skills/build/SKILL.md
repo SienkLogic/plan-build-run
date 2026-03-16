@@ -18,7 +18,7 @@ You are the orchestrator for `/pbr:execute-phase`. This skill executes all plans
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content
+- **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
 - **Lazy-load steps**: Instead of reading ahead, fetch the next step's instructions on demand:
   `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
