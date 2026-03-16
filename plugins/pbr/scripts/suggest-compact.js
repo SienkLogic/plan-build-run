@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { loadBridge, getEffectiveThresholds, TIER_MESSAGES } = require('./context-bridge');
+const { readLedger } = require('./track-context-budget');
 
 
 const DEFAULT_THRESHOLD = 50;
@@ -46,6 +47,75 @@ function getScaledThreshold(planningDir) {
   } catch (_e) {
     return BASE_THRESHOLD;
   }
+}
+
+/**
+ * Build composition-aware compact advice from the context ledger.
+ * Groups ledger entries by phase, identifies stale content, and returns
+ * a human-readable breakdown string. Returns null when no ledger data exists.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @returns {string|null} Composition advice string, or null if no data
+ */
+function buildCompositionAdvice(planningDir) {
+  const entries = readLedger(planningDir);
+  if (!entries || entries.length === 0) return null;
+
+  // Read stale_after_minutes from config (default 60)
+  let staleMinutes = 60;
+  try {
+    const { configLoad } = require('./pbr-tools');
+    const config = configLoad(planningDir);
+    if (config && config.context_ledger && config.context_ledger.stale_after_minutes != null) {
+      staleMinutes = config.context_ledger.stale_after_minutes;
+    }
+  } catch (_e) { /* use default */ }
+
+  const now = Date.now();
+  const staleThresholdMs = staleMinutes * 60 * 1000;
+
+  // Group entries by phase
+  const groups = {};
+  let totalTokens = 0;
+
+  for (const entry of entries) {
+    const phase = entry.phase || 'untracked';
+    if (!groups[phase]) {
+      groups[phase] = { tokens: 0, staleCount: 0, staleTokens: 0, count: 0 };
+    }
+    const tokens = entry.est_tokens || 0;
+    groups[phase].tokens += tokens;
+    groups[phase].count += 1;
+    totalTokens += tokens;
+
+    // Check staleness
+    if (entry.timestamp) {
+      const entryAge = now - new Date(entry.timestamp).getTime();
+      if (entryAge >= staleThresholdMs) {
+        groups[phase].staleCount += 1;
+        groups[phase].staleTokens += tokens;
+      }
+    }
+  }
+
+  const totalK = Math.round(totalTokens / 1000);
+  let msg = `Context composition: ~${totalK}k tokens across ${entries.length} reads.`;
+
+  // Add phase-level stale info
+  for (const [phase, data] of Object.entries(groups)) {
+    if (data.staleCount > 0) {
+      const phaseK = Math.round(data.staleTokens / 1000);
+      msg += ` Phase ${phase}: ~${phaseK}k (${data.staleCount} stale reads >=${staleMinutes}m).`;
+    }
+  }
+
+  // Check if any stale content exists
+  const hasStale = Object.values(groups).some(g => g.staleCount > 0);
+  if (hasStale) {
+    msg += ' Consider /compact to free stale context.';
+  }
+
+  return msg;
 }
 
 function main() {
@@ -132,8 +202,10 @@ function checkCompaction(planningDir, cwd) {
 
       logHook('suggest-compact', 'PostToolUse', 'tier-suggest', { tier, count: counter.count });
 
+      const composition = buildCompositionAdvice(planningDir);
+      const baseMsg = `[Context Budget - ${tier}] ${message}`;
       return {
-        additionalContext: `[Context Budget - ${tier}] ${message}`
+        additionalContext: composition ? `${baseMsg}\n${composition}` : baseMsg
       };
     }
     return null;
@@ -217,5 +289,5 @@ function resetCounter(planningDir, sessionId) {
   }
 }
 
-module.exports = { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
+module.exports = { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
 if (require.main === module || process.argv[1] === __filename) { main(); }
