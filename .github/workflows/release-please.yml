@@ -28,12 +28,30 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.version }}
     steps:
+      - uses: actions/checkout@v4
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      # Clean internal scopes from the release PR body so it's user-facing
+      - name: Clean release PR body
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          PR_NUMBER: ${{ fromJSON(steps.release.outputs.pr).number }}
+        run: |
+          BODY=$(gh pr view "$PR_NUMBER" --json body --jq '.body' --repo ${{ github.repository }})
+          CLEANED=$(echo "$BODY" | node -e "
+            const {cleanChangelog} = require('./scripts/clean-changelog.js');
+            let input = '';
+            process.stdin.on('data', d => input += d);
+            process.stdin.on('end', () => process.stdout.write(cleanChangelog(input)));
+          ")
+          echo "$CLEANED" | gh pr edit "$PR_NUMBER" --body-file - --repo ${{ github.repository }}
 
       # Don't auto-merge — let releases be deliberate.
       # Merge manually when ready: gh pr merge --merge
