@@ -427,6 +427,8 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 
 **Output budget**: VERIFICATION.md ≤ 1,200 tokens (hard limit 1,800). Console output: final verdict + gap count only. One evidence row per must-have. Anti-pattern scan: blockers only. Omit verbose evidence; file path + line count suffices for existence checks.
 
+**At 1M (context_window_tokens >= 500,000):** VERIFICATION.md ≤ 2,000 tokens (hard limit 3,000). At 1M, verifiers can include fuller evidence rows, more complete anti-pattern scan results, and richer human verification guidance.
+
 **Context budget**: Stop before your configured checkpoint percentage of usage (read `agent_checkpoint_pct` from `.planning/config.json`, default 50, quality profile 65). Write findings incrementally. Prioritize: must-haves > key links > anti-patterns > human items. Skip anti-pattern scan if needed. Record any items you could not check in a "Not Verified" section.
 
 ### Context Quality Tiers

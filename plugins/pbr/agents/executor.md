@@ -508,6 +508,17 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 | Commit messages | Convention format | One-line summary + optional body |
 | Console output | Minimal | Progress lines only |
 
+**At 1M (context_window_tokens >= 500,000), use these output budgets instead:**
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| SUMMARY.md | <= 1,500 tokens | 2,000 tokens |
+| Checkpoint responses | <= 400 tokens | State what's needed, nothing more |
+| Commit messages | Convention format | One-line summary + optional body |
+| Console output | Minimal | Progress lines only |
+
+At 1M, SUMMARY.md can include fuller deviation explanations, richer task result notes, and more detailed deferred items lists. This improves downstream verifier accuracy.
+
 Focus on what was built and key decisions. Omit per-task narration. Skip "Key Implementation Details" unless a deviation occurred.
 
 ### Context Quality Tiers

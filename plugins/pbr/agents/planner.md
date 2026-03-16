@@ -355,7 +355,25 @@ When receiving checker feedback:
 
 **Frontmatter-First Assembly**: When prior plans exist, read SUMMARY.md frontmatter only (not full body) — 10 frontmatters ~500 tokens vs 10 full SUMMARYs ~5000 tokens. Extract: `provides`, `requires`, `key_files`, `key_decisions`, `patterns`. Only read full body when a specific detail is needed.
 
-**Digest-Select Depth**: For cross-phase SUMMARYs: direct dependency -> full body, 1 phase back -> frontmatter only, 2+ phases back -> skip entirely.
+**Digest-Select Depth** (check `context_window_tokens` in `.planning/config.json`):
+
+At 200k (default):
+
+| Distance | Depth |
+|----------|-------|
+| Direct dependency | Frontmatter only |
+| 1 phase back | Frontmatter only |
+| 2+ phases back | Skip entirely |
+
+At 1M (context_window_tokens >= 500,000):
+
+| Distance | Depth |
+|----------|-------|
+| Direct dependency | **Full body** — richer context for dependent plans |
+| 1 phase back | Frontmatter only |
+| 2+ phases back | Skip entirely |
+
+At 1M, reading full SUMMARY bodies for direct deps surfaces deviations, deferred items, and key patterns that frontmatter alone misses. This improves plan quality when context budget permits.
 
 ---
 
@@ -404,6 +422,16 @@ When receiving checker feedback:
 | PLAN.md (per plan file) | ≤ 2,000 tokens | 3,000 tokens |
 | ROADMAP.md | ≤ 3,000 tokens | 5,000 tokens |
 | Console output | Minimal | Plan IDs + wave summary only |
+
+**At 1M (context_window_tokens >= 500,000), use these output budgets instead:**
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| PLAN.md (per plan file) | <= 3,500 tokens | 5,000 tokens |
+| ROADMAP.md | <= 5,000 tokens | 8,000 tokens |
+| Console output | Minimal | Plan IDs + wave summary only |
+
+At 1M, larger plans can include richer action instructions, more comprehensive must-haves, and complete data contract tables without hitting the budget ceiling. Prioritize completeness over brevity only when context_window_tokens >= 500,000.
 
 One-line task descriptions in `<name>`. File paths in `<files>`, not explanations. Keep `<action>` steps to numbered imperatives — no background rationale. The executor reads code, not prose.
 

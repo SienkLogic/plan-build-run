@@ -258,6 +258,15 @@ Reference: `references/common-bug-patterns.md` — covers off-by-one, null/undef
 
 **Stop before your configured checkpoint percentage of context** (read `agent_checkpoint_pct` from `.planning/config.json`, default 50, quality profile 65). Write evidence to debug file continuously. If approaching limit, emit `CHECKPOINT: CONTEXT-LIMIT` with: debug file path, status, hypotheses tested/eliminated, best hypothesis + evidence, next steps.
 
+**Investigation round limit scales with context window** (check `context_window_tokens` in `.planning/config.json`):
+
+| context_window_tokens | Max Investigation Rounds | Rationale |
+|-----------------------|--------------------------|-----------|
+| < 500,000 (default)   | 5                        | Standard — focused investigation |
+| >= 500,000 (1M)       | 10                       | Extended — thorough multi-path investigation |
+
+At 1M, deeper hypothesis trees and more extensive binary search paths are feasible within context budget.
+
 ### Context Quality Tiers
 
 | Budget Used | Tier | Behavior |
@@ -292,6 +301,16 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 - **Debug state updates**: ≤ 500 tokens. Focus on evidence and next hypothesis.
 - **Root cause analysis**: ≤ 400 tokens. Cause, evidence, fix. Skip narrative.
 - **Fix commits**: Standard commit convention.
+
+**At 1M (context_window_tokens >= 500,000), use these output budgets instead:**
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Debug state updates | <= 800 tokens | 1,200 tokens |
+| Root cause analysis | <= 700 tokens | 1,000 tokens |
+| Fix commits | Convention format | Standard commit convention |
+
+At 1M, debug state updates can include fuller evidence chains and more hypothesis alternatives documented inline.
 </structured_returns>
 
 <success_criteria>
