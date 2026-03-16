@@ -25,7 +25,7 @@ npm run dashboard           # Launch dashboard UI
 npm run dashboard:install   # Install dashboard dependencies
 ```
 
-Coverage thresholds (enforced in `jest.config.cjs`): 58% statements, 54% branches, 62% functions, 58% lines.
+Coverage thresholds (enforced in `jest.config.cjs`): 70% statements, 68% branches, 70% functions, 70% lines.
 
 Dashboard (separate dependency tree):
 ```bash
@@ -46,7 +46,7 @@ Three layers:
 
 ### Skills (`plan-build-run/skills/{name}/SKILL.md`)
 
-Markdown files with YAML frontmatter defining slash commands (`/pbr:begin`, `/pbr:plan`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
+Markdown files with YAML frontmatter defining slash commands (`/pbr:new-project`, `/pbr:plan-phase`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
 28 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, milestone, note, pause, plan, profile, quick, resume, review, scan, setup, status, statusline, test, todo, undo.
 
@@ -115,6 +115,8 @@ name: agent-name
 description: "What this agent does"
 model: sonnet|inherit|haiku
 memory: none|user|project
+isolation: worktree        # Run agent in isolated git worktree (optional)
+color: <name|hex>          # Terminal color for agent output (optional)
 tools:
   - Read
   - Write
