@@ -43,7 +43,7 @@ describe('config validate', () => {
   test('valid config passes with no errors or warnings', () => {
     writeConfig({
       version: 2,
-      schema_version: 2,
+      schema_version: 3,
       mode: 'interactive',
       depth: 'standard',
       context_strategy: 'aggressive',
@@ -241,7 +241,7 @@ describe('config validate', () => {
   test('no conflict warnings for compatible config', () => {
     writeConfig({
       version: 2,
-      schema_version: 2,
+      schema_version: 3,
       mode: 'autonomous',
       features: { auto_continue: true },
       gates: {},
@@ -391,6 +391,102 @@ describe('user defaults', () => {
       const result = mergeUserDefaults({ mode: 'interactive' }, null);
       expect(result.mode).toBe('interactive');
     });
+  });
+});
+
+describe('new config properties validation', () => {
+  test('accepts config with all new workflow properties', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard',
+      workflow: {
+        enforce_pbr_skills: 'advisory',
+        inline_execution: false,
+        inline_max_tasks: 2,
+        inline_context_cap_pct: 40,
+        phase_boundary_clear: 'off',
+        autonomous: false,
+        speculative_planning: false,
+        phase_replay: false
+      }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  test('accepts config with new top-level sections', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard',
+      intel: { enabled: false, auto_update: false, inject_on_start: false },
+      context_ledger: { enabled: false, stale_after_minutes: 60 },
+      learnings: { enabled: false, read_depth: 3 },
+      verification: { confidence_gate: false, confidence_threshold: 1.0 },
+      context_budget: { threshold_curve: 'linear' }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  test('rejects invalid enum values for new properties', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard',
+      workflow: { phase_boundary_clear: 'invalid' }
+    });
+    const result = run();
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('invalid')])
+    );
+  });
+
+  test('rejects out-of-range values', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard',
+      workflow: { inline_max_tasks: 10 }
+    });
+    const result = run();
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining('above maximum')])
+    );
+  });
+
+  test('accepts config with gates.checkpoint_auto_resolve', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard',
+      gates: { checkpoint_auto_resolve: 'none' }
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  test('accepts schema_version 3', () => {
+    writeConfig({
+      version: 2,
+      schema_version: 3,
+      mode: 'interactive',
+      depth: 'standard'
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
   });
 });
 
