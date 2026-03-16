@@ -24,7 +24,7 @@ Usage: pbr-dashboard --dir <project-path> [options]
 
 Options:
   --dir <path>   Project directory (required)
-  --port <num>   Port number (required, or set PBR_DASHBOARD_PORT env var)
+  --port <num>   Port number (default: 3141, or set PBR_DASHBOARD_PORT env var)
   --open         Auto-open browser after start
   --help, -h     Show this help message
 `);
@@ -43,11 +43,7 @@ if (!dir) {
 const resolvedDir = path.resolve(dir);
 const planningDir = path.join(resolvedDir, '.planning');
 const portArg = getArg('--port');
-const port = Number(portArg) || Number(process.env.PBR_DASHBOARD_PORT);
-if (!port) {
-  console.error('PBR > Error: --port <number> or PBR_DASHBOARD_PORT env var is required');
-  process.exit(1);
-}
+const port = Number(portArg) || Number(process.env.PBR_DASHBOARD_PORT) || 3141;
 const shouldOpen = hasFlag('--open');
 
 // --- Validate directory ---

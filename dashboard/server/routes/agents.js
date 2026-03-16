@@ -16,8 +16,16 @@ const { parseFrontmatter } = require('../lib/frontmatter');
  * @returns {express.Router}
  */
 function createAgentsRouter({ planningDir, agentsDir }) {
-  const resolvedAgentsDir = agentsDir ||
-    path.join(planningDir, '..', 'plugins', 'pbr', 'agents');
+  // Check multiple possible agent definition directories
+  const candidates = [
+    agentsDir,
+    path.join(planningDir, '..', 'plugins', 'pbr', 'agents'),
+    path.join(planningDir, '..', '.claude', 'agents'),
+    path.join(planningDir, '..', '.claude', 'plan-build-run', 'agents'),
+  ].filter(Boolean);
+  const resolvedAgentsDir = candidates.find(d => {
+    try { return fs.statSync(d).isDirectory(); } catch (_e) { return false; }
+  }) || candidates[0];
 
   const router = express.Router();
 
@@ -135,7 +143,7 @@ function createAgentsRouter({ planningDir, agentsDir }) {
    */
   router.get('/hooks', async (_req, res) => {
     try {
-      const eventsPath = path.join(planningDir, '.hook-events.jsonl');
+      const eventsPath = path.join(planningDir, 'logs', 'hooks.jsonl');
       let events = [];
 
       try {
@@ -171,7 +179,7 @@ function createAgentsRouter({ planningDir, agentsDir }) {
    */
   router.get('/errors', async (_req, res) => {
     try {
-      const eventsPath = path.join(planningDir, '.hook-events.jsonl');
+      const eventsPath = path.join(planningDir, 'logs', 'hooks.jsonl');
       let errors = [];
 
       try {

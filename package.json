@@ -44,9 +44,10 @@
     "url": "https://github.com/SienkLogic/plan-build-run/issues"
   },
   "engines": {
-    "node": ">=16.7.0"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "c8": "^11.0.0",
     "esbuild": "^0.24.0",
     "eslint": "^9.0.0",

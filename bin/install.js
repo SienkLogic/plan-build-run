@@ -196,7 +196,7 @@ const banner = '\n' +
   '\n' +
   '  Plan-Build-Run ' + dim + 'v' + pkg.version + reset + '\n' +
   '  A meta-prompting, context engineering and spec-driven\n' +
-  '  development system for Claude Code, OpenCode, Gemini, and Codex by TÂCHES.\n';
+  '  development system for Claude Code, OpenCode, Gemini, and Codex.\n';
 
 // Parse --config-dir argument
 function parseConfigDirArg() {
@@ -2407,6 +2407,62 @@ function install(isGlobal, runtime = 'claude') {
     }
     if (fs.existsSync(path.join(hooksDir, 'worktree-remove.js'))) {
       addHookEntry('WorktreeRemove', null, directHookCmd('worktree-remove.js'), 'worktree-remove');
+    }
+
+    // --- SessionStart: progress-tracker ---
+    if (fs.existsSync(path.join(hooksDir, 'progress-tracker.js'))) {
+      if (addHookEntry('SessionStart', null, directHookCmd('progress-tracker.js'), 'progress-tracker')) {
+        console.log(`  ${green}✓${reset} Configured SessionStart:progress-tracker hook`);
+      }
+    }
+
+    // --- Stop: auto-continue ---
+    if (fs.existsSync(path.join(hooksDir, 'auto-continue.js'))) {
+      if (addHookEntry('Stop', null, directHookCmd('auto-continue.js'), 'auto-continue')) {
+        console.log(`  ${green}✓${reset} Configured Stop:auto-continue hook`);
+      }
+    }
+
+    // --- TaskCompleted: task-completed ---
+    if (fs.existsSync(path.join(hooksDir, 'task-completed.js'))) {
+      if (addHookEntry('TaskCompleted', null, directHookCmd('task-completed.js'), 'task-completed')) {
+        console.log(`  ${green}✓${reset} Configured TaskCompleted hook`);
+      }
+    }
+
+    // --- SubagentStart: log-subagent ---
+    if (fs.existsSync(path.join(hooksDir, 'log-subagent.js'))) {
+      if (addHookEntry('SubagentStart', null, directHookCmd('log-subagent.js'), 'log-subagent-start')) {
+        console.log(`  ${green}✓${reset} Configured SubagentStart hook`);
+      }
+    }
+
+    // --- InstructionsLoaded: instructions-loaded ---
+    if (fs.existsSync(path.join(hooksDir, 'instructions-loaded.js'))) {
+      if (addHookEntry('InstructionsLoaded', null, directHookCmd('instructions-loaded.js'), 'instructions-loaded')) {
+        console.log(`  ${green}✓${reset} Configured InstructionsLoaded hook`);
+      }
+    }
+
+    // --- Notification: log-notification ---
+    if (fs.existsSync(path.join(hooksDir, 'log-notification.js'))) {
+      if (addHookEntry('Notification', null, directHookCmd('log-notification.js'), 'log-notification')) {
+        console.log(`  ${green}✓${reset} Configured Notification hook`);
+      }
+    }
+
+    // --- UserPromptSubmit: prompt-routing ---
+    if (fs.existsSync(path.join(hooksDir, 'prompt-routing.js'))) {
+      if (addHookEntry('UserPromptSubmit', null, directHookCmd('prompt-routing.js'), 'prompt-routing')) {
+        console.log(`  ${green}✓${reset} Configured UserPromptSubmit hook`);
+      }
+    }
+
+    // --- ConfigChange: check-config-change ---
+    if (fs.existsSync(path.join(hooksDir, 'check-config-change.js'))) {
+      if (addHookEntry('ConfigChange', null, directHookCmd('check-config-change.js'), 'check-config-change')) {
+        console.log(`  ${green}✓${reset} Configured ConfigChange hook`);
+      }
     }
 
     // --- SessionEnd: session-cleanup (uses run-hook.js directly, not hook-server-client) ---

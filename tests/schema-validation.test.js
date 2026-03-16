@@ -14,7 +14,7 @@ const HOOKS_DIR = path.resolve(__dirname, '..', 'hooks');
 const VALID_HOOK_EVENTS = [
   'SessionStart', 'InstructionsLoaded', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
   'PreCompact', 'Stop', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'ConfigChange', 'SessionEnd',
-  'WorktreeCreate', 'WorktreeRemove'
+  'WorktreeCreate', 'WorktreeRemove', 'Notification', 'UserPromptSubmit'
 ];
 
 describe('hooks.json schema compliance', () => {
@@ -198,6 +198,7 @@ describe('config-schema.json is valid JSON Schema', () => {
 
 // Skipped: .claude-plugin/plugin.json not present in fork (plugin packaging deferred)
 describe.skip('plugin.json manifest constraints', () => {
+  const plugin = {}; // placeholder — tests are skipped
 
   test('does NOT declare hooks field (auto-loaded from hooks/)', () => {
     expect(plugin).not.toHaveProperty('hooks');

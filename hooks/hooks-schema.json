@@ -22,7 +22,9 @@
         "ConfigChange": { "$ref": "#/definitions/hookEntryList" },
         "SessionEnd": { "$ref": "#/definitions/hookEntryList" },
         "WorktreeCreate": { "$ref": "#/definitions/hookEntryList" },
-        "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" }
+        "WorktreeRemove": { "$ref": "#/definitions/hookEntryList" },
+        "Notification": { "$ref": "#/definitions/hookEntryList" },
+        "UserPromptSubmit": { "$ref": "#/definitions/hookEntryList" }
       },
       "additionalProperties": false
     }
