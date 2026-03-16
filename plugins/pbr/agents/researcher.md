@@ -122,14 +122,23 @@ If `.planning/CONTEXT.md` exists, read it and extract all **locked decisions** (
 
 <step name="conduct-research">
 ### Step 3: Conduct Research (Iterative Retrieval)
-Research uses an iterative cycle. **Maximum 3 cycles.** Most topics resolve in 1-2.
+Research uses an iterative cycle. Cycle limit scales with context window.
+
+**Check `context_window_tokens` in `.planning/config.json` before starting:**
+
+| context_window_tokens | Max Cycles | Rationale |
+|-----------------------|-----------|-----------|
+| < 500,000 (default)   | 3         | Standard — 200k window, prioritize focus |
+| >= 500,000 (1M)       | 6         | Extended — 1M window supports deeper discovery |
+
+Most topics resolve in 1-2 cycles regardless of limit. The extended limit allows thorough multi-domain investigations at 1M.
 
 | Phase | Action |
 |-------|--------|
 | **DISPATCH** | Execute searches: S0 local files first, then S1 Context7/MCP, S2 official docs via WebFetch, S3 GitHub repos, S4-S5 WebSearch for best practices and pitfalls. Cycle 2+ targets specific gaps using terminology discovered earlier. |
 | **EVALUATE** | Score findings as CRITICAL/USEFUL/PERIPHERAL. Rate coverage: COMPLETE (all core questions HIGH), PARTIAL (some gaps), INSUFFICIENT (major gaps). Identify terminology gaps. |
 | **REFINE** | Update search terms with new terminology. Target CRITICAL gaps. Try different source types. Drop PERIPHERAL topics. |
-| **LOOP** | Return to DISPATCH. Stop when: COMPLETE coverage, 3 cycles done, or context budget exceeds 40%. |
+| **LOOP** | Return to DISPATCH. Stop when: COMPLETE coverage, max cycles done, or context budget exceeds 40%. |
 </step>
 
 <step name="synthesize-findings">
@@ -231,18 +240,42 @@ coverage: "complete|partial|minimal"
 
 **Priority order when context is limited**: User constraints > Standard stack with versions > Architecture patterns > Common pitfalls > Code examples > Integration points.
 
+**Per-cycle budget allocation** (check `context_window_tokens` in `.planning/config.json`):
+
+At 200k (default):
+
 | Cycle | Context Budget | Purpose |
 |-------|---------------|---------|
 | Cycle 1 | Up to 25% | Broad discovery |
 | Cycle 2 | Up to 10% | Targeted gap-filling (CRITICAL gaps only) |
-| Cycle 3 | Up to 5% | Final verification |
-| Output | Remaining | Write the research document |
+| Cycle 3 | Up to 5%  | Final verification |
+| Output  | Remaining  | Write the research document |
+
+At 1M (context_window_tokens >= 500,000):
+
+| Cycle | Context Budget | Purpose |
+|-------|---------------|---------|
+| Cycle 1 | Up to 40% | Broad discovery — more sources, more dimensions |
+| Cycle 2 | Up to 15% | Targeted gap-filling |
+| Cycle 3 | Up to 10% | Deep dive on CRITICAL gaps |
+| Cycles 4-6 | Up to 5% each | Verification and edge-case coverage |
+| Output  | Remaining  | Write the research document |
 
 | Artifact | Target | Hard Limit |
 |----------|--------|------------|
 | Research findings (per dimension) | <= 1,500 tokens | 2,000 tokens |
 | Full research document | <= 6,000 tokens | 8,000 tokens |
 | Console output | Minimal | Dimension headers only |
+
+**At 1M (context_window_tokens >= 500,000), use these output budgets instead:**
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| Research findings (per dimension) | <= 3,000 tokens | 4,000 tokens |
+| Full research document | <= 10,000 tokens | 14,000 tokens |
+| Console output | Minimal | Dimension headers only |
+
+At 1M, richer research output is warranted — more source coverage, deeper pitfall documentation, and more complete code examples. Prioritize quality over brevity only when context_window_tokens >= 500,000.
 
 **Guidance**: Prioritize verified facts. Skip background context the planner already has. Lead with recommendations and concrete values (versions, config keys, API signatures). Use tables for comparisons instead of prose.
 
