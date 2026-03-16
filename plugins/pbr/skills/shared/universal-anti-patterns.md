@@ -12,16 +12,16 @@ These rules prevent context rot -- quality degradation as the context window fil
 
 1. **Never** read agent definition files (`agents/*.md`) -- `subagent_type` auto-loads them. Reading agent definitions into the orchestrator wastes main context for content that is automatically injected into subagent sessions.
 2. **Never** inline large files into Task() prompts -- tell agents to read files from disk instead. Agents have their own 200k token context windows.
-3. **Minimize** reading subagent output into main context -- read only frontmatter, status fields, or summaries. Never read full SUMMARY.md, VERIFICATION.md, or RESEARCH.md bodies into the orchestrator unless specifically needed for inline presentation.
+3. **Read depth scales with context window** — check `context_window_tokens` in `.planning/config.json`. At < 500000: read only frontmatter, status fields, or summaries from subagent output. At >= 500000 (1M model): full body reads are permitted when content is needed for inline decisions. See `skills/shared/context-budget.md` § "Read Depth by Context Window" for the complete table.
 4. **Delegate** heavy work to Task() subagents -- the orchestrator routes, it does not build, analyze, research, investigate, or verify.
 5. **Proactive pause warning**: If you have already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause-work` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## File Reading Rules (apply to every skill)
 
-6. **Never** read full SUMMARY.md bodies from prior phases -- read frontmatter only (unless the skill specifically requires body content for presentation).
+6. **SUMMARY.md read depth scales with context window** — at context_window_tokens < 500000: read frontmatter only from prior phase SUMMARYs. At >= 500000: full body reads are permitted for direct-dependency phases. Transitive dependencies (2+ phases back) remain frontmatter-only regardless of context window.
 7. **Never** read full PLAN.md files from other phases -- only current phase plans.
 8. **Never** read `.planning/logs/` files -- only the health skill reads these.
-9. **Do not** re-read full file contents when frontmatter is sufficient -- frontmatter contains status, key_files, commits, and provides fields.
+9. **Do not** re-read full file contents when frontmatter is sufficient -- frontmatter contains status, key_files, commits, and provides fields. Exception: at context_window_tokens >= 500000, re-reading a full body is acceptable when the orchestrator needs semantic content, not just structural metadata.
 
 ## Task/Subagent Rules (apply to every skill)
 
