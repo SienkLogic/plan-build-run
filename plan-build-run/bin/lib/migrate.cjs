@@ -14,7 +14,7 @@ const path = require('path');
 const { atomicWrite } = require('./core.cjs');
 
 /** The current schema version supported by this version of PBR. */
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 /**
  * Migration registry. Each entry describes one schema version step.
@@ -108,6 +108,56 @@ const MIGRATIONS = [
       if (!config.version) config.version = 2;
 
       config.schema_version = 2;
+    }
+  },
+  {
+    from: 2,
+    to: 3,
+    description: 'Add 1M context adaptation config sections',
+    migrate(config) {
+      // Add new workflow properties with defaults (do NOT overwrite existing)
+      if (!config.workflow) config.workflow = {};
+      const wfDefaults = {
+        inline_execution: false,
+        inline_max_tasks: 2,
+        inline_context_cap_pct: 40,
+        phase_boundary_clear: 'off',
+        autonomous: false,
+        speculative_planning: false,
+        phase_replay: false
+      };
+      for (const [key, val] of Object.entries(wfDefaults)) {
+        if (config.workflow[key] === undefined) config.workflow[key] = val;
+      }
+
+      // Add planning.multi_phase
+      if (!config.planning) config.planning = {};
+      if (config.planning.multi_phase === undefined) config.planning.multi_phase = false;
+
+      // Add gates.checkpoint_auto_resolve
+      if (!config.gates) config.gates = {};
+      if (config.gates.checkpoint_auto_resolve === undefined) {
+        config.gates.checkpoint_auto_resolve = 'none';
+      }
+
+      // Add new top-level sections with defaults
+      if (!config.intel) {
+        config.intel = { enabled: false, auto_update: false, inject_on_start: false };
+      }
+      if (!config.context_ledger) {
+        config.context_ledger = { enabled: false, stale_after_minutes: 60 };
+      }
+      if (!config.learnings) {
+        config.learnings = { enabled: false, read_depth: 3 };
+      }
+      if (!config.verification) {
+        config.verification = { confidence_gate: false, confidence_threshold: 1.0 };
+      }
+      if (!config.context_budget) {
+        config.context_budget = { threshold_curve: 'linear' };
+      }
+
+      config.schema_version = 3;
     }
   }
 ];
