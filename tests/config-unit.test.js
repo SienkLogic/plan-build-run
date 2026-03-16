@@ -344,3 +344,19 @@ describe('configSet', () => {
     expect(saved.new_key).toBe('new_value');
   });
 });
+
+describe('context_window_tokens in configLoad', () => {
+  test('returns context_window_tokens when present', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard', context_window_tokens: 1000000 }));
+    const result = configLoad(planningDir);
+    expect(result.context_window_tokens).toBe(1000000);
+  });
+
+  test('returns undefined context_window_tokens when absent', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard' }));
+    const result = configLoad(planningDir);
+    expect(result.context_window_tokens).toBeUndefined();
+  });
+});

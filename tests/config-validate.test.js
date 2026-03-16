@@ -393,3 +393,55 @@ describe('user defaults', () => {
     });
   });
 });
+
+describe('context_window_tokens validation', () => {
+  test('accepts valid value 200000', () => {
+    writeConfig({
+      version: 2,
+      mode: 'interactive',
+      depth: 'standard',
+      context_strategy: 'aggressive',
+      context_window_tokens: 200000
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+  });
+
+  test('accepts valid value 1000000', () => {
+    writeConfig({
+      version: 2,
+      mode: 'interactive',
+      depth: 'standard',
+      context_strategy: 'aggressive',
+      context_window_tokens: 1000000
+    });
+    const result = run();
+    expect(result.valid).toBe(true);
+  });
+
+  test('rejects value below minimum (50000)', () => {
+    writeConfig({
+      version: 2,
+      mode: 'interactive',
+      depth: 'standard',
+      context_strategy: 'aggressive',
+      context_window_tokens: 50000
+    });
+    const result = run();
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('context_window_tokens'))).toBe(true);
+  });
+
+  test('rejects value above maximum (3000000)', () => {
+    writeConfig({
+      version: 2,
+      mode: 'interactive',
+      depth: 'standard',
+      context_strategy: 'aggressive',
+      context_window_tokens: 3000000
+    });
+    const result = run();
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.includes('context_window_tokens'))).toBe(true);
+  });
+});
