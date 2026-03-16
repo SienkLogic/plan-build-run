@@ -42,12 +42,71 @@ const TIER_MESSAGES = {
 const DEBOUNCE_INTERVAL = 5; // tool calls between same-tier warnings
 const CRITICAL_DEBOUNCE_INTERVAL = 2; // shorter debounce for CRITICAL tier
 
+// Adaptive threshold constants
+const BASE_TOKENS = 200000;
+const TARGET_TOKENS = 1000000;
+const BASE_THRESHOLDS = { degrading: 50, poor: 70, critical: 85 };
+const TARGET_THRESHOLDS = { degrading: 60, poor: 75, critical: 85 };
+const LOG_SCALE = Math.log(TARGET_TOKENS / BASE_TOKENS); // log(5)
+
+/**
+ * Compute adaptive thresholds using logarithmic interpolation.
+ * At 200k tokens: returns base thresholds (50/70/85).
+ * At 1M tokens: returns target thresholds (60/75/85).
+ * Between: smooth log interpolation. Below 200k: base thresholds.
+ *
+ * @param {number} [contextTokens=200000] - Context window size in tokens
+ * @returns {{ degrading: number, poor: number, critical: number }}
+ */
+function getAdaptiveThresholds(contextTokens) {
+  const tokens = contextTokens || BASE_TOKENS;
+  if (tokens <= BASE_TOKENS) {
+    return { ...BASE_THRESHOLDS };
+  }
+  const clamped = Math.min(tokens, TARGET_TOKENS);
+  const t = Math.log(clamped / BASE_TOKENS) / LOG_SCALE;
+  return {
+    degrading: Math.round(BASE_THRESHOLDS.degrading + (TARGET_THRESHOLDS.degrading - BASE_THRESHOLDS.degrading) * t),
+    poor: Math.round(BASE_THRESHOLDS.poor + (TARGET_THRESHOLDS.poor - BASE_THRESHOLDS.poor) * t),
+    critical: Math.round(BASE_THRESHOLDS.critical + (TARGET_THRESHOLDS.critical - BASE_THRESHOLDS.critical) * t)
+  };
+}
+
+/**
+ * Get effective thresholds based on config.
+ * If threshold_curve is "adaptive", uses logarithmic interpolation.
+ * If "linear" (default), returns fixed base thresholds.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {{ degrading: number, poor: number, critical: number }}
+ */
+function getEffectiveThresholds(planningDir) {
+  try {
+    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const config = configLoad(planningDir);
+    const curve = (config && config.context_budget && config.context_budget.threshold_curve) || 'linear';
+    const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
+    if (curve === 'adaptive') {
+      return getAdaptiveThresholds(tokens);
+    }
+  } catch (_e) { /* fall through to default */ }
+  return { ...BASE_THRESHOLDS };
+}
+
 /**
  * Determine the context tier for a given percentage.
  * @param {number} percent - Context usage percentage (0-100)
+ * @param {{ degrading: number, poor: number, critical: number }} [thresholds] - Custom tier boundaries
  * @returns {{ name: string, min: number, max: number }}
  */
-function getTier(percent) {
+function getTier(percent, thresholds) {
+  if (thresholds) {
+    if (percent < 30) return { name: 'PEAK', min: 0, max: 30 };
+    if (percent < thresholds.degrading) return { name: 'GOOD', min: 30, max: thresholds.degrading };
+    if (percent < thresholds.poor) return { name: 'DEGRADING', min: thresholds.degrading, max: thresholds.poor };
+    if (percent < thresholds.critical) return { name: 'POOR', min: thresholds.poor, max: thresholds.critical };
+    return { name: 'CRITICAL', min: thresholds.critical, max: 100 };
+  }
   for (const tier of TIERS) {
     if (percent < tier.max) return tier;
   }
@@ -202,7 +261,9 @@ function updateBridge(planningDir, stdinData) {
     // Keep existing value
   }
 
-  const tier = getTier(estimatedPercent);
+  const thresholds = getEffectiveThresholds(planningDir);
+  bridge.thresholds = thresholds;
+  const tier = getTier(estimatedPercent, thresholds);
   let output = null;
 
   if (shouldWarn(bridge, tier.name)) {
@@ -326,6 +387,8 @@ function handleHttp(reqBody, _cache) {
 
 module.exports = {
   getTier,
+  getAdaptiveThresholds,
+  getEffectiveThresholds,
   loadBridge,
   saveBridge,
   getCharDenominator,
