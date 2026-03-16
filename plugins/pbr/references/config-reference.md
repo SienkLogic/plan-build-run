@@ -14,6 +14,7 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 | `depth` | string | `quick`, `standard`, `comprehensive` | `standard` | Controls thoroughness of research, planning, and verification |
 | `session_phase_limit` | integer | `0`-`20` | `3` | Maximum phases to complete per session before auto-pause. Set to `0` to disable. Only effective when `features.auto_continue` is `true`. |
 | `context_window_tokens` | integer | `100000`-`2000000` | `200000` | Context window size in tokens for the active Claude model. Scales hook thresholds and agent budgets. Set to `1000000` for 1M-context models. |
+| `agent_checkpoint_pct` | integer | `40`-`80` | `50` | Context usage % at which agents checkpoint. Set to `65` for 1M-context models. |
 
 ### context_strategy
 
@@ -50,6 +51,17 @@ Sets the active model's context window size in tokens. This is the single source
 | `1000000` | Claude models with 1M extended context (set by `quality` model profile) |
 
 Arbitrary integer values between `100000` and `2000000` are valid. Set to your model's actual context window size for accurate threshold scaling.
+
+### agent_checkpoint_pct
+
+The context usage percentage at which agents should stop work and return output (checkpoint). Higher values let agents do more work per invocation at the cost of less headroom before context compaction.
+
+| Value | Meaning |
+|-------|---------|
+| `50` | Default — agents checkpoint at 50% usage (standard for 200k models) |
+| `65` | Recommended for 1M-context models — agents can safely work to 65% |
+
+Valid range: `40`–`80`. Values outside this range are rejected by schema validation. Set by the `quality` profile to `65`; all other profiles default to `50`.
 
 ---
 

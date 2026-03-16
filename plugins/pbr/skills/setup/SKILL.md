@@ -74,9 +74,9 @@ Use AskUserQuestion:
       description: "Leave model settings unchanged."
 
 Apply the selected profile to the models block in config.json:
-- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku, context_window_tokens=200000
-- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet, context_window_tokens=1000000
-- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku, context_window_tokens=200000
+- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku, context_window_tokens=200000, agent_checkpoint_pct=50
+- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet, context_window_tokens=1000000, agent_checkpoint_pct=65
+- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku, context_window_tokens=200000, agent_checkpoint_pct=50
 - **Keep current**: no change to models block, no change to context_window_tokens
 
 ---

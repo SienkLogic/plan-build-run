@@ -17,6 +17,13 @@
       "default": 200000,
       "description": "Context window size in tokens for the active Claude model. Used to scale hook thresholds, agent checkpoint rules, and output budgets. Default 200000 matches Claude Sonnet/Haiku. Set to 1000000 for Claude models with 1M context."
     },
+    "agent_checkpoint_pct": {
+      "type": "integer",
+      "minimum": 40,
+      "maximum": 80,
+      "default": 50,
+      "description": "Context usage percentage at which agents should checkpoint and return output. Default 50 matches standard 200k models. Set to 65 for 1M-context models where agents can safely work longer before compacting."
+    },
     "features": {
       "type": "object",
       "properties": {
