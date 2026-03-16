@@ -109,14 +109,24 @@ else
   ok ".tmux.conf installed"
 fi
 
-# --- Step 5: Set up PBR status bar symlink ---
+# --- Step 5: Set up PBR status bar and pane state symlinks ---
 mkdir -p "$HOME/.tmux"
+
+# Status bar (phase + context tier)
 if [[ -L "$HOME/.tmux/pbr-status.sh" ]]; then
   ok "Status bar symlink already exists"
 else
   ln -sf "$REPO_ROOT/tools/pbr-tmux/lib/pbr-state.sh" "$HOME/.tmux/pbr-status.sh"
   ok "Status bar symlink created (~/.tmux/pbr-status.sh)"
 fi
+
+# Context display (line 2 of two-line status bar)
+ln -sf "$REPO_ROOT/tools/pbr-tmux/lib/pbr-context.sh" "$HOME/.tmux/pbr-context.sh"
+ok "Context display symlink created (~/.tmux/pbr-context.sh)"
+
+# Pane border state indicator
+ln -sf "$REPO_ROOT/tools/pbr-tmux/lib/pane-state.sh" "$HOME/.tmux/pbr-pane-state.sh"
+ok "Pane state symlink created (~/.tmux/pbr-pane-state.sh)"
 
 # --- Step 6: Set project breadcrumb for status bar ---
 if [[ -n "$PROJECT_DIR" ]]; then

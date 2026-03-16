@@ -9,7 +9,8 @@
     "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
     "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
     "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
-    "session_phase_limit": { "type": "integer", "minimum": 0, "maximum": 20, "default": 3, "description": "Maximum phases to complete per session before suggesting a pause. 0 = disabled." },
+    "session_phase_limit": { "type": "integer", "minimum": 0, "maximum": 20, "default": 3, "description": "Maximum phases to complete per session before suggesting a pause. 0 = disabled. Default scales with context_window_tokens: 3 at 200k, 6 at 500k, 8 at 1M." },
+    "session_cycling": { "type": "string", "enum": ["tmux", "compact-first", "compact", "manual"], "description": "How to cycle sessions when phase limit is reached. tmux = auto-cycle via tmux send-keys. compact-first = try /compact before cycling (recommended for 1M). compact = instruct user to compact+resume. manual = show banner only. Default: tmux if TMUX env detected, otherwise compact." },
     "context_window_tokens": {
       "type": "integer",
       "minimum": 100000,

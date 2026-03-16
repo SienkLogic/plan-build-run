@@ -29,6 +29,7 @@ Operations:
   watch         Live PBR state monitor in split pane
   status        Show PBR status
   dashboard     Open PBR dashboard in split pane
+  search [kw]   Search past sessions by keyword and resume
   split-h       Horizontal split
   split-v       Vertical split
   rename-win    Rename window
@@ -58,6 +59,7 @@ SUBCOMMAND_MAP=(
   "watch:op_watch"
   "status:op_show_pbr_status"
   "dashboard:op_open_dashboard"
+  "search:op_search"
   "split-h:op_split_horizontal"
   "split-v:op_split_vertical"
   "rename-win:op_rename_window"

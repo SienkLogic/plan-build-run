@@ -302,6 +302,91 @@ op_switch_session() {
   tmux switch-client -t "$choice"
 }
 
+op_search() {
+  # Search past Claude Code session transcripts by keyword
+  # Finds matching sessions and offers to resume them
+  local keyword="${1:-}"
+  if [[ -z "$keyword" ]]; then
+    keyword=$(ui_input "Search keyword:" "")
+    [[ -n "$keyword" ]] || { echo "No keyword provided" >&2; return 1; }
+  fi
+
+  # Claude Code stores sessions in ~/.claude/projects/{encoded-path}/*.jsonl
+  local sessions_dir="$HOME/.claude/projects"
+  if [[ ! -d "$sessions_dir" ]]; then
+    echo "No Claude Code sessions found at $sessions_dir" >&2
+    return 1
+  fi
+
+  echo "Searching for '$keyword' in Claude Code sessions..."
+  echo ""
+
+  local results=()
+  local count=0
+  while IFS= read -r jsonl_file; do
+    if grep -l -i "$keyword" "$jsonl_file" &>/dev/null; then
+      # Extract session info
+      local project_path
+      project_path=$(dirname "$jsonl_file" | xargs basename | sed 's/-/\//g' | sed 's/^\///; s/\/$//')
+      local session_id
+      session_id=$(basename "$jsonl_file" .jsonl)
+      local mod_time
+      mod_time=$(stat -c '%Y' "$jsonl_file" 2>/dev/null || stat -f '%m' "$jsonl_file" 2>/dev/null)
+      local mod_date
+      mod_date=$(date -d "@$mod_time" '+%Y-%m-%d %H:%M' 2>/dev/null || date -r "$mod_time" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "unknown")
+      local match_count
+      match_count=$(grep -c -i "$keyword" "$jsonl_file" 2>/dev/null || echo 0)
+
+      results+=("${mod_date} | ${match_count} matches | ${session_id:0:8}... | ${project_path}")
+      count=$((count + 1))
+    fi
+  done < <(find "$sessions_dir" -name "*.jsonl" -type f 2>/dev/null | sort -r)
+
+  if [[ $count -eq 0 ]]; then
+    echo "No sessions found matching '$keyword'"
+    return 0
+  fi
+
+  echo "Found $count sessions matching '$keyword':"
+  echo ""
+
+  if [[ "$NON_INTERACTIVE" == "true" ]]; then
+    printf '%s\n' "${results[@]}"
+    return 0
+  fi
+
+  local choice
+  choice=$(printf '%s\n' "${results[@]}" | ui_choose "Select session to resume") || return 0
+
+  # Extract session ID from choice
+  local selected_id
+  selected_id=$(echo "$choice" | grep -o '[a-f0-9]\{8\}' | head -1)
+
+  # Find the full session ID
+  local full_id
+  full_id=$(find "$sessions_dir" -name "${selected_id}*.jsonl" -type f 2>/dev/null | head -1 | xargs basename 2>/dev/null | sed 's/.jsonl$//')
+
+  if [[ -n "$full_id" ]]; then
+    # Extract project directory from the path
+    local project_dir_encoded
+    project_dir_encoded=$(find "$sessions_dir" -name "${selected_id}*.jsonl" -type f 2>/dev/null | head -1 | xargs dirname | xargs basename)
+
+    echo ""
+    echo "Resuming session: $full_id"
+    echo "Project: $project_dir_encoded"
+    echo ""
+
+    if is_in_tmux; then
+      tmux send-keys "claude --resume $full_id" Enter
+    else
+      echo "Run: claude --resume $full_id"
+    fi
+  else
+    echo "Could not find full session ID for: $selected_id" >&2
+    return 1
+  fi
+}
+
 op_toggle_mouse() {
   tmux set mouse
   echo "Mouse mode toggled"
@@ -327,6 +412,7 @@ OPERATIONS=(
   "Watch|Live PBR state monitor in split pane|op_watch"
   "Show PBR Status|Display current phase and status|op_show_pbr_status"
   "Open Dashboard|Launch PBR dashboard in a split pane|op_open_dashboard"
+  "Search Sessions|Find and resume past sessions by keyword|op_search"
   "---PBR---|---|---"
   "Split Horizontal|Add a horizontal split below|op_split_horizontal"
   "Split Vertical|Add a vertical split to the right|op_split_vertical"

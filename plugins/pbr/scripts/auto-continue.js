@@ -68,8 +68,22 @@ function main() {
       try { fs.writeFileSync(signalPath, '/pbr:pause-work', 'utf8'); } catch (_writeErr) { /* ignore */ }
 
       let reasonStr;
+      // session_cycling: "tmux" | "compact-first" | "compact" | "manual"
+      // compact-first: try /compact first, only cycle if still degraded (user must opt in)
+      // Default: tmux if in TMUX env, otherwise compact
       const cyclingMethod = config.session_cycling || (process.env.TMUX ? 'tmux' : 'compact');
-      if (cyclingMethod === 'tmux') {
+      if (cyclingMethod === 'compact-first') {
+        // Try compact first, then cycle — gentler on long 1M sessions
+        logHook('auto-continue', 'Stop', 'cycle-compact-first', { phases: tracker.phases_completed, limit: phaseLimit });
+        reasonStr = 'Auto-continue: session checkpoint after ' + tracker.phases_completed + ' phases.\n\n'
+          + 'COMPACT-FIRST CYCLING: Try compacting before cycling to a fresh session.\n'
+          + 'Steps IN ORDER:\n'
+          + '1. Run /pbr:pause-work to save session state\n'
+          + '2. Run /compact to compress context\n'
+          + '3. Run /pbr:resume-work to continue\n'
+          + '4. IF quality degrades after compact, THEN run /clear + /pbr:resume-work for a full cycle\n\n'
+          + 'Execute /pbr:pause-work now.';
+      } else if (cyclingMethod === 'tmux') {
         // TMUX environment: spawn detached process to auto-cycle
         // On Windows, Claude Code's bash is MSYS2 (no tmux) — bridge through wsl.exe to reach the WSL tmux server
         // On Linux/macOS, tmux is available directly
