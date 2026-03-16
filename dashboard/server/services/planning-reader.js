@@ -44,6 +44,15 @@ async function readMdDirectory(dirPath, maxBodyLen = 200) {
   return results;
 }
 
+/**
+ * Validate that a file/directory ID is safe (no path traversal).
+ */
+function assertSafeId(id) {
+  if (!id || typeof id !== 'string' || /[/\\]/.test(id) || id.includes('..')) {
+    throw new Error('Invalid file id');
+  }
+}
+
 class PlanningReader {
   /**
    * @param {string} planningDir - Absolute path to .planning/ directory
@@ -363,6 +372,7 @@ class PlanningReader {
    * @param {string[]} tags
    */
   async updateNote(fileId, title, content, tags = []) {
+    assertSafeId(fileId);
     const filePath = path.join(this.planningDir, 'notes', fileId);
     const existing = await safeReadFile(filePath);
     if (!existing) throw new Error(`Note not found: ${fileId}`);
@@ -379,6 +389,7 @@ class PlanningReader {
    * @param {string} fileId - Filename in .planning/notes/
    */
   async deleteNote(fileId) {
+    assertSafeId(fileId);
     const filePath = path.join(this.planningDir, 'notes', fileId);
     await fsp.unlink(filePath);
     return { deleted: fileId };
@@ -409,6 +420,7 @@ class PlanningReader {
    * @param {string} currentStatus - 'pending' or 'done'
    */
   async toggleTodo(fileId, currentStatus) {
+    assertSafeId(fileId);
     const fromDir = currentStatus === 'pending' ? 'pending' : 'done';
     const toDir = currentStatus === 'pending' ? 'done' : 'pending';
     const fromPath = path.join(this.planningDir, 'todos', fromDir, fileId);
@@ -427,6 +439,7 @@ class PlanningReader {
    * @param {string} status - 'pending' or 'done'
    */
   async deleteTodo(fileId, status) {
+    assertSafeId(fileId);
     const dir = status === 'done' ? 'done' : 'pending';
     const filePath = path.join(this.planningDir, 'todos', dir, fileId);
     await fsp.unlink(filePath);
@@ -440,6 +453,7 @@ class PlanningReader {
    * @param {boolean} completed - New completion state
    */
   async togglePhaseTask(phaseSlug, taskIndex, completed) {
+    assertSafeId(phaseSlug);
     const summaryFiles = await safeReaddir(path.join(this.planningDir, 'phases', phaseSlug));
     const summaryFile = summaryFiles.find(f => /SUMMARY/i.test(f) && f.endsWith('.md'));
     if (!summaryFile) throw new Error(`No SUMMARY.md found in phase ${phaseSlug}`);

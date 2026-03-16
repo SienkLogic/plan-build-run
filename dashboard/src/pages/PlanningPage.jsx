@@ -1,104 +1,158 @@
-import { useState, useEffect } from 'react';
-import { TabBar, ErrorBoundary, LoadingSkeleton } from '../components/ui/index.js';
+import { useEffect } from 'react';
+import { useTheme } from '../theme/ThemeProvider.jsx';
+import { FONTS } from '../lib/constants.js';
+import { Card, MetricCard, SectionTitle, Badge, ErrorBoundary, ErrorBox } from '../components/ui/index.js';
+import { SkeletonCard } from '../components/ui/LoadingSkeleton.jsx';
 import useFetch from '../hooks/useFetch.js';
 import useWebSocket from '../hooks/useWebSocket.js';
-import MilestonesTab from './planning/MilestonesTab.jsx';
-import PhasesTab from './planning/PhasesTab.jsx';
-import TodosTab from './planning/TodosTab.jsx';
-import QuickTab from './planning/QuickTab.jsx';
-import NotesTab from './planning/NotesTab.jsx';
-import ResearchTab from './planning/ResearchTab.jsx';
-import DecisionsTab from './planning/DecisionsTab.jsx';
-import FilesTab from './planning/FilesTab.jsx';
+import useDocumentTitle from '../hooks/useDocumentTitle.js';
+import useToast from '../hooks/useToast.jsx';
 
-const TABS = ['milestones', 'phases', 'todos', 'notes', 'quick', 'research', 'decisions', 'files'];
+function PlanningPageContent() {
+  const { tokens: t } = useTheme();
+  const { addToast } = useToast();
 
-export default function PlanningPage() {
-  const [tab, setTab] = useState('milestones');
-
-  const milestonesData = useFetch('/api/planning/milestones');
-  const phasesData = useFetch('/api/planning/phases');
-  const todosData = useFetch('/api/planning/todos');
-  const notesData = useFetch('/api/planning/notes');
-  const quickData = useFetch('/api/planning/quick');
-  const researchData = useFetch('/api/planning/research');
-  const decisionsData = useFetch('/api/planning/decisions');
+  const phases = useFetch('/api/planning/phases');
+  const status = useFetch('/api/status');
 
   const wsUrl = 'ws://' + window.location.hostname + ':' + (window.location.port || '3141') + '/ws';
-  const { events: wsEvents } = useWebSocket(wsUrl);
+  const ws = useWebSocket(wsUrl);
+  useDocumentTitle({ wsEvents: ws.events });
 
   useEffect(() => {
-    if (wsEvents.length > 0) {
-      milestonesData.refetch();
-      phasesData.refetch();
-      todosData.refetch();
-      notesData.refetch();
-      quickData.refetch();
-      researchData.refetch();
-      decisionsData.refetch();
+    if (ws.events.length > 0) {
+      phases.refetch();
+      status.refetch();
     }
-  }, [wsEvents.length, milestonesData, phasesData, todosData, notesData, quickData, researchData, decisionsData]);
+  }, [ws.events.length, phases.refetch, status.refetch]);
 
-  // FilesTab manages its own data fetching; placeholder avoids undefined access
-  const filesData = { data: null, loading: false, refetch: () => {} };
+  useEffect(() => {
+    if (phases.error && addToast) addToast('error', phases.error.message);
+  }, [phases.error, addToast]);
 
-  const tabDataMap = {
-    milestones: milestonesData,
-    phases: phasesData,
-    todos: todosData,
-    notes: notesData,
-    quick: quickData,
-    research: researchData,
-    decisions: decisionsData,
-    files: filesData,
-  };
+  const isLoading = phases.loading || status.loading;
+  const fetchError = phases.error || status.error;
 
-  const currentData = tabDataMap[tab];
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+          {[1, 2, 3].map((i) => (
+            <SkeletonCard key={i} height={90} />
+          ))}
+        </div>
+        <SkeletonCard height={300} />
+      </div>
+    );
+  }
 
-  const renderTab = () => {
-    if (currentData.loading) {
-      return <LoadingSkeleton count={4} />;
-    }
+  if (fetchError) {
+    return (
+      <ErrorBox
+        title="Error loading planning data"
+        message={fetchError.message}
+        onRetry={() => { phases.refetch(); status.refetch(); }}
+      />
+    );
+  }
 
-    switch (tab) {
-      case 'milestones':
-        return (
-          <MilestonesTab
-            milestones={milestonesData.data || []}
-            phases={phasesData.data || []}
-            todos={todosData.data || []}
-          />
-        );
-      case 'phases':
-        return (
-          <PhasesTab
-            phases={phasesData.data || []}
-            todos={todosData.data || []}
-          />
-        );
-      case 'todos':
-        return <TodosTab todos={todosData.data || []} onRefresh={todosData.refetch} />;
-      case 'notes':
-        return <NotesTab notes={notesData.data || []} onRefresh={notesData.refetch} />;
-      case 'quick':
-        return <QuickTab quick={quickData.data || []} />;
-      case 'research':
-        return <ResearchTab research={researchData.data || []} />;
-      case 'decisions':
-        return <DecisionsTab decisions={decisionsData.data || []} onCreateDecision={decisionsData.refetch} />;
-      case 'files':
-        return <FilesTab />;
-      default:
-        return null;
-    }
+  const phaseList = Array.isArray(phases.data) ? phases.data : [];
+  const s = status.data || {};
+
+  // Compute summary metrics
+  const totalPhases = phaseList.length;
+  const totalPlans = phaseList.reduce((sum, p) => sum + (p.plans || []).length, 0);
+  const completedPlans = phaseList.reduce((sum, p) => {
+    const plans = p.plans || [];
+    return sum + plans.filter((pl) => pl.status === 'complete' || pl.summary).length;
+  }, 0);
+  const completionPct = totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0;
+
+  function phaseStatus(p) {
+    const plans = p.plans || [];
+    if (plans.length === 0) return 'empty';
+    const done = plans.filter((pl) => pl.status === 'complete' || pl.summary).length;
+    if (done === plans.length) return 'complete';
+    if (done > 0) return 'in-progress';
+    return 'pending';
+  }
+
+  const STATUS_COLORS = {
+    complete: t.success,
+    'in-progress': t.accent,
+    pending: t.textMuted,
+    empty: t.textDim,
   };
 
   return (
-    <ErrorBoundary>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <TabBar tabs={TABS} active={tab} onChange={setTab} />
-        {renderTab()}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <SectionTitle>Planning</SectionTitle>
+
+      {/* Metric cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+        <MetricCard label="Phases" value={String(totalPhases)} sub="total" color={t.accent} />
+        <MetricCard label="Plans" value={String(totalPlans)} sub={`${completedPlans} complete`} color={t.build} />
+        <MetricCard label="Progress" value={`${completionPct}%`} sub="completion" color={t.success} />
       </div>
+
+      {/* Current status */}
+      {s.phase && (
+        <Card style={{ background: `${t.accent}11`, borderColor: `${t.accent}33` }}>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 10, color: t.textMuted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+            Current Phase
+          </div>
+          <div style={{ fontFamily: FONTS.mono, fontSize: 14, fontWeight: 600, color: t.accent }}>
+            Phase {s.phase}
+          </div>
+          {s.stopped_at && (
+            <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: t.textMuted, marginTop: 2 }}>
+              {s.stopped_at}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {/* Phase list */}
+      {phaseList.length === 0 ? (
+        <Card>
+          <div style={{ padding: 32, textAlign: 'center', color: t.textMuted, fontFamily: FONTS.mono, fontSize: 12 }}>
+            <div style={{ fontSize: 32, opacity: 0.3, marginBottom: 12 }}>&#x25C8;</div>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>No phases found</div>
+            <div style={{ fontSize: 11 }}>Planning data appears when .planning/phases/ contains phase directories.</div>
+          </div>
+        </Card>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {phaseList.map((phase, i) => {
+            const st = phaseStatus(phase);
+            const plans = phase.plans || [];
+            const donePlans = plans.filter((pl) => pl.status === 'complete' || pl.summary).length;
+            return (
+              <Card key={phase.slug || i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontFamily: FONTS.mono, fontSize: 13, fontWeight: 600, color: t.text }}>
+                      {phase.name || phase.slug || `Phase ${i + 1}`}
+                    </div>
+                    <div style={{ fontFamily: FONTS.mono, fontSize: 11, color: t.textMuted, marginTop: 2 }}>
+                      {plans.length} plan{plans.length !== 1 ? 's' : ''}{plans.length > 0 ? ` (${donePlans} done)` : ''}
+                    </div>
+                  </div>
+                  <Badge color={STATUS_COLORS[st]}>{st}</Badge>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PlanningPage() {
+  return (
+    <ErrorBoundary>
+      <PlanningPageContent />
     </ErrorBoundary>
   );
 }
