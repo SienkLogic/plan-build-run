@@ -36,6 +36,38 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
 
+  clean-release-notes:
+    needs: release-please
+    runs-on: ubuntu-latest
+    if: ${{ needs.release-please.outputs.release_created }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clean changelog and release notes
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          # Clean the CHANGELOG.md committed by release-please
+          node scripts/clean-changelog.js --write
+
+          # Commit cleaned changelog back to main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --cached --quiet || git commit -m "chore: clean changelog scopes [skip ci]"
+          git push || true
+
+          # Clean the GitHub Release body too
+          BODY=$(gh release view "$TAG_NAME" --json body --jq '.body')
+          CLEANED=$(echo "$BODY" | node -e "
+            const {cleanChangelog} = require('./scripts/clean-changelog.js');
+            let input = '';
+            process.stdin.on('data', d => input += d);
+            process.stdin.on('end', () => process.stdout.write(cleanChangelog(input)));
+          ")
+          echo "$CLEANED" | gh release edit "$TAG_NAME" --notes-file -
+
   publish-npm:
     needs: release-please
     runs-on: ubuntu-latest
