@@ -97,7 +97,7 @@ describe('suggest-compact.js', () => {
 
   describe('getScaledThreshold', () => {
     test('returns 250 when config has context_window_tokens: 1000000', () => {
-      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
       const { tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
       configClearCache();
@@ -107,7 +107,7 @@ describe('suggest-compact.js', () => {
     });
 
     test('returns 50 (default) when no config', () => {
-      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
       const { tmpDir, planningDir } = makeTmpDir();
       configClearCache();
       expect(getScaledThreshold(planningDir)).toBe(50);

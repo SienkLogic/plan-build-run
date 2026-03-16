@@ -85,9 +85,27 @@ function saveBridge(bridgePath, data) {
 }
 
 /**
+ * Get the char denominator for heuristic context estimation.
+ * Reads context_window_tokens from config (default 200k) and multiplies by 4 chars/token.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {number} Total char capacity (context_window_tokens × 4, default 800000)
+ */
+function getCharDenominator(planningDir) {
+  try {
+    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const config = configLoad(planningDir);
+    const tokens = (config && config.context_window_tokens) || 200000;
+    return tokens * 4;
+  } catch (_e) {
+    return 800000; // 200k tokens × 4 chars/token
+  }
+}
+
+/**
  * Estimate context percentage from heuristic tracker data.
  * Uses the .context-tracker file written by track-context-budget.js.
- * Assumes 200k token context window (~800k chars).
+ * Assumes context_window_tokens × 4 chars (default 200k tokens = 800k chars, loaded from config).
  *
  * @param {string} planningDir - Path to .planning/
  * @returns {number} Estimated context usage percentage (0-100)
@@ -98,8 +116,7 @@ function estimateFromHeuristic(planningDir) {
     const content = fs.readFileSync(trackerPath, 'utf8');
     const tracker = JSON.parse(content);
     const totalChars = tracker.total_chars || 0;
-    // 200k tokens ~ 800k chars; use 800000 as denominator
-    const percent = Math.min(100, Math.round((totalChars / 800000) * 100));
+    const percent = Math.min(100, Math.round((totalChars / getCharDenominator(planningDir)) * 100));
     return percent;
   } catch (_e) {
     return 0;
@@ -311,6 +328,7 @@ module.exports = {
   getTier,
   loadBridge,
   saveBridge,
+  getCharDenominator,
   estimateFromHeuristic,
   shouldWarn,
   updateBridge,

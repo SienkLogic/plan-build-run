@@ -234,11 +234,14 @@ describe('track-context-budget.js', () => {
 
   test('CHAR_MILESTONE fires at 250k chars (not 50k) when config has 1M tokens', () => {
     const { processEvent, getScaledMilestones } = require('../hooks/track-context-budget.js');
-    const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+    // Clear both config caches (hooks/ uses config.cjs, plugins/ uses config.js)
+    const { configClearCache: clearPlugins } = require('../plugins/pbr/scripts/lib/config.js');
+    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
 
     // Write 1M token config
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
-    configClearCache();
+    clearPlugins();
+    clearHooks();
 
     // Verify scaled milestone is 250k
     const milestones = getScaledMilestones(planningDir);
@@ -256,6 +259,7 @@ describe('track-context-budget.js', () => {
     expect(result).not.toBeNull();
     expect(result.additionalContext).toContain('chars read');
 
-    configClearCache();
+    clearPlugins();
+    clearHooks();
   });
 });

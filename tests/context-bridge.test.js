@@ -138,7 +138,8 @@ describe('context-bridge.js', () => {
     });
 
     test('scales with context_window_tokens from config (1M → 20%)', () => {
-      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      // hooks/context-bridge.js uses plan-build-run/bin/lib/config.cjs
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
       // Write 1M config: denominator becomes 4000000
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
       configClearCache();

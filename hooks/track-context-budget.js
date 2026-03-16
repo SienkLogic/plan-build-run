@@ -26,8 +26,35 @@ const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
 const BRIDGE_STALENESS_MS = 60000; // 60 seconds
 
 const UNIQUE_FILE_MILESTONE = 10;    // warn every 10 unique files
-const CHAR_MILESTONE = 50000;        // warn every 50k chars
-const LARGE_FILE_THRESHOLD = 5000;   // warn if single read > 5k chars
+const CHAR_MILESTONE = 50000;        // warn every 50k chars (base at 200k tokens)
+const LARGE_FILE_THRESHOLD = 5000;   // warn if single read > 5k chars (base at 200k tokens)
+
+const BASE_CHAR_MILESTONE = 50000;
+const BASE_LARGE_FILE_THRESHOLD = 5000;
+const BASE_CHARS = 800000; // 200k tokens × 4
+
+/**
+ * Get scaled char milestones based on context_window_tokens from config.
+ * Base values at 200k tokens: charMilestone=50000, largeFileThreshold=5000.
+ * UNIQUE_FILE_MILESTONE is unchanged (absolute file count, not char-based).
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {{ charMilestone: number, largeFileThreshold: number }}
+ */
+function getScaledMilestones(planningDir) {
+  try {
+    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const config = configLoad(planningDir);
+    const tokens = (config && config.context_window_tokens) || 200000;
+    const scale = (tokens * 4) / BASE_CHARS;
+    return {
+      charMilestone: Math.round(BASE_CHAR_MILESTONE * scale),
+      largeFileThreshold: Math.round(BASE_LARGE_FILE_THRESHOLD * scale)
+    };
+  } catch (_e) {
+    return { charMilestone: BASE_CHAR_MILESTONE, largeFileThreshold: BASE_LARGE_FILE_THRESHOLD };
+  }
+}
 
 /**
  * Core event processing logic for track-context-budget.
@@ -146,6 +173,7 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Check thresholds — only warn at milestone crossings, not every read
   const warnings = [];
+  const { charMilestone, largeFileThreshold } = getScaledMilestones(planningDir);
 
   // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
   const curUniqueFiles = tracker.files.length;
@@ -154,16 +182,16 @@ function processEvent(data, planningDir, opts, sessionId) {
     warnings.push(`${curUniqueFiles} unique files read (milestone: every ${UNIQUE_FILE_MILESTONE})`);
   }
 
-  // Milestone: total chars crosses a multiple of CHAR_MILESTONE
+  // Milestone: total chars crosses a multiple of charMilestone
   const prevChars = tracker.total_chars - actualChars;
-  if (tracker.total_chars >= CHAR_MILESTONE &&
-      Math.floor(tracker.total_chars / CHAR_MILESTONE) > Math.floor(prevChars / CHAR_MILESTONE)) {
+  if (tracker.total_chars >= charMilestone &&
+      Math.floor(tracker.total_chars / charMilestone) > Math.floor(prevChars / charMilestone)) {
     const kChars = Math.round(tracker.total_chars / 1000);
-    warnings.push(`~${kChars}k chars read (milestone: every ${CHAR_MILESTONE / 1000}k)`);
+    warnings.push(`~${kChars}k chars read (milestone: every ${charMilestone / 1000}k)`);
   }
 
   // Single large read warning (file or search result)
-  if (actualChars >= LARGE_FILE_THRESHOLD) {
+  if (actualChars >= largeFileThreshold) {
     const kChars = Math.round(actualChars / 1000);
     const label = path.basename(filePath) || trackingKey || 'search result';
     warnings.push(`large read (~${kChars}k chars): ${label}`);
@@ -284,6 +312,6 @@ function checkBridge(planningDir) {
   }
 }
 
-module.exports = { checkBridge, BRIDGE_STALENESS_MS, processEvent, handleHttp };
+module.exports = { checkBridge, BRIDGE_STALENESS_MS, processEvent, handleHttp, getScaledMilestones, CHAR_MILESTONE, LARGE_FILE_THRESHOLD, UNIQUE_FILE_MILESTONE };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
