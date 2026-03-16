@@ -10,6 +10,13 @@
     "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
     "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
     "session_phase_limit": { "type": "integer", "minimum": 0, "maximum": 20, "default": 3, "description": "Maximum phases to complete per session before suggesting a pause. 0 = disabled." },
+    "context_window_tokens": {
+      "type": "integer",
+      "minimum": 100000,
+      "maximum": 2000000,
+      "default": 200000,
+      "description": "Context window size in tokens for the active Claude model. Used to scale hook thresholds, agent checkpoint rules, and output budgets. Default 200000 matches Claude Sonnet/Haiku. Set to 1000000 for Claude models with 1M context."
+    },
     "features": {
       "type": "object",
       "properties": {
