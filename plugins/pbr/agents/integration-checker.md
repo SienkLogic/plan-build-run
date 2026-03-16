@@ -136,6 +136,8 @@ Produce final report with all findings by category.
 
 Read `templates/INTEGRATION-REPORT.md.tmpl` (relative to `plugins/pbr/`). Keep output concise: one row per check, evidence column brief. INTEGRATION-REPORT.md target 1,500 tokens (hard limit 2,500). Omit empty sections. Console output: score + critical issue count only.
 
+**At 1M (context_window_tokens >= 500,000):** INTEGRATION-REPORT.md target 2,500 tokens (hard limit 4,000). At 1M, integration-checker can include fuller agent contract traces, more detailed schema comparison tables, and complete handoff chain analysis.
+
 ### Fallback Format (if template unreadable)
 
 If the template file cannot be read, use this minimum viable structure:

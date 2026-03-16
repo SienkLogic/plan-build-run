@@ -183,6 +183,7 @@ conflicts: N
 - Don't upgrade confidence levels -- use the lowest from contributing documents
 - All input documents must be represented; note if superseded
 - **Output budget**: Synthesis SUMMARY.md 1,000 tokens (hard limit 1,500). Lead with decision matrix table, follow with 2-3 sentence ranked recommendation. Skip "Background" and "Methodology" sections.
+- **At 1M (context_window_tokens >= 500,000):** SUMMARY.md 1,800 tokens (hard limit 2,500). At 1M, synthesizers can include fuller contradiction resolution tables, more complete open questions sections, and richer deferred ideas documentation. Line limit increases proportionally: up to 350 lines.
 
 ## Edge Cases
 

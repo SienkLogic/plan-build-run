@@ -182,6 +182,21 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 | Total per focus area (2 docs) | ≤ 1,400 tokens | 2,200 tokens |
 
 **Guidance**: Tables over prose. Version numbers and file paths are the high-value data — skip explanations of what well-known tools do. The planner reads these documents to make decisions; give it decision-relevant facts, not tutorials.
+
+**At 1M (context_window_tokens >= 500,000), use these output budgets instead:**
+
+| Artifact | Target | Hard Limit |
+|----------|--------|------------|
+| STACK.md | <= 1,400 tokens | 2,000 tokens |
+| INTEGRATIONS.md | <= 1,000 tokens | 1,600 tokens |
+| ARCHITECTURE.md | <= 1,800 tokens | 2,500 tokens |
+| STRUCTURE.md | <= 1,000 tokens | 1,600 tokens |
+| CONVENTIONS.md | <= 1,400 tokens | 2,000 tokens |
+| TESTING.md | <= 1,000 tokens | 1,600 tokens |
+| CONCERNS.md | <= 1,000 tokens | 1,600 tokens |
+| Total per focus area (2 docs) | <= 2,400 tokens | 3,600 tokens |
+
+At 1M, codebase-mapper can document more file examples per convention, include more architecture diagrams, and cover more edge cases in concerns analysis.
 </structured_returns>
 
 <critical_rules>

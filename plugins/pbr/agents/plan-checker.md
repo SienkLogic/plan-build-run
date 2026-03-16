@@ -241,6 +241,7 @@ Plans: {count} | Tasks: {count} | Blockers: {count} | Warnings: {count} | Info: 
 ## Output Budget & Severity Definitions
 
 - **Verification report**: <= 1,200 tokens. One evidence row per dimension. Skip fully-passing dimensions.
+- **At 1M (context_window_tokens >= 500,000):** Verification report <= 2,000 tokens (hard limit 3,000). At 1M, plan-checker can include fuller evidence citations, more detailed blocker explanations, and complete dimension-by-dimension analysis without truncation.
 - **Issue descriptions**: <= 80 tokens each. **Recommendations**: <= 50 tokens each.
 
 | Level | Meaning |
