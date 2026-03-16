@@ -39,7 +39,7 @@ const SCOPE_INFERENCE_RULES = [
   [/\btest[s]?\b|\bcoverage\b|\bfixture[s]?\b|\bjest\b|\bvitest/i, 'tests'],
   [/\binstall\b|\bnpx\b|\bsetup\.sh\b|\buninstall/i, 'install'],
   [/\bCLI\b|\bpbr-tools\b|\bgsd-tools\b|\bcommand extraction/i, 'cli'],
-  [/\bgraph\b|\bSQLite\b|\bentit(?:y|ies)\b|\bintel/i, 'intel'],
+  [/\bgraph\b|\bSQLite\b|\bentit(?:y|ies)\b/i, 'data'],
   [/\bcontext\b|\bbudget\b|\bcompact\b|\btoken[s]?\b|\b1M\b|\bscale\b|\bthreshold/i, 'context'],
   [/\bverif(?:y|ication)\b|\bVERIFICATION\.md/i, 'verification'],
   [/\bplan(?:ner)?\b|\bPLAN\.md\b|\bwave[s]?\b|\bexecut/i, 'workflow'],
@@ -53,6 +53,45 @@ const SCOPE_INFERENCE_RULES = [
   [/\bmilestone\b|\broadmap\b|\barchive/i, 'milestone'],
   [/\bstatus\s*line\b|\bstatusline/i, 'statusline'],
   [/\blearning[s]?\b/i, 'learnings'],
+];
+
+// Features that existed in GSD but were removed in PBR v2.
+// Entries matching these patterns are dropped entirely.
+const DEAD_FEATURE_PATTERNS = [
+  // Intel system (graph DB, entity generation, codebase indexing) — removed in v2
+  /\bintel-index\b/i,
+  /\bgraph\s*database\b|\bsql\.js\b|\bSQLite\s*graph\b/i,
+  /\bquery-intel\b|\banalyze-codebase\b/i,
+  /\bentity-generator\b|\bpbr-indexer\b|\bgsd-indexer\b/i,
+  /\bintel\s*directory\b|\bintel\s*hooks?\b/i,
+  /\bgraph\s*query\b|\bgraph-backed\b|\bgraph\s*summary\b/i,
+  /\bsync\s*entity\s*files\b/i,
+  /\bsemantic\s*entity\b/i,
+  /\bcodebase\s*intel(?:ligence)?\b/i,
+  /\bintel\s*injection\b/i,
+  /\bconvention\s*detection\b/i,
+  /\*\*intel:\*\*/i,             // Any entry scoped to intel
+  /\*\*add-tests:\*\*/i,         // add-tests scope (feature removed)
+  // Mistral Vibe CLI — never ported to PBR
+  /\bMistral\s*Vibe\b|\bvibe\s*CLI\b/i,
+  // Antigravity runtime — GSD only
+  /\bAntigravity\b/i,
+  // Google Jules — GSD only
+  /\bJules\b/i,
+  // /pbr:add-tests — not in PBR v2
+  /\/pbr:add-tests\b|\/gsd:add-tests\b|\badd-tests\b.*command\b/i,
+  // /pbr:profile-user — not in PBR v2
+  /\bprofile-user\b/i,
+  // Brave Search integration — not in PBR v2
+  /\bBrave\s*Search\b/i,
+  // PBR Memory cross-project knowledge — not in PBR v2
+  /\bcross-project\s*knowledge\b|\bPBR\s*Memory\s*cross/i,
+  // Discord invite in install — removed
+  /\bDiscord\s*invite\s*link\s*in\s*install\b/i,
+  // GSD logo/moonshot references
+  /\bPBR\s*logo\s*for\s*Moonshot\b|\bGSD\s*logo\b/i,
+  // pbr-gemini broken link fixes — not relevant
+  /\bpbr-gemini\s*link\b|\bgsd-gemini\s*link\b/i,
 ];
 
 // GSD → PBR rebranding: scopes, commands, paths, tool names
@@ -82,6 +121,11 @@ function cleanChangelog(content) {
 
   for (const line of lines) {
     let cleaned = line;
+
+    // Drop entries referencing features that don't exist in PBR v2
+    if (cleaned.startsWith('* ') && DEAD_FEATURE_PATTERNS.some(p => p.test(cleaned))) {
+      continue;
+    }
 
     // Strip internal scopes (phase-plan numbers) but keep descriptive scopes
     cleaned = cleaned.replace(INTERNAL_SCOPE_PATTERN, '');
