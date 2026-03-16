@@ -1,0 +1,16 @@
+{
+  "name": "pbr-dashboard-server",
+  "version": "1.0.0",
+  "description": "Express server for PBR Dashboard v4",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "cors": "^2.8.5",
+    "ws": "^8.18.0",
+    "chokidar": "^4.0.0"
+  }
+}

@@ -1,0 +1,392 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plan-Build-Run Config",
+  "description": "Configuration schema for .planning/config.json",
+  "type": "object",
+  "properties": {
+    "version": { "type": ["integer", "string"], "enum": [1, 2, "1", "2"], "description": "Planning format version. v2 is current." },
+    "schema_version": { "type": "integer", "enum": [1, 2], "description": "Config schema version for migration detection. Increment when config structure changes." },
+    "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
+    "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
+    "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
+    "session_phase_limit": { "type": "integer", "minimum": 0, "maximum": 20, "default": 3, "description": "Maximum phases to complete per session before suggesting a pause. 0 = disabled." },
+    "features": {
+      "type": "object",
+      "properties": {
+        "structured_planning": { "type": "boolean" },
+        "goal_verification": { "type": "boolean" },
+        "integration_verification": { "type": "boolean" },
+        "context_isolation": { "type": "boolean" },
+        "atomic_commits": { "type": "boolean" },
+        "session_persistence": { "type": "boolean" },
+        "research_phase": { "type": "boolean" },
+        "plan_checking": { "type": "boolean" },
+        "tdd_mode": { "type": "boolean" },
+        "status_line": { "type": "boolean" },
+        "auto_continue": { "type": "boolean" },
+        "auto_advance": { "type": "boolean" },
+        "team_discussions": { "type": "boolean" },
+        "inline_verify": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "researcher": { "type": "string" },
+        "planner": { "type": "string" },
+        "executor": { "type": "string" },
+        "verifier": { "type": "string" },
+        "integration_checker": { "type": "string" },
+        "debugger": { "type": "string" },
+        "mapper": { "type": "string" },
+        "synthesizer": { "type": "string" },
+        "complexity_map": {
+          "type": "object",
+          "properties": {
+            "simple": { "type": "string", "default": "haiku" },
+            "medium": { "type": "string", "default": "sonnet" },
+            "complex": { "type": "string", "default": "inherit" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "model_profiles": {
+      "type": "object",
+      "description": "User-defined custom model profiles. Each key is a profile name; value is an object mapping agent names to model strings (sonnet, opus, haiku, inherit). Partial profiles allowed — omitted agents fall back to the active profile defaults.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "researcher": { "type": "string" },
+          "planner": { "type": "string" },
+          "executor": { "type": "string" },
+          "verifier": { "type": "string" },
+          "integration_checker": { "type": "string" },
+          "debugger": { "type": "string" },
+          "mapper": { "type": "string" },
+          "synthesizer": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "parallelization": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "plan_level": { "type": "boolean" },
+        "task_level": { "type": "boolean" },
+        "max_concurrent_agents": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "min_plans_for_parallel": { "type": "integer", "minimum": 1 },
+        "use_teams": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "teams": {
+      "type": "object",
+      "properties": {
+        "planning_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["architect", "security-reviewer", "test-designer"]
+        },
+        "review_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["functional-reviewer", "security-auditor", "performance-analyst"]
+        },
+        "synthesis_model": {
+          "type": "string",
+          "default": "sonnet",
+          "description": "Model used for the synthesizer agent that combines team outputs"
+        },
+        "coordination": {
+          "type": "string",
+          "enum": ["file-based", "sequential"],
+          "default": "file-based",
+          "description": "How team members coordinate: file-based (parallel writes to separate files) or sequential"
+        }
+      },
+      "additionalProperties": false
+    },
+    "planning": {
+      "type": "object",
+      "properties": {
+        "commit_docs": { "type": "boolean" },
+        "max_tasks_per_plan": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "search_gitignored": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "branching": { "type": "string", "enum": ["none", "phase", "milestone", "disabled"] },
+        "commit_format": { "type": "string" },
+        "phase_branch_template": { "type": "string" },
+        "milestone_branch_template": { "type": "string" },
+        "mode": { "type": "string", "enum": ["enabled", "disabled"] }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "confirm_project": { "type": "boolean" },
+        "confirm_roadmap": { "type": "boolean" },
+        "confirm_plan": { "type": "boolean" },
+        "confirm_execute": { "type": "boolean" },
+        "confirm_transition": { "type": "boolean" },
+        "issues_review": { "type": "boolean" },
+        "confirm_research": { "type": "boolean" },
+        "confirm_seeds": { "type": "boolean" },
+        "confirm_deferred": { "type": "boolean" },
+        "confirm_commit_docs": { "type": "boolean" },
+        "auto_checkpoints": { "type": "boolean", "default": false, "description": "When true, executor auto-resolves checkpoint:human-verify tasks by running automated verify and approving if it passes. checkpoint:decision and checkpoint:human-action always require human input." }
+      },
+      "additionalProperties": false
+    },
+    "safety": {
+      "type": "object",
+      "properties": {
+        "always_confirm_destructive": { "type": "boolean" },
+        "always_confirm_external_services": { "type": "boolean" },
+        "enforce_phase_boundaries": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "timeouts": {
+      "type": "object",
+      "properties": {
+        "task_default_ms": { "type": "integer", "minimum": 30000, "description": "Default timeout per task in milliseconds (default: 300000 = 5 min)" },
+        "build_max_ms": { "type": "integer", "minimum": 60000, "description": "Maximum time for entire build command in milliseconds" },
+        "verify_max_ms": { "type": "integer", "minimum": 30000, "description": "Maximum time for verification in milliseconds" }
+      },
+      "additionalProperties": false
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "autoFormat": { "type": "boolean" },
+        "typeCheck": { "type": "boolean" },
+        "detectConsoleLogs": { "type": "boolean" },
+        "blockDocSprawl": { "type": "boolean" },
+        "compactThreshold": { "type": "integer", "minimum": 10, "maximum": 200 }
+      },
+      "additionalProperties": false
+    },
+    "prd": {
+      "type": "object",
+      "description": "Settings for PRD import via /pbr:import --prd.",
+      "properties": {
+        "auto_extract": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, skip the confirmation gate during PRD import and write files immediately. Default: false (confirm-first)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "depth_profiles": {
+      "type": "object",
+      "description": "Depth profile overrides. Each profile maps depth value to effective feature/gate settings.",
+      "properties": {
+        "quick": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        "standard": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        },
+        "comprehensive": {
+          "type": "object",
+          "properties": {
+            "features.research_phase": { "type": "boolean" },
+            "features.plan_checking": { "type": "boolean" },
+            "features.goal_verification": { "type": "boolean" },
+            "features.inline_verify": { "type": "boolean" },
+            "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
+            "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
+            "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "debug": {
+      "type": "object",
+      "properties": {
+        "max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
+      },
+      "additionalProperties": false
+    },
+    "spinner_tips": {
+      "type": "object",
+      "description": "Custom spinner tips shown during agent execution (Claude Code 2.1.45+)",
+      "properties": {
+        "tips": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of custom tip strings to display in the spinner"
+        },
+        "exclude_defaults": {
+          "type": "boolean",
+          "description": "When true, only show custom tips (no default Claude Code tips)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "dashboard": {
+      "type": "object",
+      "properties": {
+        "auto_launch": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1024, "maximum": 65535 }
+      },
+      "additionalProperties": false
+    },
+    "status_line": {
+      "type": "object",
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["phase", "plan", "status", "context"] }
+        },
+        "brand_text": { "type": "string" },
+        "max_status_length": { "type": "integer", "minimum": 10, "maximum": 200 },
+        "context_bar": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer", "minimum": 1, "maximum": 50 },
+            "thresholds": {
+              "type": "object",
+              "properties": {
+                "green": { "type": "integer", "minimum": 0, "maximum": 100 },
+                "yellow": { "type": "integer", "minimum": 0, "maximum": 100 }
+              },
+              "additionalProperties": false
+            },
+            "chars": {
+              "type": "object",
+              "properties": {
+                "filled": { "type": "string" },
+                "empty": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "workflow": {
+      "type": "object",
+      "properties": {
+        "enforce_pbr_skills": {
+          "type": "string",
+          "enum": ["advisory", "block", "off"],
+          "default": "advisory",
+          "description": "Enforcement level for PBR workflow compliance"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hook_server": {
+      "type": "object",
+      "description": "Persistent HTTP hook server settings. When enabled, hooks POST to the server instead of spawning per-hook processes.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, hook-server-client.js routes hook events to the persistent hook-server.js process."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 65535,
+          "default": 19836,
+          "description": "TCP port the hook server listens on (127.0.0.1 only)."
+        },
+        "event_log": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, all hook events are appended to .planning/.hook-events.jsonl."
+        }
+      },
+      "additionalProperties": false
+    },
+    "local_llm": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "provider": { "type": "string", "enum": ["ollama"] },
+        "endpoint": { "type": "string", "format": "uri" },
+        "model": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 500 },
+        "max_retries": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "fallback": { "type": "string", "enum": ["frontier", "skip"] },
+        "routing_strategy": { "type": "string", "enum": ["local_first", "frontier_first"] },
+        "features": {
+          "type": "object",
+          "properties": {
+            "artifact_classification": { "type": "boolean" },
+            "task_validation": { "type": "boolean" },
+            "plan_adequacy": { "type": "boolean" },
+            "gap_detection": { "type": "boolean" },
+            "context_summarization": { "type": "boolean" },
+            "source_scoring": { "type": "boolean" },
+            "commit_classification": { "type": "boolean" },
+            "test_triage": { "type": "boolean" },
+            "file_intent_classification": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "log_file": { "type": "string" },
+            "show_session_summary": { "type": "boolean" },
+            "frontier_token_rate": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "advanced": {
+          "type": "object",
+          "properties": {
+            "confidence_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+            "max_input_tokens": { "type": "integer", "minimum": 100 },
+            "keep_alive": { "type": "string" },
+            "num_ctx": { "type": "integer", "minimum": 512 },
+            "disable_after_failures": { "type": "integer", "minimum": 1 },
+            "shadow_mode": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

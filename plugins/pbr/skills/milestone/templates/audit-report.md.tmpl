@@ -1,0 +1,48 @@
+# Template: Milestone Audit Report
+# Used by: milestone/SKILL.md (audit subcommand, Step 5)
+# Variables: {version}, {status}, {date}, {phase entries}, {integration results}, {requirements}, {tech debt}
+
+---
+milestone: "{version}"
+status: "{passed | gaps_found | tech_debt}"
+date: "{ISO date}"
+---
+
+# Milestone Audit: {version}
+
+## Overall Status: {PASSED / GAPS FOUND / TECH DEBT}
+
+## Phase Verification Summary
+
+| Phase | Verified | Gaps | Integration |
+|-------|----------|------|-------------|
+| {N}. {name} | {yes/no} | {count} | {ok/issues} |
+
+## Integration Check Results
+
+### Dependency Graph
+{Mermaid or ASCII representation of phase dependencies}
+
+### Integration Issues
+{List of integration problems found, or "None"}
+
+- **{Issue}**: {description}
+  - Affected phases: {list}
+  - Severity: {critical/high/medium/low}
+  - Suggested fix: {brief suggestion}
+
+## Requirements Coverage
+
+| Requirement | Status | Verified By |
+|-------------|--------|-------------|
+| {req} | {covered/uncovered} | {phase/plan or "N/A"} |
+
+## Tech Debt Identified
+
+{Issues that don't block the milestone but should be addressed}
+
+- {debt item}: {description}
+
+## Recommendations
+
+{Summary of what needs to be done, if anything}

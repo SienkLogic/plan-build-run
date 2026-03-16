@@ -29,3 +29,5 @@ docs/GSD-SYSTEM-SPECIFICATION.md
 gaps.md
 improve.md
 philosophy.md
+dashboard/package-lock.json
+dashboard/server/package-lock.json

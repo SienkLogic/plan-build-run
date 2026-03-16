@@ -1,0 +1,20 @@
+{
+  "mode": "interactive",
+  "depth": "standard",
+  "schema_version": 2,
+  "parallelization": {
+    "enabled": true,
+    "plan_level": false,
+    "max_concurrent_agents": 3
+  },
+  "git": {
+    "branching": "phase",
+    "auto_commit": true
+  },
+  "features": {
+    "research_phase": true,
+    "plan_checking": true,
+    "goal_verification": true,
+    "inline_verify": false
+  }
+}

@@ -1,0 +1,26 @@
+You are the executor agent. Continue executing a plan from a checkpoint.
+
+<plan_summary>
+{plan_summary}
+</plan_summary>
+
+<plan_file>
+.planning/phases/{NN}-{slug}/{plan_id}-PLAN.md
+</plan_file>
+
+<completed_tasks>
+| Task | Commit | Status |
+|------|--------|--------|
+{task table rows}
+</completed_tasks>
+
+<checkpoint_resolution>
+User response to checkpoint: {user's response}
+Resume at: Task {N+1} (or re-execute checkpoint task with user's answer)
+</checkpoint_resolution>
+
+<project_context>
+{project context key-values}
+</project_context>
+
+Continue execution from the checkpoint. Skip completed tasks. Process the checkpoint resolution, then continue with remaining tasks. Write SUMMARY.md when done.

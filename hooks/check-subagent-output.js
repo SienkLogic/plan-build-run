@@ -1,0 +1,754 @@
+#!/usr/bin/env node
+
+/**
+ * PostToolUse hook on Task: Validates that subagent outputs exist.
+ *
+ * Maps agent types to expected output files and warns if they're missing
+ * after the agent completes. This catches silent agent failures early
+ * rather than discovering them during verification.
+ *
+ * Agent → Expected output mapping:
+ *   executor   → SUMMARY-{plan_id}.md (or SUMMARY.md) in the phase directory
+ *   planner    → PLAN-{MM}.md in the phase directory
+ *   verifier   → VERIFICATION.md in the phase directory
+ *   researcher → RESEARCH.md (or domain-specific .md) in research/
+ *
+ * Exit codes:
+ *   0 = always (informational hook, never blocks — PostToolUse can only warn)
+ */
+
+const fs = require('fs');
+const path = require('path');
+const { logHook } = require('./hook-logger');
+const { KNOWN_AGENTS, sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
+const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
+const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+
+/**
+ * Check if a file was modified recently (within thresholdMs).
+ * Returns false if file doesn't exist or on error.
+ */
+function isRecent(filePath, thresholdMs = 1800000) {
+  try {
+    const stat = fs.statSync(filePath);
+    return (Date.now() - stat.mtimeMs) < thresholdMs;
+  } catch (_e) {
+    return false;
+  }
+}
+
+// Agent type → expected output patterns
+const AGENT_OUTPUTS = {
+  'pbr:executor': {
+    description: 'SUMMARY.md in the phase or quick directory',
+    check: (planningDir) => {
+      // Check phase directory first, then quick directory
+      const phaseMatches = findInPhaseDir(planningDir, /^SUMMARY.*\.md$/i);
+      if (phaseMatches.length > 0) return { files: phaseMatches, stale: false };
+      return { files: findInQuickDir(planningDir, /^SUMMARY.*\.md$/i), stale: false };
+    }
+  },
+  'pbr:planner': {
+    description: 'PLAN.md in the phase directory',
+    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^PLAN.*\.md$/i), stale: false })
+  },
+  'pbr:verifier': {
+    description: 'VERIFICATION.md in the phase directory',
+    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^VERIFICATION\.md$/i), stale: false })
+  },
+  'pbr:researcher': {
+    description: 'research file in .planning/research/',
+    check: (planningDir) => {
+      const researchDir = path.join(planningDir, 'research');
+      if (!fs.existsSync(researchDir)) return { files: [], stale: false };
+      try {
+        const allFiles = fs.readdirSync(researchDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('research', f));
+        if (allFiles.length === 0) return { files: [], stale: false };
+        const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
+        if (recentFiles.length === 0) {
+          // Files exist but none are recent — return them but flag staleness
+          return { files: allFiles, stale: true };
+        }
+        return { files: allFiles, stale: false };
+      } catch (_e) {
+        return { files: [], stale: false };
+      }
+    }
+  },
+  'pbr:synthesizer': {
+    description: 'synthesis file in .planning/research/ or CONTEXT.md update',
+    check: (planningDir) => {
+      const researchDir = path.join(planningDir, 'research');
+      if (fs.existsSync(researchDir)) {
+        try {
+          const files = fs.readdirSync(researchDir).filter(f => f.endsWith('.md'));
+          if (files.length > 0) {
+            const allFiles = files.map(f => path.join('research', f));
+            const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
+            if (recentFiles.length === 0) {
+              return { files: allFiles, stale: true };
+            }
+            return { files: allFiles, stale: false };
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+      const contextFile = path.join(planningDir, 'CONTEXT.md');
+      if (fs.existsSync(contextFile)) {
+        try {
+          const stat = fs.statSync(contextFile);
+          if (stat.size > 0) {
+            const result = ['CONTEXT.md'];
+            const stale = !isRecent(contextFile);
+            return { files: result, stale };
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+      return { files: [], stale: false };
+    }
+  },
+  'pbr:plan-checker': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => ({ files: [], stale: false })
+  },
+  'pbr:integration-checker': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => ({ files: [], stale: false })
+  },
+  'pbr:debugger': {
+    description: 'debug file in .planning/debug/',
+    check: (planningDir) => {
+      const debugDir = path.join(planningDir, 'debug');
+      if (!fs.existsSync(debugDir)) return { files: [], stale: false };
+      try {
+        const files = fs.readdirSync(debugDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('debug', f));
+        return { files, stale: false };
+      } catch (_e) {
+        return { files: [], stale: false };
+      }
+    }
+  },
+  'pbr:codebase-mapper': {
+    description: 'codebase map in .planning/codebase/',
+    check: (planningDir) => {
+      const codebaseDir = path.join(planningDir, 'codebase');
+      if (!fs.existsSync(codebaseDir)) return { files: [], stale: false };
+      try {
+        const files = fs.readdirSync(codebaseDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('codebase', f));
+        return { files, stale: false };
+      } catch (_e) {
+        return { files: [], stale: false };
+      }
+    }
+  },
+  'pbr:general': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => ({ files: [], stale: false })
+  },
+  'pbr:audit': {
+    description: 'audit report in .planning/audits/',
+    check: (planningDir) => {
+      const auditsDir = path.join(planningDir, 'audits');
+      if (!fs.existsSync(auditsDir)) return { files: [], stale: false };
+      try {
+        const files = fs.readdirSync(auditsDir)
+          .filter(f => f.endsWith('.md'))
+          .map(f => path.join('audits', f));
+        return { files, stale: false };
+      } catch (_e) {
+        return { files: [], stale: false };
+      }
+    }
+  },
+  'pbr:dev-sync': {
+    description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => ({ files: [], stale: false })
+  }
+};
+
+/**
+ * Extract current phase number from STATE.md, preferring frontmatter over body.
+ * @param {string} stateContent - Full STATE.md content
+ * @returns {string|null} Phase number string or null
+ */
+function getCurrentPhase(stateContent) {
+  // Prefer frontmatter (always up-to-date)
+  const fmMatch = stateContent.match(/^current_phase:\s*(\d+)/m);
+  if (fmMatch) return fmMatch[1];
+  // Fall back to body text
+  const bodyMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+  return bodyMatch ? bodyMatch[1] : null;
+}
+
+/**
+ * Check if ROADMAP.md is stale after executor/verifier completion.
+ * Detects: (1) no Progress table for current milestone, (2) table exists but
+ * phase row is out of date vs. phase artifacts on disk.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {string|null} Warning message or null if in sync
+ */
+function checkRoadmapStaleness(planningDir) {
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) return null;
+
+  try {
+    const content = fs.readFileSync(roadmapPath, 'utf8');
+
+    // Check if there's a Progress table at all
+    const hasProgressTable = /Plans\s*Complete/i.test(content);
+    if (!hasProgressTable) {
+      return 'ROADMAP.md has no Progress table for the current milestone. The orchestrator should add a Progress table with columns: Phase | Plans Complete | Status | Completed. See skills/shared/state-update.md for format.';
+    }
+
+    // If table exists, check if current phase row is present
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+      const currentPhase = getCurrentPhase(stateContent);
+      if (currentPhase) {
+        const paddedPhase = currentPhase.padStart(2, '0');
+        const phaseInTable = new RegExp(`\\|\\s*${paddedPhase}\\.`).test(content) ||
+          new RegExp(`\\|\\s*${parseInt(currentPhase, 10)}\\.`).test(content);
+        if (!phaseInTable) {
+          return `ROADMAP.md Progress table exists but has no row for Phase ${currentPhase}. Add a row for the current phase.`;
+        }
+      }
+    }
+  } catch (_e) {
+    // best-effort
+  }
+  return null;
+}
+
+function findInPhaseDir(planningDir, pattern) {
+  const matches = [];
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) return matches;
+
+  try {
+    // Find the active phase from STATE.md (prefer frontmatter over body)
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (!fs.existsSync(stateFile)) return matches;
+
+    const stateContent = fs.readFileSync(stateFile, 'utf8');
+    const phaseNum = getCurrentPhase(stateContent);
+    if (!phaseNum) return matches;
+
+    const currentPhase = phaseNum.padStart(2, '0');
+    const dirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(currentPhase));
+    if (dirs.length === 0) return matches;
+
+    const phaseDir = path.join(phasesDir, dirs[0]);
+    const files = fs.readdirSync(phaseDir);
+    for (const file of files) {
+      if (pattern.test(file)) {
+        // Check it's non-empty
+        const filePath = path.join(phaseDir, file);
+        const stat = fs.statSync(filePath);
+        if (stat.size > 0) {
+          matches.push(path.join('phases', dirs[0], file));
+        }
+      }
+    }
+  } catch (_e) {
+    // best-effort
+  }
+  return matches;
+}
+
+function findInQuickDir(planningDir, pattern) {
+  const matches = [];
+  const quickDir = path.join(planningDir, 'quick');
+  if (!fs.existsSync(quickDir)) return matches;
+
+  try {
+    // Find the most recent quick task directory (highest NNN)
+    const dirs = fs.readdirSync(quickDir)
+      .filter(d => /^\d{3}-/.test(d))
+      .sort()
+      .reverse();
+    if (dirs.length === 0) return matches;
+
+    const latestDir = path.join(quickDir, dirs[0]);
+    const stat = fs.statSync(latestDir);
+    if (!stat.isDirectory()) return matches;
+
+    const files = fs.readdirSync(latestDir);
+    for (const file of files) {
+      if (pattern.test(file)) {
+        const filePath = path.join(latestDir, file);
+        const fileStat = fs.statSync(filePath);
+        if (fileStat.size > 0) {
+          matches.push(path.join('quick', dirs[0], file));
+        }
+      }
+    }
+  } catch (_e) {
+    // best-effort
+  }
+  return matches;
+}
+
+function checkSummaryCommits(planningDir, foundFiles, warnings) {
+  // Look for SUMMARY files in found list
+  const summaryFiles = foundFiles.filter(f => /SUMMARY/i.test(f));
+  for (const relPath of summaryFiles) {
+    try {
+      const fullPath = path.join(planningDir, relPath);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      // Parse frontmatter for commits field
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fm = fmMatch[1];
+      const commitsMatch = fm.match(/commits:\s*(\[.*?\]|.*)/);
+      if (!commitsMatch) {
+        warnings.push(`${relPath}: No "commits" field in frontmatter. Executor should record commit hashes.`);
+        continue;
+      }
+      const commitsVal = commitsMatch[1].trim();
+      if (commitsVal === '[]' || commitsVal === '' || commitsVal === '~' || commitsVal === 'null') {
+        warnings.push(`${relPath}: "commits" field is empty. Executor may have failed to commit changes.`);
+      }
+    } catch (_e) { /* best-effort */ }
+  }
+}
+
+// Skill-specific check lookup table keyed by 'activeSkill:agentType'
+const SKILL_CHECKS = {
+  'begin:pbr:planner': {
+    description: 'begin planner core files',
+    check: (planningDir, _found, warnings) => {
+      const coreFiles = ['REQUIREMENTS.md', 'ROADMAP.md', 'STATE.md'];
+      for (const f of coreFiles) {
+        if (!fs.existsSync(path.join(planningDir, f))) {
+          warnings.push(`Begin planner: ${f} was not created. The project may be in an incomplete state.`);
+        }
+      }
+    }
+  },
+  'plan:pbr:researcher': {
+    description: 'plan researcher phase-level RESEARCH.md',
+    check: (planningDir, found, warnings) => {
+      const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
+      if (found.length === 0 && phaseResearch.length === 0) {
+        warnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
+      }
+    }
+  },
+  'scan:pbr:codebase-mapper': {
+    description: 'scan codebase-mapper 4 focus areas',
+    check: (planningDir, _found, warnings) => {
+      const expectedAreas = ['tech', 'arch', 'quality', 'concerns'];
+      const codebaseDir = path.join(planningDir, 'codebase');
+      if (fs.existsSync(codebaseDir)) {
+        try {
+          const files = fs.readdirSync(codebaseDir).map(f => f.toLowerCase());
+          for (const area of expectedAreas) {
+            if (!files.some(f => f.includes(area))) {
+              warnings.push(`Scan mapper: No output file containing "${area}" found in .planning/codebase/. One of the 4 mappers may have failed.`);
+            }
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    }
+  },
+  'review:pbr:verifier': {
+    description: 'review verifier VERIFICATION.md status',
+    check: (planningDir, _found, warnings) => {
+      const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+      for (const vf of verFiles) {
+        try {
+          const content = fs.readFileSync(path.join(planningDir, vf), 'utf8');
+          const statusMatch = content.match(/^status:\s*(\S+)/mi);
+          if (statusMatch && statusMatch[1] === 'gaps_found') {
+            warnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    }
+  },
+  'build:pbr:executor': {
+    description: 'build executor SUMMARY commits',
+    check: (planningDir, found, warnings) => {
+      checkSummaryCommits(planningDir, found, warnings);
+    }
+  },
+  'quick:pbr:executor': {
+    description: 'quick executor SUMMARY commits',
+    check: (planningDir, found, warnings) => {
+      checkSummaryCommits(planningDir, found, warnings);
+    }
+  },
+  'begin:pbr:researcher': {
+    description: 'begin researcher YAML frontmatter validation',
+    check: (planningDir, found, warnings) => {
+      const EXPECTED_NAMES = ['STACK.md', 'FEATURES.md', 'ARCHITECTURE.md', 'PITFALLS.md'];
+      for (const relPath of found) {
+        const basename = path.basename(relPath);
+        // Skip SUMMARY.md -- that's synthesizer output
+        if (basename.toUpperCase() === 'SUMMARY.MD') continue;
+        try {
+          // Warn if unexpected filename
+          if (!EXPECTED_NAMES.includes(basename)) {
+            warnings.push(`${basename}: unexpected research file name. Expected one of: ${EXPECTED_NAMES.join(', ')}`);
+          }
+          // Read and validate YAML frontmatter
+          const fullPath = path.join(planningDir, relPath);
+          const content = fs.readFileSync(fullPath, 'utf8');
+          const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+          if (!fmMatch) {
+            warnings.push(`${basename}: YAML frontmatter is missing. Researcher output must include frontmatter with confidence and sources_checked fields.`);
+            continue;
+          }
+          const fm = fmMatch[1];
+          if (!/confidence\s*:/i.test(fm)) {
+            warnings.push(`${basename}: frontmatter missing "confidence" field.`);
+          }
+          if (!/sources_checked\s*:/i.test(fm)) {
+            warnings.push(`${basename}: frontmatter missing "sources_checked" field.`);
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    }
+  },
+  'begin:pbr:synthesizer': {
+    description: 'begin synthesizer SUMMARY.md structure validation',
+    check: (planningDir, found, warnings) => {
+      // Check for SUMMARY.md in research directory
+      const researchDir = path.join(planningDir, 'research');
+      const summaryPath = path.join(researchDir, 'SUMMARY.md');
+      try {
+        if (!fs.existsSync(summaryPath)) {
+          warnings.push('SUMMARY.md not found in .planning/research/. Synthesizer must produce a SUMMARY.md.');
+          return;
+        }
+        const content = fs.readFileSync(summaryPath, 'utf8');
+        // Check for Research Coverage table
+        if (!/research\s+coverage/i.test(content)) {
+          warnings.push('SUMMARY.md missing "Research Coverage" table.');
+        }
+        // Check for Confidence Assessment table
+        if (!/confidence\s+assessment/i.test(content)) {
+          warnings.push('SUMMARY.md missing "Confidence Assessment" table.');
+        }
+        // Check all 4 dimensions are referenced
+        const dimensions = ['Stack', 'Features', 'Architecture', 'Pitfalls'];
+        for (const dim of dimensions) {
+          if (!new RegExp(dim, 'i').test(content)) {
+            warnings.push(`SUMMARY.md missing dimension: ${dim}. All 4 research dimensions must be covered.`);
+          }
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  }
+};
+
+function readStdin() {
+  try {
+    const input = fs.readFileSync(0, 'utf8').trim();
+    if (input) return JSON.parse(input);
+  } catch (_e) {
+    // empty or non-JSON stdin
+  }
+  return {};
+}
+
+function loadLocalLlmConfig(cwd) {
+  try {
+    const configPath = path.join(cwd, '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_) {
+    return resolveConfig(undefined);
+  }
+}
+
+async function main() {
+  const data = readStdin();
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  // Only relevant for Plan-Build-Run projects
+  if (!fs.existsSync(planningDir)) {
+    process.exit(0);
+  }
+
+  // Extract agent type from the Task completion data
+  const agentType = data.agent_type || data.tool_input?.subagent_type || data.subagent_type || '';
+
+  // Only check known Plan-Build-Run agent types
+  const outputSpec = AGENT_OUTPUTS[agentType];
+  if (!outputSpec) {
+    // Log when agent is in KNOWN_AGENTS but missing from AGENT_OUTPUTS
+    const shortName = agentType.startsWith('pbr:') ? agentType.slice(4) : agentType;
+    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(shortName)) {
+      logHook('check-subagent-output', 'PostToolUse', 'missing-output-spec', {
+        agent_type: agentType,
+        message: `Agent ${agentType} is in KNOWN_AGENTS but has no AGENT_OUTPUTS entry. Add one to check-subagent-output.js.`
+      });
+    }
+    process.exit(0);
+  }
+
+  // Read active skill — session-scoped when session_id available
+  const sessionId = data.session_id || null;
+  let activeSkill = sessionLoad(planningDir, sessionId).activeSkill || '';
+  if (!activeSkill) {
+    const skillPath = sessionId
+      ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+      : path.join(planningDir, '.active-skill');
+    try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
+  }
+
+  // Check agent response size — warn if output may blow orchestrator context
+  const AGENT_OUTPUT_SIZE_WARN = 50000;   // 50k chars
+  const AGENT_OUTPUT_SIZE_CRITICAL = 100000; // 100k chars
+  const toolOutput = data.tool_output || '';
+  const outputSize = typeof toolOutput === 'string' ? toolOutput.length : 0;
+  if (outputSize > AGENT_OUTPUT_SIZE_CRITICAL) {
+    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
+      agent_type: agentType, size: outputSize
+    });
+    const sizeWarn = {
+      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
+    };
+    process.stdout.write(JSON.stringify(sizeWarn));
+    process.exit(0);
+  }
+
+  // Check for expected outputs
+  const foundResult = outputSpec.check(planningDir);
+  const found = foundResult.files;
+  const foundStale = foundResult.stale;
+
+  const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
+
+  // Skill-specific post-completion validation
+  const skillWarnings = [];
+
+  if (outputSize > AGENT_OUTPUT_SIZE_WARN) {
+    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
+  }
+
+  // ACTIVE-SKILL ENFORCEMENT: Warn when no .active-skill file exists.
+  // Skills are instructed (with CRITICAL markers) to write this file, but LLMs
+  // skip it under cognitive load. This warning reminds the orchestrator.
+  if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
+    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+  }
+
+  // ROADMAP.md SYNC: After executor or verifier completes, check if ROADMAP.md
+  // needs updating. Subagent writes (SUMMARY/VERIFICATION) trigger check-state-sync
+  // in the subagent context, but the main context ROADMAP.md may still be stale.
+  if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {
+    const roadmapWarning = checkRoadmapStaleness(planningDir);
+    if (roadmapWarning) {
+      skillWarnings.push(roadmapWarning);
+    }
+  }
+
+  // Mtime-based recency check for researcher and synthesizer
+  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+    const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
+    skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
+  }
+
+  // Skill-specific dispatch via SKILL_CHECKS lookup
+  const skillCheckKey = `${activeSkill}:${agentType}`;
+  const skillCheck = SKILL_CHECKS[skillCheckKey];
+  if (skillCheck) {
+    skillCheck.check(planningDir, found, skillWarnings);
+  }
+
+  // Output logic: avoid duplicating warnings
+  if (genericMissing && skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', {
+      skill: activeSkill,
+      agent_type: agentType,
+      warnings: skillWarnings
+    });
+    // LLM error classification — advisory enrichment
+    let llmCategoryNote = '';
+    try {
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (errorText) {
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
+        if (llmResult && llmResult.category) {
+          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+        }
+      }
+    } catch (_llmErr) {
+      // Never propagate
+    }
+    const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
+      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
+    process.stdout.write(JSON.stringify({ additionalContext: msg }));
+  } else if (genericMissing) {
+    logHook('check-subagent-output', 'PostToolUse', 'warning', {
+      agent_type: agentType,
+      expected: outputSpec.description,
+      found: 'none'
+    });
+    // LLM error classification — advisory enrichment
+    let llmCategoryNote = '';
+    try {
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (errorText) {
+        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
+        if (llmResult && llmResult.category) {
+          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+        }
+      }
+    } catch (_llmErr) {
+      // Never propagate
+    }
+    const output = {
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
+    };
+    process.stdout.write(JSON.stringify(output));
+  } else if (skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', {
+      skill: activeSkill,
+      agent_type: agentType,
+      warnings: skillWarnings
+    });
+    process.stdout.write(JSON.stringify({
+      additionalContext: 'Skill-specific warnings:\n' + skillWarnings.map(w => `- ${w}`).join('\n')
+    }));
+  } else {
+    logHook('check-subagent-output', 'PostToolUse', 'verified', {
+      agent_type: agentType,
+      found: found
+    });
+  }
+
+  process.exit(0);
+}
+
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ * @param {{ data: object, planningDir: string }} reqBody
+ * @returns {Promise<{ additionalContext: string }|null>}
+ */
+async function handleHttp(reqBody) {
+  const data = reqBody.data || {};
+  const planningDir = reqBody.planningDir;
+  if (!planningDir || !fs.existsSync(planningDir)) return null;
+
+  const agentType = data.agent_type || data.tool_input?.subagent_type || data.subagent_type || '';
+  const outputSpec = AGENT_OUTPUTS[agentType];
+  if (!outputSpec) {
+    const shortName = agentType.startsWith('pbr:') ? agentType.slice(4) : agentType;
+    if (KNOWN_AGENTS && KNOWN_AGENTS.includes && KNOWN_AGENTS.includes(shortName)) {
+      logHook('check-subagent-output', 'PostToolUse', 'missing-output-spec', {
+        agent_type: agentType,
+        message: `Agent ${agentType} is in KNOWN_AGENTS but has no AGENT_OUTPUTS entry. Add one to check-subagent-output.js.`
+      });
+    }
+    return null;
+  }
+
+  const sessionId = data.session_id || null;
+  let activeSkill = sessionLoad(planningDir, sessionId).activeSkill || '';
+  if (!activeSkill) {
+    const skillPath = sessionId
+      ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+      : path.join(planningDir, '.active-skill');
+    try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
+  }
+
+  // Output size check (HTTP path)
+  const AGENT_OUTPUT_SIZE_WARN_HTTP = 50000;
+  const AGENT_OUTPUT_SIZE_CRITICAL_HTTP = 100000;
+  const toolOutputHttp = data.tool_output || '';
+  const outputSizeHttp = typeof toolOutputHttp === 'string' ? toolOutputHttp.length : 0;
+  if (outputSizeHttp > AGENT_OUTPUT_SIZE_CRITICAL_HTTP) {
+    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
+      agent_type: agentType, size: outputSizeHttp
+    });
+    return {
+      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
+    };
+  }
+
+  const foundResult = outputSpec.check(planningDir);
+  const found = foundResult.files;
+  const foundStale = foundResult.stale;
+  const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
+  const skillWarnings = [];
+
+  if (outputSizeHttp > AGENT_OUTPUT_SIZE_WARN_HTTP) {
+    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
+  }
+
+  if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
+    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+  }
+
+  if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {
+    const roadmapWarning = checkRoadmapStaleness(planningDir);
+    if (roadmapWarning) skillWarnings.push(roadmapWarning);
+  }
+
+  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+    const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
+    skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
+  }
+
+  const skillCheckKey = `${activeSkill}:${agentType}`;
+  const skillCheck = SKILL_CHECKS[skillCheckKey];
+  if (skillCheck) skillCheck.check(planningDir, found, skillWarnings);
+
+  // LLM classification helper (advisory, never throws)
+  async function getLlmNote() {
+    try {
+      const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+      const llmConfig = loadLocalLlmConfig(cwd);
+      const errorText = (data.tool_output || '').substring(0, 500);
+      if (!errorText) return '';
+      const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
+      if (llmResult && llmResult.category) {
+        return `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
+      }
+    } catch (_e) { /* never propagate */ }
+    return '';
+  }
+
+  if (genericMissing && skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });
+    const llmCategoryNote = await getLlmNote();
+    const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
+      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
+    return { additionalContext: msg };
+  } else if (genericMissing) {
+    logHook('check-subagent-output', 'PostToolUse', 'warning', { agent_type: agentType, expected: outputSpec.description, found: 'none' });
+    const llmCategoryNote = await getLlmNote();
+    return {
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
+    };
+  } else if (skillWarnings.length > 0) {
+    logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });
+    return { additionalContext: 'Skill-specific warnings:\n' + skillWarnings.map(w => `- ${w}`).join('\n') };
+  } else {
+    logHook('check-subagent-output', 'PostToolUse', 'verified', { agent_type: agentType, found: found });
+    return null;
+  }
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp };
+if (require.main === module || process.argv[1] === __filename) { main(); }

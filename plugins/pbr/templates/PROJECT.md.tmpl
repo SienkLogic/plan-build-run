@@ -1,0 +1,111 @@
+<!-- Downstream consumers:
+  - Planner agent: reads Vision/Scope to bound phases. Needs: project name, in-scope features, constraints, success criteria.
+  - Executor agent: reads Constraints/Key Decisions for implementation choices. Needs: locked technology decisions.
+  - Verifier agent: reads Success Criteria for pass/fail. Needs: testable, observable criteria.
+  - Dashboard PlanningReader: parses heading structure. Needs: standard ## headings.
+  Breaks if missing: Planner plans without boundaries; verifier has no criteria; dashboard shows empty project card.
+-->
+# {project_name}
+
+> {ONE sentence core value statement}
+<!-- Guidelines: One sentence, under 20 words. State what the project IS and its primary value. -->
+
+## What This Is
+
+<!-- Guidelines: 2-3 sentences. Product description, target user, problem being solved.
+     Avoid implementation details -- this is a "what" not "how" section. -->
+{2-3 sentences describing the product and problem it solves. Who is it for? What does it replace or improve?}
+
+## Core Value
+
+<!-- Guidelines: Expand on the one-liner. What makes this worth building? What does it replace or improve?
+     Keep to 2-3 sentences. This is the "why" behind the project. -->
+{Why this project matters -- the value proposition in 2-3 sentences.}
+
+## Requirements Summary
+
+<!-- Guidelines: Bulleted features grouped by area. Each In Scope item must trace to a REQ-ID in REQUIREMENTS.md. -->
+
+### In Scope (v1)
+
+- {Feature area}: {brief description}
+
+### Out of Scope
+
+<!-- Guidelines: Explicit exclusions with rationale. Prevents scope creep during planning. -->
+- {Feature}: {brief reason why excluded}
+
+## Context
+
+### Constraints
+
+<!-- Guidelines: Budget, timeline, team size, hosting, skill level. Non-negotiable external factors.
+     Even if there are no constraints, state "None identified" rather than omitting. -->
+- {constraint}
+
+### Key Decisions
+
+<!-- Guidelines: Technology and architecture decisions locked at project start. Each needs rationale.
+     These are LOCKED after creation -- changes require explicit scope-change discussion via /pbr:discuss-phase. -->
+| Decision | Rationale | Decided By |
+|----------|-----------|------------|
+| {decision} | {rationale} | {user/claude} |
+
+## Success Criteria
+
+<!-- Guidelines: Observable, testable conditions that define project success. No subjective adjectives.
+     Each should be verifiable by an automated test or manual inspection. -->
+- {Criterion 1 -- specific and measurable}
+- {Criterion 2 -- specific and measurable}
+- {Criterion 3 -- specific and measurable}
+
+## Milestones
+
+{project_name} planned in {phase_count} phases across {milestone_count} milestone(s).
+See `.planning/ROADMAP.md` for phase details.
+
+{{#brownfield}}
+## Existing Codebase
+
+### Validated Requirements
+
+<!-- Guidelines: Requirements inferred from existing code analysis. Each should reference the source file
+     or pattern that demonstrates the capability. Confidence reflects how certain the inference is. -->
+| Inferred Requirement | Evidence | Confidence |
+|---------------------|----------|------------|
+| {requirement} | {source file/pattern} | {HIGH/MEDIUM/LOW} |
+
+### Existing Architecture
+
+<!-- Guidelines: Current system structure as discovered by codebase scan.
+     Reference .planning/codebase/ analysis files where available. -->
+{Architecture summary from scan results}
+
+### Known Tech Debt
+
+<!-- Guidelines: Issues discovered during codebase analysis that should be addressed.
+     Include impact assessment and suggested remediation priority. -->
+- {debt item}: {impact and suggested remediation}
+{{/brownfield}}
+
+## Evolution
+
+This document evolves through the project lifecycle:
+- **Created by:** `/pbr:new-project` during project initialization
+- **Updated by:** `/pbr:discuss-phase` when scope or constraints change
+- **Frozen after:** Roadmap creation -- subsequent changes require explicit scope-change discussion via `/pbr:discuss-phase`
+
+## Quality Criteria
+
+A good PROJECT.md satisfies:
+- [ ] Core value is one sentence, under 20 words
+- [ ] What This Is answers: what, who, why in 2-3 sentences
+- [ ] Every In Scope item maps to at least one REQ-ID in REQUIREMENTS.md
+- [ ] Every Out of Scope item has a rationale
+- [ ] Success criteria are observable and testable
+- [ ] Key Decisions table has at least one entry
+- [ ] Constraints section is populated (even if "none identified")
+{{#brownfield}}
+- [ ] Validated Requirements cite evidence from existing code
+- [ ] Existing Architecture references codebase scan files
+{{/brownfield}}

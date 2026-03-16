@@ -1,0 +1,48 @@
+# SUMMARY-minimal.md Template
+
+> Use when: taskCount <= 2 AND fileCount <= 3
+> Referenced by: executor agent (quick tasks, simple plans)
+
+## Frontmatter (YAML)
+
+```yaml
+---
+phase: "{phase_id}"
+plan: "{plan_id}"
+status: "complete"           # complete | partial | checkpoint
+requires: []
+provides:
+  - "{export/artifact description}"
+key_files:
+  - "{file1}: {what it does}"
+deferred: []
+metrics:
+  tasks_completed: {n}
+  tasks_total: {n}
+  commits: {n}
+---
+```
+
+## Body Structure
+
+```markdown
+# Plan Summary: {plan_id}
+
+## What Was Built
+
+{1 paragraph description}
+
+## Task Results
+
+| Task | Status | Commit | Files |
+|------|--------|--------|-------|
+| {task_id}: {name} | done | {hash} | {count} |
+```
+
+## Selection Heuristic
+
+Use this template when ALL of the following are true:
+- Total tasks in the plan <= 2
+- Total files created or modified <= 3
+- No key decisions were made
+- No deviations from the plan occurred

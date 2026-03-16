@@ -1,0 +1,91 @@
+<!-- Downstream consumers:
+  - Synthesizer agent: merges architecture findings into SUMMARY.md. Needs: component list, pattern names, data flow summary.
+  - Planner agent: uses architecture for phase dependency ordering. Needs: component dependencies, build order implications, API contract shapes.
+  - Build skill: uses architecture patterns during implementation. Needs: specific patterns tied to the chosen stack, anti-patterns to avoid.
+  Breaks if missing: Planner creates phases with wrong dependency order; build agents implement without architectural guidance.
+-->
+# Architecture Research
+
+**Researched:** {date}
+**Domain:** {domain}
+**Confidence:** {confidence}
+
+## System Architecture
+
+{High-level overview of the system architecture and its major components.}
+
+## Component Diagram
+
+```
+{text_based_component_diagram}
+```
+
+### Component Responsibilities
+
+| Component | Responsibility | Depends On |
+|-----------|----------------|------------|
+| {component} | {responsibility} | {dependencies} |
+
+## Data Flow
+
+### Primary Data Flow
+
+```
+{text_based_data_flow_diagram}
+```
+
+### Key Data Paths
+
+1. **{path_name}:** {description_of_data_flow}
+
+## API Contracts
+
+### {API Endpoint or Interface}
+
+**Request:**
+```
+{request_shape}
+```
+
+**Response:**
+```
+{response_shape}
+```
+
+**Error cases:** {error_description}
+
+## Architecture Patterns
+
+| Pattern | Where Used | Why |
+|---------|-----------|-----|
+| {pattern_name} | {component_or_layer} | {rationale} |
+
+### Pattern Details
+
+#### {Pattern Name}
+
+**What:** {description}
+**When to use:** {conditions}
+**Trade-offs:** {pros_and_cons}
+
+## Anti-Patterns to Avoid
+
+1. **{anti_pattern_name}**
+   - **What people do:** {mistake}
+   - **Why it fails:** {problem}
+   - **Do instead:** {correct_approach}
+
+## Quality Gates
+
+- [ ] Architecture patterns are specific to the chosen stack (not generic advice)
+- [ ] Data flow covers all major paths (happy path, error path, async flows)
+- [ ] API contracts include request shape, response shape, and error cases
+- [ ] Component diagram shows all major components and their connections
+- [ ] At least 2 anti-patterns documented with concrete alternatives
+- [ ] Sources include at least one official documentation or architecture guide reference
+
+## Sources
+
+| # | Type | URL/Description | Confidence |
+|---|------|----------------|------------|
+| S1 | {type} | {url_or_description} | {HIGH/MEDIUM/LOW} |

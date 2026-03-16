@@ -1,5 +1,5 @@
 /**
- * GSD Tools Tests - frontmatter.cjs
+ * PBR Tools Tests - frontmatter.cjs
  *
  * Tests for the hand-rolled YAML parser's pure function exports:
  * extractFrontmatter, reconstructFrontmatter, spliceFrontmatter,
@@ -17,7 +17,7 @@ const {
   spliceFrontmatter,
   parseMustHavesBlock,
   FRONTMATTER_SCHEMAS,
-} = require('../get-shit-done/bin/lib/frontmatter.cjs');
+} = require('../plan-build-run/bin/lib/frontmatter.cjs');
 
 // ─── extractFrontmatter ─────────────────────────────────────────────────────
 

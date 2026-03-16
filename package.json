@@ -1,19 +1,27 @@
 {
-  "name": "get-shit-done-cc",
-  "version": "1.22.4",
-  "description": "A meta-prompting, context engineering and spec-driven development system for Claude Code, OpenCode, Gemini and Codex by TÂCHES.",
+  "name": "@sienklogic/plan-build-run",
+  "version": "2.0.0",
+  "description": "Plan it, Build it, Run it -- structured development workflow for Claude Code, OpenCode, Gemini and Codex",
   "bin": {
-    "get-shit-done-cc": "bin/install.js"
+    "plan-build-run": "bin/install.js"
   },
   "files": [
     "bin",
     "commands",
-    "get-shit-done",
+    "plan-build-run",
     "agents",
     "hooks/dist",
-    "scripts"
+    "scripts",
+    "dashboard",
+    "plugins/",
+    "CLAUDE.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "README.md"
   ],
   "keywords": [
+    "plan-build-run",
+    "pbr",
     "claude",
     "claude-code",
     "ai",
@@ -25,27 +33,38 @@
     "codex",
     "codex-cli"
   ],
-  "author": "TÂCHES",
+  "author": "SienkLogic",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/glittercowboy/get-shit-done.git"
+    "url": "git+https://github.com/SienkLogic/plan-build-run.git"
   },
-  "homepage": "https://github.com/glittercowboy/get-shit-done",
+  "homepage": "https://github.com/SienkLogic/plan-build-run",
   "bugs": {
-    "url": "https://github.com/glittercowboy/get-shit-done/issues"
+    "url": "https://github.com/SienkLogic/plan-build-run/issues"
   },
   "engines": {
-    "node": ">=16.7.0"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "c8": "^11.0.0",
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "jest": "^29.0.0"
   },
   "scripts": {
+    "dashboard:install": "cd dashboard && npm install && cd server && npm install",
+    "dashboard": "node dashboard/bin/cli.cjs",
     "build:hooks": "node scripts/build-hooks.js",
     "prepublishOnly": "npm run build:hooks",
-    "test": "node scripts/run-tests.cjs",
-    "test:coverage": "c8 --check-coverage --lines 70 --reporter text --include 'get-shit-done/bin/lib/*.cjs' --exclude 'tests/**' --all node scripts/run-tests.cjs"
+    "test": "jest --forceExit",
+    "test:coverage": "jest --coverage --forceExit",
+    "test:dashboard": "cd dashboard && npx vitest run",
+    "test:cjs": "jest --forceExit --testPathPattern=\"tests/(locked-file-update|concurrent-access|integration|local-llm)\"",
+    "lint": "eslint hooks/ tests/",
+    "validate": "node hooks/validate-plugin-structure.js",
+    "sync:generate": "node scripts/generate-derivatives.js",
+    "sync:verify": "node scripts/generate-derivatives.js --verify"
   }
 }
