@@ -78,6 +78,33 @@ The `/pbr:settings model-profile {preset}` command sets all agent models at once
 
 The `quality` profile targets Claude models with 1M context windows (e.g., Claude Opus with extended context). All other profiles default to 200000, matching Claude Sonnet and Haiku context windows. Adjust manually via `/pbr:settings` or by editing `config.json` if your model has a different context window size.
 
+### 1M Context Feature Defaults per Profile
+
+When using `/pbr:settings model-profile {preset}`, these feature defaults are also applied:
+
+| Feature | quality | balanced | budget | adaptive |
+|---------|---------|----------|--------|----------|
+| `workflow.inline_execution` | `true` | `false` | `false` | `false` |
+| `features.inline_verify` | `true` | `false` | `false` | `false` |
+| `workflow.phase_boundary_clear` | `"recommend"` | `"off"` | `"off"` | `"off"` |
+| `workflow.autonomous` | `false` | `false` | `false` | `false` |
+| `workflow.speculative_planning` | `false` | `false` | `false` | `false` |
+| `workflow.phase_replay` | `false` | `false` | `false` | `false` |
+| `planning.multi_phase` | `false` | `false` | `false` | `false` |
+| `intel.enabled` | `false` | `false` | `false` | `false` |
+| `intel.auto_update` | `false` | `false` | `false` | `false` |
+| `intel.inject_on_start` | `false` | `false` | `false` | `false` |
+| `context_ledger.enabled` | `true` | `false` | `false` | `false` |
+| `context_ledger.stale_after_minutes` | `60` | `60` | `60` | `60` |
+| `learnings.enabled` | `true` | `false` | `false` | `false` |
+| `learnings.read_depth` | `5` | `3` | `3` | `3` |
+| `context_budget.threshold_curve` | `"adaptive"` | `"linear"` | `"linear"` | `"linear"` |
+| `verification.confidence_gate` | `false` | `false` | `false` | `false` |
+| `verification.confidence_threshold` | `1.0` | `1.0` | `1.0` | `1.0` |
+| `gates.checkpoint_auto_resolve` | `"none"` | `"none"` | `"none"` | `"none"` |
+
+**Quality profile rationale:** Enables safe 1M-native features (learnings, inline execution, adaptive thresholds, context ledger, phase boundary recommendations). Keeps experimental features disabled (intel, autonomous, speculative planning, confidence gate, multi-phase planning) -- these require explicit opt-in via `/pbr:settings` or config.json.
+
 ---
 
 ## Configuring Models
