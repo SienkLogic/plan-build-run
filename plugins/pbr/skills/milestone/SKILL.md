@@ -435,6 +435,53 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
+**CRITICAL (no hook): Generate changelog entry NOW. Do NOT skip this step.**
+
+9a. **Generate changelog entry:**
+
+   Generate a user-facing changelog entry for this milestone. Read all SUMMARY.md files from the milestone phases (now in `.planning/milestones/{version}/phases/`) and categorize deliverables into Keep a Changelog sections:
+
+   - **Added** — New features, commands, capabilities (from SUMMARY.md `provides` fields)
+   - **Changed** — Modifications to existing behavior, UI updates, performance improvements
+   - **Fixed** — Bug fixes, error corrections (from commits with `fix:` type)
+
+   Format each entry with a **bolded feature name** followed by an em-dash and description:
+   ```markdown
+   ### Added
+   - **Feature name** — What it does and why it matters
+   - **Another feature** — Description focusing on user impact
+   ```
+
+   Rules for good entries:
+   - Lead with the user-visible impact, not the implementation detail
+   - Group related commits into a single entry (e.g., 5 commits for "auth" become one "Authentication system" entry)
+   - Use bold feature names, not commit scopes
+   - No commit hashes — this is prose, not a git log
+   - No internal scopes (phase-plan numbers, TDD markers)
+   - End with install line: `Install/upgrade: \`npx @sienklogic/plan-build-run@latest\``
+
+   Draft the full entry and present it to the user for review:
+
+   Use AskUserQuestion:
+   ```
+   question: "Here's the draft changelog for {version}. Want to edit it before writing?"
+   header: "Changelog"
+   options:
+     - label: "Looks good"        description: "Write this to CHANGELOG.md as-is"
+     - label: "Edit"              description: "I'll provide corrections"
+     - label: "Skip changelog"    description: "Don't update the changelog for this release"
+   ```
+
+   - If "Looks good": write the entry to CHANGELOG.md (insert after the header, before any existing version entries)
+   - If "Edit" or "Other": apply the user's corrections, then present again for final confirmation
+   - If "Skip changelog": proceed without changelog update
+
+   If writing to CHANGELOG.md:
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "docs: update changelog for {version}"
+   ```
+
 9b. **Push milestone to remote:**
 
 Use AskUserQuestion to ask the user how they want to publish the milestone:
