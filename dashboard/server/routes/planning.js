@@ -16,24 +16,23 @@ const TYPE_METHOD_MAP = {
 };
 
 /**
- * Mtime-based optimistic locking middleware.
+ * Mtime-based optimistic locking middleware (per-route).
  * Compares If-Unmodified-Since header against file mtime.
  * Returns 409 if the file was modified after the given timestamp.
  * @param {string} planningDir - Absolute path to .planning/ directory
+ * @param {string|Function} targetFile - Relative path to target file, or a function (req) => string
  */
-function checkMtime(planningDir) {
+function checkMtime(planningDir, targetFile) {
   return (req, res, next) => {
-    if (!['POST', 'PUT', 'DELETE'].includes(req.method)) return next();
-
     const mtimeHeader = req.headers['if-unmodified-since'];
     if (!mtimeHeader) return next();
 
-    const mtimeTarget = req.mtimeTarget;
-    if (!mtimeTarget) return next();
+    const resolved = typeof targetFile === 'function' ? targetFile(req) : targetFile;
+    if (!resolved) return next();
 
-    const filePath = path.isAbsolute(mtimeTarget)
-      ? mtimeTarget
-      : path.join(planningDir, mtimeTarget);
+    const filePath = path.isAbsolute(resolved)
+      ? resolved
+      : path.join(planningDir, resolved);
 
     try {
       const stat = fs.statSync(filePath);
@@ -61,9 +60,6 @@ function createPlanningRouter(planningReader) {
   const router = express.Router();
   const planningDir = planningReader.planningDir;
 
-  // Apply mtime locking middleware
-  router.use(checkMtime(planningDir));
-
   // --- Decisions (must be before /:type catch-all) ---
   router.get('/decisions', async (_req, res) => {
     try {
@@ -74,11 +70,10 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.post('/decisions', async (req, res) => {
+  router.post('/decisions', checkMtime(planningDir, 'STATE.md'), async (req, res) => {
     try {
       const { phase, text } = req.body;
       if (!phase || !text) return res.status(400).json({ error: 'phase and text are required' });
-      req.mtimeTarget = 'STATE.md';
       const decision = await planningReader.createDecision(phase, text);
       res.status(201).json(decision);
     } catch (err) {
@@ -98,9 +93,8 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.put('/notes/:id', async (req, res) => {
+  router.put('/notes/:id', checkMtime(planningDir, (req) => path.join('notes', req.params.id)), async (req, res) => {
     try {
-      req.mtimeTarget = path.join('notes', req.params.id);
       const { title, content, tags } = req.body;
       if (!title) return res.status(400).json({ error: 'title is required' });
       const note = await planningReader.updateNote(req.params.id, title, content || '', tags || []);
@@ -110,9 +104,8 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.delete('/notes/:id', async (req, res) => {
+  router.delete('/notes/:id', checkMtime(planningDir, (req) => path.join('notes', req.params.id)), async (req, res) => {
     try {
-      req.mtimeTarget = path.join('notes', req.params.id);
       const result = await planningReader.deleteNote(req.params.id);
       res.json(result);
     } catch (err) {
@@ -132,12 +125,14 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.put('/todos/:id/toggle', async (req, res) => {
+  router.put('/todos/:id/toggle', checkMtime(planningDir, (req) => {
+    const { currentStatus } = req.body;
+    const dir = currentStatus === 'pending' ? 'pending' : 'done';
+    return path.join('todos', dir, req.params.id);
+  }), async (req, res) => {
     try {
       const { currentStatus } = req.body;
       if (!currentStatus) return res.status(400).json({ error: 'currentStatus is required' });
-      const dir = currentStatus === 'pending' ? 'pending' : 'done';
-      req.mtimeTarget = path.join('todos', dir, req.params.id);
       const todo = await planningReader.toggleTodo(req.params.id, currentStatus);
       res.json(todo);
     } catch (err) {
@@ -145,11 +140,13 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.delete('/todos/:id', async (req, res) => {
+  router.delete('/todos/:id', checkMtime(planningDir, (req) => {
+    const { status } = req.body;
+    const dir = status === 'done' ? 'done' : 'pending';
+    return path.join('todos', dir, req.params.id);
+  }), async (req, res) => {
     try {
       const { status } = req.body;
-      const dir = status === 'done' ? 'done' : 'pending';
-      req.mtimeTarget = path.join('todos', dir, req.params.id);
       const result = await planningReader.deleteTodo(req.params.id, status || 'pending');
       res.json(result);
     } catch (err) {
@@ -199,13 +196,12 @@ function createPlanningRouter(planningReader) {
     }
   });
 
-  router.put('/files/:filename', async (req, res) => {
+  router.put('/files/:filename', checkMtime(planningDir, (req) => req.params.filename), async (req, res) => {
     try {
       const { filename } = req.params;
       if (!filename.endsWith('.md')) {
         return res.status(400).json({ error: 'Filename must end with .md' });
       }
-      req.mtimeTarget = filename;
       const result = await planningReader.writeFile(filename, req.body.content);
       res.json(result);
     } catch (err) {
