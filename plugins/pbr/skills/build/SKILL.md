@@ -71,6 +71,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3 --model opus` | Use opus for all executor spawns in phase 3 (overrides config and adaptive selection) |
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what build would do for phase 3 without executing |
+| `3 --cross-check` | Before spawning executors for phase 3, check current plan files_modified against prior-phase provides for conflicts |
 
 ---
 
@@ -260,6 +261,72 @@ Validate wave consistency:
 - Wave 1 plans must have `depends_on: []`
 - Wave 2+ plans must depend only on plans from earlier waves
 - No plan depends on a plan in the same wave (would need to be sequential)
+
+---
+
+### Step 5c: Pre-Spawn Cross-Phase Conflict Check (conditional)
+
+**Trigger:** Only run if `--cross-check` flag is present in `$ARGUMENTS` AND `context_window_tokens` in `.planning/config.json` is >= 500000.
+
+If either condition is false, skip this step entirely and proceed to Step 5b (checkpoint manifest).
+
+**Purpose:** Before spawning any executor, detect whether this phase's planned file modifications conflict with artifacts or provides from prior completed phases. A conflict means the current phase may overwrite or break something a prior phase established.
+
+**Procedure:**
+
+1. Collect current phase `files_modified` from all PLAN.md frontmatters:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index {phase-slug}
+   ```
+
+   Extract the union of all `files_modified` arrays across plans. This is the **change surface**.
+
+2. Collect prior completed phase provides:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {phase_number}
+   ```
+
+   For each returned phase, read SUMMARY.md `provides` list (frontmatter only — keep context lean).
+
+3. Compare: for each prior-phase `provides` entry that names a specific file path, check if that path appears in the current phase's change surface.
+
+4. Present conflict report to user before proceeding:
+
+   ```
+   Cross-Phase Conflict Check Results
+
+   Files in scope: {count}
+   Prior phases checked: {count}
+
+   {If conflicts found:}
+   ⚠ Potential conflicts detected:
+
+   | File | Current Phase Plans | Prior Phase That Provides It |
+   |------|---------------------|------------------------------|
+   | {path} | {plan_ids} | Phase {N}: {slug} |
+
+   These files were established as deliverables by prior phases. Modifying them may cause regressions.
+   ```
+
+   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+
+   ```
+   question: "{count} potential cross-phase conflicts detected. Proceed with build?"
+   header: "Conflicts"
+   options:
+     - label: "Proceed"  description: "Continue — I reviewed the conflicts and they are intentional"
+     - label: "Abort"    description: "Stop — I need to review the plan before building"
+   ```
+
+   ```
+   {If no conflicts found:}
+   ✓ No cross-phase conflicts detected. Proceeding to executor spawn.
+   ```
+
+5. If user selects "Abort": stop the build. Suggest reviewing the flagged plan files and running `/pbr:plan-phase {N}` to revise if needed.
+6. If user selects "Proceed" or no conflicts found: continue to Step 5b (checkpoint manifest).
 
 ---
 

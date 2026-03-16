@@ -334,6 +334,33 @@ Must-have key links: {passed}/{total}
   1. {item} — {why automated check couldn't verify}
 ```
 
+#### Cross-Phase Findings (conditional)
+
+**Condition:** Only display if ALL of the following are true:
+- `context_window_tokens` in `.planning/config.json` is >= 500000
+- VERIFICATION.md frontmatter contains a `cross_phase_regressions` key with at least one entry
+
+**How to check:** The `cross_phase_regressions` array was already read from VERIFICATION.md frontmatter in Step 2 or Step 4. If the array is empty or absent, skip this block entirely.
+
+If the condition is met, append a cross-phase findings section to the Step 4 output:
+
+```
+Cross-Phase Regressions: {count} found
+
+| Prior Phase | Must-Have | Status | Evidence |
+|-------------|-----------|--------|----------|
+| {phase}     | {must_have} | ✗ REGRESSION | {evidence} |
+| {phase}     | {must_have} | ✓ INTACT | — |
+
+{If regressions found:}
+⚠ These must-haves passed in prior phases but may be broken by current phase changes.
+  Treat them as additional gaps — select "Auto-fix" to create repair plans.
+```
+
+Cross-phase regressions are displayed AFTER the single-phase verification results and BEFORE the UAT walkthrough (Step 5). They are additive — they do not replace single-phase results.
+
+If regressions exist, include them in the gap count for the "Gaps Found" flow in Step 6. When presenting gap options to the user, regressions appear in the gap list labeled `[cross-phase]` to distinguish them from current-phase gaps.
+
 ---
 
 ### Step 5: Conversational UAT (inline)
