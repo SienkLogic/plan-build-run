@@ -1,0 +1,86 @@
+<!-- Source: begin/SKILL.md | Purpose: Template for researcher ARCHITECTURE.md output -->
+
+# Architecture Analysis
+
+**Project:** {project_name}
+**Description:** {project_description}
+**Domain:** {domain}
+**Researched:** {date}
+**Confidence:** HIGH/MEDIUM/LOW
+
+## Recommended Architecture Pattern
+
+**Pattern:** {pattern_name}
+**Rationale:** {why_this_pattern}
+
+### System Overview
+
+```
+{ascii_architecture_diagram}
+```
+
+### Component Responsibilities
+
+| Component | Responsibility | Typical Implementation |
+|-----------|----------------|------------------------|
+| {name} | {what it owns} | {how it is usually built} |
+
+## Codebase Organization
+
+```
+src/
+  {folder}/           # {purpose}
+    {subfolder}/      # {purpose}
+    {file}.ts         # {purpose}
+  {folder}/           # {purpose}
+  {folder}/           # {purpose}
+```
+
+### Structure Rationale
+
+- **{folder}/:** {why organized this way}
+
+## Data Flow and State Management
+
+### Request Flow
+
+```
+{user_action}
+    -> {component} -> {handler} -> {service} -> {data_store}
+    <- {response}  <- {transform} <- {query}  <- {database}
+```
+
+### State Management
+
+**Approach:** {state_management_approach}
+**Library:** {state_library}
+**Pattern:** {state_pattern}
+
+### Key Data Flows
+
+1. **{flow_name}:** {description of how data moves}
+2. **{flow_name}:** {description of how data moves}
+
+## Component Communication Patterns
+
+| From | To | Pattern | Notes |
+|------|----|---------|-------|
+| {component_a} | {component_b} | {props/events/store/api} | {considerations} |
+
+## Scaling Considerations
+
+| Scale | Architecture Adjustments |
+|-------|--------------------------|
+| 0-1k users | {approach} |
+| 1k-100k users | {approach} |
+| 100k+ users | {approach} |
+
+## Anti-Patterns to Avoid
+
+| Anti-Pattern | What People Do | Why It Is Wrong | Do This Instead |
+|-------------|----------------|-----------------|-----------------|
+| {name} | {the mistake} | {the problem} | {correct approach} |
+
+---
+*Architecture research for: {project_name}*
+*Researched: {date}*
