@@ -136,6 +136,18 @@ describe('context-bridge.js', () => {
       fs.writeFileSync(trackerPath, 'not json');
       expect(estimateFromHeuristic(planningDir)).toBe(0);
     });
+
+    test('scales with context_window_tokens from config (1M → 20%)', () => {
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      // Write 1M config: denominator becomes 4000000
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
+      configClearCache();
+      const trackerPath = path.join(planningDir, '.context-tracker');
+      // 800k chars out of 4000k = 20%
+      fs.writeFileSync(trackerPath, JSON.stringify({ total_chars: 800000 }));
+      expect(estimateFromHeuristic(planningDir)).toBe(20);
+      configClearCache();
+    });
   });
 
   // --- shouldWarn ---

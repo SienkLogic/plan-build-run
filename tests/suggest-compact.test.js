@@ -1,4 +1,4 @@
-const { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
+const { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -91,6 +91,26 @@ describe('suggest-compact.js', () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ hooks: { compactThreshold: 30 } }));
       expect(getThreshold(tmpDir)).toBe(30);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('getScaledThreshold', () => {
+    test('returns 250 when config has context_window_tokens: 1000000', () => {
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
+      configClearCache();
+      expect(getScaledThreshold(planningDir)).toBe(250);
+      configClearCache();
+      cleanup(tmpDir);
+    });
+
+    test('returns 50 (default) when no config', () => {
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+      const { tmpDir, planningDir } = makeTmpDir();
+      configClearCache();
+      expect(getScaledThreshold(planningDir)).toBe(50);
       cleanup(tmpDir);
     });
   });

@@ -231,4 +231,31 @@ describe('track-context-budget.js', () => {
     expect(tracker.files).toContain('/a.js');
     expect(tracker.files).toContain('/b.js');
   });
+
+  test('CHAR_MILESTONE fires at 250k chars (not 50k) when config has 1M tokens', () => {
+    const { processEvent, getScaledMilestones } = require('../hooks/track-context-budget.js');
+    const { configClearCache } = require('../plugins/pbr/scripts/lib/config.js');
+
+    // Write 1M token config
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
+    configClearCache();
+
+    // Verify scaled milestone is 250k
+    const milestones = getScaledMilestones(planningDir);
+    expect(milestones.charMilestone).toBe(250000);
+
+    // Seed tracker just below 250k
+    const trackerPath = path.join(planningDir, '.context-tracker');
+    fs.writeFileSync(trackerPath, JSON.stringify({ skill: '', reads: 5, total_chars: 249000, files: ['/a.js'] }));
+
+    // Add 2000 chars — crosses 250k milestone
+    const data = { tool_input: { file_path: '/b.js' }, tool_output: 'x'.repeat(2000) };
+    const result = processEvent(data, planningDir, {}, null);
+
+    // Should warn about milestone crossing at 250k
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('chars read');
+
+    configClearCache();
+  });
 });

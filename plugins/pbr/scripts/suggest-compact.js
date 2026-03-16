@@ -26,6 +26,28 @@ const { loadBridge, TIER_MESSAGES } = require('./context-bridge');
 const DEFAULT_THRESHOLD = 50;
 const REMINDER_INTERVAL = 25;
 
+const BASE_THRESHOLD = DEFAULT_THRESHOLD; // 50 at 200k tokens
+const BASE_TOKENS = 200000;
+
+/**
+ * Get the compact threshold scaled to context_window_tokens from config.
+ * Base threshold at 200k tokens: 50. At 1M tokens: 250.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {number} Scaled threshold
+ */
+function getScaledThreshold(planningDir) {
+  try {
+    const { configLoad } = require('./pbr-tools');
+    const config = configLoad(planningDir);
+    const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
+    const scale = tokens / BASE_TOKENS;
+    return Math.round(BASE_THRESHOLD * scale);
+  } catch (_e) {
+    return BASE_THRESHOLD;
+  }
+}
+
 function main() {
   process.stdin.setEncoding('utf8');
   process.stdin.resume();
@@ -169,8 +191,11 @@ function getThreshold(cwd) {
   const planningDir = path.join(cwd, '.planning');
   const { configLoad } = require('./pbr-tools');
   const config = configLoad(planningDir);
-  if (!config) return DEFAULT_THRESHOLD;
-  return config.hooks?.compactThreshold || DEFAULT_THRESHOLD;
+  // Honor explicit hooks.compactThreshold override first
+  if (config && config.hooks && config.hooks.compactThreshold != null) {
+    return config.hooks.compactThreshold;
+  }
+  return getScaledThreshold(planningDir);
 }
 
 function resetCounter(planningDir, sessionId) {
@@ -191,5 +216,5 @@ function resetCounter(planningDir, sessionId) {
   }
 }
 
-module.exports = { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
+module.exports = { checkCompaction, checkBridgeTier, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
 if (require.main === module || process.argv[1] === __filename) { main(); }
