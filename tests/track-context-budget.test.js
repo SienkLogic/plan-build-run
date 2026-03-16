@@ -263,3 +263,120 @@ describe('track-context-budget.js', () => {
     clearHooks();
   });
 });
+
+describe('context ledger', () => {
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ledger-'));
+    planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const { writeLedgerEntry, readLedger, resetLedger, processEvent } = require('../hooks/track-context-budget.js');
+
+  test('writeLedgerEntry creates .context-ledger.json with one entry', () => {
+    const entry = { file: '/foo/bar.js', timestamp: '2026-01-01T00:00:00Z', est_tokens: 500, phase: 'test', stale: false };
+    writeLedgerEntry(planningDir, entry);
+
+    const ledgerPath = path.join(planningDir, '.context-ledger.json');
+    expect(fs.existsSync(ledgerPath)).toBe(true);
+
+    const entries = JSON.parse(fs.readFileSync(ledgerPath, 'utf8'));
+    expect(entries).toHaveLength(1);
+    expect(entries[0].file).toBe('/foo/bar.js');
+    expect(entries[0].est_tokens).toBe(500);
+    expect(entries[0].phase).toBe('test');
+    expect(entries[0].stale).toBe(false);
+  });
+
+  test('writeLedgerEntry appends to existing ledger', () => {
+    writeLedgerEntry(planningDir, { file: '/a.js', timestamp: '2026-01-01T00:00:00Z', est_tokens: 100, phase: 'p1', stale: false });
+    writeLedgerEntry(planningDir, { file: '/b.js', timestamp: '2026-01-01T00:01:00Z', est_tokens: 200, phase: 'p1', stale: false });
+
+    const entries = readLedger(planningDir);
+    expect(entries).toHaveLength(2);
+    expect(entries[0].file).toBe('/a.js');
+    expect(entries[1].file).toBe('/b.js');
+  });
+
+  test('readLedger returns empty array when no file exists', () => {
+    const entries = readLedger(planningDir);
+    expect(entries).toEqual([]);
+  });
+
+  test('readLedger returns entries from written ledger', () => {
+    writeLedgerEntry(planningDir, { file: '/a.js', timestamp: 't1', est_tokens: 10, phase: null, stale: false });
+    writeLedgerEntry(planningDir, { file: '/b.js', timestamp: 't2', est_tokens: 20, phase: null, stale: false });
+    writeLedgerEntry(planningDir, { file: '/c.js', timestamp: 't3', est_tokens: 30, phase: null, stale: false });
+
+    const entries = readLedger(planningDir);
+    expect(entries).toHaveLength(3);
+  });
+
+  test('resetLedger deletes the file', () => {
+    writeLedgerEntry(planningDir, { file: '/a.js', timestamp: 't1', est_tokens: 10, phase: null, stale: false });
+    const ledgerPath = path.join(planningDir, '.context-ledger.json');
+    expect(fs.existsSync(ledgerPath)).toBe(true);
+
+    resetLedger(planningDir);
+    expect(fs.existsSync(ledgerPath)).toBe(false);
+
+    const entries = readLedger(planningDir);
+    expect(entries).toEqual([]);
+  });
+
+  test('processEvent writes ledger entry when context_ledger.enabled is true', () => {
+    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
+
+    // Write config with ledger enabled
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+      context_ledger: { enabled: true, stale_after_minutes: 60 }
+    }));
+    // Write minimal STATE.md for phase detection
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+      '---',
+      'phase_slug: test-phase',
+      'current_phase: 1',
+      'status: executing',
+      '---',
+      ''
+    ].join('\n'));
+    clearHooks();
+
+    const data = { tool_input: { file_path: '/src/app.js' }, tool_output: 'x'.repeat(400) };
+    processEvent(data, planningDir, {}, null);
+
+    const entries = readLedger(planningDir);
+    expect(entries.length).toBeGreaterThanOrEqual(1);
+    expect(entries[0].file).toBe('/src/app.js');
+    expect(entries[0].est_tokens).toBe(100); // 400 chars / 4
+    expect(entries[0].stale).toBe(false);
+
+    clearHooks();
+  });
+
+  test('processEvent does NOT write ledger when context_ledger.enabled is false', () => {
+    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
+
+    // Write config with ledger disabled
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+      context_ledger: { enabled: false }
+    }));
+    clearHooks();
+
+    const data = { tool_input: { file_path: '/src/app.js' }, tool_output: 'some content' };
+    processEvent(data, planningDir, {}, null);
+
+    const ledgerPath = path.join(planningDir, '.context-ledger.json');
+    expect(fs.existsSync(ledgerPath)).toBe(false);
+
+    clearHooks();
+  });
+});
