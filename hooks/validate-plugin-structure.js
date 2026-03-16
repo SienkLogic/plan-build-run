@@ -12,7 +12,8 @@ const fs = require('fs');
 const path = require('path');
 
 function validate(rootDir) {
-  const ROOT = rootDir || path.resolve(__dirname, '..');
+  // Default to plugins/pbr/ since the plugin structure lives there, not at repo root
+  const ROOT = rootDir || path.resolve(__dirname, '..', 'plugins', 'pbr');
   let errors = 0;
   let warnings = 0;
 
