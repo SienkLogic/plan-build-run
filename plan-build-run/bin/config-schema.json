@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "version": { "type": ["integer", "string"], "enum": [1, 2, "1", "2"], "description": "Planning format version. v2 is current." },
-    "schema_version": { "type": "integer", "enum": [1, 2], "description": "Config schema version for migration detection. Increment when config structure changes." },
+    "schema_version": { "type": "integer", "enum": [1, 2, 3], "description": "Config schema version for migration detection. Increment when config structure changes." },
     "context_strategy": { "type": "string", "enum": ["aggressive", "conservative", "balanced"] },
     "mode": { "type": "string", "enum": ["interactive", "autonomous"] },
     "depth": { "type": "string", "enum": ["quick", "standard", "comprehensive"], "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)" },
@@ -130,7 +130,12 @@
       "properties": {
         "commit_docs": { "type": "boolean" },
         "max_tasks_per_plan": { "type": "integer", "minimum": 1, "maximum": 10 },
-        "search_gitignored": { "type": "boolean" }
+        "search_gitignored": { "type": "boolean" },
+        "multi_phase": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, enables --through flag for multi-phase planning in a single planner session."
+        }
       },
       "additionalProperties": false
     },
@@ -158,7 +163,13 @@
         "confirm_seeds": { "type": "boolean" },
         "confirm_deferred": { "type": "boolean" },
         "confirm_commit_docs": { "type": "boolean" },
-        "auto_checkpoints": { "type": "boolean", "default": false, "description": "When true, executor auto-resolves checkpoint:human-verify tasks by running automated verify and approving if it passes. checkpoint:decision and checkpoint:human-action always require human input." }
+        "auto_checkpoints": { "type": "boolean", "default": false, "description": "When true, executor auto-resolves checkpoint:human-verify tasks by running automated verify and approving if it passes. checkpoint:decision and checkpoint:human-action always require human input." },
+        "checkpoint_auto_resolve": {
+          "type": "string",
+          "enum": ["none", "verify-only", "verify-and-decision", "all"],
+          "default": "none",
+          "description": "Which checkpoint types the executor auto-resolves. verify-only = auto-resolve human-verify checkpoints. verify-and-decision = auto-resolve both. all = auto-resolve everything (not recommended). none = always ask. Note: human-action checkpoints are NEVER auto-resolved regardless of this setting."
+        }
       },
       "additionalProperties": false
     },
@@ -323,6 +334,46 @@
           "enum": ["advisory", "block", "off"],
           "default": "advisory",
           "description": "Enforcement level for PBR workflow compliance"
+        },
+        "inline_execution": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, trivial plans (simple complexity, few tasks) execute inline without spawning a subagent."
+        },
+        "inline_max_tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 2,
+          "description": "Maximum task count for inline execution eligibility. Plans with more tasks spawn a subagent."
+        },
+        "inline_context_cap_pct": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 80,
+          "default": 40,
+          "description": "Context usage percentage cap for inline execution. Above this, always spawn a subagent."
+        },
+        "phase_boundary_clear": {
+          "type": "string",
+          "enum": ["recommend", "enforce", "off"],
+          "default": "off",
+          "description": "Whether to recommend or enforce /clear at phase boundaries. recommend = advisory message, enforce = block continuation without /clear, off = no action."
+        },
+        "autonomous": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, enables /pbr:autonomous skill for hands-free multi-phase execution."
+        },
+        "speculative_planning": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, orchestrator spawns planner for phase N+1 while executor runs phase N (independent phases only)."
+        },
+        "phase_replay": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, failed verification triggers replay with enriched context (original plan + SUMMARY + VERIFICATION failures + diffs)."
         }
       },
       "additionalProperties": false
@@ -399,6 +450,46 @@
           },
           "additionalProperties": false
         }
+      },
+      "additionalProperties": false
+    },
+    "intel": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false, "description": "Enable persistent codebase intelligence system. When false, all intel features are no-ops." },
+        "auto_update": { "type": "boolean", "default": false, "description": "When true, PostToolUse hooks queue intel updates on code file changes." },
+        "inject_on_start": { "type": "boolean", "default": false, "description": "When true, SessionStart hook injects .planning/intel/arch.md summary into session context." }
+      },
+      "additionalProperties": false
+    },
+    "context_ledger": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false, "description": "Enable context composition tracking. When true, track-context-budget.js records file path, timestamp, tokens, and phase per Read." },
+        "stale_after_minutes": { "type": "integer", "minimum": 5, "maximum": 1440, "default": 60, "description": "Minutes after which a context read is considered stale for compact suggestions." }
+      },
+      "additionalProperties": false
+    },
+    "learnings": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false, "description": "Enable cross-phase knowledge transfer. When true, executor writes LEARNINGS.md and planner reads prior learnings." },
+        "read_depth": { "type": "integer", "minimum": 1, "maximum": 20, "default": 3, "description": "Number of prior phases' LEARNINGS.md files the planner reads for context." }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "confidence_gate": { "type": "boolean", "default": false, "description": "When true, enable confidence-gated verification skip. If executor reports 100% must-have completion with commit SHAs AND tests pass, auto-mark verified." },
+        "confidence_threshold": { "type": "number", "minimum": 0.5, "maximum": 1.0, "default": 1.0, "description": "Minimum completion confidence (0.5-1.0) required to skip verification. 1.0 means 100% must-haves must pass." }
+      },
+      "additionalProperties": false
+    },
+    "context_budget": {
+      "type": "object",
+      "properties": {
+        "threshold_curve": { "type": "string", "enum": ["linear", "adaptive"], "default": "linear", "description": "Warning threshold scaling. linear = current fixed percentages (50/70/85). adaptive = non-linear scaling that shifts thresholds up at 1M context (60/75/85)." }
       },
       "additionalProperties": false
     }
