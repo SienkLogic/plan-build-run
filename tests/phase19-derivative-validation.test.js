@@ -92,7 +92,7 @@ describe('DERIV-01: codex-pbr derivative is fully populated', () => {
   test('codex-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(CODEX_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(28);
+    expect(commands.length).toBe(41);
   });
 
   test('codex-pbr has scaffold files (config.toml, AGENTS.md, README.md)', () => {
@@ -137,7 +137,7 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
   test('cursor-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(CURSOR_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(28);
+    expect(commands.length).toBe(41);
   });
 
   test('cursor-pbr agents have model: sonnet in frontmatter', () => {
@@ -209,7 +209,7 @@ describe('DERIV-03: copilot-pbr derivative is fully populated', () => {
   test('copilot-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(COPILOT_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(28);
+    expect(commands.length).toBe(41);
   });
 
   test('copilot-pbr agent frontmatter has name and description only', () => {
