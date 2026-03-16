@@ -20,7 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { loadBridge, TIER_MESSAGES } = require('./context-bridge');
+const { loadBridge, getEffectiveThresholds, TIER_MESSAGES } = require('./context-bridge');
 
 
 const DEFAULT_THRESHOLD = 50;
@@ -89,16 +89,17 @@ function checkBridgeTier(planningDir) {
   }
 
   const percent = bridge.estimated_percent || 0;
+  const thresholds = getEffectiveThresholds(planningDir);
 
-  if (percent >= 85) {
+  if (percent >= thresholds.critical) {
     return { tier: 'CRITICAL', message: TIER_MESSAGES.CRITICAL };
-  } else if (percent >= 70) {
+  } else if (percent >= thresholds.poor) {
     return { tier: 'POOR', message: TIER_MESSAGES.POOR };
-  } else if (percent >= 50) {
+  } else if (percent >= thresholds.degrading) {
     return { tier: 'DEGRADING', message: TIER_MESSAGES.DEGRADING };
   }
 
-  // PEAK tier (<50%) — no tier message needed
+  // Below degrading threshold — no tier message needed
   return null;
 }
 
