@@ -13,6 +13,7 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 | `mode` | string | `interactive`, `autonomous` | `interactive` | Whether PBR pauses for user input or runs hands-free |
 | `depth` | string | `quick`, `standard`, `comprehensive` | `standard` | Controls thoroughness of research, planning, and verification |
 | `session_phase_limit` | integer | `0`-`20` | `3` | Maximum phases to complete per session before auto-pause. Set to `0` to disable. Only effective when `features.auto_continue` is `true`. |
+| `context_window_tokens` | integer | `100000`-`2000000` | `200000` | Context window size in tokens for the active Claude model. Scales hook thresholds and agent budgets. Set to `1000000` for 1M-context models. |
 
 ### context_strategy
 
@@ -38,6 +39,17 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 | `comprehensive` | Everything from standard plus inline per-task verification; 10 debug rounds max |
 
 See [depth_profiles](#depth_profiles) for the exact feature overrides each depth level applies.
+
+### context_window_tokens
+
+Sets the active model's context window size in tokens. This is the single source of truth for context scaling across all PBR subsystems.
+
+| Value | Meaning |
+|-------|---------|
+| `200000` | Default — Claude Sonnet, Haiku, and most standard models |
+| `1000000` | Claude models with 1M extended context (set by `quality` model profile) |
+
+Arbitrary integer values between `100000` and `2000000` are valid. Set to your model's actual context window size for accurate threshold scaling.
 
 ---
 

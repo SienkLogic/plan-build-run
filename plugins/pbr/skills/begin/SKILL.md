@@ -159,6 +159,7 @@ Use AskUserQuestion:
     "context_strategy": "aggressive",
     "mode": "interactive",
     "depth": "standard",
+    "context_window_tokens": 200000,
     "features": {
       "structured_planning": true,
       "goal_verification": true,
@@ -247,9 +248,9 @@ Use AskUserQuestion:
       description: "Haiku for most agents. Fastest and cheapest, but lower quality."
 
 Apply the selected profile to the models block in config.json:
-- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku
-- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet
-- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku
+- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku, context_window_tokens=200000
+- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet, context_window_tokens=1000000
+- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku, context_window_tokens=200000
 
 **3-features. Workflow Features:**
 Use AskUserQuestion:

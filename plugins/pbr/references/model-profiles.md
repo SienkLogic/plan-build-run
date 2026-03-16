@@ -67,6 +67,17 @@ The `/pbr:settings model-profile {preset}` command sets all agent models at once
 - **budget**: All agents use haiku. Fastest and cheapest, but reduced quality for complex reasoning tasks. Suitable for well-defined, mechanical work.
 - **adaptive**: Front-loads intelligence in research and planning (where decisions matter most), uses lighter models for mechanical execution and verification. Good cost-quality tradeoff.
 
+### context_window_tokens per Profile
+
+| Profile | context_window_tokens |
+|---------|----------------------|
+| `quality` | `1000000` |
+| `balanced` | `200000` |
+| `budget` | `200000` |
+| `adaptive` | `200000` |
+
+The `quality` profile targets Claude models with 1M context windows (e.g., Claude Opus with extended context). All other profiles default to 200000, matching Claude Sonnet and Haiku context windows. Adjust manually via `/pbr:settings` or by editing `config.json` if your model has a different context window size.
+
 ---
 
 ## Configuring Models
