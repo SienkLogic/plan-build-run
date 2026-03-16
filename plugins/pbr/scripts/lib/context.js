@@ -13,7 +13,8 @@
  *
  * Decision thresholds:
  *   Bridge (fresh):   < 50% → PROCEED, 50-70% → CHECKPOINT, > 70% → COMPACT
- *   Heuristic:        < 30k → PROCEED, 30k-60k → CHECKPOINT, > 60k → COMPACT
+ *   Heuristic:        thresholds scale with context_window_tokens from config
+ *                     (default 200k tokens: < 30k → PROCEED, 30k-60k → CHECKPOINT, > 60k → COMPACT)
  *
  * Adjustments:
  *   Near completion (agentsDone/plansTotal > 0.8): relax one tier
@@ -24,6 +25,32 @@ const fs = require('fs');
 const path = require('path');
 
 const BRIDGE_STALENESS_MS = 60 * 1000; // 60 seconds
+
+const BASE_TOKENS = 200000;
+const BASE_CHARS = BASE_TOKENS * 4; // 800000
+
+/**
+ * Get heuristic thresholds scaled to context_window_tokens from config.
+ * Base thresholds at 200k tokens: proceed=30000, checkpoint=60000, compact=100000.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @returns {{ proceed: number, checkpoint: number, compact: number }}
+ */
+function getHeuristicThresholds(planningDir) {
+  try {
+    const { configLoad } = require('../pbr-tools');
+    const config = configLoad(planningDir);
+    const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
+    const scale = (tokens * 4) / BASE_CHARS;
+    return {
+      proceed: Math.round(30000 * scale),
+      checkpoint: Math.round(60000 * scale),
+      compact: Math.round(100000 * scale)
+    };
+  } catch (_e) {
+    return { proceed: 30000, checkpoint: 60000, compact: 100000 };
+  }
+}
 
 /**
  * Read and parse .context-budget.json.
@@ -143,9 +170,10 @@ function contextTriage(options, planningDir) {
     const totalChars = tracker && typeof tracker.total_chars === 'number'
       ? tracker.total_chars : 0;
 
-    if (totalChars < 30000) {
+    const thresholds = getHeuristicThresholds(pd);
+    if (totalChars < thresholds.proceed) {
       recommendation = 'PROCEED';
-    } else if (totalChars <= 60000) {
+    } else if (totalChars <= thresholds.checkpoint) {
       recommendation = 'CHECKPOINT';
     } else {
       recommendation = 'COMPACT';
@@ -215,4 +243,4 @@ function contextTriage(options, planningDir) {
   };
 }
 
-module.exports = { contextTriage, readBridgeData, readTrackerData };
+module.exports = { contextTriage, readBridgeData, readTrackerData, getHeuristicThresholds };
