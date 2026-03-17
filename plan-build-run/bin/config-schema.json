@@ -47,7 +47,10 @@
         "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." },
         "inline_simple_tasks": { "type": "boolean", "default": true, "description": "Enable inline execution for simple tasks (<5 files, <50 lines). When false, all tasks delegate to subagents." },
         "rich_agent_prompts": { "type": "boolean", "default": true, "description": "Enable enriched agent prompts with full project context when context budget allows." },
-        "multi_phase_awareness": { "type": "boolean", "default": true, "description": "Enable orchestrator to hold multiple phase plans simultaneously in context." }
+        "multi_phase_awareness": { "type": "boolean", "default": true, "description": "Enable orchestrator to hold multiple phase plans simultaneously in context." },
+        "decision_journal": { "type": "boolean", "default": true, "description": "Enable decision journal — records WHY decisions were made in .planning/decisions/." },
+        "negative_knowledge": { "type": "boolean", "default": true, "description": "Enable negative knowledge tracking — records what failed and why in .planning/negative-knowledge/." },
+        "living_requirements": { "type": "boolean", "default": true, "description": "Enable living requirements — auto-update requirement status as phases complete." }
       },
       "additionalProperties": false
     },
