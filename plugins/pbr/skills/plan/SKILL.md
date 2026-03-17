@@ -348,6 +348,42 @@ If `--teams` flag is set OR `config.parallelization.use_teams` is true, spawn 3 
 
 If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the single-planner flow below.
 
+#### Multi-Phase Flow (--through)
+
+If `through_phases` is set (from Step 1 --through parsing):
+
+1. For each phase P in `through_phases` (in order):
+   a. Load phase P's context: goal, requirements, dependencies from ROADMAP.md
+   b. Load phase P's CONTEXT.md (if exists)
+   c. If P > first phase: include prior phase plans as accumulated context
+      - For each already-planned phase in this session, include:
+        - Plan frontmatter summary (provides, files_modified, must_haves)
+        - This gives the planner visibility into cross-phase dependencies
+   d. Spawn planner Task() with multi-phase instructions:
+
+      Add to the planner prompt's `<planning_instructions>` block:
+      ```
+      MULTI-PHASE CONTEXT: This is phase {P} of {N} in a multi-phase planning session ({start} through {end}).
+      Prior phases planned in this session: {list of phase numbers and their provides}
+
+      CROSS-PHASE CONFLICT DETECTION:
+      - Check files_modified in your plans against files_modified from prior phases
+      - If overlap detected: add a warning comment in the plan frontmatter: `cross_phase_conflict: ["{file} also modified in phase {X}"]`
+      - Ensure depends_on includes the conflicting prior phase plan
+      ```
+
+   e. Wait for planner to complete
+   f. Read the created plan frontmatters (provides, files_modified) to build accumulated context
+   g. Display: "Phase {P} planned ({N} plans). Proceeding to phase {P+1}..."
+
+2. After all phases planned, display summary:
+   ```
+   Multi-phase planning complete: {total_plans} plans across phases {start}-{end}
+   Cross-phase conflicts detected: {count} (see plan frontmatter for details)
+   ```
+
+3. Skip to Step 5b (spot-check) -- run spot-check across ALL phase directories that were planned.
+
 #### Single-Planner Flow (default)
 
 **Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
