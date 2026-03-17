@@ -119,6 +119,7 @@ function main() {
       }
 
       if (warnings.length > 0) {
+        logHook('pre-bash-dispatch', 'PreToolUse', 'warn', { warnings: warnings.length, cmd: command.substring(0, 80) });
         process.stdout.write(JSON.stringify({
           decision: 'allow',
           additionalContext: `[pbr] Advisory: ${warnings.join('; ')}.`
@@ -126,9 +127,16 @@ function main() {
         process.exit(0);
       }
 
+      // Log pass-through so hook activity is visible in logs AND session JSONL
+      logHook('pre-bash-dispatch', 'PreToolUse', 'allow', { cmd: command.substring(0, 80) });
+      // Emit minimal stdout so Claude Code captures this in session JSONL for audit visibility
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);
-    } catch (_e) {
-      // Don't block on errors
+    } catch (e) {
+      // Don't block on errors — but emit valid output so Claude Code
+      // doesn't report "hook error" for silent exit
+      process.stderr.write(`[pbr] pre-bash-dispatch error: ${e.message}\n`);
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);
     }
   });
