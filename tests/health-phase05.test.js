@@ -39,6 +39,7 @@ afterEach(() => {
 });
 
 const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
+const { handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/event-handler');
 
 function parseOutput() {
   const raw = mockStdout.mock.calls.map(c => c[0]).join('');
@@ -161,6 +162,85 @@ describe('phase05_features — living_requirements', () => {
     expect(out.phase05_features.living_requirements).toEqual({
       enabled: false, status: 'disabled'
     });
+  });
+});
+
+// ─── Audit evidence logging ──────────────────────────────────────────────────
+
+describe('Phase 05 audit evidence', () => {
+  let origCwd;
+
+  beforeEach(() => {
+    origCwd = process.cwd;
+    // Mock cwd so hook-logger writes to our tmp .planning/logs/
+    process.cwd = () => tmpDir;
+  });
+
+  afterEach(() => {
+    process.cwd = origCwd;
+  });
+
+  test('decision extraction writes audit log with feature and action fields', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { decision_journal: true } }));
+
+    const agentOutput = 'DECISION: Use fs.readFileSync instead of async because simplicity matters.';
+    handleDecisionExtraction(path.join(tmpDir, '.planning'), agentOutput, 'executor');
+
+    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    expect(fs.existsSync(logPath)).toBe(true);
+    const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+    const entries = lines.map(l => JSON.parse(l));
+    const decisionEntry = entries.find(e => e.decision === 'decisions-extracted');
+    expect(decisionEntry).toBeDefined();
+    expect(decisionEntry.feature).toBe('decision_journal');
+    expect(decisionEntry.action).toBe('extract');
+    expect(decisionEntry.count).toBeGreaterThanOrEqual(1);
+    expect(decisionEntry.ts).toBeDefined();
+  });
+
+  test('negative knowledge extraction writes audit log with feature and action fields', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '05-features');
+    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
+      '---\nstatus: failed\ngaps:\n  - Missing test coverage\n---\n\n### Gap: Missing test coverage\nFiles: tests/foo.test.js\nExpected tests for foo module but none found\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { negative_knowledge: true } }));
+
+    extractNegativeKnowledge(path.join(tmpDir, '.planning'), phaseDir,
+      { features: { negative_knowledge: true } });
+
+    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    expect(fs.existsSync(logPath)).toBe(true);
+    const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+    const entries = lines.map(l => JSON.parse(l));
+    const nkEntry = entries.find(e => e.decision === 'negative-knowledge-extracted');
+    expect(nkEntry).toBeDefined();
+    expect(nkEntry.feature).toBe('negative_knowledge');
+    expect(nkEntry.action).toBe('extract');
+    expect(nkEntry.count).toBeGreaterThanOrEqual(1);
+    expect(nkEntry.ts).toBeDefined();
+  });
+
+  test('audit entries contain required fields: hook, feature, action, count, timestamp', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { decision_journal: true } }));
+
+    const agentOutput = 'Locked Decision: Chose CJS over ESM because compatibility matters.';
+    handleDecisionExtraction(path.join(tmpDir, '.planning'), agentOutput, 'planner');
+
+    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+    const entries = lines.map(l => JSON.parse(l));
+    const entry = entries.find(e => e.decision === 'decisions-extracted');
+    expect(entry).toBeDefined();
+    expect(entry).toHaveProperty('hook', 'event-handler');
+    expect(entry).toHaveProperty('feature', 'decision_journal');
+    expect(entry).toHaveProperty('action', 'extract');
+    expect(entry).toHaveProperty('count');
+    expect(entry).toHaveProperty('ts');
   });
 });
 
