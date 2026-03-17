@@ -482,3 +482,72 @@ Body`;
     expect(result.errors).toHaveLength(0);
   });
 });
+
+describe('validateLearnings', () => {
+  const { validateLearnings } = require('../hooks/check-plan-format');
+
+  test('returns no warnings for valid LEARNINGS.md', () => {
+    const content = `---
+phase: "cross-phase-knowledge"
+key_insights:
+  - "Insight 1"
+patterns:
+  - "Pattern 1"
+---
+## Key Insights
+- Insight 1`;
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test('warns when frontmatter is missing', () => {
+    const result = validateLearnings('# No frontmatter', 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings.some(w => /frontmatter/i.test(w))).toBe(true);
+  });
+
+  test('warns when phase field is missing', () => {
+    const content = `---
+key_insights:
+  - "Insight 1"
+patterns:
+  - "Pattern 1"
+---
+Body`;
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /phase/i.test(w))).toBe(true);
+  });
+
+  test('warns when key_insights field is missing', () => {
+    const content = `---
+phase: "test"
+patterns:
+  - "Pattern 1"
+---
+Body`;
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /key_insights/i.test(w))).toBe(true);
+  });
+
+  test('warns when patterns field is missing', () => {
+    const content = `---
+phase: "test"
+key_insights:
+  - "Insight 1"
+---
+Body`;
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /patterns/i.test(w))).toBe(true);
+  });
+
+  test('all issues are warnings, never errors', () => {
+    const result = validateLearnings('no frontmatter at all', 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
+  });
+});
