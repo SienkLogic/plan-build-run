@@ -1217,8 +1217,15 @@ async function main() {
         freshness: freshnessIdx !== -1 ? args[freshnessIdx + 1] : null,
       }, raw);
     } else if (command === 'progress') {
-      const fmt = args[1] || 'json';
-      getCommands().cmdProgressRender(cwd, fmt, raw);
+      // If a sub-format is specified (table, bar), use the legacy render
+      const fmt = args[1];
+      if (fmt && ['table', 'bar', 'json'].includes(fmt)) {
+        getCommands().cmdProgressRender(cwd, fmt, raw);
+      } else {
+        // DX progress data: phase dependency graph + agent activity
+        const progressViz = require('./lib/progress-visualization.cjs');
+        output(progressViz.getProgressData(planningDir, configLoad(planningDir)));
+      }
     } else if (command === 'commit') {
       const amend = args.includes('--amend');
       const filesIndex = args.indexOf('--files');
