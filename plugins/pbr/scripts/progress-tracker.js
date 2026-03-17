@@ -468,6 +468,15 @@ function buildContext(planningDir, stateFile) {
     }
   } catch (_e) { /* never crash SessionStart for optional features */ }
 
+  // Pre-research advisory (Phase 09)
+  try {
+    const { checkPreResearch } = require('./lib/pre-research');
+    const preResearchResult = checkPreResearch(planningDir, config);
+    if (preResearchResult) {
+      parts.push(`\n[Pre-Research] Phase ${preResearchResult.nextPhase} (${preResearchResult.name}) is next — consider running ${preResearchResult.command} to pre-research.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
