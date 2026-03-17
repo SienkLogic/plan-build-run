@@ -29,3 +29,68 @@ describe('Multi-agent config toggles', () => {
     expect(quality['features.dynamic_teams']).toBe(false);
   });
 });
+
+describe('TeamCoordinator', () => {
+  let TeamCoordinator;
+
+  beforeAll(() => {
+    TeamCoordinator = require('../plan-build-run/bin/lib/team-coordinator.cjs').TeamCoordinator;
+  });
+
+  test('spawnTeam returns early when features.agent_teams is false', () => {
+    const tc = new TeamCoordinator({
+      config: { features: { agent_teams: false } }
+    });
+    const result = tc.spawnTeam({ agents: ['executor'], planId: '13-01' });
+    expect(result).toEqual({ skipped: true, reason: 'agent_teams disabled' });
+  });
+
+  test('spawnTeam creates task definitions for each agent in the team', () => {
+    const tc = new TeamCoordinator({
+      config: { features: { agent_teams: true } }
+    });
+    const result = tc.spawnTeam({
+      agents: ['executor', 'verifier'],
+      planId: '13-01',
+      planningDir: '/tmp/test'
+    });
+    expect(result.skipped).toBe(false);
+    expect(result.tasks).toHaveLength(2);
+    expect(result.tasks[0]).toMatchObject({
+      agentType: 'executor',
+      isolation: 'worktree',
+      planId: '13-01'
+    });
+    expect(result.tasks[1]).toMatchObject({
+      agentType: 'verifier',
+      isolation: 'worktree',
+      planId: '13-01'
+    });
+  });
+
+  test('mergeResults collects agent outputs and returns comparison object', () => {
+    const tc = new TeamCoordinator({
+      config: { features: { agent_teams: true } }
+    });
+    const result = tc.mergeResults([
+      { agentType: 'executor', status: 'success', files: ['a.js'] },
+      { agentType: 'verifier', status: 'success', files: [] }
+    ]);
+    expect(result.allSucceeded).toBe(true);
+    expect(result.failedAgents).toEqual([]);
+    expect(result.filesModified).toEqual(['a.js']);
+    expect(result.results).toHaveLength(2);
+  });
+
+  test('mergeResults reports partial failure when some agents fail', () => {
+    const tc = new TeamCoordinator({
+      config: { features: { agent_teams: true } }
+    });
+    const result = tc.mergeResults([
+      { agentType: 'executor', status: 'success', files: ['a.js'] },
+      { agentType: 'verifier', status: 'failed', files: [] }
+    ]);
+    expect(result.allSucceeded).toBe(false);
+    expect(result.failedAgents).toEqual(['verifier']);
+  });
+});
