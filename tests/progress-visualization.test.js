@@ -4,32 +4,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-// Clear config cache before each test to avoid cross-test leakage
-let configClearCache;
-try {
-  configClearCache = require('../plan-build-run/bin/lib/config.cjs').configClearCache;
-} catch (_e) {
-  configClearCache = () => {};
-}
-
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-progress-test-'));
-}
-
-function makeConfig(dir, overrides = {}) {
-  const config = {
-    features: {
-      progress_visualization: true,
-      contextual_help: true,
-      team_onboarding: true,
-      ...overrides.features,
-    },
-    ...overrides,
-  };
-  delete config.features_override;
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify(config, null, 2));
-  return config;
 }
 
 // ─── 15-01-T1: Config toggle tests ────────────────────────────────────────────
