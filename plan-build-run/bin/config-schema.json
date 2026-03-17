@@ -255,6 +255,21 @@
           "type": "boolean",
           "default": true,
           "description": "Enable continuous tech debt surfacing in status dashboard."
+        },
+        "agent_teams": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable agent teams via worktrees for parallel execution of complex tasks."
+        },
+        "competing_hypotheses": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable competing hypotheses pattern for complex problems with multiple approaches."
+        },
+        "dynamic_teams": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable dynamic team composition based on task analysis."
         }
       },
       "additionalProperties": false
