@@ -267,6 +267,14 @@
       },
       "additionalProperties": false
     },
+    "developer_profile": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": false, "description": "Enable developer profiling. When true, /pbr:profile-user skill is available to generate behavioral profiles from session history." },
+        "inject_prompts": { "type": "boolean", "default": false, "description": "When true, inject USER-PROFILE.md summary into agent prompts for personalized communication." }
+      },
+      "additionalProperties": false
+    },
     "spinner_tips": {
       "type": "object",
       "description": "Custom spinner tips shown during agent execution (Claude Code 2.1.45+)",
@@ -474,7 +482,8 @@
       "type": "object",
       "properties": {
         "enabled": { "type": "boolean", "default": false, "description": "Enable cross-phase knowledge transfer. When true, executor writes LEARNINGS.md and planner reads prior learnings." },
-        "read_depth": { "type": "integer", "minimum": 1, "maximum": 20, "default": 3, "description": "Number of prior phases' LEARNINGS.md files the planner reads for context." }
+        "read_depth": { "type": "integer", "minimum": 1, "maximum": 20, "default": 3, "description": "Number of prior phases' LEARNINGS.md files the planner reads for context." },
+        "cross_project_knowledge": { "type": "boolean", "default": false, "description": "When true, learnings marked cross_project: true in LEARNINGS.md are copied to ~/.claude/pbr-knowledge/ for use across projects." }
       },
       "additionalProperties": false
     },

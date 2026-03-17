@@ -24,9 +24,9 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { lockedFileUpdate } = require('../plan-build-run/bin/lib/core.cjs');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
+const { lockedFileUpdate } = require('./pbr-tools');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
@@ -530,7 +530,7 @@ function syncStateBody(content, filePath) {
   if (fmProgress !== null && bodyProgressMatch) {
     const bodyPct = parseInt(bodyProgressMatch[1], 10);
     if (bodyPct !== fmProgress) {
-      const { buildProgressBar } = require('../plan-build-run/bin/lib/state.cjs');
+      const { buildProgressBar } = require('./lib/state');
       updated = updated.replace(/^Progress:\s*.+/m, `Progress: ${buildProgressBar(fmProgress)}`);
       drifts.push(`progress ${bodyPct}%→${fmProgress}%`);
     }
@@ -695,6 +695,15 @@ function validateLearnings(content, _filePath) {
   }
   if (!frontmatter.includes('patterns:')) {
     warnings.push('Frontmatter missing "patterns" field');
+  }
+
+  // Validate cross_project field if present
+  const crossProjectMatch = frontmatter.match(/cross_project:\s*(.+)/);
+  if (crossProjectMatch) {
+    const value = crossProjectMatch[1].trim();
+    if (value !== 'true' && value !== 'false') {
+      warnings.push('cross_project field should be "true" or "false"');
+    }
   }
 
   return { errors, warnings };
