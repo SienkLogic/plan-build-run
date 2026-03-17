@@ -115,6 +115,8 @@
  *   learnings ingest <json-file>          Ingest a learning entry
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T]
  *   learnings check-thresholds            Check deferral trigger conditions
+ *   learnings copy-global <path> <proj>   Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
+ *   learnings query-global [--tags X] [--project P]  Query global knowledge files
  *
  * INTEL OPERATIONS:
  *   intel query <term>                    Search intel files for a term
@@ -825,6 +827,18 @@ async function main() {
       output(getLearnings().learningsQuery(filters));
     } else if (command === 'learnings' && subcommand === 'check-thresholds') {
       output(getLearnings().checkDeferralThresholds());
+    } else if (command === 'learnings' && subcommand === 'copy-global') {
+      const filePath = args[2];
+      const projectName = args[3];
+      if (!filePath || !projectName) error('Usage: learnings copy-global <learnings-md-path> <project-name>');
+      output(getLearnings().copyToGlobal(filePath, projectName));
+    } else if (command === 'learnings' && subcommand === 'query-global') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--tags' && args[i + 1]) { filters.tags = args[++i].split(',').map(t => t.trim()); }
+        else if (args[i] === '--project' && args[i + 1]) { filters.project = args[++i]; }
+      }
+      output(getLearnings().queryGlobal(filters));
 
     // ─── Intel ──────────────────────────────────────────────────────────────────
     } else if (command === 'intel' && subcommand === 'query') {

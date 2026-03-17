@@ -44,6 +44,8 @@
  *   learnings ingest <json-file>  — Ingest a learning entry into global store
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T] — Query learnings
  *   learnings check-thresholds   — Check deferral trigger conditions
+ *   learnings copy-global <path> <proj> — Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
+ *   learnings query-global [--tags X] [--project P] — Query global knowledge files
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
  *   summary-gate <phase-slug> <plan-id>  — Verify SUMMARY.md exists, non-empty, valid frontmatter
@@ -183,7 +185,9 @@ const {
 const {
   learningsIngest: _learningsIngest,
   learningsQuery: _learningsQuery,
-  checkDeferralThresholds: _checkDeferralThresholds
+  checkDeferralThresholds: _checkDeferralThresholds,
+  copyToGlobal: _copyToGlobal,
+  queryGlobal: _queryGlobal
 } = require('./lib/learnings');
 
 const {
@@ -1043,8 +1047,22 @@ async function main() {
         const triggered = _checkDeferralThresholds();
         output(triggered);
 
+      } else if (subCmd === 'copy-global') {
+        const filePath = args[2];
+        const projectName = args[3];
+        if (!filePath || !projectName) { error('Usage: learnings copy-global <learnings-md-path> <project-name>'); process.exit(1); }
+        output(_copyToGlobal(filePath, projectName));
+
+      } else if (subCmd === 'query-global') {
+        const filters = {};
+        for (let i = 2; i < args.length; i++) {
+          if (args[i] === '--tags' && args[i + 1]) { filters.tags = args[++i].split(',').map(t => t.trim()); }
+          else if (args[i] === '--project' && args[i + 1]) { filters.project = args[++i]; }
+        }
+        output(_queryGlobal(filters));
+
       } else {
-        error('Usage: learnings <ingest|query|check-thresholds>');
+        error('Usage: learnings <ingest|query|check-thresholds|copy-global|query-global>');
         process.exit(1);
       }
     } else if (command === 'spot-check') {
