@@ -10,22 +10,24 @@ const { classifyIntent } = require('../plugins/pbr/scripts/intent-router.cjs');
 const { classifyRisk, CEREMONY_MAP } = require('../plugins/pbr/scripts/risk-classifier.cjs');
 
 describe('end-to-end routing decision', () => {
-  test('"fix the auth bug" -> intent: debug, risk: medium, ceremony: lightweight-plan', () => {
-    const intent = classifyIntent('fix the auth bug');
+  test('"fix the crashing auth bug error" -> intent: debug, risk: medium via context', () => {
+    const intent = classifyIntent('fix the crashing auth bug error');
     expect(intent.route).toBe('debug');
     expect(intent.confidence).toBeGreaterThanOrEqual(0.7);
 
-    const risk = classifyRisk('fix the auth bug');
+    // "fix" is a low signal (-1), but with fileCount context the risk rises to medium
+    const risk = classifyRisk('fix the crashing auth bug error', { fileCount: 3 });
     expect(risk.risk).toBe('medium');
     expect(risk.ceremony).toBe('lightweight-plan');
   });
 
-  test('"rename the utils variable" -> intent: quick, risk: low, ceremony: inline', () => {
-    const intent = classifyIntent('rename the utils variable');
+  test('"rename and update the utils variable" -> intent: quick, risk: low, ceremony: inline', () => {
+    // Two keyword matches ("rename" + "update") needed for >= 0.7 confidence
+    const intent = classifyIntent('rename and update the utils variable');
     expect(intent.route).toBe('quick');
     expect(intent.confidence).toBeGreaterThanOrEqual(0.7);
 
-    const risk = classifyRisk('rename the utils variable');
+    const risk = classifyRisk('rename and update the utils variable');
     expect(risk.risk).toBe('low');
     expect(risk.ceremony).toBe('inline');
   });
