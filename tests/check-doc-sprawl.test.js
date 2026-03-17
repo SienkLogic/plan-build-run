@@ -235,7 +235,9 @@ describe('check-doc-sprawl.js', () => {
         timeout: 5000,
         cwd: tmpDir,
       });
-      expect(result).toBe('');
+      // pre-write-dispatch now outputs {"decision":"allow"} on pass-through (CC 2.1.77 compat)
+      const parsed = result.trim() ? JSON.parse(result.trim()) : {};
+      expect(parsed.decision || '').not.toBe('block');
       cleanup(tmpDir);
     });
   });

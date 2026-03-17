@@ -13,7 +13,7 @@ const HOOKS_DIR = path.resolve(__dirname, '..', 'hooks');
 
 const VALID_HOOK_EVENTS = [
   'SessionStart', 'InstructionsLoaded', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
-  'PreCompact', 'Stop', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'ConfigChange', 'SessionEnd',
+  'PreCompact', 'PostCompact', 'Stop', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'ConfigChange', 'SessionEnd',
   'WorktreeCreate', 'WorktreeRemove', 'Notification', 'UserPromptSubmit'
 ];
 
