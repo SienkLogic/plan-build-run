@@ -986,6 +986,73 @@ function cmdValidateHealth(cwd, options, raw) {
   }, raw);
 }
 
+/**
+ * Generic health check for a feature backed by a loadable module.
+ * @param {string} featureName - Feature name (e.g. 'natural_language_routing')
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @param {string} togglePath - Dot path in config.features (same as featureName)
+ * @param {string} modulePath - Relative path under pluginRoot to the module
+ * @param {string} exportName - Name of the expected export function
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkFeatureModuleHealth(featureName, planningDir, pluginRoot, modulePath, exportName) {
+  const configPath = path.join(planningDir, 'config.json');
+  let config = {};
+  try {
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  } catch (_e) {
+    // Config unreadable — treat as defaults
+  }
+
+  const features = config.features || {};
+
+  // Check toggle (default true)
+  if (features[featureName] === false) {
+    return { feature: featureName, status: 'disabled', details: 'Feature toggle off' };
+  }
+
+  // Try to load the module
+  const fullModulePath = path.join(pluginRoot, modulePath);
+  try {
+    const mod = require(fullModulePath);
+    if (typeof mod[exportName] === 'function') {
+      return { feature: featureName, status: 'healthy', details: `${exportName} loaded from ${modulePath}` };
+    }
+    return { feature: featureName, status: 'degraded', details: `${exportName} not a function in ${modulePath}` };
+  } catch (err) {
+    return { feature: featureName, status: 'degraded', details: `Cannot load ${modulePath}: ${err.message}` };
+  }
+}
+
+/**
+ * Health check for natural_language_routing feature.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkNLRoutingHealth(planningDir, pluginRoot) {
+  return checkFeatureModuleHealth(
+    'natural_language_routing', planningDir, pluginRoot,
+    path.join('scripts', 'intent-router.cjs'), 'classifyIntent'
+  );
+}
+
+/**
+ * Health check for adaptive_ceremony feature.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkAdaptiveCeremonyHealth(planningDir, pluginRoot) {
+  return checkFeatureModuleHealth(
+    'adaptive_ceremony', planningDir, pluginRoot,
+    path.join('scripts', 'risk-classifier.cjs'), 'classifyRisk'
+  );
+}
+
 module.exports = {
   cmdVerifySummary,
   cmdVerifyPlanStructure,
@@ -996,4 +1063,7 @@ module.exports = {
   cmdVerifyKeyLinks,
   cmdValidateConsistency,
   cmdValidateHealth,
+  checkNLRoutingHealth,
+  checkAdaptiveCeremonyHealth,
+  checkFeatureModuleHealth,
 };
