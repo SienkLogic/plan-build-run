@@ -1405,7 +1405,6 @@ async function main() {
         timestamp: new Date().toISOString()
       });
 
-<<<<<<< HEAD
     // ─── Decisions Operations ───────────────────────────────────────────────
     } else if (command === 'decisions' && subcommand === 'record') {
       const opts = {};
