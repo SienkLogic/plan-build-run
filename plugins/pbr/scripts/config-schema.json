@@ -42,7 +42,6 @@
         "auto_advance": { "type": "boolean" },
         "team_discussions": { "type": "boolean" },
         "inline_verify": { "type": "boolean" },
-<<<<<<< HEAD
         "enhanced_session_start": { "type": "boolean", "default": true, "description": "Enable enhanced SessionStart briefing with structured context injection (~500 tokens)." },
         "context_quality_scoring": { "type": "boolean", "default": true, "description": "Enable context quality scoring to track signal-to-noise ratio." },
         "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." },
