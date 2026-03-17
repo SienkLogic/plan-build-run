@@ -396,7 +396,7 @@ function intelValidate(planningDir) {
 
   const errors = [];
   const warnings = [];
-  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const STALE_MS = 24 * 60 * 60 * 1000;
   const now = Date.now();
 
   for (const [key, filename] of Object.entries(INTEL_FILES)) {
@@ -423,8 +423,8 @@ function intelValidate(planningDir) {
     // Check _meta.updated_at recency
     if (data._meta && data._meta.updated_at) {
       const age = now - new Date(data._meta.updated_at).getTime();
-      if (age > ONE_HOUR_MS) {
-        warnings.push(`${filename}: _meta.updated_at is ${Math.round(age / 60000)} minutes old (>60 min)`);
+      if (age > STALE_MS) {
+        warnings.push(`${filename}: _meta.updated_at is ${Math.round(age / 3600000)} hours old (>24 hr)`);
       }
     } else {
       warnings.push(`${filename}: missing _meta.updated_at`);
@@ -560,6 +560,68 @@ function intelExtractExports(filePath) {
       exports.push(im[1]);
       if (method === 'none') method = 'exports.X';
     }
+  }
+
+  const hadCjs = exports.length > 0;
+
+  // ESM patterns
+  const esmExports = [];
+
+  // export default function X / export default class X
+  const defaultNamedPattern = /^export\s+default\s+(?:function|class)\s+(\w+)/gm;
+  let em;
+  while ((em = defaultNamedPattern.exec(content)) !== null) {
+    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+  }
+
+  // export default (without named function/class)
+  const defaultAnonPattern = /^export\s+default\s+(?!function\s|class\s)/gm;
+  if (defaultAnonPattern.test(content) && esmExports.length === 0) {
+    if (!esmExports.includes('default')) esmExports.push('default');
+  }
+
+  // export function X( / export async function X(
+  const exportFnPattern = /^export\s+(?:async\s+)?function\s+(\w+)\s*\(/gm;
+  while ((em = exportFnPattern.exec(content)) !== null) {
+    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+  }
+
+  // export const X = / export let X = / export var X =
+  const exportVarPattern = /^export\s+(?:const|let|var)\s+(\w+)\s*=/gm;
+  while ((em = exportVarPattern.exec(content)) !== null) {
+    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+  }
+
+  // export class X
+  const exportClassPattern = /^export\s+class\s+(\w+)/gm;
+  while ((em = exportClassPattern.exec(content)) !== null) {
+    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+  }
+
+  // export { X, Y, Z } — strip "as alias" parts
+  const exportBlockPattern = /^export\s*\{([^}]+)\}/gm;
+  while ((em = exportBlockPattern.exec(content)) !== null) {
+    const items = em[1].split(',');
+    for (const item of items) {
+      const trimmed = item.trim();
+      if (!trimmed) continue;
+      // "foo as bar" -> extract "foo"
+      const name = trimmed.split(/\s+as\s+/)[0].trim();
+      if (name && !esmExports.includes(name)) esmExports.push(name);
+    }
+  }
+
+  // Merge ESM exports into the result
+  for (const e of esmExports) {
+    if (!exports.includes(e)) exports.push(e);
+  }
+
+  // Determine method
+  const hadEsm = esmExports.length > 0;
+  if (hadCjs && hadEsm) {
+    method = 'mixed';
+  } else if (hadEsm && !hadCjs) {
+    method = 'esm';
   }
 
   return { file: filePath, exports, method };
