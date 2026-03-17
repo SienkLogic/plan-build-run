@@ -159,7 +159,12 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
      b. Check if branch already exists: `git branch --list {branch-name}`
      c. If branch exists (resume scenario): `git switch {branch-name}` — log "Resuming on existing phase branch"
      d. If branch does not exist: `git switch -c {branch-name}` — log "Created phase branch: {branch-name}"
-   - If `milestone`: no action at build start (milestone branches are created by /pbr:milestone)
+   - If `milestone`:
+     a. Determine branch name: `pbr/milestone-v{version}` where {version} comes from the active milestone in ROADMAP.md
+     b. Check if branch already exists: `git branch --list {branch-name}`
+     c. If branch exists: `git switch {branch-name}` — log "Switching to milestone branch"
+     d. If branch does not exist: `git switch -c {branch-name}` — log "Created milestone branch: {branch-name}"
+     e. Note: milestone branch persists across all phases in the milestone; it is merged by /pbr:milestone complete
 9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
 **Staleness check (dependency fingerprints):**
@@ -1115,6 +1120,11 @@ If `git.branching` is `phase`:
     5. Log: "Phase branch merged and deleted"
   - If "No, keep" or "Other": leave the branch as-is and inform the user
   - **Skip if:** `auto_mode` is true — auto-proceed with "Yes, merge"
+
+If `git.branching` is `milestone`:
+- Do NOT merge after individual phase completion
+- Log: "Phase complete on milestone branch. Branch will be merged when milestone is completed via /pbr:milestone complete."
+- Stay on the milestone branch for the next phase
 
 **8d-ii. PR Creation (when branching enabled):**
 
