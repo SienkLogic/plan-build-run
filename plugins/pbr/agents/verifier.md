@@ -115,6 +115,11 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
 
 Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for locked decisions and deferred ideas, and ROADMAP.md for the phase goal and dependencies.
 
+Additionally, read the `verification_depth` parameter from the spawn prompt:
+- `light`: Execute Steps 3-5 at L1 only (existence). Skip Steps 6 (key links), 8 (anti-patterns), 9 (human verification). Budget: <=400 tokens.
+- `standard`: Execute all steps at current depth (L1-L3). This is the default.
+- `thorough`: Execute all steps at L1-L4. Additionally run cross-phase regression (Step 11b) regardless of context_window_tokens. Full anti-pattern scan.
+
 </step>
 
 <step name="establish-must-haves">
@@ -150,6 +155,11 @@ For each truth: determine verification method, execute it, record evidence, clas
 ### Step 5: Verify Artifacts (Always -- depth varies in re-verification)
 
 For EVERY artifact, perform three levels of verification:
+
+**Depth-adjusted behavior:**
+- `light`: Check Level 1 (existence) only. If file exists with >0 lines, mark PASSED. Skip L2/L3/L4.
+- `standard`: Full L1-L3 verification (current behavior).
+- `thorough`: Full L1-L4 verification. Run all available automated tests.
 
 #### Level 1: Existence
 Does the artifact exist on disk? Check file/directory existence and expected exports/functions. Result: `EXISTS` or `MISSING`. If MISSING, mark FAILED Level 1 and stop.
@@ -241,6 +251,8 @@ After verifying all must-haves, collect `implements:[]` from all plan frontmatte
 <step name="scan-anti-patterns">
 
 ### Step 8: Scan for Anti-Patterns (Full Verification Only)
+
+**Depth gate:** Skip this step entirely for `light` depth. For `standard`, scan blockers only (current). For `thorough`, scan all categories including warnings.
 
 Scan for: dead code/unused imports, console.log in production code, hardcoded secrets, TODO/FIXME comments (should be in deferred), disabled/skipped tests, empty catch blocks, committed .env files. Report blockers only.
 
@@ -346,7 +358,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 
 ## Cross-Phase Verification Mode
 
-**Trigger:** Only active when `context_window_tokens >= 500000` in `.planning/config.json`. Skip this entire section if the value is below 500000 or absent.
+**Trigger:** Active when depth is `thorough` OR when `context_window_tokens >= 500000` in `.planning/config.json`. Skip this entire section if neither condition is met.
 
 **Purpose:** Detect regressions — cases where the current phase's changes break a must-have that was previously verified as PASSED in an earlier phase. This supplements single-phase verification; it does not replace it.
 
@@ -491,6 +503,7 @@ If the template file cannot be read, use this minimum viable structure:
 ---
 phase: "{phase_id}"
 status: passed|gaps_found
+verification_depth: "standard"
 checked_at: "{ISO timestamp}"
 is_re_verification: false
 must_haves_checked: N
