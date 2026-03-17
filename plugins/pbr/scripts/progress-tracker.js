@@ -847,6 +847,15 @@ function buildEnhancedBriefing(planningDir, config) {
     }
   } catch (_e) { /* non-fatal */ }
 
+  // ── Skip-RAG eligibility ──
+  try {
+    const { isSkipRagEligible } = require('./context-quality');
+    const skipRag = isSkipRagEligible(planningDir);
+    if (skipRag.eligible) {
+      lines.push(`Skip-RAG: eligible (${skipRag.line_count} lines). Full codebase fits in context.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+
   // ── Blockers from STATE.md (reuse cached content) ──
   if (stateContent) {
     try {

@@ -42,8 +42,10 @@ function getScaledThreshold(planningDir) {
     const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
     const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
+    const budgetPct = (config && config.orchestrator_budget_pct) || 25;
     const scale = tokens / BASE_TOKENS;
-    return Math.round(BASE_THRESHOLD * scale);
+    const budgetScale = budgetPct / 25;
+    return Math.round(BASE_THRESHOLD * scale * budgetScale);
   } catch (_e) {
     return BASE_THRESHOLD;
   }
