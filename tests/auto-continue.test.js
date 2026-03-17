@@ -376,6 +376,121 @@ describe('auto-continue.js', () => {
     });
   });
 
+  describe('phase boundary clear enforcement', () => {
+    function writeBoundarySignal(phaseNum) {
+      fs.writeFileSync(path.join(planningDir, '.phase-boundary-pending'), String(phaseNum));
+    }
+
+    test('blocks auto-continue when enforce mode and .phase-boundary-pending exists', () => {
+      writeConfig({
+        features: { auto_continue: true },
+        workflow: { phase_boundary_clear: 'enforce' },
+      });
+      writeBoundarySignal(3);
+      writeSignal('/pbr:plan-phase 4');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('Phase boundary clear is enforced');
+      expect(parsed.reason).toContain('/clear');
+
+      // .phase-boundary-pending should be deleted (one-shot)
+      expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
+      // .auto-next should also be deleted (enforce overrides auto-continue)
+      expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(false);
+    });
+
+    test('logs phase-boundary-enforce in hook log', () => {
+      writeConfig({
+        features: { auto_continue: true },
+        workflow: { phase_boundary_clear: 'enforce' },
+      });
+      writeBoundarySignal(2);
+
+      run();
+
+      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'phase-boundary-enforce');
+      expect(entry).toBeDefined();
+    });
+
+    test('recommend mode cleans up signal file but does not block', () => {
+      writeConfig({
+        features: { auto_continue: true },
+        workflow: { phase_boundary_clear: 'recommend' },
+      });
+      writeBoundarySignal(3);
+      writeSignal('/pbr:plan-phase 4');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      // Should proceed with normal auto-continue (not block for phase boundary)
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:plan-phase 4');
+      expect(parsed.reason).not.toContain('Phase boundary clear is enforced');
+
+      // Signal file should be cleaned up
+      expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
+
+      // Hook log should show phase-boundary-recommend
+      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'phase-boundary-recommend');
+      expect(entry).toBeDefined();
+    });
+
+    test('off mode cleans up stale signal file', () => {
+      writeConfig({
+        features: { auto_continue: true },
+        workflow: { phase_boundary_clear: 'off' },
+      });
+      writeBoundarySignal(3);
+      writeSignal('/pbr:plan-phase 4');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      // Should proceed normally
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:plan-phase 4');
+
+      // Signal file should be cleaned up
+      expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
+    });
+
+    test('no behavior change when no .phase-boundary-pending file exists', () => {
+      writeConfig({
+        features: { auto_continue: true },
+        workflow: { phase_boundary_clear: 'enforce' },
+      });
+      writeSignal('/pbr:plan-phase 4');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      // Normal auto-continue — no boundary file means no enforcement
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:plan-phase 4');
+    });
+
+    test('missing workflow config defaults to off (backward compat)', () => {
+      writeConfig({
+        features: { auto_continue: true },
+      });
+      writeBoundarySignal(3);
+      writeSignal('/pbr:plan-phase 4');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      // Should proceed normally — default is 'off'
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:plan-phase 4');
+
+      // Signal file should be cleaned up
+      expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
+    });
+  });
+
   describe('pending todos reminder', () => {
     test('pending todos reminder fires when .auto-next absent but pending/ has items', () => {
       writeConfig();
