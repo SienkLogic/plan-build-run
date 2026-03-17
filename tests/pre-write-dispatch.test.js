@@ -212,6 +212,21 @@ describe('pre-write-dispatch.js', () => {
       cleanup(tmpDir);
     });
 
+    test('handles CRLF in file_path gracefully', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+      const phasesDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      // File paths never contain CRLF — verify normal pass-through works
+      const filePath = path.join(phasesDir, 'PLAN.md');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      cleanup(tmpDir);
+    });
+
     test('advisory returns include decision allow', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');

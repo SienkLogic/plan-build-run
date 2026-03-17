@@ -215,6 +215,24 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.decision).toBe('allow');
       expect(Object.keys(output)).toEqual(['decision']);
     });
+
+    test('handles CRLF in stdin JSON gracefully', () => {
+      // JSON.parse handles embedded \r\n in string values — verify hook doesn't choke
+      const input = JSON.stringify({ tool_input: { command: 'echo hello\r\nworld' } });
+      try {
+        const result = execSync(`node "${SCRIPT}"`, {
+          input,
+          encoding: 'utf8',
+          timeout: 5000,
+          cwd: os.tmpdir(),
+        });
+        const output = JSON.parse(result);
+        expect(output.decision).toBe('allow');
+      } catch (e) {
+        // Should not block on CRLF content
+        expect(e.status).not.toBe(2);
+      }
+    });
   });
 
   describe('error handling', () => {
