@@ -1,5 +1,5 @@
 ---
-description: "View or modify Plan-Build-Run project settings (models, gates, features)."
+description: "Configure settings: depth, model profiles, features, git, and gates."
 ---
 
 This command is provided by the `pbr:config` skill.

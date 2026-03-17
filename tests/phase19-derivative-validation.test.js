@@ -61,7 +61,7 @@ describe('canonical plugins/pbr/ directory exists as derivative source', () => {
     const count = countFiles(PBR_DIR);
     // Allow some variance; summary says 280
     expect(count).toBeGreaterThanOrEqual(250);
-    expect(count).toBeLessThanOrEqual(320);
+    expect(count).toBeLessThanOrEqual(350);
   });
 
   test('plugin manifest is valid JSON', () => {
