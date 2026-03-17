@@ -19,6 +19,8 @@ const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
 const { intelStatus } = require('../../../plan-build-run/bin/lib/intel.cjs');
+const { loadLatestSnapshot, formatSnapshotBriefing } = require('./lib/snapshot-manager');
+const { loadConventions, formatConventionBriefing } = require('./lib/convention-detector');
 
 function readStdin() {
   try {
@@ -439,6 +441,32 @@ function buildContext(planningDir, stateFile) {
   // Negative knowledge briefing — surface past failures for related files
   const nkBriefing = getNegativeKnowledgeBriefing(planningDir, config);
   if (nkBriefing) parts.push(nkBriefing);
+
+  // Mental model snapshot briefing (Phase 06)
+  try {
+    const snapshotsEnabled = config && config.features && config.features.mental_model_snapshots !== false;
+    if (snapshotsEnabled) {
+      const snapshot = loadLatestSnapshot(planningDir);
+      const snapshotBrief = formatSnapshotBriefing(snapshot);
+      if (snapshotBrief) {
+        parts.push('\n' + snapshotBrief);
+      }
+    }
+  } catch (_e) { /* never crash SessionStart for optional features */ }
+
+  // Convention memory briefing (Phase 06)
+  try {
+    const conventionsEnabled = config && config.features && config.features.convention_memory !== false;
+    if (conventionsEnabled) {
+      const conventions = loadConventions(planningDir);
+      if (conventions && Object.keys(conventions).length > 0) {
+        const convBrief = formatConventionBriefing(conventions);
+        if (convBrief) {
+          parts.push(convBrief);
+        }
+      }
+    }
+  } catch (_e) { /* never crash SessionStart for optional features */ }
 
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 

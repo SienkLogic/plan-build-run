@@ -376,4 +376,38 @@ function loadConventions(planningDir) {
   return result;
 }
 
-module.exports = { detectConventions, writeConventions, loadConventions, scanFiles };
+/**
+ * Format loaded conventions into a concise briefing string for SessionStart injection.
+ * @param {object} conventions - Output from loadConventions (keyed by filename stem)
+ * @returns {string} Briefing text capped at 800 chars, or empty string if no patterns
+ */
+function formatConventionBriefing(conventions) {
+  if (!conventions || typeof conventions !== 'object') return '';
+
+  const entries = Object.entries(conventions);
+  if (entries.length === 0) return '';
+
+  const lines = ['\nProject Conventions (auto-detected):'];
+  let hasContent = false;
+
+  for (const [category, data] of entries) {
+    if (!data || !data.body) continue;
+    // Extract pattern names from ## headings in the body
+    const headings = data.body.match(/^## (.+)$/gm);
+    if (!headings || headings.length === 0) continue;
+    const patterns = headings.slice(0, 3).map(h => h.replace(/^## /, '')).join(', ');
+    lines.push(`- ${category}: ${patterns}`);
+    hasContent = true;
+  }
+
+  if (!hasContent) return '';
+
+  let result = lines.join('\n');
+  if (result.length > 800) {
+    result = result.slice(0, 797) + '...';
+  }
+
+  return result;
+}
+
+module.exports = { detectConventions, writeConventions, loadConventions, formatConventionBriefing, scanFiles };
