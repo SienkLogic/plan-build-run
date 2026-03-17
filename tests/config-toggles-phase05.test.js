@@ -59,3 +59,41 @@ describe('Phase 05 feature toggles — schema validation', () => {
     expect(result.errors).toEqual([]);
   });
 });
+
+describe('Phase 05 feature toggles — depth profile presets', () => {
+  test('quick (budget) profile has decision_journal: false', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.quick['features.decision_journal']).toBe(false);
+  });
+
+  test('quick (budget) profile has negative_knowledge: false', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.quick['features.negative_knowledge']).toBe(false);
+  });
+
+  test('quick (budget) profile has living_requirements: false', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.quick['features.living_requirements']).toBe(false);
+  });
+
+  test('standard profile has decision_journal: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.standard['features.decision_journal']).toBe(true);
+  });
+
+  test('standard profile has negative_knowledge: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.standard['features.negative_knowledge']).toBe(true);
+  });
+
+  test('standard profile has living_requirements: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.standard['features.living_requirements']).toBe(true);
+  });
+
+  test('comprehensive (quality) profile has decision_journal: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.decision_journal']).toBe(true);
+  });
+
+  test('comprehensive (quality) profile has negative_knowledge: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.negative_knowledge']).toBe(true);
+  });
+
+  test('comprehensive (quality) profile has living_requirements: true', () => {
+    expect(DEPTH_PROFILE_DEFAULTS.comprehensive['features.living_requirements']).toBe(true);
+  });
+});
