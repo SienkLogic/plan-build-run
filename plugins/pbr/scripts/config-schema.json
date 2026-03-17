@@ -290,9 +290,48 @@
           "type": "boolean",
           "default": true,
           "description": "Enable predictive impact analysis using architecture graph."
+        },
+        "progress_visualization": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable progress visualization — phase dependency graph and agent activity timeline in dashboard."
+        },
+        "contextual_help": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable contextual help — activity-specific suggestions based on current STATE.md status and recent errors."
+        },
+        "team_onboarding": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable team onboarding guide generation from ROADMAP.md, CONTEXT.md, and project conventions."
+        },
+        "multi_layer_validation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable parallel multi-layer review passes (BugBot-style). When true, build skill spawns one reviewer per pass in validation_passes. Default false (budget-friendly). Set to true in quality profile."
+        },
+        "regression_prevention": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable smart test selection — maps changed files to affected test files using naming conventions. When true, build skill scopes test runs instead of running the full suite."
+        },
+        "security_scanning": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable OWASP-style security scanning of changed files during build. Checks for hardcoded secrets, eval usage, shell injection, path traversal, and other common vulnerabilities."
         }
       },
       "additionalProperties": false
+    },
+    "validation_passes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["correctness", "security", "performance", "style", "tests", "accessibility", "docs", "deps"]
+      },
+      "default": ["correctness", "security"],
+      "description": "List of validation pass names to run when features.multi_layer_validation is true. Available passes: correctness, security, performance, style, tests, accessibility, docs, deps."
     },
     "autonomy": {
       "type": "object",
