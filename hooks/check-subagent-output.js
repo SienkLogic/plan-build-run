@@ -26,6 +26,7 @@ const { classifyError } = require('./local-llm/operations/classify-error');
 const { resolveSessionPath } = require('./lib/core');
 const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
+const { detectConventions, writeConventions } = require('./lib/convention-detector');
 
 /**
  * Load a feature flag value from config.json.
@@ -549,12 +550,14 @@ const SKILL_CHECKS = {
     }
   },
   'build:pbr:executor': {
-    description: 'build executor SUMMARY commits and LEARNINGS.md',
+    description: 'build executor SUMMARY commits, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
       checkLearningsRequired(planningDir, warnings, 'executor');
       // Log post-hoc skip for non-quick executors (audit evidence)
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
+      // Update conventions after successful build
+      updateConventionsAfterBuild(planningDir);
     }
   },
   'quick:pbr:executor': {
@@ -583,7 +586,7 @@ const SKILL_CHECKS = {
         const taskSlug = dirs[0];
         // Attempt post-hoc generation
         try {
-          const { generateSummary } = require('../../plan-build-run/bin/lib/post-hoc.cjs');
+          const { generateSummary } = require('../../../plan-build-run/bin/lib/post-hoc.cjs');
           const projectRoot = path.resolve(planningDir, '..');
           const result = generateSummary(projectRoot, taskDir, {
             commitPattern: taskSlug.replace(/^(\d{3})-.*/, 'quick-$1')
@@ -738,6 +741,31 @@ const SKILL_CHECKS = {
     }
   }
 };
+
+/**
+ * Update convention patterns after a build executor completes.
+ * Gated by features.convention_memory config toggle.
+ * Non-fatal — convention detection failure never crashes the hook.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ */
+function updateConventionsAfterBuild(planningDir) {
+  try {
+    const config = loadFeatureFlag(planningDir, 'convention_memory');
+    if (config === false) return;
+
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    const conventions = detectConventions(cwd);
+    const totalPatterns = Object.values(conventions).reduce((sum, arr) => sum + arr.length, 0);
+    if (totalPatterns > 0) {
+      writeConventions(planningDir, conventions);
+      logHook('check-subagent-output', 'PostToolUse', 'conventions-updated', { patterns: totalPatterns });
+    }
+  } catch (_e) {
+    // Convention detection failure is non-fatal
+    logHook('check-subagent-output', 'PostToolUse', 'conventions-failed', { error: _e.message });
+  }
+}
 
 function readStdin() {
   try {
@@ -1046,6 +1074,7 @@ async function handleHttp(reqBody) {
 }
 
 /**
+<<<<<<< HEAD
  * Log an inline execution decision to .planning/logs/hooks.jsonl for audit evidence.
  * Called by the build skill orchestrator after running shouldInlineExecution.
  *
@@ -1077,5 +1106,36 @@ function logInlineDecision(planningDir, decision) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag };
+/**
+ * Validate self-verification data in an executor SUMMARY.md file.
+ */
+function validateSelfCheck(summaryPath, config) {
+  if (!config || !config.features || !config.features.self_verification) {
+    return [];
+  }
+  const warnings = [];
+  try {
+    const content = fs.readFileSync(summaryPath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const fm = fmMatch[1];
+    if (!/self_check\s*:/i.test(fm)) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const failedMatch = fm.match(/failed\s*:\s*(\d+)/);
+    const retriesMatch = fm.match(/retries\s*:\s*(\d+)/);
+    if (failedMatch && parseInt(failedMatch[1], 10) > 0) {
+      const failed = failedMatch[1];
+      const retries = retriesMatch ? retriesMatch[1] : '0';
+      warnings.push(`Executor self-check reported ${failed} failed must-haves after ${retries} retries`);
+    }
+  } catch (_e) { /* skip gracefully */ }
+  return warnings;
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild, validateSelfCheck };
 if (require.main === module || process.argv[1] === __filename) { main(); }

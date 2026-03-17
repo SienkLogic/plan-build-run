@@ -1074,6 +1074,7 @@ async function handleHttp(reqBody) {
 }
 
 /**
+<<<<<<< HEAD
  * Log an inline execution decision to .planning/logs/hooks.jsonl for audit evidence.
  * Called by the build skill orchestrator after running shouldInlineExecution.
  *
@@ -1105,5 +1106,36 @@ function logInlineDecision(planningDir, decision) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild };
+/**
+ * Validate self-verification data in an executor SUMMARY.md file.
+ */
+function validateSelfCheck(summaryPath, config) {
+  if (!config || !config.features || !config.features.self_verification) {
+    return [];
+  }
+  const warnings = [];
+  try {
+    const content = fs.readFileSync(summaryPath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const fm = fmMatch[1];
+    if (!/self_check\s*:/i.test(fm)) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const failedMatch = fm.match(/failed\s*:\s*(\d+)/);
+    const retriesMatch = fm.match(/retries\s*:\s*(\d+)/);
+    if (failedMatch && parseInt(failedMatch[1], 10) > 0) {
+      const failed = failedMatch[1];
+      const retries = retriesMatch ? retriesMatch[1] : '0';
+      warnings.push(`Executor self-check reported ${failed} failed must-haves after ${retries} retries`);
+    }
+  } catch (_e) { /* skip gracefully */ }
+  return warnings;
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild, validateSelfCheck };
 if (require.main === module || process.argv[1] === __filename) { main(); }
