@@ -379,9 +379,14 @@ const SKILL_CHECKS = {
     }
   },
   'build:pbr:executor': {
-    description: 'build executor SUMMARY commits',
+    description: 'build executor SUMMARY commits and LEARNINGS.md',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Advisory: check if LEARNINGS.md exists (optional but encouraged)
+      const learningsFiles = findInPhaseDir(planningDir, /^LEARNINGS\.md$/i);
+      if (learningsFiles.length === 0) {
+        warnings.push('No LEARNINGS.md found in phase directory. If the executor discovered patterns or insights, it should write LEARNINGS.md for cross-phase knowledge transfer.');
+      }
     }
   },
   'quick:pbr:executor': {

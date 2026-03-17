@@ -60,8 +60,9 @@ async function main() {
       const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
       const isVerification = basename === 'VERIFICATION.md';
       const isRoadmap = basename === 'ROADMAP.md';
+      const isLearnings = basename === 'LEARNINGS.md';
 
-      if (!isPlan && !isSummary && !isVerification && !isRoadmap) {
+      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings) {
         process.exit(0);
       }
 
@@ -76,7 +77,9 @@ async function main() {
           ? validateVerification(content, filePath)
           : isRoadmap
             ? validateRoadmap(content, filePath)
-            : validateSummary(content, filePath);
+            : isLearnings
+              ? validateLearnings(content, filePath)
+              : validateSummary(content, filePath);
 
       // LLM advisory enrichment — advisory only, never blocks
       if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -94,7 +97,7 @@ async function main() {
         }
       }
 
-      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -300,8 +303,9 @@ async function checkPlanWrite(data) {
   const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
   const isVerification = basename === 'VERIFICATION.md';
   const isRoadmap = basename === 'ROADMAP.md';
+  const isLearnings = basename === 'LEARNINGS.md';
 
-  if (!isPlan && !isSummary && !isVerification && !isRoadmap) return null;
+  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -311,7 +315,9 @@ async function checkPlanWrite(data) {
       ? validateVerification(content, filePath)
       : isRoadmap
         ? validateRoadmap(content, filePath)
-        : validateSummary(content, filePath);
+        : isLearnings
+          ? validateLearnings(content, filePath)
+          : validateSummary(content, filePath);
 
   // LLM advisory enrichment — advisory only, never blocks
   if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -329,7 +335,7 @@ async function checkPlanWrite(data) {
     }
   }
 
-  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -650,5 +656,49 @@ function validateRoadmap(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, checkPlanWrite, checkStateWrite, syncStateBody };
+/**
+ * Validate LEARNINGS.md structure. Returns advisory warnings only (never blocking errors).
+ *
+ * Checks:
+ * - Has YAML frontmatter (starts with ---)
+ * - Frontmatter contains phase: field
+ * - Frontmatter contains key_insights: field
+ * - Frontmatter contains patterns: field
+ *
+ * @param {string} content - Full LEARNINGS.md content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateLearnings(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  // LEARNINGS.md is optional — all issues are warnings, never errors
+  if (!content.startsWith('---')) {
+    warnings.push('Missing YAML frontmatter');
+    return { errors, warnings };
+  }
+
+  const frontmatterEnd = content.indexOf('---', 3);
+  if (frontmatterEnd === -1) {
+    warnings.push('Unclosed YAML frontmatter');
+    return { errors, warnings };
+  }
+
+  const frontmatter = content.substring(3, frontmatterEnd);
+
+  if (!frontmatter.includes('phase:')) {
+    warnings.push('Frontmatter missing "phase" field');
+  }
+  if (!frontmatter.includes('key_insights:')) {
+    warnings.push('Frontmatter missing "key_insights" field');
+  }
+  if (!frontmatter.includes('patterns:')) {
+    warnings.push('Frontmatter missing "patterns" field');
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }
