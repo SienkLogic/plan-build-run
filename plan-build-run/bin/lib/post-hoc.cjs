@@ -60,7 +60,9 @@ function buildCommitGrep(taskId) {
  */
 function generateSummary(planningDir, taskDir, options = {}) {
   const summaryPath = path.join(taskDir, 'SUMMARY.md');
-  const grepPattern = options.commitPattern || 'quick-\\d+';
+  const grepPattern = options.commitPattern
+    ? buildCommitGrep(options.commitPattern)
+    : 'quick-\\d+';
   const gitCwd = planningDir;
 
   let commits = [];
