@@ -26,6 +26,7 @@ const { classifyError } = require('./local-llm/operations/classify-error');
 const { resolveSessionPath } = require('./lib/core');
 const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
+const { detectConventions, writeConventions } = require('./lib/convention-detector');
 
 /**
  * Load a feature flag value from config.json.
@@ -549,12 +550,14 @@ const SKILL_CHECKS = {
     }
   },
   'build:pbr:executor': {
-    description: 'build executor SUMMARY commits and LEARNINGS.md',
+    description: 'build executor SUMMARY commits, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
       checkLearningsRequired(planningDir, warnings, 'executor');
       // Log post-hoc skip for non-quick executors (audit evidence)
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
+      // Update conventions after successful build
+      updateConventionsAfterBuild(planningDir);
     }
   },
   'quick:pbr:executor': {
@@ -738,6 +741,31 @@ const SKILL_CHECKS = {
     }
   }
 };
+
+/**
+ * Update convention patterns after a build executor completes.
+ * Gated by features.convention_memory config toggle.
+ * Non-fatal — convention detection failure never crashes the hook.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ */
+function updateConventionsAfterBuild(planningDir) {
+  try {
+    const config = loadFeatureFlag(planningDir, 'convention_memory');
+    if (config === false) return;
+
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    const conventions = detectConventions(cwd);
+    const totalPatterns = Object.values(conventions).reduce((sum, arr) => sum + arr.length, 0);
+    if (totalPatterns > 0) {
+      writeConventions(planningDir, conventions);
+      logHook('check-subagent-output', 'PostToolUse', 'conventions-updated', { patterns: totalPatterns });
+    }
+  } catch (_e) {
+    // Convention detection failure is non-fatal
+    logHook('check-subagent-output', 'PostToolUse', 'conventions-failed', { error: _e.message });
+  }
+}
 
 function readStdin() {
   try {
@@ -1077,5 +1105,5 @@ function logInlineDecision(planningDir, decision) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag };
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild };
 if (require.main === module || process.argv[1] === __filename) { main(); }
