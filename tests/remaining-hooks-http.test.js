@@ -102,6 +102,11 @@ describe('check-subagent-output.js handleHttp', () => {
       path.join(phaseDir, 'SUMMARY.md'),
       '---\nplan: "03-01"\ncommits: ["abc1234"]\n---\n# Summary\n'
     );
+    // Write LEARNINGS.md to suppress the learnings advisory
+    fs.writeFileSync(
+      path.join(phaseDir, 'LEARNINGS.md'),
+      '---\nphase: "03-auth"\nkey_insights: []\npatterns: []\n---\n# Learnings\nNone.\n'
+    );
     // Write active-skill to suppress the active-skill warning
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
 

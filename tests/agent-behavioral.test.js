@@ -18,7 +18,8 @@ const agentFiles = fs.readdirSync(AGENT_DIR).filter(f => f.endsWith('.md'));
 // Core agents — dev-sync is a utility agent excluded from universal tests
 // Also exclude nyquist-auditor and roadmapper (GSD-unique, format-aligned but not full PBR agents)
 const coreAgents = agentFiles.filter(f =>
-  f !== 'pbr-dev-sync.md' && f !== 'pbr-nyquist-auditor.md' && f !== 'pbr-roadmapper.md'
+  f !== 'pbr-dev-sync.md' && f !== 'pbr-nyquist-auditor.md' && f !== 'pbr-roadmapper.md' &&
+  f !== 'pbr-intel-updater.md' && f !== 'pbr-ui-researcher.md' && f !== 'pbr-ui-checker.md'
 );
 
 // Helper: read agent content (cached)
@@ -36,9 +37,9 @@ function readAgent(file) {
 
 describe('Universal agent patterns', () => {
   test('agent directory contains expected agent count', () => {
-    // 14 total agents in target
-    expect(agentFiles.length).toBe(14);
-    // 11 core agents (excluding dev-sync, nyquist-auditor, roadmapper)
+    // 17 total agents in target (14 original + intel-updater, ui-researcher, ui-checker)
+    expect(agentFiles.length).toBe(17);
+    // 11 core agents (excluding dev-sync, nyquist-auditor, roadmapper, intel-updater, ui-researcher, ui-checker)
     expect(coreAgents.length).toBe(11);
   });
 
