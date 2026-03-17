@@ -89,4 +89,31 @@ describe('HypothesisRunner', () => {
     ]);
     expect(result.winner.name).toBe('approach-b');
   });
+
+  test('formatReport produces markdown comparison table', () => {
+    const hr = new HypothesisRunner({
+      config: { features: { competing_hypotheses: true } }
+    });
+    const comparison = hr.compareResults([
+      { name: 'approach-a', testsPassed: 3, testsTotal: 5, filesModified: ['a.js', 'b.js'], status: 'success' },
+      { name: 'approach-b', testsPassed: 5, testsTotal: 5, filesModified: ['c.js'], status: 'success' }
+    ]);
+    const report = hr.formatReport(comparison);
+    expect(report).toContain('| Hypothesis | Tests Passed | Files Modified | Score | Winner |');
+    expect(report).toContain('approach-b');
+    expect(report).toContain('<-- WINNER');
+  });
+
+  test('formatReport handles single hypothesis gracefully', () => {
+    const hr = new HypothesisRunner({
+      config: { features: { competing_hypotheses: true } }
+    });
+    const comparison = hr.compareResults([
+      { name: 'only-one', testsPassed: 10, testsTotal: 10, filesModified: ['x.js'], status: 'success' }
+    ]);
+    const report = hr.formatReport(comparison);
+    expect(report).toContain('| Hypothesis |');
+    expect(report).toContain('only-one');
+    expect(report).toContain('<-- WINNER');
+  });
 });
