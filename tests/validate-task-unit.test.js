@@ -504,6 +504,52 @@ Phase: 2 of 2
     fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'SUMMARY.md'), 'ok');
     expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:planner', description: 'Complete milestone' } })).toBeNull();
   });
+
+  test('fallback: parses phases from **Phases:** line when no table', () => {
+    const ROADMAP_NO_TABLE = `# Roadmap
+
+## Milestone: Test
+
+**Phases:** 1, 2
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+`;
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_NO_TABLE);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    // Phase 2 missing SUMMARY.md — should block
+    const result = checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } });
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('02');
+  });
+
+  test('fallback: parses phases from ### Phase headings when no table or Phases line', () => {
+    const ROADMAP_HEADINGS_ONLY = `# Roadmap
+
+## Milestone: Test
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+`;
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_HEADINGS_ONLY);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'SUMMARY.md'), 'ok');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
+  });
 });
 
 describe('checkBuildDependencyGate', () => {

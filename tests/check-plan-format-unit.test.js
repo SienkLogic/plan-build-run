@@ -546,4 +546,103 @@ Body`;
     const result = validateLearnings('no frontmatter at all', 'LEARNINGS.md');
     expect(result.errors.length).toBeGreaterThan(0);
   });
+
+  test('unclosed frontmatter is an error', () => {
+    const result = validateLearnings('---\nphase: 1\nno closing', 'LEARNINGS.md');
+    expect(result.errors.some(e => /unclosed/i.test(e))).toBe(true);
+  });
+
+  test('warns on invalid cross_project value', () => {
+    const content = '---\nphase: 1\nkey_insights:\n  - x\npatterns:\n  - y\ncross_project: maybe\n---\nbody';
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.warnings.some(w => /cross_project/i.test(w))).toBe(true);
+  });
+});
+
+describe('validateConfig', () => {
+  const { validateConfig } = require('../hooks/check-plan-format');
+
+  test('valid config passes', () => {
+    const content = JSON.stringify({ planning: { depth: 'standard' } });
+    const result = validateConfig(content, 'config.json');
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('invalid JSON errors', () => {
+    const result = validateConfig('not json {{{', 'config.json');
+    expect(result.errors.some(e => /invalid json/i.test(e))).toBe(true);
+  });
+
+  test('non-object errors', () => {
+    const result = validateConfig('[]', 'config.json');
+    expect(result.errors.some(e => /must be a JSON object/i.test(e))).toBe(true);
+  });
+
+  test('missing planning section errors', () => {
+    const result = validateConfig('{}', 'config.json');
+    expect(result.errors.some(e => /planning/i.test(e))).toBe(true);
+  });
+
+  test('missing planning.depth errors', () => {
+    const content = JSON.stringify({ planning: {} });
+    const result = validateConfig(content, 'config.json');
+    expect(result.errors.some(e => /depth/i.test(e))).toBe(true);
+  });
+
+  test('unexpected depth value warns', () => {
+    const content = JSON.stringify({ planning: { depth: 'extreme' } });
+    const result = validateConfig(content, 'config.json');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /extreme/i.test(w))).toBe(true);
+  });
+
+  test('unknown top-level key warns', () => {
+    const content = JSON.stringify({ planning: { depth: 'standard' }, mystery: true });
+    const result = validateConfig(content, 'config.json');
+    expect(result.warnings.some(w => /mystery/i.test(w))).toBe(true);
+  });
+
+  test('null value errors', () => {
+    const result = validateConfig('null', 'config.json');
+    expect(result.errors.some(e => /must be a JSON object/i.test(e))).toBe(true);
+  });
+});
+
+describe('validateResearch', () => {
+  const { validateResearch } = require('../hooks/check-plan-format');
+
+  test('valid research passes', () => {
+    const content = '---\nconfidence: high\nsources_checked: 5\nphase: 1\n---\n# Research';
+    const result = validateResearch(content, 'RESEARCH.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test('missing frontmatter errors', () => {
+    const result = validateResearch('# No frontmatter', 'RESEARCH.md');
+    expect(result.errors.some(e => /frontmatter/i.test(e))).toBe(true);
+  });
+
+  test('unclosed frontmatter errors', () => {
+    const result = validateResearch('---\nconfidence: high\nno closing', 'RESEARCH.md');
+    expect(result.errors.some(e => /unclosed/i.test(e))).toBe(true);
+  });
+
+  test('missing confidence errors', () => {
+    const content = '---\nsources_checked: 5\n---\nbody';
+    const result = validateResearch(content, 'RESEARCH.md');
+    expect(result.errors.some(e => /confidence/i.test(e))).toBe(true);
+  });
+
+  test('missing sources_checked errors', () => {
+    const content = '---\nconfidence: high\n---\nbody';
+    const result = validateResearch(content, 'RESEARCH.md');
+    expect(result.errors.some(e => /sources_checked/i.test(e))).toBe(true);
+  });
+
+  test('missing phase warns', () => {
+    const content = '---\nconfidence: high\nsources_checked: 5\n---\nbody';
+    const result = validateResearch(content, 'RESEARCH.md');
+    expect(result.warnings.some(w => /phase/i.test(w))).toBe(true);
+  });
 });
