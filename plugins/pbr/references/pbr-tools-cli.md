@@ -1,10 +1,10 @@
-# pbr-tools.js CLI Reference
+# pbr-tools.cjs CLI Reference
 
 Command-line interface for structured JSON operations on `.planning/` state.
 Skills and agents call this via Bash to avoid token-expensive text parsing.
 
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js <command> [args]
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs <command> [args]
 ```
 
 All commands output JSON to stdout. Errors output JSON with an `error` field to stderr (exit code 1).
@@ -18,7 +18,7 @@ All commands output JSON to stdout. Errors output JSON with an `error` field to 
 Returns full project state as a single JSON object.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state load
 ```
 
 **Output:**
@@ -49,7 +49,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
 Recalculates progress from filesystem (plan files, summaries, verification).
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state check-progress
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state check-progress
 ```
 
 **Output:**
@@ -69,10 +69,10 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state check-progress
 Atomically updates a single field in STATE.md. Uses file locking.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update current_phase 2
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now   # auto-timestamps
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete 3
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update current_phase 2
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status building
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update last_activity now   # auto-timestamps
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update plans_complete 3
 ```
 
 **Valid fields:** `current_phase`, `status`, `plans_complete`, `last_activity`
@@ -88,7 +88,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete 3
 Validates `config.json` against the JSON schema. Detects both schema violations and semantic conflicts.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config validate
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config validate
 ```
 
 **Output:**
@@ -105,8 +105,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config validate
 Resolves the effective depth profile by merging base profile with user overrides.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth /path/to/.planning
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth /path/to/.planning
 ```
 
 **Output:** Full depth profile object with all resolved values (research rounds, plan detail level, verification depth, etc.)
@@ -120,7 +120,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth /path/to/.p
 Returns plan inventory for a phase, grouped by wave.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index 1
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs plan-index 1
 ```
 
 **Output:**
@@ -150,7 +150,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index 1
 Comprehensive single-phase status combining roadmap, filesystem, and plan data.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info 1
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-info 1
 ```
 
 **Output:**
@@ -175,7 +175,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info 1
 Collects all must-haves from phase plans — truths, artifacts, and key links.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves 1
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs must-haves 1
 ```
 
 **Output:**
@@ -199,7 +199,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves 1
 Parses a markdown file's YAML frontmatter and returns as JSON.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter .planning/phases/01-setup/PLAN-01.md
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs frontmatter .planning/phases/01-setup/PLAN-01.md
 ```
 
 **Output:** The frontmatter fields as a JSON object. Returns `{ "error": "File not found: ..." }` if the file doesn't exist.
@@ -213,7 +213,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter .planning/phases/01-
 Updates the Status column for a phase in ROADMAP.md's Phase Overview table. Uses file locking. Warns on invalid status transitions but does not block them.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status 1 building
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status 1 building
 ```
 
 **Valid statuses:** `pending`, `planned`, `building`, `built`, `partial`, `needs_fixes`, `verified`, `skipped`
@@ -225,7 +225,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status 1 building
 Updates the Plans column (e.g., "2/5") for a phase in ROADMAP.md.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans 1 2 5
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-plans 1 2 5
 ```
 
 **Output:** `{ "success": true, "old_plans": "1/5", "new_plans": "2/5" }`
@@ -239,8 +239,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans 1 2 5
 Appends a record to HISTORY.md. Creates the file if it doesn't exist.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "v1.0 Release" "Initial release with core features"
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "01-setup Complete" "3 plans executed, all verified"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs history append milestone "v1.0 Release" "Initial release with core features"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs history append phase "01-setup Complete" "3 plans executed, all verified"
 ```
 
 **Types:** `milestone`, `phase`
@@ -252,7 +252,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "01-setup C
 Loads all HISTORY.md records as structured JSON.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history load
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs history load
 ```
 
 **Output:**
@@ -276,8 +276,8 @@ Returns `null` if HISTORY.md doesn't exist.
 Logs a structured event to `.planning/logs/events.jsonl`.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event build plan-complete '{"plan":"01","phase":"01-setup"}'
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event error hook-failure '{"script":"validate-task.js"}'
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs event build plan-complete '{"plan":"01","phase":"01-setup"}'
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs event error hook-failure '{"script":"validate-task.js"}'
 ```
 
 **Output:** `{ "logged": true, "category": "build", "event": "plan-complete" }`
@@ -296,7 +296,7 @@ Replace multi-step context loading in skills with a single CLI call.
 Everything an executor needs to start building a phase.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init execute-phase 3
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init execute-phase 3
 ```
 
 **Output:**
@@ -318,7 +318,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init execute-phase 3
 Everything a planner needs to start phase planning.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init plan-phase 3
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init plan-phase 3
 ```
 
 **Output:** `researcher_model`, `planner_model`, `checker_model`, `config` (depth profile, features, planning settings), `phase` (num, dir, goal, depends_on), `existing_artifacts`, `workflow` flags.
@@ -328,7 +328,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init plan-phase 3
 Everything the quick skill needs: next task number, slug, directory path.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init quick "add search feature"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init quick "add search feature"
 ```
 
 **Output:** `next_task_number`, `slug`, `dir`, `dir_name`, `timestamp`, `config` subset.
@@ -338,7 +338,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init quick "add search feature"
 Everything a verifier needs to start verification.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init verify-work 3
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init verify-work 3
 ```
 
 **Output:** `verifier_model`, `phase` info, `has_verification`, `prior_attempts`, `prior_status`, `summaries`.
@@ -348,7 +348,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init verify-work 3
 Detect interrupted state and suggest continuation.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init resume
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init resume
 ```
 
 **Output:** `state`, `auto_next`, `continue_here`, `active_skill`, `current_phase`, `progress`.
@@ -358,7 +358,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init resume
 All phases with status and completion data.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init progress
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init progress
 ```
 
 **Output:** `current_phase`, `phase_count`, `status`, `phases` array, `total_plans`, `completed_plans`, `percentage`.
@@ -372,7 +372,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init progress
 Multi-field atomic STATE.md update. Updates all fields in a single pass.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state patch '{"status":"executing","last_activity":"now"}'
 ```
 
 **Valid fields:** `current_phase`, `status`, `plans_complete`, `last_activity`, `progress_percent`, `phase_slug`, `last_command`, `blockers`
@@ -384,7 +384,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executin
 Increment current plan number in STATE.md and update progress percentage.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state advance-plan
 ```
 
 **Output:** `{ "success": true, "previous_plan": 1, "current_plan": 2, "total_plans": 5, "progress_percent": 40 }`
@@ -394,7 +394,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
 Record session/execution metrics. Appends to HISTORY.md and updates last_activity.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-metric --duration 15m --plans-completed 3
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state record-metric --duration 15m --plans-completed 3
 ```
 
 **Output:** `{ "success": true, "duration_minutes": 15, "plans_completed": 3 }`

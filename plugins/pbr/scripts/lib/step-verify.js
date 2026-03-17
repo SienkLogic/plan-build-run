@@ -7,8 +7,8 @@
  * strings to filesystem predicates using keyword matching and returns a structured
  * pass/fail result.
  *
- * Usage (CLI via pbr-tools.js):
- *   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists"]'
+ * Usage (CLI via pbr-tools.cjs):
+ *   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs step-verify build step-6f '["STATE.md updated","SUMMARY.md exists"]'
  *
  * Returns: { skill, step, passed: string[], failed: string[], all_passed: boolean }
  * On invalid checklist: { error: 'Invalid checklist JSON' }

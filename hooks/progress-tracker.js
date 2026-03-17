@@ -708,7 +708,7 @@ function tryLaunchHookServer(config, planningDir) {
 /**
  * Check learnings deferral thresholds and return notification strings.
  * Wrapped in try/catch — threshold check must never break SessionStart.
- * Equivalent to: node pbr-tools.js learnings check-thresholds
+ * Equivalent to: node pbr-tools.cjs learnings check-thresholds
  * @param {string} _planningDir — unused; thresholds check global learnings store
  * @returns {string[]}
  */

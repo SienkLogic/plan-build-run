@@ -154,7 +154,7 @@ For each remaining phase N:
 - Log: "Phase {N} complete. Moving to Phase {N+1}."
 - Update STATE.md current_phase to next phase via CLI:
   ```bash
-  node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update current_phase {N+1}
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update current_phase {N+1}
   ```
 - Check milestone boundary: if this was the last phase in milestone, stop loop.
   Display: "Milestone complete! Run `/pbr:milestone` to archive."

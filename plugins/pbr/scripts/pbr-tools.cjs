@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * pbr-tools.js — Structured JSON state operations for Plan-Build-Run skills.
+ * pbr-tools.cjs — Structured JSON state operations for Plan-Build-Run skills.
  *
  * Thin dispatcher that imports from lib/ modules. All core logic lives in:
  *   lib/core.js    — Foundation utilities (parsers, file ops, constants)
@@ -13,7 +13,7 @@
  *   lib/history.js — History operations (append to STATE.md ## History, load with HISTORY.md fallback)
  *
  * Skills call this via:
- *   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js <command> [args]
+ *   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs <command> [args]
  *
  * Commands:
  *   state load              — Full project state as JSON
@@ -727,7 +727,7 @@ async function main() {
       const field = args[2];
       const value = args[3];
       if (!field || value === undefined) {
-        error('Usage: pbr-tools.js state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity, progress_percent, phase_slug, last_command, blockers');
+        error('Usage: pbr-tools.cjs state update <field> <value>\nFields: current_phase, status, plans_complete, last_activity, progress_percent, phase_slug, last_command, blockers');
       }
       output(stateUpdate(field, value));
     } else if (command === 'config' && subcommand === 'validate') {
@@ -746,32 +746,32 @@ async function main() {
     } else if (command === 'plan-index') {
       const phase = args[1];
       if (!phase) {
-        error('Usage: pbr-tools.js plan-index <phase-number>');
+        error('Usage: pbr-tools.cjs plan-index <phase-number>');
       }
       output(planIndex(phase));
     } else if (command === 'frontmatter') {
       const filePath = args[1];
       if (!filePath) {
-        error('Usage: pbr-tools.js frontmatter <filepath>');
+        error('Usage: pbr-tools.cjs frontmatter <filepath>');
       }
       output(frontmatter(filePath));
     } else if (command === 'must-haves') {
       const phase = args[1];
       if (!phase) {
-        error('Usage: pbr-tools.js must-haves <phase-number>');
+        error('Usage: pbr-tools.cjs must-haves <phase-number>');
       }
       output(mustHavesCollect(phase));
     } else if (command === 'phase-info') {
       const phase = args[1];
       if (!phase) {
-        error('Usage: pbr-tools.js phase-info <phase-number>');
+        error('Usage: pbr-tools.cjs phase-info <phase-number>');
       }
       output(phaseInfo(phase));
     } else if (command === 'roadmap' && subcommand === 'update-status') {
       const phase = args[2];
       const status = args[3];
       if (!phase || !status) {
-        error('Usage: pbr-tools.js roadmap update-status <phase-number> <status>');
+        error('Usage: pbr-tools.cjs roadmap update-status <phase-number> <status>');
       }
       output(roadmapUpdateStatus(phase, status));
     } else if (command === 'roadmap' && subcommand === 'update-plans') {
@@ -779,7 +779,7 @@ async function main() {
       const complete = args[3];
       const total = args[4];
       if (!phase || complete === undefined || total === undefined) {
-        error('Usage: pbr-tools.js roadmap update-plans <phase-number> <complete> <total>');
+        error('Usage: pbr-tools.cjs roadmap update-plans <phase-number> <complete> <total>');
       }
       output(roadmapUpdatePlans(phase, complete, total));
     } else if (command === 'roadmap' && subcommand === 'analyze') {
@@ -789,7 +789,7 @@ async function main() {
       const title = args[3];
       const body = args[4] || '';
       if (!type || !title) {
-        error('Usage: pbr-tools.js history append <milestone|phase> <title> [body]');
+        error('Usage: pbr-tools.cjs history append <milestone|phase> <title> [body]');
       }
       output(historyAppend({ type, title, body }));
     } else if (command === 'history' && subcommand === 'load') {
@@ -802,7 +802,7 @@ async function main() {
         try { details = JSON.parse(args[3]); } catch (_e) { details = { raw: args[3] }; }
       }
       if (!category || !event) {
-        error('Usage: pbr-tools.js event <category> <event> [JSON-details]');
+        error('Usage: pbr-tools.cjs event <category> <event> [JSON-details]');
       }
       const { logEvent } = require('./event-logger');
       logEvent(category, event, details);
@@ -830,7 +830,7 @@ async function main() {
       const fileType = args[2];
       const filePath = args[3];
       if (!fileType || !filePath) {
-        error('Usage: pbr-tools.js llm classify <PLAN|SUMMARY> <filepath>');
+        error('Usage: pbr-tools.cjs llm classify <PLAN|SUMMARY> <filepath>');
       }
       const upperType = fileType.toUpperCase();
       if (upperType !== 'PLAN' && upperType !== 'SUMMARY') {
@@ -851,7 +851,7 @@ async function main() {
       const sourceUrl = args[2];
       const filePath = args[3];
       if (!sourceUrl || !filePath) {
-        error('Usage: pbr-tools.js llm score-source <url> <file-path>');
+        error('Usage: pbr-tools.cjs llm score-source <url> <file-path>');
       }
       if (!fs.existsSync(filePath)) {
         error('File not found: ' + filePath);
@@ -866,7 +866,7 @@ async function main() {
       const filePath = args[2];
       const agentType = args[3] || 'unknown';
       if (!filePath) {
-        error('Usage: pbr-tools.js llm classify-error <file-path> [agent-type]');
+        error('Usage: pbr-tools.cjs llm classify-error <file-path> [agent-type]');
       }
       if (!fs.existsSync(filePath)) {
         error('File not found: ' + filePath);
@@ -881,7 +881,7 @@ async function main() {
       const filePath = args[2];
       const maxWords = args[3] ? parseInt(args[3], 10) : undefined;
       if (!filePath) {
-        error('Usage: pbr-tools.js llm summarize <file-path> [max-words]');
+        error('Usage: pbr-tools.cjs llm summarize <file-path> [max-words]');
       }
       if (!fs.existsSync(filePath)) {
         error('File not found: ' + filePath);
@@ -919,18 +919,18 @@ async function main() {
     // --- Compound init commands ---
     } else if (command === "init" && subcommand === "execute-phase") {
       const phase = args[2];
-      if (!phase) error("Usage: pbr-tools.js init execute-phase <phase-number>");
+      if (!phase) error("Usage: pbr-tools.cjs init execute-phase <phase-number>");
       output(initExecutePhase(phase));
     } else if (command === "init" && subcommand === "plan-phase") {
       const phase = args[2];
-      if (!phase) error("Usage: pbr-tools.js init plan-phase <phase-number>");
+      if (!phase) error("Usage: pbr-tools.cjs init plan-phase <phase-number>");
       output(initPlanPhase(phase));
     } else if (command === "init" && subcommand === "quick") {
       const desc = args.slice(2).join(" ") || "";
       output(initQuick(desc));
     } else if (command === "init" && subcommand === "verify-work") {
       const phase = args[2];
-      if (!phase) error("Usage: pbr-tools.js init verify-work <phase-number>");
+      if (!phase) error("Usage: pbr-tools.cjs init verify-work <phase-number>");
       output(initVerifyWork(phase));
     } else if (command === "init" && subcommand === "resume") {
       output(initResume());
@@ -938,12 +938,12 @@ async function main() {
       output(initProgress());
     } else if (command === 'state-bundle') {
       const phaseNum = args[1];
-      if (!phaseNum) error('Usage: pbr-tools.js state-bundle <phase-number>');
+      if (!phaseNum) error('Usage: pbr-tools.cjs state-bundle <phase-number>');
       output(stateBundle(phaseNum));
     // --- State patch/advance/metric ---
     } else if (command === "state" && subcommand === "patch") {
       const jsonStr = args[2];
-      if (!jsonStr) error("Usage: pbr-tools.js state patch JSON");
+      if (!jsonStr) error("Usage: pbr-tools.cjs state patch JSON");
       output(statePatch(jsonStr));
     } else if (command === "state" && subcommand === "advance-plan") {
       output(stateAdvancePlan());
@@ -951,7 +951,7 @@ async function main() {
       output(stateRecordMetric(args.slice(2)));
     } else if (command === "state" && subcommand === "record-activity") {
       const description = args.slice(2).join(' ');
-      if (!description) error("Usage: pbr-tools.js state record-activity <description>");
+      if (!description) error("Usage: pbr-tools.cjs state record-activity <description>");
       output(stateRecordActivity(description));
     } else if (command === "state" && subcommand === "update-progress") {
       output(stateUpdateProgress());
@@ -1007,7 +1007,7 @@ async function main() {
       output(todoList(opts));
     } else if (command === 'todo' && subcommand === 'get') {
       const num = args[2];
-      if (!num) error('Usage: pbr-tools.js todo get <NNN>');
+      if (!num) error('Usage: pbr-tools.cjs todo get <NNN>');
       output(todoGet(num));
     } else if (command === 'todo' && subcommand === 'add') {
       const titleParts = [];
@@ -1020,11 +1020,11 @@ async function main() {
         else { titleParts.push(args[i]); }
       }
       const title = titleParts.join(' ');
-      if (!title) error('Usage: pbr-tools.js todo add <title> [--priority P1|P2|P3] [--theme <theme>]');
+      if (!title) error('Usage: pbr-tools.cjs todo add <title> [--priority P1|P2|P3] [--theme <theme>]');
       output(todoAdd(title, opts));
     } else if (command === 'todo' && subcommand === 'done') {
       const num = args[2];
-      if (!num) error('Usage: pbr-tools.js todo done <NNN>');
+      if (!num) error('Usage: pbr-tools.cjs todo done <NNN>');
       output(todoDone(num));
     } else if (command === 'migrate') {
       const dryRun = args.includes('--dry-run');
@@ -1134,11 +1134,11 @@ async function main() {
       const runId = args[1];
       const timeoutIdx = args.indexOf('--timeout');
       const timeoutSecs = timeoutIdx !== -1 ? parseInt(args[timeoutIdx + 1], 10) : 300;
-      if (!runId) { error('Usage: pbr-tools.js ci-poll <run-id> [--timeout <seconds>]'); return; }
+      if (!runId) { error('Usage: pbr-tools.cjs ci-poll <run-id> [--timeout <seconds>]'); return; }
       output(ciPoll(runId, timeoutSecs));
     } else if (command === 'rollback') {
       const manifestPath = args[1];
-      if (!manifestPath) { error('Usage: pbr-tools.js rollback <manifest-path>'); return; }
+      if (!manifestPath) { error('Usage: pbr-tools.cjs rollback <manifest-path>'); return; }
       output(rollbackPlan(manifestPath));
     } else if (command === 'session') {
       const sub = args[1];
@@ -1153,13 +1153,13 @@ async function main() {
       const value = positional[3];
       const dir = planningDir;
       if (sub === 'get') {
-        if (!key) { error('Usage: pbr-tools.js session get <key> [--session-id <id>]'); return; }
+        if (!key) { error('Usage: pbr-tools.cjs session get <key> [--session-id <id>]'); return; }
         if (!SESSION_ALLOWED_KEYS.includes(key)) { error(`Unknown session key: ${key}. Allowed: ${SESSION_ALLOWED_KEYS.join(', ')}`); return; }
         const data = sessionLoad(dir, sessionId);
         const val = Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
         output({ key, value: val });
       } else if (sub === 'set') {
-        if (!key || value === undefined) { error('Usage: pbr-tools.js session set <key> <value> [--session-id <id>]'); return; }
+        if (!key || value === undefined) { error('Usage: pbr-tools.cjs session set <key> <value> [--session-id <id>]'); return; }
         if (!SESSION_ALLOWED_KEYS.includes(key)) { error(`Unknown session key: ${key}. Allowed: ${SESSION_ALLOWED_KEYS.join(', ')}`); return; }
         // Coerce numeric strings
         let coerced = value;
@@ -1186,7 +1186,7 @@ async function main() {
         const data = sessionLoad(dir, sessionId);
         output(data);
       } else {
-        error('Usage: pbr-tools.js session get|set|clear|dump <key> [value] [--session-id <id>]');
+        error('Usage: pbr-tools.cjs session get|set|clear|dump <key> [value] [--session-id <id>]');
       }
     } else if (command === 'context-triage') {
       const options = {};
@@ -1199,14 +1199,14 @@ async function main() {
       output(contextTriage(options));
     } else if (command === 'reference') {
       const name = args[1];
-      if (!name) error('Usage: pbr-tools.js reference <name> [--section <heading>] [--list]');
+      if (!name) error('Usage: pbr-tools.cjs reference <name> [--section <heading>] [--list]');
       const listFlag = args.includes('--list');
       const sectionIdx = args.indexOf('--section');
       const section = sectionIdx !== -1 ? args.slice(sectionIdx + 1).join(' ') : null;
       output(referenceGet(name, { section: section, list: listFlag }));
     } else if (command === 'milestone-stats') {
       const version = args[1];
-      if (!version) error('Usage: pbr-tools.js milestone-stats <version>');
+      if (!version) error('Usage: pbr-tools.cjs milestone-stats <version>');
       output(milestoneStats(version));
     } else if (command === 'validate-project') {
       output(validateProject());
@@ -1214,7 +1214,7 @@ async function main() {
       // skill-section --list <skill>  — list all headings
       if (args[1] === '--list') {
         const skillName = args[2];
-        if (!skillName) { error('Usage: pbr-tools.js skill-section --list <skill>'); return; }
+        if (!skillName) { error('Usage: pbr-tools.cjs skill-section --list <skill>'); return; }
         const listResult = listSkillHeadings(skillName);
         output(listResult);
         if (listResult.error) process.exit(1);
@@ -1223,7 +1223,7 @@ async function main() {
         const skillName = args[1];
         const sectionQuery = args.slice(2).join(' ');
         if (!skillName || !sectionQuery) {
-          error('Usage: pbr-tools.js skill-section <skill> <section>');
+          error('Usage: pbr-tools.cjs skill-section <skill> <section>');
           return;
         }
         const secResult = skillSectionGet(skillName, sectionQuery);
@@ -1255,7 +1255,7 @@ async function main() {
     } else if (command === 'build-preview') {
       const phaseSlug = args[1];
       if (!phaseSlug) {
-        error('Usage: pbr-tools.js build-preview <phase-slug>');
+        error('Usage: pbr-tools.cjs build-preview <phase-slug>');
         return;
       }
       const previewPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
@@ -1286,7 +1286,7 @@ async function main() {
       const skillIdx = args.indexOf('--skill');
       const skill = skillIdx !== -1 ? args[skillIdx + 1] : 'unknown';
       if (!phaseSlug || !sessionId) {
-        error('Usage: pbr-tools.js claim acquire <phase-slug> --session-id <id> --skill <name>');
+        error('Usage: pbr-tools.cjs claim acquire <phase-slug> --session-id <id> --skill <name>');
       }
       output(claimAcquire(phaseSlug, sessionId, skill));
     } else if (command === 'claim' && subcommand === 'release') {
@@ -1294,7 +1294,7 @@ async function main() {
       const sidIdx = args.indexOf('--session-id');
       const sessionId = sidIdx !== -1 ? args[sidIdx + 1] : null;
       if (!phaseSlug || !sessionId) {
-        error('Usage: pbr-tools.js claim release <phase-slug> --session-id <id>');
+        error('Usage: pbr-tools.cjs claim release <phase-slug> --session-id <id>');
       }
       output(claimRelease(phaseSlug, sessionId));
     } else if (command === 'claim' && subcommand === 'list') {
@@ -1328,7 +1328,7 @@ async function main() {
     // ─── Slug Generation ─────────────────────────────────────────────────────
     } else if (command === 'generate-slug' || command === 'slug-generate') {
       const text = args.slice(1).join(' ');
-      if (!text) error('Usage: pbr-tools.js generate-slug <text>');
+      if (!text) error('Usage: pbr-tools.cjs generate-slug <text>');
       const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       output({ slug });
 
@@ -1336,7 +1336,7 @@ async function main() {
     } else if (command === 'parse-args') {
       const type = args[1];
       const rawInput = args.slice(2).join(' ');
-      if (!type) error('Usage: pbr-tools.js parse-args <type> <args>\nTypes: plan, quick');
+      if (!type) error('Usage: pbr-tools.cjs parse-args <type> <args>\nTypes: plan, quick');
       const { parseArgs } = require('./lib/parse-args');
       output(parseArgs(type, rawInput));
 

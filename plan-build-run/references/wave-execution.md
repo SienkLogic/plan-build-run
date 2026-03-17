@@ -35,7 +35,7 @@ If lock acquisition fails, wait 2s and retry (max 3 attempts).
 Between waves, the build skill writes a checkpoint manifest via:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs checkpoint init {phase-slug} --plans "{plan-ids}"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs checkpoint init {phase-slug} --plans "{plan-ids}"
 ```
 
 The manifest tracks: which plans completed, their commit SHAs, provides/consumes resolution, and session affinity. The next wave reads this to verify prerequisites are met.

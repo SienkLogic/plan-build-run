@@ -6,7 +6,7 @@
  * writes PLAN.md so the skill doesn't have to.
  *
  * Usage:
- *   node pbr-tools.js quick init "fix the auth bug in login flow"
+ *   node pbr-tools.cjs quick init "fix the auth bug in login flow"
  */
 
 const fs = require('fs');

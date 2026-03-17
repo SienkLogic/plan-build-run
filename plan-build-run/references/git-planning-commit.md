@@ -7,7 +7,7 @@ Commit planning artifacts using the pbr-tools CLI, which automatically checks `c
 Always use `pbr-tools.cjs commit` for `.planning/` files — it handles `commit_docs` and gitignore checks automatically:
 
 ```bash
-node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "docs({scope}): {description}" --files .planning/STATE.md .planning/ROADMAP.md
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" commit "docs({scope}): {description}" --files .planning/STATE.md .planning/ROADMAP.md
 ```
 
 The CLI will return `skipped` (with reason) if `commit_docs` is `false` or `.planning/` is gitignored. No manual conditional checks needed.
@@ -17,7 +17,7 @@ The CLI will return `skipped` (with reason) if `commit_docs` is `false` or `.pla
 To fold `.planning/` file changes into the previous commit:
 
 ```bash
-node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" commit "" --files .planning/codebase/*.md --amend
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" commit "" --files .planning/codebase/*.md --amend
 ```
 
 ## Commit Message Patterns

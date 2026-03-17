@@ -89,7 +89,7 @@ function configValidate(preloadedConfig, planningDir) {
   if (config.schema_version && config.schema_version > CURRENT_SCHEMA_VERSION) {
     warnings.push(`config.json schema_version (${config.schema_version}) is newer than this PBR version supports (${CURRENT_SCHEMA_VERSION}). Some fields may be ignored. Consider updating PBR.`);
   } else if (!config.schema_version || config.schema_version < CURRENT_SCHEMA_VERSION) {
-    warnings.push(`config.json schema is outdated. Run: node pbr-tools.js migrate`);
+    warnings.push(`config.json schema is outdated. Run: node pbr-tools.cjs migrate`);
   }
 
   // Local LLM endpoint must be localhost-only for security

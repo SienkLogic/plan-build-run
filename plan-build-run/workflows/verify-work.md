@@ -24,7 +24,7 @@ No Pass/Fail buttons. No severity questions. Just: "Here's what should happen. D
 If $ARGUMENTS contains a phase number, load context:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init verify-work "${PHASE_ARG}")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init verify-work "${PHASE_ARG}")
 ```
 
 Parse JSON for: `planner_model`, `checker_model`, `commit_docs`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `has_verification`.
@@ -292,7 +292,7 @@ Clear Current Test section:
 
 Commit the UAT file:
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "test({phase}): complete UAT - {passed} passed, {issues} issues" --files ".planning/phases/XX-name/{phase}-UAT.md"
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "test({phase}): complete UAT - {passed} passed, {issues} issues" --files ".planning/phases/XX-name/{phase}-UAT.md"
 ```
 
 Present summary:
@@ -351,7 +351,7 @@ Do NOT spawn planners or checkers inline — by this point in the session, conte
 Commit the diagnosed UAT file:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "test({phase}): diagnose UAT gaps - {issues} issues found" --files ".planning/phases/XX-name/{phase}-UAT.md"
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "test({phase}): diagnose UAT gaps - {issues} issues found" --files ".planning/phases/XX-name/{phase}-UAT.md"
 ```
 
 Present:
@@ -435,7 +435,7 @@ Default to **major** if unclear. User can correct if needed.
 After UAT testing completes, calculate integration health to quantify system quality:
 
 ```bash
-SCORE=$(node ~/.claude/plan-build-run/bin/pbr-tools.js integration-score --raw)
+SCORE=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs integration-score --raw)
 ```
 
 The integration score uses the **5-state export model** (CONNECTED, IMPORTED_NOT_USED, ORPHANED, MISMATCHED, MISSING_EXPORT) to classify every export and calculates per-category scores for:

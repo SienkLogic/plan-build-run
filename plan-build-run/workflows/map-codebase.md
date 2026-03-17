@@ -26,7 +26,7 @@ Documents are reference material for Claude when planning/executing. Always incl
 Load codebase mapping context:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init map-codebase)
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init map-codebase)
 ```
 
 Extract from init JSON: `mapper_model`, `commit_docs`, `codebase_dir`, `existing_maps`, `has_maps`, `codebase_dir_exists`.
@@ -262,7 +262,7 @@ Continue to commit_codebase_map.
 Commit the codebase map:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "docs: map existing codebase" --files .planning/codebase/*.md
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "docs: map existing codebase" --files .planning/codebase/*.md
 ```
 
 Continue to offer_next.

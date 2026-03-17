@@ -13,8 +13,8 @@ Check for PBR updates, install if available, and display what changed.
 ## 1. Detect Current Version
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs help 2>/dev/null | head -1
-cat $HOME/.claude/plan-build-run/package.json 2>/dev/null | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).version)" 2>/dev/null
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs help 2>/dev/null | head -1
+cat ${CLAUDE_PLUGIN_ROOT}/package.json 2>/dev/null | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).version)" 2>/dev/null
 ```
 
 ## 2. Check Latest Version
