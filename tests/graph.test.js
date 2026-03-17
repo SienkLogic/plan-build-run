@@ -133,9 +133,9 @@ describe('graph.cjs', () => {
       const { tmp, planningDir } = makeTempPlanning();
       try {
         const result = graph.buildGraph(planningDir, tmp);
-        expect(result.nodes).toHaveProperty('src/app.js');
-        expect(result.nodes).toHaveProperty('src/db.js');
-        expect(result.nodes).toHaveProperty('src/config.js');
+        expect(result.nodes['src/app.js']).toBeDefined();
+        expect(result.nodes['src/db.js']).toBeDefined();
+        expect(result.nodes['src/config.js']).toBeDefined();
         expect(result.nodes['src/app.js'].exports).toContain('start');
         expect(result.nodes['src/app.js'].size_lines).toBe(120);
       } finally {
@@ -267,7 +267,7 @@ describe('graph.cjs', () => {
 
         const g2 = graph.updateGraphIncremental(planningDir, tmp, 'src/utils.js');
         expect(g2._meta.node_count).toBeGreaterThanOrEqual(nodeCountBefore);
-        expect(g2.nodes).toHaveProperty('src/utils.js');
+        expect(g2.nodes['src/utils.js']).toBeDefined();
       } finally {
         cleanupTemp(tmp);
       }
