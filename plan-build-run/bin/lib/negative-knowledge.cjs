@@ -182,7 +182,7 @@ function readAllEntries(planningDir) {
       title: fm.title || '',
       category: fm.category || '',
       files_involved: filesInvolved,
-      phase: fm.phase || '',
+      phase: (typeof fm.phase === 'string' ? fm.phase : '') || '',
       status: fm.status || 'active',
       path: filePath,
     });

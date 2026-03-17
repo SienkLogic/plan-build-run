@@ -118,6 +118,11 @@
  *   learnings copy-global <path> <proj>   Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P]  Query global knowledge files
  *
+ * NEGATIVE KNOWLEDGE:
+ *   negative-knowledge record --title "..." --category <cat> --files "a,b" --what-tried "..." --why-failed "..."
+ *   negative-knowledge query --files "path1,path2"
+ *   negative-knowledge list [--category X] [--phase Y] [--status Z]
+ *
  * INTEL OPERATIONS:
  *   intel query <term>                    Search intel files for a term
  *   intel update                          Trigger intel refresh (prints agent instructions)
@@ -243,6 +248,7 @@ let _verify, _frontmatter, _commands, _template, _milestone;
 let _reference, _skillSection, _stepVerify, _preview, _context;
 let _alternatives, _migrate, _circuitState, _intel, _statusRender, _suggestNext, _parseArgs;
 let _decisions;
+let _negativeKnowledge;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -273,6 +279,7 @@ function getStatusRender() { if (!_statusRender) _statusRender = require('./lib/
 function getSuggestNext() { if (!_suggestNext) _suggestNext = require('./lib/suggest-next.cjs'); return _suggestNext; }
 function getParseArgs() { if (!_parseArgs) _parseArgs = require('./lib/parse-args.cjs'); return _parseArgs; }
 function getDecisions() { if (!_decisions) _decisions = require('./lib/decisions.cjs'); return _decisions; }
+function getNegativeKnowledge() { if (!_negativeKnowledge) _negativeKnowledge = require('./lib/negative-knowledge.cjs'); return _negativeKnowledge; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -1398,6 +1405,7 @@ async function main() {
         timestamp: new Date().toISOString()
       });
 
+<<<<<<< HEAD
     // ─── Decisions Operations ───────────────────────────────────────────────
     } else if (command === 'decisions' && subcommand === 'record') {
       const opts = {};
@@ -1425,9 +1433,42 @@ async function main() {
     } else if (command === 'decisions') {
       error(`Unknown decisions subcommand: ${subcommand}\nAvailable: record, list`);
 
+    // ─── Negative Knowledge ────────────────────────────────────────────────────
+    } else if (command === 'negative-knowledge' && subcommand === 'record') {
+      const nkArgs = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--title' && args[i + 1]) { nkArgs.title = args[++i]; }
+        else if (args[i] === '--category' && args[i + 1]) { nkArgs.category = args[++i]; }
+        else if (args[i] === '--files' && args[i + 1]) { nkArgs.filesInvolved = args[++i].split(',').map(f => f.trim()); }
+        else if (args[i] === '--what-tried' && args[i + 1]) { nkArgs.whatTried = args[++i]; }
+        else if (args[i] === '--why-failed' && args[i + 1]) { nkArgs.whyFailed = args[++i]; }
+        else if (args[i] === '--what-worked' && args[i + 1]) { nkArgs.whatWorked = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { nkArgs.phase = args[++i]; }
+      }
+      if (!nkArgs.title || !nkArgs.category) error('Usage: negative-knowledge record --title "..." --category <cat> --files "a,b" --what-tried "..." --why-failed "..."');
+      const result = getNegativeKnowledge().recordFailure(planningDir, nkArgs);
+      output(result);
+    } else if (command === 'negative-knowledge' && subcommand === 'query') {
+      let files = [];
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--files' && args[i + 1]) { files = args[++i].split(',').map(f => f.trim()); }
+      }
+      if (files.length === 0) error('Usage: negative-knowledge query --files "path1,path2"');
+      output(getNegativeKnowledge().queryByFiles(planningDir, files));
+    } else if (command === 'negative-knowledge' && subcommand === 'list') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--category' && args[i + 1]) { filters.category = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { filters.phase = args[++i]; }
+        else if (args[i] === '--status' && args[i + 1]) { filters.status = args[++i]; }
+      }
+      output(getNegativeKnowledge().listFailures(planningDir, filters));
+    } else if (command === 'negative-knowledge') {
+      error(`Unknown negative-knowledge subcommand: ${subcommand}\nAvailable: record, query, list`);
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
