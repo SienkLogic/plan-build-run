@@ -54,7 +54,23 @@
         "negative_knowledge": { "type": "boolean", "default": true, "description": "Enable negative knowledge tracking — records what failed and why in .planning/negative-knowledge/." },
         "living_requirements": { "type": "boolean", "default": true, "description": "Enable living requirements — auto-update requirement status as phases complete." },
         "trust_tracking": { "type": "boolean", "default": true, "description": "Enable trust score tracking per agent type and task category. Data stored in .planning/trust/agent-scores.json." },
-        "confidence_calibration": { "type": "boolean", "default": true, "description": "Enable confidence scores on deliverables based on historical agent accuracy." }
+        "confidence_calibration": { "type": "boolean", "default": true, "description": "Enable confidence scores on deliverables based on historical agent accuracy." },
+        "natural_language_routing": { "type": "boolean", "default": true, "description": "Enable natural language intent detection and routing in /pbr:do. When false, /pbr:do uses static keyword matching only." },
+        "adaptive_ceremony": { "type": "boolean", "default": true, "description": "Enable risk-based ceremony adjustment. When false, all tasks use standard ceremony regardless of risk level." },
+        "graduated_verification": { "type": "boolean", "default": true, "description": "Enable trust-based graduated verification depth (light/standard/thorough)." },
+        "self_verification": { "type": "boolean", "default": true, "description": "Enable executor self-verification before presenting output." }
+      },
+      "additionalProperties": false
+    },
+    "autonomy": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["supervised", "guided", "collaborative", "adaptive"],
+          "default": "supervised",
+          "description": "Progressive autonomy level. supervised=human approves all, guided=AI acts/human reviews async, collaborative=AI handles routine/escalates novel, adaptive=AI adjusts own autonomy per task confidence."
+        }
       },
       "additionalProperties": false
     },
@@ -560,6 +576,7 @@
       },
       "additionalProperties": false
     },
+    "ceremony_level": { "type": "string", "enum": ["auto", "low", "medium", "high"], "default": "auto", "description": "Override ceremony level. auto = risk-classifier decides. low = inline execution, no plan. medium = lightweight plan. high = full plan-build-verify cycle." },
     "skip_rag_max_lines": { "type": "integer", "minimum": 1000, "maximum": 500000, "default": 50000, "description": "Maximum project lines for Skip-RAG eligibility. Projects under this threshold can load entire codebase." },
     "orchestrator_budget_pct": { "type": "integer", "minimum": 15, "maximum": 50, "default": 25, "description": "Target orchestrator context budget as percentage of total window. Range 15-50%. Higher values enable more inline work." }
   },
