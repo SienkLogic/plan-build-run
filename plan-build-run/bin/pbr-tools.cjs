@@ -1066,6 +1066,14 @@ async function main() {
     } else if (command === 'validate-project') {
       output(validateProject());
 
+    // ─── Trust Gate ───────────────────────────────────────────────────────────
+    } else if (command === 'trust-gate') {
+      const phaseNum = args[1] || '';
+      const { resolveVerificationDepth } = require(path.join(__dirname, '..', '..', 'plugins', 'pbr', 'scripts', 'lib', 'trust-gate'));
+      const config = getConfig().configLoad(planningDir);
+      const depth = resolveVerificationDepth(planningDir, config);
+      output({ depth, phase: phaseNum });
+
     // ─── Frontmatter ──────────────────────────────────────────────────────────
     } else if (command === 'frontmatter' && subcommand === 'get') {
       const file = args[2];

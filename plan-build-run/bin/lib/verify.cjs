@@ -790,6 +790,38 @@ function cmdValidateHealth(cwd, options, raw) {
       const srEnabled = features.skip_rag === true;
       feature_status.skip_rag = { enabled: srEnabled, status: srEnabled ? 'healthy' : 'disabled' };
 
+      // ─── Phase 8 feature checks ──────────────────────────────────────────
+
+      // graduated_verification: default true; degraded if enabled but no trust data
+      const gvEnabled = features.graduated_verification !== false;
+      if (!gvEnabled) {
+        feature_status.graduated_verification = { enabled: false, status: 'disabled' };
+      } else {
+        const trustScoresPath = path.join(planningDir, 'trust', 'scores.json');
+        const hasTrustData = fs.existsSync(trustScoresPath);
+        feature_status.graduated_verification = {
+          enabled: true,
+          status: hasTrustData ? 'healthy' : 'degraded'
+        };
+      }
+
+      // self_verification: default true; healthy if enabled, disabled otherwise
+      const svEnabled = features.self_verification !== false;
+      feature_status.self_verification = {
+        enabled: svEnabled,
+        status: svEnabled ? 'healthy' : 'disabled'
+      };
+
+      // autonomy: check autonomy.level config property
+      const autonomyConfig = configParsed.autonomy || {};
+      const autonomyLevel = autonomyConfig.level || 'supervised';
+      const autonomyExplicit = !!(configParsed.autonomy && configParsed.autonomy.level);
+      feature_status.autonomy = {
+        enabled: true,
+        status: autonomyExplicit ? 'healthy' : 'degraded',
+        level: autonomyLevel
+      };
+
       // Validate orchestrator_budget_pct range (15-50)
       const budgetPct = configParsed.orchestrator_budget_pct;
       if (budgetPct !== undefined) {
