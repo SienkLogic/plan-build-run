@@ -556,9 +556,51 @@ const SKILL_CHECKS = {
     }
   },
   'quick:pbr:executor': {
-    description: 'quick executor SUMMARY commits',
+    description: 'quick executor SUMMARY commits and post-hoc generation',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Post-hoc SUMMARY.md generation for quick tasks
+      const postHocEnabled = loadFeatureFlag(planningDir, 'post_hoc_artifacts');
+      if (postHocEnabled === false) {
+        logEvent('post_hoc', 'post_hoc_skipped', { reason: 'feature_disabled', feature: 'post_hoc_artifacts' });
+        return;
+      }
+      // Check if SUMMARY.md is missing in the quick dir
+      const quickSummaries = findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
+      if (quickSummaries.length > 0) return; // Already exists, no need for post-hoc
+      // Find the latest quick task directory
+      const quickDir = path.join(planningDir, 'quick');
+      if (!fs.existsSync(quickDir)) return;
+      try {
+        const dirs = fs.readdirSync(quickDir)
+          .filter(d => /^\d{3}-/.test(d))
+          .sort()
+          .reverse();
+        if (dirs.length === 0) return;
+        const taskDir = path.join(quickDir, dirs[0]);
+        const taskSlug = dirs[0];
+        // Attempt post-hoc generation
+        try {
+          const { generateSummary } = require('../../../plan-build-run/bin/lib/post-hoc.cjs');
+          const projectRoot = path.resolve(planningDir, '..');
+          const result = generateSummary(projectRoot, taskDir, {
+            commitPattern: taskSlug.replace(/^(\d{3})-.*/, 'quick-$1')
+          });
+          logEvent('post_hoc', 'post_hoc_summary_generated', {
+            taskDir: taskSlug,
+            commitCount: result.commitCount,
+            feature: 'post_hoc_artifacts',
+            timestamp: new Date().toISOString()
+          });
+          warnings.push(`SUMMARY.md auto-generated post-hoc for quick task ${taskSlug} (${result.commitCount} commits found)`);
+        } catch (_genErr) {
+          logEvent('post_hoc', 'post_hoc_generation_failed', {
+            taskDir: taskSlug,
+            error: _genErr.message,
+            feature: 'post_hoc_artifacts'
+          });
+        }
+      } catch (_e) { /* best-effort */ }
     }
   },
   'begin:pbr:researcher': {
