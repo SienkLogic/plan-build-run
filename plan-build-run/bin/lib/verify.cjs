@@ -933,6 +933,52 @@ function cmdValidateHealth(cwd, options, raw) {
     feature_status.architecture_guard = guardHealth;
   } catch (_e) { /* graph module not available — skip */ }
 
+  // ─── Check 13: Phase 15 DX feature health ────────────────────────────────
+  {
+    let p15Config = {};
+    try { p15Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p15Features = (p15Config && p15Config.features) || {};
+
+    const checkDxFeature = (featureName, modulePath, exportName) => {
+      const enabled = p15Features[featureName] !== false; // default true
+      if (!enabled) {
+        return { enabled: false, status: 'disabled', detail: 'Feature disabled in config' };
+      }
+      try {
+        const mod = require(modulePath);
+        if (typeof mod[exportName] === 'function') {
+          // Attempt a lightweight invocation to confirm operational
+          const result = mod[exportName](planningDir, p15Config);
+          const operational = result && result.enabled !== false;
+          return {
+            enabled: true,
+            status: operational ? 'healthy' : 'degraded',
+            detail: operational ? `${exportName} returned data` : 'Module returned disabled stub',
+          };
+        }
+        return { enabled: true, status: 'degraded', detail: `${exportName} not a function` };
+      } catch (err) {
+        return { enabled: true, status: 'degraded', detail: `Error: ${err.message}` };
+      }
+    };
+
+    feature_status.progress_visualization = checkDxFeature(
+      'progress_visualization',
+      path.join(__dirname, 'progress-visualization.cjs'),
+      'getProgressData'
+    );
+    feature_status.contextual_help = checkDxFeature(
+      'contextual_help',
+      path.join(__dirname, 'contextual-help.cjs'),
+      'getContextualHelp'
+    );
+    feature_status.team_onboarding = checkDxFeature(
+      'team_onboarding',
+      path.join(__dirname, 'onboarding-generator.cjs'),
+      'generateOnboardingGuide'
+    );
+  }
+
   // ─── Check 13: Phase 14 Quality & Safety feature health ───────────────────
   {
     let p14Config = {};
