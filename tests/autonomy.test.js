@@ -90,13 +90,13 @@ describe('resolveAutonomyBehavior', () => {
     });
   });
 
-  test('adaptive with no confidence defaults to 0.5 (guided range)', () => {
+  test('adaptive with no confidence defaults to 0.5 (supervised range)', () => {
     const result = resolveAutonomyBehavior('adaptive');
     expect(result).toMatchObject({
-      requiresApproval: false,
-      skipUAT: true,
+      requiresApproval: true,
+      skipUAT: false,
       autoRetry: false,
-      effectiveLevel: 'guided'
+      effectiveLevel: 'supervised'
     });
   });
 
