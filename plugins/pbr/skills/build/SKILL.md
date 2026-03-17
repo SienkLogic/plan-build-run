@@ -151,7 +151,15 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
      - label: "No"   description: "Cancel — review plans first"
    If "No" or "Other": stop and suggest `/pbr:plan-phase {N}` to review plans
    **Skip if:** `auto_mode` is true — auto-proceed as if user selected "Yes"
-8. If `git.branching` is `phase` (the recommended default — see config Quick Start): create and switch to branch `plan-build-run/phase-{NN}-{name}` before any build work begins
+8. **Git branching (config-gated):**
+   Read `git.branching` from config (values: none, phase, milestone, disabled).
+   - If `none` or `disabled`: skip branch operations entirely (current default behavior)
+   - If `phase`:
+     a. Determine branch name: `pbr/phase-{NN}-{name}` (e.g., `pbr/phase-03-auth`)
+     b. Check if branch already exists: `git branch --list {branch-name}`
+     c. If branch exists (resume scenario): `git switch {branch-name}` — log "Resuming on existing phase branch"
+     d. If branch does not exist: `git switch -c {branch-name}` — log "Created phase branch: {branch-name}"
+   - If `milestone`: no action at build start (milestone branches are created by /pbr:milestone)
 9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
 **Staleness check (dependency fingerprints):**
@@ -1090,16 +1098,23 @@ If `planning.commit_docs` is `true`:
 
 **8d. Handle git branching:**
 If `git.branching` is `phase`:
-- All work was done on the phase branch (created in Step 1)
-- Squash merge to main: `git checkout main && git merge --squash plan-build-run/phase-{NN}-{name}`
-- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
-  question: "Phase {N} complete on branch `plan-build-run/phase-{NN}-{name}`. Squash merge to main?"
-  header: "Merge?"
-  options:
-    - label: "Yes, merge"   description: "Squash merge to main and delete the phase branch"
-    - label: "No, keep"     description: "Leave the branch as-is for manual review"
-- If "Yes, merge": complete the merge and delete the phase branch
-- If "No, keep" or "Other": leave the branch as-is and inform the user
+- Verify we are on the phase branch: `git branch --show-current`
+- If NOT on the phase branch, warn: "Expected to be on {branch-name} but on {current}. Skipping merge."
+- If on the phase branch:
+  - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+    question: "Phase {N} complete on branch `pbr/phase-{NN}-{name}`. Squash merge to main?"
+    header: "Merge?"
+    options:
+      - label: "Yes, merge"   description: "Squash merge to main and delete the phase branch"
+      - label: "No, keep"     description: "Leave the branch as-is for manual review"
+  - If "Yes, merge":
+    1. `git switch main`
+    2. `git merge --squash pbr/phase-{NN}-{name}`
+    3. `git commit -m "feat({NN}-{name}): phase {N} squash merge"`
+    4. `git branch -d pbr/phase-{NN}-{name}`
+    5. Log: "Phase branch merged and deleted"
+  - If "No, keep" or "Other": leave the branch as-is and inform the user
+  - **Skip if:** `auto_mode` is true — auto-proceed with "Yes, merge"
 
 **8d-ii. PR Creation (when branching enabled):**
 
@@ -1322,7 +1337,7 @@ If SUMMARY.md shows files not listed in the plan's `files_modified`:
 
 ### Build on wrong branch
 If `git.branching` is `phase` but we're not on the phase branch:
-- Create the phase branch: `git checkout -b plan-build-run/phase-{NN}-{name}`
+- Create the phase branch: `git switch -c pbr/phase-{NN}-{name}`
 - Proceed with build on the new branch
 
 ---
