@@ -117,7 +117,7 @@ function markPhaseRequirements(planningDir, phaseDir) {
 
   // Check verification status
   const verifyContent = fs.readFileSync(verifyPath, 'utf-8');
-  const statusMatch = verifyContent.match(/status:\s*(\w+)/);
+  const statusMatch = verifyContent.match(/status:\s*["']?(\w+)["']?/);
   if (!statusMatch || statusMatch[1] !== 'passed') {
     return { updated: 0, skipped: 0, notFound: [], skipped_reason: 'verification not passed' };
   }
@@ -129,7 +129,7 @@ function markPhaseRequirements(planningDir, phaseDir) {
   for (const file of files) {
     const content = fs.readFileSync(path.join(phaseDir, file), 'utf-8');
     // Extract implements array from frontmatter
-    const fmMatch = content.match(/^---\n([\s\S]+?)\n---/);
+    const fmMatch = content.match(/^---\r?\n([\s\S]+?)\r?\n---/);
     if (!fmMatch) continue;
 
     const fm = fmMatch[1];
