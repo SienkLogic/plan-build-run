@@ -18,6 +18,10 @@ const {
   saveRefreshSnapshot,
   ensureIntelDir,
   isIntelEnabled,
+  intelSnapshot,
+  intelValidate,
+  intelExtractExports,
+  intelPatchMeta,
   INTEL_FILES,
   INTEL_DIR
 } = require('../plan-build-run/bin/lib/intel.cjs');
@@ -442,5 +446,280 @@ describe('Constants', () => {
 
   test('INTEL_DIR is correct', () => {
     expect(INTEL_DIR).toBe('.planning/intel');
+  });
+});
+
+// ─── intelSnapshot ──────────────────────────────────────────────────────────
+
+describe('intelSnapshot', () => {
+  test('writes .last-refresh.json with accurate timestamp', () => {
+    const { planningDir, intelDir, cleanup } = createTempProject();
+    writeIntelFile(intelDir, 'files.json', { 'a.js': { exports: [] } });
+    writeIntelFile(intelDir, 'deps.json', { lodash: { version: '4.0.0' } });
+
+    try {
+      const before = Date.now();
+      const result = intelSnapshot(planningDir);
+      const after = Date.now();
+
+      expect(result.saved).toBe(true);
+      const ts = new Date(result.timestamp).getTime();
+      expect(ts).toBeGreaterThanOrEqual(before);
+      expect(ts).toBeLessThanOrEqual(after);
+
+      const snapshotPath = path.join(intelDir, '.last-refresh.json');
+      expect(fs.existsSync(snapshotPath)).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('returns disabled when intel is off', () => {
+    const { planningDir, cleanup } = createTempProject({ intel: { enabled: false } });
+
+    try {
+      const result = intelSnapshot(planningDir);
+      expect(result.disabled).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+// ─── intelValidate ──────────────────────────────────────────────────────────
+
+describe('intelValidate', () => {
+  test('returns valid:true for correct intel files', () => {
+    const { planningDir, intelDir, cleanup } = createTempProject();
+    const now = new Date().toISOString();
+
+    writeIntelFile(intelDir, 'files.json', { 'a.js': { exports: ['foo', 'bar'], type: 'module' } }, now);
+    writeIntelFile(intelDir, 'apis.json', {}, now);
+    writeIntelFile(intelDir, 'deps.json', { lodash: { version: '4.0', type: 'production', used_by: ['a.js'] } }, now);
+    writeIntelFile(intelDir, 'stack.json', {}, now);
+    fs.writeFileSync(path.join(intelDir, 'arch.md'), '---\nupdated_at: ' + now + '\n---\n# Arch\n', 'utf8');
+
+    try {
+      const result = intelValidate(planningDir);
+      expect(result.valid).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('warns on description-style exports', () => {
+    const { planningDir, intelDir, cleanup } = createTempProject();
+
+    writeIntelFile(intelDir, 'files.json', {
+      'b.js': { exports: ['CLI dispatcher'], type: 'module' }
+    });
+
+    try {
+      const result = intelValidate(planningDir);
+      expect(result.warnings.some(w => w.includes('CLI dispatcher'))).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('warns on stale timestamps', () => {
+    const { planningDir, intelDir, cleanup } = createTempProject();
+
+    const old = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+    writeIntelFile(intelDir, 'files.json', {}, old);
+
+    try {
+      const result = intelValidate(planningDir);
+      expect(result.warnings.some(w => w.includes('hours old') || w.includes('>24 hr'))).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('errors on missing files', () => {
+    const { planningDir, cleanup } = createTempProject();
+    // No intel files written — all 5 missing
+
+    try {
+      const result = intelValidate(planningDir);
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.valid).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('errors on invalid JSON', () => {
+    const { planningDir, intelDir, cleanup } = createTempProject();
+
+    fs.writeFileSync(path.join(intelDir, 'files.json'), '{broken json!!!', 'utf8');
+
+    try {
+      const result = intelValidate(planningDir);
+      expect(result.errors.some(e => e.includes('invalid JSON'))).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+// ─── intelExtractExports ────────────────────────────────────────────────────
+
+describe('intelExtractExports', () => {
+  function writeTempFile(content) {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-extract-'));
+    const filePath = path.join(tmpDir, 'test.js');
+    fs.writeFileSync(filePath, content, 'utf8');
+    return { filePath, cleanup: () => fs.rmSync(tmpDir, { recursive: true, force: true }) };
+  }
+
+  test('extracts CJS module.exports keys', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'function foo() {}\nfunction bar() {}\nconst baz = 1;\nmodule.exports = {\n  foo,\n  bar,\n  baz\n};\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toEqual(expect.arrayContaining(['foo', 'bar', 'baz']));
+      expect(r.method).toBe('module.exports');
+    } finally { cleanup(); }
+  });
+
+  test('extracts exports.X patterns', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'exports.hello = function() {};\nexports.world = 42;\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('hello');
+      expect(r.exports).toContain('world');
+    } finally { cleanup(); }
+  });
+
+  test('extracts ESM export function', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'export function doThing() {\n  return 1;\n}\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('doThing');
+      expect(r.method).toBe('esm');
+    } finally { cleanup(); }
+  });
+
+  test('extracts ESM export const/let', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'export const MY_VAR = 42;\nexport let counter = 0;\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('MY_VAR');
+      expect(r.exports).toContain('counter');
+      expect(r.method).toBe('esm');
+    } finally { cleanup(); }
+  });
+
+  test('extracts ESM export default function', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'export default function App() {\n  return null;\n}\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('App');
+      expect(r.method).toBe('esm');
+    } finally { cleanup(); }
+  });
+
+  test('extracts ESM named export block', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'const foo = 1;\nconst bar = 2;\nconst baz = 3;\nexport { foo, bar as baz };\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('foo');
+      expect(r.exports).toContain('bar');
+      expect(r.exports).not.toContain('baz');
+      expect(r.method).toBe('esm');
+    } finally { cleanup(); }
+  });
+
+  test('returns empty for nonexistent file', () => {
+    const r = intelExtractExports('/no/such/file/anywhere.js');
+    expect(r.exports).toEqual([]);
+    expect(r.method).toBe('none');
+  });
+
+  test('handles mixed CJS and ESM', () => {
+    const { filePath, cleanup } = writeTempFile(
+      'module.exports = { alpha };\nexport function beta() {}\n'
+    );
+    try {
+      const r = intelExtractExports(filePath);
+      expect(r.exports).toContain('alpha');
+      expect(r.exports).toContain('beta');
+      expect(r.method).toBe('mixed');
+    } finally { cleanup(); }
+  });
+});
+
+// ─── intelPatchMeta ─────────────────────────────────────────────────────────
+
+describe('intelPatchMeta', () => {
+  test('patches _meta.updated_at to current time', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
+    const filePath = path.join(tmpDir, 'test.json');
+    fs.writeFileSync(filePath, JSON.stringify({
+      _meta: { updated_at: '2020-01-01T00:00:00Z', version: 1 },
+      entries: {}
+    }, null, 2), 'utf8');
+
+    try {
+      const before = Date.now();
+      const result = intelPatchMeta(filePath);
+      expect(result.patched).toBe(true);
+
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      const ts = new Date(data._meta.updated_at).getTime();
+      expect(ts).toBeGreaterThanOrEqual(before);
+      expect(ts).toBeLessThanOrEqual(Date.now());
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('increments version', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
+    const filePath = path.join(tmpDir, 'test.json');
+    fs.writeFileSync(filePath, JSON.stringify({
+      _meta: { updated_at: '2020-01-01T00:00:00Z', version: 1 },
+      entries: {}
+    }, null, 2), 'utf8');
+
+    try {
+      intelPatchMeta(filePath);
+      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      expect(data._meta.version).toBe(2);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  test('returns error for nonexistent file', () => {
+    const result = intelPatchMeta('/no/such/path/data.json');
+    expect(result.patched).toBe(false);
+    expect(result.error).toBeDefined();
+  });
+
+  test('returns error for invalid JSON', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-patch-'));
+    const filePath = path.join(tmpDir, 'bad.json');
+    fs.writeFileSync(filePath, '{not valid json!!!', 'utf8');
+
+    try {
+      const result = intelPatchMeta(filePath);
+      expect(result.patched).toBe(false);
+      expect(result.error).toBeDefined();
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
