@@ -31,6 +31,14 @@ function checkBuildExecutorGate(data) {
   const activeSkill = readActiveSkill(planningDir);
   if (activeSkill !== 'build') return null;
 
+  // Allow inline execution bypass — when .inline-active signal file exists,
+  // the build skill is executing tasks inline (no Task() needed)
+  try {
+    if (fs.existsSync(path.join(planningDir, '.inline-active'))) {
+      return null;
+    }
+  } catch (_e) { /* ignore */ }
+
   // Read STATE.md for current phase
   const currentPhase = readCurrentPhase(planningDir);
   if (!currentPhase) return null;
