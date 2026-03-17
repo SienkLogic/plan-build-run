@@ -25,6 +25,7 @@ const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
+const { queueIntelUpdate } = require('./intel-queue');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -133,14 +134,21 @@ async function processEvent(data, planningDir) {
     return qualityResult.output;
   }
 
-  // LLM file intent classification — advisory enrichment for non-planning files.
-  // Opt-in via config: local_llm.classify_file_writes: true (default: false).
-  // Skipped for .planning/ files (already handled by plan format / state checks above).
+  // Intel queue: track code file changes for auto-update
+  try {
+    queueIntelUpdate(data, planningDir);
+  } catch (_e) {
+    // Intel queue must never break the dispatch chain
+  }
+
+  // LLM file intent classification — advisory enrichment for non-planning files
+  // Skipped for .planning/ files (already handled by plan format / state checks above)
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const normalizedPath = filePath.replace(/\\/g, '/');
   if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
     try {
-      const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+      const { resolveConfig } = require('./local-llm/health');
+      const { classifyFileIntent } = require('./local-llm/operations/classify-file-intent');
       const llmConfig = (() => {
         try {
           const configPath = path.join(planningDir, 'config.json');
@@ -151,25 +159,20 @@ async function processEvent(data, planningDir) {
         }
       })();
 
-      // Only run classification when explicitly enabled — adds latency to every write
-      if (llmConfig.enabled && llmConfig.classify_file_writes) {
-        const { classifyFileIntent } = require('../plan-build-run/bin/lib/local-llm/operations/classify-file-intent.cjs');
+      let contentSnippet = '';
+      try {
+        const content = data.tool_input?.content || data.tool_input?.new_string || '';
+        contentSnippet = content.slice(0, 400);
+      } catch (_e) {
+        // No content available
+      }
 
-        let contentSnippet = '';
-        try {
-          const content = data.tool_input?.content || data.tool_input?.new_string || '';
-          contentSnippet = content.slice(0, 400);
-        } catch (_e) {
-          // No content available
-        }
-
-        if (contentSnippet) {
-          const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
-          if (llmResult && llmResult.file_type) {
-            return {
-              additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
-            };
-          }
+      if (contentSnippet) {
+        const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
+        if (llmResult && llmResult.file_type) {
+          return {
+            additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
+          };
         }
       }
     } catch (_llmErr) {
