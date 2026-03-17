@@ -171,6 +171,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.plan_checking': false,
     'features.goal_verification': false,
     'features.inline_verify': false,
+    'features.decision_journal': false,
+    'features.negative_knowledge': false,
+    'features.living_requirements': false,
     'scan.mapper_count': 2,
     'scan.mapper_areas': ['tech', 'arch'],
     'debug.max_hypothesis_rounds': 3
@@ -180,6 +183,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.plan_checking': true,
     'features.goal_verification': true,
     'features.inline_verify': false,
+    'features.decision_journal': true,
+    'features.negative_knowledge': true,
+    'features.living_requirements': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 5
@@ -189,6 +195,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.plan_checking': true,
     'features.goal_verification': true,
     'features.inline_verify': true,
+    'features.decision_journal': true,
+    'features.negative_knowledge': true,
+    'features.living_requirements': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 10
@@ -198,6 +207,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.plan_checking': true,
     'features.goal_verification': true,
     'features.inline_verify': true,
+    'features.decision_journal': true,
+    'features.negative_knowledge': true,
+    'features.living_requirements': true,
     'scan.mapper_count': 6,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns', 'risks', 'opportunities'],
     'debug.max_hypothesis_rounds': 15
