@@ -912,5 +912,37 @@ async function handleHttp(reqBody) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp };
+/**
+ * Log an inline execution decision to .planning/logs/hooks.jsonl for audit evidence.
+ * Called by the build skill orchestrator after running shouldInlineExecution.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} decision - Result from shouldInlineExecution
+ * @param {boolean} decision.inline - Whether inline execution was chosen
+ * @param {string} [decision.reason] - Reason for the decision
+ * @param {number} [decision.taskCount] - Number of tasks in the plan
+ * @param {number} [decision.fileCount] - Number of files in the plan
+ * @param {number} [decision.estimatedLines] - Estimated lines of code
+ */
+function logInlineDecision(planningDir, decision) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const logFile = path.join(logsDir, 'hooks.jsonl');
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      hook: 'inline-execution-gate',
+      decision: decision.inline ? 'inline' : 'delegate',
+      reason: decision.reason || null,
+      taskCount: decision.taskCount || 0,
+      fileCount: decision.fileCount || 0,
+      estimatedLines: decision.estimatedLines || 0
+    });
+    fs.appendFileSync(logFile, entry + '\n', 'utf8');
+  } catch (_e) {
+    // Best-effort — never crash the caller
+  }
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }
