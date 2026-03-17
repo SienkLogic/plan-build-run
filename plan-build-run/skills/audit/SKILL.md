@@ -30,6 +30,7 @@ This skill uses **parallel Task() delegation** to analyze multiple sessions simu
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Delegate ALL session analysis** to audit subagents — do NOT read JSONL files in main context

@@ -49,7 +49,7 @@ Reference: `references/questioning.md` for the full anti-pattern list.
 13. **Do not** modify files outside the skill's stated scope -- check the "Files Created/Modified" table in each skill.
 14. **Do not** suggest multiple next actions without clear priority -- one primary suggestion, alternatives listed secondary.
 15. **Do not** use `git add .` or `git add -A` -- stage specific files only.
-15b. **Do not** write STATE.md frontmatter or Current Position body section directly using Write/Edit -- use `pbr-tools.js` CLI commands (`state update`, `state patch`, `state advance-plan`, `phase complete`) which keep frontmatter and body in sync atomically. Exception: Accumulated Context sections (Decisions, Blockers, Todos) may be edited directly.
+15b. **Do not** write STATE.md frontmatter or Current Position body section directly using Write/Edit -- use `pbr-tools.cjs` CLI commands (`state update`, `state patch`, `state advance-plan`, `phase complete`) which keep frontmatter and body in sync atomically. Exception: Accumulated Context sections (Decisions, Blockers, Todos) may be edited directly.
 16. **Do not** include sensitive information (API keys, passwords, tokens) in planning documents or commits.
 
 ## Error Recovery Rules (apply to every skill)

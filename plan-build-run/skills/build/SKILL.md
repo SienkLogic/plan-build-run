@@ -16,12 +16,13 @@ You are the orchestrator for `/pbr:execute-phase`. This skill executes all plans
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
 - **Lazy-load steps**: Instead of reading ahead, fetch the next step's instructions on demand:
-  `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
+  `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs skill-section build "step-6"` → returns that step's content as JSON. Use this when context budget is DEGRADING.
 
 ## Step 0 — Immediate Output
 
@@ -84,7 +85,7 @@ If `--preview` is present in `$ARGUMENTS`:
 2. Run:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js build-preview {phase-slug}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs build-preview {phase-slug}
    ```
 
    Capture the JSON output.
@@ -135,7 +136,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 1. Parse `$ARGUMENTS` for phase number and flags
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 5. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -171,7 +172,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 After validating prerequisites, check plan staleness:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js staleness-check {phase-slug}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs staleness-check {phase-slug}
 ```
 
 Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
@@ -196,7 +197,7 @@ Phase {N} has no plans.
 
 If dependencies incomplete, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {dependency-phase-slug}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs suggest-alternatives missing-prereq {dependency-phase-slug}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what summaries exist and what is still missing.
 4. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`) to offer:
@@ -205,7 +206,7 @@ If dependencies incomplete, use conversational recovery:
 
 If config validation fails for a specific field, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives config-invalid {field} {value}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs suggest-alternatives config-invalid {field} {value}`
 2. Parse the JSON response to get `valid_values` and `suggested_fix`.
 3. Display the invalid field, its current value, and the valid options.
 4. Use AskUserQuestion to offer: "Fix config.json now, or continue with current value?"
@@ -216,7 +217,7 @@ If config validation fails for a specific field, use conversational recovery:
 
 ### Step 2: Load Config (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
 
@@ -226,7 +227,7 @@ Read configuration values needed for execution. See `skills/shared/config-loadin
 
 **Tooling shortcut**: Instead of manually parsing each PLAN.md frontmatter, run:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index <phase>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs plan-index <phase>
 ```
 This returns a JSON object with `plans` (array with plan_id, wave, depends_on, autonomous, must_haves_count per plan) and `waves` (grouped by wave). Falls back to manual parsing if unavailable.
 
@@ -371,7 +372,7 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
 1. Collect current phase `files_modified` from all PLAN.md frontmatters:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index {phase-slug}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs plan-index {phase-slug}
    ```
 
    Extract the union of all `files_modified` arrays across plans. This is the **change surface**.
@@ -379,7 +380,7 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
 2. Collect prior completed phase provides:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-list --status verified --before {phase_number}
    ```
 
    For each returned phase, read SUMMARY.md `provides` list (frontmatter only — keep context lean).
@@ -431,13 +432,13 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
 **Session affinity:** The checkpoint manifest includes a `session_id` field. Before writing any phase state, validate that the current session owns the manifest by checking `manifest.session_id` matches the active session. If mismatch, another session may have taken over — re-acquire the claim or warn the user.
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs checkpoint init {phase-slug} --plans "{comma-separated plan IDs}"
 ```
 
 After each wave completes, update the manifest:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs checkpoint update {phase-slug} --wave {N} --resolved {plan-id} --sha {commit-sha}
 ```
 
 This tracks execution for crash recovery and rollback. Read `.checkpoint-manifest.json` on resume to reconstruct which plans are complete.
@@ -499,7 +500,7 @@ Before spawning a Task() executor, check if this plan qualifies for inline execu
 Before spawning executors for this wave, if `config.local_llm.enabled` is `true`, run a quick classification on each plan to catch stubs before wasting an executor spawn:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm classify PLAN ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
 ```
 
 - If classification is `"stub"` or `"partial"` with confidence >= 0.7: warn the user before spawning: `"⚠ Plan {plan_id} classified as {classification} (confidence {conf}) — consider refining before building."`
@@ -589,7 +590,7 @@ After executor completes, check for completion markers: `## PLAN COMPLETE`, `## 
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### 6b. Wait for Wave Completion
 
@@ -617,7 +618,7 @@ CRITICAL (no hook): Before reading results or advancing to the next wave, run th
 For each completed plan in this wave:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js spot-check {phaseSlug} {planId}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs spot-check {phaseSlug} {planId}
 ```
 
 Where `{phaseSlug}` is the phase directory name (e.g., `49-build-workflow-hardening`) and `{planId}` is the plan identifier (e.g., `49-01`).
@@ -775,7 +776,7 @@ If `workflow.phase_replay` is `false` or not set:
 Run the rollback CLI:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js rollback .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs rollback .planning/phases/{NN}-{slug}/.checkpoint-manifest.json
 ```
 
 Returns `{ ok, rolled_back_to, plans_invalidated, files_deleted, warnings }`.
@@ -856,7 +857,7 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
    ```
 4. Poll CI status using CLI:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js ci-poll <run-id> [--timeout <seconds>]
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs ci-poll <run-id> [--timeout <seconds>]
    ```
    Returns `{ status, conclusion, url, next_action, elapsed_seconds }`.
 5. If `next_action` is `"continue"`: proceed to next wave
@@ -874,7 +875,7 @@ After each wave completes (all plans in the wave are done, skipped, or aborted):
 For every plan in the wave, run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js summary-gate {phase-slug} {plan-id}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs summary-gate {phase-slug} {plan-id}
 ```
 
 Returns `{ ok: bool, gate: string, detail: string }`. Block STATE.md update until ALL plans return `ok: true`. If any fail, warn: "SUMMARY gate failed for plan {id}: {gate} — {detail}. Cannot update STATE.md."
@@ -883,9 +884,9 @@ Once gates pass, update `.planning/STATE.md`:
 
 **Tooling shortcut**: Use the CLI for atomic STATE.md updates instead of manual read-modify-write:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete {N}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update plans_complete {N}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status building
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update last_activity now
 ```
 
 - Current plan progress: "{completed}/{total} in current phase"
@@ -901,7 +902,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 - [ ] STATE.md body progress bar updated
 - [ ] `last_activity` timestamp refreshed
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
 If any item fails, investigate before proceeding to Step 7.
 
 ---
@@ -915,7 +916,7 @@ If any item fails, investigate before proceeding to Step 7.
 - Depth profile has `features.goal_verification: false`
 - Depth is `quick` AND the total task count across all plans in this phase is fewer than 3
 
-To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` and read `profile["features.goal_verification"]`. For the task-count check in quick mode, sum the task counts from all PLAN.md frontmatter `must_haves` (already available from Step 3 plan discovery).
+To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth` and read `profile["features.goal_verification"]`. For the task-count check in quick mode, sum the task counts from all PLAN.md frontmatter `must_haves` (already available from Step 3 plan discovery).
 
 This implements budget mode's "skip verifier for < 3 tasks" rule: small phases in quick mode don't need a full verification pass.
 
@@ -987,7 +988,7 @@ NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inl
 After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -1059,7 +1060,7 @@ If triggered:
 If all plans completed successfully (final_status is "built" or "built (unverified)"), write `.phase-manifest.json` to the phase directory. This manifest aggregates all plan commits for the undo skill's `--phase NN` mode:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase write-manifest {phase-slug}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase write-manifest {phase-slug}
 ```
 
 The manifest collects commit hashes from each plan's SUMMARY.md and stores them as a single artifact that `completePhase()` uses for rollback support. If the command fails, log a warning but do not block completion.
@@ -1070,8 +1071,8 @@ The manifest collects commit hashes from each plan's SUMMARY.md and stores them 
 
 **Tooling shortcut**: Use the CLI for atomic ROADMAP.md table updates instead of manual editing:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} {completed} {total}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} {final_status}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-plans {phase} {completed} {total}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase} {final_status}
 ```
 These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`. Falls back to manual editing if unavailable.
 
@@ -1094,7 +1095,7 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 - [ ] STATE.md body ## Current Position updated: Phase, Status, Last activity, Progress bar
 - [ ] Frontmatter and body are consistent (same status value in both)
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
 If any item fails, investigate before marking phase complete.
 
 **8c. Commit planning docs (if configured):**
@@ -1220,9 +1221,9 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] auto_advance OR auto_continue evaluated (one path taken)
 - [ ] If auto_continue: `.auto-next` file written with correct next command
 - [ ] Pending todos evaluated (Step 8e-ii)
-- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
+- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.cjs todo done`
 
-To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
+To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs step-verify build step-8e '["STATE.md updated","commit made"]'`
 If any item fails, investigate before closing the session.
 
 **8e-ii. Check Pending Todos:**
@@ -1246,7 +1247,7 @@ Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 After verification completes and before the branded banner, check `workflow.phase_boundary_clear` from config:
 
-1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get workflow.phase_boundary_clear`
+1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config-get workflow.phase_boundary_clear`
 2. If `"off"` or missing: skip (no action — current default behavior)
 3. If `"recommend"`:
    - Add an advisory line to the completion output:

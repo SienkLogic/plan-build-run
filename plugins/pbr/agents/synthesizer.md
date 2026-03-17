@@ -198,7 +198,7 @@ When input research documents are large (>2000 words combined), you MAY use the 
 
 ```bash
 # Pre-summarize a large research document to ~150 words:
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm summarize /path/to/RESEARCH.md 150 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" llm summarize /path/to/RESEARCH.md 150 2>/dev/null
 # Returns: {"summary":"...plain text summary under 150 words...","latency_ms":2100,"fallback_used":false}
 ```
 

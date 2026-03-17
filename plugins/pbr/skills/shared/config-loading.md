@@ -10,7 +10,7 @@ Standard pattern for loading `.planning/config.json` fields at the start of a sk
 
 Instead of reading and parsing STATE.md, ROADMAP.md, and config.json manually, run:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state load
 ```
 This returns a JSON object with `config`, `state`, `roadmap`, `current_phase`, and `progress`. Falls back gracefully if the script is missing -- parse files manually in that case.
 

@@ -527,11 +527,11 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 
 After writing all PLAN files and passing self-check, run these CLI commands in order:
 
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status planned`
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_total {N}`
+1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status planned`
+2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update plans_total {N}`
    — where {N} is the total number of plan files written for this phase.
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} planned ({N} plans)"`
-4. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} planned`
+3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state record-activity "Phase {phase_num} planned ({N} plans)"`
+4. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase_num} planned`
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
 </step>

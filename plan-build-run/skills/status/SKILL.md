@@ -44,7 +44,7 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 **CRITICAL — STOP. You MUST run this CLI command FIRST. Do NOT skip it. Do NOT read files manually instead.**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs status render
 ```
 
 This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data.
@@ -81,8 +81,8 @@ This returns a **complete, deterministic JSON object** with ALL project status: 
 After loading config.json, check `local_llm.enabled`. If `true`:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm status
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm status
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm metrics
 ```
 
 Parse both JSON responses. Capture:
@@ -96,7 +96,7 @@ Parse both JSON responses. Capture:
 Also run session-scoped metrics if `.planning/.session-start` exists:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics --session <content-of-.session-start>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm metrics --session <content-of-.session-start>
 ```
 
 If `local_llm.enabled` is `false` or commands fail, skip this step silently.
@@ -105,7 +105,7 @@ If `local_llm.enabled` is `false` or commands fail, skip this step silently.
 
 Run:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js context-triage
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs context-triage
 ```
 
 Parse the JSON response. Capture:

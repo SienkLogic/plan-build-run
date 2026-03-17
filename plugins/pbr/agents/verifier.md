@@ -107,10 +107,10 @@ Look for an existing `VERIFICATION.md` in the phase directory.
 
 ### Step 2: Load Context (Always)
 
-Use `pbr-tools.js` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
+Use `pbr-tools.cjs` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs must-haves {phase_number}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-info {phase_number}
 ```
 
 Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for locked decisions and deferred ideas, and ROADMAP.md for the phase goal and dependencies.
@@ -274,10 +274,10 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 
 Run the `post_verification_state` CLI sequence:
 
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {result}`
+1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status {result}`
    — where {result} is `verified` if status is `passed`, or `needs_fixes` if status is `gaps_found`.
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} verified: {status}"`
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} {roadmap_status}`
+2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state record-activity "Phase {phase_num} verified: {status}"`
+3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase_num} {roadmap_status}`
    — where {roadmap_status} is `verified` if passed, `needs_fixes` if gaps_found.
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
@@ -357,7 +357,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 1. **Check the gate:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get context_window_tokens
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config get context_window_tokens
    ```
 
    If the returned value is < 500000 or the command fails, skip to Step 12 (Budget Management). Log: "Cross-phase verification skipped (context_window_tokens < 500000)."
@@ -365,7 +365,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 2. **Collect completed prior phases:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {current_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-list --status verified --before {current_phase_number}
    ```
 
    Returns a JSON array of `{ phase_number, slug, status }` entries. If the list is empty, skip cross-phase checks — there is nothing to regress against.
@@ -373,7 +373,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 3. **Collect current phase's modified files:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {current_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-info {current_phase_number}
    ```
 
    Extract `files_modified` from all PLAN.md frontmatters in the current phase. This is the change surface to check against.
@@ -381,8 +381,8 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 4. **For each completed prior phase**, collect its must-haves and provides:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {prior_phase_number}
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {prior_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs must-haves {prior_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-info {prior_phase_number}
    ```
 
    Extract:

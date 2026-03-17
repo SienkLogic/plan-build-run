@@ -36,6 +36,7 @@ This skill runs **inline** for most subcommands, but spawns agents for `audit`.
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Never** perform integration checks yourself — delegate to the integration-checker subagent
@@ -422,9 +423,9 @@ Read `git.branching` from config.
    - Record the milestone version in the history/completed section
 
 7c. **Append history to STATE.md:**
-   - Use `historyAppend()` (via `pbr-tools.js history append`) to write a milestone completion record to STATE.md ## History section:
+   - Use `historyAppend()` (via `pbr-tools.cjs history append`) to write a milestone completion record to STATE.md ## History section:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
      ```
    - This writes to STATE.md ## History section (not a separate HISTORY.md file)
 
@@ -441,7 +442,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings check-thresholds
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs learnings check-thresholds
 ```
 
 If any thresholds are triggered, display each as a notification:

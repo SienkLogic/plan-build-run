@@ -16,6 +16,7 @@ You are the orchestrator for `/pbr:verify-work`. This skill verifies that what w
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full VERIFICATION.md bodies is permitted when gap details are needed for inline presentation.
@@ -84,14 +85,14 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — skipping interactive UAT walkthrough"
 2. Read `.planning/config.json`
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - SUMMARY.md files exist (phase has been built)
@@ -103,7 +104,7 @@ Execute these steps in order.
 
 If phase directory not found, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs suggest-alternatives phase-not-found {slug}`
 2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
@@ -204,7 +205,7 @@ Task({
 })
 ```
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -264,7 +265,7 @@ If ANY spot-check fails, present the user with options: **Retry** / **Continue a
 After the verifier completes and writes VERIFICATION.md, if `config.local_llm.enabled` is `true`, run a quality classification:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
 ```
 
 - If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:verify-work {N}."`
@@ -424,9 +425,9 @@ If all automated checks and UAT items passed:
 
    **Tooling shortcut**: Use the CLI for atomic ROADMAP.md and STATE.md updates:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase} verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update last_activity now
    ```
 
    1. Open `.planning/ROADMAP.md`
