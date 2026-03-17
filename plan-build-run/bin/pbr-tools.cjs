@@ -1036,7 +1036,7 @@ async function main() {
       const scPath = args[3];
       if (!scType || !scPath) { error('Usage: verify spot-check <type> <path>  (types: plan, summary, verification, quick)'); }
       const result = verifySpotCheck(scType, scPath);
-      if (result.error) { output(result, raw, 'error'); process.exit(1); }
+      if (result.error) { process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exit(1); }
       output(result, raw, result.passed ? 'passed' : 'failed');
     } else if (command === 'verify-summary') {
       const summaryPath = args[1];
