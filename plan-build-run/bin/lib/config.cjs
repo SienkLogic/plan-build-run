@@ -177,6 +177,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.agent_teams': false,
     'features.competing_hypotheses': false,
     'features.dynamic_teams': false,
+    'features.progress_visualization': false,
+    'features.contextual_help': false,
+    'features.team_onboarding': false,
     'scan.mapper_count': 2,
     'scan.mapper_areas': ['tech', 'arch'],
     'debug.max_hypothesis_rounds': 3
@@ -192,6 +195,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.agent_teams': false,
     'features.competing_hypotheses': false,
     'features.dynamic_teams': false,
+    'features.progress_visualization': true,
+    'features.contextual_help': true,
+    'features.team_onboarding': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 5
@@ -207,6 +213,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.agent_teams': false,
     'features.competing_hypotheses': false,
     'features.dynamic_teams': false,
+    'features.progress_visualization': true,
+    'features.contextual_help': true,
+    'features.team_onboarding': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 10
@@ -222,6 +231,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.agent_teams': false,
     'features.competing_hypotheses': false,
     'features.dynamic_teams': false,
+    'features.progress_visualization': true,
+    'features.contextual_help': true,
+    'features.team_onboarding': true,
     'scan.mapper_count': 6,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns', 'risks', 'opportunities'],
     'debug.max_hypothesis_rounds': 15
