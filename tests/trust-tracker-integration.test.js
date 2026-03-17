@@ -14,7 +14,7 @@ const {
   extractVerificationOutcome,
   shouldTrackTrust,
   loadFeatureFlag
-} = require('../hooks/check-subagent-output');
+} = require('../plugins/pbr/scripts/check-subagent-output');
 
 function makeTempDir() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trust-integration-'));
