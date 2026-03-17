@@ -53,7 +53,7 @@ Parse the user's argument to determine the operation mode:
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs intel query <term>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel query <term>
 ```
 
 Format and display the results. Show matching entries grouped by intel file. If no results found, suggest running `refresh` first.
@@ -65,7 +65,7 @@ Format and display the results. Show matching entries grouped by intel file. If 
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs intel status
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel status
 ```
 
 Format and display staleness info for each intel file. Show last update times and whether files exist.
@@ -77,7 +77,7 @@ Format and display staleness info for each intel file. Show last update times an
 Run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs intel diff
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel diff
 ```
 
 Format and display changes since the last full refresh. Show which files have changed and summary of differences.
@@ -92,13 +92,13 @@ Format and display changes since the last full refresh. Show which files have ch
 
 Resolve the pbr-tools path for the agent. Use the plugin root or known path:
 ```
-pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs
+pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js
 ```
 
 Spawn a Task with:
 - `subagent_type: "pbr:intel-updater"`
 - Spawn prompt containing:
-  - `pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs` (resolved path to CLI tool)
+  - `pbr-tools path: ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js` (resolved path to CLI tool)
   - `focus: full` (default) or `focus: partial --files <paths>` if user specified particular files
   - Project root path (current working directory)
   - Any existing `.planning/intel/stack.json` content (if it exists) for context
@@ -112,7 +112,7 @@ Wait for agent completion.
 After the agent completes, run:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs intel status
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel status
 ```
 
 Display a summary showing:

@@ -425,7 +425,7 @@ Read `git.branching` from config.
 7c. **Append history to STATE.md:**
    - Use `historyAppend()` (via `pbr-tools.cjs history append`) to write a milestone completion record to STATE.md ## History section:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
      ```
    - This writes to STATE.md ## History section (not a separate HISTORY.md file)
 
@@ -442,7 +442,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs learnings check-thresholds
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings check-thresholds
 ```
 
 If any thresholds are triggered, display each as a notification:

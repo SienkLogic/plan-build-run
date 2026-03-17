@@ -2,7 +2,7 @@
  * lib/status-render.cjs -- Deterministic, pre-formatted status output for Plan-Build-Run.
  *
  * Produces a single JSON object containing all project status information.
- * Called by: `node pbr-tools.cjs status render`
+ * Called by: `node pbr-tools.js status render`
  *
  * Reads: config.json, STATE.md, ROADMAP.md, PROJECT.md, phases/, todos/, notes/, quick/
  * Output: JSON with project state, progress bar, routing recommendations, document inventory.

@@ -492,7 +492,7 @@ PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.js
 
 ### Validation Errors
 
-Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config validate`
+Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config validate`
 
 **"config.json not found"** -- No `.planning/config.json` exists. Run `/pbr:new-project` to create one, or create the file manually.
 
@@ -542,7 +542,7 @@ Offloads selected PBR inference tasks to a locally running Ollama instance, redu
    }
    ```
 
-4. Verify connectivity: `node /path/to/${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm health`
+4. Verify connectivity: `node /path/to/${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm health`
 
 ### Field reference
 
@@ -602,10 +602,10 @@ After enabling local LLM, PBR logs per-call metrics to `.planning/logs/local-llm
 
 ```bash
 # Show session summary (calls routed, latency, token savings)
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm metrics
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics
 
 # Suggest routing threshold adjustments based on recent accuracy
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm adjust-thresholds
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm adjust-thresholds
 ```
 
 Metrics include: routing decision, model used, latency ms, confidence score, whether the frontier fallback was triggered, and estimated tokens saved.

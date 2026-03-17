@@ -218,7 +218,7 @@ If a plan's `<verify>` step calls `pbr-tools` and inspects the output, guard aga
 `@file:` case:
 
 ```bash
-OUT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state load)
+OUT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load)
 if echo "$OUT" | grep -q '^@file:'; then
   OUT=$(cat "${OUT#@file:}")
 fi

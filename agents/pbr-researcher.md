@@ -79,14 +79,14 @@ If local LLM offload is configured, you MAY use it to score source credibility i
 Check availability first:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" llm status 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm status 2>/dev/null
 ```
 
 If `enabled: true`, score a source excerpt:
 
 ```bash
 echo "Source URL and content excerpt" > /tmp/source-excerpt.txt
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" llm score-source "https://example.com/docs" /tmp/source-excerpt.txt 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm score-source "https://example.com/docs" /tmp/source-excerpt.txt 2>/dev/null
 # Returns: {"level":"S2","confidence":0.87,"reason":"Official library documentation page"}
 ```
 

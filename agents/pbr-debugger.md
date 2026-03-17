@@ -201,7 +201,7 @@ When you receive an error message or stack trace, you MAY use the local LLM to c
 ```bash
 # Write the error to a temp file, then classify:
 echo "Error text here" > /tmp/debug-error.txt
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" llm classify-error /tmp/debug-error.txt debugger 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm classify-error /tmp/debug-error.txt debugger 2>/dev/null
 # Returns: {"category":"missing_output","confidence":0.91,"latency_ms":1840,"fallback_used":false}
 ```
 

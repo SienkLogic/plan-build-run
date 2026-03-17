@@ -9,10 +9,10 @@
  * Usage (library):
  *   const { learningsIngest, learningsQuery } = require('./lib/learnings');
  *
- * Usage (CLI via pbr-tools.cjs):
- *   node pbr-tools.cjs learnings ingest <json-file>
- *   node pbr-tools.cjs learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T]
- *   node pbr-tools.cjs learnings check-thresholds
+ * Usage (CLI via pbr-tools.js):
+ *   node pbr-tools.js learnings ingest <json-file>
+ *   node pbr-tools.js learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T]
+ *   node pbr-tools.js learnings check-thresholds
  */
 
 const os = require('os');

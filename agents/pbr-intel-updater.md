@@ -47,7 +47,7 @@ Write machine-parseable, evidence-based intelligence. Every claim references act
 
 **CRITICAL:** At startup, check if intel is enabled:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config get intel.enabled
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get intel.enabled
 ```
 
 If the result shows `intel.enabled` is `false`, return immediately:

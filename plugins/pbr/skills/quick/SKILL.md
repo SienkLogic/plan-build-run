@@ -176,7 +176,7 @@ If either check fails, you have skipped steps. Go back and complete Steps 4-6. D
 If `config.local_llm.enabled` is `true`, run a quick scope validation before spawning:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm classify PLAN ".planning/quick/{NNN}-{slug}/PLAN.md"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/quick/{NNN}-{slug}/PLAN.md"
 ```
 
 - If classification is `"stub"` with confidence >= 0.7: warn `"⚠ Plan looks like a stub — executor may struggle. Consider adding more detail to task descriptions."`

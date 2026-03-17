@@ -153,7 +153,7 @@ Code-producing tasks should include test expectations. Check that tasks creating
 
 <step name="load-plans">
 ### Step 1: Load Plans
-Read all plan files. Parse YAML frontmatter and XML tasks. Use `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs frontmatter {path}` and `plan-index {phase}` for frontmatter; read body for XML.
+Read all plan files. Parse YAML frontmatter and XML tasks. Use `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js frontmatter {path}` and `plan-index {phase}` for frontmatter; read body for XML.
 </step>
 
 <step name="load-context">

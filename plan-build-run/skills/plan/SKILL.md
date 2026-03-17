@@ -152,7 +152,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      e. Log: "Multi-phase planning: phases {N} through {M}"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -240,7 +240,7 @@ Before spawning any agents, present 4 assumptions to the user — one each for: 
 - `--gaps` flag is set
 - Depth profile has `features.research_phase: false`
 
-To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
+To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
 
 **Conditional research (standard/balanced mode):** When the profile has `features.research_phase: true`, also check whether `.planning/codebase/` or `.planning/research/` already contains relevant context for this phase. If substantial context exists (>3 files in codebase/ or a RESEARCH.md mentioning this phase's technologies), skip research and note: "Skipping research -- existing context found in {directory}." This implements the balanced mode's "conditional research" behavior.
 
@@ -302,7 +302,7 @@ Task({
   prompt: "Pre-planner briefing for Phase {NN} ({phase-slug}).
 
 1. SEED SCANNING:
-   Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs seeds match {phase-slug} {phase-number}`
+   Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js seeds match {phase-slug} {phase-number}`
    If `matched` is non-empty, output a ## Seeds section listing each seed name, description, and content.
    If empty, output: ## Seeds\nNo matching seeds found.
 
@@ -586,10 +586,10 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
   **Tooling shortcut**: Use the CLI for atomic updates:
   ```bash
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-plans {phase} 0 {N}
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase} planned
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status planned
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update last_activity now
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} 0 {N}
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
   ```
 
   1. Open `.planning/ROADMAP.md`
@@ -600,7 +600,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   6. Save the file — do NOT skip this step
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
-**Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
+**Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
 - **If `auto_mode` is `true`:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Chain directly to build: `Skill({ skill: "pbr:build", args: "{N} --auto" })`. This continues the plan→build→review cycle automatically.
 - **Else if `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:execute-phase {N}`
@@ -687,7 +687,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/gap-closure-prompt.md.tmpl` and use it as th
 ### Phase not found
 If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs suggest-alternatives phase-not-found {slug}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
 2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
@@ -699,7 +699,7 @@ If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
 ### Missing prerequisites
 If REQUIREMENTS.md or ROADMAP.md don't exist, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs suggest-alternatives missing-prereq {phase}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {phase}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what is already complete and what is missing.
 4. Use AskUserQuestion to offer: "Run /pbr:execute-phase {prerequisite-phase} first, or continue anyway?"

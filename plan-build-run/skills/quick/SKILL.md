@@ -68,7 +68,7 @@ Strip these flags from `$ARGUMENTS` before using the remainder as the task descr
 
 ### Step 1: Check Project Context
 
-**Init-first pattern**: When spawning agents, pass the output of `node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs init quick "{description}"` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init quick "{description}"` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Check if `.planning/` directory exists
    - If yes: read config.json for settings
@@ -178,7 +178,7 @@ If either check fails, you have skipped steps. Go back and complete Steps 4-6. D
 If `config.local_llm.enabled` is `true`, run a quick scope validation before spawning:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs llm classify PLAN ".planning/quick/{NNN}-{slug}/PLAN.md"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/quick/{NNN}-{slug}/PLAN.md"
 ```
 
 - If classification is `"stub"` with confidence >= 0.7: warn `"⚠ Plan looks like a stub — executor may struggle. Consider adding more detail to task descriptions."`

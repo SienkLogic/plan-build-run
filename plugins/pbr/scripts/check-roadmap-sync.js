@@ -145,7 +145,7 @@ function main() {
           status: 'missing-phase'
         });
         const output = {
-          additionalContext: `CRITICAL: Phase ${stateInfo.phase} has status "${stateInfo.status}" in STATE.md but is not listed in ROADMAP.md Progress table. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.cjs state load\` to check current state.`
+          additionalContext: `CRITICAL: Phase ${stateInfo.phase} has status "${stateInfo.status}" in STATE.md but is not listed in ROADMAP.md Progress table. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.js state load\` to check current state.`
         };
         process.stdout.write(JSON.stringify(output));
         process.exit(0);
@@ -165,7 +165,7 @@ function main() {
         });
 
         const output = {
-          additionalContext: `CRITICAL: ROADMAP.md out of sync — Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.cjs state load\` to check current state.`
+          additionalContext: `CRITICAL: ROADMAP.md out of sync — Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.js state load\` to check current state.`
         };
         process.stdout.write(JSON.stringify(output));
       } else {
@@ -325,7 +325,7 @@ function checkSync(data) {
     });
     return {
       output: {
-        additionalContext: `CRITICAL: Phase ${stateInfo.phase} has status "${stateInfo.status}" in STATE.md but is not listed in ROADMAP.md Progress table. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.cjs state load\` to check current state.`
+        additionalContext: `CRITICAL: Phase ${stateInfo.phase} has status "${stateInfo.status}" in STATE.md but is not listed in ROADMAP.md Progress table. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.js state load\` to check current state.`
       }
     };
   }
@@ -350,7 +350,7 @@ function checkSync(data) {
 
     return {
       output: {
-        additionalContext: `CRITICAL: ROADMAP.md out of sync — Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.cjs state load\` to check current state.`
+        additionalContext: `CRITICAL: ROADMAP.md out of sync — Phase ${stateInfo.phase} is "${roadmapStatus}" in ROADMAP.md but "${stateInfo.status}" in STATE.md. Update the ROADMAP.md Progress table NOW before continuing. Run: \`node pbr-tools.js state load\` to check current state.`
       }
     };
   }

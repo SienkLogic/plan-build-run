@@ -56,7 +56,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 **CRITICAL: Run init command to load project state efficiently.**
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" init execute-phase {phase_number}
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" init execute-phase {phase_number}
 ```
 
 This returns STATE.md snapshot, phase plans, ROADMAP excerpt, and config — all in one call.
@@ -87,7 +87,7 @@ Use AskUserQuestion:
 Read SUMMARY.md frontmatter from each plan in the phase to extract `key_files`:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs" frontmatter .planning/phases/{NN}-{slug}/SUMMARY.md
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" frontmatter .planning/phases/{NN}-{slug}/SUMMARY.md
 ```
 
 Collect all `key_files` across all plans in the phase. Filter to only source files (exclude config, docs, assets). Group by:

@@ -18,7 +18,7 @@
  *  10. Empty phases (phase dirs with no PLAN)
  *  11. No project (no .planning/)
  *
- * Called by: `node pbr-tools.cjs suggest-next`
+ * Called by: `node pbr-tools.js suggest-next`
  */
 
 const fs = require('fs');

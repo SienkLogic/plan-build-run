@@ -109,8 +109,8 @@ Look for an existing `VERIFICATION.md` in the phase directory.
 
 Use `pbr-tools.cjs` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs must-haves {phase_number}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs phase-info {phase_number}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
 ```
 
 Stop and report error if pbr-tools CLI is unavailable. Also read CONTEXT.md for locked decisions and deferred ideas, and ROADMAP.md for the phase goal and dependencies.
@@ -274,10 +274,10 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 
 Run the `post_verification_state` CLI sequence:
 
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state update status {result}`
+1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {result}`
    — where {result} is `verified` if status is `passed`, or `needs_fixes` if status is `gaps_found`.
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs state record-activity "Phase {phase_num} verified: {status}"`
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.cjs roadmap update-status {phase_num} {roadmap_status}`
+2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} verified: {status}"`
+3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} {roadmap_status}`
    — where {roadmap_status} is `verified` if passed, `needs_fixes` if gaps_found.
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
