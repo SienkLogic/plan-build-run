@@ -63,14 +63,16 @@ describe('scoreContext', () => {
     expect(score).toBeLessThan(60);
   });
 
-  test('scores < 50 when 8 of 10 entries are from prior phases', () => {
-    const now = new Date().toISOString();
+  test('scores < 50 when 8 of 10 entries are from prior phases and stale', () => {
+    const now = Date.now();
+    const staleTime = new Date(now - 120 * 60 * 1000).toISOString(); // 2 hours ago
+    const freshTime = new Date(now).toISOString();
     const entries = [];
     for (let i = 0; i < 8; i++) {
-      entries.push({ file: `/old${i}.js`, timestamp: now, est_tokens: 100, phase: '00-setup' });
+      entries.push({ file: `/old${i}.js`, timestamp: staleTime, est_tokens: 100, phase: '00-setup' });
     }
     for (let i = 0; i < 2; i++) {
-      entries.push({ file: `/cur${i}.js`, timestamp: now, est_tokens: 100, phase: '01-foundation' });
+      entries.push({ file: `/cur${i}.js`, timestamp: freshTime, est_tokens: 100, phase: '01-foundation' });
     }
     const config = { context_ledger: { stale_after_minutes: 60 } };
     const score = scoreContext(entries, config, '01-foundation');
