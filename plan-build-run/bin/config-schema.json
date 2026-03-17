@@ -512,6 +512,19 @@
         }
       },
       "additionalProperties": false
+    },
+    "worktree": {
+      "type": "object",
+      "description": "Settings for agents running with isolation: worktree.",
+      "properties": {
+        "sparse_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Glob patterns for sparse checkout in worktrees. When non-empty, worktree agents only check out matching paths (e.g. [\"src/**\", \"package.json\", \".planning/**\"]). Empty array = full checkout (default)."
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
