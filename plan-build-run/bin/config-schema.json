@@ -44,7 +44,10 @@
         "inline_verify": { "type": "boolean" },
         "enhanced_session_start": { "type": "boolean", "default": true, "description": "Enable enhanced SessionStart briefing with structured context injection (~500 tokens)." },
         "context_quality_scoring": { "type": "boolean", "default": true, "description": "Enable context quality scoring to track signal-to-noise ratio." },
-        "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." }
+        "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." },
+        "inline_simple_tasks": { "type": "boolean", "default": true, "description": "Enable inline execution for simple tasks (<5 files, <50 lines). When false, all tasks delegate to subagents." },
+        "rich_agent_prompts": { "type": "boolean", "default": true, "description": "Enable enriched agent prompts with full project context when context budget allows." },
+        "multi_phase_awareness": { "type": "boolean", "default": true, "description": "Enable orchestrator to hold multiple phase plans simultaneously in context." }
       },
       "additionalProperties": false
     },
@@ -385,6 +388,27 @@
           "type": "boolean",
           "default": false,
           "description": "When true, failed verification triggers replay with enriched context (original plan + SUMMARY + VERIFICATION failures + diffs)."
+        },
+        "inline_max_files": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 5,
+          "description": "Maximum files a task can touch to be eligible for inline execution."
+        },
+        "inline_max_lines": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 500,
+          "default": 50,
+          "description": "Maximum estimated lines of change for inline execution eligibility."
+        },
+        "max_phases_in_context": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3,
+          "description": "Maximum number of phase plans the orchestrator holds simultaneously."
         }
       },
       "additionalProperties": false
