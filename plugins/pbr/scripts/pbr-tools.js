@@ -231,6 +231,10 @@ const {
   statusRender: _statusRender
 } = require('./lib/status-render');
 
+const {
+  suggestNext: _suggestNext
+} = require('./lib/suggest-next');
+
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
 const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
@@ -1284,6 +1288,8 @@ async function main() {
       output(claimList());
     } else if (command === 'status' && subcommand === 'render') {
       output(_statusRender(planningDir));
+    } else if (command === 'suggest-next') {
+      output(_suggestNext(planningDir));
     } else if (command === 'tmux' && subcommand === 'detect') {
       const tmuxEnv = process.env.TMUX || '';
       const result = {
@@ -1299,8 +1305,22 @@ async function main() {
         }
       }
       output(result);
+
+    // ─── Quick Task Operations ─────────────────────────────────────────────────
+    } else if (command === 'quick' && subcommand === 'init') {
+      const desc = args.slice(2).join(' ') || '';
+      const quickInitMod = require('./lib/quick-init.js');
+      output(quickInitMod.quickInit(desc, planningDir));
+
+    // ─── Slug Generation ─────────────────────────────────────────────────────
+    } else if (command === 'generate-slug' || command === 'slug-generate') {
+      const text = args.slice(1).join(' ');
+      if (!text) error('Usage: pbr-tools.js generate-slug <text>');
+      const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      output({ slug });
+
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate`);
     }
   } catch (e) {
     error(e.message);

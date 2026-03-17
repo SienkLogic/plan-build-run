@@ -196,12 +196,15 @@
  * UTILITY:
  *   resolve-model <agent-type>         Get model for agent based on profile
  *   generate-slug <text>               Convert text to URL-safe slug
+ *   slug-generate <text>              Alias for generate-slug
+ *   quick init <description>          Create quick task directory + PLAN.md
  *   current-timestamp [format]         Get timestamp (full|date|filename)
  *   verify-path-exists <path>          Check file/directory existence
  *   summary-extract <path> [--fields]  Extract structured data from SUMMARY.md
  *   websearch <query> [--limit N] [--freshness day|week|month]
  *   progress [json|table|bar]          Render progress in various formats
  *   commit <message> [--files f1 f2]   Commit planning docs
+ *   suggest-next                       Deterministic routing recommendation
  *
  * REFERENCE & SKILLS:
  *   reference <name> [--section heading] [--list]
@@ -238,7 +241,7 @@ let _core, _config, _state, _phase, _roadmap, _init;
 let _history, _todo, _learnings, _spotCheck, _build, _llm;
 let _verify, _frontmatter, _commands, _template, _milestone;
 let _reference, _skillSection, _stepVerify, _preview, _context;
-let _alternatives, _migrate, _circuitState, _intel, _statusRender;
+let _alternatives, _migrate, _circuitState, _intel, _statusRender, _suggestNext, _parseArgs;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -266,6 +269,8 @@ function getAlternatives() { if (!_alternatives) _alternatives = require('./lib/
 function getMigrate() { if (!_migrate) _migrate = require('./lib/migrate.cjs'); return _migrate; }
 function getIntel() { if (!_intel) _intel = require('./lib/intel.cjs'); return _intel; }
 function getStatusRender() { if (!_statusRender) _statusRender = require('./lib/status-render.cjs'); return _statusRender; }
+function getSuggestNext() { if (!_suggestNext) _suggestNext = require('./lib/suggest-next.cjs'); return _suggestNext; }
+function getParseArgs() { if (!_parseArgs) _parseArgs = require('./lib/parse-args.cjs'); return _parseArgs; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -1121,8 +1126,15 @@ async function main() {
     // ─── Utility Commands ─────────────────────────────────────────────────────
     } else if (command === 'resolve-model') {
       getCommands().cmdResolveModel(cwd, args[1], raw);
-    } else if (command === 'generate-slug') {
+    } else if (command === 'generate-slug' || command === 'slug-generate') {
       getCommands().cmdGenerateSlug(args[1], raw);
+
+    // ─── Quick Task Operations ─────────────────────────────────────────────────
+    } else if (command === 'quick' && subcommand === 'init') {
+      const desc = args.slice(2).join(' ') || '';
+      const quickInitMod = require('./lib/quick-init.cjs');
+      output(quickInitMod.quickInit(desc, planningDir));
+
     } else if (command === 'current-timestamp') {
       getCommands().cmdCurrentTimestamp(args[1] || 'full', raw);
     } else if (command === 'verify-path-exists') {
@@ -1256,6 +1268,10 @@ async function main() {
     } else if (command === 'status' && subcommand === 'render') {
       output(getStatusRender().statusRender(planningDir));
 
+    // ─── Suggest Next ──────────────────────────────────────────────────────────
+    } else if (command === 'suggest-next') {
+      output(getSuggestNext().suggestNext(planningDir));
+
     // ─── Dashboard ─────────────────────────────────────────────────────────────
     } else if (command === 'dashboard') {
       const { spawn } = require('child_process');
@@ -1324,9 +1340,54 @@ async function main() {
         return new Promise(() => {});
       }
 
+    // ─── Parse Args ────────────────────────────────────────────────────────────
+    } else if (command === 'parse-args') {
+      const type = args[1];
+      const rawInput = args.slice(2).join(' ');
+      if (!type) error('Usage: pbr-tools.cjs parse-args <type> <args>\nTypes: plan, quick');
+      output(getParseArgs().parseArgs(type, rawInput));
+
+    // ─── Status Fingerprint ──────────────────────────────────────────────────
+    } else if (command === 'status' && subcommand === 'fingerprint') {
+      const crypto = require('crypto');
+      const files = {};
+      let combinedContent = '';
+      for (const name of ['STATE.md', 'ROADMAP.md']) {
+        const filePath = path.join(planningDir, name);
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const stat = fs.statSync(filePath);
+          const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+          files[name] = {
+            hash,
+            mtime: stat.mtime.toISOString(),
+            lines: content.split('\n').length
+          };
+          combinedContent += content;
+        } catch {
+          files[name] = { hash: null, mtime: null, lines: 0 };
+        }
+      }
+      const fingerprint = combinedContent
+        ? crypto.createHash('sha256').update(combinedContent).digest('hex').slice(0, 8)
+        : null;
+      // Count phase directories
+      let phaseDirs = 0;
+      const phasesDir = path.join(planningDir, 'phases');
+      try {
+        const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+        phaseDirs = entries.filter(e => e.isDirectory()).length;
+      } catch { /* no phases dir */ }
+      output({
+        fingerprint,
+        files,
+        phase_dirs: phaseDirs,
+        timestamp: new Date().toISOString()
+      });
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
