@@ -624,15 +624,19 @@ When you discover knowledge that would be valuable in **future sessions** -- not
 
 **Format** (output this block in your final response, before the completion marker):
 
-    <memory_suggestion type="project">
-    description: "One-line summary of the knowledge"
+```xml
+<memory_suggestion type="project">
+description: "One-line summary of the knowledge"
 
-    The detailed memory content here. Include specific file paths,
-    code patterns, or constraints. Be concrete and actionable.
+The detailed memory content here. Include specific file paths,
+code patterns, or constraints. Be concrete and actionable.
+```
 
-    **Why:** Why this matters for future work.
-    **How to apply:** When and where this knowledge should be used.
-    </memory_suggestion>
+```xml
+**Why:** Why this matters for future work.
+**How to apply:** When and where this knowledge should be used.
+</memory_suggestion>
+```
 
 Valid types: `project`, `feedback`, `user`, `reference`.
 You may output 0-2 suggestions per run. Prefer 0 (most runs discover nothing novel).
