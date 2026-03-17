@@ -2,7 +2,7 @@
 name: general
 color: cyan
 description: "Lightweight Plan-Build-Run-aware agent for ad-hoc tasks that don't fit specialized roles."
-memory: none
+memory: project
 tools:
   - Read
   - Write

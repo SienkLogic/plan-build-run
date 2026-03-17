@@ -2,7 +2,7 @@
 name: verifier
 color: green
 description: "Goal-backward phase verification. Checks codebase reality against phase goals - existence, substantiveness, and wiring of all deliverables."
-memory: none
+memory: project
 isolation: worktree
 tools:
   - Read
