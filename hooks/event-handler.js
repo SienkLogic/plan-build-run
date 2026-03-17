@@ -110,18 +110,25 @@ function writeAutoVerifySignal(planningDir, phaseNumber) {
 
 function main() {
   const data = readStdin();
+  const agentType = data.agent_type || data.subagent_type || '';
+  const planningDir = path.join(process.cwd(), '.planning');
 
-  // Only handle executor agent completions
+  // Decision extraction runs for ALL agent types (not just executor)
+  if (agentType && fs.existsSync(planningDir)) {
+    const agentOutput = data.output || data.stdout || data.last_assistant_message || '';
+    try {
+      handleDecisionExtraction(planningDir, agentOutput, agentType.replace('pbr:', ''));
+    } catch (_e) { /* non-fatal */ }
+  }
+
+  // Only handle executor agent completions for auto-verify
   if (!isExecutorAgent(data)) {
     process.exit(0);
   }
 
-  const agentType = data.agent_type || data.subagent_type;
-
   logHook('event-handler', 'SubagentStop', 'executor-complete', { agent_type: agentType });
   logEvent('workflow', 'executor-complete', { agent_type: agentType });
 
-  const planningDir = path.join(process.cwd(), '.planning');
   if (!fs.existsSync(planningDir)) {
     process.exit(0);
   }
@@ -171,14 +178,22 @@ function main() {
  */
 function handleHttp(reqBody) {
   const data = reqBody.data || {};
+  const agentType = data.agent_type || data.subagent_type || '';
+  const planningDir = reqBody.planningDir;
+
+  // Decision extraction runs for ALL agent types
+  if (agentType && planningDir && fs.existsSync(planningDir)) {
+    const agentOutput = data.output || data.stdout || data.last_assistant_message || '';
+    try {
+      handleDecisionExtraction(planningDir, agentOutput, agentType.replace('pbr:', ''));
+    } catch (_e) { /* non-fatal */ }
+  }
 
   if (!isExecutorAgent(data)) return null;
 
-  const agentType = data.agent_type || data.subagent_type;
   logHook('event-handler', 'SubagentStop', 'executor-complete', { agent_type: agentType });
   logEvent('workflow', 'executor-complete', { agent_type: agentType });
 
-  const planningDir = reqBody.planningDir;
   if (!planningDir || !fs.existsSync(planningDir)) return null;
 
   const stateInfo = getPhaseFromState(planningDir);
@@ -213,5 +228,166 @@ function handleHttp(reqBody) {
   };
 }
 
-module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp };
+// ─── Decision Extraction ─────────────────────────────────────────────────────
+
+/**
+ * Decision pattern definitions. Each entry has a regex and extraction logic.
+ * Patterns are designed to minimize false positives on common prose.
+ */
+const DECISION_PATTERNS = [
+  {
+    // "Locked Decision: ..." or "DECISION: ..."
+    name: 'explicit',
+    regex: /(?:Locked Decision|DECISION):\s*(.+?)(?:\n|$)/gi,
+    extract(match) {
+      const full = match[1].trim();
+      // Split on "because", "since", "due to" for rationale
+      const rationaleMatch = full.match(/\b(?:because|since|due to)\s+(.+)$/i);
+      const decision = rationaleMatch ? full.slice(0, rationaleMatch.index).trim() : full;
+      const rationale = rationaleMatch ? rationaleMatch[1].trim() : '';
+      return { decision, rationale };
+    }
+  },
+  {
+    // "chose X over Y because Z" — requires "over" to avoid false positives
+    name: 'chose-over',
+    regex: /\bchose\s+(.+?)\s+over\s+(.+?)\s+(?:because|since|due to)\s+(.+?)(?:\.|$)/gi,
+    extract(match) {
+      const decision = `chose ${match[1].trim()} over ${match[2].trim()}`;
+      const rationale = match[3].trim();
+      return { decision, rationale, alternatives: [match[2].trim()] };
+    }
+  },
+  {
+    // "selected X instead of Y because Z" — requires "instead of" to avoid false positives
+    name: 'selected-instead',
+    regex: /\bselected\s+(.+?)\s+instead of\s+(.+?)\s+(?:because|since|due to)\s+(.+?)(?:\.|$)/gi,
+    extract(match) {
+      const decision = `selected ${match[1].trim()} instead of ${match[2].trim()}`;
+      const rationale = match[3].trim();
+      return { decision, rationale, alternatives: [match[2].trim()] };
+    }
+  },
+  {
+    // "Deviation: ..." — deviation justifications
+    name: 'deviation',
+    regex: /Deviation:\s*(.+?)(?:\n|$)/gi,
+    extract(match) {
+      const full = match[1].trim();
+      const rationaleMatch = full.match(/\b(?:because|since|due to)\s+(.+)$/i);
+      const decision = rationaleMatch ? full.slice(0, rationaleMatch.index).trim() : full;
+      const rationale = rationaleMatch ? rationaleMatch[1].trim() : '';
+      return { decision, rationale };
+    }
+  }
+];
+
+/**
+ * Extract decisions from agent output text.
+ * @param {string} agentOutput - Raw text output from an agent
+ * @param {string} agentType - Agent type identifier (e.g. 'executor', 'planner')
+ * @returns {Array<{decision: string, rationale: string, context: string, agent: string, alternatives?: string[]}>}
+ */
+function extractDecisions(agentOutput, agentType) {
+  if (!agentOutput || typeof agentOutput !== 'string') return [];
+
+  const results = [];
+  const lines = agentOutput.split('\n');
+
+  for (const pattern of DECISION_PATTERNS) {
+    // Reset regex lastIndex for each pattern
+    pattern.regex.lastIndex = 0;
+    let match;
+    while ((match = pattern.regex.exec(agentOutput)) !== null) {
+      const extracted = pattern.extract(match);
+      if (!extracted.decision) continue;
+
+      // Truncate decision title to 80 chars
+      const decision = extracted.decision.length > 80
+        ? extracted.decision.slice(0, 80)
+        : extracted.decision;
+
+      // Get surrounding context (2 lines before/after the match)
+      const matchLine = agentOutput.slice(0, match.index).split('\n').length - 1;
+      const contextStart = Math.max(0, matchLine - 2);
+      const contextEnd = Math.min(lines.length, matchLine + 3);
+      const context = lines.slice(contextStart, contextEnd).join('\n');
+
+      results.push({
+        decision,
+        rationale: extracted.rationale || '',
+        context,
+        agent: agentType,
+        alternatives: extracted.alternatives || []
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Handle decision extraction for a planning directory.
+ * Checks config, extracts decisions from output, and records them.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} agentOutput - Raw agent output text
+ * @param {string} agentType - Agent type identifier
+ */
+function handleDecisionExtraction(planningDir, agentOutput, agentType) {
+  // Check config for feature toggle
+  const configPath = path.join(planningDir, 'config.json');
+  let config;
+  try {
+    if (!fs.existsSync(configPath)) return;
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  } catch (_e) {
+    return;
+  }
+
+  if (!config || !config.features || !config.features.decision_journal) return;
+
+  const decisions = extractDecisions(agentOutput, agentType);
+  if (decisions.length === 0) return;
+
+  // Lazy-load decisions module — path relative to plugin root
+  let recordDecision;
+  try {
+    const decisionsModule = require(path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'decisions.cjs'));
+    recordDecision = decisionsModule.recordDecision;
+  } catch (_e) {
+    // decisions.cjs not available — skip silently
+    return;
+  }
+
+  // Get phase from STATE.md
+  const stateInfo = getPhaseFromState(planningDir);
+  const phase = stateInfo ? String(stateInfo.phase) : '';
+
+  for (const d of decisions) {
+    try {
+      recordDecision(planningDir, {
+        decision: d.decision,
+        rationale: d.rationale,
+        context: d.context,
+        agent: d.agent,
+        phase,
+        alternatives: d.alternatives || [],
+      });
+    } catch (_e) {
+      // Non-fatal — log and continue
+      try {
+        logHook('event-handler', 'SubagentStop', 'decision-record-error', { error: _e.message });
+      } catch (_logErr) { /* ignore */ }
+    }
+  }
+
+  try {
+    logHook('event-handler', 'SubagentStop', 'decisions-extracted', {
+      count: decisions.length,
+      agent: agentType
+    });
+  } catch (_e) { /* non-fatal */ }
+}
+
+module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp, extractDecisions, handleDecisionExtraction };
 if (require.main === module || process.argv[1] === __filename) { main(); }
