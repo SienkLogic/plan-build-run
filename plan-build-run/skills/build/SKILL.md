@@ -308,6 +308,37 @@ Before spawning Wave {W} executors (for W > 1), verify all Wave {W-1} plans comp
 
 For each plan in the current wave (excluding skipped plans):
 
+**Inline Execution Gate (conditional):**
+
+Before spawning a Task() executor, check if this plan qualifies for inline execution:
+
+1. Read `workflow.inline_execution` from config. If `false`, skip this check — use normal Task() spawn.
+2. Estimate current context usage percentage. Use a rough heuristic: if `context_window_tokens` is set in config, estimate based on conversation length; otherwise assume 30%.
+3. For each plan in the current wave, run the inline decision gate:
+   ```
+   const { shouldInlineExecution } = require(path.join(PLUGIN_ROOT, 'scripts/lib/gates/inline-execution.js'));
+   const result = shouldInlineExecution(planPath, config, contextPct);
+   ```
+   — The orchestrator conceptually evaluates these conditions; it does not literally run JavaScript. The gate logic is: plan has <= `inline_max_tasks` tasks (default 2), ALL tasks are `simple` complexity, AND context < `inline_context_cap_pct` (default 40%).
+
+4. If `result.inline` is `true`:
+   a. Display: `◆ Executing plan {plan_id} inline (trivial plan, {taskCount} simple task(s))`
+   b. Write signal file: Write the current phase number to `.planning/.inline-active` using the Write tool
+   c. Read the full PLAN.md file
+   d. For each task in the plan (parsed from XML `<task>` blocks):
+      - Read the `<action>` element and execute each numbered step directly
+      - Follow the same rules as a normal executor: create/modify files, run commands
+      - After each task, run the `<verify>` command
+      - If verify fails, fall back to normal Task() spawn for this plan
+   e. After all tasks complete, write SUMMARY.md directly:
+      - Use the same frontmatter format as executor-produced SUMMARYs
+      - Include: `status: completed`, `key_files`, `requires: []`, `deferred: []`
+      - Body: brief description of what was done
+   f. Delete `.planning/.inline-active` signal file
+   g. Skip the normal Task() spawn below — proceed to Step 6c (Read Results)
+
+5. If `result.inline` is `false`: proceed with normal Task() spawn below (no change to existing flow)
+
 **Local LLM plan quality check (optional, advisory):**
 
 Before spawning executors for this wave, if `config.local_llm.enabled` is `true`, run a quick classification on each plan to catch stubs before wasting an executor spawn:
