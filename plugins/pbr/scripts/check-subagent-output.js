@@ -550,9 +550,20 @@ const SKILL_CHECKS = {
     }
   },
   'build:pbr:executor': {
-    description: 'build executor SUMMARY commits, LEARNINGS.md, and convention update',
+    description: 'build executor SUMMARY commits, self-check, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Validate self-verification ran when feature is enabled
+      const summaryFiles = found.filter(f => /SUMMARY/i.test(f));
+      for (const relPath of summaryFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const { resolveConfig } = require('./lib/config');
+          const config = resolveConfig(planningDir);
+          const selfCheckWarnings = validateSelfCheck(fullPath, config);
+          warnings.push(...selfCheckWarnings);
+        } catch (_e) { /* best-effort */ }
+      }
       checkLearningsRequired(planningDir, warnings, 'executor');
       // Log post-hoc skip for non-quick executors (audit evidence)
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
