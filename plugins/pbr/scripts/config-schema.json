@@ -42,6 +42,7 @@
         "auto_advance": { "type": "boolean" },
         "team_discussions": { "type": "boolean" },
         "inline_verify": { "type": "boolean" },
+<<<<<<< HEAD
         "enhanced_session_start": { "type": "boolean", "default": true, "description": "Enable enhanced SessionStart briefing with structured context injection (~500 tokens)." },
         "context_quality_scoring": { "type": "boolean", "default": true, "description": "Enable context quality scoring to track signal-to-noise ratio." },
         "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." },
@@ -60,7 +61,9 @@
         "graduated_verification": { "type": "boolean", "default": true, "description": "Enable trust-based graduated verification depth (light/standard/thorough)." },
         "self_verification": { "type": "boolean", "default": true, "description": "Enable executor self-verification before presenting output." },
         "agent_feedback_loop": { "type": "boolean", "default": true, "description": "Enable agent feedback loop — verification results feed back into executor agent prompts." },
-        "session_metrics": { "type": "boolean", "default": true, "description": "Enable session metrics dashboard at session end showing time, agents, commits, compliance." }
+        "session_metrics": { "type": "boolean", "default": true, "description": "Enable session metrics dashboard at session end showing time, agents, commits, compliance." },
+        "convention_memory": { "type": "boolean", "default": true, "description": "Enable auto-detection and storage of project conventions (naming, testing, architecture patterns) in .planning/conventions/." },
+        "mental_model_snapshots": { "type": "boolean", "default": true, "description": "Enable mental model snapshots at session end capturing working context (files, decisions, thinking) for instant resume." }
       },
       "additionalProperties": false
     },
