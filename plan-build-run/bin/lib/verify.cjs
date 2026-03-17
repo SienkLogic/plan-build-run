@@ -933,6 +933,84 @@ function cmdValidateHealth(cwd, options, raw) {
     feature_status.architecture_guard = guardHealth;
   } catch (_e) { /* graph module not available — skip */ }
 
+  // ─── Check 13: Phase 14 Quality & Safety feature health ───────────────────
+  {
+    let p14Config = {};
+    try { p14Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+
+    const p14Features = p14Config.features || {};
+
+    // Helper: check a feature module loads correctly
+    const checkFeatureHealth = (featureName, configEnabled, modulePath, validationFn) => {
+      if (!configEnabled) {
+        addIssue('info', `I-${featureName.toUpperCase()}-DISABLED`, `${featureName}: disabled`, `Enable features.${featureName} in config.json if desired`);
+        return { enabled: false, status: 'disabled' };
+      }
+      try {
+        const mod = require(modulePath);
+        const isValid = validationFn(mod);
+        if (isValid) {
+          return { enabled: true, status: 'healthy' };
+        }
+        addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module validation failed)`, `Check ${modulePath} exports`);
+        return { enabled: true, status: 'degraded' };
+      } catch (_e) {
+        addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module load failed)`, `Ensure ${modulePath} exists and is valid`);
+        return { enabled: true, status: 'degraded' };
+      }
+    };
+
+    // multi_layer_validation: default false
+    const mlvEnabled = p14Features.multi_layer_validation === true;
+    const mlvModPath = path.join(__dirname, 'validation.cjs');
+    const mlvHealth = checkFeatureHealth(
+      'multi_layer_validation',
+      mlvEnabled,
+      mlvModPath,
+      (mod) => mod.PASS_DEFINITIONS && Object.keys(mod.PASS_DEFINITIONS).length > 0
+    );
+    if (mlvHealth.status === 'healthy') {
+      try {
+        const vlMod = require(mlvModPath);
+        const passCount = Object.keys(vlMod.PASS_DEFINITIONS).length;
+        addIssue('info', 'I-MLV-HEALTHY', `multi_layer_validation: healthy (${passCount} passes configured)`, '');
+      } catch (_) {}
+    }
+    feature_status.multi_layer_validation = mlvHealth;
+
+    // regression_prevention: default true
+    const rpEnabled = p14Features.regression_prevention !== false;
+    const rpModPath = path.join(__dirname, 'test-selection.cjs');
+    const rpHealth = checkFeatureHealth(
+      'regression_prevention',
+      rpEnabled,
+      rpModPath,
+      (mod) => typeof mod.selectTests === 'function'
+    );
+    if (rpHealth.status === 'healthy') {
+      addIssue('info', 'I-RP-HEALTHY', 'regression_prevention: healthy', '');
+    }
+    feature_status.regression_prevention = rpHealth;
+
+    // security_scanning: default true
+    const ssEnabled = p14Features.security_scanning !== false;
+    const ssModPath = path.join(__dirname, 'security-scan.cjs');
+    const ssHealth = checkFeatureHealth(
+      'security_scanning',
+      ssEnabled,
+      ssModPath,
+      (mod) => Array.isArray(mod.SECURITY_RULES) && mod.SECURITY_RULES.length > 0
+    );
+    if (ssHealth.status === 'healthy') {
+      try {
+        const ssMod = require(ssModPath);
+        const ruleCount = ssMod.SECURITY_RULES.length;
+        addIssue('info', 'I-SS-HEALTHY', `security_scanning: healthy (${ruleCount} rules loaded)`, '');
+      } catch (_) {}
+    }
+    feature_status.security_scanning = ssHealth;
+  }
+
   // ─── Perform repairs if requested ─────────────────────────────────────────
   const repairActions = [];
   if (options.repair && repairs.length > 0) {
