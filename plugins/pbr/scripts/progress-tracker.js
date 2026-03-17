@@ -18,7 +18,7 @@ const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
-const { intelStatus } = require('../../plan-build-run/bin/lib/intel.cjs');
+const { intelStatus } = require('../../../plan-build-run/bin/lib/intel.cjs');
 
 function readStdin() {
   try {
