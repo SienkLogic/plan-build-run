@@ -18,6 +18,8 @@ You are the orchestrator for `/pbr:execute-phase`. This skill executes all plans
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
+Reference: `skills/shared/agent-context-enrichment.md` for enriching executor spawn prompts with project context.
+
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
 - **Delegate** all building work to executor subagents — the orchestrator routes, it doesn't build
@@ -494,6 +496,26 @@ Before spawning a Task() executor, check if this plan qualifies for inline execu
    g. Skip the normal Task() spawn below — proceed to Step 6c (Read Results)
 
 5. If `result.inline` is `false`: proceed with normal Task() spawn below (no change to existing flow)
+
+**Agent Context Enrichment (conditional):**
+
+Before spawning each Task() executor, enrich its prompt with project context if enabled:
+
+1. Check `features.rich_agent_prompts` in config. If `true`:
+   ```
+   const { buildRichAgentContext } = require(path.join(PLUGIN_ROOT, 'scripts/lib/gates/rich-agent-context.js'));
+   const richContext = buildRichAgentContext(planningDir, config, contextPct > 50 ? 2500 : 5000);
+   ```
+   — The orchestrator conceptually evaluates this; it does not literally run JavaScript. If rich context is non-empty, include it in the executor spawn prompt under a `## Project Context` header.
+
+2. Check `features.multi_phase_awareness` in config. If `true`:
+   ```
+   const { loadMultiPhasePlans } = require(path.join(PLUGIN_ROOT, 'scripts/lib/gates/multi-phase-loader.js'));
+   const multiPhase = loadMultiPhasePlans(planningDir, currentPhaseNum, config);
+   ```
+   — If `multiPhase.phasesLoaded > 1`, include adjacent phase plan frontmatter (first 30 lines of each) in the executor spawn prompt under a `## Adjacent Phase Context` header. Do NOT include full plan bodies for adjacent phases — frontmatter only.
+
+3. If neither feature is enabled, skip enrichment entirely (no performance cost).
 
 **Local LLM plan quality check (optional, advisory):**
 
