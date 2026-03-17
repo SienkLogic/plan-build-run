@@ -10,6 +10,8 @@ const {
   loadScores,
   recordOutcome,
   getConfidence,
+  getConfidenceSummary,
+  logTrustEvent,
   resetScores,
   TRUST_DIR,
   TRUST_FILE
@@ -133,6 +135,96 @@ describe('trust-tracker', () => {
 
     test('does not throw when file does not exist', () => {
       expect(() => resetScores(tmpDir)).not.toThrow();
+    });
+  });
+
+  describe('logTrustEvent', () => {
+    test('creates logs dir and appends JSONL entry to trust-events.jsonl', () => {
+      logTrustEvent(tmpDir, 'executor', 'build', true, 0.9);
+      const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
+      expect(fs.existsSync(logPath)).toBe(true);
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      expect(lines).toHaveLength(1);
+      const entry = JSON.parse(lines[0]);
+      expect(entry.agent).toBe('executor');
+      expect(entry.category).toBe('build');
+      expect(entry.passed).toBe(true);
+      expect(entry.new_rate).toBe(0.9);
+      expect(entry.ts).toBeDefined();
+      // ts should be a valid ISO string
+      expect(new Date(entry.ts).toISOString()).toBe(entry.ts);
+    });
+
+    test('appends multiple entries', () => {
+      logTrustEvent(tmpDir, 'executor', 'build', true, 0.9);
+      logTrustEvent(tmpDir, 'verifier', 'lint', false, 0.5);
+      const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      expect(lines).toHaveLength(2);
+    });
+
+    test('does not throw on write failure', () => {
+      // Pass an invalid path that cannot be created
+      expect(() => logTrustEvent('/dev/null/impossible', 'executor', 'build', true, 0.9)).not.toThrow();
+    });
+  });
+
+  describe('recordOutcome audit logging', () => {
+    test('recordOutcome appends a JSONL entry to trust-events.jsonl', () => {
+      recordOutcome(tmpDir, 'executor', 'build', true);
+      const logPath = path.join(tmpDir, 'logs', 'trust-events.jsonl');
+      expect(fs.existsSync(logPath)).toBe(true);
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+      expect(lines).toHaveLength(1);
+      const entry = JSON.parse(lines[0]);
+      expect(entry.agent).toBe('executor');
+      expect(entry.category).toBe('build');
+      expect(entry.passed).toBe(true);
+      expect(entry.new_rate).toBe(1);
+    });
+  });
+
+  describe('getConfidenceSummary', () => {
+    test('returns null when no data exists for agent', () => {
+      const result = getConfidenceSummary(tmpDir, 'unknown-agent');
+      expect(result).toBeNull();
+    });
+
+    test('returns summary with all categories for an agent', () => {
+      recordOutcome(tmpDir, 'executor', 'build', true);
+      recordOutcome(tmpDir, 'executor', 'build', true);
+      recordOutcome(tmpDir, 'executor', 'build', false);
+      recordOutcome(tmpDir, 'executor', 'test', true);
+      const result = getConfidenceSummary(tmpDir, 'executor');
+      expect(result.agent).toBe('executor');
+      expect(result.categories).toHaveProperty('build');
+      expect(result.categories).toHaveProperty('test');
+      expect(result.categories.build.pass).toBe(2);
+      expect(result.categories.build.fail).toBe(1);
+      expect(result.categories.build.rate).toBeCloseTo(2 / 3, 4);
+      expect(result.categories.build.total).toBe(3);
+      expect(result.categories.build.label).toBe('low');
+      expect(result.categories.test.pass).toBe(1);
+      expect(result.categories.test.rate).toBe(1);
+      expect(result.categories.test.label).toBe('high');
+    });
+
+    test('returns correct overall_rate and overall_total', () => {
+      // 3 pass, 1 fail across categories
+      recordOutcome(tmpDir, 'executor', 'build', true);
+      recordOutcome(tmpDir, 'executor', 'build', true);
+      recordOutcome(tmpDir, 'executor', 'build', false);
+      recordOutcome(tmpDir, 'executor', 'test', true);
+      const result = getConfidenceSummary(tmpDir, 'executor');
+      expect(result.overall_total).toBe(4);
+      expect(result.overall_rate).toBeCloseTo(3 / 4, 4);
+    });
+
+    test('returns null when scores file is empty', () => {
+      // No data for the agent at all
+      recordOutcome(tmpDir, 'verifier', 'lint', true);
+      const result = getConfidenceSummary(tmpDir, 'executor');
+      expect(result).toBeNull();
     });
   });
 });
