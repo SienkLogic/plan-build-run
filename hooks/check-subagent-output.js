@@ -553,6 +553,8 @@ const SKILL_CHECKS = {
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
       checkLearningsRequired(planningDir, warnings, 'executor');
+      // Log post-hoc skip for non-quick executors (audit evidence)
+      logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
     }
   },
   'quick:pbr:executor': {
