@@ -275,10 +275,33 @@ function mergeUserDefaults(base, userDefaults) {
   return result;
 }
 
+/**
+ * Resolve a config object with defaults applied for graduated verification,
+ * self-verification, and autonomy settings.
+ *
+ * @param {string} [dir] - Path to .planning directory
+ * @returns {object} Config with defaults applied (never null — returns defaults object if no config found)
+ */
+function resolveConfig(dir) {
+  const config = configLoad(dir) || {};
+
+  // Apply feature defaults
+  if (!config.features) config.features = {};
+  if (config.features.graduated_verification === undefined) config.features.graduated_verification = true;
+  if (config.features.self_verification === undefined) config.features.self_verification = true;
+
+  // Apply autonomy defaults
+  if (!config.autonomy) config.autonomy = {};
+  if (config.autonomy.level === undefined) config.autonomy.level = 'supervised';
+
+  return config;
+}
+
 module.exports = {
   configLoad,
   configClearCache,
   configValidate,
+  resolveConfig,
   resolveDepthProfile,
   DEPTH_PROFILE_DEFAULTS,
   loadUserDefaults,
