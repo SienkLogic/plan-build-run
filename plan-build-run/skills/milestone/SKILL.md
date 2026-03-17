@@ -98,26 +98,6 @@ Subcommands:
 
 ---
 
-## STATE.md Validation
-
-Before any subcommand that reads STATE.md, check:
-
-If `.planning/STATE.md` does not exist or is malformed (missing `---` frontmatter delimiters, no valid fields), display:
-
-```
-╔══════════════════════════════════════════════════════════════╗
-║  ERROR                                                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-STATE.md is missing or malformed.
-
-**To fix:** Run `/pbr:new-project` to initialize, or `/pbr:health` to repair.
-```
-
-Stop execution.
-
----
-
 ## Subcommand: `new`
 
 Start a new milestone cycle with new phases.
@@ -197,6 +177,12 @@ Start a new milestone cycle with new phases.
 8. **Update STATE.md:**
    - Set current phase to the first new phase
    - Update milestone info
+
+**Milestone branch creation (when git.branching is 'milestone'):**
+When starting a new milestone and `git.branching` is `milestone`:
+- Create branch: `git switch -c pbr/milestone-v{version}`
+- All phase work happens on this branch
+- Branch is merged when `/pbr:milestone complete` is run
 
 9. **Commit** if `planning.commit_docs: true`:
    ```
@@ -336,6 +322,26 @@ Archive a completed milestone and prepare for the next one.
    - Collect `patterns` fields
    - Collect `tech_stack` union
 
+**Milestone branching (config-gated):**
+Read `git.branching` from config.
+- If `milestone`:
+  a. Check if milestone branch exists: `git branch --list pbr/milestone-v{version}`
+  b. If branch exists:
+    - Use AskUserQuestion:
+      question: "Milestone v{version} complete. Merge branch `pbr/milestone-v{version}` to main?"
+      header: "Merge milestone branch?"
+      options:
+        - label: "Yes, merge"   description: "Merge milestone branch to main and delete it"
+        - label: "No, keep"     description: "Keep the branch for manual review"
+    - If "Yes, merge":
+      1. `git switch main`
+      2. `git merge --no-ff pbr/milestone-v{version}` (no-ff to preserve milestone history)
+      3. `git branch -d pbr/milestone-v{version}`
+      4. Log: "Milestone branch merged and deleted"
+    - If "No, keep": leave branch as-is
+  c. If branch does not exist: no action (phases were on main or individual phase branches)
+- If `none`, `phase`, or `disabled`: no milestone branch operations
+
 5. **Archive milestone documents:**
 
    **CRITICAL (no hook): Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
@@ -416,9 +422,9 @@ Archive a completed milestone and prepare for the next one.
    - Record the milestone version in the history/completed section
 
 7c. **Append history to STATE.md:**
-   - Use `historyAppend()` (via `pbr-tools.cjs history append`) to write a milestone completion record to STATE.md ## History section:
+   - Use `historyAppend()` (via `pbr-tools.js history append`) to write a milestone completion record to STATE.md ## History section:
      ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
      ```
    - This writes to STATE.md ## History section (not a separate HISTORY.md file)
 
@@ -427,15 +433,15 @@ Archive a completed milestone and prepare for the next one.
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs learnings ingest .planning/milestones/{version}/learnings.json
+node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}
 ```
 
-- If the command outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
-- Display the aggregation summary line to the user (e.g., "Learnings ingested: 12 new, 3 updated, 0 errors").
+- If the script outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
+- Display the aggregation summary line to the user (e.g., "Learnings aggregated: 12 new, 3 updated, 0 errors").
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs learnings check-thresholds
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings check-thresholds
 ```
 
 If any thresholds are triggered, display each as a notification:
@@ -453,6 +459,53 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    ```bash
    git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md
    git commit -m "docs(planning): complete milestone {version}"
+   ```
+
+**CRITICAL (no hook): Generate changelog entry NOW. Do NOT skip this step.**
+
+9a. **Generate changelog entry:**
+
+   Generate a user-facing changelog entry for this milestone. Read all SUMMARY.md files from the milestone phases (now in `.planning/milestones/{version}/phases/`) and categorize deliverables into Keep a Changelog sections:
+
+   - **Added** — New features, commands, capabilities (from SUMMARY.md `provides` fields)
+   - **Changed** — Modifications to existing behavior, UI updates, performance improvements
+   - **Fixed** — Bug fixes, error corrections (from commits with `fix:` type)
+
+   Format each entry with a **bolded feature name** followed by an em-dash and description:
+   ```markdown
+   ### Added
+   - **Feature name** — What it does and why it matters
+   - **Another feature** — Description focusing on user impact
+   ```
+
+   Rules for good entries:
+   - Lead with the user-visible impact, not the implementation detail
+   - Group related commits into a single entry (e.g., 5 commits for "auth" become one "Authentication system" entry)
+   - Use bold feature names, not commit scopes
+   - No commit hashes — this is prose, not a git log
+   - No internal scopes (phase-plan numbers, TDD markers)
+   - End with install line: `Install/upgrade: \`npx @sienklogic/plan-build-run@latest\``
+
+   Draft the full entry and present it to the user for review:
+
+   Use AskUserQuestion:
+   ```
+   question: "Here's the draft changelog for {version}. Want to edit it before writing?"
+   header: "Changelog"
+   options:
+     - label: "Looks good"        description: "Write this to CHANGELOG.md as-is"
+     - label: "Edit"              description: "I'll provide corrections"
+     - label: "Skip changelog"    description: "Don't update the changelog for this release"
+   ```
+
+   - If "Looks good": write the entry to CHANGELOG.md (insert after the header, before any existing version entries)
+   - If "Edit" or "Other": apply the user's corrections, then present again for final confirmation
+   - If "Skip changelog": proceed without changelog update
+
+   If writing to CHANGELOG.md:
+   ```bash
+   git add CHANGELOG.md
+   git commit -m "docs: update changelog for {version}"
    ```
 
 9b. **Push milestone to remote:**

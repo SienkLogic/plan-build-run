@@ -178,6 +178,12 @@ Start a new milestone cycle with new phases.
    - Set current phase to the first new phase
    - Update milestone info
 
+**Milestone branch creation (when git.branching is 'milestone'):**
+When starting a new milestone and `git.branching` is `milestone`:
+- Create branch: `git switch -c pbr/milestone-v{version}`
+- All phase work happens on this branch
+- Branch is merged when `/pbr:milestone complete` is run
+
 9. **Commit** if `planning.commit_docs: true`:
    ```
    docs(planning): start milestone "{name}" (phases {start}-{end})
@@ -315,6 +321,26 @@ Archive a completed milestone and prepare for the next one.
    - Collect `key_decisions` fields
    - Collect `patterns` fields
    - Collect `tech_stack` union
+
+**Milestone branching (config-gated):**
+Read `git.branching` from config.
+- If `milestone`:
+  a. Check if milestone branch exists: `git branch --list pbr/milestone-v{version}`
+  b. If branch exists:
+    - Use AskUserQuestion:
+      question: "Milestone v{version} complete. Merge branch `pbr/milestone-v{version}` to main?"
+      header: "Merge milestone branch?"
+      options:
+        - label: "Yes, merge"   description: "Merge milestone branch to main and delete it"
+        - label: "No, keep"     description: "Keep the branch for manual review"
+    - If "Yes, merge":
+      1. `git switch main`
+      2. `git merge --no-ff pbr/milestone-v{version}` (no-ff to preserve milestone history)
+      3. `git branch -d pbr/milestone-v{version}`
+      4. Log: "Milestone branch merged and deleted"
+    - If "No, keep": leave branch as-is
+  c. If branch does not exist: no action (phases were on main or individual phase branches)
+- If `none`, `phase`, or `disabled`: no milestone branch operations
 
 5. **Archive milestone documents:**
 
