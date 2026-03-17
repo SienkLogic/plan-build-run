@@ -741,7 +741,30 @@ Returns `{ ok, rolled_back_to, plans_invalidated, files_deleted, warnings }`.
 If any executor returned `checkpoint`:
 
 1. Read the checkpoint details from the executor's response
-2. Present the checkpoint to the user:
+2. Read checkpoint type from executor response: `human-verify` | `decision` | `human-action`
+3. Read `gates.checkpoint_auto_resolve` from config.json (default: `"none"`)
+   Values: `none` | `verify-only` | `verify-and-decision` | `all`
+
+   **When `--auto` flag is active, `checkpoint_auto_resolve` defaults to `verify-and-decision` unless explicitly set to `none` in config.**
+
+4. Determine auto-resolve eligibility:
+
+   - **human-action**: NEVER auto-resolve (regardless of config or `--auto` flag). Always present to user.
+   - **human-verify**:
+     - Auto-resolve if `checkpoint_auto_resolve` is `verify-only`, `verify-and-decision`, or `all`
+     - Auto-resolve if `--auto` flag is active AND `checkpoint_auto_resolve` is NOT `none`
+     - To auto-resolve: run the verify command from the checkpoint. If passes, approve and continue. If fails, present to user.
+   - **decision**:
+     - Auto-resolve if `checkpoint_auto_resolve` is `verify-and-decision` or `all`
+     - To auto-resolve: use the first/default option. Log which option was auto-selected.
+     - If `checkpoint_auto_resolve` is `verify-only` or `none`: present to user.
+
+5. If auto-resolved:
+   Log: `"Auto-resolved {type} checkpoint for Plan {id}, Task {N}: {resolution}"`
+   Resume executor with resolution context.
+
+6. If NOT auto-resolved:
+   Present the checkpoint to the user:
 
 ```
 Checkpoint in Plan {id}, Task {N}: {checkpoint type}
@@ -753,8 +776,8 @@ Checkpoint in Plan {id}, Task {N}: {checkpoint type}
 {For human-verify type: present what to verify}
 ```
 
-3. Wait for user response
-4. Spawn a FRESH continuation executor:
+7. Wait for user response
+8. Spawn a FRESH continuation executor:
 
 Reference: `references/continuation-format.md` for the continuation protocol.
 
