@@ -1226,6 +1226,23 @@ async function main() {
         const progressViz = require('./lib/progress-visualization.cjs');
         output(progressViz.getProgressData(planningDir, configLoad(planningDir)));
       }
+
+    // ─── Contextual Help ──────────────────────────────────────────────────────
+    } else if (command === 'help-context') {
+      const ctxHelp = require('./lib/contextual-help.cjs');
+      output(ctxHelp.getContextualHelp(planningDir, configLoad(planningDir)));
+
+    // ─── Onboarding Guide ─────────────────────────────────────────────────────
+    } else if (command === 'onboard') {
+      const onboard = require('./lib/onboarding-generator.cjs');
+      const result = onboard.generateOnboardingGuide(planningDir, configLoad(planningDir));
+      if (raw) {
+        output(result);
+      } else {
+        // Output the markdown field for human-readable usage
+        process.stdout.write(result.markdown || '');
+      }
+
     } else if (command === 'commit') {
       const amend = args.includes('--amend');
       const filesIndex = args.indexOf('--files');
@@ -1520,6 +1537,10 @@ async function main() {
     } else if (command === 'graph') {
       const graphCli = require('./lib/graph-cli.cjs');
       graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
+
+    // ─── Spec Operations (Phase 11: Spec-Driven Development) ─────────────────
+    } else if (command === 'spec') {
+      handleSpec(args, planningDir, cwd, output, error);
 
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
