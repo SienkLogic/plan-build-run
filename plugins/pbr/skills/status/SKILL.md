@@ -41,17 +41,15 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 
 ### Step 1: Read Project State
 
-**Tooling shortcut**: Instead of parsing multiple files manually, you can run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
-```
-and
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state check-progress
-```
-These return structured JSON with config, state, roadmap, and filesystem-verified progress. Falls back gracefully if the script is missing — parse files manually in that case.
+**CRITICAL — STOP. You MUST run this CLI command FIRST. Do NOT skip it. Do NOT read files manually instead.**
 
-Read the following files (skip any that don't exist):
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render
+```
+
+This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data.
+
+**If and ONLY if the CLI command fails** (non-zero exit or invalid JSON), fall back to reading files manually:
 
 1. **`.planning/config.json`** — Project settings
    - If this doesn't exist, display:

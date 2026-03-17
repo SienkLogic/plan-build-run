@@ -79,6 +79,8 @@ function parseMilestones(roadmapContent) {
       .replace(/\(v[\d.]+\)/i, '')
       .replace(/\bCOMPLETED\b/i, '')
       .replace(/[[\]]/g, '')
+      .replace(/—\s*$/, '')
+      .replace(/-+\s*$/, '')
       .trim()
       .replace(/\s+/g, ' ');
 
@@ -93,11 +95,21 @@ function parseMilestones(roadmapContent) {
       completed: null
     };
 
-    // Count phases under this milestone heading (### Phase N:)
+    // Scan content under this milestone heading
     for (let j = i + 1; j < lines.length; j++) {
       if (/^##\s/.test(lines[j]) && j !== i) break; // next milestone or section
+      // Count phases: ### Phase N or table rows like "| 1. Name |"
       if (/^###\s+Phase\s+\d+/i.test(lines[j])) {
         ms.phase_count++;
+      }
+      // Table rows: "| N. Name | Status |" or "| Phase N |"
+      if (/^\|\s*\d+\.\s/.test(lines[j])) {
+        ms.phase_count++;
+      }
+      // Completion date: "Completed: YYYY-MM-DD"
+      const dateMatch = lines[j].match(/Completed:\s*([\d-]+)/i);
+      if (dateMatch) {
+        ms.completed = dateMatch[1];
       }
     }
 
@@ -272,8 +284,11 @@ function determineRouting(phases, stateFm, todosCount, notesCount, hasPausedWork
     // 5. Empty phases exist -> discuss or plan
     else if (empty.length > 0 || phases.length === 0) {
       if (phases.length === 0) {
-        // Check if there's even a project
-        if (stateFm && stateFm.current_phase != null) {
+        // Check if milestone just completed vs no project at all
+        if (stateFm && stateFm.status === 'milestone-complete') {
+          primary.command = '/pbr:new-milestone';
+          primary.reason = 'All milestones complete, start next milestone';
+        } else if (stateFm && stateFm.current_phase != null) {
           primary.command = '/pbr:plan';
           primary.reason = 'No phases found, start planning';
         } else {
