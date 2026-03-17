@@ -1001,7 +1001,6 @@ async function handleHttp(reqBody) {
   }
 }
 
-<<<<<<< HEAD
 /**
  * Log an inline execution decision to .planning/logs/hooks.jsonl for audit evidence.
  * Called by the build skill orchestrator after running shouldInlineExecution.
