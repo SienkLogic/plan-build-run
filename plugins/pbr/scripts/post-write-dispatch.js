@@ -175,6 +175,32 @@ async function processEvent(data, planningDir) {
     // Intel queue must never break the dispatch chain
   }
 
+  // Pattern-based routing — lowest-priority advisory for recognized file patterns
+  try {
+    let _checkPatternRouting;
+    try { _checkPatternRouting = require('./lib/pattern-routing').checkPatternRouting; } catch (_e) { _checkPatternRouting = null; }
+    if (_checkPatternRouting) {
+      const patternFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
+      if (patternFilePath) {
+        let patternConfig;
+        try {
+          const { configLoad } = require('./pbr-tools');
+          patternConfig = configLoad(planningDir);
+        } catch (_e) {
+          patternConfig = {};
+        }
+        const patternResult = _checkPatternRouting(patternFilePath, patternConfig || {});
+        if (patternResult) {
+          return {
+            additionalContext: '[Pattern] ' + patternResult.advisory
+          };
+        }
+      }
+    }
+  } catch (_e) {
+    // Pattern routing must never break the dispatch chain
+  }
+
   // LLM file intent classification — advisory enrichment for non-planning files
   // Skipped for .planning/ files (already handled by plan format / state checks above)
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
