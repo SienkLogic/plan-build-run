@@ -436,6 +436,10 @@ function buildContext(planningDir, stateFile) {
   const decisionBriefing = getDecisionBriefing(planningDir, config);
   if (decisionBriefing) parts.push(decisionBriefing);
 
+  // Negative knowledge briefing — surface past failures for related files
+  const nkBriefing = getNegativeKnowledgeBriefing(planningDir, config);
+  if (nkBriefing) parts.push(nkBriefing);
+
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
@@ -966,7 +970,94 @@ function getDecisionBriefing(planningDir, config) {
   return '\nRecent decisions:\n' + lines.join('\n');
 }
 
+// ─── Negative Knowledge Briefing ────────────────────────────────────────────
+
+function getNegativeKnowledgeBriefing(planningDir, config, workingSet) {
+  if (!config || !config.features || !config.features.negative_knowledge) return '';
+
+  if (!workingSet) {
+    workingSet = [];
+    const wsPath = path.join(planningDir, 'sessions', 'working-set.json');
+    try {
+      if (fs.existsSync(wsPath)) {
+        const ws = JSON.parse(fs.readFileSync(wsPath, 'utf8'));
+        if (Array.isArray(ws.files)) workingSet = ws.files;
+      }
+    } catch (_e) { /* ignore */ }
+
+    if (workingSet.length === 0) {
+      try {
+        const stateFile = path.join(planningDir, 'STATE.md');
+        if (fs.existsSync(stateFile)) {
+          const stateContent = fs.readFileSync(stateFile, 'utf8');
+          const phaseMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+          if (phaseMatch) {
+            const phasesDir = path.join(planningDir, 'phases');
+            if (fs.existsSync(phasesDir)) {
+              const phaseDirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(String(phaseMatch[1]).padStart(2, '0')));
+              for (const pd of phaseDirs) {
+                const planFiles = fs.readdirSync(path.join(phasesDir, pd)).filter(f => /^PLAN/i.test(f));
+                for (const pf of planFiles) {
+                  const planContent = fs.readFileSync(path.join(phasesDir, pd, pf), 'utf8');
+                  const fmMatch = planContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+                  if (fmMatch) {
+                    const filesBlock = fmMatch[1].match(/files_modified:\s*\n((?:\s+-\s+.+\n?)*)/);
+                    if (filesBlock) {
+                      const files = filesBlock[1].match(/^\s+-\s+"?(.+?)"?\s*$/gm);
+                      if (files) workingSet.push(...files.map(f => f.replace(/^\s+-\s+"?|"?\s*$/g, '')));
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (_e) { /* ignore */ }
+    }
+  }
+
+  if (workingSet.length === 0) return '';
+
+  const nkDir = path.join(planningDir, 'negative-knowledge');
+  if (!fs.existsSync(nkDir)) return '';
+
+  let nkFiles;
+  try { nkFiles = fs.readdirSync(nkDir).filter(f => f.endsWith('.md')); } catch (_e) { return ''; }
+  if (nkFiles.length === 0) return '';
+
+  const fileSet = new Set(workingSet);
+  const matches = [];
+
+  for (const file of nkFiles) {
+    try {
+      const content = fs.readFileSync(path.join(nkDir, file), 'utf8');
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fmText = fmMatch[1];
+      const getField = (name) => { const m = fmText.match(new RegExp(`^${name}:\\s*(.+)$`, 'm')); return m ? m[1].trim().replace(/^["']|["']$/g, '') : ''; };
+      const status = getField('status');
+      if (status !== 'active') continue;
+      const filesBlock = fmText.match(/files_involved:\s*\n((?:\s+-\s+.+\n?)*)/);
+      const filesInvolved = [];
+      if (filesBlock) { const fileLines = filesBlock[1].match(/^\s+-\s+(.+)$/gm); if (fileLines) filesInvolved.push(...fileLines.map(l => l.replace(/^\s+-\s+/, '').trim())); }
+      if (!filesInvolved.some(f => fileSet.has(f))) continue;
+      const date = getField('date');
+      const title = getField('title');
+      const whyMatch = content.match(/## Why It Failed\s*\n([\s\S]*?)(?=\n##|$)/);
+      const whyFailed = whyMatch ? whyMatch[1].trim() : '';
+      const whySummary = whyFailed.length > 80 ? whyFailed.slice(0, 77) + '...' : whyFailed;
+      matches.push({ date, title, whySummary, filesInvolved });
+    } catch (_e) { /* Skip */ }
+  }
+
+  if (matches.length === 0) return '';
+  matches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const top = matches.slice(0, 3);
+  const lines = top.map(m => { let title = m.title; if (title.length > 60) title = title.slice(0, 57) + '...'; return `- ${m.date}: ${title} — ${m.whySummary} (files: ${m.filesInvolved.join(', ')})`; });
+  return '\nPast failures in related files:\n' + lines.join('\n');
+}
+
 // Exported for testing
-module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }
