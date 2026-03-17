@@ -469,6 +469,21 @@ function statusRender(planningDir) {
     phases, stateFm, todosPending, notesActive, pausedWork !== null, milestones
   );
 
+  // ---- Tech Debt ----
+  let techDebt = { enabled: false };
+  if (config && config.features && config.features.tech_debt_surfacing !== false) {
+    try {
+      const scannerPath = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts', 'lib', 'tech-debt-scanner');
+      const { scanTechDebt } = require(scannerPath);
+      // planningDir is .planning/, project root is one level up
+      const projectRoot = path.dirname(planningDir);
+      const result = scanTechDebt(projectRoot, { limit: 3 });
+      techDebt = { enabled: true, hotspots: result.hotspots, largeFiles: result.largeFiles, total: result.total };
+    } catch (_e) {
+      techDebt = { enabled: true, error: 'Scanner module not available' };
+    }
+  }
+
   // ---- Milestone output ----
   const milestoneOut = currentMilestone
     ? { name: currentMilestone.name, status: currentMilestone.status, version: currentMilestone.version }
@@ -504,7 +519,8 @@ function statusRender(planningDir) {
     state_line_count: stateLineCount,
     state_warning: stateWarning,
     routing,
-    documents
+    documents,
+    techDebt
   };
 }
 
