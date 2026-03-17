@@ -12,20 +12,20 @@ argument-hint: "[query <term>|refresh|status|diff]"
 **Before ANY tool calls**, display this banner:
 
 ```
-PLAN-BUILD-RUN > INTEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ PBR ► INTEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 Then proceed to Step 1.
 
 ## Step 1 -- Config Gate
 
-Check if intel is enabled:
+Check if intel is enabled by reading `.planning/config.json` directly (do NOT use Bash for this -- `config get` throws on missing keys):
 
-```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs config get intel.enabled
-```
-
-If `intel.enabled` is `false`, display:
+1. Read `.planning/config.json`
+2. Check if `intel.enabled` is explicitly `false`
+3. If `false`, display:
 
 ```
 Intel system is disabled. Enable with: /pbr:config set intel.enabled true
@@ -33,7 +33,7 @@ Intel system is disabled. Enable with: /pbr:config set intel.enabled true
 
 Then **STOP**. Do not proceed further.
 
-If enabled (or no config found, which defaults to enabled), proceed to Step 2.
+If enabled, not present, or no config file exists (all default to enabled), proceed to Step 2.
 
 ---
 
@@ -53,7 +53,7 @@ Parse the user's argument to determine the operation mode:
 Run:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs intel query <term>
+node plan-build-run/bin/pbr-tools.cjs intel query <term>
 ```
 
 Format and display the results. Show matching entries grouped by intel file. If no results found, suggest running `refresh` first.
@@ -65,7 +65,7 @@ Format and display the results. Show matching entries grouped by intel file. If 
 Run:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs intel status
+node plan-build-run/bin/pbr-tools.cjs intel status
 ```
 
 Format and display staleness info for each intel file. Show last update times and whether files exist.
@@ -77,7 +77,7 @@ Format and display staleness info for each intel file. Show last update times an
 Run:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs intel diff
+node plan-build-run/bin/pbr-tools.cjs intel diff
 ```
 
 Format and display changes since the last full refresh. Show which files have changed and summary of differences.
@@ -112,7 +112,7 @@ Wait for agent completion.
 After the agent completes, run:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs intel status
+node plan-build-run/bin/pbr-tools.cjs intel status
 ```
 
 Display a summary showing:
