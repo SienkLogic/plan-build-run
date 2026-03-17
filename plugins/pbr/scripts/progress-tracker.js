@@ -771,14 +771,19 @@ function buildEnhancedBriefing(planningDir, config) {
   const lines = [];
   lines.push('[PBR Session Briefing]');
 
-  // ── STATE.md frontmatter ──
+  // ── STATE.md ── read once for frontmatter + blockers
   const stateFile = path.join(planningDir, 'STATE.md');
+  let stateContent = null;
   try {
     if (fs.existsSync(stateFile)) {
-      const content = fs.readFileSync(stateFile, 'utf8');
-      // Parse YAML frontmatter fields with simple regex
+      stateContent = fs.readFileSync(stateFile, 'utf8');
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  if (stateContent) {
+    try {
       const fm = {};
-      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      const fmMatch = stateContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
       if (fmMatch) {
         const fmBlock = fmMatch[1];
         const fields = ['current_phase', 'total_phases', 'phase_name', 'status', 'progress_percent', 'plans_total', 'plans_complete'];
@@ -787,7 +792,6 @@ function buildEnhancedBriefing(planningDir, config) {
           if (m) fm[field] = m[1].trim();
         }
       }
-
       if (fm.current_phase && fm.total_phases) {
         const phaseName = fm.phase_name ? `"${fm.phase_name}"` : '';
         const status = fm.status || 'unknown';
@@ -796,8 +800,8 @@ function buildEnhancedBriefing(planningDir, config) {
         const progress = fm.progress_percent || '?';
         lines.push(`Phase ${fm.current_phase}/${fm.total_phases}: ${phaseName} -- ${status}, plan ${plansComplete}/${plansTotal} (${progress}%)`);
       }
-    }
-  } catch (_e) { /* non-fatal */ }
+    } catch (_e) { /* non-fatal */ }
+  }
 
   // ── Git context ──
   try {
@@ -843,16 +847,15 @@ function buildEnhancedBriefing(planningDir, config) {
     }
   } catch (_e) { /* non-fatal */ }
 
-  // ── Blockers from STATE.md ──
-  try {
-    if (fs.existsSync(stateFile)) {
-      const content = fs.readFileSync(stateFile, 'utf8');
-      const blockersSection = extractSection(content, 'Blockers/Concerns');
+  // ── Blockers from STATE.md (reuse cached content) ──
+  if (stateContent) {
+    try {
+      const blockersSection = extractSection(stateContent, 'Blockers/Concerns');
       if (blockersSection && !blockersSection.includes('None')) {
         lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
       }
-    }
-  } catch (_e) { /* non-fatal */ }
+    } catch (_e) { /* non-fatal */ }
+  }
 
   // Truncate to 2500 chars max
   let output = lines.join('\n');
