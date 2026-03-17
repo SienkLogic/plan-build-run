@@ -166,6 +166,19 @@ function processEvent(data, planningDir, opts, sessionId) {
     }
   } catch (_e) { /* fire-and-forget */ }
 
+  // Fire-and-forget: update context quality score if feature is enabled
+  try {
+    const { configLoad: _cLoad } = require('./pbr-tools');
+    const _cfg = _cLoad(planningDir);
+    if (_cfg && _cfg.features && _cfg.features.context_quality_scoring !== false) {
+      const { getQualityReport, writeQualityReport } = require('./context-quality');
+      const report = getQualityReport(planningDir);
+      if (report) {
+        writeQualityReport(planningDir, report);
+      }
+    }
+  } catch (_e) { /* fire-and-forget — quality scoring never blocks the hook */ }
+
   // Check bridge file for tier-based context warnings
   const bridgeTier = checkBridge(planningDir);
   if (bridgeTier) {

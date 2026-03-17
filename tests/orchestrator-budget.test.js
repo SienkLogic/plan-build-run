@@ -24,9 +24,11 @@ afterEach(() => {
 
 describe('getScaledThreshold — orchestrator_budget_pct', () => {
   const { getScaledThreshold } = require('../plugins/pbr/scripts/suggest-compact');
+  const { configClearCache } = require('../plugins/pbr/scripts/pbr-tools');
 
   test('threshold at 1M tokens with budget_pct=25 is higher than at 200k', () => {
     // Write config with 1M tokens, budget_pct=25
+    configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 1000000,
       orchestrator_budget_pct: 25
@@ -35,6 +37,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
     const threshold1M = getScaledThreshold(planningDir);
 
     // Write config with 200k tokens, budget_pct=25
+    configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 200000,
       orchestrator_budget_pct: 25
@@ -46,12 +49,14 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
   });
 
   test('threshold at 1M tokens with budget_pct=35 is proportionally higher than budget_pct=25', () => {
+    configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 1000000,
       orchestrator_budget_pct: 35
     }));
     const threshold35 = getScaledThreshold(planningDir);
 
+    configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 1000000,
       orchestrator_budget_pct: 25
@@ -66,6 +71,7 @@ describe('getScaledThreshold — orchestrator_budget_pct', () => {
   });
 
   test('default budget_pct=25 preserves existing behavior at 200k tokens', () => {
+    configClearCache();
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
       context_window_tokens: 200000
       // no orchestrator_budget_pct => default 25
