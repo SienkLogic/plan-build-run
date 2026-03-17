@@ -103,17 +103,34 @@ function classifyIntent(text, context) {
     return {
       route: 'quick',
       confidence: 0.3,
-      candidates: [{ route: 'quick', confidence: 0.3 }]
+      candidates: [{ route: 'quick', confidence: 0.3 }],
+      auditEntry: {
+        timestamp: new Date().toISOString(),
+        input: text.substring(0, 100),
+        route: 'quick',
+        confidence: 0.3,
+        risk: null
+      }
     };
   }
 
   const top = sorted[0];
 
+  // Build audit entry for logging by callers
+  const auditEntry = {
+    timestamp: new Date().toISOString(),
+    input: text.substring(0, 100),
+    route: top.route,
+    confidence: top.confidence,
+    risk: null  // populated by caller when risk-classifier is used
+  };
+
   if (top.confidence >= 0.7) {
     return {
       route: top.route,
       confidence: top.confidence,
-      candidates: [top]
+      candidates: [top],
+      auditEntry
     };
   }
 
@@ -122,7 +139,8 @@ function classifyIntent(text, context) {
   return {
     route: top.route,
     confidence: top.confidence,
-    candidates: topThree
+    candidates: topThree,
+    auditEntry
   };
 }
 
