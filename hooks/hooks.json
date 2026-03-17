@@ -187,6 +187,17 @@
         ]
       }
     ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" post-compact.js",
+            "statusMessage": "◆ PBR: Restoring context after compaction..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
