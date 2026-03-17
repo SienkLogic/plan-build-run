@@ -154,3 +154,139 @@ describe('generateSummary', () => {
     expect(content).toContain('status: "failed"');
   });
 });
+
+// --- Phase-level post-hoc artifact generation (plugins/pbr/scripts/post-hoc.js) ---
+
+describe('phase-level post-hoc artifact generation', () => {
+  const phasePostHocPath = '../plugins/pbr/scripts/post-hoc';
+  let tmpDir, phaseDir, planningDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'phase-post-hoc-test-'));
+    planningDir = path.join(tmpDir, '.planning');
+    phaseDir = path.join(planningDir, 'phases', '10-test-phase');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const PLAN_FM = `---
+phase: "10-test-phase"
+plan: "10-01"
+files_modified:
+  - "src/foo.js"
+  - "src/bar.js"
+provides:
+  - "foo() function"
+  - "bar() function"
+must_haves:
+  truths:
+    - "foo does X"
+    - "bar does Y"
+---
+
+## Summary
+Test plan
+`;
+
+  describe('generateSummary (phase-level)', () => {
+    test('returns object with path and content keys', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateSummary: genSum } = require(phasePostHocPath);
+      const result = genSum(phaseDir, planningDir);
+      expect(result).toHaveProperty('path');
+      expect(result).toHaveProperty('content');
+    });
+
+    test('content includes key_files in frontmatter', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateSummary: genSum } = require(phasePostHocPath);
+      const result = genSum(phaseDir, planningDir);
+      expect(result.content).toContain('key_files');
+      expect(result.content).toContain('src/foo.js');
+      expect(result.content).toContain('src/bar.js');
+    });
+
+    test('content includes What Was Built section with provides', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateSummary: genSum } = require(phasePostHocPath);
+      const result = genSum(phaseDir, planningDir);
+      expect(result.content).toContain('## What Was Built');
+      expect(result.content).toContain('foo() function');
+      expect(result.content).toContain('bar() function');
+    });
+
+    test('content includes Must-Have Results section', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateSummary: genSum } = require(phasePostHocPath);
+      const result = genSum(phaseDir, planningDir);
+      expect(result.content).toContain('## Must-Have Results');
+      expect(result.content).toContain('foo does X');
+    });
+
+    test('path points to SUMMARY.md in phaseDir', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateSummary: genSum } = require(phasePostHocPath);
+      const result = genSum(phaseDir, planningDir);
+      expect(result.path).toBe(path.join(phaseDir, 'SUMMARY.md'));
+    });
+  });
+
+  describe('generateLearnings', () => {
+    test('returns object with path and content keys', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateLearnings } = require(phasePostHocPath);
+      const result = generateLearnings(phaseDir, planningDir);
+      expect(result).toHaveProperty('path');
+      expect(result).toHaveProperty('content');
+    });
+
+    test('includes gap info when VERIFICATION.md has gaps', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), `---
+status: "partial"
+gaps:
+  - "Missing error handling in foo()"
+  - "No tests for edge case"
+---
+
+## Verification
+`);
+      const { generateLearnings } = require(phasePostHocPath);
+      const result = generateLearnings(phaseDir, planningDir);
+      expect(result.content).toContain('## What Failed');
+      expect(result.content).toContain('Missing error handling in foo()');
+      expect(result.content).toContain('No tests for edge case');
+    });
+
+    test('path points to LEARNINGS.md in phaseDir', () => {
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), PLAN_FM);
+      const { generateLearnings } = require(phasePostHocPath);
+      const result = generateLearnings(phaseDir, planningDir);
+      expect(result.path).toBe(path.join(phaseDir, 'LEARNINGS.md'));
+    });
+  });
+
+  describe('isEnabled', () => {
+    test('returns true when config has no features section', () => {
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2 }));
+      const { isEnabled } = require(phasePostHocPath);
+      expect(isEnabled(planningDir)).toBe(true);
+    });
+
+    test('returns false when features.post_hoc_artifacts is false', () => {
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2, features: { post_hoc_artifacts: false } }));
+      const { isEnabled } = require(phasePostHocPath);
+      expect(isEnabled(planningDir)).toBe(false);
+    });
+
+    test('returns true when features.post_hoc_artifacts is true', () => {
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ version: 2, features: { post_hoc_artifacts: true } }));
+      const { isEnabled } = require(phasePostHocPath);
+      expect(isEnabled(planningDir)).toBe(true);
+    });
+  });
+});
