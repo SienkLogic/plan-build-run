@@ -116,7 +116,7 @@ function queueIntelUpdate(data, planningDir) {
     if (!isIntelEnabled(planningDir)) return null;
 
     // Check intel.auto_update
-    const { configLoad } = require('./pbr-tools');
+    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
     const config = configLoad(planningDir);
     if (config && config.intel && config.intel.auto_update === false) return null;
 

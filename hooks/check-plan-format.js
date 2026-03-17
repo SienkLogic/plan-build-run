@@ -530,7 +530,7 @@ function syncStateBody(content, filePath) {
   if (fmProgress !== null && bodyProgressMatch) {
     const bodyPct = parseInt(bodyProgressMatch[1], 10);
     if (bodyPct !== fmProgress) {
-      const { buildProgressBar } = require('./lib/state');
+      const { buildProgressBar } = require('../plan-build-run/bin/lib/state.cjs');
       updated = updated.replace(/^Progress:\s*.+/m, `Progress: ${buildProgressBar(fmProgress)}`);
       drifts.push(`progress ${bodyPct}%→${fmProgress}%`);
     }
