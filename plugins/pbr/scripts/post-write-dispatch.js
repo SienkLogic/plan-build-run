@@ -27,6 +27,9 @@ const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
 const { queueIntelUpdate } = require('./intel-queue');
 
+let checkDependencyBreaks;
+try { checkDependencyBreaks = require('./lib/dependency-break').checkDependencyBreaks; } catch (_e) { checkDependencyBreaks = null; }
+
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
 try {
@@ -126,6 +129,37 @@ async function processEvent(data, planningDir) {
   const stateSyncResult = checkStateSync(data);
   if (stateSyncResult) {
     return stateSyncResult.output;
+  }
+
+  // Dependency break detection: when SUMMARY.md is written in .planning/phases/
+  if (checkDependencyBreaks) {
+    const depFilePath = data.tool_input?.file_path || '';
+    const depNormalized = depFilePath.replace(/\\/g, '/');
+    if (depNormalized.includes('.planning/phases/') && depNormalized.endsWith('SUMMARY.md')) {
+      try {
+        const phaseNumMatch = depNormalized.match(/(\d{2})-[^/\\]+[/\\]SUMMARY/);
+        if (phaseNumMatch) {
+          // Load config to check feature toggle
+          let depConfig;
+          try {
+            const { configLoad } = require('./pbr-tools');
+            depConfig = configLoad(planningDir);
+          } catch (_e) {
+            depConfig = null;
+          }
+          if (!depConfig || !depConfig.features || depConfig.features.dependency_break_detection !== false) {
+            const depBreaks = checkDependencyBreaks(planningDir, parseInt(phaseNumMatch[1], 10));
+            if (depBreaks.length > 0) {
+              return {
+                additionalContext: `[Dependency Break] ${depBreaks.length} downstream plan(s) may be stale: ${depBreaks.map(b => b.plan).join(', ')}. Run /pbr:plan-phase to re-plan affected phases.`
+              };
+            }
+          }
+        }
+      } catch (_depErr) {
+        // Never block on dependency break errors
+      }
+    }
   }
 
   // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
