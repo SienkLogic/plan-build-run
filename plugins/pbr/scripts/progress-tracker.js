@@ -19,6 +19,8 @@ const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
 const { intelStatus } = require('../../../plan-build-run/bin/lib/intel.cjs');
+const { loadLatestSnapshot, formatSnapshotBriefing } = require('./lib/snapshot-manager');
+const { loadConventions, formatConventionBriefing } = require('./lib/convention-detector');
 
 function readStdin() {
   try {
@@ -224,38 +226,49 @@ function buildContext(planningDir, stateFile) {
 
   parts.push('[Plan-Build-Run Project Detected]');
 
-  // Git context
-  try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
-    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
-    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
-    const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
-    parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
-    if (recentCommits) {
-      parts.push(`Recent commits:\n${recentCommits}`);
+  // ── Enhanced briefing: check if toggle is on ──
+  const _briefingConfig = configLoad(planningDir);
+  const briefing = buildEnhancedBriefing(planningDir, _briefingConfig);
+
+  if (briefing) {
+    // Use enhanced briefing INSTEAD of piecemeal state/git sections
+    parts.push('\n' + briefing);
+  } else {
+    // Git context
+    try {
+      const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+      const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+      const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+      const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+      parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
+      if (recentCommits) {
+        parts.push(`Recent commits:\n${recentCommits}`);
+      }
+    } catch (_e) {
+      // Not a git repo or git not available — skip
     }
-  } catch (_e) {
-    // Not a git repo or git not available — skip
   }
 
-  // Read STATE.md if it exists
+  // Read STATE.md if it exists (always needed for stale building detection and advisory checks)
   if (fs.existsSync(stateFile)) {
     const state = fs.readFileSync(stateFile, 'utf8');
 
-    // Extract key sections
-    const position = extractSection(state, 'Current Position');
-    if (position) {
-      parts.push(`\nPosition:\n${position}`);
-    }
+    // Extract key sections (skip when enhanced briefing already covers these)
+    if (!briefing) {
+      const position = extractSection(state, 'Current Position');
+      if (position) {
+        parts.push(`\nPosition:\n${position}`);
+      }
 
-    const blockers = extractSection(state, 'Blockers/Concerns');
-    if (blockers && !blockers.includes('None')) {
-      parts.push(`\nBlockers:\n${blockers}`);
-    }
+      const blockers = extractSection(state, 'Blockers/Concerns');
+      if (blockers && !blockers.includes('None')) {
+        parts.push(`\nBlockers:\n${blockers}`);
+      }
 
-    const continuity = extractSection(state, 'Session Continuity');
-    if (continuity) {
-      parts.push(`\nLast Session:\n${continuity}`);
+      const continuity = extractSection(state, 'Session Continuity');
+      if (continuity) {
+        parts.push(`\nLast Session:\n${continuity}`);
+      }
     }
 
     // Detect stale "Building" status — likely a crashed executor
@@ -420,6 +433,49 @@ function buildContext(planningDir, stateFile) {
 
   const stalenessWarning = getIntelStalenessWarning(planningDir, config);
   if (stalenessWarning) parts.push(stalenessWarning);
+
+  // Decision journal briefing
+  const decisionBriefing = getDecisionBriefing(planningDir, config);
+  if (decisionBriefing) parts.push(decisionBriefing);
+
+  // Negative knowledge briefing — surface past failures for related files
+  const nkBriefing = getNegativeKnowledgeBriefing(planningDir, config);
+  if (nkBriefing) parts.push(nkBriefing);
+
+  // Mental model snapshot briefing (Phase 06)
+  try {
+    const snapshotsEnabled = config && config.features && config.features.mental_model_snapshots !== false;
+    if (snapshotsEnabled) {
+      const snapshot = loadLatestSnapshot(planningDir);
+      const snapshotBrief = formatSnapshotBriefing(snapshot);
+      if (snapshotBrief) {
+        parts.push('\n' + snapshotBrief);
+      }
+    }
+  } catch (_e) { /* never crash SessionStart for optional features */ }
+
+  // Convention memory briefing (Phase 06)
+  try {
+    const conventionsEnabled = config && config.features && config.features.convention_memory !== false;
+    if (conventionsEnabled) {
+      const conventions = loadConventions(planningDir);
+      if (conventions && Object.keys(conventions).length > 0) {
+        const convBrief = formatConventionBriefing(conventions);
+        if (convBrief) {
+          parts.push(convBrief);
+        }
+      }
+    }
+  } catch (_e) { /* never crash SessionStart for optional features */ }
+
+  // Pre-research advisory (Phase 09)
+  try {
+    const { checkPreResearch } = require('./lib/pre-research');
+    const preResearchResult = checkPreResearch(planningDir, config);
+    if (preResearchResult) {
+      parts.push(`\n[Pre-Research] Phase ${preResearchResult.nextPhase} (${preResearchResult.name}) is next — consider running ${preResearchResult.command} to pre-research.`);
+    }
+  } catch (_e) { /* non-fatal */ }
 
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
@@ -743,7 +799,302 @@ function detectOtherSessions(planningDir, ownSessionId) {
   return results;
 }
 
+/**
+ * Build an enhanced structured briefing for SessionStart.
+ * Returns a concise ~500 token string summarizing project state, or null if disabled.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} config - Loaded config object
+ * @returns {string|null} Structured briefing or null
+ */
+function buildEnhancedBriefing(planningDir, config) {
+  // Gate: must be explicitly enabled via config
+  if (!config || config.features?.enhanced_session_start !== true) {
+    return null;
+  }
+
+  const lines = [];
+  lines.push('[PBR Session Briefing]');
+
+  // ── STATE.md ── read once for frontmatter + blockers
+  const stateFile = path.join(planningDir, 'STATE.md');
+  let stateContent = null;
+  try {
+    if (fs.existsSync(stateFile)) {
+      stateContent = fs.readFileSync(stateFile, 'utf8');
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  if (stateContent) {
+    try {
+      const fm = {};
+      const fmMatch = stateContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const fmBlock = fmMatch[1];
+        const fields = ['current_phase', 'total_phases', 'phase_name', 'status', 'progress_percent', 'plans_total', 'plans_complete'];
+        for (const field of fields) {
+          const m = fmBlock.match(new RegExp(`${field}:\\s*"?([^"\\n]+)"?`));
+          if (m) fm[field] = m[1].trim();
+        }
+      }
+      if (fm.current_phase && fm.total_phases) {
+        const phaseName = fm.phase_name ? `"${fm.phase_name}"` : '';
+        const status = fm.status || 'unknown';
+        const plansComplete = fm.plans_complete || '?';
+        const plansTotal = fm.plans_total || '?';
+        const progress = fm.progress_percent || '?';
+        lines.push(`Phase ${fm.current_phase}/${fm.total_phases}: ${phaseName} -- ${status}, plan ${plansComplete}/${plansTotal} (${progress}%)`);
+      }
+    } catch (_e) { /* non-fatal */ }
+  }
+
+  // ── Git context ──
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+    const recentLog = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+    const commits = recentLog ? recentLog.split('\n').map(l => l.trim()).filter(Boolean) : [];
+    const commitSummary = commits.slice(0, 3).join(', ');
+    lines.push(`Git: ${branch} (${uncommitted} uncommitted) | Last: ${commitSummary}`);
+  } catch (_e) {
+    lines.push('Git: unavailable');
+  }
+
+  // ── Pending decisions ──
+  try {
+    const decisionsDir = path.join(planningDir, 'decisions');
+    if (fs.existsSync(decisionsDir)) {
+      const decFiles = fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'));
+      const pending = [];
+      for (const file of decFiles) {
+        const content = fs.readFileSync(path.join(decisionsDir, file), 'utf8');
+        if (!content.includes('status: resolved') && !content.includes('status: closed')) {
+          const titleMatch = content.match(/title:\s*(.+)/);
+          pending.push(titleMatch ? titleMatch[1].trim() : file);
+        }
+      }
+      if (pending.length > 0) {
+        lines.push(`Pending decisions: ${pending.join('; ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Working set ──
+  try {
+    const trackerFile = path.join(planningDir, '.context-tracker');
+    if (fs.existsSync(trackerFile)) {
+      const tracker = JSON.parse(fs.readFileSync(trackerFile, 'utf8'));
+      const files = Array.isArray(tracker.files) ? tracker.files.slice(0, 5) : [];
+      if (files.length > 0) {
+        lines.push(`Working set: ${files.join(', ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Skip-RAG eligibility ──
+  try {
+    const { isSkipRagEligible } = require('./context-quality');
+    const skipRag = isSkipRagEligible(planningDir);
+    if (skipRag.eligible) {
+      lines.push(`Skip-RAG: eligible (${skipRag.line_count} lines). Full codebase fits in context.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Blockers from STATE.md (reuse cached content) ──
+  if (stateContent) {
+    try {
+      const blockersSection = extractSection(stateContent, 'Blockers/Concerns');
+      if (blockersSection && !blockersSection.includes('None')) {
+        lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
+      }
+    } catch (_e) { /* non-fatal */ }
+  }
+
+  // Truncate to 2500 chars max
+  let output = lines.join('\n');
+  if (output.length > 2500) {
+    output = output.substring(0, 2497) + '...';
+  }
+
+  // Log audit evidence
+  logHook('progress-tracker', 'SessionStart', 'briefing-injected', {
+    tokens: Math.ceil(output.length / 5)
+  });
+
+  return output;
+}
+
+// ─── Decision Briefing ──────────────────────────────────────────────────────
+
+/**
+ * Build a concise briefing of recent active decisions for SessionStart injection.
+ * Reads .planning/decisions/, filters to active status, sorts by date desc, takes top 5.
+ * Truncates decision titles to 60 chars. Total output kept under ~200 tokens.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} [config] - Optional pre-loaded config (will read from disk if not provided)
+ * @returns {string} Briefing text or empty string if disabled/empty
+ */
+function getDecisionBriefing(planningDir, config) {
+  // Check config for feature toggle
+  if (!config) {
+    const configPath = path.join(planningDir, 'config.json');
+    try {
+      if (!fs.existsSync(configPath)) return '';
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  if (!config || !config.features || !config.features.decision_journal) return '';
+
+  const decisionsDir = path.join(planningDir, 'decisions');
+  if (!fs.existsSync(decisionsDir)) return '';
+
+  let files;
+  try {
+    files = fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'));
+  } catch (_e) {
+    return '';
+  }
+
+  if (files.length === 0) return '';
+
+  // Parse frontmatter from each file, filter active, sort by date desc
+  const decisions = [];
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(path.join(decisionsDir, file), 'utf8');
+      // Simple frontmatter extraction (avoid dependency on heavy parsers)
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+
+      const fmText = fmMatch[1];
+      const getField = (name) => {
+        const m = fmText.match(new RegExp(`^${name}:\\s*(.+)$`, 'm'));
+        return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+      };
+
+      const status = getField('status');
+      if (status !== 'active') continue;
+
+      decisions.push({
+        date: getField('date'),
+        decision: getField('decision'),
+        agent: getField('agent'),
+        phase: getField('phase'),
+      });
+    } catch (_e) {
+      // Skip unparseable files
+    }
+  }
+
+  if (decisions.length === 0) return '';
+
+  // Sort by date descending, take top 5
+  decisions.sort((a, b) => b.date.localeCompare(a.date));
+  const top = decisions.slice(0, 5);
+
+  // Build briefing lines
+  const lines = top.map(d => {
+    let title = d.decision;
+    if (title.length > 60) title = title.slice(0, 57) + '...';
+    return `- ${d.date}: ${title} (agent: ${d.agent || 'unknown'}, phase: ${d.phase || '?'})`;
+  });
+
+  return '\nRecent decisions:\n' + lines.join('\n');
+}
+
+// ─── Negative Knowledge Briefing ────────────────────────────────────────────
+
+function getNegativeKnowledgeBriefing(planningDir, config, workingSet) {
+  if (!config || !config.features || !config.features.negative_knowledge) return '';
+
+  if (!workingSet) {
+    workingSet = [];
+    const wsPath = path.join(planningDir, 'sessions', 'working-set.json');
+    try {
+      if (fs.existsSync(wsPath)) {
+        const ws = JSON.parse(fs.readFileSync(wsPath, 'utf8'));
+        if (Array.isArray(ws.files)) workingSet = ws.files;
+      }
+    } catch (_e) { /* ignore */ }
+
+    if (workingSet.length === 0) {
+      try {
+        const stateFile = path.join(planningDir, 'STATE.md');
+        if (fs.existsSync(stateFile)) {
+          const stateContent = fs.readFileSync(stateFile, 'utf8');
+          const phaseMatch = stateContent.match(/Phase:\s*(\d+)\s+of\s+\d+/);
+          if (phaseMatch) {
+            const phasesDir = path.join(planningDir, 'phases');
+            if (fs.existsSync(phasesDir)) {
+              const phaseDirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(String(phaseMatch[1]).padStart(2, '0')));
+              for (const pd of phaseDirs) {
+                const planFiles = fs.readdirSync(path.join(phasesDir, pd)).filter(f => /^PLAN/i.test(f));
+                for (const pf of planFiles) {
+                  const planContent = fs.readFileSync(path.join(phasesDir, pd, pf), 'utf8');
+                  const fmMatch = planContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+                  if (fmMatch) {
+                    const filesBlock = fmMatch[1].match(/files_modified:\s*\n((?:\s+-\s+.+\n?)*)/);
+                    if (filesBlock) {
+                      const files = filesBlock[1].match(/^\s+-\s+"?(.+?)"?\s*$/gm);
+                      if (files) workingSet.push(...files.map(f => f.replace(/^\s+-\s+"?|"?\s*$/g, '')));
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (_e) { /* ignore */ }
+    }
+  }
+
+  if (workingSet.length === 0) return '';
+
+  const nkDir = path.join(planningDir, 'negative-knowledge');
+  if (!fs.existsSync(nkDir)) return '';
+
+  let nkFiles;
+  try { nkFiles = fs.readdirSync(nkDir).filter(f => f.endsWith('.md')); } catch (_e) { return ''; }
+  if (nkFiles.length === 0) return '';
+
+  const fileSet = new Set(workingSet);
+  const matches = [];
+
+  for (const file of nkFiles) {
+    try {
+      const content = fs.readFileSync(path.join(nkDir, file), 'utf8');
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fmText = fmMatch[1];
+      const getField = (name) => { const m = fmText.match(new RegExp(`^${name}:\\s*(.+)$`, 'm')); return m ? m[1].trim().replace(/^["']|["']$/g, '') : ''; };
+      const status = getField('status');
+      if (status !== 'active') continue;
+      const filesBlock = fmText.match(/files_involved:\s*\n((?:\s+-\s+.+\n?)*)/);
+      const filesInvolved = [];
+      if (filesBlock) { const fileLines = filesBlock[1].match(/^\s+-\s+(.+)$/gm); if (fileLines) filesInvolved.push(...fileLines.map(l => l.replace(/^\s+-\s+/, '').trim())); }
+      if (!filesInvolved.some(f => fileSet.has(f))) continue;
+      const date = getField('date');
+      const title = getField('title');
+      const whyMatch = content.match(/## Why It Failed\s*\n([\s\S]*?)(?=\n##|$)/);
+      const whyFailed = whyMatch ? whyMatch[1].trim() : '';
+      const whySummary = whyFailed.length > 80 ? whyFailed.slice(0, 77) + '...' : whyFailed;
+      matches.push({ date, title, whySummary, filesInvolved });
+    } catch (_e) { /* Skip */ }
+  }
+
+  if (matches.length === 0) return '';
+  matches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const top = matches.slice(0, 3);
+  const lines = top.map(m => { let title = m.title; if (title.length > 60) title = title.slice(0, 57) + '...'; return `- ${m.date}: ${title} — ${m.whySummary} (files: ${m.filesInvolved.join(', ')})`; });
+  return '\nPast failures in related files:\n' + lines.join('\n');
+}
+
 // Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }

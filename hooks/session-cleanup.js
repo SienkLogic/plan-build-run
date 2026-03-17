@@ -19,11 +19,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
-const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
-const { tailLines } = require('../plan-build-run/bin/lib/core.cjs');
-const { removeSessionDir, releaseSessionClaims } = require('../plan-build-run/bin/lib/core.cjs');
-const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('../plan-build-run/bin/lib/local-llm/metrics.cjs');
+const { tailLines, configLoad } = require('./pbr-tools');
+const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
+const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
+const { writeSnapshot } = require('./lib/snapshot-manager');
 
 function readStdin() {
   try {
@@ -114,6 +115,31 @@ function findOrphanedProgressFiles(planningDir) {
   return orphans;
 }
 
+/**
+ * formatSessionMetrics — Format session stats into a human-readable report.
+ * @param {Object} stats - Session statistics
+ * @returns {string} Formatted multi-line string
+ */
+function formatSessionMetrics(stats) {
+  const duration = stats.duration_min || 0;
+  const agents = stats.agents_spawned || 0;
+  const commits = stats.commits_created || 0;
+  const plansExec = stats.plans_executed || 0;
+  const plansVerified = stats.plans_verified || 0;
+  const feedback = stats.feedback_loops || 0;
+  const compliance = Math.round((plansVerified / Math.max(plansExec, 1)) * 100);
+
+  return [
+    'Session Metrics:',
+    `  Duration:    ${duration}m`,
+    `  Agents:      ${agents}`,
+    `  Commits:     ${commits}`,
+    `  Plans:       ${plansExec} executed, ${plansVerified} verified`,
+    `  Compliance:  ${compliance}%`,
+    `  Feedback:    ${feedback} loops triggered`
+  ].join('\n');
+}
+
 const MAX_SESSION_ENTRIES = 100;
 
 function writeSessionHistory(planningDir, data) {
@@ -150,14 +176,18 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
-    // Count commits and commands from events log
+    // Count commits, commands, and feedback loops from events log
     // Read last 200 entries — sufficient for a single session's events
+    let feedbackLoopsTriggered = 0;
     const eventLines = tailLines(eventsLog, 200);
     for (const line of eventLines) {
       try {
         const entry = JSON.parse(line);
         if (entry.event === 'commit-validated' && entry.status === 'allow') {
           commitsCreated++;
+        }
+        if (entry.event === 'feedback-injected') {
+          feedbackLoopsTriggered++;
         }
         if (entry.cat === 'workflow' && entry.event) {
           if (!commandsRun.includes(entry.event)) {
@@ -170,11 +200,33 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
+    // Count plans executed (SUMMARY-*.md files in phase dirs) and verified (VERIFICATION-*.md)
+    let plansExecuted = 0;
+    let plansVerified = 0;
+    try {
+      const phasesDir = path.join(planningDir, 'phases');
+      if (fs.existsSync(phasesDir)) {
+        const pDirs = fs.readdirSync(phasesDir);
+        for (const pd of pDirs) {
+          const pdPath = path.join(phasesDir, pd);
+          try {
+            const files = fs.readdirSync(pdPath);
+            for (const f of files) {
+              if (/^SUMMARY-.*\.md$/i.test(f)) plansExecuted++;
+              if (/^VERIFICATION-.*\.md$/i.test(f)) plansVerified++;
+            }
+          } catch (_e) { /* skip unreadable dirs */ }
+        }
+      }
+    } catch (_e) { /* best-effort */ }
+
     const sessionEnd = new Date().toISOString();
     let durationMinutes = null;
     if (sessionStart) {
       durationMinutes = Math.round((new Date(sessionEnd) - new Date(sessionStart)) / 60000);
     }
+
+    const compliancePct = Math.round((plansVerified / Math.max(plansExecuted, 1)) * 100);
 
     const summary = {
       start: sessionStart || sessionEnd,
@@ -183,7 +235,10 @@ function writeSessionHistory(planningDir, data) {
       reason: data.reason || null,
       agents_spawned: agentsSpawned,
       commits_created: commitsCreated,
-      commands_run: commandsRun
+      commands_run: commandsRun,
+      plans_executed: plansExecuted,
+      compliance_pct: compliancePct,
+      feedback_loops_triggered: feedbackLoopsTriggered
     };
 
     // Append to sessions.jsonl, cap at MAX_SESSION_ENTRIES
@@ -205,103 +260,72 @@ function writeSessionHistory(planningDir, data) {
 }
 
 /**
- * Extract session learnings by scanning hook/event logs for notable patterns.
- * Writes a brief session summary to .planning/logs/session-learnings.jsonl
- * when interesting patterns are found.
+ * Gather session context for mental model snapshot.
+ * Reads recent git changes, STATE.md sections, and recent commits.
+ * All operations are best-effort — returns partial data on failure.
  *
- * Tracked patterns:
- * - Gates triggered (workflow blocks that caught mistakes)
- * - Agent failures (subagent output missing)
- * - Context pressure events (compaction, cycling)
- * - Phases completed in this session
- * - Frequently blocked patterns (repeated mistakes)
+ * @param {string} cwd - Project working directory
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string|null} sessionId - Session ID
+ * @returns {object} Context object for writeSnapshot
  */
-function extractSessionLearnings(planningDir, _sessionId) {
+function gatherSessionContext(cwd, planningDir, sessionId) {
+  const context = {
+    session_id: sessionId || 'unknown',
+    files_working_on: [],
+    pending_decisions: [],
+    current_approach: '',
+    open_questions: [],
+    recent_commits: []
+  };
+
+  // Gather recent git changes
   try {
-    const logsDir = path.join(planningDir, 'logs');
-    const hooksLog = path.join(logsDir, 'hooks.jsonl');
-    const eventsLog = path.join(logsDir, 'events.jsonl');
-
-    const hookLines = tailLines(hooksLog, 200);
-    const eventLines = tailLines(eventsLog, 200);
-
-    const learnings = {
-      timestamp: new Date().toISOString(),
-      gates_triggered: [],
-      agent_failures: [],
-      context_events: [],
-      phases_completed: 0,
-      repeated_blocks: {}
-    };
-
-    // Scan hooks for blocks (gates that caught issues)
-    for (const line of hookLines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.decision === 'block' || entry.decision === 'blocked') {
-          const key = `${entry.hook || 'unknown'}:${entry.event || ''}`;
-          learnings.repeated_blocks[key] = (learnings.repeated_blocks[key] || 0) + 1;
-          if (learnings.gates_triggered.length < 10) {
-            learnings.gates_triggered.push({
-              hook: entry.hook,
-              event: entry.event,
-              reason: (entry.reason || entry.warning || '').substring(0, 100)
-            });
-          }
-        }
-        // Agent failures
-        if (entry.decision === 'warning' && entry.hook === 'check-subagent-output') {
-          learnings.agent_failures.push({
-            agent: entry.agent_type || 'unknown',
-            expected: entry.expected || ''
-          });
-        }
-      } catch (_e) { /* skip */ }
-    }
-
-    // Scan events for context pressure and phase completions
-    for (const line of eventLines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.event === 'compaction') {
-          learnings.context_events.push('compaction');
-        }
-        if (entry.event === 'phase-complete' || entry.event === 'phase-verified') {
-          learnings.phases_completed++;
-        }
-      } catch (_e) { /* skip */ }
-    }
-
-    // Only write if there's something interesting
-    const hasLearnings = learnings.gates_triggered.length > 0
-      || learnings.agent_failures.length > 0
-      || learnings.context_events.length > 0
-      || learnings.phases_completed > 0;
-
-    if (!hasLearnings) return;
-
-    // Find most-repeated block pattern
-    const topBlock = Object.entries(learnings.repeated_blocks)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-    learnings.top_repeated_blocks = topBlock.map(([k, v]) => ({ pattern: k, count: v }));
-    delete learnings.repeated_blocks;
-
-    // Append to learnings log
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
-    }
-    const learningsFile = path.join(logsDir, 'session-learnings.jsonl');
-    fs.appendFileSync(learningsFile, JSON.stringify(learnings) + '\n', 'utf8');
-
-    logHook('session-cleanup', 'SessionEnd', 'learnings-extracted', {
-      gates: learnings.gates_triggered.length,
-      failures: learnings.agent_failures.length,
-      phases: learnings.phases_completed
+    const diff = execSync('git diff --name-only HEAD~5 HEAD 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
     });
-  } catch (_e) {
-    // Never fail the hook on learnings extraction
-  }
+    context.files_working_on = diff.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Gather recent commits
+  try {
+    const log = execSync('git log --oneline -5 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
+    });
+    context.recent_commits = log.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Read STATE.md for approach, decisions, and open questions
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+
+      // Extract Current Position section
+      const posMatch = stateContent.match(/## Current Position\s*\n([\s\S]*?)(?=\n##\s|$)/);
+      if (posMatch) {
+        context.current_approach = posMatch[1].trim().split('\n').slice(0, 5).join('\n');
+      }
+
+      // Extract Decisions section
+      const decMatch = stateContent.match(/### Decisions\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (decMatch) {
+        context.pending_decisions = decMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+
+      // Extract Blockers/Concerns section
+      const blockMatch = stateContent.match(/### Blockers\/Concerns\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (blockMatch) {
+        context.open_questions = blockMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+    }
+  } catch (_e) { /* best-effort */ }
+
+  return context;
 }
 
 function main() {
@@ -331,10 +355,7 @@ function main() {
     try {
       const releasedClaims = releaseSessionClaims(planningDir, sessionId);
       if (releasedClaims.released.length > 0) {
-        logHook('session-cleanup', 'SessionEnd', 'claims-released', {
-          count: releasedClaims.released.length,
-          claims: releasedClaims.released.join(', ')
-        });
+        logHook('session-cleanup', `Released ${releasedClaims.released.length} phase claim(s): ${releasedClaims.released.join(', ')}`);
         cleaned.push(...releasedClaims.released.map(p => `phases/${p}/.claim`));
       }
     } catch (_e) { /* best-effort */ }
@@ -368,8 +389,31 @@ function main() {
   // Write session history log
   writeSessionHistory(planningDir, data);
 
-  // Extract session learnings from hook logs
-  extractSessionLearnings(planningDir, sessionId);
+  // Session productivity metrics display (controlled by features.session_metrics)
+  let metricsContext = null;
+  try {
+    const rawConfig = configLoad(planningDir) || {};
+    if (rawConfig.features && rawConfig.features.session_metrics !== false) {
+      // Build stats from the same data writeSessionHistory computed
+      // Re-read the last session entry to get the computed values
+      const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
+      if (fs.existsSync(sessionsFile)) {
+        const lastLine = fs.readFileSync(sessionsFile, 'utf8').trim().split('\n').pop();
+        if (lastLine) {
+          const lastEntry = JSON.parse(lastLine);
+          metricsContext = formatSessionMetrics({
+            duration_min: lastEntry.duration_minutes || 0,
+            agents_spawned: lastEntry.agents_spawned || 0,
+            commits_created: lastEntry.commits_created || 0,
+            plans_executed: lastEntry.plans_executed || 0,
+            plans_verified: Math.round((lastEntry.compliance_pct || 0) * Math.max(lastEntry.plans_executed || 0, 1) / 100),
+            feedback_loops: lastEntry.feedback_loops_triggered || 0,
+            commands_run: (lastEntry.commands_run || []).length
+          });
+        }
+      }
+    }
+  } catch (_e) { /* metrics display is best-effort */ }
 
   // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
   let llmAdditionalContext = null;
@@ -406,9 +450,9 @@ function main() {
   try {
     const complianceFile = path.join(planningDir, 'logs', 'compliance.jsonl');
     if (fs.existsSync(complianceFile)) {
-      const complianceLines = fs.readFileSync(complianceFile, 'utf8').trim().split('\n').filter(Boolean);
-      if (complianceLines.length > 0) {
-        const violations = complianceLines.map(l => { try { return JSON.parse(l); } catch (_e) { return null; } }).filter(Boolean);
+      const lines = fs.readFileSync(complianceFile, 'utf8').trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        const violations = lines.map(l => { try { return JSON.parse(l); } catch (_e) { return null; } }).filter(Boolean);
         const required = violations.filter(v => v.severity === 'required');
         if (required.length > 0) {
           complianceContext = `\n\n⚠ COMPLIANCE: ${required.length} required artifact(s) missing this session:\n` +
@@ -432,7 +476,22 @@ function main() {
     orphaned_progress_files: orphans.length > 0 ? orphans : undefined
   });
 
-  const combinedContext = [llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
+  // Write mental model snapshot (gated by config toggle)
+  try {
+    const config = configLoad(planningDir) || {};
+    const snapshotsEnabled = config.features && config.features.mental_model_snapshots !== false;
+    if (snapshotsEnabled) {
+      const snapContext = gatherSessionContext(cwd, planningDir, sessionId);
+      writeSnapshot(planningDir, snapContext);
+      logHook('session-cleanup', 'SessionEnd', 'snapshot-written', {
+        files_count: snapContext.files_working_on.length
+      });
+    }
+  } catch (_e) {
+    // Snapshot failure must never crash SessionEnd
+  }
+
+  const combinedContext = [metricsContext, llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }
@@ -475,5 +534,69 @@ function handleHttp(reqBody) {
   return null;
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, extractSessionLearnings, handleHttp };
+/**
+ * Extract learnings from a session's hook logs and event logs.
+ * Writes to planningDir/logs/session-learnings.jsonl only if interesting events found.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ */
+function extractSessionLearnings(planningDir, sessionId) {
+  const logsDir = path.join(planningDir, 'logs');
+  const hooksLog = path.join(logsDir, 'hooks.jsonl');
+  const eventsLog = path.join(logsDir, 'events.jsonl');
+
+  const gatesTriggered = [];
+  const agentFailures = [];
+  let phasesCompleted = 0;
+  const contextEvents = [];
+
+  // Parse hooks.jsonl for blocks and warnings
+  if (fs.existsSync(hooksLog)) {
+    const lines = fs.readFileSync(hooksLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.decision === 'block') {
+          gatesTriggered.push({ hook: entry.hook, reason: entry.reason });
+        }
+        if (entry.decision === 'warning' && entry.hook === 'check-subagent-output' && entry.agent_type) {
+          agentFailures.push({ agent_type: entry.agent_type, expected: entry.expected });
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  // Parse events.jsonl for phase completions and compactions
+  if (fs.existsSync(eventsLog)) {
+    const lines = fs.readFileSync(eventsLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.cat === 'workflow' && entry.event === 'phase-complete') {
+          phasesCompleted++;
+        }
+        if (entry.cat === 'system' && entry.event === 'compaction') {
+          contextEvents.push('compaction');
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  const hasInteresting = gatesTriggered.length > 0 || agentFailures.length > 0 || phasesCompleted > 0 || contextEvents.length > 0;
+  if (!hasInteresting) return;
+
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+  const learningsFile = path.join(logsDir, 'session-learnings.jsonl');
+  const entry = JSON.stringify({
+    session_id: sessionId,
+    ts: new Date().toISOString(),
+    gates_triggered: gatesTriggered,
+    agent_failures: agentFailures,
+    phases_completed: phasesCompleted,
+    context_events: contextEvents
+  });
+  fs.appendFileSync(learningsFile, entry + '\n');
+}
+
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
 if (require.main === module || process.argv[1] === __filename) { main(); }

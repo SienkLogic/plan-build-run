@@ -39,6 +39,7 @@ This skill runs **inline** (no Task delegation), with optional Task() spawns for
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** file reads — this is a thinking skill, not a code analysis skill
@@ -159,12 +160,12 @@ Display to the user: `◆ Spawning researcher...`
 **Learnings injection (opt-in):** Check for relevant tech stack learnings:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
 
-- Write to temp file: `node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md`
+- Write to temp file: `node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md`
 - Note path as `{learnings_temp_path}`; add as item 3 in the researcher's `files_to_read` block below
 
 If no learnings or command fails: omit the extra files_to_read entry.

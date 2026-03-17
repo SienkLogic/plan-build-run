@@ -79,14 +79,14 @@ If local LLM offload is configured, you MAY use it to score source credibility i
 Check availability first:
 
 ```bash
-node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" llm status 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm status 2>/dev/null
 ```
 
 If `enabled: true`, score a source excerpt:
 
 ```bash
 echo "Source URL and content excerpt" > /tmp/source-excerpt.txt
-node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" llm score-source "https://example.com/docs" /tmp/source-excerpt.txt 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm score-source "https://example.com/docs" /tmp/source-excerpt.txt 2>/dev/null
 # Returns: {"level":"S2","confidence":0.87,"reason":"Official library documentation page"}
 ```
 
@@ -165,10 +165,10 @@ The `confidence` and `sources_checked` fields are validated by the `begin:pbr:re
 
 Each research file maps to a domain-specific template:
 
-- **Stack**: Read `$HOME/.claude/plan-build-run/templates/research-outputs/STACK.md.tmpl`
-- **Features**: Read `$HOME/.claude/plan-build-run/templates/research-outputs/FEATURES.md.tmpl`
-- **Architecture**: Read `$HOME/.claude/plan-build-run/templates/research-outputs/ARCHITECTURE.md.tmpl`
-- **Pitfalls**: Read `$HOME/.claude/plan-build-run/templates/research-outputs/PITFALLS.md.tmpl`
+- **Stack**: Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/STACK.md.tmpl`
+- **Features**: Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/FEATURES.md.tmpl`
+- **Architecture**: Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/ARCHITECTURE.md.tmpl`
+- **Pitfalls**: Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/PITFALLS.md.tmpl`
 
 Output files: `.planning/research/STACK.md`, `.planning/research/FEATURES.md`, `.planning/research/ARCHITECTURE.md`, `.planning/research/PITFALLS.md`
 

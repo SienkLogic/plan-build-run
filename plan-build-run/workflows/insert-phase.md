@@ -34,7 +34,7 @@ Validate first argument is an integer.
 Load phase operation context:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init phase-op "${after_phase}")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init phase-op "${after_phase}")
 ```
 
 Check `roadmap_exists` from init JSON. If false:
@@ -48,7 +48,7 @@ Exit.
 **Delegate the phase insertion to pbr-tools:**
 
 ```bash
-RESULT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js phase insert "${after_phase}" "${description}")
+RESULT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phase insert "${after_phase}" "${description}")
 ```
 
 The CLI handles:

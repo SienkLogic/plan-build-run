@@ -412,6 +412,84 @@ function queryGlobal(filters = {}) {
   return results;
 }
 
+/**
+ * Aggregate all learnings into summary statistics.
+ * Groups by type and project; identifies cross-project patterns.
+ *
+ * @param {{ project?: string, type?: string, topN?: number }} [filters]
+ * @param {{ filePath?: string, configFeatures?: object }} [options]
+ * @returns {{ total, by_type, by_project, cross_project_patterns, top_insights } | { enabled: false }}
+ */
+function learningsAggregate(filters = {}, options = {}) {
+  const configFeatures = options.configFeatures || {};
+  if (configFeatures.global_learnings === false) {
+    return { enabled: false };
+  }
+
+  const filePath = options.filePath || GLOBAL_LEARNINGS_PATH;
+  let entries = loadAll(filePath);
+
+  // Apply filters
+  if (filters.project) {
+    entries = entries.filter(e => e.source_project === filters.project);
+  }
+  if (filters.type) {
+    entries = entries.filter(e => e.type === filters.type);
+  }
+
+  const topN = filters.topN !== undefined ? filters.topN : 10;
+
+  // Group by type
+  const by_type = {};
+  for (const entry of entries) {
+    by_type[entry.type] = (by_type[entry.type] || 0) + 1;
+  }
+
+  // Group by project
+  const by_project = {};
+  for (const entry of entries) {
+    const proj = entry.source_project || 'unknown';
+    by_project[proj] = (by_project[proj] || 0) + 1;
+  }
+
+  // Identify cross-project patterns: entries with same summary in 2+ projects
+  const summaryMap = {};
+  for (const entry of entries) {
+    const key = entry.summary;
+    if (!summaryMap[key]) {
+      summaryMap[key] = { summary: key, projects: new Set(), entries: [] };
+    }
+    summaryMap[key].projects.add(entry.source_project);
+    summaryMap[key].entries.push(entry);
+  }
+  const cross_project_patterns = Object.values(summaryMap)
+    .filter(g => g.projects.size >= 2)
+    .map(g => ({
+      summary: g.summary,
+      projects: Array.from(g.projects),
+      count: g.entries.length,
+    }));
+
+  // Top insights sorted by occurrences descending
+  const sorted = [...entries].sort((a, b) => (b.occurrences || 1) - (a.occurrences || 1));
+  const top_insights = sorted.slice(0, topN).map(e => ({
+    id: e.id,
+    summary: e.summary,
+    type: e.type,
+    source_project: e.source_project,
+    occurrences: e.occurrences || 1,
+    confidence: e.confidence,
+  }));
+
+  return {
+    total: entries.length,
+    by_type,
+    by_project,
+    cross_project_patterns,
+    top_insights,
+  };
+}
+
 // --- Exports ---
 
 module.exports = {
@@ -426,6 +504,7 @@ module.exports = {
   saveAll,
   learningsIngest,
   learningsQuery,
+  learningsAggregate,
   checkDeferralThresholds,
   copyToGlobal,
   queryGlobal

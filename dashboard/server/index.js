@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const healthRouter = require('./routes/health');
+const progressRouter = require('./routes/progress');
 const { PlanningReader } = require('./services/planning-reader');
 const createStatusRouter = require('./routes/status');
 const createProjectsRouter = require('./routes/projects');
@@ -51,6 +52,7 @@ function createApp(options = {}) {
 
   // API routes — health first for fast health checks
   app.use('/api/health', healthRouter);
+  app.use('/api/progress', progressRouter);
   app.use('/api/status', createStatusRouter(planningReader));
   app.use('/api/projects', createProjectsRouter(planningReader));
   app.use('/api/planning', createPlanningRouter(planningReader));

@@ -123,7 +123,7 @@ If found, delete them — phase is complete, handoffs are stale.
 **Delegate ROADMAP.md and STATE.md updates to pbr-tools:**
 
 ```bash
-TRANSITION=$(node ~/.claude/plan-build-run/bin/pbr-tools.js phase complete "${current_phase}")
+TRANSITION=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phase complete "${current_phase}")
 ```
 
 The CLI handles:
@@ -238,7 +238,7 @@ After (Phase 2 shipped JWT auth, discovered rate limiting needed):
 Verify the updates are correct by reading STATE.md. If the progress bar needs updating, use:
 
 ```bash
-PROGRESS=$(node ~/.claude/plan-build-run/bin/pbr-tools.js progress bar --raw)
+PROGRESS=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs progress bar --raw)
 ```
 
 Update the progress bar line in STATE.md with the result.
@@ -347,7 +347,7 @@ The `next_phase` and `next_phase_name` fields give you the next phase details.
 
 If you need additional context, use:
 ```bash
-ROADMAP=$(node ~/.claude/plan-build-run/bin/pbr-tools.js roadmap analyze)
+ROADMAP=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs roadmap analyze)
 ```
 
 This returns all phases with goals, disk status, and completion info.

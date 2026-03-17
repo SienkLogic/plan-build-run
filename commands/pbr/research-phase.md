@@ -29,7 +29,7 @@ Phase number: $ARGUMENTS (required)
 ## 1. Validate Phase
 
 ```bash
-PHASE_INFO=$(node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs roadmap get-phase "$ARGUMENTS")
+PHASE_INFO=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap get-phase "$ARGUMENTS")
 ```
 
 Error if phase not found. Extract phase_number, phase_name, goal.

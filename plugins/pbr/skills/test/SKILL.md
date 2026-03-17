@@ -14,6 +14,7 @@ You are the orchestrator for `/pbr:test`. This skill generates tests for code th
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Delegate** all test writing to executor subagents — never write test code in the main context

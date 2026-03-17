@@ -20,11 +20,85 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { KNOWN_AGENTS, sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyError } = require('./local-llm/operations/classify-error');
+const { resolveSessionPath } = require('./lib/core');
 const { logEvent } = require('./event-logger');
+const { recordOutcome } = require('./trust-tracker');
+const { detectConventions, writeConventions } = require('./lib/convention-detector');
+
+/**
+ * Load a feature flag value from config.json.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} flagName - Feature flag name (e.g. 'trust_tracking')
+ * @returns {*} Flag value or undefined if not found
+ */
+function loadFeatureFlag(planningDir, flagName) {
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return config.features?.[flagName];
+  } catch (_e) {
+    return undefined;
+  }
+}
+
+/**
+ * Check whether trust tracking is enabled in config.
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {boolean} True if trust_tracking is not explicitly disabled
+ */
+function shouldTrackTrust(planningDir) {
+  const flag = loadFeatureFlag(planningDir, 'trust_tracking');
+  return flag !== false;
+}
+
+/**
+ * Extract verification outcome from the most recent VERIFICATION.md
+ * in the current phase directory.
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ passed: boolean, category: string, mustHavesPassed: number|undefined, mustHavesTotal: number|undefined }|null}
+ */
+function extractVerificationOutcome(planningDir) {
+  try {
+    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+    if (verFiles.length === 0) return null;
+
+    const verPath = path.join(planningDir, verFiles[0]);
+    const content = fs.readFileSync(verPath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) return null;
+
+    const fm = fmMatch[1];
+    const statusMatch = fm.match(/^status:\s*(\S+)/mi);
+    if (!statusMatch) return null;
+
+    const status = statusMatch[1];
+    const passed = status === 'passed';
+
+    // Extract must_haves counts
+    const passedMatch = fm.match(/^must_haves_passed:\s*(\d+)/mi);
+    const totalMatch = fm.match(/^must_haves_total:\s*(\d+)/mi);
+    const mustHavesPassed = passedMatch ? parseInt(passedMatch[1], 10) : undefined;
+    const mustHavesTotal = totalMatch ? parseInt(totalMatch[1], 10) : undefined;
+
+    // Extract category from STATE.md phase_slug
+    let category = 'unknown';
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+      const slugMatch = stateContent.match(/^phase_slug:\s*"?([^"\n]+)"?/mi);
+      if (slugMatch) {
+        category = slugMatch[1].trim();
+      }
+    }
+
+    return { passed, category, mustHavesPassed, mustHavesTotal };
+  } catch (_e) {
+    return null;
+  }
+}
 
 /**
  * Check if a file was modified recently (within thresholdMs).
@@ -444,7 +518,7 @@ const SKILL_CHECKS = {
     }
   },
   'review:pbr:verifier': {
-    description: 'review verifier VERIFICATION.md status and LEARNINGS.md',
+    description: 'review verifier VERIFICATION.md status, LEARNINGS.md, and trust update',
     check: (planningDir, _found, warnings) => {
       const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
       for (const vf of verFiles) {
@@ -457,19 +531,120 @@ const SKILL_CHECKS = {
         } catch (_e) { /* best-effort */ }
       }
       checkLearningsRequired(planningDir, warnings, 'verifier');
+
+      // Trust score update: record verification outcome
+      try {
+        if (!shouldTrackTrust(planningDir)) return;
+        const outcome = extractVerificationOutcome(planningDir);
+        if (!outcome) return;
+        recordOutcome(planningDir, 'pbr:executor', outcome.category, outcome.passed);
+        recordOutcome(planningDir, 'pbr:verifier', outcome.category, true);
+        logHook('check-subagent-output', 'PostToolUse', 'trust-updated', {
+          agent: 'pbr:executor',
+          category: outcome.category,
+          passed: outcome.passed
+        });
+      } catch (_e) {
+        // Never crash the hook for trust tracking failures
+      }
     }
   },
   'build:pbr:executor': {
-    description: 'build executor SUMMARY commits and LEARNINGS.md',
+    description: 'build executor SUMMARY commits, self-check, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Validate self-verification ran when feature is enabled
+      const summaryFiles = found.filter(f => /SUMMARY/i.test(f));
+      for (const relPath of summaryFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const { resolveConfig } = require('./lib/config');
+          const config = resolveConfig(planningDir);
+          const selfCheckWarnings = validateSelfCheck(fullPath, config);
+          warnings.push(...selfCheckWarnings);
+        } catch (_e) { /* best-effort */ }
+      }
+      // Extract feedback for agent prompt enrichment
+      try {
+        const { extractFeedback, isEnabled } = require('./feedback-loop');
+        if (isEnabled(planningDir)) {
+          const phaseDirMatches = found.filter(f => /^phases[/\\]/.test(f));
+          const phaseDir = phaseDirMatches.length > 0
+            ? path.join(planningDir, phaseDirMatches[0].split(/[/\\]/).slice(0, 2).join(path.sep))
+            : null;
+          if (phaseDir) {
+            const feedback = extractFeedback(phaseDir);
+            if (feedback) {
+              warnings.push(`Feedback loop: ${feedback.summary || 'verification feedback recorded'}`);
+            }
+          }
+        }
+      } catch (_e) { /* best-effort */ }
       checkLearningsRequired(planningDir, warnings, 'executor');
+      // Log post-hoc skip for non-quick executors (audit evidence)
+      logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
+      // Update conventions after successful build
+      updateConventionsAfterBuild(planningDir);
+      // Log inline execution decision for audit
+      try {
+        const inlineSignal = path.join(planningDir, '.inline-active');
+        const wasInline = fs.existsSync(inlineSignal);
+        logInlineDecision(planningDir, {
+          inline: wasInline,
+          decision: wasInline ? 'inline' : 'delegate',
+          reason: wasInline ? 'signal file present' : 'normal task spawn',
+          taskCount: found.filter(f => /SUMMARY/i.test(f)).length,
+          fileCount: 0
+        });
+      } catch (_e) { /* best-effort — never crash for audit logging */ }
     }
   },
   'quick:pbr:executor': {
-    description: 'quick executor SUMMARY commits',
+    description: 'quick executor SUMMARY commits and post-hoc generation',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Post-hoc SUMMARY.md generation for quick tasks
+      const postHocEnabled = loadFeatureFlag(planningDir, 'post_hoc_artifacts');
+      if (postHocEnabled === false) {
+        logEvent('post_hoc', 'post_hoc_skipped', { reason: 'feature_disabled', feature: 'post_hoc_artifacts' });
+        return;
+      }
+      // Check if SUMMARY.md is missing in the quick dir
+      const quickSummaries = findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
+      if (quickSummaries.length > 0) return; // Already exists, no need for post-hoc
+      // Find the latest quick task directory
+      const quickDir = path.join(planningDir, 'quick');
+      if (!fs.existsSync(quickDir)) return;
+      try {
+        const dirs = fs.readdirSync(quickDir)
+          .filter(d => /^\d{3}-/.test(d))
+          .sort()
+          .reverse();
+        if (dirs.length === 0) return;
+        const taskDir = path.join(quickDir, dirs[0]);
+        const taskSlug = dirs[0];
+        // Attempt post-hoc generation
+        try {
+          const { generateSummary } = require('../../../plan-build-run/bin/lib/post-hoc.cjs');
+          const projectRoot = path.resolve(planningDir, '..');
+          const result = generateSummary(projectRoot, taskDir, {
+            commitPattern: taskSlug.replace(/^(\d{3})-.*/, 'quick-$1')
+          });
+          logEvent('post_hoc', 'post_hoc_summary_generated', {
+            taskDir: taskSlug,
+            commitCount: result.commitCount,
+            feature: 'post_hoc_artifacts',
+            timestamp: new Date().toISOString()
+          });
+          warnings.push(`SUMMARY.md auto-generated post-hoc for quick task ${taskSlug} (${result.commitCount} commits found)`);
+        } catch (_genErr) {
+          logEvent('post_hoc', 'post_hoc_generation_failed', {
+            taskDir: taskSlug,
+            error: _genErr.message,
+            feature: 'post_hoc_artifacts'
+          });
+        }
+      } catch (_e) { /* best-effort */ }
     }
   },
   'begin:pbr:researcher': {
@@ -605,6 +780,31 @@ const SKILL_CHECKS = {
     }
   }
 };
+
+/**
+ * Update convention patterns after a build executor completes.
+ * Gated by features.convention_memory config toggle.
+ * Non-fatal — convention detection failure never crashes the hook.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ */
+function updateConventionsAfterBuild(planningDir) {
+  try {
+    const config = loadFeatureFlag(planningDir, 'convention_memory');
+    if (config === false) return;
+
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    const conventions = detectConventions(cwd);
+    const totalPatterns = Object.values(conventions).reduce((sum, arr) => sum + arr.length, 0);
+    if (totalPatterns > 0) {
+      writeConventions(planningDir, conventions);
+      logHook('check-subagent-output', 'PostToolUse', 'conventions-updated', { patterns: totalPatterns });
+    }
+  } catch (_e) {
+    // Convention detection failure is non-fatal
+    logHook('check-subagent-output', 'PostToolUse', 'conventions-failed', { error: _e.message });
+  }
+}
 
 function readStdin() {
   try {
@@ -912,5 +1112,68 @@ async function handleHttp(reqBody) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp };
+/**
+ * Log an inline execution decision to .planning/logs/hooks.jsonl for audit evidence.
+ * Called by the build skill orchestrator after running shouldInlineExecution.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} decision - Result from shouldInlineExecution
+ * @param {boolean} decision.inline - Whether inline execution was chosen
+ * @param {string} [decision.reason] - Reason for the decision
+ * @param {number} [decision.taskCount] - Number of tasks in the plan
+ * @param {number} [decision.fileCount] - Number of files in the plan
+ * @param {number} [decision.estimatedLines] - Estimated lines of code
+ */
+function logInlineDecision(planningDir, decision) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const logFile = path.join(logsDir, 'hooks.jsonl');
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      hook: 'inline-execution-gate',
+      decision: decision.inline ? 'inline' : 'delegate',
+      reason: decision.reason || null,
+      taskCount: decision.taskCount || 0,
+      fileCount: decision.fileCount || 0,
+      estimatedLines: decision.estimatedLines || 0
+    });
+    fs.appendFileSync(logFile, entry + '\n', 'utf8');
+  } catch (_e) {
+    // Best-effort — never crash the caller
+  }
+}
+
+/**
+ * Validate self-verification data in an executor SUMMARY.md file.
+ */
+function validateSelfCheck(summaryPath, config) {
+  if (!config || !config.features || !config.features.self_verification) {
+    return [];
+  }
+  const warnings = [];
+  try {
+    const content = fs.readFileSync(summaryPath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const fm = fmMatch[1];
+    if (!/self_check\s*:/i.test(fm)) {
+      warnings.push('Executor SUMMARY.md missing self_check field — self-verification may not have run');
+      return warnings;
+    }
+    const failedMatch = fm.match(/failed\s*:\s*(\d+)/);
+    const retriesMatch = fm.match(/retries\s*:\s*(\d+)/);
+    if (failedMatch && parseInt(failedMatch[1], 10) > 0) {
+      const failed = failedMatch[1];
+      const retries = retriesMatch ? retriesMatch[1] : '0';
+      warnings.push(`Executor self-check reported ${failed} failed must-haves after ${retries} retries`);
+    }
+  } catch (_e) { /* skip gracefully */ }
+  return warnings;
+}
+
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild, validateSelfCheck };
 if (require.main === module || process.argv[1] === __filename) { main(); }

@@ -22,7 +22,7 @@ If no subcommand or unrecognized, default to `append` if content words are prese
 Zero-friction note capture. Creates a timestamped markdown file in `.planning/notes/`.
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js note append <words...>
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs note append <words...>
 ```
 
 The tool handles:
@@ -42,7 +42,7 @@ Note saved: .planning/notes/[filename]
 Show all captured notes with previews and promotion status.
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js note list
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs note list
 ```
 
 The tool handles:
@@ -63,7 +63,7 @@ Notes (N total):
 Convert a note into a formal todo item.
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js note promote <filename>
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs note promote <filename>
 ```
 
 The tool handles:

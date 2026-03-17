@@ -1,6 +1,6 @@
 # STATE.md Update Pattern
 
-Standard pattern for updating `.planning/STATE.md`. CLI commands handle both YAML frontmatter and markdown body atomically. Skills and agents call `pbr-tools.js` commands instead of writing STATE.md directly.
+Standard pattern for updating `.planning/STATE.md`. CLI commands handle both YAML frontmatter and markdown body atomically. Skills and agents call `pbr-tools.cjs` commands instead of writing STATE.md directly.
 
 > Referenced by: build, plan, review, milestone, pause, resume, continue, begin, import, quick skills
 
@@ -129,7 +129,7 @@ When a milestone completes or a phase is verified, archive historical context to
 
 ### How to Archive
 
-Use `pbr-tools.js history append`:
+Use `pbr-tools.cjs history append`:
 ```
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "Phase 3 (Auth)" "Verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "v1.0 User Auth" "Phases 1-4. All verified. Core auth flow complete."

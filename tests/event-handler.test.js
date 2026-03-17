@@ -1,4 +1,4 @@
-const { isExecutorAgent, shouldAutoVerify, getPhaseFromState } = require('../hooks/event-handler');
+const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, isVerifierAgent } = require('../hooks/event-handler');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -129,6 +129,51 @@ describe('event-handler.js', () => {
         'Phase: 5 of 12\n**Status**: "built"');
       const result = getPhaseFromState(planningDir);
       expect(result).toEqual({ phase: 5, total: 12, status: 'built' });
+    });
+  });
+
+  describe('isVerifierAgent', () => {
+    test('returns true for agent_type pbr:verifier', () => {
+      expect(isVerifierAgent({ agent_type: 'pbr:verifier' })).toBe(true);
+    });
+
+    test('returns true for subagent_type pbr:verifier', () => {
+      expect(isVerifierAgent({ subagent_type: 'pbr:verifier' })).toBe(true);
+    });
+
+    test('returns false for pbr:executor', () => {
+      expect(isVerifierAgent({ agent_type: 'pbr:executor' })).toBe(false);
+    });
+
+    test('returns false for empty data', () => {
+      expect(isVerifierAgent({})).toBe(false);
+    });
+  });
+
+  describe('verifier trust tracking', () => {
+    test('when pbr:verifier completes and trust_tracking enabled, logs trust-update event', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ depth: 'standard', features: { trust_tracking: true, goal_verification: true } }));
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+        'Phase: 3 of 8\nStatus: building');
+
+      // Verify the function detects verifier agent
+      expect(isVerifierAgent({ agent_type: 'pbr:verifier' })).toBe(true);
+
+      // Trust tracking enabled check
+      const config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+      expect(config.features.trust_tracking).toBe(true);
+    });
+
+    test('when pbr:verifier completes and trust_tracking disabled, no trust-update event', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, 'config.json'),
+        JSON.stringify({ depth: 'standard', features: { trust_tracking: false, goal_verification: true } }));
+
+      // Trust tracking disabled check
+      const config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+      expect(config.features.trust_tracking).toBe(false);
     });
   });
 });

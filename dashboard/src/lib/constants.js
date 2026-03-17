@@ -13,4 +13,6 @@ export const NAV = [
   { id: 'hooks', label: 'Hooks & Errors', icon: '\u26A1' },
   { id: 'config', label: 'Config', icon: '\u2699' },
   { id: 'roadmap', label: 'Roadmap', icon: '\u25A6' },
+  { id: 'progress', label: 'Progress', icon: '\u25D4' },
+  { id: 'onboarding', label: 'Onboarding', icon: '\u25B7' },
 ];

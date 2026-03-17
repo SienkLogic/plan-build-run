@@ -15,6 +15,7 @@ You are the orchestrator for `/pbr:new-project`. This skill initializes a new Pl
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only summaries, not full research docs
@@ -402,7 +403,7 @@ Spawn parallel Task() subagents for research. Each researcher writes to `.planni
 **Learnings injection (opt-in):** Before spawning researchers, check if global learnings exist:
 
 ```bash
-node {resolved_plugin_root}/bin/pbr-tools.cjs learnings query --tags "stack,tech" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" 2>/dev/null
 ```
 
 If the command succeeds AND returns a non-empty JSON array:
@@ -410,7 +411,7 @@ If the command succeeds AND returns a non-empty JSON array:
 - Write the results to a temp file:
 
   ```bash
-  node {resolved_plugin_root}/bin/pbr-tools.cjs learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md
   ```
 
 - Note the temp file path as `{learnings_temp_path}`

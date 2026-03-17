@@ -16,7 +16,7 @@ Read STATE.md before any operation to load project context.
 Load all context in one call:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init execute-phase "${PHASE_ARG}")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init execute-phase "${PHASE_ARG}")
 ```
 
 Parse JSON for: `executor_model`, `verifier_model`, `commit_docs`, `parallelization`, `branching_strategy`, `branch_name`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `plans`, `incomplete_plans`, `plan_count`, `incomplete_count`, `state_exists`, `roadmap_exists`.
@@ -51,7 +51,7 @@ Report: "Found {plan_count} plans in {phase_dir} ({incomplete_count} incomplete)
 Load plan inventory with wave grouping in one call:
 
 ```bash
-PLAN_INDEX=$(node ~/.claude/plan-build-run/bin/pbr-tools.js phase-plan-index "${PHASE_NUMBER}")
+PLAN_INDEX=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phase-plan-index "${PHASE_NUMBER}")
 ```
 
 Parse JSON for: `phase`, `plans[]` (each with `id`, `wave`, `autonomous`, `objective`, `files_modified`, `task_count`, `has_summary`), `waves` (map of wave number → plan IDs), `incomplete`, `has_checkpoints`.
@@ -304,7 +304,7 @@ Gap closure cycle: `/pbr:plan-phase {X} --gaps` reads VERIFICATION.md → create
 Mark phase complete in ROADMAP.md and advance STATE.md using `phase complete`:
 
 ```bash
-TRANSITION=$(node ~/.claude/plan-build-run/bin/pbr-tools.js phase complete "${PHASE_NUMBER}")
+TRANSITION=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phase complete "${PHASE_NUMBER}")
 ```
 
 This CLI command handles:
@@ -319,7 +319,7 @@ Extract from result: `completed_phase`, `plans_executed`, `next_phase`, `next_ph
 Then commit all phase artifacts:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/phases/{phase_dir}/*-VERIFICATION.md .planning/REQUIREMENTS.md
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "docs(phase-{X}): complete phase execution" --files .planning/ROADMAP.md .planning/STATE.md .planning/phases/{phase_dir}/*-VERIFICATION.md .planning/REQUIREMENTS.md
 ```
 </step>
 

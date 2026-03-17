@@ -15,6 +15,7 @@ You are the orchestrator for `/pbr:new-project`. This skill initializes a new Pl
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only summaries, not full research docs
@@ -399,7 +400,7 @@ Spawn parallel Task() subagents for research. Each researcher writes to `.planni
 **Learnings injection (opt-in):** Before spawning researchers, check if global learnings exist:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" 2>/dev/null
 ```
 
 If the command succeeds AND returns a non-empty JSON array:
@@ -407,7 +408,7 @@ If the command succeeds AND returns a non-empty JSON array:
 - Write the results to a temp file:
 
   ```bash
-  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "stack,tech" > /tmp/pbr-learnings-$$.md
   ```
 
 - Note the temp file path as `{learnings_temp_path}`
@@ -427,7 +428,7 @@ Task({
 
 **NOTE**: The `pbr:researcher` subagent type auto-loads the agent definition from `agents/researcher.md`. Do NOT inline the agent definition — it wastes main context.
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Researcher Prompt Template
 

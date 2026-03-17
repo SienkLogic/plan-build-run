@@ -737,3 +737,124 @@ describe('learningsIngest - does not mutate input', () => {
     expect(result.entry.occurrences).toBe(2);
   });
 });
+
+// --- learningsAggregate ---
+
+describe('global learnings aggregation', () => {
+  const { learningsAggregate } = require('../plan-build-run/bin/lib/learnings.cjs');
+
+  let tmpDir, tmpFile;
+
+  function seedEntries() {
+    // 2 tech-pattern entries from project-alpha
+    learningsIngest(makeEntry({
+      id: 'agg-1',
+      source_project: 'project-alpha',
+      type: 'tech-pattern',
+      tags: ['react'],
+      summary: 'React hooks pattern',
+      occurrences: 2,
+      confidence: 'medium',
+    }), { filePath: tmpFile });
+    learningsIngest(makeEntry({
+      id: 'agg-2',
+      source_project: 'project-alpha',
+      type: 'anti-pattern',
+      tags: ['node'],
+      summary: 'Avoid callback hell',
+      occurrences: 1,
+      confidence: 'low',
+    }), { filePath: tmpFile });
+    // 1 tech-pattern from project-beta with SAME summary as agg-1
+    learningsIngest(makeEntry({
+      id: 'agg-3',
+      source_project: 'project-beta',
+      type: 'tech-pattern',
+      tags: ['react'],
+      summary: 'React hooks pattern',
+      occurrences: 1,
+      confidence: 'low',
+    }), { filePath: tmpFile });
+    // 1 anti-pattern from project-beta (different summary)
+    learningsIngest(makeEntry({
+      id: 'agg-4',
+      source_project: 'project-beta',
+      type: 'anti-pattern',
+      tags: ['node', 'async'],
+      summary: 'Never use sync fs in hot path',
+      occurrences: 3,
+      confidence: 'high',
+    }), { filePath: tmpFile });
+  }
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-learnings-agg-'));
+    tmpFile = path.join(tmpDir, 'learnings.jsonl');
+    seedEntries();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('returns total count of all entries', () => {
+    const result = learningsAggregate({}, { filePath: tmpFile });
+    expect(result.total).toBe(4);
+  });
+
+  test('groups entries by type', () => {
+    const result = learningsAggregate({}, { filePath: tmpFile });
+    expect(result.by_type).toBeDefined();
+    expect(result.by_type['tech-pattern']).toBe(2);
+    expect(result.by_type['anti-pattern']).toBe(2);
+  });
+
+  test('groups entries by source_project', () => {
+    const result = learningsAggregate({}, { filePath: tmpFile });
+    expect(result.by_project).toBeDefined();
+    expect(result.by_project['project-alpha']).toBe(2);
+    expect(result.by_project['project-beta']).toBe(2);
+  });
+
+  test('identifies cross-project patterns (same summary in 2+ projects)', () => {
+    const result = learningsAggregate({}, { filePath: tmpFile });
+    expect(Array.isArray(result.cross_project_patterns)).toBe(true);
+    expect(result.cross_project_patterns.length).toBeGreaterThanOrEqual(1);
+    const pattern = result.cross_project_patterns.find(p => p.summary === 'React hooks pattern');
+    expect(pattern).toBeDefined();
+    expect(pattern.projects.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test('returns top_insights sorted by occurrences', () => {
+    const result = learningsAggregate({}, { filePath: tmpFile });
+    expect(Array.isArray(result.top_insights)).toBe(true);
+    if (result.top_insights.length >= 2) {
+      expect(result.top_insights[0].occurrences).toBeGreaterThanOrEqual(result.top_insights[1].occurrences);
+    }
+  });
+
+  test('respects topN option', () => {
+    const result = learningsAggregate({ topN: 2 }, { filePath: tmpFile });
+    expect(result.top_insights.length).toBeLessThanOrEqual(2);
+  });
+
+  test('returns { enabled: false } when config toggle is off', () => {
+    const result = learningsAggregate({}, {
+      filePath: tmpFile,
+      configFeatures: { global_learnings: false },
+    });
+    expect(result).toEqual({ enabled: false });
+  });
+
+  test('filters by project when project filter provided', () => {
+    const result = learningsAggregate({ project: 'project-alpha' }, { filePath: tmpFile });
+    expect(result.total).toBe(2);
+    expect(Object.keys(result.by_project)).toEqual(['project-alpha']);
+  });
+
+  test('filters by type when type filter provided', () => {
+    const result = learningsAggregate({ type: 'tech-pattern' }, { filePath: tmpFile });
+    expect(result.total).toBe(2);
+    expect(result.by_type['anti-pattern']).toBeUndefined();
+  });
+});

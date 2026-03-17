@@ -12,8 +12,8 @@ Read all files referenced by the invoking prompt's execution_context before star
 Ensure config exists and load current state:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js config-ensure-section
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js state load)
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs config-ensure-section
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state load)
 ```
 
 Creates `.planning/config.json` with defaults if missing and loads current config values.

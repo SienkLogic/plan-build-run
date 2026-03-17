@@ -232,11 +232,11 @@ If orchestrator provides revision feedback: parse concerns, update files in plac
 2. Detail Sections (under `## Phase Details`)
 3. Progress Table
 
-Reference full template: `$HOME/.claude/plan-build-run/templates/roadmap.md`
+Reference full template: `${CLAUDE_PLUGIN_ROOT}/templates/roadmap.md`
 
 ### STATE.md Structure
 
-Use template from `$HOME/.claude/plan-build-run/templates/state.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/templates/state.md`.
 
 Key sections: Project Reference, Current Position, Performance Metrics, Accumulated Context, Session Continuity.
 

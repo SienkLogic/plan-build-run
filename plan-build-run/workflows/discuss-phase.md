@@ -111,7 +111,7 @@ Phase: "API documentation"
 Phase number from argument (required).
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init phase-op "${PHASE}")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init phase-op "${PHASE}")
 ```
 
 Parse JSON for: `commit_docs`, `phase_found`, `phase_dir`, `phase_number`, `phase_name`, `phase_slug`, `padded_phase`, `has_research`, `has_context`, `has_plans`, `has_verification`, `plan_count`, `roadmap_exists`, `planning_exists`.
@@ -392,7 +392,7 @@ Created: .planning/phases/${PADDED_PHASE}-${SLUG}/${PADDED_PHASE}-CONTEXT.md
 Commit phase context (uses `commit_docs` from init internally):
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "docs(${padded_phase}): capture phase context" --files "${phase_dir}/${padded_phase}-CONTEXT.md"
 ```
 
 Confirm: "Committed: docs(${padded_phase}): capture phase context"
@@ -402,7 +402,7 @@ Confirm: "Committed: docs(${padded_phase}): capture phase context"
 Update STATE.md to reflect context gathering completion:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js state record-session \
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state record-session \
   --stopped-at "Captured context for Phase ${padded_phase}-${phase_slug}" \
   --resume-file "None"
 ```
@@ -410,7 +410,7 @@ node ~/.claude/plan-build-run/bin/pbr-tools.js state record-session \
 Commit the state update:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "docs(${padded_phase}): update state after context gathering" --files .planning/STATE.md
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "docs(${padded_phase}): update state after context gathering" --files .planning/STATE.md
 ```
 </step>
 

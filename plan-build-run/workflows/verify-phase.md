@@ -28,14 +28,14 @@ Then verify each level against the actual codebase.
 Load phase operation context:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init phase-op "${PHASE_ARG}")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init phase-op "${PHASE_ARG}")
 ```
 
 Extract from init JSON: `phase_dir`, `phase_number`, `phase_name`, `has_plans`, `plan_count`.
 
 Then load phase details and list plans/summaries:
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js roadmap get-phase "${phase_number}"
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs roadmap get-phase "${phase_number}"
 grep -E "^| ${phase_number}" .planning/REQUIREMENTS.md 2>/dev/null
 ls "$phase_dir"/*-SUMMARY.md "$phase_dir"/*-PLAN.md 2>/dev/null
 ```
@@ -50,7 +50,7 @@ Use pbr-tools to extract must_haves from each PLAN:
 
 ```bash
 for plan in "$PHASE_DIR"/*-PLAN.md; do
-  MUST_HAVES=$(node ~/.claude/plan-build-run/bin/pbr-tools.js frontmatter get "$plan" --field must_haves)
+  MUST_HAVES=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs frontmatter get "$plan" --field must_haves)
   echo "=== $plan ===" && echo "$MUST_HAVES"
 done
 ```
@@ -84,7 +84,7 @@ Use pbr-tools for artifact verification against must_haves in each PLAN:
 
 ```bash
 for plan in "$PHASE_DIR"/*-PLAN.md; do
-  ARTIFACT_RESULT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js verify artifacts "$plan")
+  ARTIFACT_RESULT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs verify artifacts "$plan")
   echo "=== $plan ===" && echo "$ARTIFACT_RESULT"
 done
 ```
@@ -116,7 +116,7 @@ Use pbr-tools for key link verification against must_haves in each PLAN:
 
 ```bash
 for plan in "$PHASE_DIR"/*-PLAN.md; do
-  LINKS_RESULT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js verify key-links "$plan")
+  LINKS_RESULT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs verify key-links "$plan")
   echo "=== $plan ===" && echo "$LINKS_RESULT"
 done
 ```

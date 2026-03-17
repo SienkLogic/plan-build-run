@@ -31,6 +31,7 @@ You are the orchestrator for `/pbr:import`. This skill imports an external plan 
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only verdicts, not full reports
