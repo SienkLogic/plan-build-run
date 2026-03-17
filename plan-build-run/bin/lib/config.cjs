@@ -180,6 +180,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.progress_visualization': false,
     'features.contextual_help': false,
     'features.team_onboarding': false,
+    'features.cross_project_patterns': false,
+    'features.spec_templates': false,
+    'features.global_learnings': false,
     'scan.mapper_count': 2,
     'scan.mapper_areas': ['tech', 'arch'],
     'debug.max_hypothesis_rounds': 3
@@ -198,6 +201,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.progress_visualization': true,
     'features.contextual_help': true,
     'features.team_onboarding': true,
+    'features.cross_project_patterns': true,
+    'features.spec_templates': true,
+    'features.global_learnings': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 5
@@ -216,6 +222,9 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.progress_visualization': true,
     'features.contextual_help': true,
     'features.team_onboarding': true,
+    'features.cross_project_patterns': true,
+    'features.spec_templates': true,
+    'features.global_learnings': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 10

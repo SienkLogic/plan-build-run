@@ -117,6 +117,16 @@
  *   learnings check-thresholds            Check deferral trigger conditions
  *   learnings copy-global <path> <proj>   Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P]  Query global knowledge files
+ *   learnings aggregate [--project P] [--type T] [--top N]
+ *
+ * PATTERNS (Phase 16: Cross-project pattern library):
+ *   patterns extract <json-file>          Extract pattern into ~/.claude/patterns/
+ *   patterns query [--tags X,Y] [--type T] [--stack S] [--min-confidence N]
+ *   patterns list                          List all stored patterns
+ *
+ * TEMPLATES (Phase 16: Spec templates):
+ *   templates list                         List built-in + user templates
+ *   templates instantiate <name> [--param key=value ...]
  *
  * NEGATIVE KNOWLEDGE:
  *   negative-knowledge record --title "..." --category <cat> --files "a,b" --what-tried "..." --why-failed "..."
@@ -260,6 +270,8 @@ let _reference, _skillSection, _stepVerify, _preview, _context;
 let _alternatives, _migrate, _circuitState, _intel, _statusRender, _suggestNext, _parseArgs;
 let _decisions;
 let _negativeKnowledge;
+let _patterns;
+let _templates;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -291,6 +303,8 @@ function getSuggestNext() { if (!_suggestNext) _suggestNext = require('./lib/sug
 function getParseArgs() { if (!_parseArgs) _parseArgs = require('./lib/parse-args.cjs'); return _parseArgs; }
 function getDecisions() { if (!_decisions) _decisions = require('./lib/decisions.cjs'); return _decisions; }
 function getNegativeKnowledge() { if (!_negativeKnowledge) _negativeKnowledge = require('./lib/negative-knowledge.cjs'); return _negativeKnowledge; }
+function getPatterns() { if (!_patterns) _patterns = require('./lib/patterns.cjs'); return _patterns; }
+function getTemplates() { if (!_templates) _templates = require('./lib/templates.cjs'); return _templates; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -1696,6 +1710,29 @@ async function main() {
     } else if (command === 'negative-knowledge') {
       error(`Unknown negative-knowledge subcommand: ${subcommand}\nAvailable: record, query, list`);
 
+    // ─── Patterns Operations (Phase 16: Cross-project pattern library) ────────
+    } else if (command === 'patterns' && subcommand === 'extract') {
+      const jsonFile = args[2];
+      if (!jsonFile) error('Usage: patterns extract <json-file>');
+      const entry = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternExtract(entry, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns' && subcommand === 'query') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--tags' && args[i + 1]) { filters.tags = args[++i].split(',').map(t => t.trim()); }
+        else if (args[i] === '--type' && args[i + 1]) { filters.type = args[++i]; }
+        else if (args[i] === '--stack' && args[i + 1]) { filters.stack = args[++i]; }
+        else if (args[i] === '--min-confidence' && args[i + 1]) { filters.minConfidence = parseFloat(args[++i]); }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternQuery(filters, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns' && subcommand === 'list') {
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternList({ configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns') {
+      error(`Unknown patterns subcommand: ${subcommand}\nAvailable: extract, query, list`);
+
     // ─── Graph Operations ─────────────────────────────────────────────────────
     } else if (command === 'graph') {
       const graphCli = require('./lib/graph-cli.cjs');
@@ -1707,7 +1744,7 @@ async function main() {
 
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
