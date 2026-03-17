@@ -82,7 +82,7 @@ function runPbrTools(args, cwd) {
 describe('pbr-tools.cjs graph subcommand', () => {
   describe('graph build', () => {
     test('creates graph.json in .planning/codebase/', () => {
-      const { tmp, planningDir, codebaseDir } = makeTempProject();
+      const { tmp, codebaseDir } = makeTempProject();
       try {
         const result = runPbrTools(['graph', 'build'], tmp);
         expect(result).toHaveProperty('_meta');

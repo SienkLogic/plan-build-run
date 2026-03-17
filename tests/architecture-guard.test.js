@@ -161,7 +161,7 @@ describe('architecture-guard.js', () => {
     test('returns null for files matching established patterns', () => {
       const { tmp, planningDir } = makeTempProject();
       try {
-        const filePath = writeFile(tmp, 'plugins/pbr/scripts/good-hook.js',
+        writeFile(tmp, 'plugins/pbr/scripts/good-hook.js',
           "const { logHook } = require('./hook-logger');\nprocess.stdin.on('data', (c) => {});");
         const relPath = 'plugins/pbr/scripts/good-hook.js';
         const result = runGuard(planningDir, tmp, relPath);

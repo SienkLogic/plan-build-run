@@ -49,14 +49,6 @@ function cleanupTemp(tmp) {
   try { fs.rmSync(tmp, { recursive: true, force: true }); } catch (_e) { /* ignore */ }
 }
 
-function makeHookInput(filePath, eventType = 'Write') {
-  return JSON.stringify({
-    tool_name: eventType,
-    tool_input: { file_path: filePath },
-    tool_output: 'File written.'
-  });
-}
-
 // Load the module under test
 const { updateGraph, findPlanningDir, isSourceFile } = require('../plugins/pbr/scripts/graph-update.js');
 
@@ -196,7 +188,6 @@ describe('graph-update.js', () => {
     test('skips files inside .planning directory', () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
-        const planningFilePath = path.join(planningDir, 'STATE.md');
         const graphBefore = fs.readFileSync(path.join(planningDir, 'codebase', 'graph.json'), 'utf8');
         const result = updateGraph(planningDir, tmp, '.planning/STATE.md');
         expect(result).toBeNull();
