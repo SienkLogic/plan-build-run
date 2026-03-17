@@ -715,7 +715,6 @@ function cmdValidateHealth(cwd, options, raw) {
     }
   }
 
-<<<<<<< HEAD
   // ─── Check 9: Phase 1 feature status ────────────────────────────────────────
   const feature_status = {};
   if (fs.existsSync(configPath)) {
