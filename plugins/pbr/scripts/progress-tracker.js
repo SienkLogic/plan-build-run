@@ -18,6 +18,7 @@ const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
+const { intelStatus } = require('../../plan-build-run/bin/lib/intel.cjs');
 
 function readStdin() {
   try {
@@ -165,6 +166,57 @@ async function main() {
   }
 
   process.exit(0);
+}
+
+/**
+ * Return arch.md content as context injection when intel.inject_on_start is true.
+ * Truncates to ~2000 chars (~500 tokens) to keep context lean.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} config - Loaded config object
+ * @returns {string} Context string or empty string
+ */
+function getIntelContext(planningDir, config) {
+  if (!config || config.intel?.enabled === false) return '';
+  if (config.intel?.inject_on_start !== true) return '';
+
+  const archPath = path.join(planningDir, 'intel', 'arch.md');
+  try {
+    if (!fs.existsSync(archPath)) return '';
+    let content = fs.readFileSync(archPath, 'utf8');
+    if (content.length > 2000) {
+      content = content.substring(0, 2000);
+    }
+    return '\n## Codebase Intelligence\n' + content;
+  } catch (_e) {
+    return '';
+  }
+}
+
+/**
+ * Return a staleness warning when any intel file is >24h old.
+ * Advisory only — never blocks SessionStart.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} config - Loaded config object
+ * @returns {string} Warning string or empty string
+ */
+function getIntelStalenessWarning(planningDir, config) {
+  if (!config || config.intel?.enabled === false) return '';
+
+  try {
+    const result = intelStatus(planningDir);
+    if (result.disabled) return '';
+    if (!result.overall_stale) return '';
+
+    const staleFiles = Object.entries(result.files)
+      .filter(([_name, info]) => info.stale)
+      .map(([name]) => name);
+
+    return `\nWarning: Intel data is stale (${staleFiles.join(', ')}). Run /pbr:intel update to refresh.`;
+  } catch (_e) {
+    return '';
+  }
 }
 
 function buildContext(planningDir, stateFile) {
@@ -361,6 +413,13 @@ function buildContext(planningDir, stateFile) {
   if (learningsThresholds.length > 0) {
     parts.push(`\nLearnings deferral triggers ready:\n${learningsThresholds.join('\n')}`);
   }
+
+  // Intel context injection
+  const intelContext = getIntelContext(planningDir, config);
+  if (intelContext) parts.push(intelContext);
+
+  const stalenessWarning = getIntelStalenessWarning(planningDir, config);
+  if (stalenessWarning) parts.push(stalenessWarning);
 
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
@@ -685,6 +744,6 @@ function detectOtherSessions(planningDir, ownSessionId) {
 }
 
 // Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }
