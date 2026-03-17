@@ -471,6 +471,43 @@ function intelValidate(planningDir) {
 }
 
 /**
+ * Patch _meta.updated_at in a JSON intel file to the current timestamp.
+ * Reads the file, updates _meta.updated_at, increments version, writes back.
+ *
+ * @param {string} filePath - Absolute or relative path to the JSON intel file
+ * @returns {{ patched: boolean, file: string, timestamp: string } | { patched: false, error: string }}
+ */
+function intelPatchMeta(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return { patched: false, error: `File not found: ${filePath}` };
+    }
+
+    const content = fs.readFileSync(filePath, 'utf8');
+    let data;
+    try {
+      data = JSON.parse(content);
+    } catch (e) {
+      return { patched: false, error: `Invalid JSON: ${e.message}` };
+    }
+
+    if (!data._meta) {
+      data._meta = {};
+    }
+
+    const timestamp = new Date().toISOString();
+    data._meta.updated_at = timestamp;
+    data._meta.version = (data._meta.version || 0) + 1;
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+
+    return { patched: true, file: filePath, timestamp };
+  } catch (e) {
+    return { patched: false, error: e.message };
+  }
+}
+
+/**
  * Extract exports from a JS/CJS file by parsing module.exports or exports.X patterns.
  *
  * @param {string} filePath - Path to the JS/CJS file
@@ -542,6 +579,7 @@ module.exports = {
   intelSnapshot,
   intelValidate,
   intelExtractExports,
+  intelPatchMeta,
 
   // Utilities
   ensureIntelDir,

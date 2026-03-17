@@ -201,13 +201,19 @@ Glob for project structure indicators:
 
 ### Step 2: Stack Detection
 
-Read package.json, configs, and build files. Write `stack.json`.
+Read package.json, configs, and build files. Write `stack.json`. Then patch its timestamp:
+```bash
+<pbr-tools-path> intel patch-meta .planning/intel/stack.json --cwd <project_root>
+```
 
 ### Step 3: File Graph
 
 Glob source files (`**/*.ts`, `**/*.js`, `**/*.py`, etc., excluding node_modules/dist/build).
 Read key files (entry points, configs, core modules) for imports/exports.
-Write `files.json`.
+Write `files.json`. Then patch its timestamp:
+```bash
+<pbr-tools-path> intel patch-meta .planning/intel/files.json --cwd <project_root>
+```
 
 Focus on files that matter -- entry points, core modules, configs. Skip test files and generated code unless they reveal architecture.
 
@@ -215,13 +221,19 @@ Focus on files that matter -- entry points, core modules, configs. Skip test fil
 
 Grep for route definitions, endpoint declarations, CLI command registrations.
 Patterns to search: `app.get(`, `router.post(`, `@GetMapping`, `def route`, express route patterns.
-Write `apis.json`. If no API endpoints found, write an empty entries object.
+Write `apis.json`. If no API endpoints found, write an empty entries object. Then patch its timestamp:
+```bash
+<pbr-tools-path> intel patch-meta .planning/intel/apis.json --cwd <project_root>
+```
 
 ### Step 5: Dependencies
 
 Read package.json (dependencies, devDependencies), requirements.txt, go.mod, Cargo.toml.
 Cross-reference with actual imports to populate `used_by`.
-Write `deps.json`.
+Write `deps.json`. Then patch its timestamp:
+```bash
+<pbr-tools-path> intel patch-meta .planning/intel/deps.json --cwd <project_root>
+```
 
 ### Step 6: Architecture
 

@@ -126,6 +126,7 @@
  *   intel snapshot                        Save refresh snapshot (.last-refresh.json)
  *   intel validate                        Validate all intel files for correctness
  *   intel extract-exports <filepath>      Extract exports from a JS/CJS file
+ *   intel patch-meta <filepath>           Patch _meta.updated_at to current timestamp
  *
  * BUILD PIPELINE:
  *   staleness-check <phase-slug>          Check if phase plans are stale
@@ -862,6 +863,10 @@ async function main() {
       const filePath = args[2];
       if (!filePath) error('Usage: intel extract-exports <filepath>');
       output(getIntel().intelExtractExports(filePath));
+    } else if (command === 'intel' && subcommand === 'patch-meta') {
+      const filePath = args[2];
+      if (!filePath) error('Usage: intel patch-meta <filepath>');
+      output(getIntel().intelPatchMeta(filePath));
 
     // ─── Build Pipeline ───────────────────────────────────────────────────────
     } else if (command === 'staleness-check') {
