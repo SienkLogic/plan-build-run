@@ -856,6 +856,8 @@ EOF
 **If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
 Chain to the next skill directly within this session. This eliminates manual phase cycling.
 
+**NOTE:** When `workflow.phase_boundary_clear` is `enforce`, do NOT write `.auto-next` — force the user to /clear first. The phase boundary enforcement in auto-continue.js will also block continuation if a `.phase-boundary-pending` signal file exists.
+
 | Build Result | Next Action | How |
 |-------------|-------------|-----|
 | Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
@@ -895,6 +897,28 @@ After completing the build, check if any pending todos are now satisfied:
    e. If unrelated: skip silently
 
 Only auto-close when the match is unambiguous. When in doubt, leave it open.
+
+**8f-pre. Phase Boundary Clear (conditional):**
+
+After verification completes and before the branded banner, check `workflow.phase_boundary_clear` from config:
+
+1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get workflow.phase_boundary_clear`
+2. If `"off"` or missing: skip (no action — current default behavior)
+3. If `"recommend"`:
+   - Add an advisory line to the completion output:
+     ```
+     Context Reset: Run /clear before starting the next phase for optimal context quality.
+     ```
+   - This is informational only — do NOT block the user
+4. If `"enforce"`:
+   - Add a prominent warning to the completion output:
+     ```
+     CONTEXT RESET REQUIRED
+     Phase boundary clear is enforced. Run /clear before continuing to the next phase.
+     The next /pbr:plan-phase or /pbr:execute-phase will work best with a fresh context window.
+     ```
+   - Write `.planning/.phase-boundary-pending` file containing `{phase_num}` — this signals to auto-continue.js that a clear is needed
+   - Do NOT write `.planning/.auto-next` when enforce is active — the auto-continue hook will handle this
 
 **8f. Present completion summary:**
 
