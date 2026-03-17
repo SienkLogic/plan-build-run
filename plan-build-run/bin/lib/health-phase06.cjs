@@ -82,16 +82,39 @@ function checkMentalModelSnapshots(planningDir, config) {
 }
 
 /**
+ * Write audit evidence for health check results to .planning/logs/audit-evidence.jsonl.
+ * @param {string} planningDir - Absolute path to .planning/ directory
+ * @param {Array<object>} featureResults - Array of health check results
+ */
+function writeAuditEvidence(planningDir, featureResults) {
+  const logsDir = path.join(planningDir, 'logs');
+  try {
+    fs.mkdirSync(logsDir, { recursive: true });
+    const logFile = path.join(logsDir, 'audit-evidence.jsonl');
+    const ts = new Date().toISOString();
+    const lines = featureResults.map(r =>
+      JSON.stringify({ ts, cat: 'health', feature: r.feature, status: r.status, details: r.details || {} })
+    ).join('\n') + '\n';
+    fs.appendFileSync(logFile, lines);
+  } catch (_e) {
+    // Best-effort logging; do not fail health checks on write errors
+  }
+}
+
+/**
  * Check all Phase 06 features and return array of results.
+ * Also writes audit evidence to .planning/logs/audit-evidence.jsonl.
  * @param {string} planningDir - Absolute path to .planning/ directory
  * @param {object} config - Parsed config.json object
  * @returns {Array<{ feature: string, status: string, details?: object }>}
  */
 function checkAll(planningDir, config) {
-  return [
+  const results = [
     checkConventionMemory(planningDir, config),
     checkMentalModelSnapshots(planningDir, config)
   ];
+  writeAuditEvidence(planningDir, results);
+  return results;
 }
 
 module.exports = { checkConventionMemory, checkMentalModelSnapshots, checkAll };
