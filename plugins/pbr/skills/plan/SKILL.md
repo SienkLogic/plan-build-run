@@ -2,7 +2,7 @@
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] | add | insert <N> | remove <N>"
+argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] | add | insert <N> | remove <N>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -78,6 +78,7 @@ Parse the phase number and optional flags:
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what planning would produce for phase 3 without spawning agents |
 | `3 --audit` | Plan phase 3, then force full plan-checker validation |
+| `3 --auto` | Plan phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
 
 ### Subcommands
 
@@ -94,7 +95,7 @@ Parse the phase number and optional flags:
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
-- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`
 - The word `check` (legacy alias)
 
 If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
@@ -137,6 +138,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 1. Parse `$ARGUMENTS` for phase number and flags
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning researcher, planner, and plan-checker Task() agents, use `override_model` instead of the config-derived model values. If an invalid value is provided, display an error and list valid values.
+   - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
@@ -499,6 +501,7 @@ Follow the revision loop pattern with:
 **Skip if:**
 - `gates.confirm_plan` is `false` in config
 - `mode` is `autonomous` in config
+- `auto_mode` is `true` — proceed as if user selected "Approve"
 
 **If approval is needed:**
 
@@ -551,7 +554,8 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
 **Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
-- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
+- **If `auto_mode` is `true`:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Chain directly to build: `Skill({ skill: "pbr:build", args: "{N} --auto" })`. This continues the plan→build→review cycle automatically.
+- **Else if `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:execute-phase {N}`
 
 ---

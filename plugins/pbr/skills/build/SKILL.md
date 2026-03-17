@@ -2,7 +2,7 @@
 name: build
 description: "Execute all plans in a phase. Spawns agents to build in parallel, commits atomically."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--gaps-only] [--team] [--model <model>]"
+argument-hint: "<phase-number> [--gaps-only] [--team] [--model <model>] [--auto]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -69,6 +69,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3 --gaps-only` | Build only gap-closure plans in phase 3 |
 | `3 --team` | Use Agent Teams for complex inter-agent coordination |
 | `3 --model opus` | Use opus for all executor spawns in phase 3 (overrides config and adaptive selection) |
+| `3 --auto` | Build phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what build would do for phase 3 without executing |
 | `3 --cross-check` | Before spawning executors for phase 3, check current plan files_modified against prior-phase provides for conflicts |
@@ -132,6 +133,7 @@ Execute these steps in order.
 Reference: `skills/shared/config-loading.md` for the tooling shortcut and config field reference.
 
 1. Parse `$ARGUMENTS` for phase number and flags
+   - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
@@ -141,13 +143,14 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
 6. If no phase number given, read current phase from `.planning/STATE.md`
    - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
-7. If `gates.confirm_execute` is true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
    question: "Ready to build Phase {N}? This will execute {count} plans."
    header: "Build?"
    options:
      - label: "Yes"  description: "Start building Phase {N}"
      - label: "No"   description: "Cancel — review plans first"
    If "No" or "Other": stop and suggest `/pbr:plan-phase {N}` to review plans
+   **Skip if:** `auto_mode` is true — auto-proceed as if user selected "Yes"
 8. If `git.branching` is `phase` (the recommended default — see config Quick Start): create and switch to branch `plan-build-run/phase-{NN}-{name}` before any build work begins
 9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
@@ -1016,6 +1019,8 @@ EOF
 
 **8e. Auto-advance / auto-continue (conditional):**
 
+**If `auto_mode` is `true`:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Pass `--auto` to chained skills. Fall through to the auto_advance logic below.
+
 **If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
 Chain to the next skill directly within this session. This eliminates manual phase cycling.
 
@@ -1023,8 +1028,8 @@ Chain to the next skill directly within this session. This eliminates manual pha
 
 | Build Result | Next Action | How |
 |-------------|-------------|-----|
-| Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
-| Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
+| Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
+| Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
 | Verification gaps found | **HARD STOP** — present gaps to user | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:verify-work {N}` before stopping. Do NOT auto-advance past failures. |
 | Last phase in current milestone | **HARD STOP** — milestone boundary | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:complete-milestone` before stopping. Suggest `/pbr:audit-milestone`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
 | Build errors occurred | **HARD STOP** — errors need human review | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:execute-phase {N}` before stopping. Do NOT auto-advance past errors. |

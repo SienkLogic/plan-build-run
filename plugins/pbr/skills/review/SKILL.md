@@ -2,7 +2,7 @@
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>]"
+argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>] [--auto]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -71,6 +71,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3 --auto-fix` | Review phase 3, automatically diagnose and create gap-closure plans for failures |
 | `3 --teams` | Review phase 3 with parallel specialist verifiers (functional + security + performance) |
 | `3 --model opus` | Use opus for all verifier spawns in phase 3 (overrides config verifier_model) |
+| `3 --auto` | Review phase 3 with auto mode — skip interactive UAT, auto-accept if verification passes |
 | (no number) | Use current phase from STATE.md |
 
 ---
@@ -87,6 +88,7 @@ Execute these steps in order.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.
+   - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — skipping interactive UAT walkthrough"
 2. Read `.planning/config.json`
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
@@ -365,6 +367,8 @@ If regressions exist, include them in the gap count for the "Gaps Found" flow in
 
 ### Step 5: Conversational UAT (inline)
 
+**Skip if:** `auto_mode` is true — skip the interactive UAT walkthrough entirely. Still run automated verification (Step 3). If automated verification passed, auto-accept and proceed to Step 6 "All Items Pass" path. If automated verification found gaps, proceed to Step 6 "Gaps Found" path.
+
 Walk the user through each deliverable one by one. This is an interactive conversation, not an automated check.
 
 **For each plan in the phase:**
@@ -455,7 +459,9 @@ Use the branded output from `references/ui-brand.md`:
    - If "Yes": suggest `/pbr:plan-phase {N+1}`
    - If "No" or "Other": stop
 
-5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
+5. **If `auto_mode` is `true` AND more phases remain:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1} --auto" })`. This continues the review→plan→build cycle automatically. **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."
+
+   **Else if `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
    - Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1}" })`
    - This continues the build→review→plan cycle automatically
    - **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."

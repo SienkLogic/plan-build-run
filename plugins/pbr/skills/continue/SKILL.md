@@ -2,6 +2,7 @@
 name: continue
 description: "Execute the next logical step automatically. No prompts, no decisions — just do it."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill
+argument-hint: "[--auto]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -47,6 +48,13 @@ Additionally for this skill:
 ## Flow
 
 ### Step 1: Read State
+
+Parse `$ARGUMENTS`:
+- If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — passing --auto to delegated skills"
+
+| Argument | Meaning |
+|----------|---------|
+| `--auto` | Pass --auto flag to all delegated skills, increase consecutive chain limit from 6 to 20 |
 
 Read `.planning/STATE.md` and determine current position:
 - Current phase number and name
@@ -139,7 +147,7 @@ Before proceeding to priority evaluation, check for runaway continue chains:
    - Check `.planning/.active-skill` file — if it contains `continue`, treat as a chained continue
    - Check STATE.md `last_action` field — if it contains `continue`, treat as a chained continue
    - If neither source is available, assume this is the first invocation (do not warn)
-4. **If this is the 6th consecutive `/pbr:continue` in a row**, display:
+4. **If this is the 6th consecutive `/pbr:continue` in a row** (or 20th if `auto_mode` is true), display:
 
 ```
 WARNING: Context budget warning: 6 consecutive auto-continues detected.
@@ -176,11 +184,11 @@ Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md file
 
 | Situation | Action | How |
 |-----------|--------|-----|
-| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` |
-| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` |
-| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
-| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
-| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` |
+| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` (append `--auto` if `auto_mode`) |
+| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
+| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` (append `--auto` if `auto_mode`) |
 
 Where `{N}` is the current phase number determined from STATE.md in Step 1.
 
