@@ -697,6 +697,15 @@ function validateLearnings(content, _filePath) {
     warnings.push('Frontmatter missing "patterns" field');
   }
 
+  // Validate cross_project field if present
+  const crossProjectMatch = frontmatter.match(/cross_project:\s*(.+)/);
+  if (crossProjectMatch) {
+    const value = crossProjectMatch[1].trim();
+    if (value !== 'true' && value !== 'false') {
+      warnings.push('cross_project field should be "true" or "false"');
+    }
+  }
+
   return { errors, warnings };
 }
 
