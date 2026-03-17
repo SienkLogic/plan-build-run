@@ -1093,6 +1093,51 @@ function cmdValidateHealth(cwd, options, raw) {
     );
   }
 
+  // ─── Check 15: Phase 16 cross-project intelligence feature health ────────
+  {
+    let p16Config = {};
+    try { p16Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p16Features = p16Config.features || {};
+
+    // Helper: check if a feature is enabled (default true unless explicitly false)
+    const checkFeatureToggle = (key, healthCheck) => {
+      const enabled = p16Features[key] !== false;
+      if (!enabled) {
+        return { enabled: false, status: 'disabled' };
+      }
+      return { enabled: true, status: healthCheck() ? 'healthy' : 'degraded' };
+    };
+
+    // cross_project_patterns: healthy if ~/.claude/patterns/ exists and has .json files
+    feature_status.cross_project_patterns = checkFeatureToggle(
+      'cross_project_patterns',
+      () => {
+        try {
+          const patternsDir = require('path').join(require('os').homedir(), '.claude', 'patterns');
+          return fs.existsSync(patternsDir) &&
+            fs.readdirSync(patternsDir).some(f => f.endsWith('.json'));
+        } catch (_) { return false; }
+      }
+    );
+
+    // spec_templates: always healthy when enabled (built-in templates always available)
+    feature_status.spec_templates = checkFeatureToggle(
+      'spec_templates',
+      () => true
+    );
+
+    // global_learnings: healthy if ~/.claude/learnings.jsonl exists
+    feature_status.global_learnings = checkFeatureToggle(
+      'global_learnings',
+      () => {
+        try {
+          const learningsPath = require('path').join(require('os').homedir(), '.claude', 'learnings.jsonl');
+          return fs.existsSync(learningsPath);
+        } catch (_) { return false; }
+      }
+    );
+  }
+
   // ─── Perform repairs if requested ─────────────────────────────────────────
   const repairActions = [];
   if (options.repair && repairs.length > 0) {
