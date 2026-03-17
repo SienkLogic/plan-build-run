@@ -125,6 +125,34 @@ function main() {
       process.exit(0);
     }
 
+    // Phase boundary clear enforcement
+    // When workflow.phase_boundary_clear is "enforce", block auto-continue
+    // until the user runs /clear. The build skill writes .phase-boundary-pending
+    // as a signal that a clear is required.
+    const phaseBoundaryPath = path.join(planningDir, '.phase-boundary-pending');
+    if (fs.existsSync(phaseBoundaryPath)) {
+      const phaseBoundaryClear = (config.workflow && config.workflow.phase_boundary_clear) || 'off';
+      if (phaseBoundaryClear === 'enforce') {
+        logHook('auto-continue', 'Stop', 'phase-boundary-enforce', {});
+        // Delete the signal file (one-shot)
+        try { fs.unlinkSync(phaseBoundaryPath); } catch (_e) { /* ignore */ }
+        // Also delete .auto-next if it exists (enforce overrides auto-continue)
+        try { fs.unlinkSync(signalPath); } catch (_e) { /* ignore */ }
+        const reasonStr = 'Phase boundary clear is enforced. Run /clear before continuing to the next phase.\n\n'
+          + 'This ensures fresh context quality for the next phase. After /clear, run /pbr:resume-work to continue.';
+        process.stdout.write(JSON.stringify({ decision: 'block', reason: reasonStr }));
+        process.exit(0);
+      } else if (phaseBoundaryClear === 'recommend') {
+        // Advisory only — let auto-continue proceed but add a note
+        logHook('auto-continue', 'Stop', 'phase-boundary-recommend', {});
+        try { fs.unlinkSync(phaseBoundaryPath); } catch (_e) { /* ignore */ }
+        // Don't block — just log. The build skill already showed the advisory.
+      } else {
+        // "off" — clean up stale signal file
+        try { fs.unlinkSync(phaseBoundaryPath); } catch (_e) { /* ignore */ }
+      }
+    }
+
     // Check for signal file
     if (!fs.existsSync(signalPath)) {
       // No auto-continue signal — check for pending todos as a reminder
