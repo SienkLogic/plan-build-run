@@ -227,6 +227,10 @@ const {
   rollback: _rollback
 } = require('./lib/build');
 
+const {
+  statusRender: _statusRender
+} = require('./lib/status-render');
+
 // --- Local LLM imports (not extracted — separate module tree) ---
 const { resolveConfig, checkHealth } = require('./local-llm/health');
 const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
@@ -1278,6 +1282,8 @@ async function main() {
       output(claimRelease(phaseSlug, sessionId));
     } else if (command === 'claim' && subcommand === 'list') {
       output(claimList());
+    } else if (command === 'status' && subcommand === 'render') {
+      output(_statusRender(planningDir));
     } else if (command === 'tmux' && subcommand === 'detect') {
       const tmuxEnv = process.env.TMUX || '';
       const result = {
