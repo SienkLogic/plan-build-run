@@ -3,8 +3,8 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness } = require(path.join(__dirname, '..', 'hooks', 'check-subagent-output.js'));
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
+const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag, SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
 
 let tmpDir;
 let originalCwd;
@@ -606,6 +606,71 @@ test('researcher with old .md file (>30min) returns stale warning', () => {
     test('returns null when no ROADMAP.md exists', () => {
       const result = checkRoadmapStaleness(path.join(tmpDir, '.planning'));
       expect(result).toBeNull();
+    });
+  });
+
+  describe('post-hoc SUMMARY.md trigger', () => {
+    test('triggers post-hoc generation when executor completes without SUMMARY.md and post_hoc_artifacts is true', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'quick');
+      // Config with post_hoc_artifacts enabled
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'config.json'),
+        JSON.stringify({ features: { post_hoc_artifacts: true } })
+      );
+      // Create a quick task dir without SUMMARY.md
+      const quickDir = path.join(tmpDir, '.planning', 'quick', '001-test-task');
+      fs.mkdirSync(quickDir, { recursive: true });
+      fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+      // No SUMMARY.md — should trigger post-hoc generation
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      // Should mention post-hoc generation
+      expect(result.output).toContain('post-hoc');
+    });
+
+    test('skips post-hoc generation when post_hoc_artifacts is false in config', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'quick');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'config.json'),
+        JSON.stringify({ features: { post_hoc_artifacts: false } })
+      );
+      const quickDir = path.join(tmpDir, '.planning', 'quick', '001-test-task');
+      fs.mkdirSync(quickDir, { recursive: true });
+      fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      // Should NOT contain post-hoc generation message
+      expect(result.output).not.toContain('auto-generated post-hoc');
+    });
+
+    test('does not trigger post-hoc for non-executor agents (planner, verifier)', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'quick');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'config.json'),
+        JSON.stringify({ features: { post_hoc_artifacts: true } })
+      );
+      const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('post-hoc');
+    });
+
+    test('logs post-hoc generation event to event log', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'quick');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'config.json'),
+        JSON.stringify({ features: { post_hoc_artifacts: true } })
+      );
+      const quickDir = path.join(tmpDir, '.planning', 'quick', '001-test-task');
+      fs.mkdirSync(quickDir, { recursive: true });
+      fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+      const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+      expect(result.exitCode).toBe(0);
+      // Check that events.jsonl was written with post-hoc event
+      const eventsPath = path.join(tmpDir, '.planning', 'logs', 'events.jsonl');
+      if (fs.existsSync(eventsPath)) {
+        const content = fs.readFileSync(eventsPath, 'utf8');
+        expect(content).toContain('post_hoc_summary');
+      }
     });
   });
 
