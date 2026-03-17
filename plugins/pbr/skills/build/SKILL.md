@@ -710,7 +710,45 @@ Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prom
     - label: "Abort"     description: "Stop the entire build"
 
 **If user selects 'Retry':**
-- Re-spawn executor Task() with the same prompt
+
+**Phase Replay Enrichment (conditional):**
+
+Before re-spawning, check `workflow.phase_replay` from config (loaded in Step 2).
+
+If `workflow.phase_replay` is `true`:
+
+1. Collect replay context:
+   a. Read the original PLAN.md for this plan (already available from Step 6a)
+   b. Read SUMMARY.md if it exists (partial results from the failed attempt)
+   c. Read VERIFICATION.md if it exists (specific failure details)
+   d. Run `git diff {pre_build_commit}..HEAD -- {files_modified}` to get code diffs from the failed attempt
+2. Construct an enriched fix-executor prompt by reading `${CLAUDE_SKILL_DIR}/templates/executor-prompt.md.tmpl` and appending a `## Replay Context` section:
+
+<!-- markdownlint-disable MD046 -->
+
+    ## Replay Context
+
+    This is a RETRY of a failed execution. Use the context below to understand what went wrong and fix it.
+
+    ### Original Plan Summary
+    {plan ## Summary section}
+
+    ### Prior Attempt Results
+    {SUMMARY.md frontmatter: status, completed tasks, failed task, error details}
+
+    ### Verification Failures
+    {VERIFICATION.md gaps if available, or "No verification run yet"}
+
+    ### Code Diffs From Failed Attempt
+    {git diff output, truncated to 200 lines max to stay within 30% of the executor's context budget}
+
+<!-- markdownlint-enable MD046 -->
+
+3. Cap the replay context: if the total replay section exceeds 30% of the executor's context budget (estimate ~60k tokens for a 200k window), truncate the git diff first, then VERIFICATION details.
+
+If `workflow.phase_replay` is `false` or not set:
+- Re-spawn executor Task() with the same prompt (unchanged current behavior)
+
 - If retry also fails: ask user again (max 2 retries total)
 
 **If user selects 'Skip':**
