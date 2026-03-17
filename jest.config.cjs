@@ -45,5 +45,9 @@ module.exports = {
     // Circuit breaker tested in hook-server-client-unit.test.js. HTTP client tested via
     // hook-server-client.test.js subprocess integration tests.
     '!hooks/hook-server-client.js',
+    // Mirrored from plugins/pbr/scripts/ — tested via plugins path, not hooks/ path
+    '!hooks/lib/**',
+    '!hooks/local-llm/**',
+    '!hooks/pbr-tools.js',
   ],
 };
