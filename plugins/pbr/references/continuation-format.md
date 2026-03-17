@@ -10,6 +10,7 @@ When an executor hits a checkpoint, it STOPS and returns. A new, fresh agent mus
 1. The checkpoint may require user input that changes the execution path
 2. Context isolation prevents accumulated state from causing issues
 3. Fresh agents have full context budget for remaining work
+4. Claude Code deprecated the Agent tool's `resume` parameter. PBR's fresh-spawn pattern via `Task()` with `subagent_type` is the recommended approach. For cases where agent continuation is needed (not currently used in PBR), use `SendMessage({to: agentId})` instead of the deprecated `resume` parameter.
 
 ---
 
