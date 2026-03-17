@@ -19,10 +19,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
 const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
+const { writeSnapshot } = require('./lib/snapshot-manager');
 
 function readStdin() {
   try {
@@ -203,6 +205,75 @@ function writeSessionHistory(planningDir, data) {
   }
 }
 
+/**
+ * Gather session context for mental model snapshot.
+ * Reads recent git changes, STATE.md sections, and recent commits.
+ * All operations are best-effort — returns partial data on failure.
+ *
+ * @param {string} cwd - Project working directory
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string|null} sessionId - Session ID
+ * @returns {object} Context object for writeSnapshot
+ */
+function gatherSessionContext(cwd, planningDir, sessionId) {
+  const context = {
+    session_id: sessionId || 'unknown',
+    files_working_on: [],
+    pending_decisions: [],
+    current_approach: '',
+    open_questions: [],
+    recent_commits: []
+  };
+
+  // Gather recent git changes
+  try {
+    const diff = execSync('git diff --name-only HEAD~5 HEAD 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
+    });
+    context.files_working_on = diff.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Gather recent commits
+  try {
+    const log = execSync('git log --oneline -5 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
+    });
+    context.recent_commits = log.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Read STATE.md for approach, decisions, and open questions
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+
+      // Extract Current Position section
+      const posMatch = stateContent.match(/## Current Position\s*\n([\s\S]*?)(?=\n##\s|$)/);
+      if (posMatch) {
+        context.current_approach = posMatch[1].trim().split('\n').slice(0, 5).join('\n');
+      }
+
+      // Extract Decisions section
+      const decMatch = stateContent.match(/### Decisions\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (decMatch) {
+        context.pending_decisions = decMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+
+      // Extract Blockers/Concerns section
+      const blockMatch = stateContent.match(/### Blockers\/Concerns\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (blockMatch) {
+        context.open_questions = blockMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+    }
+  } catch (_e) { /* best-effort */ }
+
+  return context;
+}
+
 function main() {
   const data = readStdin();
   const cwd = process.cwd();
@@ -325,6 +396,21 @@ function main() {
     orphaned_progress_files: orphans.length > 0 ? orphans : undefined
   });
 
+  // Write mental model snapshot (gated by config toggle)
+  try {
+    const config = configLoad(planningDir) || {};
+    const snapshotsEnabled = config.features && config.features.mental_model_snapshots !== false;
+    if (snapshotsEnabled) {
+      const snapContext = gatherSessionContext(cwd, planningDir, sessionId);
+      writeSnapshot(planningDir, snapContext);
+      logHook('session-cleanup', 'SessionEnd', 'snapshot-written', {
+        files_count: snapContext.files_working_on.length
+      });
+    }
+  } catch (_e) {
+    // Snapshot failure must never crash SessionEnd
+  }
+
   const combinedContext = [llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
@@ -368,5 +454,5 @@ function handleHttp(reqBody) {
   return null;
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, handleHttp };
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }
