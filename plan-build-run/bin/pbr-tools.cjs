@@ -116,6 +116,12 @@
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T]
  *   learnings check-thresholds            Check deferral trigger conditions
  *
+ * INTEL OPERATIONS:
+ *   intel query <term>                    Search intel files for a term
+ *   intel update                          Trigger intel refresh (prints agent instructions)
+ *   intel status                          Show staleness info for intel files
+ *   intel diff                            Show changes since last full refresh
+ *
  * BUILD PIPELINE:
  *   staleness-check <phase-slug>          Check if phase plans are stale
  *   summary-gate <phase-slug> <plan-id>   Verify SUMMARY.md for a plan
@@ -226,7 +232,7 @@ let _core, _config, _state, _phase, _roadmap, _init;
 let _history, _todo, _learnings, _spotCheck, _build, _llm;
 let _verify, _frontmatter, _commands, _template, _milestone;
 let _reference, _skillSection, _stepVerify, _preview, _context;
-let _alternatives, _migrate, _circuitState;
+let _alternatives, _migrate, _circuitState, _intel;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -252,6 +258,7 @@ function getPreview() { if (!_preview) _preview = require('./lib/preview.cjs'); 
 function getContext() { if (!_context) _context = require('./lib/context.cjs'); return _context; }
 function getAlternatives() { if (!_alternatives) _alternatives = require('./lib/alternatives.cjs'); return _alternatives; }
 function getMigrate() { if (!_migrate) _migrate = require('./lib/migrate.cjs'); return _migrate; }
+function getIntel() { if (!_intel) _intel = require('./lib/intel.cjs'); return _intel; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -819,6 +826,18 @@ async function main() {
     } else if (command === 'learnings' && subcommand === 'check-thresholds') {
       output(getLearnings().checkDeferralThresholds());
 
+    // ─── Intel ──────────────────────────────────────────────────────────────────
+    } else if (command === 'intel' && subcommand === 'query') {
+      const term = args[2];
+      if (!term) error('Usage: intel query <term>');
+      output(getIntel().intelQuery(term, planningDir));
+    } else if (command === 'intel' && subcommand === 'update') {
+      output(getIntel().intelUpdate(planningDir));
+    } else if (command === 'intel' && subcommand === 'status') {
+      output(getIntel().intelStatus(planningDir));
+    } else if (command === 'intel' && subcommand === 'diff') {
+      output(getIntel().intelDiff(planningDir));
+
     // ─── Build Pipeline ───────────────────────────────────────────────────────
     } else if (command === 'staleness-check') {
       const slug = args[1];
@@ -1272,7 +1291,7 @@ async function main() {
 
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
