@@ -2,7 +2,7 @@
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] | add | insert <N> | remove <N>"
+argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] | add | insert <N> | remove <N>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -79,6 +79,7 @@ Parse the phase number and optional flags:
 | `3 --preview` | Preview what planning would produce for phase 3 without spawning agents |
 | `3 --audit` | Plan phase 3, then force full plan-checker validation |
 | `3 --auto` | Plan phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
+| `1 --through 3` | Plan phases 1 through 3 in a single planner session (requires planning.multi_phase: true) |
 
 ### Subcommands
 
@@ -96,6 +97,7 @@ Parse the phase number and optional flags:
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
 - A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`
+- A phase number followed by --through and another number: `1 --through 3`
 - The word `check` (legacy alias)
 
 If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
@@ -139,6 +141,14 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 1. Parse `$ARGUMENTS` for phase number and flags
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning researcher, planner, and plan-checker Task() agents, use `override_model` instead of the config-derived model values. If an invalid value is provided, display an error and list valid values.
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
+   - If `--through <M>` is present:
+     a. Read `planning.multi_phase` from config
+     b. If `planning.multi_phase` is `false` or unset: display error:
+        "`--through` requires `planning.multi_phase: true` in config. Set it with: `/pbr:config set planning.multi_phase true`"
+        Then STOP.
+     c. Parse start phase (N) and end phase (M). Validate both exist in ROADMAP.md.
+     d. Store `through_phases = [N, N+1, ..., M]`
+     e. Log: "Multi-phase planning: phases {N} through {M}"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
