@@ -99,6 +99,12 @@ Execute these steps in order.
    - PLAN.md files exist (needed for must-have extraction)
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
+7. Resolve verification depth:
+   - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js trust-gate {N}`
+   - Parse the JSON response to get `depth` (light/standard/thorough)
+   - Log: "Verification depth: {depth} (trust-based)"
+   - Store as `verification_depth` for use in Step 3
+   - If the command fails or graduated_verification is disabled, default to "standard"
 
 **Validation errors:**
 
@@ -227,6 +233,16 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - `{NN}-{slug}` — the phase directory name
 - `{N}` — the phase number
 - `{date}`, `{count}`, `{phase name}` — fill from context
+- `{verification_depth}` — the depth resolved in Step 1.7 (light/standard/thorough)
+
+**Append this block to the verifier prompt after the placeholders:**
+
+```
+**Verification depth:** {verification_depth}
+- light: Check L1 (existence) and basic frontmatter only. Skip L2/L3/L4 and anti-pattern scan. Budget: <=400 tokens output.
+- standard: Full 3-layer verification (L1-L3). Current default behavior.
+- thorough: Full 4-layer verification (L1-L4) + cross-phase regression check (even if context_window_tokens < 500000) + full anti-pattern scan.
+```
 
 Wait for the verifier to complete.
 
@@ -369,6 +385,13 @@ If regressions exist, include them in the gap count for the "Gaps Found" flow in
 ### Step 5: Conversational UAT (inline)
 
 **Skip if:** `auto_mode` is true — skip the interactive UAT walkthrough entirely. Still run automated verification (Step 3). If automated verification passed, auto-accept and proceed to Step 6 "All Items Pass" path. If automated verification found gaps, proceed to Step 6 "Gaps Found" path.
+
+**Autonomy gate:** Read `autonomy.level` from config.
+- If level is "guided", "collaborative", or "adaptive" AND automated verification passed (status: passed):
+  Skip interactive UAT. Log: "UAT skipped (autonomy: {level}, verification: passed)."
+  Proceed directly to Step 6 "All Items Pass" path.
+- If level is "supervised" OR verification has gaps:
+  Run full interactive UAT as currently defined.
 
 Walk the user through each deliverable one by one. This is an interactive conversation, not an automated check.
 
@@ -695,10 +718,12 @@ Ask user: "Would you like to proceed with gap-closure plans without root cause a
 
 | File | Purpose | When |
 |------|---------|------|
-| `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report | Step 3 (created or updated with UAT) |
+| `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report (depth-aware) | Step 3 (created or updated with UAT) |
 | `.planning/phases/{NN}-{slug}/*-PLAN.md` | Gap-closure plans | Step 6b (--auto-fix only) |
 | `.planning/ROADMAP.md` | Status → `verified` + Completed date | Step 6 |
 | `.planning/STATE.md` | Updated with review status | Step 6 |
+
+**Graduated depth behavior:** Step 1.7 resolves verification depth via trust-gate. Step 3 passes depth to verifier. Step 5 checks autonomy.level to gate UAT.
 
 ---
 
