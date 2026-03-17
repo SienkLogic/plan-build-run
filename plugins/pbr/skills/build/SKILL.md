@@ -1130,6 +1130,46 @@ EOF
 
 **If `auto_mode` is `true`:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Pass `--auto` to chained skills. Fall through to the auto_advance logic below.
 
+**Speculative Planning (conditional):**
+
+Before evaluating auto-advance, check if the next phase can be speculatively planned:
+
+1. Read `workflow.speculative_planning` from config. If `false` or not set, skip this block entirely.
+2. Determine the next phase number: `N+1`.
+3. Check ROADMAP.md for phase N+1:
+   a. Does phase N+1 exist in the roadmap?
+   b. Read its `**Depends on:**` field. Does it list phase N as a dependency?
+   c. If N+1 depends on N: skip speculative planning — the next phase needs this phase's output.
+   d. If N+1 does NOT depend on N (independent): proceed with speculative planning.
+
+4. Check deviation count from this build:
+   a. Read all SUMMARY.md frontmatter from this phase. Count total `deviations` across all plans.
+   b. If deviation count > 2: skip speculative planning. Display: `Speculative planning skipped — {count} deviations detected (threshold: 2)`
+   c. If deviation count <= 2: proceed.
+
+5. Spawn speculative planner in background:
+   a. Display: `Spawning speculative planner for Phase {N+1} (independent of Phase {N})...`
+   b. Write speculative plan to a temp location: `.planning/phases/{N+1-slug}/.speculative/`
+   c. Spawn:
+
+<!-- markdownlint-disable MD046 -->
+
+      Task({
+        subagent_type: "pbr:planner",
+        model: "sonnet",
+        run_in_background: true,
+        prompt: "Plan Phase {N+1}: {phase goal from ROADMAP.md}. Write plans to .planning/phases/{N+1-slug}/. This is a SPECULATIVE plan — it may be discarded if Phase {N} deviates significantly."
+      })
+
+<!-- markdownlint-enable MD046 -->
+
+   d. Do NOT block on the result — continue to auto-advance evaluation.
+
+6. After the build completes (in Step 8f), check if speculative planner finished:
+   a. If finished AND phase N deviation count is still <= 2: move speculative plans from `.speculative/` to the phase directory. Display: `Speculative plans for Phase {N+1} ready`
+   b. If finished BUT deviation count > 2: discard speculative plans. Delete `.speculative/` directory. Display: `Speculative plans for Phase {N+1} discarded (Phase {N} deviated)`
+   c. If not yet finished: note in completion summary. Plans will be available when the planner completes.
+
 **If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
 Chain to the next skill directly within this session. This eliminates manual phase cycling.
 
