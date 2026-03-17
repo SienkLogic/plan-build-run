@@ -722,6 +722,7 @@ function cmdValidateHealth(cwd, options, raw) {
       const configRaw = fs.readFileSync(configPath, 'utf-8');
       const configParsed = JSON.parse(configRaw);
       const features = configParsed.features || {};
+      const workflow = configParsed.workflow || {};
 
       // enhanced_session_start: default true (enabled unless explicitly false)
       const essEnabled = features.enhanced_session_start !== false;
@@ -741,6 +742,46 @@ function cmdValidateHealth(cwd, options, raw) {
         if (budgetPct < 15 || budgetPct > 50) {
           addIssue('warning', 'W010', `orchestrator_budget_pct is ${budgetPct}, outside valid range 15-50`, 'Set to a value between 15 and 50 in config.json');
         }
+      }
+
+      // ─── Check 10: Phase 2 feature status ──────────────────────────────────────
+      // inline_simple_tasks: default true, degraded if enabled but inline_max_files/inline_max_lines missing
+      const istEnabled = features.inline_simple_tasks !== false;
+      if (istEnabled) {
+        const hasMaxFiles = workflow.inline_max_files !== undefined &&
+          typeof workflow.inline_max_files === 'number' &&
+          workflow.inline_max_files >= 1 && workflow.inline_max_files <= 20;
+        const hasMaxLines = workflow.inline_max_lines !== undefined &&
+          typeof workflow.inline_max_lines === 'number' &&
+          workflow.inline_max_lines >= 10 && workflow.inline_max_lines <= 500;
+        if (!hasMaxFiles || !hasMaxLines) {
+          feature_status.inline_simple_tasks = { enabled: true, status: 'degraded' };
+          addIssue('warning', 'W012', 'inline_simple_tasks enabled but inline_max_files/inline_max_lines not configured or invalid', 'Add workflow.inline_max_files (1-20) and workflow.inline_max_lines (10-500) to config.json');
+        } else {
+          feature_status.inline_simple_tasks = { enabled: true, status: 'enabled' };
+        }
+      } else {
+        feature_status.inline_simple_tasks = { enabled: false, status: 'disabled' };
+      }
+
+      // rich_agent_prompts: default true, no extra validation needed
+      const rapEnabled = features.rich_agent_prompts !== false;
+      feature_status.rich_agent_prompts = { enabled: rapEnabled, status: rapEnabled ? 'enabled' : 'disabled' };
+
+      // multi_phase_awareness: default true, degraded if enabled but max_phases_in_context missing
+      const mpaEnabled = features.multi_phase_awareness !== false;
+      if (mpaEnabled) {
+        const hasMaxPhases = workflow.max_phases_in_context !== undefined &&
+          typeof workflow.max_phases_in_context === 'number' &&
+          workflow.max_phases_in_context >= 1 && workflow.max_phases_in_context <= 10;
+        if (!hasMaxPhases) {
+          feature_status.multi_phase_awareness = { enabled: true, status: 'degraded' };
+          addIssue('warning', 'W013', 'multi_phase_awareness enabled but max_phases_in_context not configured or invalid', 'Add workflow.max_phases_in_context (1-10) to config.json');
+        } else {
+          feature_status.multi_phase_awareness = { enabled: true, status: 'enabled' };
+        }
+      } else {
+        feature_status.multi_phase_awareness = { enabled: false, status: 'disabled' };
       }
     } catch (_e) { /* config parse errors handled in Check 5 */ }
   }
