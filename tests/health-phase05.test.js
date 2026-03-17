@@ -1,0 +1,193 @@
+'use strict';
+
+/**
+ * Health Check Phase 05 — decision_journal, negative_knowledge, living_requirements
+ * Tests that cmdValidateHealth outputs phase05_features with per-feature
+ * enabled/disabled/healthy/degraded status.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+let mockExit;
+let mockStdout;
+let mockStderr;
+let tmpDir;
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-health-p05-'));
+  const planningDir = path.join(tmpDir, '.planning');
+  fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  fs.mkdirSync(path.join(planningDir, 'phases', '05-features'), { recursive: true });
+  fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+    '---\ncurrent_phase: 5\nphase_slug: "features"\nstatus: "building"\n---\nPhase: 5 of 5 (Features)');
+  fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
+    '### Phase 5: Features\n**Goal:** Build features\n');
+  fs.writeFileSync(path.join(planningDir, 'PROJECT.md'),
+    '# Project\n\n## What This Is\n\nTest project.\n\n## Core Value\n\nTesting.\n\n## Requirements\n\nNone.\n');
+  mockExit = jest.spyOn(process, 'exit').mockImplementation(() => { throw new Error('EXIT'); });
+  mockStdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  mockStderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+});
+
+afterEach(() => {
+  mockExit.mockRestore();
+  mockStdout.mockRestore();
+  mockStderr.mockRestore();
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
+
+function parseOutput() {
+  const raw = mockStdout.mock.calls.map(c => c[0]).join('');
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
+// ─── decision_journal ────────────────────────────────────────────────────────
+
+describe('phase05_features — decision_journal', () => {
+  test('healthy when enabled and decisions/ dir exists', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { decision_journal: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features).toBeDefined();
+    expect(out.phase05_features.decision_journal).toEqual({
+      enabled: true, status: 'healthy'
+    });
+  });
+
+  test('degraded when enabled but decisions/ dir missing', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { decision_journal: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.decision_journal).toEqual({
+      enabled: true, status: 'degraded', reason: 'decisions directory not found'
+    });
+  });
+
+  test('disabled when toggle is false', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { decision_journal: false } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.decision_journal).toEqual({
+      enabled: false, status: 'disabled'
+    });
+  });
+});
+
+// ─── negative_knowledge ──────────────────────────────────────────────────────
+
+describe('phase05_features — negative_knowledge', () => {
+  test('healthy when enabled and negative-knowledge/ dir exists', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { negative_knowledge: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.negative_knowledge).toEqual({
+      enabled: true, status: 'healthy'
+    });
+  });
+
+  test('degraded when enabled but negative-knowledge/ dir missing', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { negative_knowledge: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.negative_knowledge).toEqual({
+      enabled: true, status: 'degraded', reason: 'negative-knowledge directory not found'
+    });
+  });
+
+  test('disabled when toggle is false', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { negative_knowledge: false } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.negative_knowledge).toEqual({
+      enabled: false, status: 'disabled'
+    });
+  });
+});
+
+// ─── living_requirements ─────────────────────────────────────────────────────
+
+describe('phase05_features — living_requirements', () => {
+  test('healthy when enabled and REQUIREMENTS.md has REQ- patterns', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
+      '# Requirements\n\n- REQ-F-001: Build the thing\n- REQ-F-002: Test the thing\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { living_requirements: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.living_requirements).toEqual({
+      enabled: true, status: 'healthy'
+    });
+  });
+
+  test('degraded when enabled but REQUIREMENTS.md missing', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { living_requirements: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.living_requirements).toEqual({
+      enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs'
+    });
+  });
+
+  test('degraded when REQUIREMENTS.md exists but has no REQ- patterns', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
+      '# Requirements\n\nNo requirements defined yet.\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { living_requirements: true } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.living_requirements).toEqual({
+      enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs'
+    });
+  });
+
+  test('disabled when toggle is false', () => {
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { living_requirements: false } }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features.living_requirements).toEqual({
+      enabled: false, status: 'disabled'
+    });
+  });
+});
+
+// ─── Combined output ─────────────────────────────────────────────────────────
+
+describe('phase05_features — combined', () => {
+  test('includes all 3 features in phase05_features section', () => {
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'REQUIREMENTS.md'),
+      '# Requirements\n\n- REQ-F-001: Test\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({
+        features: {
+          decision_journal: true,
+          negative_knowledge: true,
+          living_requirements: true
+        }
+      }));
+    cmdValidateHealth(tmpDir, {}, true);
+    const out = parseOutput();
+    expect(out.phase05_features).toBeDefined();
+    expect(out.phase05_features.decision_journal).toBeDefined();
+    expect(out.phase05_features.negative_knowledge).toBeDefined();
+    expect(out.phase05_features.living_requirements).toBeDefined();
+    expect(out.phase05_features.decision_journal.status).toBe('healthy');
+    expect(out.phase05_features.negative_knowledge.status).toBe('healthy');
+    expect(out.phase05_features.living_requirements.status).toBe('healthy');
+  });
+});
