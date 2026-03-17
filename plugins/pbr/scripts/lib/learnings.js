@@ -295,10 +295,128 @@ function checkDeferralThresholds(options = {}) {
   return triggered;
 }
 
+// --- Cross-project knowledge ---
+
+const GLOBAL_KNOWLEDGE_DIR = path.join(os.homedir(), '.claude', 'pbr-knowledge');
+
+/**
+ * Parse simple YAML frontmatter from a markdown string.
+ * Returns an object with string and array values, or null if no frontmatter.
+ * @param {string} content
+ * @returns {object|null}
+ */
+function parseLearningsFrontmatter(content) {
+  const normalized = content.replace(/\r\n/g, '\n');
+  const match = normalized.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return null;
+
+  const yaml = match[1];
+  const result = {};
+  const lines = yaml.split('\n');
+  let currentKey = null;
+
+  for (const line of lines) {
+    const listMatch = line.match(/^\s+-\s+"?([^"]*?)"?\s*$/);
+    if (listMatch) {
+      if (currentKey !== null) {
+        if (!Array.isArray(result[currentKey])) result[currentKey] = [];
+        result[currentKey].push(listMatch[1].trim());
+      }
+      continue;
+    }
+    const kvMatch = line.match(/^(\w[\w_-]*):\s*(.*)/);
+    if (kvMatch) {
+      currentKey = kvMatch[1];
+      const rawVal = kvMatch[2].trim();
+      if (rawVal === '' || rawVal === '[]') {
+        result[currentKey] = [];
+      } else {
+        result[currentKey] = rawVal.replace(/^["']|["']$/g, '');
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Copy a LEARNINGS.md file to the global knowledge directory if marked cross_project: true.
+ * @param {string} learningsMdPath - Path to LEARNINGS.md file
+ * @param {string} projectName - Project name (used in destination filename)
+ * @returns {{ copied: boolean, dest?: string, reason?: string }}
+ */
+function copyToGlobal(learningsMdPath, projectName) {
+  if (!fs.existsSync(learningsMdPath)) {
+    return { copied: false, reason: 'file not found' };
+  }
+
+  const content = fs.readFileSync(learningsMdPath, 'utf8');
+  const fm = parseLearningsFrontmatter(content);
+
+  if (!fm || fm.cross_project !== 'true') {
+    return { copied: false, reason: 'not marked cross_project' };
+  }
+
+  const phase = fm.phase || 'unknown';
+  const sanitizedProject = projectName.replace(/[^a-zA-Z0-9]/g, '-');
+  const destFilename = `${sanitizedProject}--${phase}.md`;
+
+  fs.mkdirSync(GLOBAL_KNOWLEDGE_DIR, { recursive: true });
+  const destPath = path.join(GLOBAL_KNOWLEDGE_DIR, destFilename);
+  fs.copyFileSync(learningsMdPath, destPath);
+
+  return { copied: true, dest: destPath };
+}
+
+/**
+ * Query all global knowledge files with optional filters.
+ * @param {{ tags?: string[], project?: string }} [filters]
+ * @returns {Array<{ file: string, phase: string, key_insights: string[], patterns: string[] }>}
+ */
+function queryGlobal(filters = {}) {
+  if (!fs.existsSync(GLOBAL_KNOWLEDGE_DIR)) {
+    return [];
+  }
+
+  const files = fs.readdirSync(GLOBAL_KNOWLEDGE_DIR).filter(f => f.endsWith('.md'));
+  const results = [];
+
+  for (const file of files) {
+    // Filter by project name prefix
+    if (filters.project && !file.startsWith(filters.project)) {
+      continue;
+    }
+
+    const fullPath = path.join(GLOBAL_KNOWLEDGE_DIR, file);
+    const content = fs.readFileSync(fullPath, 'utf8');
+    const fm = parseLearningsFrontmatter(content);
+    if (!fm) continue;
+
+    const keyInsights = Array.isArray(fm.key_insights) ? fm.key_insights : [];
+    const patterns = Array.isArray(fm.patterns) ? fm.patterns : [];
+
+    // Filter by tags (substring match against insights and patterns)
+    if (filters.tags && filters.tags.length > 0) {
+      const allText = [...keyInsights, ...patterns].join(' ').toLowerCase();
+      const hasMatch = filters.tags.some(tag => allText.includes(tag.toLowerCase()));
+      if (!hasMatch) continue;
+    }
+
+    results.push({
+      file,
+      phase: fm.phase || 'unknown',
+      key_insights: keyInsights,
+      patterns
+    });
+  }
+
+  return results;
+}
+
 // --- Exports ---
 
 module.exports = {
   GLOBAL_LEARNINGS_PATH,
+  GLOBAL_KNOWLEDGE_DIR,
   LEARNING_TYPES,
   CONFIDENCE_TIERS,
   DEFERRAL_THRESHOLDS,
@@ -308,5 +426,7 @@ module.exports = {
   saveAll,
   learningsIngest,
   learningsQuery,
-  checkDeferralThresholds
+  checkDeferralThresholds,
+  copyToGlobal,
+  queryGlobal
 };
