@@ -229,107 +229,134 @@ function buildContext(planningDir, stateFile) {
 
   parts.push('[Plan-Build-Run Project Detected]');
 
-  // ── Critical path: STATE.md first (most important context) ──
+  // ── Enhanced briefing: check if toggle is on ──
+  const _briefingConfig = configLoad(planningDir);
+  const briefing = buildEnhancedBriefing(planningDir, _briefingConfig);
 
   // Read STATE.md once and cache for reuse in advisory checks below
   let stateContent = null;
 
-  // Read STATE.md if it exists
-  if (fs.existsSync(stateFile)) {
-    const state = fs.readFileSync(stateFile, 'utf8');
-    stateContent = state;
+  if (briefing) {
+    // Use enhanced briefing INSTEAD of piecemeal state/git sections
+    parts.push('\n' + briefing);
+    // Still cache stateContent for advisory checks below
+    try {
+      if (fs.existsSync(stateFile)) {
+        stateContent = fs.readFileSync(stateFile, 'utf8');
+      }
+    } catch (_e) { /* non-fatal */ }
+  } else {
+    // ── Critical path: STATE.md first (most important context) ──
 
-    // Extract key sections using PBR symbol vocabulary
-    const position = extractSection(state, 'Current Position');
-    if (position) {
-      // Parse structured fields from position section
-      const phaseMatch = position.match(/Phase:\s*(\d+)\s+of\s+(\d+)\s*(?:\(([^)]+)\))?/i);
-      const statusMatch2 = position.match(/Status:\s*(\w+)/i);
-      const plansMatch = position.match(/Plans?:\s*(\d+)\/(\d+)/i);
-      if (phaseMatch) {
-        const phaseName = phaseMatch[3] ? phaseMatch[3].trim() : '';
-        const statusStr = statusMatch2 ? statusMatch2[1] : '';
-        const plansStr = plansMatch ? `Plans: ${plansMatch[1]}/${plansMatch[2]}` : '';
-        const details = [statusStr, plansStr].filter(Boolean).join(' │ ');
-        parts.push(`\n◆ Phase ${phaseMatch[1]}/${phaseMatch[2]}${phaseName ? ': ' + phaseName.charAt(0).toUpperCase() + phaseName.slice(1) : ''}`);
-        if (details) parts.push(`  ${details}`);
-      } else {
-        parts.push(`\n◆ ${position.split('\n')[0]}`);
+    // Read STATE.md if it exists
+    if (fs.existsSync(stateFile)) {
+      const state = fs.readFileSync(stateFile, 'utf8');
+      stateContent = state;
+
+      // Extract key sections using PBR symbol vocabulary
+      const position = extractSection(state, 'Current Position');
+      if (position) {
+        // Parse structured fields from position section
+        const phaseMatch = position.match(/Phase:\s*(\d+)\s+of\s+(\d+)\s*(?:\(([^)]+)\))?/i);
+        const statusMatch2 = position.match(/Status:\s*(\w+)/i);
+        const plansMatch = position.match(/Plans?:\s*(\d+)\/(\d+)/i);
+        if (phaseMatch) {
+          const phaseName = phaseMatch[3] ? phaseMatch[3].trim() : '';
+          const statusStr = statusMatch2 ? statusMatch2[1] : '';
+          const plansStr = plansMatch ? `Plans: ${plansMatch[1]}/${plansMatch[2]}` : '';
+          const details = [statusStr, plansStr].filter(Boolean).join(' │ ');
+          parts.push(`\n◆ Phase ${phaseMatch[1]}/${phaseMatch[2]}${phaseName ? ': ' + phaseName.charAt(0).toUpperCase() + phaseName.slice(1) : ''}`);
+          if (details) parts.push(`  ${details}`);
+        } else {
+          parts.push(`\n◆ ${position.split('\n')[0]}`);
+        }
+      }
+
+      const blockers = extractSection(state, 'Blockers/Concerns');
+      if (blockers && !blockers.includes('None')) {
+        parts.push(`⚠ Blockers: ${blockers.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
+      }
+
+      const continuity = extractSection(state, 'Session Continuity');
+      if (continuity) {
+        // Compact last session info with checkmark prefix
+        const lastLine = continuity.split('\n').map(l => l.trim()).filter(Boolean).join(' │ ');
+        parts.push(`✓ Last: ${lastLine}`);
+      }
+
+      // Detect stale "Building" status — likely a crashed executor
+      const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
+      if (statusMatch && statusMatch[1].toLowerCase() === 'building') {
+        try {
+          const stateStat = fs.statSync(stateFile);
+          const ageMs = Date.now() - stateStat.mtimeMs;
+          const ageMinutes = Math.round(ageMs / 60000);
+          if (ageMinutes > 30) {
+            // Auto-repair: reset stale "Building" status back to "Planned"
+            try {
+              const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+              stateUpdate(planningDir, { status: 'planned' });
+              parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
+              logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
+            } catch (_repairErr) {
+              parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
+              logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+            }
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+    } else {
+      parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
+    }
+
+    // Check for .continue-here.md files
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const continueFiles = findContinueFiles(phasesDir);
+      if (continueFiles.length > 0) {
+        parts.push(`\nPaused work found: ${continueFiles.join(', ')}`);
+        parts.push('Run /pbr:resume-work to pick up where you left off.');
       }
     }
 
-    const blockers = extractSection(state, 'Blockers/Concerns');
-    if (blockers && !blockers.includes('None')) {
-      parts.push(`⚠ Blockers: ${blockers.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
+    // ── Git context (single combined command instead of 3 separate calls) ──
+    try {
+      // Combine branch + status + log into one shell invocation to halve startup overhead
+      const gitInfo = execSync(
+        'git rev-parse --abbrev-ref HEAD && git status --porcelain && echo "---GIT-LOG---" && git log -5 --oneline',
+        { encoding: 'utf8', timeout: 5000 }
+      ).trim();
+      const logSep = gitInfo.indexOf('---GIT-LOG---');
+      const preLog = logSep >= 0 ? gitInfo.substring(0, logSep).trim() : gitInfo;
+      const postLog = logSep >= 0 ? gitInfo.substring(logSep + '---GIT-LOG---'.length).trim() : '';
+      const preLines = preLog.split('\n');
+      const branch = preLines[0] || 'unknown';
+      const uncommitted = preLines.length > 1 ? preLines.length - 1 : 0;
+      parts.push(`\n  Git: ${branch} │ ${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''}`);
+      if (postLog) {
+        parts.push(`Recent commits:\n${postLog}`);
+      }
+    } catch (_e) {
+      // Not a git repo or git not available — skip
     }
-
-    const continuity = extractSection(state, 'Session Continuity');
-    if (continuity) {
-      // Compact last session info with checkmark prefix
-      const lastLine = continuity.split('\n').map(l => l.trim()).filter(Boolean).join(' │ ');
-      parts.push(`✓ Last: ${lastLine}`);
-    }
-
-    // Detect stale "Building" status — likely a crashed executor
-    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
-    if (statusMatch && statusMatch[1].toLowerCase() === 'building') {
-      try {
-        const stateStat = fs.statSync(stateFile);
-        const ageMs = Date.now() - stateStat.mtimeMs;
-        const ageMinutes = Math.round(ageMs / 60000);
-        if (ageMinutes > 30) {
-          // Auto-repair: reset stale "Building" status back to "Planned"
-          try {
-            const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
-            stateUpdate(planningDir, { status: 'planned' });
-            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
-          } catch (_repairErr) {
-            parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
-          }
-        }
-      } catch (_e) { /* best-effort */ }
-    }
-  } else {
-    parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
-  }
-
-  // Check for .continue-here.md files
-  const phasesDir = path.join(planningDir, 'phases');
-  if (fs.existsSync(phasesDir)) {
-    const continueFiles = findContinueFiles(phasesDir);
-    if (continueFiles.length > 0) {
-      parts.push(`\nPaused work found: ${continueFiles.join(', ')}`);
-      parts.push('Run /pbr:resume-work to pick up where you left off.');
-    }
-  }
-
-  // ── Git context (single combined command instead of 3 separate calls) ──
-  try {
-    // Combine branch + status + log into one shell invocation to halve startup overhead
-    const gitInfo = execSync(
-      'git rev-parse --abbrev-ref HEAD && git status --porcelain && echo "---GIT-LOG---" && git log -5 --oneline',
-      { encoding: 'utf8', timeout: 5000 }
-    ).trim();
-    const logSep = gitInfo.indexOf('---GIT-LOG---');
-    const preLog = logSep >= 0 ? gitInfo.substring(0, logSep).trim() : gitInfo;
-    const postLog = logSep >= 0 ? gitInfo.substring(logSep + '---GIT-LOG---'.length).trim() : '';
-    const preLines = preLog.split('\n');
-    const branch = preLines[0] || 'unknown';
-    const uncommitted = preLines.length > 1 ? preLines.length - 1 : 0;
-    parts.push(`\n  Git: ${branch} │ ${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''}`);
-    if (postLog) {
-      parts.push(`Recent commits:\n${postLog}`);
-    }
-  } catch (_e) {
-    // Not a git repo or git not available — skip
   }
 
   // ── Advisory checks (non-critical, lower priority) ──
 
+  // Check for .continue-here.md files (runs regardless of briefing mode)
+  if (briefing) {
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const continueFiles = findContinueFiles(phasesDir);
+      if (continueFiles.length > 0) {
+        parts.push(`\nPaused work found: ${continueFiles.join(', ')}`);
+        parts.push('Run /pbr:resume-work to pick up where you left off.');
+      }
+    }
+  }
+
   // Check for config and validate
-  const config = configLoad(planningDir);
+  const config = _briefingConfig || configLoad(planningDir);
   if (config) {
     parts.push(`\nConfig: depth=${config.depth || 'standard'}, mode=${config.mode || 'interactive'}`);
 
@@ -795,7 +822,124 @@ function detectOtherSessions(planningDir, ownSessionId) {
   return results;
 }
 
+/**
+ * Build an enhanced structured briefing for SessionStart.
+ * Returns a concise ~500 token string summarizing project state, or null if disabled.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} config - Loaded config object
+ * @returns {string|null} Structured briefing or null
+ */
+function buildEnhancedBriefing(planningDir, config) {
+  // Gate: must be explicitly enabled via config
+  if (!config || config.features?.enhanced_session_start !== true) {
+    return null;
+  }
+
+  const lines = [];
+  lines.push('[PBR Session Briefing]');
+
+  // ── STATE.md frontmatter ──
+  const stateFile = path.join(planningDir, 'STATE.md');
+  let hasState = false;
+  try {
+    if (fs.existsSync(stateFile)) {
+      const content = fs.readFileSync(stateFile, 'utf8');
+      // Parse YAML frontmatter fields with simple regex
+      const fm = {};
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const fmBlock = fmMatch[1];
+        const fields = ['current_phase', 'total_phases', 'phase_name', 'status', 'progress_percent', 'plans_total', 'plans_complete'];
+        for (const field of fields) {
+          const m = fmBlock.match(new RegExp(`${field}:\\s*"?([^"\\n]+)"?`));
+          if (m) fm[field] = m[1].trim();
+        }
+      }
+
+      if (fm.current_phase && fm.total_phases) {
+        hasState = true;
+        const phaseName = fm.phase_name ? `"${fm.phase_name}"` : '';
+        const status = fm.status || 'unknown';
+        const plansComplete = fm.plans_complete || '?';
+        const plansTotal = fm.plans_total || '?';
+        const progress = fm.progress_percent || '?';
+        lines.push(`Phase ${fm.current_phase}/${fm.total_phases}: ${phaseName} -- ${status}, plan ${plansComplete}/${plansTotal} (${progress}%)`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Git context ──
+  try {
+    const { execSync: _execSync } = require('child_process');
+    const branch = _execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+    const porcelain = _execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+    const recentLog = _execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+    const commits = recentLog ? recentLog.split('\n').map(l => l.trim()).filter(Boolean) : [];
+    const commitSummary = commits.slice(0, 3).join(', ');
+    lines.push(`Git: ${branch} (${uncommitted} uncommitted) | Last: ${commitSummary}`);
+  } catch (_e) {
+    lines.push('Git: unavailable');
+  }
+
+  // ── Pending decisions ──
+  try {
+    const decisionsDir = path.join(planningDir, 'decisions');
+    if (fs.existsSync(decisionsDir)) {
+      const decFiles = fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'));
+      const pending = [];
+      for (const file of decFiles) {
+        const content = fs.readFileSync(path.join(decisionsDir, file), 'utf8');
+        if (!content.includes('status: resolved') && !content.includes('status: closed')) {
+          const titleMatch = content.match(/title:\s*(.+)/);
+          pending.push(titleMatch ? titleMatch[1].trim() : file);
+        }
+      }
+      if (pending.length > 0) {
+        lines.push(`Pending decisions: ${pending.join('; ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Working set ──
+  try {
+    const trackerFile = path.join(planningDir, '.context-tracker');
+    if (fs.existsSync(trackerFile)) {
+      const tracker = JSON.parse(fs.readFileSync(trackerFile, 'utf8'));
+      const files = Array.isArray(tracker.files) ? tracker.files.slice(0, 5) : [];
+      if (files.length > 0) {
+        lines.push(`Working set: ${files.join(', ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Blockers from STATE.md ──
+  try {
+    if (fs.existsSync(stateFile)) {
+      const content = fs.readFileSync(stateFile, 'utf8');
+      const blockersSection = extractSection(content, 'Blockers/Concerns');
+      if (blockersSection && !blockersSection.includes('None')) {
+        lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // Truncate to 2500 chars max
+  let output = lines.join('\n');
+  if (output.length > 2500) {
+    output = output.substring(0, 2497) + '...';
+  }
+
+  // Log audit evidence
+  logHook('progress-tracker', 'SessionStart', 'briefing-injected', {
+    tokens: Math.ceil(output.length / 5)
+  });
+
+  return output;
+}
+
 // Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }

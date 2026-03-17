@@ -224,38 +224,49 @@ function buildContext(planningDir, stateFile) {
 
   parts.push('[Plan-Build-Run Project Detected]');
 
-  // Git context
-  try {
-    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
-    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
-    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
-    const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
-    parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
-    if (recentCommits) {
-      parts.push(`Recent commits:\n${recentCommits}`);
+  // ── Enhanced briefing: check if toggle is on ──
+  const _briefingConfig = configLoad(planningDir);
+  const briefing = buildEnhancedBriefing(planningDir, _briefingConfig);
+
+  if (briefing) {
+    // Use enhanced briefing INSTEAD of piecemeal state/git sections
+    parts.push('\n' + briefing);
+  } else {
+    // Git context
+    try {
+      const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+      const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+      const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+      const recentCommits = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+      parts.push(`\nGit: ${branch} (${uncommitted} uncommitted file${uncommitted !== 1 ? 's' : ''})`);
+      if (recentCommits) {
+        parts.push(`Recent commits:\n${recentCommits}`);
+      }
+    } catch (_e) {
+      // Not a git repo or git not available — skip
     }
-  } catch (_e) {
-    // Not a git repo or git not available — skip
   }
 
-  // Read STATE.md if it exists
+  // Read STATE.md if it exists (always needed for stale building detection and advisory checks)
   if (fs.existsSync(stateFile)) {
     const state = fs.readFileSync(stateFile, 'utf8');
 
-    // Extract key sections
-    const position = extractSection(state, 'Current Position');
-    if (position) {
-      parts.push(`\nPosition:\n${position}`);
-    }
+    // Extract key sections (skip when enhanced briefing already covers these)
+    if (!briefing) {
+      const position = extractSection(state, 'Current Position');
+      if (position) {
+        parts.push(`\nPosition:\n${position}`);
+      }
 
-    const blockers = extractSection(state, 'Blockers/Concerns');
-    if (blockers && !blockers.includes('None')) {
-      parts.push(`\nBlockers:\n${blockers}`);
-    }
+      const blockers = extractSection(state, 'Blockers/Concerns');
+      if (blockers && !blockers.includes('None')) {
+        parts.push(`\nBlockers:\n${blockers}`);
+      }
 
-    const continuity = extractSection(state, 'Session Continuity');
-    if (continuity) {
-      parts.push(`\nLast Session:\n${continuity}`);
+      const continuity = extractSection(state, 'Session Continuity');
+      if (continuity) {
+        parts.push(`\nLast Session:\n${continuity}`);
+      }
     }
 
     // Detect stale "Building" status — likely a crashed executor
@@ -743,7 +754,121 @@ function detectOtherSessions(planningDir, ownSessionId) {
   return results;
 }
 
+/**
+ * Build an enhanced structured briefing for SessionStart.
+ * Returns a concise ~500 token string summarizing project state, or null if disabled.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} config - Loaded config object
+ * @returns {string|null} Structured briefing or null
+ */
+function buildEnhancedBriefing(planningDir, config) {
+  // Gate: must be explicitly enabled via config
+  if (!config || config.features?.enhanced_session_start !== true) {
+    return null;
+  }
+
+  const lines = [];
+  lines.push('[PBR Session Briefing]');
+
+  // ── STATE.md frontmatter ──
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    if (fs.existsSync(stateFile)) {
+      const content = fs.readFileSync(stateFile, 'utf8');
+      // Parse YAML frontmatter fields with simple regex
+      const fm = {};
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const fmBlock = fmMatch[1];
+        const fields = ['current_phase', 'total_phases', 'phase_name', 'status', 'progress_percent', 'plans_total', 'plans_complete'];
+        for (const field of fields) {
+          const m = fmBlock.match(new RegExp(`${field}:\\s*"?([^"\\n]+)"?`));
+          if (m) fm[field] = m[1].trim();
+        }
+      }
+
+      if (fm.current_phase && fm.total_phases) {
+        const phaseName = fm.phase_name ? `"${fm.phase_name}"` : '';
+        const status = fm.status || 'unknown';
+        const plansComplete = fm.plans_complete || '?';
+        const plansTotal = fm.plans_total || '?';
+        const progress = fm.progress_percent || '?';
+        lines.push(`Phase ${fm.current_phase}/${fm.total_phases}: ${phaseName} -- ${status}, plan ${plansComplete}/${plansTotal} (${progress}%)`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Git context ──
+  try {
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 3000 }).trim();
+    const porcelain = execSync('git status --porcelain', { encoding: 'utf8', timeout: 3000 }).trim();
+    const uncommitted = porcelain ? porcelain.split('\n').length : 0;
+    const recentLog = execSync('git log -5 --oneline', { encoding: 'utf8', timeout: 3000 }).trim();
+    const commits = recentLog ? recentLog.split('\n').map(l => l.trim()).filter(Boolean) : [];
+    const commitSummary = commits.slice(0, 3).join(', ');
+    lines.push(`Git: ${branch} (${uncommitted} uncommitted) | Last: ${commitSummary}`);
+  } catch (_e) {
+    lines.push('Git: unavailable');
+  }
+
+  // ── Pending decisions ──
+  try {
+    const decisionsDir = path.join(planningDir, 'decisions');
+    if (fs.existsSync(decisionsDir)) {
+      const decFiles = fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'));
+      const pending = [];
+      for (const file of decFiles) {
+        const content = fs.readFileSync(path.join(decisionsDir, file), 'utf8');
+        if (!content.includes('status: resolved') && !content.includes('status: closed')) {
+          const titleMatch = content.match(/title:\s*(.+)/);
+          pending.push(titleMatch ? titleMatch[1].trim() : file);
+        }
+      }
+      if (pending.length > 0) {
+        lines.push(`Pending decisions: ${pending.join('; ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Working set ──
+  try {
+    const trackerFile = path.join(planningDir, '.context-tracker');
+    if (fs.existsSync(trackerFile)) {
+      const tracker = JSON.parse(fs.readFileSync(trackerFile, 'utf8'));
+      const files = Array.isArray(tracker.files) ? tracker.files.slice(0, 5) : [];
+      if (files.length > 0) {
+        lines.push(`Working set: ${files.join(', ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // ── Blockers from STATE.md ──
+  try {
+    if (fs.existsSync(stateFile)) {
+      const content = fs.readFileSync(stateFile, 'utf8');
+      const blockersSection = extractSection(content, 'Blockers/Concerns');
+      if (blockersSection && !blockersSection.includes('None')) {
+        lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // Truncate to 2500 chars max
+  let output = lines.join('\n');
+  if (output.length > 2500) {
+    output = output.substring(0, 2497) + '...';
+  }
+
+  // Log audit evidence
+  logHook('progress-tracker', 'SessionStart', 'briefing-injected', {
+    tokens: Math.ceil(output.length / 5)
+  });
+
+  return output;
+}
+
 // Exported for testing
-module.exports = { getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }
