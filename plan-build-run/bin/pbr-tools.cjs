@@ -1030,6 +1030,15 @@ async function main() {
       output(getLearnings().learningsQuery(filters));
     } else if (command === 'learnings' && subcommand === 'check-thresholds') {
       output(getLearnings().checkDeferralThresholds());
+    } else if (command === 'learnings' && subcommand === 'aggregate') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--project' && args[i + 1]) { filters.project = args[++i]; }
+        else if (args[i] === '--type' && args[i + 1]) { filters.type = args[++i]; }
+        else if (args[i] === '--top' && args[i + 1]) { filters.topN = parseInt(args[++i], 10); }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getLearnings().learningsAggregate(filters, { configFeatures: cfg.features || {} }), raw);
     } else if (command === 'learnings' && subcommand === 'copy-global') {
       const filePath = args[2];
       const projectName = args[3];
@@ -1732,6 +1741,28 @@ async function main() {
       output(getPatterns().patternList({ configFeatures: cfg.features || {} }), raw);
     } else if (command === 'patterns') {
       error(`Unknown patterns subcommand: ${subcommand}\nAvailable: extract, query, list`);
+
+    // ─── Templates Operations (Phase 16: Spec templates) ─────────────────────
+    } else if (command === 'templates' && subcommand === 'list') {
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getTemplates().templateList({ configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'templates' && subcommand === 'instantiate') {
+      const templateName = args[2];
+      if (!templateName) error('Usage: templates instantiate <name> [--param key=value ...]');
+      const params = {};
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--param' && args[i + 1]) {
+          const kv = args[++i];
+          const eqIdx = kv.indexOf('=');
+          if (eqIdx !== -1) {
+            params[kv.slice(0, eqIdx)] = kv.slice(eqIdx + 1);
+          }
+        }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getTemplates().templateInstantiate(templateName, params, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'templates') {
+      error(`Unknown templates subcommand: ${subcommand}\nAvailable: list, instantiate`);
 
     // ─── Graph Operations ─────────────────────────────────────────────────────
     } else if (command === 'graph') {
