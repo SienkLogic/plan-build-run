@@ -569,6 +569,18 @@ const SKILL_CHECKS = {
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
       // Update conventions after successful build
       updateConventionsAfterBuild(planningDir);
+      // Log inline execution decision for audit
+      try {
+        const inlineSignal = path.join(planningDir, '.inline-active');
+        const wasInline = fs.existsSync(inlineSignal);
+        logInlineDecision(planningDir, {
+          inline: wasInline,
+          decision: wasInline ? 'inline' : 'delegate',
+          reason: wasInline ? 'signal file present' : 'normal task spawn',
+          taskCount: found.filter(f => /SUMMARY/i.test(f)).length,
+          fileCount: 0
+        });
+      } catch (_e) { /* best-effort — never crash for audit logging */ }
     }
   },
   'quick:pbr:executor': {
