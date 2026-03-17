@@ -90,9 +90,15 @@ Format and display changes since the last full refresh. Show which files have ch
 
 **CRITICAL: Agent type rule** -- ALWAYS use `subagent_type: "pbr:intel-updater"`. NEVER use `general-purpose` or other non-PBR agent types. The PreToolUse hook will block non-PBR agents.
 
+Resolve the pbr-tools path for the agent. Use the plugin root or known path:
+```
+pbr-tools path: plan-build-run/bin/pbr-tools.cjs
+```
+
 Spawn a Task with:
 - `subagent_type: "pbr:intel-updater"`
 - Spawn prompt containing:
+  - `pbr-tools path: plan-build-run/bin/pbr-tools.cjs` (resolved path to CLI tool)
   - `focus: full` (default) or `focus: partial --files <paths>` if user specified particular files
   - Project root path (current working directory)
   - Any existing `.planning/intel/stack.json` content (if it exists) for context

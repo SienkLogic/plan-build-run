@@ -45,9 +45,10 @@ Write machine-parseable, evidence-based intelligence. Every claim references act
 
 ### Config Gate
 
-**CRITICAL:** At startup, check if intel is enabled:
+**CRITICAL:** At startup, check if intel is enabled. The orchestrator passes the resolved pbr-tools path in the spawn prompt. Use that path instead of `$HOME` which breaks on Windows MSYS.
+
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs config get intel.enabled
+node <pbr-tools-path> config get intel.enabled
 ```
 
 If the result shows `intel.enabled` is `false`, return immediately:
@@ -57,6 +58,23 @@ Intel system is disabled. Enable with: /pbr:config set intel.enabled true
 ## INTEL UPDATE FAILED
 ```
 </upstream_input>
+
+## Project Scope
+
+When analyzing this project, use ONLY canonical source locations:
+
+- Skills: `plugins/pbr/skills/*/SKILL.md` (NOT `plan-build-run/skills/`)
+- Agents: `plugins/pbr/agents/*.md`
+- Hooks: `hooks/*.js`
+- CLI: `plan-build-run/bin/`
+- Commands: `commands/pbr/*.md`
+
+EXCLUDE from counts and analysis:
+
+- `plugins/cursor-pbr/` (suspended derivative)
+- `plugins/copilot-pbr/` (suspended derivative)
+- `plugins/codex-pbr/` (suspended derivative)
+- `plan-build-run/skills/` (duplicate of plugins/pbr/skills/)
 
 ## Forbidden Files
 
@@ -88,6 +106,8 @@ All JSON files include a `_meta` object with `updated_at` (ISO timestamp) and `v
   }
 }
 ```
+
+**exports constraint:** Array of ACTUAL exported symbol names extracted from `module.exports` or `export` statements. MUST be real identifiers (e.g., `"configLoad"`, `"stateUpdate"`), NOT descriptions (e.g., `"config operations"`). If an export string contains a space, it is wrong -- extract the actual symbol name instead. Use `pbr-tools intel extract-exports <file>` to get accurate exports.
 
 Types: `entry-point`, `module`, `config`, `test`, `script`, `type-def`, `style`, `template`, `data`.
 
@@ -125,6 +145,8 @@ Types: `entry-point`, `module`, `config`, `test`, `script`, `type-def`, `style`,
 
 Types: `production`, `development`, `peer`, `optional`.
 
+Each dependency entry should also include `"invocation": "require|cli|implicit"`. For CLI tools not imported via `require()` (e.g., eslint, c8, jest), check `package.json` scripts and set invocation to `"cli"`. Set `used_by` to the npm script names that invoke them.
+
 ### stack.json -- Tech Stack
 
 ```json
@@ -135,9 +157,12 @@ Types: `production`, `development`, `peer`, `optional`.
   "tools": ["ESLint", "Jest", "Docker"],
   "build_system": "npm scripts",
   "test_framework": "Jest",
-  "package_manager": "npm"
+  "package_manager": "npm",
+  "content_formats": ["Markdown (skills, agents, commands)", "YAML (frontmatter config)", "EJS (templates)"]
 }
 ```
+
+Identify non-code content formats that are structurally important to the project and include them in `content_formats`.
 
 ### arch.md -- Architecture Summary
 
@@ -203,27 +228,23 @@ Write `deps.json`.
 Synthesize patterns from steps 2-5 into a human-readable summary.
 Write `arch.md`.
 
+### Step 6.5: Self-Check
+
+Run: `<pbr-tools-path> intel validate --cwd <project_root>`
+
+Review the output:
+
+- If `valid: true`: proceed to Step 7
+- If errors exist: fix the indicated files before proceeding
+- Common fixes: replace descriptive exports with actual symbol names, fix stale timestamps
+
+This step is MANDATORY -- do not skip it.
+
 ### Step 7: Snapshot
 
-Write `.planning/intel/.last-refresh.json` as the final step:
-```json
-{
-  "timestamp": "ISO-8601",
-  "files_written": ["files.json", "apis.json", "deps.json", "stack.json", "arch.md"],
-  "hashes": {
-    "files.json": "<md5>",
-    "apis.json": "<md5>",
-    "deps.json": "<md5>",
-    "stack.json": "<md5>",
-    "arch.md": "<md5>"
-  }
-}
-```
+Run: `<pbr-tools-path> intel snapshot --cwd <project_root>`
 
-Compute MD5 hashes by reading each written file and using:
-```bash
-node -e "const fs=require('fs'),c=require('crypto');console.log(c.createHash('md5').update(fs.readFileSync(process.argv[1])).digest('hex'))" <filepath>
-```
+This writes `.last-refresh.json` with accurate timestamps and hashes. Do NOT write `.last-refresh.json` manually.
 </execution_flow>
 
 ## Partial Updates
