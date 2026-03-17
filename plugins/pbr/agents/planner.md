@@ -268,6 +268,20 @@ Read locked decisions, phase goal, and any research documents.
 - **For each locked decision found**: embed it directly into the relevant task's `<action>` block.
   Executors NEVER read CONTEXT.md — PLAN.md task actions must be self-contained.
 
+#### Read Prior LEARNINGS.md
+
+If `learnings.enabled` is true in config, read LEARNINGS.md files from prior phases to absorb cross-phase knowledge:
+
+1. Read `learnings.read_depth` from config (default: 2). This controls how many prior phases to check.
+2. For each of the last N completed phases (where N = read_depth):
+   a. Check if `.planning/phases/{NN}-{slug}/LEARNINGS.md` exists
+   b. If found: read the YAML frontmatter (`key_insights` and `patterns` arrays)
+   c. Incorporate relevant insights into task action instructions where applicable
+3. Do NOT read LEARNINGS.md from the current phase (it doesn't exist yet).
+4. At 200k context: read frontmatter only. At 1M (context_window_tokens >= 500,000): read full body for direct dependency phases.
+
+**Usage in plans:** When a prior LEARNINGS.md insight is relevant to a task, embed it directly in the task's `<action>` block (e.g., "Note: Phase 02 discovered that X API requires Y header — include it").
+
 #### Handling [NEEDS DECISION] Items
 When CONTEXT.md or RESEARCH-SUMMARY.md contains `[NEEDS DECISION]` flags from the synthesizer:
 - If the decision affects plan structure: create a `checkpoint:decision` task asking the user to decide
