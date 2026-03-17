@@ -112,7 +112,7 @@ function queueIntelUpdate(data, planningDir) {
     if (!filePath) return null;
 
     // Check intel.enabled
-    const { isIntelEnabled } = require('../../../plan-build-run/bin/lib/intel.cjs');
+    const { isIntelEnabled } = require('../plan-build-run/bin/lib/intel.cjs');
     if (!isIntelEnabled(planningDir)) return null;
 
     // Check intel.auto_update

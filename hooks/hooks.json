@@ -63,6 +63,16 @@
         ]
       },
       {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" intel-queue.js",
+            "statusMessage": "◆ PBR: Queueing intel update..."
+          }
+        ]
+      },
+      {
         "matcher": "Task",
         "hooks": [
           {

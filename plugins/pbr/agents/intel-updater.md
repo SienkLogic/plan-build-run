@@ -145,7 +145,7 @@ Types: `entry-point`, `module`, `config`, `test`, `script`, `type-def`, `style`,
 
 Types: `production`, `development`, `peer`, `optional`.
 
-Each dependency entry should also include `"invocation": "require|cli|implicit"`. For CLI tools not imported via `require()` (e.g., eslint, c8, jest), check `package.json` scripts and set invocation to `"cli"`. Set `used_by` to the npm script names that invoke them.
+Each dependency entry should also include `"invocation": "<method or npm script>"`. Set invocation to the npm script command that uses this dep (e.g. `npm run lint`, `npm test`, `npm run dashboard`). For deps imported via `require()`, set to `require`. For implicit framework deps, set to `implicit`. Set `used_by` to the npm script names that invoke them.
 
 ### stack.json -- Tech Stack
 
