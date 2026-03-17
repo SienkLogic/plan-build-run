@@ -924,6 +924,15 @@ function cmdValidateHealth(cwd, options, raw) {
     }
   }
 
+  // ─── Check 12: Architecture graph feature health ──────────────────────────
+  try {
+    const graph = require('./graph.cjs');
+    const graphHealth = graph.graphHealthCheck(planningDir);
+    const guardHealth = graph.guardHealthCheck(planningDir);
+    feature_status.architecture_graph = graphHealth;
+    feature_status.architecture_guard = guardHealth;
+  } catch (_e) { /* graph module not available — skip */ }
+
   // ─── Perform repairs if requested ─────────────────────────────────────────
   const repairActions = [];
   if (options.repair && repairs.length > 0) {

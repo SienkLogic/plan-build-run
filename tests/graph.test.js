@@ -297,4 +297,85 @@ describe('graph.cjs', () => {
       }
     });
   });
+
+  describe('graphHealthCheck', () => {
+    test('returns healthy when graph.json exists and is recent', () => {
+      const { tmp, planningDir } = makeTempPlanning();
+      try {
+        graph.buildGraph(planningDir, tmp);
+        const result = graph.graphHealthCheck(planningDir);
+        expect(result).toHaveProperty('feature', 'architecture_graph');
+        expect(result).toHaveProperty('status', 'healthy');
+        expect(result).toHaveProperty('nodes');
+        expect(result).toHaveProperty('edges');
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+
+    test('returns degraded when graph.json is stale (>24h old)', () => {
+      const { tmp, planningDir, codebaseDir } = makeTempPlanning();
+      try {
+        graph.buildGraph(planningDir, tmp);
+        // Overwrite graph.json with stale timestamp
+        const graphPath = require('path').join(codebaseDir, 'graph.json');
+        const g = JSON.parse(require('fs').readFileSync(graphPath, 'utf8'));
+        g._meta.updated_at = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
+        require('fs').writeFileSync(graphPath, JSON.stringify(g, null, 2));
+
+        const result = graph.graphHealthCheck(planningDir);
+        expect(result).toHaveProperty('status', 'degraded');
+        expect(result.reason).toMatch(/stale/i);
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+
+    test('returns disabled when features.architecture_graph is false', () => {
+      const { tmp, planningDir } = makeTempPlanning({ graphEnabled: false });
+      try {
+        const result = graph.graphHealthCheck(planningDir);
+        expect(result).toHaveProperty('feature', 'architecture_graph');
+        expect(result).toHaveProperty('status', 'disabled');
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+
+    test('returns degraded when graph.json does not exist', () => {
+      const { tmp, planningDir } = makeTempPlanning();
+      try {
+        // No buildGraph call - graph.json absent
+        const result = graph.graphHealthCheck(planningDir);
+        expect(result).toHaveProperty('status', 'degraded');
+        expect(result.reason).toMatch(/not found/i);
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+  });
+
+  describe('guardHealthCheck', () => {
+    test('returns healthy when architecture_guard is enabled', () => {
+      const { tmp, planningDir } = makeTempPlanning();
+      try {
+        const result = graph.guardHealthCheck(planningDir);
+        expect(result).toHaveProperty('feature', 'architecture_guard');
+        expect(result).toHaveProperty('status', 'healthy');
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+
+    test('returns disabled when features.architecture_guard is false', () => {
+      const { tmp, planningDir } = makeTempPlanning({ guardEnabled: false });
+      try {
+        const result = graph.guardHealthCheck(planningDir);
+        expect(result).toHaveProperty('feature', 'architecture_guard');
+        expect(result).toHaveProperty('status', 'disabled');
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+  });
 });
