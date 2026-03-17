@@ -22,7 +22,7 @@ Then proceed to Step 1.
 Read the following files:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state load
+node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
 ```
 
 Also read `.planning/config.json` to check for `ui.enabled` setting.
@@ -83,7 +83,7 @@ Example: /pbr:ui-phase 3 --url http://localhost:3000
 Read the ROADMAP.md to find the phase directory matching the given phase number:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state load
+node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
 ```
 
 Read the phase directory at `.planning/phases/{NN}-{slug}/` to understand the phase goal and any existing plans. Extract the phase goal from ROADMAP.md for the given phase number.
@@ -157,6 +157,7 @@ The planner will reference UI-SPEC.md as a constraint alongside CONTEXT.md.
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 

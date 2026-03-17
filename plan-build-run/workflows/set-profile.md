@@ -23,8 +23,8 @@ if $ARGUMENTS.profile not in ["quality", "balanced", "budget"]:
 Ensure config exists and load current state:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js config-ensure-section
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js state load)
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs config-ensure-section
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state load)
 ```
 
 This creates `.planning/config.json` with defaults if missing and loads current config.
@@ -51,7 +51,7 @@ Display confirmation with model table for selected profile:
 
 Agents will now use:
 
-[Show table from MODEL_PROFILES in pbr-tools.js for selected profile]
+[Show table from MODEL_PROFILES in pbr-tools.cjs for selected profile]
 
 Example:
 | Agent | Model |

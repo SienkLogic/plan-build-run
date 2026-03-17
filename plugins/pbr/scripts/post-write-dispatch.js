@@ -27,6 +27,9 @@ const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
 const { queueIntelUpdate } = require('./intel-queue');
 
+let checkDependencyBreaks;
+try { checkDependencyBreaks = require('./lib/dependency-break').checkDependencyBreaks; } catch (_e) { checkDependencyBreaks = null; }
+
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
 try {
@@ -128,6 +131,37 @@ async function processEvent(data, planningDir) {
     return stateSyncResult.output;
   }
 
+  // Dependency break detection: when SUMMARY.md is written in .planning/phases/
+  if (checkDependencyBreaks) {
+    const depFilePath = data.tool_input?.file_path || '';
+    const depNormalized = depFilePath.replace(/\\/g, '/');
+    if (depNormalized.includes('.planning/phases/') && depNormalized.endsWith('SUMMARY.md')) {
+      try {
+        const phaseNumMatch = depNormalized.match(/(\d{2})-[^/\\]+[/\\]SUMMARY/);
+        if (phaseNumMatch) {
+          // Load config to check feature toggle
+          let depConfig;
+          try {
+            const { configLoad } = require('./pbr-tools');
+            depConfig = configLoad(planningDir);
+          } catch (_e) {
+            depConfig = null;
+          }
+          if (!depConfig || !depConfig.features || depConfig.features.dependency_break_detection !== false) {
+            const depBreaks = checkDependencyBreaks(planningDir, parseInt(phaseNumMatch[1], 10));
+            if (depBreaks.length > 0) {
+              return {
+                additionalContext: `[Dependency Break] ${depBreaks.length} downstream plan(s) may be stale: ${depBreaks.map(b => b.plan).join(', ')}. Run /pbr:plan-phase to re-plan affected phases.`
+              };
+            }
+          }
+        }
+      } catch (_depErr) {
+        // Never block on dependency break errors
+      }
+    }
+  }
+
   // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
   const qualityResult = checkQuality(data);
   if (qualityResult) {
@@ -139,6 +173,32 @@ async function processEvent(data, planningDir) {
     queueIntelUpdate(data, planningDir);
   } catch (_e) {
     // Intel queue must never break the dispatch chain
+  }
+
+  // Pattern-based routing — lowest-priority advisory for recognized file patterns
+  try {
+    let _checkPatternRouting;
+    try { _checkPatternRouting = require('./lib/pattern-routing').checkPatternRouting; } catch (_e) { _checkPatternRouting = null; }
+    if (_checkPatternRouting) {
+      const patternFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
+      if (patternFilePath) {
+        let patternConfig;
+        try {
+          const { configLoad } = require('./pbr-tools');
+          patternConfig = configLoad(planningDir);
+        } catch (_e) {
+          patternConfig = {};
+        }
+        const patternResult = _checkPatternRouting(patternFilePath, patternConfig || {});
+        if (patternResult) {
+          return {
+            additionalContext: '[Pattern] ' + patternResult.advisory
+          };
+        }
+      }
+    }
+  } catch (_e) {
+    // Pattern routing must never break the dispatch chain
   }
 
   // LLM file intent classification — advisory enrichment for non-planning files

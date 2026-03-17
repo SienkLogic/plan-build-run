@@ -16,6 +16,7 @@ You are the orchestrator for `/pbr:plan-phase`. This skill creates detailed, exe
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only plan frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full plan bodies is permitted when content is needed for inline decisions.
@@ -202,7 +203,7 @@ If `--preview` is present in `$ARGUMENTS`:
 
 ### Step 2: Load Context (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
@@ -258,7 +259,7 @@ Task({
 NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Phase Research Prompt Template
 
@@ -389,7 +390,7 @@ If `through_phases` is set (from Step 1 --through parsing):
 **Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
@@ -397,7 +398,7 @@ If non-empty JSON array returned:
 - Write to temp file and note as `{learnings_temp_path}`:
 
   ```bash
-  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
   ```
 
 - Add as an additional `files_to_read` item in the planner prompt below
@@ -421,7 +422,7 @@ After planner completes, check for completion markers: `## PLANNING COMPLETE`, `
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check planner output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during planning.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Planning Prompt Template
 
@@ -506,7 +507,7 @@ Task({
 NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Checker Prompt Template
 

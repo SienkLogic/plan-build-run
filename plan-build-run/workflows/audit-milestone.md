@@ -11,21 +11,21 @@ Read all files referenced by the invoking prompt's execution_context before star
 ## 0. Initialize Milestone Context
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init milestone-op)
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init milestone-op)
 ```
 
 Extract from init JSON: `milestone_version`, `milestone_name`, `phase_count`, `completed_phases`, `commit_docs`.
 
 Resolve integration checker model:
 ```bash
-CHECKER_MODEL=$(node ~/.claude/plan-build-run/bin/pbr-tools.js resolve-model pbr-integration-checker --raw)
+CHECKER_MODEL=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs resolve-model pbr-integration-checker --raw)
 ```
 
 ## 1. Determine Milestone Scope
 
 ```bash
 # Get phases in milestone (sorted numerically, handles decimals)
-node ~/.claude/plan-build-run/bin/pbr-tools.js phases list
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phases list
 ```
 
 - Parse version from arguments or detect current from ROADMAP.md

@@ -42,6 +42,48 @@ See [depth_profiles](#depth_profiles) for the exact feature overrides each depth
 
 ---
 
+## Phase 14: Quality & Safety
+
+Phase 14 adds three configurable quality and safety features to the build workflow.
+
+### features (Phase 14 toggles)
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `features.multi_layer_validation` | `false` | Enables parallel multi-layer review passes (BugBot-style). When true, build skill spawns one reviewer Task() per pass listed in `validation_passes`. Default false to preserve budget. Set to true for quality profile. |
+| `features.regression_prevention` | `true` | Enables smart test selection — maps changed files to affected test files by naming convention. When enabled, build skill scopes test runs to relevant files instead of always running the full suite. |
+| `features.security_scanning` | `true` | Enables OWASP-style security scanning of changed files during build. Checks for hardcoded secrets, eval usage, shell injection, path traversal, prototype pollution, unsafe regex, and other vulnerabilities. |
+
+### validation_passes
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `validation_passes` | string[] | `["correctness", "security"]` | Ordered list of pass names run when `features.multi_layer_validation` is true. |
+
+**Available pass names:**
+
+| Pass | Focus | Severity |
+|------|-------|----------|
+| `correctness` | Logic errors, edge cases, off-by-one, null handling | high |
+| `security` | Injection, auth bypass, secrets exposure, OWASP Top 10 | high |
+| `performance` | O(n²) loops, unnecessary allocations, blocking I/O | medium |
+| `style` | Naming conventions, code organization, consistency | low |
+| `tests` | Missing test coverage, weak assertions, flaky patterns | medium |
+| `accessibility` | ARIA labels, keyboard nav, screen reader compat | medium |
+| `docs` | Missing JSDoc, outdated comments, README drift | low |
+| `deps` | Outdated deps, unused imports, license conflicts, CVEs | medium |
+
+**Profile defaults:**
+
+| Setting | quick | standard | comprehensive |
+|---------|-------|----------|---------------|
+| `features.multi_layer_validation` | `false` | `false` | `true` |
+| `features.regression_prevention` | `true` | `true` | `true` |
+| `features.security_scanning` | `true` | `true` | `true` |
+| `validation_passes` | `["correctness"]` | `["correctness", "security"]` | `["correctness", "security", "performance", "tests"]` |
+
+---
+
 ## features
 
 Boolean toggles that enable or disable specific workflow capabilities. All default to the value shown unless overridden by the active depth profile.

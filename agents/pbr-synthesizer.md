@@ -87,7 +87,7 @@ Output to `.planning/research/SUMMARY.md` (or specified path).
 
 ## Output Format
 
-Read `$HOME/.claude/plan-build-run/templates/research-outputs/SUMMARY.md.tmpl` for the complete output format.
+Read `${CLAUDE_PLUGIN_ROOT}/templates/research-outputs/SUMMARY.md.tmpl` for the complete output format.
 
 Key sections: Executive Summary (3-5 sentences), Recommended Stack (table), Architecture Recommendations, Key Patterns, Pitfalls & Warnings, Contradictions Resolved, Open Questions, Sources.
 
@@ -197,7 +197,7 @@ When input research documents are large (>2000 words combined), you MAY use the 
 
 ```bash
 # Pre-summarize a large research document to ~150 words:
-node "$HOME/.claude/plan-build-run/bin/pbr-tools.cjs" llm summarize /path/to/RESEARCH.md 150 2>/dev/null
+node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm summarize /path/to/RESEARCH.md 150 2>/dev/null
 # Returns: {"summary":"...plain text summary under 150 words...","latency_ms":2100,"fallback_used":false}
 ```
 

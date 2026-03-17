@@ -25,7 +25,7 @@ This gives users a quick answer to "what should I do next?" without the full rep
 **Load progress context (with file contents to avoid redundant reads):**
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init progress --include state,roadmap,project,config)
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init progress --include state,roadmap,project,config)
 ```
 
 Extract from init JSON: `project_exists`, `roadmap_exists`, `state_exists`, `phases`, `current_phase`, `next_phase`, `milestone_version`, `completed_count`, `phase_count`, `paused_at`.
@@ -67,7 +67,7 @@ No additional file reads needed.
 **Get comprehensive roadmap analysis (replaces manual parsing):**
 
 ```bash
-ROADMAP=$(node ~/.claude/plan-build-run/bin/pbr-tools.js roadmap analyze)
+ROADMAP=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs roadmap analyze)
 ```
 
 This returns structured JSON with:
@@ -86,7 +86,7 @@ Use this instead of manually reading/parsing ROADMAP.md.
 - Find the 2-3 most recent SUMMARY.md files
 - Use `summary-extract` for efficient parsing:
   ```bash
-  node ~/.claude/plan-build-run/bin/pbr-tools.js summary-extract <path> --fields one_liner
+  node ~/.claude/plan-build-run/scripts/pbr-tools.cjs summary-extract <path> --fields one_liner
   ```
 - This shows "what we've been working on"
   </step>
@@ -106,7 +106,7 @@ Use this instead of manually reading/parsing ROADMAP.md.
 
 ```bash
 # Get formatted progress bar
-PROGRESS_BAR=$(node ~/.claude/plan-build-run/bin/pbr-tools.js progress bar --raw)
+PROGRESS_BAR=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs progress bar --raw)
 ```
 
 Present:

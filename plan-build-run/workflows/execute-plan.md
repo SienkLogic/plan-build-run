@@ -15,7 +15,7 @@ Read config.json for planning behavior settings.
 Load execution context (uses `init execute-phase` for full context, including file contents):
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init execute-phase "${PHASE}" --include state,config)
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init execute-phase "${PHASE}" --include state,config)
 ```
 
 Extract from init JSON: `executor_model`, `commit_docs`, `phase_dir`, `phase_number`, `plans`, `summaries`, `incomplete_plans`.
@@ -337,13 +337,13 @@ Update STATE.md using pbr-tools:
 
 ```bash
 # Advance plan counter (handles last-plan edge case)
-node ~/.claude/plan-build-run/bin/pbr-tools.js state advance-plan
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state advance-plan
 
 # Recalculate progress bar from disk state
-node ~/.claude/plan-build-run/bin/pbr-tools.js state update-progress
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state update-progress
 
 # Record execution metrics
-node ~/.claude/plan-build-run/bin/pbr-tools.js state record-metric \
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state record-metric \
   --phase "${PHASE}" --plan "${PLAN}" --duration "${DURATION}" \
   --tasks "${TASK_COUNT}" --files "${FILE_COUNT}"
 ```
@@ -354,11 +354,11 @@ From SUMMARY: Extract decisions and add to STATE.md:
 
 ```bash
 # Add each decision from SUMMARY key-decisions
-node ~/.claude/plan-build-run/bin/pbr-tools.js state add-decision \
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state add-decision \
   --phase "${PHASE}" --summary "${DECISION_TEXT}" --rationale "${RATIONALE}"
 
 # Add blockers if any found
-node ~/.claude/plan-build-run/bin/pbr-tools.js state add-blocker "Blocker description"
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state add-blocker "Blocker description"
 ```
 </step>
 
@@ -366,7 +366,7 @@ node ~/.claude/plan-build-run/bin/pbr-tools.js state add-blocker "Blocker descri
 Update session info using pbr-tools:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js state record-session \
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs state record-session \
   --stopped-at "Completed ${PHASE}-${PLAN}-PLAN.md" \
   --resume-file "None"
 ```
@@ -386,7 +386,7 @@ More plans → update plan count, keep "In progress". Last plan → mark phase "
 Task code already committed per-task. Commit plan metadata:
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md
 ```
 </step>
 
@@ -401,7 +401,7 @@ git diff --name-only ${FIRST_TASK}^..HEAD 2>/dev/null
 Update only structural changes: new src/ dir → STRUCTURE.md | deps → STACK.md | file pattern → CONVENTIONS.md | API client → INTEGRATIONS.md | config → STACK.md | renamed → update paths. Skip code-only/bugfix/content changes.
 
 ```bash
-node ~/.claude/plan-build-run/bin/pbr-tools.js commit "" --files .planning/codebase/*.md --amend
+node ~/.claude/plan-build-run/scripts/pbr-tools.cjs commit "" --files .planning/codebase/*.md --amend
 ```
 </step>
 

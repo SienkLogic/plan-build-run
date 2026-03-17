@@ -37,6 +37,7 @@ This skill **spawns Task(subagent_type: "pbr:debugger")** for investigation work
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Never** perform investigation work yourself — delegate ALL analysis to the debugger subagent

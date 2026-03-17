@@ -117,6 +117,21 @@
  *   learnings check-thresholds            Check deferral trigger conditions
  *   learnings copy-global <path> <proj>   Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P]  Query global knowledge files
+ *   learnings aggregate [--project P] [--type T] [--top N]
+ *
+ * PATTERNS (Phase 16: Cross-project pattern library):
+ *   patterns extract <json-file>          Extract pattern into ~/.claude/patterns/
+ *   patterns query [--tags X,Y] [--type T] [--stack S] [--min-confidence N]
+ *   patterns list                          List all stored patterns
+ *
+ * TEMPLATES (Phase 16: Spec templates):
+ *   templates list                         List built-in + user templates
+ *   templates instantiate <name> [--param key=value ...]
+ *
+ * NEGATIVE KNOWLEDGE:
+ *   negative-knowledge record --title "..." --category <cat> --files "a,b" --what-tried "..." --why-failed "..."
+ *   negative-knowledge query --files "path1,path2"
+ *   negative-knowledge list [--category X] [--phase Y] [--status Z]
  *
  * INTEL OPERATIONS:
  *   intel query <term>                    Search intel files for a term
@@ -189,6 +204,9 @@
  *
  * REQUIREMENTS:
  *   requirements mark-complete <ids>   Mark requirement IDs as complete
+ *   requirements update-status         Update REQ-ID checkboxes (--req-ids, --status done|reset)
+ *   requirements mark-phase            Mark phase requirements (--phase-dir <path>)
+ *   requirements status                Get all requirement statuses as JSON
  *
  * SCAFFOLDING:
  *   scaffold context|uat|verification|phase-dir --phase <N> [--name <name>]
@@ -214,6 +232,14 @@
  *   context-triage [--agents-done N] [--plans-total N] [--step NAME]
  *   suggest-alternatives phase-not-found|missing-prereq|config-invalid [args]
  *   spot-check <phaseSlug> <planId>
+ *
+ * SPEC (PHASE 11 SPEC-DRIVEN DEVELOPMENT):
+ *   spec parse <plan-file>             Parse PLAN.md into structured JSON
+ *   spec diff <file-a> <file-b>        Semantic diff between two PLAN.md versions
+ *   spec reverse <file...>             Generate spec from source files
+ *   spec impact <file...>              Predict impact of changed files
+ *     [--format json|markdown]         Output format (default: json)
+ *     [--project-root <path>]          Project root for impact analysis
  *
  * MIGRATION & EVENTS:
  *   migrate [--dry-run] [--force]      Run schema migrations
@@ -242,6 +268,10 @@ let _history, _todo, _learnings, _spotCheck, _build, _llm;
 let _verify, _frontmatter, _commands, _template, _milestone;
 let _reference, _skillSection, _stepVerify, _preview, _context;
 let _alternatives, _migrate, _circuitState, _intel, _statusRender, _suggestNext, _parseArgs;
+let _decisions;
+let _negativeKnowledge;
+let _patterns;
+let _templates;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -271,6 +301,10 @@ function getIntel() { if (!_intel) _intel = require('./lib/intel.cjs'); return _
 function getStatusRender() { if (!_statusRender) _statusRender = require('./lib/status-render.cjs'); return _statusRender; }
 function getSuggestNext() { if (!_suggestNext) _suggestNext = require('./lib/suggest-next.cjs'); return _suggestNext; }
 function getParseArgs() { if (!_parseArgs) _parseArgs = require('./lib/parse-args.cjs'); return _parseArgs; }
+function getDecisions() { if (!_decisions) _decisions = require('./lib/decisions.cjs'); return _decisions; }
+function getNegativeKnowledge() { if (!_negativeKnowledge) _negativeKnowledge = require('./lib/negative-knowledge.cjs'); return _negativeKnowledge; }
+function getPatterns() { if (!_patterns) _patterns = require('./lib/patterns.cjs'); return _patterns; }
+function getTemplates() { if (!_templates) _templates = require('./lib/templates.cjs'); return _templates; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -335,6 +369,9 @@ function todoList(opts) { return getTodo().todoList(planningDir, opts); }
 function todoGet(num) { return getTodo().todoGet(planningDir, num); }
 function todoAdd(title, opts) { return getTodo().todoAdd(planningDir, title, opts); }
 function todoDone(num) { return getTodo().todoDone(planningDir, num); }
+
+function decisionsRecord(opts) { return getDecisions().recordDecision(planningDir, opts); }
+function decisionsList(filters) { return getDecisions().listDecisions(planningDir, filters); }
 
 function spotCheck(phaseSlug, planId) { return getSpotCheck().spotCheck(planningDir, phaseSlug, planId); }
 function verifySpotCheck(type, dirPath) { return getSpotCheck().verifySpotCheck(type, dirPath); }
@@ -423,6 +460,161 @@ function validateProject() {
   }
 
   return { valid: errors.length === 0, errors, warnings, checks };
+}
+
+// ─── Spec Operations (Phase 11) ───────────────────────────────────────────────
+
+/**
+ * Handle spec subcommands: parse, diff, reverse, impact.
+ * @param {string[]} args - raw CLI args (args[0] is 'spec', args[1] is subcommand)
+ * @param {string} pDir - planningDir
+ * @param {string} projectRoot - cwd
+ * @param {Function} outputFn - output function
+ * @param {Function} errorFn - error function
+ */
+function handleSpec(args, pDir, projectRoot, outputFn, errorFn) {
+  const subcommand = args[1];
+
+  // Parse common flags
+  const formatIdx = args.indexOf('--format');
+  const format = formatIdx !== -1 ? args[formatIdx + 1] : 'json';
+  const projectRootIdx = args.indexOf('--project-root');
+  const effectiveRoot = projectRootIdx !== -1 ? args[projectRootIdx + 1] : projectRoot;
+
+  // Load config for feature toggle checks
+  let config = {};
+  try {
+    const configPath = path.join(pDir, 'config.json');
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  } catch (_e) {
+    // Config unreadable — use defaults
+  }
+  const features = config.features || {};
+
+  // Audit log helper
+  function writeAuditLog(cmd, featureName, status, fileCount) {
+    try {
+      const logDir = path.join(pDir, 'logs');
+      if (fs.existsSync(logDir)) {
+        const logFile = path.join(logDir, 'spec-engine.jsonl');
+        const entry = JSON.stringify({
+          ts: new Date().toISOString(),
+          cmd: `spec.${cmd}`,
+          feature: featureName,
+          status,
+          files: fileCount || 0,
+        });
+        fs.appendFileSync(logFile, entry + '\n', 'utf-8');
+      }
+    } catch (_e) {
+      // No-op if log dir missing or unwritable
+    }
+  }
+
+  if (!subcommand || subcommand === '--help' || subcommand === 'help') {
+    const usageText = [
+      'Usage: spec <subcommand> [args] [--format json|markdown]',
+      '',
+      'Subcommands:',
+      '  parse <plan-file>           Parse PLAN.md into structured JSON',
+      '  diff <file-a> <file-b>      Semantic diff between two PLAN.md versions',
+      '  reverse <file...>           Generate spec from source files',
+      '  impact <file...>            Predict impact of changed files',
+      '',
+      'Flags:',
+      '  --format json|markdown      Output format (default: json)',
+      '  --project-root <path>       Project root for impact analysis',
+    ].join('\n');
+    outputFn(null, true, usageText);
+    return;
+  }
+
+  if (subcommand === 'parse') {
+    const planFile = args[2];
+    if (!planFile) { errorFn('Usage: spec parse <plan-file>'); return; }
+    const { parsePlanToSpec } = require('./lib/spec-engine.cjs');
+    let content;
+    try {
+      content = fs.readFileSync(planFile, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${planFile}: ${e.message}`);
+      return;
+    }
+    const spec = parsePlanToSpec(content);
+    writeAuditLog('parse', 'machine_executable_plans', 'ok', 1);
+    outputFn({ frontmatter: spec.frontmatter, tasks: spec.tasks });
+    return;
+  }
+
+  if (subcommand === 'diff') {
+    if (features.spec_diffing === false) {
+      outputFn({ error: 'Feature disabled. Enable features.spec_diffing in config.json' });
+      return;
+    }
+    const fileA = args[2];
+    const fileB = args[3];
+    if (!fileA || !fileB) { errorFn('Usage: spec diff <file-a> <file-b>'); return; }
+    const { diffPlanFiles, formatDiff } = require('./lib/spec-diff.cjs');
+    let contentA, contentB;
+    try {
+      contentA = fs.readFileSync(fileA, 'utf-8');
+      contentB = fs.readFileSync(fileB, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${e.message}`);
+      return;
+    }
+    const diff = diffPlanFiles(contentA, contentB);
+    writeAuditLog('diff', 'spec_diffing', 'ok', 2);
+    if (format === 'markdown') {
+      outputFn(null, true, formatDiff(diff, 'markdown'));
+    } else {
+      outputFn(diff);
+    }
+    return;
+  }
+
+  if (subcommand === 'reverse') {
+    if (features.reverse_spec === false) {
+      outputFn({ error: 'Feature disabled. Enable features.reverse_spec in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--')) files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec reverse <file...>'); return; }
+    const { generateReverseSpec } = require('./lib/reverse-spec.cjs');
+    const { serializeSpec } = require('./lib/spec-engine.cjs');
+    const spec = generateReverseSpec(files, { readFile: (p) => fs.readFileSync(p, 'utf-8') });
+    writeAuditLog('reverse', 'reverse_spec', 'ok', files.length);
+    if (format === 'markdown') {
+      outputFn(null, true, serializeSpec(spec));
+    } else {
+      outputFn(spec);
+    }
+    return;
+  }
+
+  if (subcommand === 'impact') {
+    if (features.predictive_impact === false) {
+      outputFn({ error: 'Feature disabled. Enable features.predictive_impact in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--') && args[i - 1] !== '--project-root') files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec impact <file...>'); return; }
+    const { analyzeImpact } = require('./lib/impact-analysis.cjs');
+    const report = analyzeImpact(files, effectiveRoot);
+    writeAuditLog('impact', 'predictive_impact', 'ok', files.length);
+    outputFn(report);
+    return;
+  }
+
+  errorFn(`Unknown spec subcommand: ${subcommand}\nAvailable: parse, diff, reverse, impact`);
 }
 
 // ─── CLI entry point ──────────────────────────────────────────────────────────
@@ -838,6 +1030,15 @@ async function main() {
       output(getLearnings().learningsQuery(filters));
     } else if (command === 'learnings' && subcommand === 'check-thresholds') {
       output(getLearnings().checkDeferralThresholds());
+    } else if (command === 'learnings' && subcommand === 'aggregate') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--project' && args[i + 1]) { filters.project = args[++i]; }
+        else if (args[i] === '--type' && args[i + 1]) { filters.type = args[++i]; }
+        else if (args[i] === '--top' && args[i + 1]) { filters.topN = parseInt(args[++i], 10); }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getLearnings().learningsAggregate(filters, { configFeatures: cfg.features || {} }), raw);
     } else if (command === 'learnings' && subcommand === 'copy-global') {
       const filePath = args[2];
       const projectName = args[3];
@@ -1051,6 +1252,14 @@ async function main() {
     } else if (command === 'validate-project') {
       output(validateProject());
 
+    // ─── Trust Gate ───────────────────────────────────────────────────────────
+    } else if (command === 'trust-gate') {
+      const phaseNum = args[1] || '';
+      const { resolveVerificationDepth } = require(path.join(__dirname, '..', '..', 'plugins', 'pbr', 'scripts', 'lib', 'trust-gate'));
+      const config = getConfig().configLoad(planningDir);
+      const depth = resolveVerificationDepth(planningDir, config);
+      output({ depth, phase: phaseNum });
+
     // ─── Frontmatter ──────────────────────────────────────────────────────────
     } else if (command === 'frontmatter' && subcommand === 'get') {
       const file = args[2];
@@ -1120,6 +1329,39 @@ async function main() {
     } else if (command === 'requirements' && subcommand === 'mark-complete') {
       getMilestone().cmdRequirementsMarkComplete(cwd, args.slice(2), raw);
 
+    } else if (command === 'requirements' && subcommand === 'update-status') {
+      const reqMod = require('./lib/requirements.cjs');
+      const reqIdsIdx = args.indexOf('--req-ids');
+      const statusIdx = args.indexOf('--status');
+      if (reqIdsIdx === -1 || statusIdx === -1) {
+        error('Usage: requirements update-status --req-ids REQ-01,REQ-02 --status done|reset');
+      }
+      const reqIds = args[reqIdsIdx + 1].split(',').map(s => s.trim()).filter(Boolean);
+      const reqStatus = args[statusIdx + 1];
+      if (!['done', 'reset'].includes(reqStatus)) error('--status must be "done" or "reset"');
+      const result = reqMod.updateRequirementStatus(planningDir, reqIds, reqStatus);
+      output(result, raw, `${result.updated} updated, ${result.skipped} skipped`);
+
+    } else if (command === 'requirements' && subcommand === 'mark-phase') {
+      const reqMod = require('./lib/requirements.cjs');
+      const phaseDirIdx = args.indexOf('--phase-dir');
+      if (phaseDirIdx === -1) error('Usage: requirements mark-phase --phase-dir <path>');
+      const targetPhaseDir = args[phaseDirIdx + 1];
+      const config = configLoad();
+      if (config && config.features && config.features.living_requirements === false) {
+        output({ skipped: true, reason: 'features.living_requirements is disabled' }, raw, 'living requirements disabled');
+      } else {
+        const result = reqMod.markPhaseRequirements(planningDir, targetPhaseDir);
+        output(result, raw, result.skipped_reason || `${result.updated} requirements marked`);
+      }
+
+    } else if (command === 'requirements' && subcommand === 'status') {
+      const reqMod = require('./lib/requirements.cjs');
+      const statusMap = reqMod.getRequirementStatus(planningDir);
+      const obj = {};
+      for (const [k, v] of statusMap) { obj[k] = v; }
+      output(obj, raw, `${statusMap.size} requirements found`);
+
     // ─── Scaffolding ──────────────────────────────────────────────────────────
     } else if (command === 'scaffold') {
       const scaffoldType = args[1];
@@ -1161,8 +1403,32 @@ async function main() {
         freshness: freshnessIdx !== -1 ? args[freshnessIdx + 1] : null,
       }, raw);
     } else if (command === 'progress') {
-      const fmt = args[1] || 'json';
-      getCommands().cmdProgressRender(cwd, fmt, raw);
+      // If a sub-format is specified (table, bar), use the legacy render
+      const fmt = args[1];
+      if (fmt && ['table', 'bar', 'json'].includes(fmt)) {
+        getCommands().cmdProgressRender(cwd, fmt, raw);
+      } else {
+        // DX progress data: phase dependency graph + agent activity
+        const progressViz = require('./lib/progress-visualization.cjs');
+        output(progressViz.getProgressData(planningDir, configLoad(planningDir)));
+      }
+
+    // ─── Contextual Help ──────────────────────────────────────────────────────
+    } else if (command === 'help-context') {
+      const ctxHelp = require('./lib/contextual-help.cjs');
+      output(ctxHelp.getContextualHelp(planningDir, configLoad(planningDir)));
+
+    // ─── Onboarding Guide ─────────────────────────────────────────────────────
+    } else if (command === 'onboard') {
+      const onboard = require('./lib/onboarding-generator.cjs');
+      const result = onboard.generateOnboardingGuide(planningDir, configLoad(planningDir));
+      if (raw) {
+        output(result);
+      } else {
+        // Output the markdown field for human-readable usage
+        process.stdout.write(result.markdown || '');
+      }
+
     } else if (command === 'commit') {
       const amend = args.includes('--amend');
       const filesIndex = args.indexOf('--files');
@@ -1393,9 +1659,123 @@ async function main() {
         timestamp: new Date().toISOString()
       });
 
+    // ─── Decisions Operations ───────────────────────────────────────────────
+    } else if (command === 'decisions' && subcommand === 'record') {
+      const opts = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--decision' && args[i + 1]) { opts.decision = args[++i]; }
+        else if (args[i] === '--rationale' && args[i + 1]) { opts.rationale = args[++i]; }
+        else if (args[i] === '--context' && args[i + 1]) { opts.context = args[++i]; }
+        else if (args[i] === '--agent' && args[i + 1]) { opts.agent = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { opts.phase = args[++i]; }
+        else if (args[i] === '--tags' && args[i + 1]) { opts.tags = args[++i].split(',').map(t => t.trim()); }
+        else if (args[i] === '--alternatives' && args[i + 1]) { opts.alternatives = args[++i].split(',').map(a => a.trim()); }
+        else if (args[i] === '--consequences' && args[i + 1]) { opts.consequences = args[++i]; }
+      }
+      if (!opts.decision) error('Usage: decisions record --decision "..." --rationale "..." [--context "..."] [--agent name] [--phase NN] [--tags t1,t2] [--alternatives a1,a2] [--consequences "..."]');
+      output(decisionsRecord(opts));
+    } else if (command === 'decisions' && subcommand === 'list') {
+      const filters = {};
+      const statusIdx = args.indexOf('--status');
+      if (statusIdx !== -1 && args[statusIdx + 1]) filters.status = args[statusIdx + 1];
+      const phaseIdx = args.indexOf('--phase');
+      if (phaseIdx !== -1 && args[phaseIdx + 1]) filters.phase = args[phaseIdx + 1];
+      const tagIdx = args.indexOf('--tag');
+      if (tagIdx !== -1 && args[tagIdx + 1]) filters.tag = args[tagIdx + 1];
+      output(decisionsList(Object.keys(filters).length > 0 ? filters : undefined));
+    } else if (command === 'decisions') {
+      error(`Unknown decisions subcommand: ${subcommand}\nAvailable: record, list`);
+
+    // ─── Negative Knowledge ────────────────────────────────────────────────────
+    } else if (command === 'negative-knowledge' && subcommand === 'record') {
+      const nkArgs = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--title' && args[i + 1]) { nkArgs.title = args[++i]; }
+        else if (args[i] === '--category' && args[i + 1]) { nkArgs.category = args[++i]; }
+        else if (args[i] === '--files' && args[i + 1]) { nkArgs.filesInvolved = args[++i].split(',').map(f => f.trim()); }
+        else if (args[i] === '--what-tried' && args[i + 1]) { nkArgs.whatTried = args[++i]; }
+        else if (args[i] === '--why-failed' && args[i + 1]) { nkArgs.whyFailed = args[++i]; }
+        else if (args[i] === '--what-worked' && args[i + 1]) { nkArgs.whatWorked = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { nkArgs.phase = args[++i]; }
+      }
+      if (!nkArgs.title || !nkArgs.category) error('Usage: negative-knowledge record --title "..." --category <cat> --files "a,b" --what-tried "..." --why-failed "..."');
+      const result = getNegativeKnowledge().recordFailure(planningDir, nkArgs);
+      output(result);
+    } else if (command === 'negative-knowledge' && subcommand === 'query') {
+      let files = [];
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--files' && args[i + 1]) { files = args[++i].split(',').map(f => f.trim()); }
+      }
+      if (files.length === 0) error('Usage: negative-knowledge query --files "path1,path2"');
+      output(getNegativeKnowledge().queryByFiles(planningDir, files));
+    } else if (command === 'negative-knowledge' && subcommand === 'list') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--category' && args[i + 1]) { filters.category = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { filters.phase = args[++i]; }
+        else if (args[i] === '--status' && args[i + 1]) { filters.status = args[++i]; }
+      }
+      output(getNegativeKnowledge().listFailures(planningDir, filters));
+    } else if (command === 'negative-knowledge') {
+      error(`Unknown negative-knowledge subcommand: ${subcommand}\nAvailable: record, query, list`);
+
+    // ─── Patterns Operations (Phase 16: Cross-project pattern library) ────────
+    } else if (command === 'patterns' && subcommand === 'extract') {
+      const jsonFile = args[2];
+      if (!jsonFile) error('Usage: patterns extract <json-file>');
+      const entry = JSON.parse(fs.readFileSync(jsonFile, 'utf8'));
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternExtract(entry, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns' && subcommand === 'query') {
+      const filters = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--tags' && args[i + 1]) { filters.tags = args[++i].split(',').map(t => t.trim()); }
+        else if (args[i] === '--type' && args[i + 1]) { filters.type = args[++i]; }
+        else if (args[i] === '--stack' && args[i + 1]) { filters.stack = args[++i]; }
+        else if (args[i] === '--min-confidence' && args[i + 1]) { filters.minConfidence = parseFloat(args[++i]); }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternQuery(filters, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns' && subcommand === 'list') {
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getPatterns().patternList({ configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'patterns') {
+      error(`Unknown patterns subcommand: ${subcommand}\nAvailable: extract, query, list`);
+
+    // ─── Templates Operations (Phase 16: Spec templates) ─────────────────────
+    } else if (command === 'templates' && subcommand === 'list') {
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getTemplates().templateList({ configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'templates' && subcommand === 'instantiate') {
+      const templateName = args[2];
+      if (!templateName) error('Usage: templates instantiate <name> [--param key=value ...]');
+      const params = {};
+      for (let i = 3; i < args.length; i++) {
+        if (args[i] === '--param' && args[i + 1]) {
+          const kv = args[++i];
+          const eqIdx = kv.indexOf('=');
+          if (eqIdx !== -1) {
+            params[kv.slice(0, eqIdx)] = kv.slice(eqIdx + 1);
+          }
+        }
+      }
+      const cfg = (() => { try { return require('./lib/config.cjs').configLoad(planningDir) || {}; } catch (_) { return {}; } })();
+      output(getTemplates().templateInstantiate(templateName, params, { configFeatures: cfg.features || {} }), raw);
+    } else if (command === 'templates') {
+      error(`Unknown templates subcommand: ${subcommand}\nAvailable: list, instantiate`);
+
+    // ─── Graph Operations ─────────────────────────────────────────────────────
+    } else if (command === 'graph') {
+      const graphCli = require('./lib/graph-cli.cjs');
+      graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
+
+    // ─── Spec Operations (Phase 11: Spec-Driven Development) ─────────────────
+    } else if (command === 'spec') {
+      handleSpec(args, planningDir, cwd, output, error);
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {

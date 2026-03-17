@@ -31,6 +31,7 @@ You are the orchestrator for `/pbr:import`. This skill imports an external plan 
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Minimize** reading subagent output — read only verdicts, not full reports
@@ -249,7 +250,7 @@ After the Task() completes:
 
 **G1. Initialize STATE.md** (if it does not already exist):
 
-- Run: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state load`
+- Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load`
 - If STATE.md does not exist: create `.planning/STATE.md` with frontmatter fields:
   ```
   project: {project_name from PROJECT.md}
@@ -648,7 +649,7 @@ If the import process surfaced new locked decisions (from blocker resolutions in
 **8e. Emit workflow event (conditional):**
 If the event-logger script is available:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js event workflow plan-import --phase {N} --plans {count} --source {filepath_or_user_input}
 ```
 Falls back silently if the command is not available.
 

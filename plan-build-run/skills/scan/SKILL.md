@@ -29,6 +29,7 @@ This skill **spawns 4 parallel Task(subagent_type: "pbr:codebase-mapper")** agen
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Never** analyze the codebase yourself — delegate ALL analysis to the 4 parallel codebase-mapper subagents
@@ -53,7 +54,7 @@ Check if `.planning/codebase/` directory exists:
 
 First, resolve the depth profile so you know which areas are available:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
 ```
 Read `profile["scan.mapper_areas"]` to determine available areas (quick: tech, arch; standard/comprehensive: tech, arch, quality, concerns).
 
@@ -96,7 +97,7 @@ Refer to the "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR
 
 **Resolve mapper configuration:** Before spawning, resolve the depth profile:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
 ```
 
 Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determine how many mappers to spawn and which focus areas to cover.

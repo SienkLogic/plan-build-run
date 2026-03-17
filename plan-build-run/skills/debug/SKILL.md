@@ -37,6 +37,7 @@ This skill **spawns Task(subagent_type: "pbr:debugger")** for investigation work
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 - **Never** perform investigation work yourself — delegate ALL analysis to the debugger subagent
@@ -65,7 +66,7 @@ This handles the case where neither `.planning/` nor `.planning/debug/` exist ye
 
 ### Step 2: Check for Active Debug Sessions
 
-**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
+**Load depth profile:** Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get `debug.max_hypothesis_rounds`. If the command fails (no config.json or CLI error), default to 5 rounds. Initialize a round counter at 0. This counter increments each time a continuation debugger is spawned.
 
 Scan `.planning/debug/` for existing debug files:
 

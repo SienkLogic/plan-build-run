@@ -16,6 +16,9 @@ You are the orchestrator for `/pbr:execute-phase`. This skill executes all plans
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
+
+Reference: `skills/shared/agent-context-enrichment.md` for enriching executor spawn prompts with project context.
 
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
@@ -216,7 +219,7 @@ If config validation fails for a specific field, use conversational recovery:
 
 ### Step 2: Load Config (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
 
@@ -494,6 +497,26 @@ Before spawning a Task() executor, check if this plan qualifies for inline execu
 
 5. If `result.inline` is `false`: proceed with normal Task() spawn below (no change to existing flow)
 
+**Agent Context Enrichment (conditional):**
+
+Before spawning each Task() executor, enrich its prompt with project context if enabled:
+
+1. Check `features.rich_agent_prompts` in config. If `true`:
+   ```
+   const { buildRichAgentContext } = require(path.join(PLUGIN_ROOT, 'scripts/lib/gates/rich-agent-context.js'));
+   const richContext = buildRichAgentContext(planningDir, config, contextPct > 50 ? 2500 : 5000);
+   ```
+   — The orchestrator conceptually evaluates this; it does not literally run JavaScript. If rich context is non-empty, include it in the executor spawn prompt under a `## Project Context` header.
+
+2. Check `features.multi_phase_awareness` in config. If `true`:
+   ```
+   const { loadMultiPhasePlans } = require(path.join(PLUGIN_ROOT, 'scripts/lib/gates/multi-phase-loader.js'));
+   const multiPhase = loadMultiPhasePlans(planningDir, currentPhaseNum, config);
+   ```
+   — If `multiPhase.phasesLoaded > 1`, include adjacent phase plan frontmatter (first 30 lines of each) in the executor spawn prompt under a `## Adjacent Phase Context` header. Do NOT include full plan bodies for adjacent phases — frontmatter only.
+
+3. If neither feature is enabled, skip enrichment entirely (no performance cost).
+
 **Local LLM plan quality check (optional, advisory):**
 
 Before spawning executors for this wave, if `config.local_llm.enabled` is `true`, run a quick classification on each plan to catch stubs before wasting an executor spawn:
@@ -589,7 +612,7 @@ After executor completes, check for completion markers: `## PLAN COMPLETE`, `## 
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### 6b. Wait for Wave Completion
 
@@ -684,6 +707,96 @@ For each plan that completed successfully in this wave:
 4. If verifier reports all PASS: continue to next wave
 
 **Note:** This adds latency (~10-20s per plan for the haiku verifier). It's opt-in via `features.inline_verify: true` for projects where early detection outweighs speed.
+
+---
+
+#### 6c-iii. Multi-Layer Validation (conditional)
+
+**Skip if** `features.multi_layer_validation` is not `true` in `.planning/config.json`.
+
+After each wave completes, run parallel validation passes over the files changed in that wave. This is a BugBot-style multi-perspective review (correctness, security, performance, etc.) that runs inline without spawning external agents.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation get-passes
+```
+
+This returns the active validation pass names from `config.validation_passes` (or all 8 standard passes if unconfigured). Then:
+
+1. Get the list of changed files for this wave:
+   ```bash
+   git diff --name-only HEAD~{wave_commit_count}..HEAD
+   ```
+2. Build the validation prompt:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation build-prompt '{pass_name}' '{comma-separated changed files}'
+   ```
+   (`buildValidationPrompt()` in `plan-build-run/bin/lib/validation.cjs`)
+3. Run each pass as a lightweight inline review (no Task() spawn — use direct tool calls). Display results as:
+   - `✓ Validation [{pass}]: no issues`
+   - `⚠ Validation [{pass}]: {N} finding(s) — {brief description}`
+4. If any HIGH-severity finding is reported: surface it to the user before proceeding to the next wave. Use AskUserQuestion (pattern: acknowledge-finding) to let the user decide whether to fix now or defer.
+5. Findings do NOT block the build by default — they are advisory unless `config.validation_blocking` is `true`.
+
+---
+
+#### 6c-iv. Security Scan (conditional)
+
+**Skip if** `features.security_scanning` is not `true` in `.planning/config.json`.
+
+Run an OWASP-style security scan over the files changed during this wave using the patterns in `plan-build-run/bin/lib/security-scan.cjs`.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security scan '{space-separated changed files}'
+```
+
+(`scanFiles()` in `plan-build-run/bin/lib/security-scan.cjs`)
+
+Display formatted findings:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security format-findings '{scan-output-json}'
+```
+
+(`formatFindings()` in `plan-build-run/bin/lib/security-scan.cjs`)
+
+Output format:
+- If no findings: `✓ Security scan: clean`
+- If findings exist:
+  ```
+  ⚠ Security scan: {N} finding(s)
+    [SEC-001] {file}:{line} — {message} (severity: high)
+    ...
+  ```
+
+HIGH-severity findings (hardcoded secrets, SQL injection, eval-of-user-input) require user acknowledgment before the build continues. MEDIUM and LOW findings are logged but non-blocking.
+
+---
+
+#### 6c-v. Smart Test Selection (conditional)
+
+**Skip if** `features.regression_prevention` is not `true` in `.planning/config.json`.
+
+After each wave, identify which test files are relevant to the changed source files using `plan-build-run/bin/lib/test-selection.cjs`. Run only those tests instead of the full suite — this catches regressions early without the latency of a full test run.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection select '{space-separated changed files}'
+```
+
+(`selectTests()` in `plan-build-run/bin/lib/test-selection.cjs`)
+
+Then format the test command:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection format-command '{selection-output-json}'
+```
+
+(`formatTestCommand()` in `plan-build-run/bin/lib/test-selection.cjs`)
+
+Run the resulting command (e.g., `npm test -- tests/foo.test.js tests/bar.test.js`) via Bash. Display:
+- `✓ Smart tests ({N} files): all passed`
+- `✗ Smart tests ({N} files): {M} failed — {test names}`
+
+If tests fail: present the failure to the user (same flow as Step 6d). The failing test output counts as a gap for the wave — the orchestrator does NOT automatically retry, but surfaces it for the user to decide (fix now, skip, or abort).
 
 ---
 
@@ -987,7 +1100,7 @@ NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inl
 After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -1220,7 +1333,7 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] auto_advance OR auto_continue evaluated (one path taken)
 - [ ] If auto_continue: `.auto-next` file written with correct next command
 - [ ] Pending todos evaluated (Step 8e-ii)
-- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
+- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.cjs todo done`
 
 To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
 If any item fails, investigate before closing the session.

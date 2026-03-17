@@ -110,9 +110,9 @@ If you hit an auth error (missing API key, expired token): **STOP immediately**.
 
 **Do NOT modify `.planning/STATE.md` directly.** Use CLI commands:
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state update status executing
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state advance-plan
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state patch '{"status":"executing","last_activity":"now"}'
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status executing
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
 ```
 
 Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sole writer of STATE.md via CLI.
@@ -152,7 +152,7 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
 
 After writing SUMMARY.md, if you discovered noteworthy patterns, API quirks, or architectural insights during execution, write `.planning/phases/{phase_dir}/LEARNINGS.md`.
 
-**Gate:** Read `learnings.enabled` from config: `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs config-get learnings.enabled`
+**Gate:** Read `learnings.enabled` from config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get learnings.enabled`
 If false or missing, skip this step entirely.
 
 **Format:**
@@ -194,13 +194,13 @@ Body sections (include only sections with content):
 
 After writing SUMMARY.md (Step 6) and passing self-check (Step 9), run these CLI commands in order:
 
-1. `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state advance-plan`
+1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan`
    — **CRITICAL: Capture and parse the JSON output.** The response contains `current_plan` and `total_plans` fields needed to detect final plan completion.
-2. `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state update-progress`
-3. `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state record-activity "Plan {plan_id} complete"`
-4. `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs roadmap update-plans {phase_num} {completed} {total}`
+2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress`
+3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Plan {plan_id} complete"`
+4. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase_num} {completed} {total}`
 5. If the plan frontmatter contains a non-empty `implements` array (REQ-IDs), mark those requirements as complete:
-   `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs requirements mark-complete {comma-separated REQ-IDs}`
+   `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js requirements mark-complete {comma-separated REQ-IDs}`
    Example: `requirements mark-complete REQ-F-001,REQ-F-002`
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
@@ -211,7 +211,7 @@ If any command fails, log the error in SUMMARY.md but do NOT retry — the build
 
 After running post_completion_state, check if this was the last plan in the phase using the output from step 1 above:
 - If `state advance-plan` output shows `current_plan > total_plans`: all plans done
-- Run: `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs phase complete {phase_num}`
+- Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase complete {phase_num}`
 - This atomically updates ROADMAP.md checkbox, progress table, and STATE.md to advance to the next phase.
 - Do NOT call this if there are remaining plans — the build skill will spawn the next executor.
 - **CRITICAL: If you are unsure whether you are the final plan, run `phase complete` anyway — it is idempotent and safe to call even when the build skill orchestrator will also call it.**
@@ -323,7 +323,7 @@ When a task has a checkpoint type, **STOP execution** and return a structured re
 | `human-action` | Before executing | What user must do, step-by-step |
 
 **auto_checkpoints config**: After loading plan frontmatter, read `gates.auto_checkpoints` from config.json (default false):
-- Load with: `node pbr-tools.cjs config-get gates.auto_checkpoints`
+- Load with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get gates.auto_checkpoints`
 - When `auto_checkpoints` is true AND task type is `checkpoint:human-verify`: run the automated verify command. If it passes, auto-approve and continue. If it fails, still STOP and return the checkpoint response.
 - `checkpoint:decision` and `checkpoint:human-action` always require human input regardless of `auto_checkpoints`.
 

@@ -19,10 +19,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
 const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
+const { writeSnapshot } = require('./lib/snapshot-manager');
 
 function readStdin() {
   try {
@@ -113,6 +115,31 @@ function findOrphanedProgressFiles(planningDir) {
   return orphans;
 }
 
+/**
+ * formatSessionMetrics — Format session stats into a human-readable report.
+ * @param {Object} stats - Session statistics
+ * @returns {string} Formatted multi-line string
+ */
+function formatSessionMetrics(stats) {
+  const duration = stats.duration_min || 0;
+  const agents = stats.agents_spawned || 0;
+  const commits = stats.commits_created || 0;
+  const plansExec = stats.plans_executed || 0;
+  const plansVerified = stats.plans_verified || 0;
+  const feedback = stats.feedback_loops || 0;
+  const compliance = Math.round((plansVerified / Math.max(plansExec, 1)) * 100);
+
+  return [
+    'Session Metrics:',
+    `  Duration:    ${duration}m`,
+    `  Agents:      ${agents}`,
+    `  Commits:     ${commits}`,
+    `  Plans:       ${plansExec} executed, ${plansVerified} verified`,
+    `  Compliance:  ${compliance}%`,
+    `  Feedback:    ${feedback} loops triggered`
+  ].join('\n');
+}
+
 const MAX_SESSION_ENTRIES = 100;
 
 function writeSessionHistory(planningDir, data) {
@@ -149,14 +176,18 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
-    // Count commits and commands from events log
+    // Count commits, commands, and feedback loops from events log
     // Read last 200 entries — sufficient for a single session's events
+    let feedbackLoopsTriggered = 0;
     const eventLines = tailLines(eventsLog, 200);
     for (const line of eventLines) {
       try {
         const entry = JSON.parse(line);
         if (entry.event === 'commit-validated' && entry.status === 'allow') {
           commitsCreated++;
+        }
+        if (entry.event === 'feedback-injected') {
+          feedbackLoopsTriggered++;
         }
         if (entry.cat === 'workflow' && entry.event) {
           if (!commandsRun.includes(entry.event)) {
@@ -169,11 +200,33 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
+    // Count plans executed (SUMMARY-*.md files in phase dirs) and verified (VERIFICATION-*.md)
+    let plansExecuted = 0;
+    let plansVerified = 0;
+    try {
+      const phasesDir = path.join(planningDir, 'phases');
+      if (fs.existsSync(phasesDir)) {
+        const pDirs = fs.readdirSync(phasesDir);
+        for (const pd of pDirs) {
+          const pdPath = path.join(phasesDir, pd);
+          try {
+            const files = fs.readdirSync(pdPath);
+            for (const f of files) {
+              if (/^SUMMARY-.*\.md$/i.test(f)) plansExecuted++;
+              if (/^VERIFICATION-.*\.md$/i.test(f)) plansVerified++;
+            }
+          } catch (_e) { /* skip unreadable dirs */ }
+        }
+      }
+    } catch (_e) { /* best-effort */ }
+
     const sessionEnd = new Date().toISOString();
     let durationMinutes = null;
     if (sessionStart) {
       durationMinutes = Math.round((new Date(sessionEnd) - new Date(sessionStart)) / 60000);
     }
+
+    const compliancePct = Math.round((plansVerified / Math.max(plansExecuted, 1)) * 100);
 
     const summary = {
       start: sessionStart || sessionEnd,
@@ -182,7 +235,10 @@ function writeSessionHistory(planningDir, data) {
       reason: data.reason || null,
       agents_spawned: agentsSpawned,
       commits_created: commitsCreated,
-      commands_run: commandsRun
+      commands_run: commandsRun,
+      plans_executed: plansExecuted,
+      compliance_pct: compliancePct,
+      feedback_loops_triggered: feedbackLoopsTriggered
     };
 
     // Append to sessions.jsonl, cap at MAX_SESSION_ENTRIES
@@ -201,6 +257,75 @@ function writeSessionHistory(planningDir, data) {
   } catch (_e) {
     // Best-effort — don't fail the hook
   }
+}
+
+/**
+ * Gather session context for mental model snapshot.
+ * Reads recent git changes, STATE.md sections, and recent commits.
+ * All operations are best-effort — returns partial data on failure.
+ *
+ * @param {string} cwd - Project working directory
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string|null} sessionId - Session ID
+ * @returns {object} Context object for writeSnapshot
+ */
+function gatherSessionContext(cwd, planningDir, sessionId) {
+  const context = {
+    session_id: sessionId || 'unknown',
+    files_working_on: [],
+    pending_decisions: [],
+    current_approach: '',
+    open_questions: [],
+    recent_commits: []
+  };
+
+  // Gather recent git changes
+  try {
+    const diff = execSync('git diff --name-only HEAD~5 HEAD 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
+    });
+    context.files_working_on = diff.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Gather recent commits
+  try {
+    const log = execSync('git log --oneline -5 2>/dev/null || echo ""', {
+      cwd, encoding: 'utf8', timeout: 5000
+    });
+    context.recent_commits = log.split('\n').map(l => l.trim()).filter(Boolean);
+  } catch (_e) { /* best-effort */ }
+
+  // Read STATE.md for approach, decisions, and open questions
+  const stateFile = path.join(planningDir, 'STATE.md');
+  try {
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+
+      // Extract Current Position section
+      const posMatch = stateContent.match(/## Current Position\s*\n([\s\S]*?)(?=\n##\s|$)/);
+      if (posMatch) {
+        context.current_approach = posMatch[1].trim().split('\n').slice(0, 5).join('\n');
+      }
+
+      // Extract Decisions section
+      const decMatch = stateContent.match(/### Decisions\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (decMatch) {
+        context.pending_decisions = decMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+
+      // Extract Blockers/Concerns section
+      const blockMatch = stateContent.match(/### Blockers\/Concerns\s*\n([\s\S]*?)(?=\n###\s|\n##\s|$)/);
+      if (blockMatch) {
+        context.open_questions = blockMatch[1].trim().split('\n')
+          .filter(l => l.startsWith('- '))
+          .map(l => l.slice(2).trim());
+      }
+    }
+  } catch (_e) { /* best-effort */ }
+
+  return context;
 }
 
 function main() {
@@ -264,6 +389,32 @@ function main() {
   // Write session history log
   writeSessionHistory(planningDir, data);
 
+  // Session productivity metrics display (controlled by features.session_metrics)
+  let metricsContext = null;
+  try {
+    const rawConfig = configLoad(planningDir) || {};
+    if (rawConfig.features && rawConfig.features.session_metrics !== false) {
+      // Build stats from the same data writeSessionHistory computed
+      // Re-read the last session entry to get the computed values
+      const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
+      if (fs.existsSync(sessionsFile)) {
+        const lastLine = fs.readFileSync(sessionsFile, 'utf8').trim().split('\n').pop();
+        if (lastLine) {
+          const lastEntry = JSON.parse(lastLine);
+          metricsContext = formatSessionMetrics({
+            duration_min: lastEntry.duration_minutes || 0,
+            agents_spawned: lastEntry.agents_spawned || 0,
+            commits_created: lastEntry.commits_created || 0,
+            plans_executed: lastEntry.plans_executed || 0,
+            plans_verified: Math.round((lastEntry.compliance_pct || 0) * Math.max(lastEntry.plans_executed || 0, 1) / 100),
+            feedback_loops: lastEntry.feedback_loops_triggered || 0,
+            commands_run: (lastEntry.commands_run || []).length
+          });
+        }
+      }
+    }
+  } catch (_e) { /* metrics display is best-effort */ }
+
   // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
   let llmAdditionalContext = null;
   try {
@@ -325,7 +476,22 @@ function main() {
     orphaned_progress_files: orphans.length > 0 ? orphans : undefined
   });
 
-  const combinedContext = [llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
+  // Write mental model snapshot (gated by config toggle)
+  try {
+    const config = configLoad(planningDir) || {};
+    const snapshotsEnabled = config.features && config.features.mental_model_snapshots !== false;
+    if (snapshotsEnabled) {
+      const snapContext = gatherSessionContext(cwd, planningDir, sessionId);
+      writeSnapshot(planningDir, snapContext);
+      logHook('session-cleanup', 'SessionEnd', 'snapshot-written', {
+        files_count: snapContext.files_working_on.length
+      });
+    }
+  } catch (_e) {
+    // Snapshot failure must never crash SessionEnd
+  }
+
+  const combinedContext = [metricsContext, llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }
@@ -368,5 +534,69 @@ function handleHttp(reqBody) {
   return null;
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, handleHttp };
+/**
+ * Extract learnings from a session's hook logs and event logs.
+ * Writes to planningDir/logs/session-learnings.jsonl only if interesting events found.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ */
+function extractSessionLearnings(planningDir, sessionId) {
+  const logsDir = path.join(planningDir, 'logs');
+  const hooksLog = path.join(logsDir, 'hooks.jsonl');
+  const eventsLog = path.join(logsDir, 'events.jsonl');
+
+  const gatesTriggered = [];
+  const agentFailures = [];
+  let phasesCompleted = 0;
+  const contextEvents = [];
+
+  // Parse hooks.jsonl for blocks and warnings
+  if (fs.existsSync(hooksLog)) {
+    const lines = fs.readFileSync(hooksLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.decision === 'block') {
+          gatesTriggered.push({ hook: entry.hook, reason: entry.reason });
+        }
+        if (entry.decision === 'warning' && entry.hook === 'check-subagent-output' && entry.agent_type) {
+          agentFailures.push({ agent_type: entry.agent_type, expected: entry.expected });
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  // Parse events.jsonl for phase completions and compactions
+  if (fs.existsSync(eventsLog)) {
+    const lines = fs.readFileSync(eventsLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.cat === 'workflow' && entry.event === 'phase-complete') {
+          phasesCompleted++;
+        }
+        if (entry.cat === 'system' && entry.event === 'compaction') {
+          contextEvents.push('compaction');
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  const hasInteresting = gatesTriggered.length > 0 || agentFailures.length > 0 || phasesCompleted > 0 || contextEvents.length > 0;
+  if (!hasInteresting) return;
+
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+  const learningsFile = path.join(logsDir, 'session-learnings.jsonl');
+  const entry = JSON.stringify({
+    session_id: sessionId,
+    ts: new Date().toISOString(),
+    gates_triggered: gatesTriggered,
+    agent_failures: agentFailures,
+    phases_completed: phasesCompleted,
+    context_events: contextEvents
+  });
+  fs.appendFileSync(learningsFile, entry + '\n');
+}
+
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
 if (require.main === module || process.argv[1] === __filename) { main(); }

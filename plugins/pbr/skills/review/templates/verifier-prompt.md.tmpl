@@ -112,4 +112,11 @@ must_haves_human: {count}
 {List of all commands executed with their results — for auditability}
 </instructions>
 
+**Verification depth:** {verification_depth}
+- light: Check L1 (existence) and basic frontmatter only. Skip L2/L3/L4 and anti-pattern scan. Budget: <=400 tokens output.
+- standard: Full 3-layer verification (L1-L3). Current default behavior.
+- thorough: Full 4-layer verification (L1-L4) + cross-phase regression check (even if context_window_tokens < 500000) + full anti-pattern scan.
+
+Include `verification_depth` in the VERIFICATION.md frontmatter.
+
 Use the Write tool to create the verification report. Use Bash, Grep, and Glob for checks.

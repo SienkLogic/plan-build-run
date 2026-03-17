@@ -22,7 +22,7 @@ Then proceed to Step 1.
 Read the following files:
 
 ```bash
-node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs state load
+node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
 ```
 
 Also read `.planning/config.json` to check for `ui.enabled` setting.
@@ -183,6 +183,7 @@ List each dimension the user selected with a concrete, actionable task descripti
 ## Context Budget
 
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Additionally for this skill:
 

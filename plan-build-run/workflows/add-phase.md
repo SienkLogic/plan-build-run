@@ -29,7 +29,7 @@ Exit.
 Load phase operation context:
 
 ```bash
-INIT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js init phase-op "0")
+INIT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs init phase-op "0")
 ```
 
 Check `roadmap_exists` from init JSON. If false:
@@ -44,7 +44,7 @@ Exit.
 **Delegate the phase addition to pbr-tools:**
 
 ```bash
-RESULT=$(node ~/.claude/plan-build-run/bin/pbr-tools.js phase add "${description}")
+RESULT=$(node ~/.claude/plan-build-run/scripts/pbr-tools.cjs phase add "${description}")
 ```
 
 The CLI handles:

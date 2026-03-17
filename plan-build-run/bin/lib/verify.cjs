@@ -514,6 +514,60 @@ function cmdValidateConsistency(cwd, raw) {
   output({ passed, errors, warnings, warning_count: warnings.length }, raw, passed ? 'passed' : 'failed');
 }
 
+/**
+ * Check Phase 05 features: decision_journal, negative_knowledge, living_requirements.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Parsed config.json
+ * @returns {object} Per-feature status object
+ */
+function checkPhase05Features(planningDir, config) {
+  const features = config.features || {};
+  const result = {};
+
+  // decision_journal
+  if (features.decision_journal === false) {
+    result.decision_journal = { enabled: false, status: 'disabled' };
+  } else if (features.decision_journal) {
+    const decisionsDir = path.join(planningDir, 'decisions');
+    if (fs.existsSync(decisionsDir)) {
+      result.decision_journal = { enabled: true, status: 'healthy' };
+    } else {
+      result.decision_journal = { enabled: true, status: 'degraded', reason: 'decisions directory not found' };
+    }
+  }
+
+  // negative_knowledge
+  if (features.negative_knowledge === false) {
+    result.negative_knowledge = { enabled: false, status: 'disabled' };
+  } else if (features.negative_knowledge) {
+    const nkDir = path.join(planningDir, 'negative-knowledge');
+    if (fs.existsSync(nkDir)) {
+      result.negative_knowledge = { enabled: true, status: 'healthy' };
+    } else {
+      result.negative_knowledge = { enabled: true, status: 'degraded', reason: 'negative-knowledge directory not found' };
+    }
+  }
+
+  // living_requirements
+  if (features.living_requirements === false) {
+    result.living_requirements = { enabled: false, status: 'disabled' };
+  } else if (features.living_requirements) {
+    const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
+    if (fs.existsSync(reqPath)) {
+      const content = fs.readFileSync(reqPath, 'utf-8');
+      if (/REQ-/.test(content)) {
+        result.living_requirements = { enabled: true, status: 'healthy' };
+      } else {
+        result.living_requirements = { enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs' };
+      }
+    } else {
+      result.living_requirements = { enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs' };
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function cmdValidateHealth(cwd, options, raw) {
   const planningDir = path.join(cwd, '.planning');
   const projectPath = path.join(planningDir, 'PROJECT.md');
@@ -722,6 +776,7 @@ function cmdValidateHealth(cwd, options, raw) {
       const configRaw = fs.readFileSync(configPath, 'utf-8');
       const configParsed = JSON.parse(configRaw);
       const features = configParsed.features || {};
+      const workflow = configParsed.workflow || {};
 
       // enhanced_session_start: default true (enabled unless explicitly false)
       const essEnabled = features.enhanced_session_start !== false;
@@ -735,6 +790,38 @@ function cmdValidateHealth(cwd, options, raw) {
       const srEnabled = features.skip_rag === true;
       feature_status.skip_rag = { enabled: srEnabled, status: srEnabled ? 'healthy' : 'disabled' };
 
+      // ─── Phase 8 feature checks ──────────────────────────────────────────
+
+      // graduated_verification: default true; degraded if enabled but no trust data
+      const gvEnabled = features.graduated_verification !== false;
+      if (!gvEnabled) {
+        feature_status.graduated_verification = { enabled: false, status: 'disabled' };
+      } else {
+        const trustScoresPath = path.join(planningDir, 'trust', 'scores.json');
+        const hasTrustData = fs.existsSync(trustScoresPath);
+        feature_status.graduated_verification = {
+          enabled: true,
+          status: hasTrustData ? 'healthy' : 'degraded'
+        };
+      }
+
+      // self_verification: default true; healthy if enabled, disabled otherwise
+      const svEnabled = features.self_verification !== false;
+      feature_status.self_verification = {
+        enabled: svEnabled,
+        status: svEnabled ? 'healthy' : 'disabled'
+      };
+
+      // autonomy: check autonomy.level config property
+      const autonomyConfig = configParsed.autonomy || {};
+      const autonomyLevel = autonomyConfig.level || 'supervised';
+      const autonomyExplicit = !!(configParsed.autonomy && configParsed.autonomy.level);
+      feature_status.autonomy = {
+        enabled: true,
+        status: autonomyExplicit ? 'healthy' : 'degraded',
+        level: autonomyLevel
+      };
+
       // Validate orchestrator_budget_pct range (15-50)
       const budgetPct = configParsed.orchestrator_budget_pct;
       if (budgetPct !== undefined) {
@@ -742,7 +829,449 @@ function cmdValidateHealth(cwd, options, raw) {
           addIssue('warning', 'W010', `orchestrator_budget_pct is ${budgetPct}, outside valid range 15-50`, 'Set to a value between 15 and 50 in config.json');
         }
       }
+
+      // ─── Check 10: Phase 2 feature status ──────────────────────────────────────
+      // inline_simple_tasks: default true, degraded if enabled but inline_max_files/inline_max_lines missing
+      const istEnabled = features.inline_simple_tasks !== false;
+      if (istEnabled) {
+        const hasMaxFiles = workflow.inline_max_files !== undefined &&
+          typeof workflow.inline_max_files === 'number' &&
+          workflow.inline_max_files >= 1 && workflow.inline_max_files <= 20;
+        const hasMaxLines = workflow.inline_max_lines !== undefined &&
+          typeof workflow.inline_max_lines === 'number' &&
+          workflow.inline_max_lines >= 10 && workflow.inline_max_lines <= 500;
+        if (!hasMaxFiles || !hasMaxLines) {
+          feature_status.inline_simple_tasks = { enabled: true, status: 'degraded' };
+          addIssue('warning', 'W012', 'inline_simple_tasks enabled but inline_max_files/inline_max_lines not configured or invalid', 'Add workflow.inline_max_files (1-20) and workflow.inline_max_lines (10-500) to config.json');
+        } else {
+          feature_status.inline_simple_tasks = { enabled: true, status: 'enabled' };
+        }
+      } else {
+        feature_status.inline_simple_tasks = { enabled: false, status: 'disabled' };
+      }
+
+      // rich_agent_prompts: default true, no extra validation needed
+      const rapEnabled = features.rich_agent_prompts !== false;
+      feature_status.rich_agent_prompts = { enabled: rapEnabled, status: rapEnabled ? 'enabled' : 'disabled' };
+
+      // multi_phase_awareness: default true, degraded if enabled but max_phases_in_context missing
+      const mpaEnabled = features.multi_phase_awareness !== false;
+      if (mpaEnabled) {
+        const hasMaxPhases = workflow.max_phases_in_context !== undefined &&
+          typeof workflow.max_phases_in_context === 'number' &&
+          workflow.max_phases_in_context >= 1 && workflow.max_phases_in_context <= 10;
+        if (!hasMaxPhases) {
+          feature_status.multi_phase_awareness = { enabled: true, status: 'degraded' };
+          addIssue('warning', 'W013', 'multi_phase_awareness enabled but max_phases_in_context not configured or invalid', 'Add workflow.max_phases_in_context (1-10) to config.json');
+        } else {
+          feature_status.multi_phase_awareness = { enabled: true, status: 'enabled' };
+        }
+      } else {
+        feature_status.multi_phase_awareness = { enabled: false, status: 'disabled' };
+      }
     } catch (_e) { /* config parse errors handled in Check 5 */ }
+  }
+
+  // ─── Check 11: Phase 05 feature status ────────────────────────────────────
+  {
+    let p05Config = {};
+    try { p05Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    var phase05_features = checkPhase05Features(planningDir, p05Config);
+  }
+
+  // ─── Check 12: Trust tracking health ──────────────────────────────────────
+  {
+    let config = {};
+    try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+
+    if (config.features && config.features.trust_tracking === false) {
+      addIssue('info', 'I-TRUST-DISABLED', 'trust_tracking is disabled in config', 'Enable features.trust_tracking in config.json if desired');
+    } else {
+      const trustFile = path.join(planningDir, 'trust', 'agent-scores.json');
+      if (!fs.existsSync(trustFile)) {
+        addIssue('info', 'I-TRUST-DEGRADED', 'trust_tracking: degraded — agent-scores.json missing. Will populate after first verification.', 'Run a build cycle to generate trust data');
+      } else {
+        try {
+          const scores = JSON.parse(fs.readFileSync(trustFile, 'utf-8'));
+          const agents = Object.keys(scores);
+          let totalOutcomes = 0;
+          for (const agent of agents) {
+            for (const cat of Object.values(scores[agent])) {
+              totalOutcomes += (cat.pass || 0) + (cat.fail || 0);
+            }
+          }
+          addIssue('info', 'I-TRUST-HEALTHY', `trust_tracking: healthy — ${agents.length} agents, ${totalOutcomes} outcomes tracked`, '');
+        } catch (_) {
+          addIssue('info', 'I-TRUST-DEGRADED', 'trust_tracking: degraded — agent-scores.json exists but is malformed', 'Delete .planning/trust/agent-scores.json to reset');
+        }
+      }
+    }
+
+    if (config.features && config.features.confidence_calibration === false) {
+      addIssue('info', 'I-CONFIDENCE-DISABLED', 'confidence_calibration is disabled in config', 'Enable features.confidence_calibration in config.json if desired');
+    } else {
+      const trustFile = path.join(planningDir, 'trust', 'agent-scores.json');
+      if (!fs.existsSync(trustFile)) {
+        addIssue('info', 'I-CONFIDENCE-DEGRADED', 'confidence_calibration: degraded — no trust data available', 'Run a build cycle to generate trust data');
+      } else {
+        try {
+          JSON.parse(fs.readFileSync(trustFile, 'utf-8'));
+          addIssue('info', 'I-CONFIDENCE-HEALTHY', 'confidence_calibration: healthy — trust data available for calibration', '');
+        } catch (_) {
+          addIssue('info', 'I-CONFIDENCE-DEGRADED', 'confidence_calibration: degraded — trust data malformed', 'Delete .planning/trust/agent-scores.json to reset');
+        }
+      }
+    }
+  }
+
+  // ─── Check 13: Architecture graph feature health ──────────────────────────
+  try {
+    const graph = require('./graph.cjs');
+    const graphHealth = graph.graphHealthCheck(planningDir);
+    const guardHealth = graph.guardHealthCheck(planningDir);
+    feature_status.architecture_graph = graphHealth;
+    feature_status.architecture_guard = guardHealth;
+  } catch (_e) { /* graph module not available — skip */ }
+
+  // ─── Check 14: Phase 15 DX feature health ────────────────────────────────
+  {
+    let p15Config = {};
+    try { p15Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p15Features = (p15Config && p15Config.features) || {};
+
+    const checkDxFeature = (featureName, modulePath, exportName) => {
+      const enabled = p15Features[featureName] !== false; // default true
+      if (!enabled) {
+        return { enabled: false, status: 'disabled', detail: 'Feature disabled in config' };
+      }
+      try {
+        const mod = require(modulePath);
+        if (typeof mod[exportName] === 'function') {
+          // Attempt a lightweight invocation to confirm operational
+          const result = mod[exportName](planningDir, p15Config);
+          const operational = result && result.enabled !== false;
+          return {
+            enabled: true,
+            status: operational ? 'healthy' : 'degraded',
+            detail: operational ? `${exportName} returned data` : 'Module returned disabled stub',
+          };
+        }
+        return { enabled: true, status: 'degraded', detail: `${exportName} not a function` };
+      } catch (err) {
+        return { enabled: true, status: 'degraded', detail: `Error: ${err.message}` };
+      }
+    };
+
+    feature_status.progress_visualization = checkDxFeature(
+      'progress_visualization',
+      path.join(__dirname, 'progress-visualization.cjs'),
+      'getProgressData'
+    );
+    feature_status.contextual_help = checkDxFeature(
+      'contextual_help',
+      path.join(__dirname, 'contextual-help.cjs'),
+      'getContextualHelp'
+    );
+    feature_status.team_onboarding = checkDxFeature(
+      'team_onboarding',
+      path.join(__dirname, 'onboarding-generator.cjs'),
+      'generateOnboardingGuide'
+    );
+  }
+
+  // ─── Check 15: Phase 14 Quality & Safety feature health ───────────────────
+  {
+    let p14Config = {};
+    try { p14Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+
+    const p14Features = p14Config.features || {};
+
+    // Helper: check a feature module loads correctly
+    const checkFeatureHealth = (featureName, configEnabled, modulePath, validationFn) => {
+      if (!configEnabled) {
+        addIssue('info', `I-${featureName.toUpperCase()}-DISABLED`, `${featureName}: disabled`, `Enable features.${featureName} in config.json if desired`);
+        return { enabled: false, status: 'disabled' };
+      }
+      try {
+        const mod = require(modulePath);
+        const isValid = validationFn(mod);
+        if (isValid) {
+          return { enabled: true, status: 'healthy' };
+        }
+        addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module validation failed)`, `Check ${modulePath} exports`);
+        return { enabled: true, status: 'degraded' };
+      } catch (_e) {
+        addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module load failed)`, `Ensure ${modulePath} exists and is valid`);
+        return { enabled: true, status: 'degraded' };
+      }
+    };
+
+    // multi_layer_validation: default false
+    const mlvEnabled = p14Features.multi_layer_validation === true;
+    const mlvModPath = path.join(__dirname, 'validation.cjs');
+    const mlvHealth = checkFeatureHealth(
+      'multi_layer_validation',
+      mlvEnabled,
+      mlvModPath,
+      (mod) => mod.PASS_DEFINITIONS && Object.keys(mod.PASS_DEFINITIONS).length > 0
+    );
+    if (mlvHealth.status === 'healthy') {
+      try {
+        const vlMod = require(mlvModPath);
+        const passCount = Object.keys(vlMod.PASS_DEFINITIONS).length;
+        addIssue('info', 'I-MLV-HEALTHY', `multi_layer_validation: healthy (${passCount} passes configured)`, '');
+      } catch (_) {}
+    }
+    feature_status.multi_layer_validation = mlvHealth;
+
+    // regression_prevention: default true
+    const rpEnabled = p14Features.regression_prevention !== false;
+    const rpModPath = path.join(__dirname, 'test-selection.cjs');
+    const rpHealth = checkFeatureHealth(
+      'regression_prevention',
+      rpEnabled,
+      rpModPath,
+      (mod) => typeof mod.selectTests === 'function'
+    );
+    if (rpHealth.status === 'healthy') {
+      addIssue('info', 'I-RP-HEALTHY', 'regression_prevention: healthy', '');
+    }
+    feature_status.regression_prevention = rpHealth;
+
+    // security_scanning: default true
+    const ssEnabled = p14Features.security_scanning !== false;
+    const ssModPath = path.join(__dirname, 'security-scan.cjs');
+    const ssHealth = checkFeatureHealth(
+      'security_scanning',
+      ssEnabled,
+      ssModPath,
+      (mod) => Array.isArray(mod.SECURITY_RULES) && mod.SECURITY_RULES.length > 0
+    );
+    if (ssHealth.status === 'healthy') {
+      try {
+        const ssMod = require(ssModPath);
+        const ruleCount = ssMod.SECURITY_RULES.length;
+        addIssue('info', 'I-SS-HEALTHY', `security_scanning: healthy (${ruleCount} rules loaded)`, '');
+      } catch (_) {}
+    }
+    feature_status.security_scanning = ssHealth;
+  }
+
+  // ─── Check 16: Phase 11 Spec-Driven Development feature health ───────────
+  {
+    let p11Config = {};
+    try { p11Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p11Features = p11Config.features || {};
+
+    const checkSpecFeatureHealth = (featureName, defaultEnabled, modulePath, exportName) => {
+      const isEnabled = p11Features[featureName] === undefined ? defaultEnabled : p11Features[featureName];
+      if (!isEnabled) {
+        return { status: 'disabled', enabled: false, details: 'Feature toggle off' };
+      }
+      try {
+        const mod = require(modulePath);
+        if (typeof mod[exportName] === 'function') {
+          return { status: 'healthy', enabled: true, details: `${exportName} loaded` };
+        }
+        return { status: 'degraded', enabled: true, details: `${exportName} not a function` };
+      } catch (_e) {
+        return { status: 'degraded', enabled: true, details: `Cannot load module: ${_e.message}` };
+      }
+    };
+
+    feature_status.machine_executable_plans = checkSpecFeatureHealth(
+      'machine_executable_plans', false, path.join(__dirname, 'spec-engine.cjs'), 'parsePlanToSpec'
+    );
+    feature_status.spec_diffing = checkSpecFeatureHealth(
+      'spec_diffing', true, path.join(__dirname, 'spec-diff.cjs'), 'diffSpecs'
+    );
+    feature_status.reverse_spec = checkSpecFeatureHealth(
+      'reverse_spec', true, path.join(__dirname, 'reverse-spec.cjs'), 'generateReverseSpec'
+    );
+    feature_status.predictive_impact = checkSpecFeatureHealth(
+      'predictive_impact', true, path.join(__dirname, 'impact-analysis.cjs'), 'analyzeImpact'
+    );
+  }
+
+  // ─── Check 17: Phase 16 cross-project intelligence feature health ────────
+  {
+    let p16Config = {};
+    try { p16Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p16Features = p16Config.features || {};
+
+    // Helper: check if a feature is enabled (default true unless explicitly false)
+    const checkFeatureToggle = (key, healthCheck) => {
+      const enabled = p16Features[key] !== false;
+      if (!enabled) {
+        return { enabled: false, status: 'disabled' };
+      }
+      return { enabled: true, status: healthCheck() ? 'healthy' : 'degraded' };
+    };
+
+    // cross_project_patterns: healthy if ~/.claude/patterns/ exists and has .json files
+    feature_status.cross_project_patterns = checkFeatureToggle(
+      'cross_project_patterns',
+      () => {
+        try {
+          const patternsDir = require('path').join(require('os').homedir(), '.claude', 'patterns');
+          return fs.existsSync(patternsDir) &&
+            fs.readdirSync(patternsDir).some(f => f.endsWith('.json'));
+        } catch (_) { return false; }
+      }
+    );
+
+    // spec_templates: always healthy when enabled (built-in templates always available)
+    feature_status.spec_templates = checkFeatureToggle(
+      'spec_templates',
+      () => true
+    );
+
+    // global_learnings: healthy if ~/.claude/learnings.jsonl exists
+    feature_status.global_learnings = checkFeatureToggle(
+      'global_learnings',
+      () => {
+        try {
+          const learningsPath = require('path').join(require('os').homedir(), '.claude', 'learnings.jsonl');
+          return fs.existsSync(learningsPath);
+        } catch (_) { return false; }
+      }
+    );
+  }
+
+  // ─── Check 18: Phase 3 (zero-friction) feature status ────────────────────
+  {
+    let p3Config = {};
+    try { p3Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p3Features = p3Config.features || {};
+
+    const zfqEnabled = p3Features.zero_friction_quick !== false;
+    feature_status.zero_friction_quick = {
+      enabled: zfqEnabled,
+      status: zfqEnabled ? 'healthy' : 'disabled',
+    };
+  }
+
+  // ─── Check 19: Phase 4 (NL routing) feature status ───────────────────────
+  {
+    let p4Config = {};
+    try { p4Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p4Features = p4Config.features || {};
+    const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
+
+    // natural_language_routing: default true; try to load module
+    const nlrEnabled = p4Features.natural_language_routing !== false;
+    if (!nlrEnabled) {
+      feature_status.natural_language_routing = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'alternatives.js'));
+        feature_status.natural_language_routing = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.natural_language_routing = { enabled: true, status: 'degraded' };
+      }
+    }
+
+    // adaptive_ceremony: default true; workflow-only feature, no module
+    const acEnabled = p4Features.adaptive_ceremony !== false;
+    feature_status.adaptive_ceremony = {
+      enabled: acEnabled,
+      status: acEnabled ? 'healthy' : 'disabled',
+    };
+  }
+
+  // ─── Check 20: Phase 6 (convention memory) feature status ────────────────
+  {
+    let p6Config = {};
+    try { p6Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p6Features = p6Config.features || {};
+    const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
+
+    // convention_memory: default true; try to load module
+    const cmEnabled = p6Features.convention_memory !== false;
+    if (!cmEnabled) {
+      feature_status.convention_memory = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'convention-detector.js'));
+        feature_status.convention_memory = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.convention_memory = { enabled: true, status: 'degraded' };
+      }
+    }
+
+    // mental_model_snapshots: default true; try to load module
+    const mmsEnabled = p6Features.mental_model_snapshots !== false;
+    if (!mmsEnabled) {
+      feature_status.mental_model_snapshots = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'snapshot-manager.js'));
+        feature_status.mental_model_snapshots = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.mental_model_snapshots = { enabled: true, status: 'degraded' };
+      }
+    }
+  }
+
+  // ─── Check 21: Phase 9 (proactive intelligence) feature status ───────────
+  {
+    let p9Config = {};
+    try { p9Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const scriptsDir = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts');
+    const { checkFeatureHealth: checkPhase9FeatureHealth } = require('./health.cjs');
+    const phase9Features = [
+      'smart_next_task',
+      'dependency_break_detection',
+      'pre_research',
+      'pattern_routing',
+      'tech_debt_surfacing',
+    ];
+    for (const name of phase9Features) {
+      const result = checkPhase9FeatureHealth(name, p9Config, scriptsDir);
+      feature_status[name] = { enabled: result.status !== 'disabled', status: result.status };
+    }
+  }
+
+  // ─── Check 22: Phase 10 (post-hoc) feature status ────────────────────────
+  {
+    const p10ModPath = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts', 'lib', 'health-checks.js');
+    try {
+      const p10Checks = require(p10ModPath);
+      const postHocResult = p10Checks.checkPostHocArtifacts(planningDir);
+      feature_status.post_hoc_artifacts = {
+        enabled: postHocResult.enabled,
+        status: postHocResult.status,
+      };
+      const feedbackResult = p10Checks.checkAgentFeedbackLoop(planningDir);
+      feature_status.agent_feedback_loop = {
+        enabled: feedbackResult.enabled,
+        status: feedbackResult.status,
+      };
+      const metricsResult = p10Checks.checkSessionMetrics(planningDir);
+      feature_status.session_metrics = {
+        enabled: metricsResult.enabled,
+        status: metricsResult.status,
+      };
+    } catch (_e) {
+      // health-checks.js not available — mark all as degraded
+      feature_status.post_hoc_artifacts = { enabled: true, status: 'degraded' };
+      feature_status.agent_feedback_loop = { enabled: true, status: 'degraded' };
+      feature_status.session_metrics = { enabled: true, status: 'degraded' };
+    }
+  }
+
+  // ─── Check 23: Phase 13 (multi-agent) feature status ─────────────────────
+  {
+    let p13Config = {};
+    try { p13Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const { checkMultiAgentHealth } = require('./health.cjs');
+    const multiAgentResults = checkMultiAgentHealth(p13Config);
+    for (const result of multiAgentResults) {
+      feature_status[result.feature] = {
+        enabled: result.status !== 'disabled',
+        status: result.status,
+      };
+    }
   }
 
   // ─── Perform repairs if requested ─────────────────────────────────────────
@@ -835,7 +1364,75 @@ function cmdValidateHealth(cwd, options, raw) {
     repairable_count: repairableCount,
     repairs_performed: repairActions.length > 0 ? repairActions : undefined,
     feature_status: Object.keys(feature_status).length > 0 ? feature_status : undefined,
+    phase05_features: phase05_features || undefined,
   }, raw);
+}
+
+/**
+ * Generic health check for a feature backed by a loadable module.
+ * @param {string} featureName - Feature name (e.g. 'natural_language_routing')
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @param {string} togglePath - Dot path in config.features (same as featureName)
+ * @param {string} modulePath - Relative path under pluginRoot to the module
+ * @param {string} exportName - Name of the expected export function
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkFeatureModuleHealth(featureName, planningDir, pluginRoot, modulePath, exportName) {
+  const configPath = path.join(planningDir, 'config.json');
+  let config = {};
+  try {
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  } catch (_e) {
+    // Config unreadable — treat as defaults
+  }
+
+  const features = config.features || {};
+
+  // Check toggle (default true)
+  if (features[featureName] === false) {
+    return { feature: featureName, status: 'disabled', details: 'Feature toggle off' };
+  }
+
+  // Try to load the module
+  const fullModulePath = path.join(pluginRoot, modulePath);
+  try {
+    const mod = require(fullModulePath);
+    if (typeof mod[exportName] === 'function') {
+      return { feature: featureName, status: 'healthy', details: `${exportName} loaded from ${modulePath}` };
+    }
+    return { feature: featureName, status: 'degraded', details: `${exportName} not a function in ${modulePath}` };
+  } catch (err) {
+    return { feature: featureName, status: 'degraded', details: `Cannot load ${modulePath}: ${err.message}` };
+  }
+}
+
+/**
+ * Health check for natural_language_routing feature.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkNLRoutingHealth(planningDir, pluginRoot) {
+  return checkFeatureModuleHealth(
+    'natural_language_routing', planningDir, pluginRoot,
+    path.join('scripts', 'intent-router.cjs'), 'classifyIntent'
+  );
+}
+
+/**
+ * Health check for adaptive_ceremony feature.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} pluginRoot - Path to plugin root (plugins/pbr)
+ * @returns {{ feature: string, status: string, details: string }}
+ */
+function checkAdaptiveCeremonyHealth(planningDir, pluginRoot) {
+  return checkFeatureModuleHealth(
+    'adaptive_ceremony', planningDir, pluginRoot,
+    path.join('scripts', 'risk-classifier.cjs'), 'classifyRisk'
+  );
 }
 
 module.exports = {
@@ -848,4 +1445,7 @@ module.exports = {
   cmdVerifyKeyLinks,
   cmdValidateConsistency,
   cmdValidateHealth,
+  checkNLRoutingHealth,
+  checkAdaptiveCeremonyHealth,
+  checkFeatureModuleHealth,
 };

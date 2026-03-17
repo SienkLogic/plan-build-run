@@ -20,6 +20,10 @@ const AgentsPage = lazy(() => import('./pages/AgentsPage.jsx'));
 const MemoryPage = lazy(() => import('./pages/MemoryPage.jsx'));
 const PlanningPage = lazy(() => import('./pages/PlanningPage.jsx'));
 
+// Phase 15 DX pages
+const ProgressPage = lazy(() => import('./pages/ProgressPage.jsx'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage.jsx'));
+
 import useFetch from './hooks/useFetch.js';
 import useWebSocket from './hooks/useWebSocket.js';
 
@@ -67,6 +71,9 @@ export default function App() {
     memory: MemoryPage,
     hooks: HooksPage,
     config: ConfigPage,
+    // Phase 15 DX pages
+    progress: ProgressPage,
+    onboarding: OnboardingPage,
   };
   const PageComponent = PAGES[nav];
 

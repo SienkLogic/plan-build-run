@@ -23,6 +23,32 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 
+// NL routing: try to load classifyIntent from intent-router.cjs
+let classifyIntent = null;
+try {
+  const intentRouter = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'intent-router.cjs'));
+  classifyIntent = intentRouter.classifyIntent;
+} catch (_e) {
+  // intent-router.cjs not available — NL routing disabled gracefully
+}
+
+/**
+ * Load NL routing config from .planning/config.json.
+ * Returns { nlEnabled: boolean } based on features.natural_language_routing toggle.
+ * Defaults to true if config missing or toggle absent.
+ */
+function loadNLConfig(planningDir) {
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    if (!fs.existsSync(configPath)) return { nlEnabled: true };
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const features = config.features || {};
+    return { nlEnabled: features.natural_language_routing !== false };
+  } catch (_e) {
+    return { nlEnabled: true };
+  }
+}
+
 /**
  * Intent patterns ranked by specificity. First match wins.
  * Each pattern maps user intent to a PBR command suggestion.
@@ -81,7 +107,37 @@ function analyzePrompt(prompt, planningDir) {
   // Skip if no active PBR project (no STATE.md)
   if (!fs.existsSync(path.join(planningDir, 'STATE.md'))) return null;
 
-  // Check for intent patterns
+  // NL routing: use classifyIntent when available and enabled
+  const { nlEnabled } = loadNLConfig(planningDir);
+  if (nlEnabled && classifyIntent) {
+    try {
+      const hasRoadmap = fs.existsSync(path.join(planningDir, 'ROADMAP.md'));
+      const result = classifyIntent(trimmed, { hasRoadmap });
+
+      if (result && result.confidence >= 0.7) {
+        // Map intent-router route names to /pbr: commands
+        const routeCommandMap = {
+          'debug': '/pbr:debug',
+          'explore': '/pbr:explore',
+          'plan-phase': '/pbr:plan-phase add',
+          'quick': '/pbr:do',
+          'note': '/pbr:note',
+          'verify-work': '/pbr:review'
+        };
+        const command = routeCommandMap[result.route] || '/pbr:do';
+        return {
+          command,
+          hint: `This looks like a ${result.route} task. Consider using /pbr:do for automatic routing, or ${command} directly.`,
+          nlRoute: { route: result.route, confidence: result.confidence }
+        };
+      }
+      // Low confidence from classifyIntent — fall through to pattern matching
+    } catch (_e) {
+      // classifyIntent error — fall through to pattern matching
+    }
+  }
+
+  // Fallback: pattern-based routing (always available)
   for (const intent of INTENT_PATTERNS) {
     if (intent.pattern.test(trimmed)) {
       return { command: intent.command, hint: intent.hint };
