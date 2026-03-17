@@ -758,7 +758,6 @@ function detectOtherSessions(planningDir, ownSessionId) {
   return results;
 }
 
-<<<<<<< HEAD
 /**
  * Build an enhanced structured briefing for SessionStart.
  * Returns a concise ~500 token string summarizing project state, or null if disabled.
