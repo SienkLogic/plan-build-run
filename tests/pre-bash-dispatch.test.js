@@ -185,6 +185,38 @@ describe('pre-bash-dispatch.js', () => {
     });
   });
 
+  describe('allow decision format', () => {
+    test('pass-through returns { decision: "allow" } JSON', () => {
+      const result = runScript({ command: 'ls' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+    });
+
+    test('advisory warnings still return decision allow', () => {
+      const result = runScript({ command: 'npm publish foo' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      expect(output.additionalContext).toBeDefined();
+    });
+
+    test('blocked commands return decision block, not allow', () => {
+      const result = runScript({ command: 'rm -rf .planning' });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('block');
+    });
+
+    test('allow output is valid JSON with no extra fields beyond decision', () => {
+      const result = runScript({ command: 'echo test' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      expect(Object.keys(output)).toEqual(['decision']);
+    });
+  });
+
   describe('error handling', () => {
     test('malformed JSON does not block', () => {
       // Send invalid JSON - the script should catch the parse error and exit 0

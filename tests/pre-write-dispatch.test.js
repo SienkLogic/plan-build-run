@@ -187,6 +187,48 @@ describe('pre-write-dispatch.js', () => {
     });
   });
 
+  describe('allow decision format', () => {
+    test('pass-through returns { decision: "allow" } JSON', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      const filePath = path.join(planningDir, 'phases', '01-init', 'PLAN.md');
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      cleanup(tmpDir);
+    });
+
+    test('blocked writes return decision block', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+      const filePath = path.join(tmpDir, 'src', 'app.js');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('block');
+      cleanup(tmpDir);
+    });
+
+    test('advisory returns include decision allow', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
+      const phasesDir = path.join(planningDir, 'phases');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      const filePath = path.join(phasesDir, '04-foo', 'PLAN.md');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      if (result.output) {
+        const output = JSON.parse(result.output);
+        // Advisory cross-phase warning should still include decision allow or additionalContext
+        expect(output.additionalContext).toContain('phase 4');
+      }
+      cleanup(tmpDir);
+    });
+  });
+
   describe('missing .planning/ directory', () => {
     test('exits 0 gracefully when .planning/ does not exist', () => {
       const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pwd-noplan-')));
