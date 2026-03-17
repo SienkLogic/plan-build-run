@@ -194,6 +194,9 @@
  *
  * REQUIREMENTS:
  *   requirements mark-complete <ids>   Mark requirement IDs as complete
+ *   requirements update-status         Update REQ-ID checkboxes (--req-ids, --status done|reset)
+ *   requirements mark-phase            Mark phase requirements (--phase-dir <path>)
+ *   requirements status                Get all requirement statuses as JSON
  *
  * SCAFFOLDING:
  *   scaffold context|uat|verification|phase-dir --phase <N> [--name <name>]
@@ -1131,6 +1134,39 @@ async function main() {
     // ─── Requirements ─────────────────────────────────────────────────────────
     } else if (command === 'requirements' && subcommand === 'mark-complete') {
       getMilestone().cmdRequirementsMarkComplete(cwd, args.slice(2), raw);
+
+    } else if (command === 'requirements' && subcommand === 'update-status') {
+      const reqMod = require('./lib/requirements.cjs');
+      const reqIdsIdx = args.indexOf('--req-ids');
+      const statusIdx = args.indexOf('--status');
+      if (reqIdsIdx === -1 || statusIdx === -1) {
+        error('Usage: requirements update-status --req-ids REQ-01,REQ-02 --status done|reset');
+      }
+      const reqIds = args[reqIdsIdx + 1].split(',').map(s => s.trim()).filter(Boolean);
+      const reqStatus = args[statusIdx + 1];
+      if (!['done', 'reset'].includes(reqStatus)) error('--status must be "done" or "reset"');
+      const result = reqMod.updateRequirementStatus(planningDir, reqIds, reqStatus);
+      output(result, raw, `${result.updated} updated, ${result.skipped} skipped`);
+
+    } else if (command === 'requirements' && subcommand === 'mark-phase') {
+      const reqMod = require('./lib/requirements.cjs');
+      const phaseDirIdx = args.indexOf('--phase-dir');
+      if (phaseDirIdx === -1) error('Usage: requirements mark-phase --phase-dir <path>');
+      const targetPhaseDir = args[phaseDirIdx + 1];
+      const config = configLoad();
+      if (config && config.features && config.features.living_requirements === false) {
+        output({ skipped: true, reason: 'features.living_requirements is disabled' }, raw, 'living requirements disabled');
+      } else {
+        const result = reqMod.markPhaseRequirements(planningDir, targetPhaseDir);
+        output(result, raw, result.skipped_reason || `${result.updated} requirements marked`);
+      }
+
+    } else if (command === 'requirements' && subcommand === 'status') {
+      const reqMod = require('./lib/requirements.cjs');
+      const statusMap = reqMod.getRequirementStatus(planningDir);
+      const obj = {};
+      for (const [k, v] of statusMap) { obj[k] = v; }
+      output(obj, raw, `${statusMap.size} requirements found`);
 
     // ─── Scaffolding ──────────────────────────────────────────────────────────
     } else if (command === 'scaffold') {
