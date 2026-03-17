@@ -46,3 +46,30 @@ describe('--auto flag integration', () => {
     }
   });
 });
+
+describe('checkpoint auto-resolve in build skill', () => {
+  let buildContent;
+  beforeAll(() => {
+    buildContent = fs.readFileSync(
+      path.join(SKILLS_DIR, 'build', 'SKILL.md'), 'utf8'
+    );
+  });
+
+  test('references checkpoint_auto_resolve config', () => {
+    expect(buildContent).toMatch(/checkpoint_auto_resolve/);
+  });
+
+  test('documents all config enum values', () => {
+    expect(buildContent).toMatch(/none/);
+    expect(buildContent).toMatch(/verify-only/);
+    expect(buildContent).toMatch(/verify-and-decision/);
+  });
+
+  test('human-action never auto-resolves', () => {
+    // Find the section about human-action and verify it says NEVER
+    const humanActionSection = buildContent.match(
+      /human-action[\s\S]{0,200}(NEVER|never)/
+    );
+    expect(humanActionSection).not.toBeNull();
+  });
+});
