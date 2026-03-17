@@ -223,6 +223,14 @@
  *   suggest-alternatives phase-not-found|missing-prereq|config-invalid [args]
  *   spot-check <phaseSlug> <planId>
  *
+ * SPEC (PHASE 11 SPEC-DRIVEN DEVELOPMENT):
+ *   spec parse <plan-file>             Parse PLAN.md into structured JSON
+ *   spec diff <file-a> <file-b>        Semantic diff between two PLAN.md versions
+ *   spec reverse <file...>             Generate spec from source files
+ *   spec impact <file...>              Predict impact of changed files
+ *     [--format json|markdown]         Output format (default: json)
+ *     [--project-root <path>]          Project root for impact analysis
+ *
  * MIGRATION & EVENTS:
  *   migrate [--dry-run] [--force]      Run schema migrations
  *   event <category> <event> [details] Log an event
@@ -438,6 +446,161 @@ function validateProject() {
   }
 
   return { valid: errors.length === 0, errors, warnings, checks };
+}
+
+// ─── Spec Operations (Phase 11) ───────────────────────────────────────────────
+
+/**
+ * Handle spec subcommands: parse, diff, reverse, impact.
+ * @param {string[]} args - raw CLI args (args[0] is 'spec', args[1] is subcommand)
+ * @param {string} pDir - planningDir
+ * @param {string} projectRoot - cwd
+ * @param {Function} outputFn - output function
+ * @param {Function} errorFn - error function
+ */
+function handleSpec(args, pDir, projectRoot, outputFn, errorFn) {
+  const subcommand = args[1];
+
+  // Parse common flags
+  const formatIdx = args.indexOf('--format');
+  const format = formatIdx !== -1 ? args[formatIdx + 1] : 'json';
+  const projectRootIdx = args.indexOf('--project-root');
+  const effectiveRoot = projectRootIdx !== -1 ? args[projectRootIdx + 1] : projectRoot;
+
+  // Load config for feature toggle checks
+  let config = {};
+  try {
+    const configPath = path.join(pDir, 'config.json');
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  } catch (_e) {
+    // Config unreadable — use defaults
+  }
+  const features = config.features || {};
+
+  // Audit log helper
+  function writeAuditLog(cmd, featureName, status, fileCount) {
+    try {
+      const logDir = path.join(pDir, 'logs');
+      if (fs.existsSync(logDir)) {
+        const logFile = path.join(logDir, 'spec-engine.jsonl');
+        const entry = JSON.stringify({
+          ts: new Date().toISOString(),
+          cmd: `spec.${cmd}`,
+          feature: featureName,
+          status,
+          files: fileCount || 0,
+        });
+        fs.appendFileSync(logFile, entry + '\n', 'utf-8');
+      }
+    } catch (_e) {
+      // No-op if log dir missing or unwritable
+    }
+  }
+
+  if (!subcommand || subcommand === '--help' || subcommand === 'help') {
+    const usageText = [
+      'Usage: spec <subcommand> [args] [--format json|markdown]',
+      '',
+      'Subcommands:',
+      '  parse <plan-file>           Parse PLAN.md into structured JSON',
+      '  diff <file-a> <file-b>      Semantic diff between two PLAN.md versions',
+      '  reverse <file...>           Generate spec from source files',
+      '  impact <file...>            Predict impact of changed files',
+      '',
+      'Flags:',
+      '  --format json|markdown      Output format (default: json)',
+      '  --project-root <path>       Project root for impact analysis',
+    ].join('\n');
+    outputFn(null, true, usageText);
+    return;
+  }
+
+  if (subcommand === 'parse') {
+    const planFile = args[2];
+    if (!planFile) { errorFn('Usage: spec parse <plan-file>'); return; }
+    const { parsePlanToSpec } = require('./lib/spec-engine.cjs');
+    let content;
+    try {
+      content = fs.readFileSync(planFile, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${planFile}: ${e.message}`);
+      return;
+    }
+    const spec = parsePlanToSpec(content);
+    writeAuditLog('parse', 'machine_executable_plans', 'ok', 1);
+    outputFn({ frontmatter: spec.frontmatter, tasks: spec.tasks });
+    return;
+  }
+
+  if (subcommand === 'diff') {
+    if (features.spec_diffing === false) {
+      outputFn({ error: 'Feature disabled. Enable features.spec_diffing in config.json' });
+      return;
+    }
+    const fileA = args[2];
+    const fileB = args[3];
+    if (!fileA || !fileB) { errorFn('Usage: spec diff <file-a> <file-b>'); return; }
+    const { diffPlanFiles, formatDiff } = require('./lib/spec-diff.cjs');
+    let contentA, contentB;
+    try {
+      contentA = fs.readFileSync(fileA, 'utf-8');
+      contentB = fs.readFileSync(fileB, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${e.message}`);
+      return;
+    }
+    const diff = diffPlanFiles(contentA, contentB);
+    writeAuditLog('diff', 'spec_diffing', 'ok', 2);
+    if (format === 'markdown') {
+      outputFn(null, true, formatDiff(diff, 'markdown'));
+    } else {
+      outputFn(diff);
+    }
+    return;
+  }
+
+  if (subcommand === 'reverse') {
+    if (features.reverse_spec === false) {
+      outputFn({ error: 'Feature disabled. Enable features.reverse_spec in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--')) files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec reverse <file...>'); return; }
+    const { generateReverseSpec } = require('./lib/reverse-spec.cjs');
+    const { serializeSpec } = require('./lib/spec-engine.cjs');
+    const spec = generateReverseSpec(files, { readFile: (p) => fs.readFileSync(p, 'utf-8') });
+    writeAuditLog('reverse', 'reverse_spec', 'ok', files.length);
+    if (format === 'markdown') {
+      outputFn(null, true, serializeSpec(spec));
+    } else {
+      outputFn(spec);
+    }
+    return;
+  }
+
+  if (subcommand === 'impact') {
+    if (features.predictive_impact === false) {
+      outputFn({ error: 'Feature disabled. Enable features.predictive_impact in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--') && args[i - 1] !== '--project-root') files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec impact <file...>'); return; }
+    const { analyzeImpact } = require('./lib/impact-analysis.cjs');
+    const report = analyzeImpact(files, effectiveRoot);
+    writeAuditLog('impact', 'predictive_impact', 'ok', files.length);
+    outputFn(report);
+    return;
+  }
+
+  errorFn(`Unknown spec subcommand: ${subcommand}\nAvailable: parse, diff, reverse, impact`);
 }
 
 // ─── CLI entry point ──────────────────────────────────────────────────────────
