@@ -523,11 +523,33 @@ async function main() {
   // Skill-specific post-completion validation
   const skillWarnings = [];
 
-  // ACTIVE-SKILL ENFORCEMENT: Warn when no .active-skill file exists.
+  // ACTIVE-SKILL ENFORCEMENT: Auto-create .active-skill when missing.
   // Skills are instructed (with CRITICAL markers) to write this file, but LLMs
-  // skip it under cognitive load. This warning reminds the orchestrator.
+  // skip it under cognitive load. Instead of just warning, we now auto-create
+  // the file by inferring the skill from the agent type.
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    // Infer skill from agent type: pbr:executor -> "build", pbr:planner -> "plan", etc.
+    const AGENT_TO_SKILL = {
+      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
+      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
+      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
+    };
+    const inferredSkill = AGENT_TO_SKILL[agentType];
+    if (inferredSkill) {
+      try {
+        const skillPath = sessionId
+          ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+          : path.join(planningDir, '.active-skill');
+        fs.writeFileSync(skillPath, inferredSkill, 'utf8');
+        activeSkill = inferredSkill;
+        logHook('check-subagent-output', 'PostToolUse', 'active-skill-auto-created', { skill: inferredSkill, agent: agentType });
+        skillWarnings.push(`.active-skill was missing — auto-created as "${inferredSkill}" (inferred from ${agentType}). Skill-specific enforcement is now active for subsequent agents.`);
+      } catch (_writeErr) {
+        skillWarnings.push('.active-skill file is missing and auto-creation failed. Skill-workflow guards were inactive for this operation.');
+      }
+    } else {
+      skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    }
   }
 
   // ROADMAP.md SYNC: After executor or verifier completes, check if ROADMAP.md
@@ -659,7 +681,27 @@ async function handleHttp(reqBody) {
   const skillWarnings = [];
 
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    const AGENT_TO_SKILL = {
+      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
+      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
+      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
+    };
+    const inferredSkill = AGENT_TO_SKILL[agentType];
+    if (inferredSkill) {
+      try {
+        const skillPath = sessionId
+          ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+          : path.join(planningDir, '.active-skill');
+        fs.writeFileSync(skillPath, inferredSkill, 'utf8');
+        activeSkill = inferredSkill;
+        logHook('check-subagent-output', 'PostToolUse', 'active-skill-auto-created', { skill: inferredSkill, agent: agentType });
+        skillWarnings.push(`.active-skill was missing — auto-created as "${inferredSkill}" (inferred from ${agentType}).`);
+      } catch (_writeErr) {
+        skillWarnings.push('.active-skill file is missing and auto-creation failed.');
+      }
+    } else {
+      skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    }
   }
 
   if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {

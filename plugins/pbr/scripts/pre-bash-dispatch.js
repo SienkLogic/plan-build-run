@@ -127,8 +127,10 @@ function main() {
         process.exit(0);
       }
 
-      // Log pass-through so hook activity is visible in logs
+      // Log pass-through so hook activity is visible in logs AND session JSONL
       logHook('pre-bash-dispatch', 'PreToolUse', 'allow', { cmd: command.substring(0, 80) });
+      // Emit minimal stdout so Claude Code captures this in session JSONL for audit visibility
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);
     } catch (_e) {
       // Don't block on errors

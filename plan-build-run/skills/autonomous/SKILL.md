@@ -103,10 +103,44 @@ For each remaining phase N:
   Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
 - If Skill returns failure: attempt single retry. If retry fails: stop loop, display error.
 
-### 3d. Verify Phase
+### 3d. Verify Phase (Lightweight-First)
 
-- Check if `VERIFICATION.md` exists with `status: passed`
-- If NOT exists or status != passed:
+- Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
+- **Lightweight verification first** (avoid spawning heavyweight verifier agent):
+  1. Read ALL SUMMARY.md frontmatter from this phase. Extract `completion` percentage from each.
+  2. Compute aggregate completion (average across all plans).
+  3. Check git log for commit SHAs listed in SUMMARY files — verify they exist.
+  4. Detect and run test suite if present (`npm test`, `pytest`, `make test`, etc.).
+  5. **If ALL three signals pass** (completion >= 90%, SHAs verified, tests pass):
+     - Write a minimal VERIFICATION.md to the phase directory:
+
+<!-- markdownlint-disable MD046 -->
+
+     ```yaml
+     ---
+     status: passed
+     method: confidence-gate
+     completion: {pct}
+     shas_verified: true
+     tests_passed: true
+     must_haves_checked: 0
+     must_haves_passed: 0
+     ---
+     # Verification — Confidence Gate (Autonomous)
+
+     Phase auto-verified via confidence gate in autonomous mode.
+     Run `/pbr:verify-work {N}` for full must-have verification.
+     ```
+
+<!-- markdownlint-disable MD046 -->
+
+   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK)`
+   - Continue to next phase — do NOT spawn verifier agent.
+
+<!-- markdownlint-enable MD046 -->
+
+6. **If ANY signal fails**: fall through to full verification below.
+- **Full verification fallback** (only when confidence gate fails):
   - Invoke: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
 - If verification finds gaps:
   - Attempt gap closure: `Skill({ skill: "pbr:plan", args: "{N} --gaps --auto" })`

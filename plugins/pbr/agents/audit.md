@@ -89,7 +89,8 @@ Run the 8 compliance checks:
 - Are there `hook_progress` entries in the log?
 - Which hooks fired and how many times?
 - Were any hooks missing that should have fired?
-- If NO hook evidence exists, flag as HIGH severity
+- **IMPORTANT**: PreToolUse allow-through decisions now emit `{ decision: "allow" }` to stdout and appear in session JSONL. If PreToolUse entries are still absent, also check `.planning/logs/hooks.jsonl` (the PBR hook log) as a secondary source — run: `grep PreToolUse .planning/logs/hooks.jsonl | tail -20`
+- If NO hook evidence exists in EITHER source, flag as HIGH severity
 
 #### 2.6 Commit Format
 - Extract all `git commit` commands from Bash tool calls

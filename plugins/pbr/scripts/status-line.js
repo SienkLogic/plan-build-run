@@ -134,6 +134,7 @@ function statusColor(statusText) {
   if (lower.includes('complete') || lower.includes('verified')) return c.green;
   if (lower.includes('needs_fixes') || lower.includes('partial')) return c.yellow;
   if (lower.includes('progress') || lower.includes('building') || lower.includes('executing') || lower.includes('planning')) return c.yellow;
+  if (lower.includes('discussing') || lower.includes('researching')) return c.magenta;
   if (lower.includes('verifying')) return c.blue;
   if (lower.includes('planned') || lower.includes('ready')) return c.cyan;
   if (lower.includes('blocked') || lower.includes('failed')) return c.red;
@@ -180,6 +181,22 @@ function formatTokens(tokens) {
   if (tokens >= 1_000_000) return (tokens / 1_000_000).toFixed(1) + 'M';
   if (tokens >= 1_000) return (tokens / 1_000).toFixed(1) + 'K';
   return String(tokens);
+}
+
+/**
+ * Count phase directories in .planning/phases/ as a fallback for total phases.
+ * Returns the count as a string, or null if the directory doesn't exist.
+ */
+function countPhaseDirs(planningDir) {
+  try {
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    const count = entries.filter(e => e.isDirectory() && /^\d+/.test(e.name)).length;
+    return count > 0 ? String(count) : null;
+  } catch (_e) {
+    return null;
+  }
 }
 
 /**
@@ -305,7 +322,8 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
 
     const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
-    const phaseTotal = phaseMatch && phaseMatch[2];
+    const fmPhasesTotal = fm && fm.phases_total;
+    const phaseTotal = fmPhasesTotal || (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
     // Format phase_slug from "foo-bar" to "Foo Bar" for display
     const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
     const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
@@ -437,4 +455,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, isHookServerRunning, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };

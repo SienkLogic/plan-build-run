@@ -146,9 +146,11 @@ function main() {
         }
       }
 
-      // Log pass-through so hook activity is visible in logs
+      // Log pass-through so hook activity is visible in logs AND session JSONL
       const file = (data.tool_input?.file_path || data.tool_input?.path || '').split(/[/\\]/).pop();
       logHook('pre-write-dispatch', 'PreToolUse', 'allow', { file });
+      // Emit minimal stdout so Claude Code captures this in session JSONL for audit visibility
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
