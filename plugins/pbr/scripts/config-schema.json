@@ -58,7 +58,9 @@
         "natural_language_routing": { "type": "boolean", "default": true, "description": "Enable natural language intent detection and routing in /pbr:do. When false, /pbr:do uses static keyword matching only." },
         "adaptive_ceremony": { "type": "boolean", "default": true, "description": "Enable risk-based ceremony adjustment. When false, all tasks use standard ceremony regardless of risk level." },
         "graduated_verification": { "type": "boolean", "default": true, "description": "Enable trust-based graduated verification depth (light/standard/thorough)." },
-        "self_verification": { "type": "boolean", "default": true, "description": "Enable executor self-verification before presenting output." }
+        "self_verification": { "type": "boolean", "default": true, "description": "Enable executor self-verification before presenting output." },
+        "agent_feedback_loop": { "type": "boolean", "default": true, "description": "Enable agent feedback loop — verification results feed back into executor agent prompts." },
+        "session_metrics": { "type": "boolean", "default": true, "description": "Enable session metrics dashboard at session end showing time, agents, commits, compliance." }
       },
       "additionalProperties": false
     },
@@ -254,6 +256,9 @@
             "features.plan_checking": { "type": "boolean" },
             "features.goal_verification": { "type": "boolean" },
             "features.inline_verify": { "type": "boolean" },
+            "features.post_hoc_artifacts": { "type": "boolean" },
+            "features.agent_feedback_loop": { "type": "boolean" },
+            "features.session_metrics": { "type": "boolean" },
             "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
             "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
             "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
@@ -267,6 +272,9 @@
             "features.plan_checking": { "type": "boolean" },
             "features.goal_verification": { "type": "boolean" },
             "features.inline_verify": { "type": "boolean" },
+            "features.post_hoc_artifacts": { "type": "boolean" },
+            "features.agent_feedback_loop": { "type": "boolean" },
+            "features.session_metrics": { "type": "boolean" },
             "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
             "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
             "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
@@ -280,6 +288,9 @@
             "features.plan_checking": { "type": "boolean" },
             "features.goal_verification": { "type": "boolean" },
             "features.inline_verify": { "type": "boolean" },
+            "features.post_hoc_artifacts": { "type": "boolean" },
+            "features.agent_feedback_loop": { "type": "boolean" },
+            "features.session_metrics": { "type": "boolean" },
             "scan.mapper_count": { "type": "integer", "minimum": 1, "maximum": 4 },
             "scan.mapper_areas": { "type": "array", "items": { "type": "string" } },
             "debug.max_hypothesis_rounds": { "type": "integer", "minimum": 1, "maximum": 20 }
