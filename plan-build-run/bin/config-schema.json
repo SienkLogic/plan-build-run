@@ -41,7 +41,10 @@
         "auto_continue": { "type": "boolean" },
         "auto_advance": { "type": "boolean" },
         "team_discussions": { "type": "boolean" },
-        "inline_verify": { "type": "boolean" }
+        "inline_verify": { "type": "boolean" },
+        "enhanced_session_start": { "type": "boolean", "default": true, "description": "Enable enhanced SessionStart briefing with structured context injection (~500 tokens)." },
+        "context_quality_scoring": { "type": "boolean", "default": true, "description": "Enable context quality scoring to track signal-to-noise ratio." },
+        "skip_rag": { "type": "boolean", "default": false, "description": "Enable Skip-RAG pattern: load entire codebase into context for small projects." }
       },
       "additionalProperties": false
     },
@@ -525,7 +528,9 @@
         }
       },
       "additionalProperties": false
-    }
+    },
+    "skip_rag_max_lines": { "type": "integer", "minimum": 1000, "maximum": 500000, "default": 50000, "description": "Maximum project lines for Skip-RAG eligibility. Projects under this threshold can load entire codebase." },
+    "orchestrator_budget_pct": { "type": "integer", "minimum": 15, "maximum": 50, "default": 25, "description": "Target orchestrator context budget as percentage of total window. Range 15-50%. Higher values enable more inline work." }
   },
   "additionalProperties": false
 }
