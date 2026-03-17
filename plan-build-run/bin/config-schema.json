@@ -492,6 +492,17 @@
         "threshold_curve": { "type": "string", "enum": ["linear", "adaptive"], "default": "linear", "description": "Warning threshold scaling. linear = current fixed percentages (50/70/85). adaptive = non-linear scaling that shifts thresholds up at 1M context (60/75/85)." }
       },
       "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable UI design pipeline. When true, /pbr:ui-phase and /pbr:ui-review skills are available. Auto-detected for frontend projects unless explicitly set."
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
