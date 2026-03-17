@@ -1,87 +1,70 @@
 /**
- * lib/health.cjs — Health checks for zero-friction quick task features.
+ * lib/health.cjs — Phase 9 feature health checks for Plan-Build-Run.
  *
- * Provides feature health status for:
- *   - zero_friction_quick: streamlined quick task workflow
- *   - post_hoc_artifacts: automatic SUMMARY.md generation from git history
+ * Provides health status for each Phase 9 proactive intelligence feature
+ * based on config toggles and module availability.
  *
- * Exports: checkZeroFrictionHealth, checkPostHocHealth, getZeroFrictionHealthReport
+ * Exports: checkFeatureHealth, checkAllPhase9Features, PHASE9_FEATURE_MODULES
  */
+
+const path = require('path');
 
 /**
- * Check health of the zero_friction_quick feature.
- *
- * @param {object} config - Parsed config.json object
- * @returns {{ feature: string, status: string, detail: string }}
+ * Mapping of Phase 9 feature names to their module paths (relative to scripts dir).
  */
-function checkZeroFrictionHealth(config) {
-  const enabled = config?.features?.zero_friction_quick;
-
-  // Default is true when undefined
-  if (enabled === false) {
-    return {
-      feature: 'zero_friction_quick',
-      status: 'disabled',
-      detail: 'Zero-friction quick tasks disabled in config (features.zero_friction_quick: false)'
-    };
-  }
-
-  return {
-    feature: 'zero_friction_quick',
-    status: 'healthy',
-    detail: 'Zero-friction quick tasks enabled — executor receives inline prompts'
-  };
-}
-
-/**
- * Check health of the post_hoc_artifacts feature.
- *
- * @param {object} config - Parsed config.json object
- * @returns {{ feature: string, status: string, detail: string }}
- */
-function checkPostHocHealth(config) {
-  const enabled = config?.features?.post_hoc_artifacts;
-
-  if (enabled === false) {
-    return {
-      feature: 'post_hoc_artifacts',
-      status: 'disabled',
-      detail: 'Post-hoc artifact generation disabled in config (features.post_hoc_artifacts: false)'
-    };
-  }
-
-  // Check if the post-hoc module can be loaded
-  try {
-    require('./post-hoc.cjs');
-    return {
-      feature: 'post_hoc_artifacts',
-      status: 'healthy',
-      detail: 'Post-hoc SUMMARY.md generation available — post-hoc.cjs module loaded successfully'
-    };
-  } catch (_e) {
-    return {
-      feature: 'post_hoc_artifacts',
-      status: 'degraded',
-      detail: 'Post-hoc module (post-hoc.cjs) failed to load: ' + _e.message
-    };
-  }
-}
-
-/**
- * Get a combined health report for all zero-friction features.
- *
- * @param {object} config - Parsed config.json object
- * @returns {Array<{ feature: string, status: string, detail: string }>}
- */
-function getZeroFrictionHealthReport(config) {
-  return [
-    checkZeroFrictionHealth(config),
-    checkPostHocHealth(config)
-  ];
-}
-
-module.exports = {
-  checkZeroFrictionHealth,
-  checkPostHocHealth,
-  getZeroFrictionHealthReport
+const PHASE9_FEATURE_MODULES = {
+  smart_next_task: 'lib/smart-next-task',
+  dependency_break_detection: 'lib/dependency-break',
+  pre_research: 'lib/pre-research',
+  pattern_routing: 'lib/pattern-routing',
+  tech_debt_surfacing: 'lib/tech-debt-scanner'
 };
+
+/**
+ * Check health status of a single Phase 9 feature.
+ *
+ * @param {string} featureName - Feature key (e.g., 'smart_next_task')
+ * @param {object} config - Parsed config.json object
+ * @param {string} scriptsDir - Path to the scripts directory containing lib/
+ * @returns {{ name: string, status: 'healthy'|'degraded'|'disabled', reason?: string }}
+ */
+function checkFeatureHealth(featureName, config, scriptsDir) {
+  // Check if feature is disabled in config
+  const features = (config && config.features) || {};
+  if (features[featureName] === false) {
+    return { name: featureName, status: 'disabled' };
+  }
+
+  // Try to load the module
+  const modulePath = PHASE9_FEATURE_MODULES[featureName];
+  if (!modulePath) {
+    return { name: featureName, status: 'degraded', reason: 'Unknown feature' };
+  }
+
+  const fullPath = path.join(scriptsDir, modulePath);
+  try {
+    require(fullPath);
+    return { name: featureName, status: 'healthy' };
+  } catch (err) {
+    return {
+      name: featureName,
+      status: 'degraded',
+      reason: `Module not found: ${modulePath}`
+    };
+  }
+}
+
+/**
+ * Check health of all 5 Phase 9 features.
+ *
+ * @param {object} config - Parsed config.json object
+ * @param {string} scriptsDir - Path to the scripts directory containing lib/
+ * @returns {Array<{ name: string, status: string, reason?: string }>}
+ */
+function checkAllPhase9Features(config, scriptsDir) {
+  return Object.keys(PHASE9_FEATURE_MODULES).map(name =>
+    checkFeatureHealth(name, config, scriptsDir)
+  );
+}
+
+module.exports = { checkFeatureHealth, checkAllPhase9Features, PHASE9_FEATURE_MODULES };
