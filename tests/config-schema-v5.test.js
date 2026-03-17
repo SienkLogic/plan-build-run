@@ -1,5 +1,6 @@
 /**
- * Tests for Phase 1 feature toggles and config properties in config-schema.json
+ * Tests for Phase 1 feature toggles, Phase 7 trust/confidence toggles,
+ * and config properties in config-schema.json
  */
 const fs = require('fs');
 const path = require('path');
@@ -67,4 +68,36 @@ describe('Config Schema v5 — Phase 1 feature properties', () => {
       expect(pluginParsed).toEqual(binParsed);
     });
   });
+});
+
+describe('Config Schema v5 — Trust tracking and confidence calibration toggles', () => {
+  const SCHEMA_PATHS = [
+    { path: SCHEMA_PLUGIN, label: 'plugins/pbr' },
+    { path: SCHEMA_BIN, label: 'plan-build-run/bin' }
+  ];
+
+  for (const { path: schemaPath, label } of SCHEMA_PATHS) {
+    describe(`${label}/config-schema.json`, () => {
+      const schema = require(schemaPath);
+      const features = schema.properties.features.properties;
+
+      test('has trust_tracking boolean toggle', () => {
+        expect(features.trust_tracking).toBeDefined();
+        expect(features.trust_tracking.type).toBe('boolean');
+      });
+
+      test('trust_tracking defaults to true', () => {
+        expect(features.trust_tracking.default).toBe(true);
+      });
+
+      test('has confidence_calibration boolean toggle', () => {
+        expect(features.confidence_calibration).toBeDefined();
+        expect(features.confidence_calibration.type).toBe('boolean');
+      });
+
+      test('confidence_calibration defaults to true', () => {
+        expect(features.confidence_calibration.default).toBe(true);
+      });
+    });
+  }
 });

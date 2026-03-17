@@ -50,7 +50,9 @@
         "multi_phase_awareness": { "type": "boolean", "default": true, "description": "Enable orchestrator to hold multiple phase plans simultaneously in context." },
         "decision_journal": { "type": "boolean", "default": true, "description": "Enable decision journal — records WHY decisions were made in .planning/decisions/." },
         "negative_knowledge": { "type": "boolean", "default": true, "description": "Enable negative knowledge tracking — records what failed and why in .planning/negative-knowledge/." },
-        "living_requirements": { "type": "boolean", "default": true, "description": "Enable living requirements — auto-update requirement status as phases complete." }
+        "living_requirements": { "type": "boolean", "default": true, "description": "Enable living requirements — auto-update requirement status as phases complete." },
+        "trust_tracking": { "type": "boolean", "default": true, "description": "Enable trust score tracking per agent type and task category. Data stored in .planning/trust/agent-scores.json." },
+        "confidence_calibration": { "type": "boolean", "default": true, "description": "Enable confidence scores on deliverables based on historical agent accuracy." }
       },
       "additionalProperties": false
     },
