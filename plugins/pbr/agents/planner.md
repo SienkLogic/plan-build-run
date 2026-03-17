@@ -334,6 +334,32 @@ Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREM
 - [ ] Cross-boundary parameters have documented sources (data contracts)
 </step>
 
+### Step 6b: Inline Plan Verification (conditional)
+
+**Run this step when:** `features.inline_verify` is `true` in the config passed via the spawn prompt AND context_window_tokens >= 500000.
+
+**Skip when:** `features.inline_verify` is `false` or not present, or context_window_tokens < 500000.
+
+When enabled, self-validate each plan against plan-checker dimensions BEFORE returning. This replaces the external plan-checker agent for standard runs.
+
+**Self-validation checklist (run for each PLAN file written):**
+
+1. **Requirement coverage**: Every REQ-ID in the `implements` field maps to at least one task action
+2. **Task completeness**: All 5 elements present (name, files, action, verify, done) for every task
+3. **File count**: No plan exceeds 8 files total; no task exceeds 3 files
+4. **Dependency correctness**: `depends_on` references exist; no circular deps; file conflicts only across waves
+5. **Must-have coverage**: Every truth, artifact, and key_link has at least one task addressing it
+6. **Verify executability**: Each `<verify>` contains a runnable command (not prose)
+7. **Context compliance**: No task contradicts a locked decision from CONTEXT.md
+8. **Scope sanity**: No task modifies files outside the plan's `files_modified` list
+
+**Output format:** After self-check, append to console output:
+```
+Self-validation: {passed}/{total} checks passed
+```
+
+If any check fails, note the failure but still return `## PLANNING COMPLETE` — failures are advisory at self-validation level. The user can run `--audit` for a rigorous external check.
+
 <step name="update-state">
 ### Step 7: Update State
 

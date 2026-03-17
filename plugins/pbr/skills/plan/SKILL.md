@@ -77,6 +77,7 @@ Parse the phase number and optional flags:
 | `3 --model opus` | Use opus for all researcher, planner, and checker spawns in phase 3 |
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what planning would produce for phase 3 without spawning agents |
+| `3 --audit` | Plan phase 3, then force full plan-checker validation |
 
 ### Subcommands
 
@@ -432,9 +433,13 @@ If ANY spot-check fails, present the user with options: **Retry** / **Continue a
 ### Step 6: Plan Validation (delegated, conditional)
 
 **Skip this step if:**
-- Depth profile has `features.plan_checking: false`
+- Depth profile has `features.plan_checking: false` AND `--audit` flag is NOT set AND `features.inline_verify` is `true` in config (planner self-validates)
 
 To check: use the resolved depth profile from Step 1. The profile consolidates the depth setting and any user overrides into a single boolean.
+
+**Force validation:** If `--audit` flag is set, ALWAYS spawn the plan-checker agent regardless of depth profile or inline_verify setting. Display: `◆ Audit mode: spawning plan checker (--audit flag)`
+
+**Inline verify mode:** If `features.inline_verify` is `true` and `--audit` is NOT set, skip plan-checker spawn — the planner agent has already self-validated. Display: `✓ Planner self-validated (inline_verify enabled). Use --audit to force full plan-checker.`
 
 **If validation is enabled:**
 
