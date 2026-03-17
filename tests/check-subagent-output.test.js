@@ -59,8 +59,8 @@ describe('check-subagent-output.js', () => {
       }
     });
 
-    test('exactly 12 agent types are defined', () => {
-      expect(Object.keys(AGENT_OUTPUTS)).toHaveLength(12);
+    test('exactly 17 agent types are defined', () => {
+      expect(Object.keys(AGENT_OUTPUTS)).toHaveLength(17);
     });
   });
 

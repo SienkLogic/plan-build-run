@@ -202,12 +202,13 @@ describe('validateSummary additional paths', () => {
 });
 
 describe('checkPlanWrite — ROADMAP.md path', () => {
-  test('returns warnings for ROADMAP.md missing heading', async () => {
+  test('returns errors for ROADMAP.md missing heading', async () => {
     const filePath = path.join(tmpDir, 'ROADMAP.md');
     fs.writeFileSync(filePath, '## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n');
     const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
-    expect(result.output.additionalContext).toContain('Roadmap');
+    expect(result.output.decision).toBe('block');
+    expect(result.output.reason).toContain('Roadmap');
   });
 
   test('returns null for valid ROADMAP.md', async () => {
@@ -221,14 +222,14 @@ describe('checkPlanWrite — ROADMAP.md path', () => {
 describe('validateRoadmap branch coverage', () => {
   const { validateRoadmap } = require('../hooks/check-plan-format');
 
-  test('warns when no milestone sections exist', () => {
+  test('errors when no milestone sections exist', () => {
     const result = validateRoadmap('# Roadmap\nSome text but no milestones', 'ROADMAP.md');
-    expect(result.warnings.some(w => w.includes('No "## Milestone:"'))).toBe(true);
+    expect(result.errors.some(w => w.includes('No "## Milestone:"'))).toBe(true);
   });
 
-  test('warns when milestone missing Phases line', () => {
+  test('errors when milestone missing Phases line', () => {
     const result = validateRoadmap('# Roadmap\n## Milestone: v1\nNo phases line here\n', 'ROADMAP.md');
-    expect(result.warnings.some(w => w.includes('missing "**Phases:**"'))).toBe(true);
+    expect(result.errors.some(w => w.includes('missing "**Phases:**"'))).toBe(true);
   });
 
   test('warns when phase missing Provides', () => {
@@ -501,14 +502,13 @@ patterns:
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('warns when frontmatter is missing', () => {
+  test('errors when frontmatter is missing', () => {
     const result = validateLearnings('# No frontmatter', 'LEARNINGS.md');
-    expect(result.errors).toHaveLength(0);
-    expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings.some(w => /frontmatter/i.test(w))).toBe(true);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors.some(e => /frontmatter/i.test(e))).toBe(true);
   });
 
-  test('warns when phase field is missing', () => {
+  test('errors when phase field is missing', () => {
     const content = `---
 key_insights:
   - "Insight 1"
@@ -517,11 +517,10 @@ patterns:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors).toHaveLength(0);
-    expect(result.warnings.some(w => /phase/i.test(w))).toBe(true);
+    expect(result.errors.some(e => /phase/i.test(e))).toBe(true);
   });
 
-  test('warns when key_insights field is missing', () => {
+  test('errors when key_insights field is missing', () => {
     const content = `---
 phase: "test"
 patterns:
@@ -529,11 +528,10 @@ patterns:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors).toHaveLength(0);
-    expect(result.warnings.some(w => /key_insights/i.test(w))).toBe(true);
+    expect(result.errors.some(e => /key_insights/i.test(e))).toBe(true);
   });
 
-  test('warns when patterns field is missing', () => {
+  test('errors when patterns field is missing', () => {
     const content = `---
 phase: "test"
 key_insights:
@@ -541,13 +539,11 @@ key_insights:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors).toHaveLength(0);
-    expect(result.warnings.some(w => /patterns/i.test(w))).toBe(true);
+    expect(result.errors.some(e => /patterns/i.test(e))).toBe(true);
   });
 
-  test('all issues are warnings, never errors', () => {
+  test('missing fields are errors not warnings', () => {
     const result = validateLearnings('no frontmatter at all', 'LEARNINGS.md');
-    expect(result.errors).toHaveLength(0);
-    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.errors.length).toBeGreaterThan(0);
   });
 });

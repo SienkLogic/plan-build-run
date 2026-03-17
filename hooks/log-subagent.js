@@ -95,6 +95,9 @@ function main() {
     const warning = trackAgentCost(planningDir, agentType, data.duration_ms, sessionId);
     if (warning) {
       process.stdout.write(JSON.stringify({ additionalContext: warning }));
+    } else {
+      // Emit stdout so Claude Code captures SubagentStop in session JSONL for audit visibility
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
     }
   }
 

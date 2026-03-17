@@ -1,41 +1,26 @@
 'use strict';
 
 /**
- * Gate: milestone complete verification check.
+ * Gate: milestone complete SUMMARY.md check.
  * When active skill is "milestone" and a general/planner agent is spawned
- * for a "complete" operation, verify all milestone phases have VERIFICATION.md.
+ * for a "complete" operation, verify all milestone phases have SUMMARY.md.
+ *
+ * This mirrors milestone-complete.cjs (which checks VERIFICATION.md) to
+ * close the enforcement gap where SUMMARY.md was only advisory.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { readActiveSkill, readCurrentPhaseInt } = require('./helpers');
-
-/**
- * Parse VERIFICATION.md frontmatter to extract status field.
- * Returns the status string or 'unknown' if not parseable.
- * @param {string} filePath - path to VERIFICATION.md
- * @returns {string}
- */
-function getVerificationStatus(filePath) {
-  try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    if (!fmMatch) return 'unknown';
-    const statusMatch = fmMatch[1].match(/^status:\s*(\S+)/m);
-    return statusMatch ? statusMatch[1] : 'unknown';
-  } catch (_e) {
-    return 'unknown';
-  }
-}
+const { readActiveSkill, readCurrentPhaseInt } = require('./helpers.cjs');
 
 /**
  * Blocking check: when the active skill is "milestone" and a general/planner agent
- * is being spawned for a "complete" operation, verify all milestone phases have VERIFICATION.md.
+ * is being spawned for a "complete" operation, verify all milestone phases have SUMMARY.md.
  * Returns { block: true, reason: "..." } if blocked, or null if OK.
  * @param {object} data - hook data with tool_input
  * @returns {{ block: boolean, reason: string }|null}
  */
-function checkMilestoneCompleteGate(data) {
+function checkMilestoneSummaryGate(data) {
   const toolInput = data.tool_input || {};
   const subagentType = toolInput.subagent_type || '';
   const description = toolInput.description || '';
@@ -93,37 +78,35 @@ function checkMilestoneCompleteGate(data) {
       // Check if current phase is in this milestone
       if (!phaseNumbers.includes(currentPhase)) continue;
 
-      // Found the right milestone — check all phases have VERIFICATION.md
+      // Found the right milestone — check all phases have SUMMARY.md
       const phasesDir = path.join(planningDir, 'phases');
       if (!fs.existsSync(phasesDir)) return null;
 
       for (const phaseNum of phaseNumbers) {
         const paddedPhase = String(phaseNum).padStart(2, '0');
         const pDirs = fs.readdirSync(phasesDir).filter(d => d.startsWith(paddedPhase + '-'));
-        if (pDirs.length === 0) {
+        if (pDirs.length === 0) continue; // Phase dir missing is caught by milestone-complete gate
+
+        const phaseDir = path.join(phasesDir, pDirs[0]);
+        const files = fs.readdirSync(phaseDir);
+        const hasSummary = files.some(f => {
+          if (!/^SUMMARY/i.test(f)) return false;
+          try {
+            return fs.statSync(path.join(phaseDir, f)).size > 0;
+          } catch (_e) {
+            return false;
+          }
+        });
+
+        if (!hasSummary) {
           return {
             block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} directory not found.\n\nAll milestone phases must exist and have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the phase (it must reach status: passed).`
-          };
-        }
-        const verificationFile = path.join(phasesDir, pDirs[0], 'VERIFICATION.md');
-        const hasVerification = fs.existsSync(verificationFile);
-        if (!hasVerification) {
-          return {
-            block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} (${pDirs[0]}) lacks VERIFICATION.md.\n\nAll milestone phases must have a passing VERIFICATION.md before the milestone can be completed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the phase (it must reach status: passed).`
-          };
-        }
-        const verStatus = getVerificationStatus(verificationFile);
-        if (verStatus === 'gaps_found') {
-          return {
-            block: true,
-            reason: `Milestone complete gate: phase ${paddedPhase} VERIFICATION.md has status: gaps_found.\n\nAll gaps must be closed before the milestone can be completed. The verifier found issues that need resolution.\n\nRun /pbr:verify-work ${paddedPhase} to close gaps (phase must reach status: passed).`
+            reason: `Milestone SUMMARY gate: phase ${paddedPhase} (${pDirs[0]}) lacks SUMMARY.md.\n\nAll milestone phases must have SUMMARY.md before the milestone can be completed. This file is created by the executor agent during /pbr:build.\n\nRun /pbr:execute-phase ${paddedPhase} to build this phase and create SUMMARY.md.`
           };
         }
       }
 
-      // All phases verified
+      // All phases have SUMMARY.md
       return null;
     }
   } catch (_e) {
@@ -133,4 +116,4 @@ function checkMilestoneCompleteGate(data) {
   return null;
 }
 
-module.exports = { checkMilestoneCompleteGate, getVerificationStatus };
+module.exports = { checkMilestoneSummaryGate };

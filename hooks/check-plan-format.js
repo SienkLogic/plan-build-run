@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * PostToolUse hook: Validates PLAN.md and SUMMARY.md structure.
+ * PostToolUse hook: Validates planning artifact structure on write.
  *
- * PLAN.md checks:
- * - Each task has <name>, <files>, <action>, <verify>, <done> elements
- * - Max 3 tasks per plan
- * - Has YAML frontmatter with required fields (phase, plan, wave, must_haves)
- *
- * SUMMARY.md checks:
- * - Has YAML frontmatter with required fields (phase, plan, status, provides, requires, key_files)
- * - key_files paths exist on disk
- * - Warns if no deferred field in frontmatter
+ * Validated file types:
+ * - PLAN.md: task elements, frontmatter, max 3 tasks
+ * - SUMMARY.md: frontmatter fields, key_files paths
+ * - VERIFICATION.md: status, phase, must_haves fields
+ * - ROADMAP.md: milestone structure, phase definitions (errors for critical, warnings for minor)
+ * - LEARNINGS.md: frontmatter with phase, key_insights, patterns
+ * - STATE.md: frontmatter fields (warnings only, auto-synced)
+ * - config.json: valid JSON, required fields
+ * - RESEARCH.md: frontmatter with confidence, sources_checked
  *
  * Returns decision: "block" for structural errors (forces Claude to fix and retry).
  * Returns message for non-blocking warnings.
@@ -61,8 +61,10 @@ async function main() {
       const isVerification = basename === 'VERIFICATION.md';
       const isRoadmap = basename === 'ROADMAP.md';
       const isLearnings = basename === 'LEARNINGS.md';
+      const isConfig = basename === 'config.json' && filePath.includes('.planning');
+      const isResearch = basename === 'RESEARCH.md';
 
-      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings) {
+      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) {
         process.exit(0);
       }
 
@@ -79,7 +81,11 @@ async function main() {
             ? validateRoadmap(content, filePath)
             : isLearnings
               ? validateLearnings(content, filePath)
-              : validateSummary(content, filePath);
+              : isConfig
+                ? validateConfig(content, filePath)
+                : isResearch
+                  ? validateResearch(content, filePath)
+                  : validateSummary(content, filePath);
 
       // LLM advisory enrichment — advisory only, never blocks
       if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -97,7 +103,7 @@ async function main() {
         }
       }
 
-      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -304,8 +310,10 @@ async function checkPlanWrite(data) {
   const isVerification = basename === 'VERIFICATION.md';
   const isRoadmap = basename === 'ROADMAP.md';
   const isLearnings = basename === 'LEARNINGS.md';
+  const isConfig = basename === 'config.json' && filePath.includes('.planning');
+  const isResearch = basename === 'RESEARCH.md';
 
-  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings) return null;
+  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -317,7 +325,11 @@ async function checkPlanWrite(data) {
         ? validateRoadmap(content, filePath)
         : isLearnings
           ? validateLearnings(content, filePath)
-          : validateSummary(content, filePath);
+          : isConfig
+            ? validateConfig(content, filePath)
+            : isResearch
+              ? validateResearch(content, filePath)
+              : validateSummary(content, filePath);
 
   // LLM advisory enrichment — advisory only, never blocks
   if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -335,7 +347,7 @@ async function checkPlanWrite(data) {
     }
   }
 
-  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -560,14 +572,18 @@ function syncStateBody(content, filePath) {
 }
 
 /**
- * Validate ROADMAP.md structure. Returns advisory warnings only (never blocking errors).
+ * Validate ROADMAP.md structure. Critical structural issues are blocking errors;
+ * minor issues are advisory warnings.
  *
- * Checks:
- * - Has a # Roadmap heading
- * - Has at least one ## Milestone: section
- * - Each milestone has **Phases:** line
- * - Each ### Phase NN: has **Goal:**, **Provides:**, **Depends on:**
- * - Progress table (if present) has valid markdown table syntax
+ * Blocking errors:
+ * - Missing # Roadmap heading
+ * - No ## Milestone: sections
+ * - Milestone missing **Phases:** line
+ *
+ * Warnings:
+ * - Missing Phase Checklist, Requirement coverage
+ * - Phase missing Goal/Provides/Depends on
+ * - Progress table syntax issues
  *
  * @param {string} content - Full ROADMAP.md content
  * @param {string} _filePath - File path (unused)
@@ -577,22 +593,22 @@ function validateRoadmap(content, _filePath) {
   const errors = [];
   const warnings = [];
 
-  // Check for # Roadmap heading
+  // Check for # Roadmap heading — required structure
   if (!/^#\s+(Roadmap|ROADMAP)/m.test(content)) {
-    warnings.push('Missing "# Roadmap" heading');
+    errors.push('Missing "# Roadmap" heading');
   }
 
-  // Check for at least one ## Milestone: section
+  // Check for at least one ## Milestone: section — required structure
   const milestoneMatches = content.match(/^##\s+Milestone:/gm);
   if (!milestoneMatches || milestoneMatches.length === 0) {
-    warnings.push('No "## Milestone:" sections found');
+    errors.push('No "## Milestone:" sections found');
   } else {
     // Check each milestone has **Phases:** line
     // Split content by milestone sections
     const milestoneBlocks = content.split(/^##\s+Milestone:/m).slice(1);
     milestoneBlocks.forEach((block, idx) => {
       if (!/\*\*Phases:\*\*/.test(block)) {
-        warnings.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
+        errors.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
       }
 
       // Skip checklist/coverage checks for COMPLETED milestones
@@ -657,7 +673,9 @@ function validateRoadmap(content, _filePath) {
 }
 
 /**
- * Validate LEARNINGS.md structure. Returns advisory warnings only (never blocking errors).
+ * Validate LEARNINGS.md structure. LEARNINGS.md is required for all agents —
+ * every agent must document what it learned. Missing frontmatter or required
+ * fields are blocking errors.
  *
  * Checks:
  * - Has YAML frontmatter (starts with ---)
@@ -673,28 +691,27 @@ function validateLearnings(content, _filePath) {
   const errors = [];
   const warnings = [];
 
-  // LEARNINGS.md is optional — all issues are warnings, never errors
   if (!content.startsWith('---')) {
-    warnings.push('Missing YAML frontmatter');
+    errors.push('Missing YAML frontmatter (required: phase, key_insights, patterns)');
     return { errors, warnings };
   }
 
   const frontmatterEnd = content.indexOf('---', 3);
   if (frontmatterEnd === -1) {
-    warnings.push('Unclosed YAML frontmatter');
+    errors.push('Unclosed YAML frontmatter');
     return { errors, warnings };
   }
 
   const frontmatter = content.substring(3, frontmatterEnd);
 
   if (!frontmatter.includes('phase:')) {
-    warnings.push('Frontmatter missing "phase" field');
+    errors.push('Frontmatter missing "phase" field');
   }
   if (!frontmatter.includes('key_insights:')) {
-    warnings.push('Frontmatter missing "key_insights" field');
+    errors.push('Frontmatter missing "key_insights" field');
   }
   if (!frontmatter.includes('patterns:')) {
-    warnings.push('Frontmatter missing "patterns" field');
+    errors.push('Frontmatter missing "patterns" field');
   }
 
   // Validate cross_project field if present
@@ -709,5 +726,90 @@ function validateLearnings(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, checkPlanWrite, checkStateWrite, syncStateBody };
+/**
+ * Validate .planning/config.json structure.
+ * Checks for valid JSON and required top-level fields.
+ *
+ * @param {string} content - Full config.json content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateConfig(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(content);
+  } catch (e) {
+    errors.push(`Invalid JSON: ${e.message}`);
+    return { errors, warnings };
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    errors.push('config.json must be a JSON object (not array or primitive)');
+    return { errors, warnings };
+  }
+
+  // Required: planning section with depth
+  if (!parsed.planning) {
+    errors.push('Missing "planning" section (required: planning.depth)');
+  } else if (!parsed.planning.depth) {
+    errors.push('Missing "planning.depth" field (expected: "quick", "standard", or "thorough")');
+  } else if (!['quick', 'standard', 'thorough'].includes(parsed.planning.depth)) {
+    warnings.push(`Unexpected planning.depth value: "${parsed.planning.depth}" (expected: quick, standard, or thorough)`);
+  }
+
+  // Advisory: known top-level keys
+  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel'];
+  for (const key of Object.keys(parsed)) {
+    if (!knownKeys.includes(key)) {
+      warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
+    }
+  }
+
+  return { errors, warnings };
+}
+
+/**
+ * Validate RESEARCH.md structure.
+ * Checks for YAML frontmatter with confidence and sources_checked fields.
+ *
+ * @param {string} content - Full RESEARCH.md content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateResearch(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  if (!content.startsWith('---')) {
+    errors.push('Missing YAML frontmatter (required: confidence, sources_checked)');
+    return { errors, warnings };
+  }
+
+  const frontmatterEnd = content.indexOf('---', 3);
+  if (frontmatterEnd === -1) {
+    errors.push('Unclosed YAML frontmatter');
+    return { errors, warnings };
+  }
+
+  const frontmatter = content.substring(3, frontmatterEnd);
+
+  if (!/confidence\s*:/i.test(frontmatter)) {
+    errors.push('Frontmatter missing "confidence" field (expected: high, medium, or low)');
+  }
+  if (!/sources_checked\s*:/i.test(frontmatter)) {
+    errors.push('Frontmatter missing "sources_checked" field');
+  }
+
+  // Advisory: phase field should be present for phase-level research
+  if (!frontmatter.includes('phase:')) {
+    warnings.push('Frontmatter missing "phase" field — recommended for phase-level research');
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }

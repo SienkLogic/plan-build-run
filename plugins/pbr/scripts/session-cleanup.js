@@ -294,6 +294,29 @@ function main() {
     }
   } catch (_e) { /* metrics never crash the hook */ }
 
+  // Surface compliance violations from this session
+  let complianceContext = null;
+  try {
+    const complianceFile = path.join(planningDir, 'logs', 'compliance.jsonl');
+    if (fs.existsSync(complianceFile)) {
+      const lines = fs.readFileSync(complianceFile, 'utf8').trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        const violations = lines.map(l => { try { return JSON.parse(l); } catch (_e) { return null; } }).filter(Boolean);
+        const required = violations.filter(v => v.severity === 'required');
+        if (required.length > 0) {
+          complianceContext = `\n\n⚠ COMPLIANCE: ${required.length} required artifact(s) missing this session:\n` +
+            required.map(v => `  - ${v.agent}: ${v.violation}`).join('\n') +
+            '\nThese artifacts should be created before the milestone is complete.';
+        }
+        // Clear compliance log after surfacing (fresh for next session)
+        fs.unlinkSync(complianceFile);
+        cleaned.push('logs/compliance.jsonl');
+      }
+    }
+  } catch (_e) {
+    // Best-effort
+  }
+
   const decision = cleaned.length > 0 ? 'cleaned' : 'nothing';
   logHook('session-cleanup', 'SessionEnd', decision, {
     reason: data.reason || null,
@@ -302,8 +325,9 @@ function main() {
     orphaned_progress_files: orphans.length > 0 ? orphans : undefined
   });
 
-  if (llmAdditionalContext) {
-    process.stdout.write(JSON.stringify({ additionalContext: llmAdditionalContext }) + '\n');
+  const combinedContext = [llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
+  if (combinedContext) {
+    process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }
 
   process.exit(0);

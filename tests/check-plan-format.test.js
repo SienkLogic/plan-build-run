@@ -776,16 +776,16 @@ All checks passed.`);
       expect(result.warnings).toHaveLength(0);
     });
 
-    test('missing Roadmap heading warns', () => {
+    test('missing Roadmap heading errors', () => {
       const content = '## Milestone: v1.0\n**Phases:**\n### Phase 01: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** z\n';
       const result = validateRoadmap(content, 'ROADMAP.md');
-      expect(result.warnings.some(w => w.includes('heading'))).toBe(true);
+      expect(result.errors.some(e => e.includes('heading'))).toBe(true);
     });
 
-    test('missing milestone section warns', () => {
+    test('missing milestone section errors', () => {
       const content = '# Roadmap\n\nSome content but no milestone\n';
       const result = validateRoadmap(content, 'ROADMAP.md');
-      expect(result.warnings.some(w => w.includes('Milestone'))).toBe(true);
+      expect(result.errors.some(e => e.includes('Milestone'))).toBe(true);
     });
 
     test('missing Phase Goal warns', () => {
@@ -824,7 +824,7 @@ All checks passed.`);
       expect(result.warnings.some(w => w.includes('table'))).toBe(true);
     });
 
-    test('missing Phases line in milestone warns', () => {
+    test('missing Phases line in milestone errors', () => {
       const content = `# Roadmap
 
 ## Milestone: v1.0
@@ -835,14 +835,13 @@ All checks passed.`);
 **Depends on:** z
 `;
       const result = validateRoadmap(content, 'ROADMAP.md');
-      expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
+      expect(result.errors.some(e => e.includes('Phases'))).toBe(true);
     });
 
-    test('returns only warnings, never errors (advisory)', () => {
+    test('critical structural issues are errors, minor issues are warnings', () => {
       const content = 'totally invalid content';
       const result = validateRoadmap(content, 'ROADMAP.md');
-      expect(result.errors).toHaveLength(0);
-      expect(result.warnings.length).toBeGreaterThan(0);
+      expect(result.errors.length).toBeGreaterThan(0);
     });
 
     test('roadmap with Phase Checklist and Requirement coverage passes clean', () => {

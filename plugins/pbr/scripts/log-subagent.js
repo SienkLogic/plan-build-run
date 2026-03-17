@@ -87,6 +87,8 @@ function main() {
       agent_type: agentType,
       duration_ms: data.duration_ms || null
     });
+    // Emit stdout so Claude Code captures SubagentStop in session JSONL for audit visibility
+    process.stdout.write(JSON.stringify({ decision: 'allow' }));
   }
 
   process.exit(0);

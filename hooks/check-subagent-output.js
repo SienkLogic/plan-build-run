@@ -24,6 +24,7 @@ const { KNOWN_AGENTS, sessionLoad } = require('../plan-build-run/bin/lib/core.cj
 const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
 const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { logEvent } = require('./event-logger');
 
 /**
  * Check if a file was modified recently (within thresholdMs).
@@ -45,36 +46,36 @@ const AGENT_OUTPUTS = {
     check: (planningDir) => {
       // Check phase directory first, then quick directory
       const phaseMatches = findInPhaseDir(planningDir, /^SUMMARY.*\.md$/i);
-      if (phaseMatches.length > 0) return { files: phaseMatches, stale: false };
-      return { files: findInQuickDir(planningDir, /^SUMMARY.*\.md$/i), stale: false };
+      if (phaseMatches.length > 0) return phaseMatches;
+      return findInQuickDir(planningDir, /^SUMMARY.*\.md$/i);
     }
   },
   'pbr:planner': {
     description: 'PLAN.md in the phase directory',
-    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^PLAN.*\.md$/i), stale: false })
+    check: (planningDir) => findInPhaseDir(planningDir, /^PLAN.*\.md$/i)
   },
   'pbr:verifier': {
     description: 'VERIFICATION.md in the phase directory',
-    check: (planningDir) => ({ files: findInPhaseDir(planningDir, /^VERIFICATION\.md$/i), stale: false })
+    check: (planningDir) => findInPhaseDir(planningDir, /^VERIFICATION\.md$/i)
   },
   'pbr:researcher': {
     description: 'research file in .planning/research/',
     check: (planningDir) => {
       const researchDir = path.join(planningDir, 'research');
-      if (!fs.existsSync(researchDir)) return { files: [], stale: false };
+      if (!fs.existsSync(researchDir)) return [];
       try {
         const allFiles = fs.readdirSync(researchDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('research', f));
-        if (allFiles.length === 0) return { files: [], stale: false };
+        if (allFiles.length === 0) return [];
         const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
         if (recentFiles.length === 0) {
           // Files exist but none are recent — return them but flag staleness
-          return { files: allFiles, stale: true };
+          allFiles._stale = true;
         }
-        return { files: allFiles, stale: false };
+        return allFiles;
       } catch (_e) {
-        return { files: [], stale: false };
+        return [];
       }
     }
   },
@@ -89,9 +90,9 @@ const AGENT_OUTPUTS = {
             const allFiles = files.map(f => path.join('research', f));
             const recentFiles = allFiles.filter(f => isRecent(path.join(planningDir, f)));
             if (recentFiles.length === 0) {
-              return { files: allFiles, stale: true };
+              allFiles._stale = true;
             }
-            return { files: allFiles, stale: false };
+            return allFiles;
           }
         } catch (_e) { /* best-effort */ }
       }
@@ -101,36 +102,37 @@ const AGENT_OUTPUTS = {
           const stat = fs.statSync(contextFile);
           if (stat.size > 0) {
             const result = ['CONTEXT.md'];
-            const stale = !isRecent(contextFile);
-            return { files: result, stale };
+            if (!isRecent(contextFile)) {
+              result._stale = true;
+            }
+            return result;
           }
         } catch (_e) { /* best-effort */ }
       }
-      return { files: [], stale: false };
+      return [];
     }
   },
   'pbr:plan-checker': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => ({ files: [], stale: false })
+    check: () => []
   },
   'pbr:integration-checker': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => ({ files: [], stale: false })
+    check: () => []
   },
   'pbr:debugger': {
     description: 'debug file in .planning/debug/',
     check: (planningDir) => {
       const debugDir = path.join(planningDir, 'debug');
-      if (!fs.existsSync(debugDir)) return { files: [], stale: false };
+      if (!fs.existsSync(debugDir)) return [];
       try {
-        const files = fs.readdirSync(debugDir)
+        return fs.readdirSync(debugDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('debug', f));
-        return { files, stale: false };
       } catch (_e) {
-        return { files: [], stale: false };
+        return [];
       }
     }
   },
@@ -138,41 +140,73 @@ const AGENT_OUTPUTS = {
     description: 'codebase map in .planning/codebase/',
     check: (planningDir) => {
       const codebaseDir = path.join(planningDir, 'codebase');
-      if (!fs.existsSync(codebaseDir)) return { files: [], stale: false };
+      if (!fs.existsSync(codebaseDir)) return [];
       try {
-        const files = fs.readdirSync(codebaseDir)
+        return fs.readdirSync(codebaseDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('codebase', f));
-        return { files, stale: false };
       } catch (_e) {
-        return { files: [], stale: false };
+        return [];
       }
     }
   },
   'pbr:general': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => ({ files: [], stale: false })
+    check: () => []
   },
   'pbr:audit': {
     description: 'audit report in .planning/audits/',
     check: (planningDir) => {
       const auditsDir = path.join(planningDir, 'audits');
-      if (!fs.existsSync(auditsDir)) return { files: [], stale: false };
+      if (!fs.existsSync(auditsDir)) return [];
       try {
-        const files = fs.readdirSync(auditsDir)
+        return fs.readdirSync(auditsDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('audits', f));
-        return { files, stale: false };
       } catch (_e) {
-        return { files: [], stale: false };
+        return [];
       }
     }
   },
   'pbr:dev-sync': {
     description: 'advisory output (no file expected)',
     noFileExpected: true,
-    check: () => ({ files: [], stale: false })
+    check: () => []
+  },
+  'pbr:intel-updater': {
+    description: 'intel files in .planning/intel/',
+    check: (planningDir) => {
+      const intelDir = path.join(planningDir, 'intel');
+      if (!fs.existsSync(intelDir)) return [];
+      try {
+        return fs.readdirSync(intelDir)
+          .filter(f => f.endsWith('.md') || f.endsWith('.json'))
+          .map(f => path.join('intel', f));
+      } catch (_e) {
+        return [];
+      }
+    }
+  },
+  'pbr:ui-checker': {
+    description: 'advisory output (UI validation results returned inline)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:ui-researcher': {
+    description: 'advisory output (UI research findings returned inline)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:roadmapper': {
+    description: 'ROADMAP.md updates',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:nyquist-auditor': {
+    description: 'test files generated for phase coverage',
+    noFileExpected: true,
+    check: () => []
   }
 };
 
@@ -324,6 +358,45 @@ function checkSummaryCommits(planningDir, foundFiles, warnings) {
   }
 }
 
+/**
+ * Log a compliance violation to .planning/logs/compliance.jsonl.
+ * These are surfaced to the user at session end by session-cleanup.js.
+ * @param {string} planningDir - Path to .planning/
+ * @param {string} agentType - Agent that violated
+ * @param {string} violation - What was missing or wrong
+ * @param {string} severity - 'required' or 'advisory'
+ */
+function logCompliance(planningDir, agentType, violation, severity) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const logFile = path.join(logsDir, 'compliance.jsonl');
+    const entry = JSON.stringify({
+      ts: new Date().toISOString(),
+      agent: agentType,
+      violation,
+      severity
+    });
+    fs.appendFileSync(logFile, entry + '\n', 'utf8');
+  } catch (_e) {
+    // Best-effort — never crash the hook
+  }
+}
+
+/**
+ * Check that LEARNINGS.md exists in the current phase directory.
+ * LEARNINGS.md is REQUIRED for all agents — every agent must document what it learned.
+ * @param {string} planningDir - Path to .planning/
+ * @param {string[]} warnings - Mutable warnings array to push into
+ * @param {string} agentLabel - Human-readable agent label for the warning message
+ */
+function checkLearningsRequired(planningDir, warnings, agentLabel) {
+  const learningsFiles = findInPhaseDir(planningDir, /^LEARNINGS\.md$/i);
+  if (learningsFiles.length === 0) {
+    warnings.push(`[REQUIRED] No LEARNINGS.md found in phase directory. The ${agentLabel} agent MUST write LEARNINGS.md documenting what it learned — patterns discovered, pitfalls avoided, decisions made. This is required for cross-phase knowledge transfer.`);
+  }
+}
+
 // Skill-specific check lookup table keyed by 'activeSkill:agentType'
 const SKILL_CHECKS = {
   'begin:pbr:planner': {
@@ -338,12 +411,19 @@ const SKILL_CHECKS = {
     }
   },
   'plan:pbr:researcher': {
-    description: 'plan researcher phase-level RESEARCH.md',
+    description: 'plan researcher phase-level RESEARCH.md and LEARNINGS.md',
     check: (planningDir, found, warnings) => {
       const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
       if (found.length === 0 && phaseResearch.length === 0) {
         warnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
       }
+      checkLearningsRequired(planningDir, warnings, 'researcher');
+    }
+  },
+  'plan:pbr:planner': {
+    description: 'plan planner LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      checkLearningsRequired(planningDir, warnings, 'planner');
     }
   },
   'scan:pbr:codebase-mapper': {
@@ -364,7 +444,7 @@ const SKILL_CHECKS = {
     }
   },
   'review:pbr:verifier': {
-    description: 'review verifier VERIFICATION.md status',
+    description: 'review verifier VERIFICATION.md status and LEARNINGS.md',
     check: (planningDir, _found, warnings) => {
       const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
       for (const vf of verFiles) {
@@ -376,17 +456,14 @@ const SKILL_CHECKS = {
           }
         } catch (_e) { /* best-effort */ }
       }
+      checkLearningsRequired(planningDir, warnings, 'verifier');
     }
   },
   'build:pbr:executor': {
     description: 'build executor SUMMARY commits and LEARNINGS.md',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
-      // Advisory: check if LEARNINGS.md exists (optional but encouraged)
-      const learningsFiles = findInPhaseDir(planningDir, /^LEARNINGS\.md$/i);
-      if (learningsFiles.length === 0) {
-        warnings.push('No LEARNINGS.md found in phase directory. If the executor discovered patterns or insights, it should write LEARNINGS.md for cross-phase knowledge transfer.');
-      }
+      checkLearningsRequired(planningDir, warnings, 'executor');
     }
   },
   'quick:pbr:executor': {
@@ -427,6 +504,27 @@ const SKILL_CHECKS = {
       }
     }
   },
+  'begin:pbr:roadmapper': {
+    description: 'begin roadmapper LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      checkLearningsRequired(planningDir, warnings, 'roadmapper');
+    }
+  },
+  'debug:pbr:debugger': {
+    description: 'debug agent LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      // Debugger writes to .planning/debug/ — check LEARNINGS there
+      const debugDir = path.join(planningDir, 'debug');
+      if (!fs.existsSync(debugDir)) return;
+      try {
+        const files = fs.readdirSync(debugDir);
+        const hasLearnings = files.some(f => /^LEARNINGS/i.test(f));
+        if (!hasLearnings) {
+          warnings.push('[REQUIRED] No LEARNINGS.md found in .planning/debug/. The debugger agent MUST document what it learned — root causes found, debugging approaches that worked, environment quirks discovered.');
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  },
   'begin:pbr:synthesizer': {
     description: 'begin synthesizer SUMMARY.md structure validation',
     check: (planningDir, found, warnings) => {
@@ -453,6 +551,55 @@ const SKILL_CHECKS = {
           if (!new RegExp(dim, 'i').test(content)) {
             warnings.push(`SUMMARY.md missing dimension: ${dim}. All 4 research dimensions must be covered.`);
           }
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  },
+  'milestone:pbr:general': {
+    description: 'milestone archive completeness validation',
+    check: (planningDir, _found, warnings) => {
+      // After milestone completion, verify the archive structure
+      const milestonesDir = path.join(planningDir, 'milestones');
+      if (!fs.existsSync(milestonesDir)) return;
+
+      try {
+        // Find the most recent milestone archive (highest version)
+        const archiveDirs = fs.readdirSync(milestonesDir)
+          .filter(d => d.startsWith('v') && fs.statSync(path.join(milestonesDir, d)).isDirectory())
+          .sort()
+          .reverse();
+
+        if (archiveDirs.length === 0) return;
+
+        const latestArchive = path.join(milestonesDir, archiveDirs[0]);
+        const archiveFiles = fs.readdirSync(latestArchive);
+
+        // Check for required archive files
+        if (!archiveFiles.includes('ROADMAP.md')) {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing ROADMAP.md snapshot`);
+        }
+        if (!archiveFiles.includes('STATS.md')) {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing STATS.md summary`);
+        }
+
+        // Check for phases/ subdirectory with per-phase artifacts
+        const archivePhasesDir = path.join(latestArchive, 'phases');
+        if (fs.existsSync(archivePhasesDir)) {
+          const phaseDirs = fs.readdirSync(archivePhasesDir)
+            .filter(d => fs.statSync(path.join(archivePhasesDir, d)).isDirectory());
+
+          for (const pd of phaseDirs) {
+            const phaseFiles = fs.readdirSync(path.join(archivePhasesDir, pd));
+            const hasPlan = phaseFiles.some(f => /^PLAN/i.test(f));
+            const hasSummary = phaseFiles.some(f => /^SUMMARY/i.test(f));
+            const hasVerification = phaseFiles.some(f => f === 'VERIFICATION.md');
+
+            if (!hasPlan) warnings.push(`[REQUIRED] Archive phase ${pd}: missing PLAN.md`);
+            if (!hasSummary) warnings.push(`[REQUIRED] Archive phase ${pd}: missing SUMMARY.md`);
+            if (!hasVerification) warnings.push(`[REQUIRED] Archive phase ${pd}: missing VERIFICATION.md`);
+          }
+        } else {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing phases/ subdirectory`);
         }
       } catch (_e) { /* best-effort */ }
     }
@@ -516,41 +663,41 @@ async function main() {
     try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
   }
 
-  // Check agent response size — warn if output may blow orchestrator context
-  const AGENT_OUTPUT_SIZE_WARN = 50000;   // 50k chars
-  const AGENT_OUTPUT_SIZE_CRITICAL = 100000; // 100k chars
-  const toolOutput = data.tool_output || '';
-  const outputSize = typeof toolOutput === 'string' ? toolOutput.length : 0;
-  if (outputSize > AGENT_OUTPUT_SIZE_CRITICAL) {
-    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
-      agent_type: agentType, size: outputSize
-    });
-    const sizeWarn = {
-      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
-    };
-    process.stdout.write(JSON.stringify(sizeWarn));
-    process.exit(0);
-  }
-
   // Check for expected outputs
-  const foundResult = outputSpec.check(planningDir);
-  const found = foundResult.files;
-  const foundStale = foundResult.stale;
+  const found = outputSpec.check(planningDir);
 
   const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
 
   // Skill-specific post-completion validation
   const skillWarnings = [];
 
-  if (outputSize > AGENT_OUTPUT_SIZE_WARN) {
-    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSize / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
-  }
-
-  // ACTIVE-SKILL ENFORCEMENT: Warn when no .active-skill file exists.
+  // ACTIVE-SKILL ENFORCEMENT: Auto-create .active-skill when missing.
   // Skills are instructed (with CRITICAL markers) to write this file, but LLMs
-  // skip it under cognitive load. This warning reminds the orchestrator.
+  // skip it under cognitive load. Instead of just warning, we now auto-create
+  // the file by inferring the skill from the agent type.
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    // Infer skill from agent type: pbr:executor -> "build", pbr:planner -> "plan", etc.
+    const AGENT_TO_SKILL = {
+      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
+      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
+      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
+    };
+    const inferredSkill = AGENT_TO_SKILL[agentType];
+    if (inferredSkill) {
+      try {
+        const skillPath = sessionId
+          ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+          : path.join(planningDir, '.active-skill');
+        fs.writeFileSync(skillPath, inferredSkill, 'utf8');
+        activeSkill = inferredSkill;
+        logHook('check-subagent-output', 'PostToolUse', 'active-skill-auto-created', { skill: inferredSkill, agent: agentType });
+        skillWarnings.push(`.active-skill was missing — auto-created as "${inferredSkill}" (inferred from ${agentType}). Skill-specific enforcement is now active for subsequent agents.`);
+      } catch (_writeErr) {
+        skillWarnings.push('.active-skill file is missing and auto-creation failed. Skill-workflow guards were inactive for this operation.');
+      }
+    } else {
+      skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    }
   }
 
   // ROADMAP.md SYNC: After executor or verifier completes, check if ROADMAP.md
@@ -564,7 +711,7 @@ async function main() {
   }
 
   // Mtime-based recency check for researcher and synthesizer
-  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
     const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
     skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
   }
@@ -574,6 +721,16 @@ async function main() {
   const skillCheck = SKILL_CHECKS[skillCheckKey];
   if (skillCheck) {
     skillCheck.check(planningDir, found, skillWarnings);
+  }
+
+  // Log compliance violations for tracking and session-end summary
+  if (genericMissing) {
+    logCompliance(planningDir, agentType, `Missing expected output: ${outputSpec.description}`, 'required');
+  }
+  for (const w of skillWarnings) {
+    if (w.startsWith('[REQUIRED]')) {
+      logCompliance(planningDir, agentType, w.replace('[REQUIRED] ', ''), 'required');
+    }
   }
 
   // Output logic: avoid duplicating warnings
@@ -677,32 +834,32 @@ async function handleHttp(reqBody) {
     try { activeSkill = fs.readFileSync(skillPath, 'utf8').trim(); } catch (_) { /* file missing */ }
   }
 
-  // Output size check (HTTP path)
-  const AGENT_OUTPUT_SIZE_WARN_HTTP = 50000;
-  const AGENT_OUTPUT_SIZE_CRITICAL_HTTP = 100000;
-  const toolOutputHttp = data.tool_output || '';
-  const outputSizeHttp = typeof toolOutputHttp === 'string' ? toolOutputHttp.length : 0;
-  if (outputSizeHttp > AGENT_OUTPUT_SIZE_CRITICAL_HTTP) {
-    logHook('check-subagent-output', 'PostToolUse', 'output-size-critical', {
-      agent_type: agentType, size: outputSizeHttp
-    });
-    return {
-      additionalContext: `[pbr] CRITICAL: Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars — this is consuming significant orchestrator context. Agents should write results to files and return only a brief summary. Consider /pbr:pause-work to cycle context.`
-    };
-  }
-
-  const foundResult = outputSpec.check(planningDir);
-  const found = foundResult.files;
-  const foundStale = foundResult.stale;
+  const found = outputSpec.check(planningDir);
   const genericMissing = found.length === 0 && !outputSpec.noFileExpected;
   const skillWarnings = [];
 
-  if (outputSizeHttp > AGENT_OUTPUT_SIZE_WARN_HTTP) {
-    skillWarnings.push(`Agent ${agentType} returned ~${Math.round(outputSizeHttp / 1000)}k chars. Large agent responses consume orchestrator context. Consider instructing agents to write results to files and return brief summaries.`);
-  }
-
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. This means skill-workflow guards were inactive for this entire operation. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    const AGENT_TO_SKILL = {
+      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
+      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
+      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
+    };
+    const inferredSkill = AGENT_TO_SKILL[agentType];
+    if (inferredSkill) {
+      try {
+        const skillPath = sessionId
+          ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+          : path.join(planningDir, '.active-skill');
+        fs.writeFileSync(skillPath, inferredSkill, 'utf8');
+        activeSkill = inferredSkill;
+        logHook('check-subagent-output', 'PostToolUse', 'active-skill-auto-created', { skill: inferredSkill, agent: agentType });
+        skillWarnings.push(`.active-skill was missing — auto-created as "${inferredSkill}" (inferred from ${agentType}).`);
+      } catch (_writeErr) {
+        skillWarnings.push('.active-skill file is missing and auto-creation failed.');
+      }
+    } else {
+      skillWarnings.push('.active-skill file is missing — the orchestrating skill never wrote it. CRITICAL: Write the skill name to .planning/.active-skill BEFORE spawning agents.');
+    }
   }
 
   if (agentType === 'pbr:executor' || agentType === 'pbr:verifier') {
@@ -710,7 +867,7 @@ async function handleHttp(reqBody) {
     if (roadmapWarning) skillWarnings.push(roadmapWarning);
   }
 
-  if (foundStale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
+  if (found._stale && (agentType === 'pbr:researcher' || agentType === 'pbr:synthesizer')) {
     const label = agentType === 'pbr:researcher' ? 'Researcher' : 'Synthesizer';
     skillWarnings.push(`${label} output may be stale — no recent output files detected.`);
   }

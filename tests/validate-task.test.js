@@ -663,6 +663,8 @@ Status: built
         for (const pd of opts.phaseDirs) {
           const pDir = path.join(phasesDir, pd.name);
           fs.mkdirSync(pDir, { recursive: true });
+          // SUMMARY.md is required by milestone summary gate — always create it
+          fs.writeFileSync(path.join(pDir, 'SUMMARY.md'), '---\nstatus: completed\n---\n# Summary\nDone.');
           if (pd.hasVerification) {
             fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), '# Verification\nAll checks passed.');
           }
@@ -1101,6 +1103,8 @@ Status: built
       fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_CONTENT);
       const pDir = path.join(planningDir, 'phases', '01-first');
       fs.mkdirSync(pDir, { recursive: true });
+      // SUMMARY.md is required by milestone summary gate — always create it
+      fs.writeFileSync(path.join(pDir, 'SUMMARY.md'), '---\nstatus: completed\n---\n# Summary\nDone.');
       if (opts.verificationContent) {
         fs.writeFileSync(path.join(pDir, 'VERIFICATION.md'), opts.verificationContent);
       }

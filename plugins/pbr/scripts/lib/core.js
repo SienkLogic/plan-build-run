@@ -27,7 +27,12 @@ const KNOWN_AGENTS = [
   'synthesizer',
   'general',
   'audit',
-  'dev-sync'
+  'dev-sync',
+  'roadmapper',
+  'nyquist-auditor',
+  'intel-updater',
+  'ui-checker',
+  'ui-researcher'
 ];
 
 // --- Phase status transition state machine ---

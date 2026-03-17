@@ -24,6 +24,7 @@ const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyError } = require('./local-llm/operations/classify-error');
 const { resolveSessionPath } = require('./lib/core');
+const { logEvent } = require('./event-logger');
 
 /**
  * Check if a file was modified recently (within thresholdMs).
@@ -170,6 +171,40 @@ const AGENT_OUTPUTS = {
   },
   'pbr:dev-sync': {
     description: 'advisory output (no file expected)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:intel-updater': {
+    description: 'intel files in .planning/intel/',
+    check: (planningDir) => {
+      const intelDir = path.join(planningDir, 'intel');
+      if (!fs.existsSync(intelDir)) return [];
+      try {
+        return fs.readdirSync(intelDir)
+          .filter(f => f.endsWith('.md') || f.endsWith('.json'))
+          .map(f => path.join('intel', f));
+      } catch (_e) {
+        return [];
+      }
+    }
+  },
+  'pbr:ui-checker': {
+    description: 'advisory output (UI validation results returned inline)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:ui-researcher': {
+    description: 'advisory output (UI research findings returned inline)',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:roadmapper': {
+    description: 'ROADMAP.md updates',
+    noFileExpected: true,
+    check: () => []
+  },
+  'pbr:nyquist-auditor': {
+    description: 'test files generated for phase coverage',
     noFileExpected: true,
     check: () => []
   }
@@ -323,6 +358,45 @@ function checkSummaryCommits(planningDir, foundFiles, warnings) {
   }
 }
 
+/**
+ * Log a compliance violation to .planning/logs/compliance.jsonl.
+ * These are surfaced to the user at session end by session-cleanup.js.
+ * @param {string} planningDir - Path to .planning/
+ * @param {string} agentType - Agent that violated
+ * @param {string} violation - What was missing or wrong
+ * @param {string} severity - 'required' or 'advisory'
+ */
+function logCompliance(planningDir, agentType, violation, severity) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const logFile = path.join(logsDir, 'compliance.jsonl');
+    const entry = JSON.stringify({
+      ts: new Date().toISOString(),
+      agent: agentType,
+      violation,
+      severity
+    });
+    fs.appendFileSync(logFile, entry + '\n', 'utf8');
+  } catch (_e) {
+    // Best-effort — never crash the hook
+  }
+}
+
+/**
+ * Check that LEARNINGS.md exists in the current phase directory.
+ * LEARNINGS.md is REQUIRED for all agents — every agent must document what it learned.
+ * @param {string} planningDir - Path to .planning/
+ * @param {string[]} warnings - Mutable warnings array to push into
+ * @param {string} agentLabel - Human-readable agent label for the warning message
+ */
+function checkLearningsRequired(planningDir, warnings, agentLabel) {
+  const learningsFiles = findInPhaseDir(planningDir, /^LEARNINGS\.md$/i);
+  if (learningsFiles.length === 0) {
+    warnings.push(`[REQUIRED] No LEARNINGS.md found in phase directory. The ${agentLabel} agent MUST write LEARNINGS.md documenting what it learned — patterns discovered, pitfalls avoided, decisions made. This is required for cross-phase knowledge transfer.`);
+  }
+}
+
 // Skill-specific check lookup table keyed by 'activeSkill:agentType'
 const SKILL_CHECKS = {
   'begin:pbr:planner': {
@@ -337,12 +411,19 @@ const SKILL_CHECKS = {
     }
   },
   'plan:pbr:researcher': {
-    description: 'plan researcher phase-level RESEARCH.md',
+    description: 'plan researcher phase-level RESEARCH.md and LEARNINGS.md',
     check: (planningDir, found, warnings) => {
       const phaseResearch = findInPhaseDir(planningDir, /^RESEARCH\.md$/i);
       if (found.length === 0 && phaseResearch.length === 0) {
         warnings.push('Plan researcher: No research output found in .planning/research/ or in the phase directory.');
       }
+      checkLearningsRequired(planningDir, warnings, 'researcher');
+    }
+  },
+  'plan:pbr:planner': {
+    description: 'plan planner LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      checkLearningsRequired(planningDir, warnings, 'planner');
     }
   },
   'scan:pbr:codebase-mapper': {
@@ -363,7 +444,7 @@ const SKILL_CHECKS = {
     }
   },
   'review:pbr:verifier': {
-    description: 'review verifier VERIFICATION.md status',
+    description: 'review verifier VERIFICATION.md status and LEARNINGS.md',
     check: (planningDir, _found, warnings) => {
       const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
       for (const vf of verFiles) {
@@ -375,17 +456,14 @@ const SKILL_CHECKS = {
           }
         } catch (_e) { /* best-effort */ }
       }
+      checkLearningsRequired(planningDir, warnings, 'verifier');
     }
   },
   'build:pbr:executor': {
     description: 'build executor SUMMARY commits and LEARNINGS.md',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
-      // Advisory: check if LEARNINGS.md exists (optional but encouraged)
-      const learningsFiles = findInPhaseDir(planningDir, /^LEARNINGS\.md$/i);
-      if (learningsFiles.length === 0) {
-        warnings.push('No LEARNINGS.md found in phase directory. If the executor discovered patterns or insights, it should write LEARNINGS.md for cross-phase knowledge transfer.');
-      }
+      checkLearningsRequired(planningDir, warnings, 'executor');
     }
   },
   'quick:pbr:executor': {
@@ -426,6 +504,27 @@ const SKILL_CHECKS = {
       }
     }
   },
+  'begin:pbr:roadmapper': {
+    description: 'begin roadmapper LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      checkLearningsRequired(planningDir, warnings, 'roadmapper');
+    }
+  },
+  'debug:pbr:debugger': {
+    description: 'debug agent LEARNINGS.md',
+    check: (planningDir, _found, warnings) => {
+      // Debugger writes to .planning/debug/ — check LEARNINGS there
+      const debugDir = path.join(planningDir, 'debug');
+      if (!fs.existsSync(debugDir)) return;
+      try {
+        const files = fs.readdirSync(debugDir);
+        const hasLearnings = files.some(f => /^LEARNINGS/i.test(f));
+        if (!hasLearnings) {
+          warnings.push('[REQUIRED] No LEARNINGS.md found in .planning/debug/. The debugger agent MUST document what it learned — root causes found, debugging approaches that worked, environment quirks discovered.');
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  },
   'begin:pbr:synthesizer': {
     description: 'begin synthesizer SUMMARY.md structure validation',
     check: (planningDir, found, warnings) => {
@@ -452,6 +551,55 @@ const SKILL_CHECKS = {
           if (!new RegExp(dim, 'i').test(content)) {
             warnings.push(`SUMMARY.md missing dimension: ${dim}. All 4 research dimensions must be covered.`);
           }
+        }
+      } catch (_e) { /* best-effort */ }
+    }
+  },
+  'milestone:pbr:general': {
+    description: 'milestone archive completeness validation',
+    check: (planningDir, _found, warnings) => {
+      // After milestone completion, verify the archive structure
+      const milestonesDir = path.join(planningDir, 'milestones');
+      if (!fs.existsSync(milestonesDir)) return;
+
+      try {
+        // Find the most recent milestone archive (highest version)
+        const archiveDirs = fs.readdirSync(milestonesDir)
+          .filter(d => d.startsWith('v') && fs.statSync(path.join(milestonesDir, d)).isDirectory())
+          .sort()
+          .reverse();
+
+        if (archiveDirs.length === 0) return;
+
+        const latestArchive = path.join(milestonesDir, archiveDirs[0]);
+        const archiveFiles = fs.readdirSync(latestArchive);
+
+        // Check for required archive files
+        if (!archiveFiles.includes('ROADMAP.md')) {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing ROADMAP.md snapshot`);
+        }
+        if (!archiveFiles.includes('STATS.md')) {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing STATS.md summary`);
+        }
+
+        // Check for phases/ subdirectory with per-phase artifacts
+        const archivePhasesDir = path.join(latestArchive, 'phases');
+        if (fs.existsSync(archivePhasesDir)) {
+          const phaseDirs = fs.readdirSync(archivePhasesDir)
+            .filter(d => fs.statSync(path.join(archivePhasesDir, d)).isDirectory());
+
+          for (const pd of phaseDirs) {
+            const phaseFiles = fs.readdirSync(path.join(archivePhasesDir, pd));
+            const hasPlan = phaseFiles.some(f => /^PLAN/i.test(f));
+            const hasSummary = phaseFiles.some(f => /^SUMMARY/i.test(f));
+            const hasVerification = phaseFiles.some(f => f === 'VERIFICATION.md');
+
+            if (!hasPlan) warnings.push(`[REQUIRED] Archive phase ${pd}: missing PLAN.md`);
+            if (!hasSummary) warnings.push(`[REQUIRED] Archive phase ${pd}: missing SUMMARY.md`);
+            if (!hasVerification) warnings.push(`[REQUIRED] Archive phase ${pd}: missing VERIFICATION.md`);
+          }
+        } else {
+          warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing phases/ subdirectory`);
         }
       } catch (_e) { /* best-effort */ }
     }
@@ -573,6 +721,16 @@ async function main() {
   const skillCheck = SKILL_CHECKS[skillCheckKey];
   if (skillCheck) {
     skillCheck.check(planningDir, found, skillWarnings);
+  }
+
+  // Log compliance violations for tracking and session-end summary
+  if (genericMissing) {
+    logCompliance(planningDir, agentType, `Missing expected output: ${outputSpec.description}`, 'required');
+  }
+  for (const w of skillWarnings) {
+    if (w.startsWith('[REQUIRED]')) {
+      logCompliance(planningDir, agentType, w.replace('[REQUIRED] ', ''), 'required');
+    }
   }
 
   // Output logic: avoid duplicating warnings

@@ -74,6 +74,22 @@ function checkMilestoneCompleteGate(data) {
         phaseNumbers.push(parseInt(match[1], 10));
       }
 
+      // Fallback: parse from **Phases:** line or ### Phase NN: headings
+      if (phaseNumbers.length === 0) {
+        const phasesLineMatch = section.match(/\*\*Phases:\*\*\s*([\d,\s-]+)/);
+        if (phasesLineMatch) {
+          const nums = phasesLineMatch[1].match(/\d+/g);
+          if (nums) nums.forEach(n => phaseNumbers.push(parseInt(n, 10)));
+        }
+      }
+      if (phaseNumbers.length === 0) {
+        const headingRegex = /^###\s+Phase\s+(\d+):/gm;
+        let hMatch;
+        while ((hMatch = headingRegex.exec(section)) !== null) {
+          phaseNumbers.push(parseInt(hMatch[1], 10));
+        }
+      }
+
       // Check if current phase is in this milestone
       if (!phaseNumbers.includes(currentPhase)) continue;
 

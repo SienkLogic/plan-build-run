@@ -12,6 +12,7 @@ const {
   checkReviewPlannerGate,
   checkReviewVerifierGate,
   checkMilestoneCompleteGate,
+  checkMilestoneSummaryGate,
   checkBuildDependencyGate,
   checkCheckpointManifest,
   checkActiveSkillIntegrity,
@@ -402,6 +403,106 @@ Phase: 2 of 2
     fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'VERIFICATION.md'), 'ok');
     fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'VERIFICATION.md'), 'ok');
     expect(checkMilestoneCompleteGate({ tool_input: { subagent_type: 'pbr:planner', description: 'Complete milestone' } })).toBeNull();
+  });
+});
+
+describe('checkMilestoneSummaryGate', () => {
+  const ROADMAP = `# Roadmap
+
+## Milestone: Test
+
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 1 | First | 01-01 | Verified |
+| 2 | Second | 02-01 | Built |
+
+### Phase 1: First
+**Goal:** Test
+
+### Phase 2: Second
+**Goal:** Test
+`;
+
+  const STATE = `---
+version: 2
+current_phase: 2
+phase_slug: "second"
+---
+# State
+Phase: 2 of 2
+`;
+
+  test('returns null for non-milestone skill', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
+  });
+
+  test('returns null for non-general/planner agent', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:executor', description: 'Complete milestone' } })).toBeNull();
+  });
+
+  test('returns null for non-complete operations', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Create new milestone' } })).toBeNull();
+  });
+
+  test('blocks when phase lacks SUMMARY.md', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    const result = checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } });
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('SUMMARY.md');
+    expect(result.reason).toContain('02');
+  });
+
+  test('passes when all phases have SUMMARY.md', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'SUMMARY.md'), 'ok');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
+  });
+
+  test('blocks when SUMMARY.md is empty', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), '');
+    fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'SUMMARY.md'), 'ok');
+    const result = checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } });
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('01');
+  });
+
+  test('skips phase dir check if dir missing (caught by milestone-complete gate)', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    // Phase 02 dir missing — milestone-complete gate handles this, summary gate skips
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:general', description: 'Complete milestone' } })).toBeNull();
+  });
+
+  test('works with pbr:planner agent type', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'milestone');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), STATE);
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP);
+    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-first', 'SUMMARY.md'), 'ok');
+    fs.writeFileSync(path.join(planningDir, 'phases', '02-second', 'SUMMARY.md'), 'ok');
+    expect(checkMilestoneSummaryGate({ tool_input: { subagent_type: 'pbr:planner', description: 'Complete milestone' } })).toBeNull();
   });
 });
 
