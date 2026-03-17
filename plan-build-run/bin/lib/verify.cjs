@@ -514,6 +514,60 @@ function cmdValidateConsistency(cwd, raw) {
   output({ passed, errors, warnings, warning_count: warnings.length }, raw, passed ? 'passed' : 'failed');
 }
 
+/**
+ * Check Phase 05 features: decision_journal, negative_knowledge, living_requirements.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Parsed config.json
+ * @returns {object} Per-feature status object
+ */
+function checkPhase05Features(planningDir, config) {
+  const features = config.features || {};
+  const result = {};
+
+  // decision_journal
+  if (features.decision_journal === false) {
+    result.decision_journal = { enabled: false, status: 'disabled' };
+  } else if (features.decision_journal) {
+    const decisionsDir = path.join(planningDir, 'decisions');
+    if (fs.existsSync(decisionsDir)) {
+      result.decision_journal = { enabled: true, status: 'healthy' };
+    } else {
+      result.decision_journal = { enabled: true, status: 'degraded', reason: 'decisions directory not found' };
+    }
+  }
+
+  // negative_knowledge
+  if (features.negative_knowledge === false) {
+    result.negative_knowledge = { enabled: false, status: 'disabled' };
+  } else if (features.negative_knowledge) {
+    const nkDir = path.join(planningDir, 'negative-knowledge');
+    if (fs.existsSync(nkDir)) {
+      result.negative_knowledge = { enabled: true, status: 'healthy' };
+    } else {
+      result.negative_knowledge = { enabled: true, status: 'degraded', reason: 'negative-knowledge directory not found' };
+    }
+  }
+
+  // living_requirements
+  if (features.living_requirements === false) {
+    result.living_requirements = { enabled: false, status: 'disabled' };
+  } else if (features.living_requirements) {
+    const reqPath = path.join(planningDir, 'REQUIREMENTS.md');
+    if (fs.existsSync(reqPath)) {
+      const content = fs.readFileSync(reqPath, 'utf-8');
+      if (/REQ-/.test(content)) {
+        result.living_requirements = { enabled: true, status: 'healthy' };
+      } else {
+        result.living_requirements = { enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs' };
+      }
+    } else {
+      result.living_requirements = { enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs' };
+    }
+  }
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
 function cmdValidateHealth(cwd, options, raw) {
   const planningDir = path.join(cwd, '.planning');
   const projectPath = path.join(planningDir, 'PROJECT.md');
@@ -786,6 +840,13 @@ function cmdValidateHealth(cwd, options, raw) {
     } catch (_e) { /* config parse errors handled in Check 5 */ }
   }
 
+  // ─── Check 11: Phase 05 feature status ────────────────────────────────────
+  {
+    let p05Config = {};
+    try { p05Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    var phase05_features = checkPhase05Features(planningDir, p05Config);
+  }
+
   // ─── Check 10: Trust tracking health ──────────────────────────────────────
   {
     let config = {};
@@ -921,6 +982,7 @@ function cmdValidateHealth(cwd, options, raw) {
     repairable_count: repairableCount,
     repairs_performed: repairActions.length > 0 ? repairActions : undefined,
     feature_status: Object.keys(feature_status).length > 0 ? feature_status : undefined,
+    phase05_features: phase05_features || undefined,
   }, raw);
 }
 

@@ -52,7 +52,7 @@ describe('phase05_features — decision_journal', () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'decisions'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features).toBeDefined();
     expect(out.phase05_features.decision_journal).toEqual({
@@ -63,7 +63,7 @@ describe('phase05_features — decision_journal', () => {
   test('degraded when enabled but decisions/ dir missing', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.decision_journal).toEqual({
       enabled: true, status: 'degraded', reason: 'decisions directory not found'
@@ -73,7 +73,7 @@ describe('phase05_features — decision_journal', () => {
   test('disabled when toggle is false', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { decision_journal: false } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.decision_journal).toEqual({
       enabled: false, status: 'disabled'
@@ -88,7 +88,7 @@ describe('phase05_features — negative_knowledge', () => {
     fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.negative_knowledge).toEqual({
       enabled: true, status: 'healthy'
@@ -98,7 +98,7 @@ describe('phase05_features — negative_knowledge', () => {
   test('degraded when enabled but negative-knowledge/ dir missing', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.negative_knowledge).toEqual({
       enabled: true, status: 'degraded', reason: 'negative-knowledge directory not found'
@@ -108,7 +108,7 @@ describe('phase05_features — negative_knowledge', () => {
   test('disabled when toggle is false', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { negative_knowledge: false } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.negative_knowledge).toEqual({
       enabled: false, status: 'disabled'
@@ -124,7 +124,7 @@ describe('phase05_features — living_requirements', () => {
       '# Requirements\n\n- REQ-F-001: Build the thing\n- REQ-F-002: Test the thing\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.living_requirements).toEqual({
       enabled: true, status: 'healthy'
@@ -134,7 +134,7 @@ describe('phase05_features — living_requirements', () => {
   test('degraded when enabled but REQUIREMENTS.md missing', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.living_requirements).toEqual({
       enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs'
@@ -146,7 +146,7 @@ describe('phase05_features — living_requirements', () => {
       '# Requirements\n\nNo requirements defined yet.\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: true } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.living_requirements).toEqual({
       enabled: true, status: 'degraded', reason: 'REQUIREMENTS.md not found or has no REQ-IDs'
@@ -156,7 +156,7 @@ describe('phase05_features — living_requirements', () => {
   test('disabled when toggle is false', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({ features: { living_requirements: false } }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features.living_requirements).toEqual({
       enabled: false, status: 'disabled'
@@ -180,7 +180,7 @@ describe('phase05_features — combined', () => {
           living_requirements: true
         }
       }));
-    cmdValidateHealth(tmpDir, {}, true);
+    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = parseOutput();
     expect(out.phase05_features).toBeDefined();
     expect(out.phase05_features.decision_journal).toBeDefined();
