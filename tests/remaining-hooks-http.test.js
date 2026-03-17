@@ -100,7 +100,7 @@ describe('check-subagent-output.js handleHttp', () => {
     const phaseDir = path.join(planningDir, 'phases', '03-auth');
     fs.writeFileSync(
       path.join(phaseDir, 'SUMMARY.md'),
-      '---\nplan: "03-01"\ncommits: ["abc1234"]\n---\n# Summary\n'
+      '---\nplan: "03-01"\ncommits: ["abc1234"]\nself_check:\n  passed: 1\n  failed: 0\n---\n# Summary\n'
     );
     // Write LEARNINGS.md to suppress the learnings advisory
     fs.writeFileSync(

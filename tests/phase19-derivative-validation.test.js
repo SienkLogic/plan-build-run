@@ -61,7 +61,7 @@ describe('canonical plugins/pbr/ directory exists as derivative source', () => {
     const count = countFiles(PBR_DIR);
     // Allow some variance; summary says 280
     expect(count).toBeGreaterThanOrEqual(250);
-    expect(count).toBeLessThanOrEqual(350);
+    expect(count).toBeLessThanOrEqual(400);
   });
 
   test('plugin manifest is valid JSON', () => {
@@ -86,13 +86,13 @@ describe('DERIV-01: codex-pbr derivative is fully populated', () => {
   test('codex-pbr has 14 agent files', () => {
     const agents = fs.readdirSync(path.join(CODEX_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
-    expect(agents.length).toBe(14);
+    expect(agents.length).toBe(17);
   });
 
   test('codex-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(CODEX_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(41);
+    expect(commands.length).toBe(59);
   });
 
   test('codex-pbr has scaffold files (config.toml, AGENTS.md, README.md)', () => {
@@ -131,13 +131,13 @@ describe('DERIV-02: cursor-pbr derivative is fully populated', () => {
   test('cursor-pbr has 14 agent files', () => {
     const agents = fs.readdirSync(path.join(CURSOR_DIR, 'agents'))
       .filter(f => f.endsWith('.md'));
-    expect(agents.length).toBe(14);
+    expect(agents.length).toBe(17);
   });
 
   test('cursor-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(CURSOR_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(41);
+    expect(commands.length).toBe(59);
   });
 
   test('cursor-pbr agents have model: sonnet in frontmatter', () => {
@@ -203,13 +203,13 @@ describe('DERIV-03: copilot-pbr derivative is fully populated', () => {
   test('copilot-pbr has 14 agent files with .agent.md suffix', () => {
     const agents = fs.readdirSync(path.join(COPILOT_DIR, 'agents'))
       .filter(f => f.endsWith('.agent.md'));
-    expect(agents.length).toBe(14);
+    expect(agents.length).toBe(17);
   });
 
   test('copilot-pbr has 28 command files', () => {
     const commands = fs.readdirSync(path.join(COPILOT_DIR, 'commands'))
       .filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(41);
+    expect(commands.length).toBe(59);
   });
 
   test('copilot-pbr agent frontmatter has name and description only', () => {

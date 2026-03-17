@@ -2,6 +2,7 @@ module.exports = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dashboard/',
+    '\\.claude[\\\\/]',
     'cross-plugin-compat\\.test\\.js',
     'cursor-plugin-validation\\.test\\.js',
     'check-cross-plugin-sync\\.test\\.js',

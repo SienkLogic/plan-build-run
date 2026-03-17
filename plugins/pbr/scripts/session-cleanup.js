@@ -534,6 +534,69 @@ function handleHttp(reqBody) {
   return null;
 }
 
-<<<<<<< HEAD
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics };
+/**
+ * Extract learnings from a session's hook logs and event logs.
+ * Writes to planningDir/logs/session-learnings.jsonl only if interesting events found.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {string} sessionId - Session identifier
+ */
+function extractSessionLearnings(planningDir, sessionId) {
+  const logsDir = path.join(planningDir, 'logs');
+  const hooksLog = path.join(logsDir, 'hooks.jsonl');
+  const eventsLog = path.join(logsDir, 'events.jsonl');
+
+  const gatesTriggered = [];
+  const agentFailures = [];
+  let phasesCompleted = 0;
+  const contextEvents = [];
+
+  // Parse hooks.jsonl for blocks and warnings
+  if (fs.existsSync(hooksLog)) {
+    const lines = fs.readFileSync(hooksLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.decision === 'block') {
+          gatesTriggered.push({ hook: entry.hook, reason: entry.reason });
+        }
+        if (entry.decision === 'warning' && entry.hook === 'check-subagent-output' && entry.agent_type) {
+          agentFailures.push({ agent_type: entry.agent_type, expected: entry.expected });
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  // Parse events.jsonl for phase completions and compactions
+  if (fs.existsSync(eventsLog)) {
+    const lines = fs.readFileSync(eventsLog, 'utf8').split('\n').filter(Boolean);
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.cat === 'workflow' && entry.event === 'phase-complete') {
+          phasesCompleted++;
+        }
+        if (entry.cat === 'system' && entry.event === 'compaction') {
+          contextEvents.push('compaction');
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+  }
+
+  const hasInteresting = gatesTriggered.length > 0 || agentFailures.length > 0 || phasesCompleted > 0 || contextEvents.length > 0;
+  if (!hasInteresting) return;
+
+  if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+  const learningsFile = path.join(logsDir, 'session-learnings.jsonl');
+  const entry = JSON.stringify({
+    session_id: sessionId,
+    ts: new Date().toISOString(),
+    gates_triggered: gatesTriggered,
+    agent_failures: agentFailures,
+    phases_completed: phasesCompleted,
+    context_events: contextEvents
+  });
+  fs.appendFileSync(learningsFile, entry + '\n');
+}
+
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
 if (require.main === module || process.argv[1] === __filename) { main(); }

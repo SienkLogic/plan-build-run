@@ -47,4 +47,87 @@ function checkMultiAgentHealth(config) {
   return results;
 }
 
-module.exports = { checkMultiAgentHealth };
+/**
+ * Map Phase 9 feature names to their module paths (relative to scriptsDir).
+ * @private
+ */
+const PHASE9_MODULE_MAP = {
+  smart_next_task: 'lib/smart-next-task.js',
+  dependency_break_detection: 'lib/dependency-break.js',
+  pre_research: 'lib/pre-research.js',
+  pattern_routing: 'lib/pattern-routing.js',
+  tech_debt_surfacing: 'lib/tech-debt-scanner.js'
+};
+
+/**
+ * Check health status of a single feature by name.
+ * @param {string} name - Feature name (e.g. 'smart_next_task')
+ * @param {object} config - Config with features section
+ * @param {string} scriptsDir - Directory to look for the module
+ * @returns {{ name: string, status: 'healthy'|'disabled'|'degraded', error?: string }}
+ */
+function checkFeatureHealth(name, config, scriptsDir) {
+  const features = (config && config.features) || {};
+  if (features[name] === false) {
+    return { name, status: 'disabled' };
+  }
+  const modulePath = PHASE9_MODULE_MAP[name];
+  if (!modulePath) {
+    return { name, status: 'degraded', reason: `Unknown feature: ${name}` };
+  }
+  try {
+    require(path.join(scriptsDir, modulePath));
+    return { name, status: 'healthy' };
+  } catch (err) {
+    return { name, status: 'degraded', reason: err.message };
+  }
+}
+
+/**
+ * Check health of zero_friction_quick feature.
+ * @param {object} config - Config with features section
+ * @returns {{ feature: string, status: string }}
+ */
+function checkZeroFrictionHealth(config) {
+  const features = (config && config.features) || {};
+  const enabled = features.zero_friction_quick !== false;
+  return { feature: 'zero_friction_quick', status: enabled ? 'healthy' : 'disabled' };
+}
+
+/**
+ * Check health of post_hoc_artifacts feature.
+ * @param {object} config - Config with features section
+ * @returns {{ feature: string, status: string, detail: string }}
+ */
+function checkPostHocHealth(config) {
+  const features = (config && config.features) || {};
+  if (features.post_hoc_artifacts === false) {
+    return { feature: 'post_hoc_artifacts', status: 'disabled', detail: 'Feature disabled by config' };
+  }
+  try {
+    require(path.resolve(__dirname, '../../../plugins/pbr/scripts/lib/post-hoc.cjs'));
+    return { feature: 'post_hoc_artifacts', status: 'healthy', detail: 'post-hoc.cjs loaded successfully' };
+  } catch (err) {
+    // Try alternate path
+    try {
+      require(path.resolve(__dirname, 'post-hoc.cjs'));
+      return { feature: 'post_hoc_artifacts', status: 'healthy', detail: 'post-hoc.cjs loaded successfully' };
+    } catch (_e) {
+      return { feature: 'post_hoc_artifacts', status: 'degraded', detail: err.message };
+    }
+  }
+}
+
+/**
+ * Get health report for all zero-friction (Phase 3+10) features.
+ * @param {object} config - Config with features section
+ * @returns {object[]} Array of health check results
+ */
+function getZeroFrictionHealthReport(config) {
+  return [
+    checkZeroFrictionHealth(config),
+    checkPostHocHealth(config)
+  ];
+}
+
+module.exports = { checkMultiAgentHealth, checkFeatureHealth, checkZeroFrictionHealth, checkPostHocHealth, getZeroFrictionHealthReport };

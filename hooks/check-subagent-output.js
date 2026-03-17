@@ -597,7 +597,7 @@ const SKILL_CHECKS = {
         const taskSlug = dirs[0];
         // Attempt post-hoc generation
         try {
-          const { generateSummary } = require('../../../plan-build-run/bin/lib/post-hoc.cjs');
+          const { generateSummary } = require('../plan-build-run/bin/lib/post-hoc.cjs');
           const projectRoot = path.resolve(planningDir, '..');
           const result = generateSummary(projectRoot, taskDir, {
             commitPattern: taskSlug.replace(/^(\d{3})-.*/, 'quick-$1')
