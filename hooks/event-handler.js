@@ -39,6 +39,16 @@ function isExecutorAgent(data) {
 }
 
 /**
+ * Check if the stdin data represents a verifier agent completion.
+ * @param {object} data - Parsed stdin JSON from SubagentStop event
+ * @returns {boolean}
+ */
+function isVerifierAgent(data) {
+  const agentType = data.agent_type || data.subagent_type || null;
+  return agentType === 'pbr:verifier';
+}
+
+/**
  * Determine whether auto-verification should run based on config.
  * @param {string} planningDir - Path to .planning directory
  * @returns {boolean}
@@ -108,10 +118,37 @@ function writeAutoVerifySignal(planningDir, phaseNumber) {
   fs.writeFileSync(signalPath, JSON.stringify(payload, null, 2), 'utf8');
 }
 
+/**
+ * Check if trust tracking is enabled in config.json.
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {boolean}
+ */
+function isTrustTrackingEnabled(planningDir) {
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    if (!fs.existsSync(configPath)) return true; // default true
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return config.features?.trust_tracking !== false;
+  } catch (_e) {
+    return true;
+  }
+}
+
 function main() {
   const data = readStdin();
   const agentType = data.agent_type || data.subagent_type || '';
   const planningDir = path.join(process.cwd(), '.planning');
+
+  // Handle verifier agent completions — log trust-update-queued
+  if (isVerifierAgent(data)) {
+    logHook('event-handler', 'SubagentStop', 'verifier-complete', { agent_type: agentType });
+    logEvent('workflow', 'verifier-complete', { agent_type: agentType });
+
+    if (fs.existsSync(planningDir) && isTrustTrackingEnabled(planningDir)) {
+      logEvent(planningDir, 'trust-update-queued', { agent: 'pbr:verifier' });
+    }
+    process.exit(0);
+  }
 
   // Decision extraction runs for ALL agent types (not just executor)
   if (agentType && fs.existsSync(planningDir)) {
@@ -189,6 +226,19 @@ function handleHttp(reqBody) {
     } catch (_e) { /* non-fatal */ }
   }
 
+  // Handle verifier completions — log trust-update-queued
+  if (isVerifierAgent(data)) {
+    const agentType = data.agent_type || data.subagent_type;
+    logHook('event-handler', 'SubagentStop', 'verifier-complete', { agent_type: agentType });
+    logEvent('workflow', 'verifier-complete', { agent_type: agentType });
+
+    const planningDir = reqBody.planningDir;
+    if (planningDir && fs.existsSync(planningDir) && isTrustTrackingEnabled(planningDir)) {
+      logEvent(planningDir, 'trust-update-queued', { agent: 'pbr:verifier' });
+    }
+    return null; // No additionalContext needed for verifier
+  }
+
   if (!isExecutorAgent(data)) return null;
 
   logHook('event-handler', 'SubagentStop', 'executor-complete', { agent_type: agentType });
@@ -228,6 +278,7 @@ function handleHttp(reqBody) {
   };
 }
 
+<<<<<<< HEAD
 // ─── Decision Extraction ─────────────────────────────────────────────────────
 
 /**
@@ -389,5 +440,5 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
   } catch (_e) { /* non-fatal */ }
 }
 
-module.exports = { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp, extractDecisions, handleDecisionExtraction };
+module.exports = { isExecutorAgent, isVerifierAgent, shouldAutoVerify, getPhaseFromState, handleHttp, extractDecisions, handleDecisionExtraction };
 if (require.main === module || process.argv[1] === __filename) { main(); }
