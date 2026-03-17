@@ -24,9 +24,9 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { lockedFileUpdate } = require('./pbr-tools');
-const { resolveConfig } = require('./local-llm/health');
-const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
+const { lockedFileUpdate } = require('../plan-build-run/bin/lib/core.cjs');
+const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
