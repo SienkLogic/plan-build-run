@@ -23,6 +23,9 @@ const { configLoad } = require('./pbr-tools');
 const { loadTracker } = require('./session-tracker');
 const { resolveSessionPath } = require('./lib/core');
 
+let suggestNextTask;
+try { suggestNextTask = require('./lib/smart-next-task').suggestNextTask; } catch (_e) { suggestNextTask = null; }
+
 function main() {
   try {
     // Parse hook input from stdin (Claude Code passes JSON with stop_hook_active flag)
@@ -169,6 +172,19 @@ function main() {
       } catch (_todoErr) {
         // Ignore errors scanning todos
       }
+      // Smart next-task suggestion (advisory only — never blocks)
+      if (config.features && config.features.smart_next_task !== false && suggestNextTask) {
+        try {
+          const suggestion = suggestNextTask(planningDir);
+          if (suggestion) {
+            process.stderr.write(`[pbr] Next task suggestion: ${suggestion.reason} — run ${suggestion.command}\n`);
+            logHook('auto-continue', 'Stop', 'smart-next-task', { suggestion });
+          }
+        } catch (_suggestErr) {
+          // Never block on suggestion errors
+        }
+      }
+
       // Reset continue count on normal session stop (no signal)
       const countPathNoSig = path.join(planningDir, '.continue-count');
       try { fs.unlinkSync(countPathNoSig); } catch (_e) { /* ignore */ }
