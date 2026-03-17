@@ -179,7 +179,8 @@ const {
 } = require('./lib/migrate');
 
 const {
-  spotCheck: _spotCheck
+  spotCheck: _spotCheck,
+  verifySpotCheck: _verifySpotCheck
 } = require('./lib/spot-check');
 
 const {
@@ -409,6 +410,10 @@ function migrate(options) {
 
 function spotCheck(phaseDir, planId) {
   return _spotCheck(planningDir, phaseDir, planId);
+}
+
+function verifySpotCheck(type, dirPath) {
+  return _verifySpotCheck(type, dirPath);
 }
 
 function referenceGet(name, options) {
@@ -1073,6 +1078,14 @@ async function main() {
         error('Usage: learnings <ingest|query|check-thresholds|copy-global|query-global>');
         process.exit(1);
       }
+    } else if (command === 'verify' && subcommand === 'spot-check') {
+      const scType = args[2];
+      const scPath = args[3];
+      if (!scType || !scPath) { error('Usage: verify spot-check <type> <path>  (types: plan, summary, verification, quick)'); }
+      const result = verifySpotCheck(scType, scPath);
+      if (result.error) { output(result, raw, 'error'); process.exit(1); }
+      output(result, raw, result.passed ? 'passed' : 'failed');
+
     } else if (command === 'spot-check') {
       // spot-check <phaseSlug> <planId>
       // Returns JSON: { ok, summary_exists, key_files_checked, commits_present, detail }
@@ -1319,8 +1332,53 @@ async function main() {
       const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       output({ slug });
 
+    // ─── Parse Args ────────────────────────────────────────────────────────────
+    } else if (command === 'parse-args') {
+      const type = args[1];
+      const rawInput = args.slice(2).join(' ');
+      if (!type) error('Usage: pbr-tools.js parse-args <type> <args>\nTypes: plan, quick');
+      const { parseArgs } = require('./lib/parse-args');
+      output(parseArgs(type, rawInput));
+
+    // ─── Status Fingerprint ──────────────────────────────────────────────────
+    } else if (command === 'status' && subcommand === 'fingerprint') {
+      const crypto = require('crypto');
+      const files = {};
+      let combinedContent = '';
+      for (const name of ['STATE.md', 'ROADMAP.md']) {
+        const filePath = path.join(planningDir, name);
+        try {
+          const content = fs.readFileSync(filePath, 'utf8');
+          const stat = fs.statSync(filePath);
+          const hash = crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+          files[name] = {
+            hash,
+            mtime: stat.mtime.toISOString(),
+            lines: content.split('\n').length
+          };
+          combinedContent += content;
+        } catch {
+          files[name] = { hash: null, mtime: null, lines: 0 };
+        }
+      }
+      const fingerprint = combinedContent
+        ? crypto.createHash('sha256').update(combinedContent).digest('hex').slice(0, 8)
+        : null;
+      let phaseDirs = 0;
+      const phasesDir = path.join(planningDir, 'phases');
+      try {
+        const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+        phaseDirs = entries.filter(e => e.isDirectory()).length;
+      } catch { /* no phases dir */ }
+      output({
+        fingerprint,
+        files,
+        phase_dirs: phaseDirs,
+        timestamp: new Date().toISOString()
+      });
+
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint`);
     }
   } catch (e) {
     error(e.message);

@@ -337,6 +337,7 @@ function todoAdd(title, opts) { return getTodo().todoAdd(planningDir, title, opt
 function todoDone(num) { return getTodo().todoDone(planningDir, num); }
 
 function spotCheck(phaseSlug, planId) { return getSpotCheck().spotCheck(planningDir, phaseSlug, planId); }
+function verifySpotCheck(type, dirPath) { return getSpotCheck().verifySpotCheck(type, dirPath); }
 
 function stalenessCheck(slug) { return getBuild().stalenessCheck(slug, planningDir); }
 function summaryGate(slug, planId) { return getBuild().summaryGate(slug, planId, planningDir); }
@@ -1030,6 +1031,13 @@ async function main() {
       getVerify().cmdVerifyArtifacts(cwd, args[2], raw);
     } else if (command === 'verify' && subcommand === 'key-links') {
       getVerify().cmdVerifyKeyLinks(cwd, args[2], raw);
+    } else if (command === 'verify' && subcommand === 'spot-check') {
+      const scType = args[2];
+      const scPath = args[3];
+      if (!scType || !scPath) { error('Usage: verify spot-check <type> <path>  (types: plan, summary, verification, quick)'); }
+      const result = verifySpotCheck(scType, scPath);
+      if (result.error) { output(result, raw, 'error'); process.exit(1); }
+      output(result, raw, result.passed ? 'passed' : 'failed');
     } else if (command === 'verify-summary') {
       const summaryPath = args[1];
       const countIndex = args.indexOf('--check-count');
