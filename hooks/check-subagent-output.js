@@ -25,6 +25,79 @@ const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cj
 const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
 const { logEvent } = require('./event-logger');
+const { recordOutcome } = require('../plugins/pbr/scripts/trust-tracker');
+
+/**
+ * Load a feature flag value from config.json.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} flagName - Feature flag name (e.g. 'trust_tracking')
+ * @returns {*} Flag value or undefined if not found
+ */
+function loadFeatureFlag(planningDir, flagName) {
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return config.features?.[flagName];
+  } catch (_e) {
+    return undefined;
+  }
+}
+
+/**
+ * Check whether trust tracking is enabled in config.
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {boolean} True if trust_tracking is not explicitly disabled
+ */
+function shouldTrackTrust(planningDir) {
+  const flag = loadFeatureFlag(planningDir, 'trust_tracking');
+  return flag !== false;
+}
+
+/**
+ * Extract verification outcome from the most recent VERIFICATION.md
+ * in the current phase directory.
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ passed: boolean, category: string, mustHavesPassed: number|undefined, mustHavesTotal: number|undefined }|null}
+ */
+function extractVerificationOutcome(planningDir) {
+  try {
+    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+    if (verFiles.length === 0) return null;
+
+    const verPath = path.join(planningDir, verFiles[0]);
+    const content = fs.readFileSync(verPath, 'utf8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) return null;
+
+    const fm = fmMatch[1];
+    const statusMatch = fm.match(/^status:\s*(\S+)/mi);
+    if (!statusMatch) return null;
+
+    const status = statusMatch[1];
+    const passed = status === 'passed';
+
+    // Extract must_haves counts
+    const passedMatch = fm.match(/^must_haves_passed:\s*(\d+)/mi);
+    const totalMatch = fm.match(/^must_haves_total:\s*(\d+)/mi);
+    const mustHavesPassed = passedMatch ? parseInt(passedMatch[1], 10) : undefined;
+    const mustHavesTotal = totalMatch ? parseInt(totalMatch[1], 10) : undefined;
+
+    // Extract category from STATE.md phase_slug
+    let category = 'unknown';
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (fs.existsSync(stateFile)) {
+      const stateContent = fs.readFileSync(stateFile, 'utf8');
+      const slugMatch = stateContent.match(/^phase_slug:\s*"?([^"\n]+)"?/mi);
+      if (slugMatch) {
+        category = slugMatch[1].trim();
+      }
+    }
+
+    return { passed, category, mustHavesPassed, mustHavesTotal };
+  } catch (_e) {
+    return null;
+  }
+}
 
 /**
  * Check if a file was modified recently (within thresholdMs).
@@ -444,7 +517,7 @@ const SKILL_CHECKS = {
     }
   },
   'review:pbr:verifier': {
-    description: 'review verifier VERIFICATION.md status and LEARNINGS.md',
+    description: 'review verifier VERIFICATION.md status, LEARNINGS.md, and trust update',
     check: (planningDir, _found, warnings) => {
       const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
       for (const vf of verFiles) {
@@ -457,6 +530,22 @@ const SKILL_CHECKS = {
         } catch (_e) { /* best-effort */ }
       }
       checkLearningsRequired(planningDir, warnings, 'verifier');
+
+      // Trust score update: record verification outcome
+      try {
+        if (!shouldTrackTrust(planningDir)) return;
+        const outcome = extractVerificationOutcome(planningDir);
+        if (!outcome) return;
+        recordOutcome(planningDir, 'pbr:executor', outcome.category, outcome.passed);
+        recordOutcome(planningDir, 'pbr:verifier', outcome.category, true);
+        logHook('check-subagent-output', 'PostToolUse', 'trust-updated', {
+          agent: 'pbr:executor',
+          category: outcome.category,
+          passed: outcome.passed
+        });
+      } catch (_e) {
+        // Never crash the hook for trust tracking failures
+      }
     }
   },
   'build:pbr:executor': {
@@ -912,5 +1001,5 @@ async function handleHttp(reqBody) {
   }
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp };
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag };
 if (require.main === module || process.argv[1] === __filename) { main(); }
