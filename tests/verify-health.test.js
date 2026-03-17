@@ -73,7 +73,7 @@ describe('cmdValidateHealth - Phase 16 cross_project_patterns', () => {
     expect(out).toMatch(/cross_project_patterns/i);
 
     if (created) {
-      try { fs.unlinkSync(tempPatternFile); } catch (_) {}
+      try { fs.unlinkSync(tempPatternFile); } catch (_e) { /* cleanup */ }
     }
   });
 
