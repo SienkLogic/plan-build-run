@@ -2,7 +2,7 @@
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] | add | insert <N> | remove <N>"
+argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] | add | insert <N> | remove <N>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -18,7 +18,7 @@ You are the orchestrator for `/pbr:plan-phase`. This skill creates detailed, exe
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading subagent output — read only plan frontmatter for summaries
+- **Minimize** reading subagent output — read only plan frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full plan bodies is permitted when content is needed for inline decisions.
 - **Delegate** all research and planning work to subagents — the orchestrator routes, it doesn't plan
 
 ## Step 0 — Immediate Output
@@ -32,8 +32,6 @@ Additionally for this skill:
 ```
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
-
-**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 6: {Name} ──────────────────────` before each major step begins. Steps: Parse Arguments, Load Context, Research Phase, Generate Plans, Validate Plans, Approval Gate.
 
 ## Multi-Session Sync
 
@@ -80,6 +78,7 @@ Parse the phase number and optional flags:
 | (no number) | Use current phase from STATE.md |
 | `3 --preview` | Preview what planning would produce for phase 3 without spawning agents |
 | `3 --audit` | Plan phase 3, then force full plan-checker validation |
+| `3 --auto` | Plan phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
 
 ### Subcommands
 
@@ -96,7 +95,7 @@ Parse the phase number and optional flags:
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
-- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`
 - The word `check` (legacy alias)
 
 If `$ARGUMENTS` does NOT match any of these patterns — i.e., it contains freeform words that are not a recognized subcommand or flag — then **stop execution** and respond:
@@ -139,9 +138,10 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
 
 1. Parse `$ARGUMENTS` for phase number and flags
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning researcher, planner, and plan-checker Task() agents, use `override_model` instead of the config-derived model values. If an invalid value is provided, display an error and list valid values.
+   - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase exists in ROADMAP.md
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
@@ -192,14 +192,14 @@ If `--preview` is present in `$ARGUMENTS`:
 
 ### Step 2: Load Context (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
 1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
-3. Read .planning/PROJECT.md (if exists) — extract the `## Context` section (locked decisions, user constraints, deferred ideas). This is the primary context source. Fall back to .planning/CONTEXT.md if PROJECT.md has no ## Context section (backwards compat).
+3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
 5. Read .planning/config.json — extract feature flags, depth, model settings
 6. List prior SUMMARY.md file paths and extract frontmatter metadata only (status, provides, key_files). Do NOT read full SUMMARY bodies — agents pull these on-demand via Read tool.
@@ -229,7 +229,7 @@ Before spawning any agents, present 4 assumptions to the user — one each for: 
 - `--gaps` flag is set
 - Depth profile has `features.research_phase: false`
 
-To check: run `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
+To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
 
 **Conditional research (standard/balanced mode):** When the profile has `features.research_phase: true`, also check whether `.planning/codebase/` or `.planning/research/` already contains relevant context for this phase. If substantial context exists (>3 files in codebase/ or a RESEARCH.md mentioning this phase's technologies), skip research and note: "Skipping research -- existing context found in {directory}." This implements the balanced mode's "conditional research" behavior.
 
@@ -248,7 +248,7 @@ Task({
 NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Phase Research Prompt Template
 
@@ -291,7 +291,7 @@ Task({
   prompt: "Pre-planner briefing for Phase {NN} ({phase-slug}).
 
 1. SEED SCANNING:
-   Run: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs seeds match {phase-slug} {phase-number}`
+   Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js seeds match {phase-slug} {phase-number}`
    If `matched` is non-empty, output a ## Seeds section listing each seed name, description, and content.
    If empty, output: ## Seeds\nNo matching seeds found.
 
@@ -343,7 +343,7 @@ If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset
 **Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
 
 ```bash
-node {resolved_plugin_root}/bin/pbr-tools.cjs learnings query --tags "estimation,planning,process" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
@@ -351,7 +351,7 @@ If non-empty JSON array returned:
 - Write to temp file and note as `{learnings_temp_path}`:
 
   ```bash
-  node {resolved_plugin_root}/bin/pbr-tools.cjs learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
   ```
 
 - Add as an additional `files_to_read` item in the planner prompt below
@@ -373,7 +373,7 @@ NOTE: The pbr:planner subagent type auto-loads the agent definition.
 After planner completes, check for completion markers: `## PLANNING COMPLETE`, `## PLANNING FAILED`, or `## PLANNING INCONCLUSIVE`. Route accordingly. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Planning Prompt Template
 
@@ -391,11 +391,10 @@ Read `${CLAUDE_SKILL_DIR}/templates/planner-prompt.md.tmpl` and use it as the pr
 ```
 <files_to_read>
 CRITICAL (no hook): Read these files BEFORE any other action:
-1. .planning/PROJECT.md — project context, locked decisions, and constraints (primary source)
+1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
-4. .planning/CONTEXT.md — legacy context file (backwards compat fallback, if exists)
-{if learnings_temp_path exists}5. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
+{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
 
@@ -428,14 +427,8 @@ CRITICAL (no hook): Verify planner output before proceeding.
 2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
 3. **Task structure**: Verify at least one `<task>` block exists in each plan file
 4. **Plan count matches**: Number of PLAN files matches what the planner reported
-5. **implements field**: Read frontmatter of each PLAN file — verify `implements:` field exists and is non-empty (contains at least one REQ-ID). If empty or missing: flag as spot-check failure.
-6. **Summary section**: Check each PLAN file for `## Summary` heading. If missing: flag as spot-check failure.
-7. **Done conditions**: Scan each `<done>` element — if any contains only "Code was written", "File was created", "Feature is implemented", or similar vague text (< 10 characters): flag as warning.
 
-If ANY spot-check fails:
-- Display which checks failed with specific details (e.g., 'Plan 04-02 missing implements field', 'Plan 04-01 missing ## Summary section')
-- If only warnings (vague done conditions): proceed to Step 6 (checker will catch these)
-- If errors (missing implements, missing Summary, missing frontmatter, no tasks): present options: **Retry** (re-spawn planner with explicit instructions to fix) / **Continue anyway** / **Abort**
+If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
 ---
 
@@ -465,7 +458,7 @@ Task({
 NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Checker Prompt Template
 
@@ -508,6 +501,7 @@ Follow the revision loop pattern with:
 **Skip if:**
 - `gates.confirm_plan` is `false` in config
 - `mode` is `autonomous` in config
+- `auto_mode` is `true` — proceed as if user selected "Approve"
 
 **If approval is needed:**
 
@@ -545,10 +539,10 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
   **Tooling shortcut**: Use the CLI for atomic updates:
   ```bash
-  node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs roadmap update-plans {phase} 0 {N}
-  node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs roadmap update-status {phase} planned
-  node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state update status planned
-  node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state update last_activity now
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} 0 {N}
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status planned
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
   ```
 
   1. Open `.planning/ROADMAP.md`
@@ -559,8 +553,9 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   6. Save the file — do NOT skip this step
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
-**Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
-- **If `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
+**Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`
+- **If `auto_mode` is `true`:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Chain directly to build: `Skill({ skill: "pbr:build", args: "{N} --auto" })`. This continues the plan→build→review cycle automatically.
+- **Else if `features.auto_advance` is `true` AND `mode` is `autonomous`:** Chain directly to build: `Skill({ skill: "pbr:build", args: "{N}" })`. This continues the build→review→plan→build cycle automatically.
 - **Otherwise:** Suggest next action: `/pbr:execute-phase {N}`
 
 ---
@@ -645,7 +640,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/gap-closure-prompt.md.tmpl` and use it as th
 ### Phase not found
 If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs suggest-alternatives phase-not-found {slug}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
 2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
@@ -657,7 +652,7 @@ If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
 ### Missing prerequisites
 If REQUIREMENTS.md or ROADMAP.md don't exist, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs suggest-alternatives missing-prereq {phase}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {phase}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what is already complete and what is missing.
 4. Use AskUserQuestion to offer: "Run /pbr:execute-phase {prerequisite-phase} first, or continue anyway?"

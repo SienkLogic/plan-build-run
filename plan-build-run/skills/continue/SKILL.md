@@ -2,6 +2,7 @@
 name: continue
 description: "Execute the next logical step automatically. No prompts, no decisions — just do it."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill
+argument-hint: "[--auto]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -33,6 +34,8 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Additionally for this skill:
 - **Minimize** state reads — read only STATE.md lines 1-20 to determine next action
 - **Delegate** execution to the appropriate skill via Skill() or Task()
+- **At context >= 500k (context_window_tokens >= 500000)**: Read full ROADMAP.md (already required), glob phase frontmatters, read PROJECT.md out-of-scope section. Total additional reads: ~10-30 small frontmatter reads.
+- **At context < 500k (context_window_tokens < 500000)**: No change — reads only STATE.md lines 1-20 as before.
 
 ---
 
@@ -46,19 +49,12 @@ Additionally for this skill:
 
 ### Step 1: Read State
 
-Before reading STATE.md, check `.planning/config.json` exists. If it does not exist, display:
+Parse `$ARGUMENTS`:
+- If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — passing --auto to delegated skills"
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║  ERROR                                                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-No Plan-Build-Run project found.
-
-**To fix:** Run `/pbr:new-project` to start a new project.
-```
-
-Stop execution.
+| Argument | Meaning |
+|----------|---------|
+| `--auto` | Pass --auto flag to all delegated skills, increase consecutive chain limit from 6 to 20 |
 
 Read `.planning/STATE.md` and determine current position:
 - Current phase number and name
@@ -70,6 +66,65 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
 - Determine if the current phase is the **last phase** in that milestone section
 - If this is the last phase and it is verified/complete, warn: "This is the final phase of milestone {name}. After verification, run `/pbr:milestone` to complete it."
 - If the current phase's `Depends on` references a phase from the **previous** milestone that is not yet complete, warn: "Cross-milestone dependency: Phase {N} depends on Phase {M} from milestone {prev}, which is not yet complete."
+
+#### Lookahead Mode (context >= 500k)
+
+Before proceeding to Step 2, check the configured context window:
+
+```bash
+node scripts/pbr-tools.cjs config get context_window_tokens
+```
+
+If the returned value is **>= 500000**, perform the following lookahead reads before moving to Step 2. If the value is **< 500000** (or the command fails), skip this section entirely and proceed to Step 2 with no changes to behavior.
+
+**Lookahead reads:**
+
+1. You have already read full ROADMAP.md (required above). Extract every phase entry:
+   - Phase number (NN from slug)
+   - Phase slug
+   - `Depends on:` list
+
+2. Glob all phase summary and state frontmatters:
+   - `Glob({ pattern: ".planning/phases/*/SUMMARY-*.md" })` — read frontmatter only (lines 1-20) for each result
+   - `Glob({ pattern: ".planning/phases/*/STATE.md" })` — read frontmatter only (lines 1-10) for each result
+   - Build a map: `{ phase_slug -> { status, provides, requires } }`
+
+3. Read `PROJECT.md` section `## Out of Scope` (or `### Out of Scope`) — extract deferred items as a list.
+
+**Lookahead analysis (perform after reads above):**
+
+**A. Parallel phase candidates**
+
+For each pair of phases that are both Pending/Planning status:
+- Extract their `Depends on:` sets
+- If their dependency sets are **disjoint** (no shared dependency, and neither depends on the other), they are parallel candidates
+- Display:
+  ```
+  ► Parallel opportunity: Phase {A} and Phase {B} have no shared dependencies — they can be planned and built concurrently.
+  ```
+  Show at most 3 parallel pairs to avoid noise.
+
+**B. Dependency inversion warnings**
+
+For each phase entry in ROADMAP.md, for each item in its `Depends on:` list:
+- Extract the phase number of the dependency (parse `NN` from the slug prefix)
+- If dependency phase number > current phase number → dependency inversion detected
+- Display:
+  ```
+  ⚠ Dependency inversion: Phase {N} ({slug}) lists Phase {M} ({dep-slug}) as a dependency, but Phase M > Phase N. Check roadmap ordering.
+  ```
+
+**C. Deferred item surfacing**
+
+For each item in the PROJECT.md out-of-scope list:
+- Check if the item mentions a phase or capability that is now shown as Complete in the phase map
+- If so, display:
+  ```
+  ► Deferred item may be unblocked: "{item}" — the phase it depends on is now complete. Consider adding it to the next milestone.
+  ```
+  Surface at most 2 items to avoid noise.
+
+Display all findings BEFORE proceeding to Step 2. If no findings exist (no parallel pairs, no inversions, no unblocked deferred items), display nothing — do not add noise when there is nothing to report.
 
 If STATE.md doesn't exist, display:
 ```
@@ -92,7 +147,7 @@ Before proceeding to priority evaluation, check for runaway continue chains:
    - Check `.planning/.active-skill` file — if it contains `continue`, treat as a chained continue
    - Check STATE.md `last_action` field — if it contains `continue`, treat as a chained continue
    - If neither source is available, assume this is the first invocation (do not warn)
-4. **If this is the 6th consecutive `/pbr:continue` in a row**, display:
+4. **If this is the 6th consecutive `/pbr:continue` in a row** (or 20th if `auto_mode` is true), display:
 
 ```
 WARNING: Context budget warning: 6 consecutive auto-continues detected.
@@ -113,13 +168,10 @@ Check the resumption priority hierarchy (same as /pbr:resume-work):
 2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
 3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
 4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:execute-phase {N}`
-4b. **Empty phase directory**: Phase directory exists but contains no PLAN.md or SUMMARY.md files → Execute `/pbr:plan-phase {N}`
 5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:verify-work {N}`
-5b. **Verified with gaps**: VERIFICATION.md with `status: complete-with-gaps` → Display: "Phase {N} verified with accepted gaps. Proceeding to next phase." Then chain to `/pbr:plan-phase {N+1}` (same as item 6).
 6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan-phase {N+1}`
 7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:audit-milestone` to verify cross-phase integration, then `/pbr:complete-milestone` to archive."
 8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:new-milestone` to start the next milestone, or `/pbr:audit-milestone` if not yet audited."
-9. **Unknown state**: STATE.md exists but status field is empty, missing, or unrecognized → Display: "Could not determine workflow state from STATE.md. Status: '{raw_status}'." **To fix:** Run `/pbr:health` to diagnose and repair, or `/pbr:progress` to see current state. Stop execution (do not guess).
 
 ### Step 3: Execute
 
@@ -132,11 +184,11 @@ Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md file
 
 | Situation | Action | How |
 |-----------|--------|-----|
-| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` |
-| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` |
-| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` |
-| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` |
-| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` |
+| Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` (append `--auto` if `auto_mode`) |
+| Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
+| Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` (append `--auto` if `auto_mode`) |
 
 Where `{N}` is the current phase number determined from STATE.md in Step 1.
 

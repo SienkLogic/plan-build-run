@@ -2,7 +2,7 @@
 name: discuss
 description: "Talk through a phase before planning. Identifies gray areas and captures your decisions."
 allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
-argument-hint: "<phase-number> | --project"
+argument-hint: "<phase-number> [--auto] | --project"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -59,6 +59,13 @@ Parse `$ARGUMENTS`:
 - If argument is `--project`: enter PROJECT mode (see Step 1-project below). Skip Steps 2-8.
 - If argument is a phase number: enter PHASE mode (existing flow — continue with Step 1 as-is).
 - If no argument: existing logic applies (read STATE.md for current phase).
+- If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — batching gray area questions"
+
+| Argument | Meaning |
+|----------|---------|
+| `3` | Discuss phase 3 |
+| `3 --auto` | Discuss phase 3 with auto mode — batch all gray areas into a single presentation |
+| `--project` | Discuss project-level cross-cutting decisions |
 
 **Validation (PHASE mode):**
 - Must be a valid phase number (integer or decimal like `3.1`)
@@ -199,6 +206,10 @@ Read `${CLAUDE_SKILL_DIR}/templates/decision-categories.md` for the category ref
 **Important:** Do NOT identify gray areas that are purely implementation details (e.g., variable naming, file organization). Focus on areas that affect user experience, system behavior, or long-term maintainability.
 
 ### Step 4: Present Gray Areas
+
+**Smart batching (auto_mode):** When `auto_mode` is true, collect ALL gray areas and present them in a single batch rather than one at a time. Present all gray areas together with their options so the user can respond to everything at once. This reduces interaction rounds while still capturing user decisions. After the user responds, proceed to Step 5 with all decisions.
+
+**Standard mode (auto_mode is false or absent):**
 
 Present each gray area to the user using the **gray-area-option** pattern from `skills/shared/gate-prompts.md`. For each gray area:
 

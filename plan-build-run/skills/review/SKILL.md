@@ -2,7 +2,7 @@
 name: review
 description: "Verify the build matched the plan. Automated checks + walkthrough with you."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>]"
+argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>] [--auto]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -18,7 +18,7 @@ You are the orchestrator for `/pbr:verify-work`. This skill verifies that what w
 Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
 
 Additionally for this skill:
-- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries
+- **Minimize** reading subagent output — read only VERIFICATION.md frontmatter for summaries. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full VERIFICATION.md bodies is permitted when gap details are needed for inline presentation.
 
 ## Step 0 — Immediate Output
 
@@ -31,8 +31,6 @@ Additionally for this skill:
 ```
 
 Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
-
-**Step progress**: Display step progress indicators at major transitions using the pattern from `@references/ui-brand.md` § Step Progress. Show `── Step {N} of 4: {Name} ──────────────────────` before each major step begins. Steps: Load Summaries, Spawn Verifier, Review Results, Write Report.
 
 ## Multi-Session Sync
 
@@ -73,6 +71,7 @@ Parse `$ARGUMENTS` according to `skills/shared/phase-argument-parsing.md`.
 | `3 --auto-fix` | Review phase 3, automatically diagnose and create gap-closure plans for failures |
 | `3 --teams` | Review phase 3 with parallel specialist verifiers (functional + security + performance) |
 | `3 --model opus` | Use opus for all verifier spawns in phase 3 (overrides config verifier_model) |
+| `3 --auto` | Review phase 3 with auto mode — skip interactive UAT, auto-accept if verification passes |
 | (no number) | Use current phase from STATE.md |
 
 ---
@@ -85,39 +84,26 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
+**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.js init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
 
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
    - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.
+   - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — skipping interactive UAT walkthrough"
 2. Read `.planning/config.json`
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
-3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
+3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
    - Phase directory exists at `.planning/phases/{NN}-{slug}/`
    - SUMMARY.md files exist (phase has been built)
    - PLAN.md files exist (needed for must-have extraction)
 5. If no phase number given, read current phase from `.planning/STATE.md`
-   - **Before reading STATE.md**, check it exists and is parseable:
-     If `.planning/STATE.md` does not exist or cannot be parsed (missing `---` frontmatter delimiters, no **Phase**: field), display:
-
-     ```
-     ╔══════════════════════════════════════════════════════════════╗
-     ║  ERROR                                                       ║
-     ╚══════════════════════════════════════════════════════════════╝
-
-     STATE.md is missing or malformed.
-
-     **To fix:** Run `/pbr:new-project` to initialize, or `/pbr:health` to repair.
-     ```
-
-     Stop execution.
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 
 **Validation errors:**
 
 If phase directory not found, use conversational recovery:
 
-1. Run: `node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs suggest-alternatives phase-not-found {slug}`
+1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives phase-not-found {slug}`
 2. Parse the JSON response to get `available` phases and `suggestions` (closest matches).
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
@@ -218,7 +204,7 @@ Task({
 })
 ```
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -278,7 +264,7 @@ If ANY spot-check fails, present the user with options: **Retry** / **Continue a
 After the verifier completes and writes VERIFICATION.md, if `config.local_llm.enabled` is `true`, run a quality classification:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
 ```
 
 - If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:verify-work {N}."`
@@ -350,9 +336,38 @@ Must-have key links: {passed}/{total}
   1. {item} — {why automated check couldn't verify}
 ```
 
+#### Cross-Phase Findings (conditional)
+
+**Condition:** Only display if ALL of the following are true:
+- `context_window_tokens` in `.planning/config.json` is >= 500000
+- VERIFICATION.md frontmatter contains a `cross_phase_regressions` key with at least one entry
+
+**How to check:** The `cross_phase_regressions` array was already read from VERIFICATION.md frontmatter in Step 2 or Step 4. If the array is empty or absent, skip this block entirely.
+
+If the condition is met, append a cross-phase findings section to the Step 4 output:
+
+```
+Cross-Phase Regressions: {count} found
+
+| Prior Phase | Must-Have | Status | Evidence |
+|-------------|-----------|--------|----------|
+| {phase}     | {must_have} | ✗ REGRESSION | {evidence} |
+| {phase}     | {must_have} | ✓ INTACT | — |
+
+{If regressions found:}
+⚠ These must-haves passed in prior phases but may be broken by current phase changes.
+  Treat them as additional gaps — select "Auto-fix" to create repair plans.
+```
+
+Cross-phase regressions are displayed AFTER the single-phase verification results and BEFORE the UAT walkthrough (Step 5). They are additive — they do not replace single-phase results.
+
+If regressions exist, include them in the gap count for the "Gaps Found" flow in Step 6. When presenting gap options to the user, regressions appear in the gap list labeled `[cross-phase]` to distinguish them from current-phase gaps.
+
 ---
 
 ### Step 5: Conversational UAT (inline)
+
+**Skip if:** `auto_mode` is true — skip the interactive UAT walkthrough entirely. Still run automated verification (Step 3). If automated verification passed, auto-accept and proceed to Step 6 "All Items Pass" path. If automated verification found gaps, proceed to Step 6 "Gaps Found" path.
 
 Walk the user through each deliverable one by one. This is an interactive conversation, not an automated check.
 
@@ -409,9 +424,9 @@ If all automated checks and UAT items passed:
 
    **Tooling shortcut**: Use the CLI for atomic ROADMAP.md and STATE.md updates:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs roadmap update-status {phase} verified
-   node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state update status verified
-   node ${CLAUDE_PLUGIN_ROOT}/bin/pbr-tools.cjs state update last_activity now
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status verified
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
    ```
 
    1. Open `.planning/ROADMAP.md`
@@ -444,7 +459,9 @@ Use the branded output from `references/ui-brand.md`:
    - If "Yes": suggest `/pbr:plan-phase {N+1}`
    - If "No" or "Other": stop
 
-5. **If `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
+5. **If `auto_mode` is `true` AND more phases remain:** Set `features.auto_advance = true` and `mode = autonomous` behavior for the remainder of this invocation. Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1} --auto" })`. This continues the review→plan→build cycle automatically. **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."
+
+   **Else if `features.auto_advance` is `true` AND `mode` is `autonomous` AND more phases remain:**
    - Chain directly to plan: `Skill({ skill: "pbr:plan", args: "{N+1}" })`
    - This continues the build→review→plan cycle automatically
    - **If this is the last phase in the current milestone:** HARD STOP — do NOT auto-advance past milestone boundaries. Display: "auto_advance pauses at milestone boundaries — your sign-off is required."
