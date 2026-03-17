@@ -715,6 +715,7 @@ function cmdValidateHealth(cwd, options, raw) {
     }
   }
 
+<<<<<<< HEAD
   // ─── Check 9: Phase 1 feature status ────────────────────────────────────────
   const feature_status = {};
   if (fs.existsSync(configPath)) {
@@ -784,6 +785,51 @@ function cmdValidateHealth(cwd, options, raw) {
         feature_status.multi_phase_awareness = { enabled: false, status: 'disabled' };
       }
     } catch (_e) { /* config parse errors handled in Check 5 */ }
+  }
+
+  // ─── Check 10: Trust tracking health ──────────────────────────────────────
+  {
+    let config = {};
+    try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+
+    if (config.features && config.features.trust_tracking === false) {
+      addIssue('info', 'I-TRUST-DISABLED', 'trust_tracking is disabled in config', 'Enable features.trust_tracking in config.json if desired');
+    } else {
+      const trustFile = path.join(planningDir, 'trust', 'agent-scores.json');
+      if (!fs.existsSync(trustFile)) {
+        addIssue('info', 'I-TRUST-DEGRADED', 'trust_tracking: degraded — agent-scores.json missing. Will populate after first verification.', 'Run a build cycle to generate trust data');
+      } else {
+        try {
+          const scores = JSON.parse(fs.readFileSync(trustFile, 'utf-8'));
+          const agents = Object.keys(scores);
+          let totalOutcomes = 0;
+          for (const agent of agents) {
+            for (const cat of Object.values(scores[agent])) {
+              totalOutcomes += (cat.pass || 0) + (cat.fail || 0);
+            }
+          }
+          addIssue('info', 'I-TRUST-HEALTHY', `trust_tracking: healthy — ${agents.length} agents, ${totalOutcomes} outcomes tracked`, '');
+        } catch (_) {
+          addIssue('info', 'I-TRUST-DEGRADED', 'trust_tracking: degraded — agent-scores.json exists but is malformed', 'Delete .planning/trust/agent-scores.json to reset');
+        }
+      }
+    }
+
+    if (config.features && config.features.confidence_calibration === false) {
+      addIssue('info', 'I-CONFIDENCE-DISABLED', 'confidence_calibration is disabled in config', 'Enable features.confidence_calibration in config.json if desired');
+    } else {
+      const trustFile = path.join(planningDir, 'trust', 'agent-scores.json');
+      if (!fs.existsSync(trustFile)) {
+        addIssue('info', 'I-CONFIDENCE-DEGRADED', 'confidence_calibration: degraded — no trust data available', 'Run a build cycle to generate trust data');
+      } else {
+        try {
+          JSON.parse(fs.readFileSync(trustFile, 'utf-8'));
+          addIssue('info', 'I-CONFIDENCE-HEALTHY', 'confidence_calibration: healthy — trust data available for calibration', '');
+        } catch (_) {
+          addIssue('info', 'I-CONFIDENCE-DEGRADED', 'confidence_calibration: degraded — trust data malformed', 'Delete .planning/trust/agent-scores.json to reset');
+        }
+      }
+    }
   }
 
   // ─── Perform repairs if requested ─────────────────────────────────────────
