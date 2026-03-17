@@ -296,6 +296,8 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 - `## ROOT CAUSE FOUND` - root cause identified, fix recommended
 - `## DEBUG SESSION PAUSED` - checkpoint saved, can resume later
 
+Before writing the completion marker, output any memory_suggestion blocks if you discovered reusable knowledge (see memory_suggestions section).
+
 ## Output Budget
 
 - **Debug state updates**: ≤ 500 tokens. Focus on evidence and next hypothesis.
@@ -312,6 +314,40 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 
 At 1M, debug state updates can include fuller evidence chains and more hypothesis alternatives documented inline.
 </structured_returns>
+
+<memory_suggestions>
+## Memory Suggestions (Optional)
+
+When you discover knowledge that would be valuable in **future sessions** -- not just this task -- you may output a memory suggestion block. The orchestrator will parse and save these.
+
+**When to suggest:**
+- Architectural decisions or constraints discovered during work
+- Non-obvious project conventions found in code
+- Debugging lessons (root cause patterns, misleading symptoms)
+- Integration gotchas between components
+- Performance or security considerations
+
+**When NOT to suggest:**
+- Ephemeral task details ("I changed file X to fix Y")
+- Information already in CLAUDE.md or existing memory
+- Obvious patterns any developer would know
+- Anything specific to the current task that won't recur
+
+**Format** (output this block in your final response, before the completion marker):
+
+    <memory_suggestion type="project">
+    description: "One-line summary of the knowledge"
+
+    The detailed memory content here. Include specific file paths,
+    code patterns, or constraints. Be concrete and actionable.
+
+    **Why:** Why this matters for future work.
+    **How to apply:** When and where this knowledge should be used.
+    </memory_suggestion>
+
+Valid types: `project`, `feedback`, `user`, `reference`.
+You may output 0-2 suggestions per run. Prefer 0 (most runs discover nothing novel).
+</memory_suggestions>
 
 <success_criteria>
 - [ ] Symptoms documented (immutable after gathering)
