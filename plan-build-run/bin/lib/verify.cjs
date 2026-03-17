@@ -715,6 +715,36 @@ function cmdValidateHealth(cwd, options, raw) {
     }
   }
 
+  // ─── Check 9: Phase 1 feature status ────────────────────────────────────────
+  const feature_status = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      const configRaw = fs.readFileSync(configPath, 'utf-8');
+      const configParsed = JSON.parse(configRaw);
+      const features = configParsed.features || {};
+
+      // enhanced_session_start: default true (enabled unless explicitly false)
+      const essEnabled = features.enhanced_session_start !== false;
+      feature_status.enhanced_session_start = { enabled: essEnabled, status: essEnabled ? 'healthy' : 'disabled' };
+
+      // context_quality_scoring: default true (enabled unless explicitly false)
+      const cqsEnabled = features.context_quality_scoring !== false;
+      feature_status.context_quality_scoring = { enabled: cqsEnabled, status: cqsEnabled ? 'healthy' : 'disabled' };
+
+      // skip_rag: default false (enabled only if explicitly true)
+      const srEnabled = features.skip_rag === true;
+      feature_status.skip_rag = { enabled: srEnabled, status: srEnabled ? 'healthy' : 'disabled' };
+
+      // Validate orchestrator_budget_pct range (15-50)
+      const budgetPct = configParsed.orchestrator_budget_pct;
+      if (budgetPct !== undefined) {
+        if (budgetPct < 15 || budgetPct > 50) {
+          addIssue('warning', 'W010', `orchestrator_budget_pct is ${budgetPct}, outside valid range 15-50`, 'Set to a value between 15 and 50 in config.json');
+        }
+      }
+    } catch (_e) { /* config parse errors handled in Check 5 */ }
+  }
+
   // ─── Perform repairs if requested ─────────────────────────────────────────
   const repairActions = [];
   if (options.repair && repairs.length > 0) {
@@ -804,6 +834,7 @@ function cmdValidateHealth(cwd, options, raw) {
     info,
     repairable_count: repairableCount,
     repairs_performed: repairActions.length > 0 ? repairActions : undefined,
+    feature_status: Object.keys(feature_status).length > 0 ? feature_status : undefined,
   }, raw);
 }
 
