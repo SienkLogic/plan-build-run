@@ -879,7 +879,7 @@ function cmdValidateHealth(cwd, options, raw) {
     var phase05_features = checkPhase05Features(planningDir, p05Config);
   }
 
-  // ─── Check 10: Trust tracking health ──────────────────────────────────────
+  // ─── Check 12: Trust tracking health ──────────────────────────────────────
   {
     let config = {};
     try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
@@ -924,7 +924,7 @@ function cmdValidateHealth(cwd, options, raw) {
     }
   }
 
-  // ─── Check 12: Architecture graph feature health ──────────────────────────
+  // ─── Check 13: Architecture graph feature health ──────────────────────────
   try {
     const graph = require('./graph.cjs');
     const graphHealth = graph.graphHealthCheck(planningDir);
@@ -933,7 +933,7 @@ function cmdValidateHealth(cwd, options, raw) {
     feature_status.architecture_guard = guardHealth;
   } catch (_e) { /* graph module not available — skip */ }
 
-  // ─── Check 13: Phase 15 DX feature health ────────────────────────────────
+  // ─── Check 14: Phase 15 DX feature health ────────────────────────────────
   {
     let p15Config = {};
     try { p15Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
@@ -979,7 +979,7 @@ function cmdValidateHealth(cwd, options, raw) {
     );
   }
 
-  // ─── Check 13: Phase 14 Quality & Safety feature health ───────────────────
+  // ─── Check 15: Phase 14 Quality & Safety feature health ───────────────────
   {
     let p14Config = {};
     try { p14Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
@@ -1057,7 +1057,7 @@ function cmdValidateHealth(cwd, options, raw) {
     feature_status.security_scanning = ssHealth;
   }
 
-  // ─── Check 14: Phase 11 Spec-Driven Development feature health ───────────
+  // ─── Check 16: Phase 11 Spec-Driven Development feature health ───────────
   {
     let p11Config = {};
     try { p11Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
@@ -1093,7 +1093,7 @@ function cmdValidateHealth(cwd, options, raw) {
     );
   }
 
-  // ─── Check 15: Phase 16 cross-project intelligence feature health ────────
+  // ─── Check 17: Phase 16 cross-project intelligence feature health ────────
   {
     let p16Config = {};
     try { p16Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
@@ -1136,6 +1136,142 @@ function cmdValidateHealth(cwd, options, raw) {
         } catch (_) { return false; }
       }
     );
+  }
+
+  // ─── Check 18: Phase 3 (zero-friction) feature status ────────────────────
+  {
+    let p3Config = {};
+    try { p3Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p3Features = p3Config.features || {};
+
+    const zfqEnabled = p3Features.zero_friction_quick !== false;
+    feature_status.zero_friction_quick = {
+      enabled: zfqEnabled,
+      status: zfqEnabled ? 'healthy' : 'disabled',
+    };
+  }
+
+  // ─── Check 19: Phase 4 (NL routing) feature status ───────────────────────
+  {
+    let p4Config = {};
+    try { p4Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p4Features = p4Config.features || {};
+    const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
+
+    // natural_language_routing: default true; try to load module
+    const nlrEnabled = p4Features.natural_language_routing !== false;
+    if (!nlrEnabled) {
+      feature_status.natural_language_routing = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'alternatives.js'));
+        feature_status.natural_language_routing = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.natural_language_routing = { enabled: true, status: 'degraded' };
+      }
+    }
+
+    // adaptive_ceremony: default true; workflow-only feature, no module
+    const acEnabled = p4Features.adaptive_ceremony !== false;
+    feature_status.adaptive_ceremony = {
+      enabled: acEnabled,
+      status: acEnabled ? 'healthy' : 'disabled',
+    };
+  }
+
+  // ─── Check 20: Phase 6 (convention memory) feature status ────────────────
+  {
+    let p6Config = {};
+    try { p6Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p6Features = p6Config.features || {};
+    const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
+
+    // convention_memory: default true; try to load module
+    const cmEnabled = p6Features.convention_memory !== false;
+    if (!cmEnabled) {
+      feature_status.convention_memory = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'convention-detector.js'));
+        feature_status.convention_memory = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.convention_memory = { enabled: true, status: 'degraded' };
+      }
+    }
+
+    // mental_model_snapshots: default true; try to load module
+    const mmsEnabled = p6Features.mental_model_snapshots !== false;
+    if (!mmsEnabled) {
+      feature_status.mental_model_snapshots = { enabled: false, status: 'disabled' };
+    } else {
+      try {
+        require(path.join(pluginRoot, 'scripts', 'lib', 'snapshot-manager.js'));
+        feature_status.mental_model_snapshots = { enabled: true, status: 'healthy' };
+      } catch (_e) {
+        feature_status.mental_model_snapshots = { enabled: true, status: 'degraded' };
+      }
+    }
+  }
+
+  // ─── Check 21: Phase 9 (proactive intelligence) feature status ───────────
+  {
+    let p9Config = {};
+    try { p9Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const scriptsDir = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts');
+    const { checkFeatureHealth: checkPhase9FeatureHealth } = require('./health.cjs');
+    const phase9Features = [
+      'smart_next_task',
+      'dependency_break_detection',
+      'pre_research',
+      'pattern_routing',
+      'tech_debt_surfacing',
+    ];
+    for (const name of phase9Features) {
+      const result = checkPhase9FeatureHealth(name, p9Config, scriptsDir);
+      feature_status[name] = { enabled: result.status !== 'disabled', status: result.status };
+    }
+  }
+
+  // ─── Check 22: Phase 10 (post-hoc) feature status ────────────────────────
+  {
+    const p10ModPath = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts', 'lib', 'health-checks.js');
+    try {
+      const p10Checks = require(p10ModPath);
+      const postHocResult = p10Checks.checkPostHocArtifacts(planningDir);
+      feature_status.post_hoc_artifacts = {
+        enabled: postHocResult.enabled,
+        status: postHocResult.status,
+      };
+      const feedbackResult = p10Checks.checkAgentFeedbackLoop(planningDir);
+      feature_status.agent_feedback_loop = {
+        enabled: feedbackResult.enabled,
+        status: feedbackResult.status,
+      };
+      const metricsResult = p10Checks.checkSessionMetrics(planningDir);
+      feature_status.session_metrics = {
+        enabled: metricsResult.enabled,
+        status: metricsResult.status,
+      };
+    } catch (_e) {
+      // health-checks.js not available — mark all as degraded
+      feature_status.post_hoc_artifacts = { enabled: true, status: 'degraded' };
+      feature_status.agent_feedback_loop = { enabled: true, status: 'degraded' };
+      feature_status.session_metrics = { enabled: true, status: 'degraded' };
+    }
+  }
+
+  // ─── Check 23: Phase 13 (multi-agent) feature status ─────────────────────
+  {
+    let p13Config = {};
+    try { p13Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const { checkMultiAgentHealth } = require('./health.cjs');
+    const multiAgentResults = checkMultiAgentHealth(p13Config);
+    for (const result of multiAgentResults) {
+      feature_status[result.feature] = {
+        enabled: result.status !== 'disabled',
+        status: result.status,
+      };
+    }
   }
 
   // ─── Perform repairs if requested ─────────────────────────────────────────

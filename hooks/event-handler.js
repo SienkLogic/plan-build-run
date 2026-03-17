@@ -433,6 +433,8 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
 
   try {
     logHook('event-handler', 'SubagentStop', 'decisions-extracted', {
+      feature: 'decision_journal',
+      action: 'extract',
       count: decisions.length,
       agent: agentType
     });
@@ -511,7 +513,7 @@ function extractNegativeKnowledge(planningDir, phaseDir, config) {
   }
 
   try {
-    logHook('event-handler', 'SubagentStop', 'negative-knowledge-extracted', { count: gaps.length, phase });
+    logHook('event-handler', 'SubagentStop', 'negative-knowledge-extracted', { feature: 'negative_knowledge', action: 'extract', count: gaps.length, phase });
   } catch (_e) { /* non-fatal */ }
 }
 
