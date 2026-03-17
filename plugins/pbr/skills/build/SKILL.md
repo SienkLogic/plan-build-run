@@ -710,6 +710,96 @@ For each plan that completed successfully in this wave:
 
 ---
 
+#### 6c-iii. Multi-Layer Validation (conditional)
+
+**Skip if** `features.multi_layer_validation` is not `true` in `.planning/config.json`.
+
+After each wave completes, run parallel validation passes over the files changed in that wave. This is a BugBot-style multi-perspective review (correctness, security, performance, etc.) that runs inline without spawning external agents.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation get-passes
+```
+
+This returns the active validation pass names from `config.validation_passes` (or all 8 standard passes if unconfigured). Then:
+
+1. Get the list of changed files for this wave:
+   ```bash
+   git diff --name-only HEAD~{wave_commit_count}..HEAD
+   ```
+2. Build the validation prompt:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation build-prompt '{pass_name}' '{comma-separated changed files}'
+   ```
+   (`buildValidationPrompt()` in `plan-build-run/bin/lib/validation.cjs`)
+3. Run each pass as a lightweight inline review (no Task() spawn — use direct tool calls). Display results as:
+   - `✓ Validation [{pass}]: no issues`
+   - `⚠ Validation [{pass}]: {N} finding(s) — {brief description}`
+4. If any HIGH-severity finding is reported: surface it to the user before proceeding to the next wave. Use AskUserQuestion (pattern: acknowledge-finding) to let the user decide whether to fix now or defer.
+5. Findings do NOT block the build by default — they are advisory unless `config.validation_blocking` is `true`.
+
+---
+
+#### 6c-iv. Security Scan (conditional)
+
+**Skip if** `features.security_scanning` is not `true` in `.planning/config.json`.
+
+Run an OWASP-style security scan over the files changed during this wave using the patterns in `plan-build-run/bin/lib/security-scan.cjs`.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security scan '{space-separated changed files}'
+```
+
+(`scanFiles()` in `plan-build-run/bin/lib/security-scan.cjs`)
+
+Display formatted findings:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security format-findings '{scan-output-json}'
+```
+
+(`formatFindings()` in `plan-build-run/bin/lib/security-scan.cjs`)
+
+Output format:
+- If no findings: `✓ Security scan: clean`
+- If findings exist:
+  ```
+  ⚠ Security scan: {N} finding(s)
+    [SEC-001] {file}:{line} — {message} (severity: high)
+    ...
+  ```
+
+HIGH-severity findings (hardcoded secrets, SQL injection, eval-of-user-input) require user acknowledgment before the build continues. MEDIUM and LOW findings are logged but non-blocking.
+
+---
+
+#### 6c-v. Smart Test Selection (conditional)
+
+**Skip if** `features.regression_prevention` is not `true` in `.planning/config.json`.
+
+After each wave, identify which test files are relevant to the changed source files using `plan-build-run/bin/lib/test-selection.cjs`. Run only those tests instead of the full suite — this catches regressions early without the latency of a full test run.
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection select '{space-separated changed files}'
+```
+
+(`selectTests()` in `plan-build-run/bin/lib/test-selection.cjs`)
+
+Then format the test command:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection format-command '{selection-output-json}'
+```
+
+(`formatTestCommand()` in `plan-build-run/bin/lib/test-selection.cjs`)
+
+Run the resulting command (e.g., `npm test -- tests/foo.test.js tests/bar.test.js`) via Bash. Display:
+- `✓ Smart tests ({N} files): all passed`
+- `✗ Smart tests ({N} files): {M} failed — {test names}`
+
+If tests fail: present the failure to the user (same flow as Step 6d). The failing test output counts as a gap for the wave — the orchestrator does NOT automatically retry, but surfaces it for the user to decide (fix now, skip, or abort).
+
+---
+
 #### 6d. Handle Failures
 
 If any executor returned `failed` or `partial`:

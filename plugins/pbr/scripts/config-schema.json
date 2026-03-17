@@ -320,6 +320,16 @@
           "type": "boolean",
           "default": true,
           "description": "Enable OWASP-style security scanning of changed files during build. Checks for hardcoded secrets, eval usage, shell injection, path traversal, and other common vulnerabilities."
+        },
+        "architecture_graph": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable living architecture graph that tracks module dependencies and impact analysis."
+        },
+        "architecture_guard": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable architecture consistency guard that warns on dependency violations."
         }
       },
       "additionalProperties": false

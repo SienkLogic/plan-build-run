@@ -183,6 +183,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.cross_project_patterns': false,
     'features.spec_templates': false,
     'features.global_learnings': false,
+    'features.architecture_graph': false,
+    'features.architecture_guard': false,
     'scan.mapper_count': 2,
     'scan.mapper_areas': ['tech', 'arch'],
     'debug.max_hypothesis_rounds': 3
@@ -204,6 +206,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.cross_project_patterns': true,
     'features.spec_templates': true,
     'features.global_learnings': true,
+    'features.architecture_graph': true,
+    'features.architecture_guard': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 5
@@ -225,6 +229,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.cross_project_patterns': true,
     'features.spec_templates': true,
     'features.global_learnings': true,
+    'features.architecture_graph': true,
+    'features.architecture_guard': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
     'debug.max_hypothesis_rounds': 10

@@ -564,6 +564,22 @@ const SKILL_CHECKS = {
           warnings.push(...selfCheckWarnings);
         } catch (_e) { /* best-effort */ }
       }
+      // Extract feedback for agent prompt enrichment
+      try {
+        const { extractFeedback, isEnabled } = require('./feedback-loop');
+        if (isEnabled(planningDir)) {
+          const phaseDirMatches = found.filter(f => /^phases[/\\]/.test(f));
+          const phaseDir = phaseDirMatches.length > 0
+            ? path.join(planningDir, phaseDirMatches[0].split(/[/\\]/).slice(0, 2).join(path.sep))
+            : null;
+          if (phaseDir) {
+            const feedback = extractFeedback(phaseDir);
+            if (feedback) {
+              warnings.push(`Feedback loop: ${feedback.summary || 'verification feedback recorded'}`);
+            }
+          }
+        }
+      } catch (_e) { /* best-effort */ }
       checkLearningsRequired(planningDir, warnings, 'executor');
       // Log post-hoc skip for non-quick executors (audit evidence)
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
