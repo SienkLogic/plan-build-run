@@ -115,6 +115,31 @@ function findOrphanedProgressFiles(planningDir) {
   return orphans;
 }
 
+/**
+ * formatSessionMetrics — Format session stats into a human-readable report.
+ * @param {Object} stats - Session statistics
+ * @returns {string} Formatted multi-line string
+ */
+function formatSessionMetrics(stats) {
+  const duration = stats.duration_min || 0;
+  const agents = stats.agents_spawned || 0;
+  const commits = stats.commits_created || 0;
+  const plansExec = stats.plans_executed || 0;
+  const plansVerified = stats.plans_verified || 0;
+  const feedback = stats.feedback_loops || 0;
+  const compliance = Math.round((plansVerified / Math.max(plansExec, 1)) * 100);
+
+  return [
+    'Session Metrics:',
+    `  Duration:    ${duration}m`,
+    `  Agents:      ${agents}`,
+    `  Commits:     ${commits}`,
+    `  Plans:       ${plansExec} executed, ${plansVerified} verified`,
+    `  Compliance:  ${compliance}%`,
+    `  Feedback:    ${feedback} loops triggered`
+  ].join('\n');
+}
+
 const MAX_SESSION_ENTRIES = 100;
 
 function writeSessionHistory(planningDir, data) {
@@ -151,14 +176,18 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
-    // Count commits and commands from events log
+    // Count commits, commands, and feedback loops from events log
     // Read last 200 entries — sufficient for a single session's events
+    let feedbackLoopsTriggered = 0;
     const eventLines = tailLines(eventsLog, 200);
     for (const line of eventLines) {
       try {
         const entry = JSON.parse(line);
         if (entry.event === 'commit-validated' && entry.status === 'allow') {
           commitsCreated++;
+        }
+        if (entry.event === 'feedback-injected') {
+          feedbackLoopsTriggered++;
         }
         if (entry.cat === 'workflow' && entry.event) {
           if (!commandsRun.includes(entry.event)) {
@@ -171,11 +200,33 @@ function writeSessionHistory(planningDir, data) {
       } catch (_e) { /* skip malformed lines */ }
     }
 
+    // Count plans executed (SUMMARY-*.md files in phase dirs) and verified (VERIFICATION-*.md)
+    let plansExecuted = 0;
+    let plansVerified = 0;
+    try {
+      const phasesDir = path.join(planningDir, 'phases');
+      if (fs.existsSync(phasesDir)) {
+        const pDirs = fs.readdirSync(phasesDir);
+        for (const pd of pDirs) {
+          const pdPath = path.join(phasesDir, pd);
+          try {
+            const files = fs.readdirSync(pdPath);
+            for (const f of files) {
+              if (/^SUMMARY-.*\.md$/i.test(f)) plansExecuted++;
+              if (/^VERIFICATION-.*\.md$/i.test(f)) plansVerified++;
+            }
+          } catch (_e) { /* skip unreadable dirs */ }
+        }
+      }
+    } catch (_e) { /* best-effort */ }
+
     const sessionEnd = new Date().toISOString();
     let durationMinutes = null;
     if (sessionStart) {
       durationMinutes = Math.round((new Date(sessionEnd) - new Date(sessionStart)) / 60000);
     }
+
+    const compliancePct = Math.round((plansVerified / Math.max(plansExecuted, 1)) * 100);
 
     const summary = {
       start: sessionStart || sessionEnd,
@@ -184,7 +235,10 @@ function writeSessionHistory(planningDir, data) {
       reason: data.reason || null,
       agents_spawned: agentsSpawned,
       commits_created: commitsCreated,
-      commands_run: commandsRun
+      commands_run: commandsRun,
+      plans_executed: plansExecuted,
+      compliance_pct: compliancePct,
+      feedback_loops_triggered: feedbackLoopsTriggered
     };
 
     // Append to sessions.jsonl, cap at MAX_SESSION_ENTRIES
@@ -335,6 +389,32 @@ function main() {
   // Write session history log
   writeSessionHistory(planningDir, data);
 
+  // Session productivity metrics display (controlled by features.session_metrics)
+  let metricsContext = null;
+  try {
+    const rawConfig = configLoad(planningDir) || {};
+    if (rawConfig.features && rawConfig.features.session_metrics !== false) {
+      // Build stats from the same data writeSessionHistory computed
+      // Re-read the last session entry to get the computed values
+      const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
+      if (fs.existsSync(sessionsFile)) {
+        const lastLine = fs.readFileSync(sessionsFile, 'utf8').trim().split('\n').pop();
+        if (lastLine) {
+          const lastEntry = JSON.parse(lastLine);
+          metricsContext = formatSessionMetrics({
+            duration_min: lastEntry.duration_minutes || 0,
+            agents_spawned: lastEntry.agents_spawned || 0,
+            commits_created: lastEntry.commits_created || 0,
+            plans_executed: lastEntry.plans_executed || 0,
+            plans_verified: Math.round((lastEntry.compliance_pct || 0) * Math.max(lastEntry.plans_executed || 0, 1) / 100),
+            feedback_loops: lastEntry.feedback_loops_triggered || 0,
+            commands_run: (lastEntry.commands_run || []).length
+          });
+        }
+      }
+    }
+  } catch (_e) { /* metrics display is best-effort */ }
+
   // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
   let llmAdditionalContext = null;
   try {
@@ -411,7 +491,7 @@ function main() {
     // Snapshot failure must never crash SessionEnd
   }
 
-  const combinedContext = [llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
+  const combinedContext = [metricsContext, llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }
@@ -454,5 +534,6 @@ function handleHttp(reqBody) {
   return null;
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp };
+<<<<<<< HEAD
+module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics };
 if (require.main === module || process.argv[1] === __filename) { main(); }
