@@ -147,6 +147,38 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
 ```
 </step>
 
+<step name="write-learnings">
+### Step 3b: Write LEARNINGS.md (Optional)
+
+After writing SUMMARY.md, if you discovered noteworthy patterns, API quirks, or architectural insights during execution, write `.planning/phases/{phase_dir}/LEARNINGS.md`.
+
+**Gate:** Read `learnings.enabled` from config: `node $HOME/.claude/plan-build-run/bin/pbr-tools.cjs config-get learnings.enabled`
+If false or missing, skip this step entirely.
+
+**Format:**
+```yaml
+---
+phase: "{phase-slug}"
+key_insights:
+  - "{insight 1}"
+  - "{insight 2}"
+patterns:
+  - "{pattern 1}"
+---
+```
+
+Body sections (include only sections with content):
+- `## Key Insights` — Architectural discoveries, unexpected behaviors, performance characteristics
+- `## Patterns Discovered` — Reusable patterns, conventions established, API idioms
+- `## API/Integration Notes` — External API quirks, integration gotchas, version-specific behavior
+
+**Rules:**
+- Only write if you genuinely discovered something. Do NOT fabricate insights.
+- Keep it concise — 5-15 bullet points total across all sections.
+- Focus on knowledge that would help a FUTURE agent working on dependent phases.
+- Write AFTER SUMMARY.md, BEFORE the completion marker.
+</step>
+
 <step name="finalize">
 ### Step 4: Finalize
 
