@@ -48,17 +48,17 @@ Three layers:
 
 Markdown files with YAML frontmatter defining slash commands (`/pbr:new-project`, `/pbr:plan-phase`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
-28 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, milestone, note, pause, plan, profile, quick, resume, review, scan, setup, status, statusline, test, todo, undo.
+34 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, intel, milestone, note, pause, plan, profile, quick, resume, review, scan, setup, status, statusline, test, todo, undo, and more.
 
 ### Agents (`agents/{name}.md`)
 
 Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "pbr:{name}"` — auto-loaded by Claude Code.
 
-14 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, nyquist-auditor, plan-checker, planner, researcher, roadmapper, synthesizer, verifier.
+17 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, intel-updater, nyquist-auditor, plan-checker, planner, researcher, roadmapper, synthesizer, ui-checker, ui-researcher, verifier.
 
 ### Hook Scripts (`hooks/*.js`)
 
-49 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
+50 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
 
 **Dispatch pattern**: Several hooks use dispatch scripts that fan out to sub-scripts based on the file being written/read:
 
@@ -95,7 +95,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 - **`plan-build-run/bin/`** — CLI tools (`pbr-tools.cjs` + `lib/` modules)
 - **`plan-build-run/references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`plan-build-run/templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
-- **`commands/pbr/`** — 41 command registration files (one `.md` per command mapping to its skill)
+- **`commands/pbr/`** — 59 command registration files (one `.md` per command mapping to its skill)
 - **`plan-build-run/skills/shared/`** — 12 shared skill fragments extracted from repeated patterns across skills
 - **`plugins/`** — Derivative plugins (codex-pbr, cursor-pbr, copilot-pbr)
 - **`dashboard/`** — Vite + React 18 dashboard with Express backend
