@@ -184,6 +184,7 @@ CRITICAL: Your final output MUST end with exactly one completion marker.
 | Artifact | Target | Hard Limit |
 |----------|--------|------------|
 | UI-REVIEW.md | <= 2,000 tokens | 3,000 tokens |
+
 </structured_returns>
 
 <anti_patterns>
