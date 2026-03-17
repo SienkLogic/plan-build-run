@@ -242,6 +242,7 @@ let _history, _todo, _learnings, _spotCheck, _build, _llm;
 let _verify, _frontmatter, _commands, _template, _milestone;
 let _reference, _skillSection, _stepVerify, _preview, _context;
 let _alternatives, _migrate, _circuitState, _intel, _statusRender, _suggestNext, _parseArgs;
+let _decisions;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -271,6 +272,7 @@ function getIntel() { if (!_intel) _intel = require('./lib/intel.cjs'); return _
 function getStatusRender() { if (!_statusRender) _statusRender = require('./lib/status-render.cjs'); return _statusRender; }
 function getSuggestNext() { if (!_suggestNext) _suggestNext = require('./lib/suggest-next.cjs'); return _suggestNext; }
 function getParseArgs() { if (!_parseArgs) _parseArgs = require('./lib/parse-args.cjs'); return _parseArgs; }
+function getDecisions() { if (!_decisions) _decisions = require('./lib/decisions.cjs'); return _decisions; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -335,6 +337,9 @@ function todoList(opts) { return getTodo().todoList(planningDir, opts); }
 function todoGet(num) { return getTodo().todoGet(planningDir, num); }
 function todoAdd(title, opts) { return getTodo().todoAdd(planningDir, title, opts); }
 function todoDone(num) { return getTodo().todoDone(planningDir, num); }
+
+function decisionsRecord(opts) { return getDecisions().recordDecision(planningDir, opts); }
+function decisionsList(filters) { return getDecisions().listDecisions(planningDir, filters); }
 
 function spotCheck(phaseSlug, planId) { return getSpotCheck().spotCheck(planningDir, phaseSlug, planId); }
 function verifySpotCheck(type, dirPath) { return getSpotCheck().verifySpotCheck(type, dirPath); }
@@ -1393,9 +1398,36 @@ async function main() {
         timestamp: new Date().toISOString()
       });
 
+    // ─── Decisions Operations ───────────────────────────────────────────────
+    } else if (command === 'decisions' && subcommand === 'record') {
+      const opts = {};
+      for (let i = 2; i < args.length; i++) {
+        if (args[i] === '--decision' && args[i + 1]) { opts.decision = args[++i]; }
+        else if (args[i] === '--rationale' && args[i + 1]) { opts.rationale = args[++i]; }
+        else if (args[i] === '--context' && args[i + 1]) { opts.context = args[++i]; }
+        else if (args[i] === '--agent' && args[i + 1]) { opts.agent = args[++i]; }
+        else if (args[i] === '--phase' && args[i + 1]) { opts.phase = args[++i]; }
+        else if (args[i] === '--tags' && args[i + 1]) { opts.tags = args[++i].split(',').map(t => t.trim()); }
+        else if (args[i] === '--alternatives' && args[i + 1]) { opts.alternatives = args[++i].split(',').map(a => a.trim()); }
+        else if (args[i] === '--consequences' && args[i + 1]) { opts.consequences = args[++i]; }
+      }
+      if (!opts.decision) error('Usage: decisions record --decision "..." --rationale "..." [--context "..."] [--agent name] [--phase NN] [--tags t1,t2] [--alternatives a1,a2] [--consequences "..."]');
+      output(decisionsRecord(opts));
+    } else if (command === 'decisions' && subcommand === 'list') {
+      const filters = {};
+      const statusIdx = args.indexOf('--status');
+      if (statusIdx !== -1 && args[statusIdx + 1]) filters.status = args[statusIdx + 1];
+      const phaseIdx = args.indexOf('--phase');
+      if (phaseIdx !== -1 && args[phaseIdx + 1]) filters.phase = args[phaseIdx + 1];
+      const tagIdx = args.indexOf('--tag');
+      if (tagIdx !== -1 && args[tagIdx + 1]) filters.tag = args[tagIdx + 1];
+      output(decisionsList(Object.keys(filters).length > 0 ? filters : undefined));
+    } else if (command === 'decisions') {
+      error(`Unknown decisions subcommand: ${subcommand}\nAvailable: record, list`);
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
