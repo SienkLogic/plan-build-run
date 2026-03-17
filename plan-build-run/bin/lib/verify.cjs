@@ -1011,6 +1011,42 @@ function cmdValidateHealth(cwd, options, raw) {
     feature_status.security_scanning = ssHealth;
   }
 
+  // ─── Check 14: Phase 11 Spec-Driven Development feature health ───────────
+  {
+    let p11Config = {};
+    try { p11Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (_) {}
+    const p11Features = p11Config.features || {};
+
+    const checkSpecFeatureHealth = (featureName, defaultEnabled, modulePath, exportName) => {
+      const isEnabled = p11Features[featureName] === undefined ? defaultEnabled : p11Features[featureName];
+      if (!isEnabled) {
+        return { status: 'disabled', enabled: false, details: 'Feature toggle off' };
+      }
+      try {
+        const mod = require(modulePath);
+        if (typeof mod[exportName] === 'function') {
+          return { status: 'healthy', enabled: true, details: `${exportName} loaded` };
+        }
+        return { status: 'degraded', enabled: true, details: `${exportName} not a function` };
+      } catch (_e) {
+        return { status: 'degraded', enabled: true, details: `Cannot load module: ${_e.message}` };
+      }
+    };
+
+    feature_status.machine_executable_plans = checkSpecFeatureHealth(
+      'machine_executable_plans', false, path.join(__dirname, 'spec-engine.cjs'), 'parsePlanToSpec'
+    );
+    feature_status.spec_diffing = checkSpecFeatureHealth(
+      'spec_diffing', true, path.join(__dirname, 'spec-diff.cjs'), 'diffSpecs'
+    );
+    feature_status.reverse_spec = checkSpecFeatureHealth(
+      'reverse_spec', true, path.join(__dirname, 'reverse-spec.cjs'), 'generateReverseSpec'
+    );
+    feature_status.predictive_impact = checkSpecFeatureHealth(
+      'predictive_impact', true, path.join(__dirname, 'impact-analysis.cjs'), 'analyzeImpact'
+    );
+  }
+
   // ─── Perform repairs if requested ─────────────────────────────────────────
   const repairActions = [];
   if (options.repair && repairs.length > 0) {
