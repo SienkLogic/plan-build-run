@@ -69,9 +69,12 @@ function main() {
 
     process.exit(0);
   } catch (_e) {
-    // Don't block on errors
-    process.exit(0);
-  }
+      // Don't block on errors — emit valid output for Claude Code
+      process.stderr.write(`[pbr] block-skill-self-read error: ${_e.message}
+`);
+      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      process.exit(0);
+    }
 }
 
 main();

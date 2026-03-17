@@ -153,7 +153,10 @@ function main() {
       process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);
     } catch (_e) {
-      // Don't block on errors
+      // Don't block on errors — emit valid output for Claude Code
+      process.stderr.write(`[pbr] pre-write-dispatch error: ${_e.message}
+`);
+      process.stdout.write(JSON.stringify({ decision: "allow" }));
       process.exit(0);
     }
   });

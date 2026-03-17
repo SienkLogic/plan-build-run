@@ -32,6 +32,7 @@ const { checkPlanExecutorGate } = require('./lib/gates/plan-executor');
 const { checkReviewPlannerGate } = require('./lib/gates/review-planner');
 const { checkReviewVerifierGate } = require('./lib/gates/review-verifier');
 const { checkMilestoneCompleteGate, getVerificationStatus } = require('./lib/gates/milestone-complete');
+const { checkMilestoneSummaryGate } = require('./lib/gates/milestone-summary');
 const { checkBuildDependencyGate } = require('./lib/gates/build-dependency');
 const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('./lib/gates/advisories');
 const { checkDocExistence } = require('./lib/gates/doc-existence');
@@ -180,6 +181,18 @@ function main() {
         return;
       }
 
+      // Blocking gate: milestone complete needs SUMMARY.md in all phases
+      const milestoneSummaryGate = checkMilestoneSummaryGate(data);
+      if (milestoneSummaryGate && milestoneSummaryGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: milestoneSummaryGate.reason });
+        process.stdout.write(JSON.stringify({
+          decision: 'block',
+          reason: milestoneSummaryGate.reason
+        }));
+        process.exit(2);
+        return;
+      }
+
       // Blocking gate: build dependency check
       const buildDepGate = checkBuildDependencyGate(data);
       if (buildDepGate && buildDepGate.block) {
@@ -246,11 +259,14 @@ function main() {
 
       process.exit(0);
     } catch (_e) {
-      // Parse error — don't block
+      // Don't block on errors — emit valid output for Claude Code
+      process.stderr.write(`[pbr] validate-task error: ${_e.message}
+`);
+      process.stdout.write(JSON.stringify({ decision: "allow" }));
       process.exit(0);
     }
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, checkDocExistence, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkMilestoneSummaryGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, checkDocExistence, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }
