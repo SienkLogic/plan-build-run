@@ -123,6 +123,9 @@
  *   intel update                          Trigger intel refresh (prints agent instructions)
  *   intel status                          Show staleness info for intel files
  *   intel diff                            Show changes since last full refresh
+ *   intel snapshot                        Save refresh snapshot (.last-refresh.json)
+ *   intel validate                        Validate all intel files for correctness
+ *   intel extract-exports <filepath>      Extract exports from a JS/CJS file
  *
  * BUILD PIPELINE:
  *   staleness-check <phase-slug>          Check if phase plans are stale
@@ -851,6 +854,14 @@ async function main() {
       output(getIntel().intelStatus(planningDir));
     } else if (command === 'intel' && subcommand === 'diff') {
       output(getIntel().intelDiff(planningDir));
+    } else if (command === 'intel' && subcommand === 'snapshot') {
+      output(getIntel().intelSnapshot(planningDir));
+    } else if (command === 'intel' && subcommand === 'validate') {
+      output(getIntel().intelValidate(planningDir));
+    } else if (command === 'intel' && subcommand === 'extract-exports') {
+      const filePath = args[2];
+      if (!filePath) error('Usage: intel extract-exports <filepath>');
+      output(getIntel().intelExtractExports(filePath));
 
     // ─── Build Pipeline ───────────────────────────────────────────────────────
     } else if (command === 'staleness-check') {

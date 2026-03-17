@@ -371,6 +371,163 @@ function saveRefreshSnapshot(planningDir) {
   return { saved: true, timestamp, files: fileCount };
 }
 
+// ─── CLI Subcommands ─────────────────────────────────────────────────────────
+
+/**
+ * Thin wrapper around saveRefreshSnapshot for CLI dispatch.
+ * Writes .last-refresh.json with accurate timestamps and hashes.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ saved: boolean, timestamp: string, files: number } | { disabled: true, message: string }}
+ */
+function intelSnapshot(planningDir) {
+  if (!isIntelEnabled(planningDir)) return disabledResponse();
+  return saveRefreshSnapshot(planningDir);
+}
+
+/**
+ * Validate all intel files for correctness and freshness.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ valid: boolean, errors: string[], warnings: string[] } | { disabled: true, message: string }}
+ */
+function intelValidate(planningDir) {
+  if (!isIntelEnabled(planningDir)) return disabledResponse();
+
+  const errors = [];
+  const warnings = [];
+  const ONE_HOUR_MS = 60 * 60 * 1000;
+  const now = Date.now();
+
+  for (const [key, filename] of Object.entries(INTEL_FILES)) {
+    const filePath = intelFilePath(planningDir, filename);
+
+    // Check existence
+    if (!fs.existsSync(filePath)) {
+      errors.push(`${filename}: file does not exist`);
+      continue;
+    }
+
+    // Skip non-JSON files (arch.md)
+    if (filename.endsWith('.md')) continue;
+
+    // Parse JSON
+    let data;
+    try {
+      data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (e) {
+      errors.push(`${filename}: invalid JSON — ${e.message}`);
+      continue;
+    }
+
+    // Check _meta.updated_at recency
+    if (data._meta && data._meta.updated_at) {
+      const age = now - new Date(data._meta.updated_at).getTime();
+      if (age > ONE_HOUR_MS) {
+        warnings.push(`${filename}: _meta.updated_at is ${Math.round(age / 60000)} minutes old (>60 min)`);
+      }
+    } else {
+      warnings.push(`${filename}: missing _meta.updated_at`);
+    }
+
+    // Validate entries are objects with expected fields
+    if (data.entries && typeof data.entries === 'object') {
+      // files.json: check exports are actual symbol names (no spaces)
+      if (key === 'files') {
+        for (const [entryPath, entry] of Object.entries(data.entries)) {
+          if (entry.exports && Array.isArray(entry.exports)) {
+            for (const exp of entry.exports) {
+              if (typeof exp === 'string' && exp.includes(' ')) {
+                warnings.push(`${filename}: "${entryPath}" export "${exp}" looks like a description (contains space)`);
+              }
+            }
+          }
+        }
+        // Spot-check first 5 file paths exist on disk
+        const entryPaths = Object.keys(data.entries).slice(0, 5);
+        for (const ep of entryPaths) {
+          if (!fs.existsSync(ep)) {
+            warnings.push(`${filename}: entry path "${ep}" does not exist on disk`);
+          }
+        }
+      }
+
+      // deps.json: check entries have version, type, used_by
+      if (key === 'deps') {
+        for (const [depName, entry] of Object.entries(data.entries)) {
+          const missing = [];
+          if (!entry.version) missing.push('version');
+          if (!entry.type) missing.push('type');
+          if (!entry.used_by) missing.push('used_by');
+          if (missing.length > 0) {
+            warnings.push(`${filename}: "${depName}" missing fields: ${missing.join(', ')}`);
+          }
+        }
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors, warnings };
+}
+
+/**
+ * Extract exports from a JS/CJS file by parsing module.exports or exports.X patterns.
+ *
+ * @param {string} filePath - Path to the JS/CJS file
+ * @returns {{ file: string, exports: string[], method: string }}
+ */
+function intelExtractExports(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { file: filePath, exports: [], method: 'none' };
+  }
+
+  const content = fs.readFileSync(filePath, 'utf8');
+  let exports = [];
+  let method = 'none';
+
+  // Try module.exports = { ... } pattern (handle multi-line)
+  // Find the LAST module.exports assignment (the actual one, not references in code)
+  const allMatches = [...content.matchAll(/module\.exports\s*=\s*\{/g)];
+  if (allMatches.length > 0) {
+    const lastMatch = allMatches[allMatches.length - 1];
+    const startIdx = lastMatch.index + lastMatch[0].length;
+    // Find matching closing brace by counting braces
+    let depth = 1;
+    let endIdx = startIdx;
+    while (endIdx < content.length && depth > 0) {
+      if (content[endIdx] === '{') depth++;
+      else if (content[endIdx] === '}') depth--;
+      if (depth > 0) endIdx++;
+    }
+    const block = content.substring(startIdx, endIdx);
+    method = 'module.exports';
+    // Extract key names from lines like "  keyName," or "  keyName: value,"
+    const lines = block.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip comments and empty lines
+      if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+      // Match identifier at start of line (before comma, colon, end of line)
+      const keyMatch = trimmed.match(/^(\w+)\s*[,}:]/) || trimmed.match(/^(\w+)$/);
+      if (keyMatch) {
+        exports.push(keyMatch[1]);
+      }
+    }
+  }
+
+  // Also try individual exports.X = patterns (only at start of line, not inside strings/regex)
+  const individualPattern = /^exports\.(\w+)\s*=/gm;
+  let im;
+  while ((im = individualPattern.exec(content)) !== null) {
+    if (!exports.includes(im[1])) {
+      exports.push(im[1]);
+      if (method === 'none') method = 'exports.X';
+    }
+  }
+
+  return { file: filePath, exports, method };
+}
+
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -380,6 +537,11 @@ module.exports = {
   intelStatus,
   intelDiff,
   saveRefreshSnapshot,
+
+  // CLI subcommands
+  intelSnapshot,
+  intelValidate,
+  intelExtractExports,
 
   // Utilities
   ensureIntelDir,
