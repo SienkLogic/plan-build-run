@@ -221,8 +221,8 @@ function suggestNext(planningDir) {
     }
   }
 
-  // Priority 3: Active checkpoint
-  if (stateFm.active_checkpoint) {
+  // Priority 3: Active checkpoint (YAML "null" parses as string "null", not JS null)
+  if (stateFm.active_checkpoint && stateFm.active_checkpoint !== 'null') {
     const currentPhaseNum = stateFm.current_phase;
     const phase = phases.find(p => p.number === currentPhaseNum);
     return result('/pbr:build', String(currentPhaseNum || ''), 'Active checkpoint needs resolution', phase);

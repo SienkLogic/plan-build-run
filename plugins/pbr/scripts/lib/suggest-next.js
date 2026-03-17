@@ -1,5 +1,5 @@
 /**
- * lib/suggest-next.js -- Deterministic routing decision tree for Plan-Build-Run.
+ * lib/suggest-next.cjs -- Deterministic routing decision tree for Plan-Build-Run.
  *
  * Encapsulates the priority-based routing logic used by status, continue,
  * and resume skills. Scans project state and returns a JSON recommendation
@@ -18,7 +18,7 @@
  *  10. Empty phases (phase dirs with no PLAN)
  *  11. No project (no .planning/)
  *
- * Called by: `node pbr-tools.js suggest-next`
+ * Called by: `node pbr-tools.cjs suggest-next`
  */
 
 const fs = require('fs');
@@ -221,8 +221,8 @@ function suggestNext(planningDir) {
     }
   }
 
-  // Priority 3: Active checkpoint
-  if (stateFm.active_checkpoint) {
+  // Priority 3: Active checkpoint (YAML "null" parses as string "null", not JS null)
+  if (stateFm.active_checkpoint && stateFm.active_checkpoint !== 'null') {
     const currentPhaseNum = stateFm.current_phase;
     const phase = phases.find(p => p.number === currentPhaseNum);
     return result('/pbr:build', String(currentPhaseNum || ''), 'Active checkpoint needs resolution', phase);
