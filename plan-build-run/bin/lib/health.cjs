@@ -1,70 +1,50 @@
 /**
- * lib/health.cjs — Phase 9 feature health checks for Plan-Build-Run.
+ * lib/health.cjs — Multi-agent health checks for Plan-Build-Run.
  *
- * Provides health status for each Phase 9 proactive intelligence feature
- * based on config toggles and module availability.
- *
- * Exports: checkFeatureHealth, checkAllPhase9Features, PHASE9_FEATURE_MODULES
+ * Reports enabled/disabled/healthy/degraded status for all multi-agent features.
+ * Part of Phase 13: Multi-Agent Evolution (experimental).
  */
 
 const path = require('path');
 
 /**
- * Mapping of Phase 9 feature names to their module paths (relative to scripts dir).
+ * Feature-to-module mapping for multi-agent capabilities.
+ * @private
  */
-const PHASE9_FEATURE_MODULES = {
-  smart_next_task: 'lib/smart-next-task',
-  dependency_break_detection: 'lib/dependency-break',
-  pre_research: 'lib/pre-research',
-  pattern_routing: 'lib/pattern-routing',
-  tech_debt_surfacing: 'lib/tech-debt-scanner'
+const FEATURE_MODULE_MAP = {
+  agent_teams: './team-coordinator.cjs',
+  competing_hypotheses: './hypothesis-runner.cjs',
+  dynamic_teams: './team-composer.cjs'
 };
 
 /**
- * Check health status of a single Phase 9 feature.
+ * Check health status of all multi-agent features.
+ * Pure function: config passed in, no side effects.
  *
- * @param {string} featureName - Feature key (e.g., 'smart_next_task')
- * @param {object} config - Parsed config.json object
- * @param {string} scriptsDir - Path to the scripts directory containing lib/
- * @returns {{ name: string, status: 'healthy'|'degraded'|'disabled', reason?: string }}
+ * @param {object} config - Config object with features section
+ * @returns {object[]} Array of { feature, status, error? } objects
+ *   - status: 'disabled' | 'healthy' | 'degraded'
+ *   - error: present only when status is 'degraded'
  */
-function checkFeatureHealth(featureName, config, scriptsDir) {
-  // Check if feature is disabled in config
+function checkMultiAgentHealth(config) {
   const features = (config && config.features) || {};
-  if (features[featureName] === false) {
-    return { name: featureName, status: 'disabled' };
+  const results = [];
+
+  for (const [featureName, modulePath] of Object.entries(FEATURE_MODULE_MAP)) {
+    if (!features[featureName]) {
+      results.push({ feature: featureName, status: 'disabled' });
+      continue;
+    }
+
+    try {
+      require(path.resolve(__dirname, modulePath));
+      results.push({ feature: featureName, status: 'healthy' });
+    } catch (err) {
+      results.push({ feature: featureName, status: 'degraded', error: err.message });
+    }
   }
 
-  // Try to load the module
-  const modulePath = PHASE9_FEATURE_MODULES[featureName];
-  if (!modulePath) {
-    return { name: featureName, status: 'degraded', reason: 'Unknown feature' };
-  }
-
-  const fullPath = path.join(scriptsDir, modulePath);
-  try {
-    require(fullPath);
-    return { name: featureName, status: 'healthy' };
-  } catch (err) {
-    return {
-      name: featureName,
-      status: 'degraded',
-      reason: `Module not found: ${modulePath}`
-    };
-  }
+  return results;
 }
 
-/**
- * Check health of all 5 Phase 9 features.
- *
- * @param {object} config - Parsed config.json object
- * @param {string} scriptsDir - Path to the scripts directory containing lib/
- * @returns {Array<{ name: string, status: string, reason?: string }>}
- */
-function checkAllPhase9Features(config, scriptsDir) {
-  return Object.keys(PHASE9_FEATURE_MODULES).map(name =>
-    checkFeatureHealth(name, config, scriptsDir)
-  );
-}
-
-module.exports = { checkFeatureHealth, checkAllPhase9Features, PHASE9_FEATURE_MODULES };
+module.exports = { checkMultiAgentHealth };
