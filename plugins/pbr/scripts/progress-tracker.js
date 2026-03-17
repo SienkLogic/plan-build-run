@@ -432,6 +432,10 @@ function buildContext(planningDir, stateFile) {
   const stalenessWarning = getIntelStalenessWarning(planningDir, config);
   if (stalenessWarning) parts.push(stalenessWarning);
 
+  // Decision journal briefing
+  const decisionBriefing = getDecisionBriefing(planningDir, config);
+  if (decisionBriefing) parts.push(decisionBriefing);
+
   parts.push('\n[PBR WORKFLOW REQUIRED — Route all work through PBR commands]\n- Fix a bug or small task → /pbr:quick\n- Plan a feature → /pbr:plan-phase N\n- Build from a plan → /pbr:execute-phase N\n- Explore or research → /pbr:explore\n- Freeform request → /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 
   return parts.join('\n');
@@ -754,6 +758,7 @@ function detectOtherSessions(planningDir, ownSessionId) {
   return results;
 }
 
+<<<<<<< HEAD
 /**
  * Build an enhanced structured briefing for SessionStart.
  * Returns a concise ~500 token string summarizing project state, or null if disabled.
@@ -880,7 +885,89 @@ function buildEnhancedBriefing(planningDir, config) {
   return output;
 }
 
+// ─── Decision Briefing ──────────────────────────────────────────────────────
+
+/**
+ * Build a concise briefing of recent active decisions for SessionStart injection.
+ * Reads .planning/decisions/, filters to active status, sorts by date desc, takes top 5.
+ * Truncates decision titles to 60 chars. Total output kept under ~200 tokens.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object|null} [config] - Optional pre-loaded config (will read from disk if not provided)
+ * @returns {string} Briefing text or empty string if disabled/empty
+ */
+function getDecisionBriefing(planningDir, config) {
+  // Check config for feature toggle
+  if (!config) {
+    const configPath = path.join(planningDir, 'config.json');
+    try {
+      if (!fs.existsSync(configPath)) return '';
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (_e) {
+      return '';
+    }
+  }
+
+  if (!config || !config.features || !config.features.decision_journal) return '';
+
+  const decisionsDir = path.join(planningDir, 'decisions');
+  if (!fs.existsSync(decisionsDir)) return '';
+
+  let files;
+  try {
+    files = fs.readdirSync(decisionsDir).filter(f => f.endsWith('.md'));
+  } catch (_e) {
+    return '';
+  }
+
+  if (files.length === 0) return '';
+
+  // Parse frontmatter from each file, filter active, sort by date desc
+  const decisions = [];
+  for (const file of files) {
+    try {
+      const content = fs.readFileSync(path.join(decisionsDir, file), 'utf8');
+      // Simple frontmatter extraction (avoid dependency on heavy parsers)
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+
+      const fmText = fmMatch[1];
+      const getField = (name) => {
+        const m = fmText.match(new RegExp(`^${name}:\\s*(.+)$`, 'm'));
+        return m ? m[1].trim().replace(/^["']|["']$/g, '') : '';
+      };
+
+      const status = getField('status');
+      if (status !== 'active') continue;
+
+      decisions.push({
+        date: getField('date'),
+        decision: getField('decision'),
+        agent: getField('agent'),
+        phase: getField('phase'),
+      });
+    } catch (_e) {
+      // Skip unparseable files
+    }
+  }
+
+  if (decisions.length === 0) return '';
+
+  // Sort by date descending, take top 5
+  decisions.sort((a, b) => b.date.localeCompare(a.date));
+  const top = decisions.slice(0, 5);
+
+  // Build briefing lines
+  const lines = top.map(d => {
+    let title = d.decision;
+    if (title.length > 60) title = title.slice(0, 57) + '...';
+    return `- ${d.date}: ${title} (agent: ${d.agent || 'unknown'}, phase: ${d.phase || '?'})`;
+  });
+
+  return '\nRecent decisions:\n' + lines.join('\n');
+}
+
 // Exported for testing
-module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }
