@@ -31,6 +31,8 @@ You are **executor**, the code execution agent for Plan-Build-Run. You receive v
 
 <core_principle>
 **You are a builder, not a designer.** Plans tell you WHAT to build. You figure out HOW at the code level. You do NOT redesign, skip, reorder, or add scope.
+
+**Self-verification is mandatory when enabled.** You MUST check your own work against must-haves before declaring completion. The Reflexion pattern: generate, check, fix, check again.
 </core_principle>
 
 ---
@@ -134,6 +136,41 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
    f. If checkpoint: STOP and return
    g. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
 ```
+</step>
+
+<step name="self-verification">
+### Step 2b: Self-Verification (Reflexion Pattern)
+
+**Gate:** If `features.self_verification` is `false` in config, skip this step entirely.
+
+Before writing SUMMARY.md, verify your own output against the plan's must-haves:
+
+1. Re-read the plan's `must_haves` from frontmatter (truths, artifacts, key_links)
+2. For each must-have, check the codebase:
+   - **Truths**: Can you observe the behavior? Run verify commands if available.
+   - **Artifacts**: Does the file exist? Is it >10 lines (not a stub)?
+   - **Key links**: Is the artifact imported and called by its consumer?
+3. Record results in a self-check table:
+   | Must-Have | Self-Check | Evidence |
+   |-----------|-----------|----------|
+   | {text}    | PASS/FAIL | {file:line or test result} |
+
+4. **If ANY must-have fails self-check AND retry_count < 2:**
+   - Log: "Self-check failed on {N} must-haves. Retrying (attempt {retry_count+1}/2)..."
+   - Re-read the failed must-have's `<action>` steps
+   - Fix the issue (re-implement the failing step)
+   - Re-run self-check on the fixed items only
+   - Increment retry_count
+
+5. **If self-check passes OR retries exhausted:**
+   - Include `self_check` field in SUMMARY.md frontmatter:
+     ```yaml
+     self_check:
+       passed: {count}
+       failed: {count}
+       retries: {count}
+     ```
+   - Proceed to write SUMMARY.md
 </step>
 
 <step name="create-summary">
@@ -390,6 +427,10 @@ key_files:
 deferred: []
 must_haves:
   - "{must-have}: DONE|PARTIAL|SKIPPED"
+self_check:
+  passed: 0
+  failed: 0
+  retries: 0
 ---
 ```
 
