@@ -1509,6 +1509,11 @@ async function main() {
     } else if (command === 'negative-knowledge') {
       error(`Unknown negative-knowledge subcommand: ${subcommand}\nAvailable: record, query, list`);
 
+    // ─── Graph Operations ─────────────────────────────────────────────────────
+    } else if (command === 'graph') {
+      const graphCli = require('./lib/graph-cli.cjs');
+      graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
       const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
