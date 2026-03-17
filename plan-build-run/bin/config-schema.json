@@ -270,6 +270,26 @@
           "type": "boolean",
           "default": false,
           "description": "Enable dynamic team composition based on task analysis."
+        },
+        "machine_executable_plans": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable machine-executable plan parsing and programmatic task execution (experimental)."
+        },
+        "spec_diffing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable semantic spec diffing for plan changes."
+        },
+        "reverse_spec": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable reverse spec generation from existing code."
+        },
+        "predictive_impact": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable predictive impact analysis using architecture graph."
         }
       },
       "additionalProperties": false

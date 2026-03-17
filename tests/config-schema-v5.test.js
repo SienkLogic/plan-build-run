@@ -101,3 +101,48 @@ describe('Config Schema v5 — Trust tracking and confidence calibration toggles
     });
   }
 });
+
+describe('Config Schema v5 — Phase 11 spec-driven development toggles', () => {
+  const SCHEMA_PATHS = [
+    { path: SCHEMA_PLUGIN, label: 'plugins/pbr' },
+    { path: SCHEMA_BIN, label: 'plan-build-run/bin' }
+  ];
+
+  for (const { path: schemaPath, label } of SCHEMA_PATHS) {
+    describe(`${label}/config-schema.json`, () => {
+      const schema = require(schemaPath);
+      const features = schema.properties.features.properties;
+
+      test('machine_executable_plans is boolean with default false', () => {
+        expect(features.machine_executable_plans).toBeDefined();
+        expect(features.machine_executable_plans.type).toBe('boolean');
+        expect(features.machine_executable_plans.default).toBe(false);
+      });
+
+      test('spec_diffing is boolean with default true', () => {
+        expect(features.spec_diffing).toBeDefined();
+        expect(features.spec_diffing.type).toBe('boolean');
+        expect(features.spec_diffing.default).toBe(true);
+      });
+
+      test('reverse_spec is boolean with default true', () => {
+        expect(features.reverse_spec).toBeDefined();
+        expect(features.reverse_spec.type).toBe('boolean');
+        expect(features.reverse_spec.default).toBe(true);
+      });
+
+      test('predictive_impact is boolean with default true', () => {
+        expect(features.predictive_impact).toBeDefined();
+        expect(features.predictive_impact.type).toBe('boolean');
+        expect(features.predictive_impact.default).toBe(true);
+      });
+
+      test('all 4 Phase 11 toggles exist in schema', () => {
+        const phase11 = ['machine_executable_plans', 'spec_diffing', 'reverse_spec', 'predictive_impact'];
+        for (const toggle of phase11) {
+          expect(features[toggle]).toBeDefined();
+        }
+      });
+    });
+  }
+});
