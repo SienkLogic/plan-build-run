@@ -159,6 +159,7 @@ If false or missing, skip this step entirely.
 ```yaml
 ---
 phase: "{phase-slug}"
+cross_project: true|false  # Optional. When true AND learnings.cross_project_knowledge config is enabled, these learnings are copied to ~/.claude/pbr-knowledge/ for use by other projects.
 key_insights:
   - "{insight 1}"
   - "{insight 2}"
@@ -166,6 +167,8 @@ patterns:
   - "{pattern 1}"
 ---
 ```
+
+Set `cross_project: true` only for insights that are genuinely portable across codebases (e.g., "React 19 useTransition requires Suspense boundary" or "npm workspace hoisting breaks jest moduleNameMapper"). Project-specific details (file paths, variable names, internal API quirks) should NOT be marked cross_project.
 
 Body sections (include only sections with content):
 - `## Key Insights` — Architectural discoveries, unexpected behaviors, performance characteristics

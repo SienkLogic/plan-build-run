@@ -13,7 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { learningsIngest } = require('./lib/learnings');
+const { learningsIngest, copyToGlobal } = require('./lib/learnings');
 
 // --- Helpers ---
 
@@ -267,6 +267,51 @@ async function main() {
       errors++;
       process.stderr.write(`[milestone-learnings] Read error for ${summaryPath}: ${readErr.message}\n`);
     }
+  }
+
+  // --- Cross-project knowledge copy ---
+  let crossProjectCopied = 0;
+  try {
+    // Check if cross_project_knowledge is enabled in config
+    const configPath = path.join(process.cwd(), '.planning', 'config.json');
+    let crossProjectEnabled = false;
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      crossProjectEnabled = config.learnings && config.learnings.cross_project_knowledge === true;
+    }
+
+    if (crossProjectEnabled) {
+      // Find all LEARNINGS.md files in phase directories
+      const learningsFiles = [];
+      if (fs.existsSync(phasesDir)) {
+        const phaseDirs = fs.readdirSync(phasesDir, { withFileTypes: true });
+        for (const dir of phaseDirs) {
+          if (dir.isDirectory()) {
+            const learningsPath = path.join(phasesDir, dir.name, 'LEARNINGS.md');
+            if (fs.existsSync(learningsPath)) {
+              learningsFiles.push(learningsPath);
+            }
+          }
+        }
+      }
+
+      for (const filePath of learningsFiles) {
+        try {
+          const result = copyToGlobal(filePath, projectName);
+          if (result.copied) crossProjectCopied++;
+        } catch (_e) {
+          // Non-fatal: log but continue
+        }
+      }
+
+      if (crossProjectCopied > 0) {
+        process.stdout.write(`Copied ${crossProjectCopied} learnings to global knowledge store\n`);
+      }
+    } else {
+      process.stdout.write('Cross-project knowledge disabled, skipping global copy\n');
+    }
+  } catch (_e) {
+    // Non-fatal: cross-project copy failure should not break milestone completion
   }
 
   const summary = `Learnings aggregated: ${created} new, ${updated} updated, ${errors} errors`;
