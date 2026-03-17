@@ -907,6 +907,54 @@ This implements budget mode's "skip verifier for < 3 tasks" rule: small phases i
 **If skipping because `features.goal_verification` is `false`:**
 Note for Step 8f completion summary: append "Note: Automatic verification was skipped (goal_verification: false). Run `/pbr:verify-work {N}` to verify what was built."
 
+**Confidence-Gated Verification Skip (conditional):**
+
+Before spawning the verifier, check if the build passes the confidence gate:
+
+1. Read `verification.confidence_gate` from config. If `false` or not set, skip this check — proceed to normal verification flow.
+2. Read `verification.confidence_threshold` from config (default: `100`).
+3. Collect confidence signals:
+   a. Read ALL SUMMARY.md frontmatter from this phase's completed plans. Extract `completion` percentage from each.
+   b. Calculate aggregate completion: average of all plan completion percentages.
+   c. Check commit SHAs: for each SUMMARY.md that lists `commits`, verify they exist via `git log --oneline {sha} -1` (quick existence check, not full log).
+   d. Detect test suite: check for `package.json` (scripts.test), `pytest.ini`/`pyproject.toml` ([tool.pytest]), `Makefile` (test target), or `Cargo.toml`. Use the first match.
+   e. Run test suite: execute the detected test command (e.g., `npm test`, `pytest`, `make test`). Capture exit code.
+
+4. Evaluate confidence gate:
+   - `completion_met`: aggregate completion >= `confidence_threshold`
+   - `shas_verified`: all listed commit SHAs exist in git log
+   - `tests_passed`: test suite exit code is 0 (or no test suite detected — treat as pass with warning)
+
+5. If ALL three pass:
+   - Display: `Confidence gate passed (completion: {pct}%, SHAs: verified, tests: passed) — skipping verifier`
+   - Set verification status to `passed` (auto-verified)
+   - Write a minimal VERIFICATION.md:
+
+<!-- markdownlint-disable MD046 -->
+
+     ```yaml
+     ---
+     status: passed
+     method: confidence-gate
+     completion: {pct}
+     shas_verified: true
+     tests_passed: true
+     must_haves_checked: 0
+     must_haves_passed: 0
+     ---
+     # Verification — Confidence Gate
+
+     Phase auto-verified via confidence gate. Run `/pbr:verify-work {N}` for full must-have verification.
+     ```
+
+<!-- markdownlint-enable MD046 -->
+
+   - Skip the verifier spawn — proceed directly to Step 8.
+
+6. If ANY signal fails:
+   - Display: `Confidence gate not met ({failed_signals}) — spawning verifier`
+   - Proceed with normal verification flow below (unchanged behavior).
+
 **If verification is enabled:**
 
 Display to the user: `◆ Spawning verifier...`
