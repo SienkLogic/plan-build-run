@@ -69,6 +69,7 @@ function recordOutcome(planningDir, agentType, taskCategory, passed) {
   const total = entry.pass + entry.fail;
   entry.rate = total > 0 ? entry.pass / total : 0;
   saveScores(planningDir, scores);
+  logTrustEvent(planningDir, agentType, taskCategory, passed, entry.rate);
 }
 
 /**
@@ -95,6 +96,79 @@ function getConfidence(planningDir, agentType, taskCategory) {
 }
 
 /**
+ * Log a trust event to .planning/logs/trust-events.jsonl for audit trail.
+ * Never throws — failures are silently swallowed.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} agent - Agent identifier
+ * @param {string} category - Task category
+ * @param {boolean} passed - Whether the outcome was a pass
+ * @param {number} newRate - Updated pass rate after this outcome
+ */
+function logTrustEvent(planningDir, agent, category, passed, newRate) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    const entry = {
+      ts: new Date().toISOString(),
+      agent,
+      category,
+      passed,
+      new_rate: newRate
+    };
+    fs.appendFileSync(
+      path.join(logsDir, 'trust-events.jsonl'),
+      JSON.stringify(entry) + '\n',
+      'utf8'
+    );
+  } catch (_err) {
+    // Never throw from audit logging
+  }
+}
+
+/**
+ * Get a confidence summary for an agent across all categories.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} agentType - Agent identifier
+ * @returns {{ agent: string, categories: object, overall_rate: number, overall_total: number } | null}
+ */
+function getConfidenceSummary(planningDir, agentType) {
+  const scores = loadScores(planningDir);
+  if (!scores[agentType]) return null;
+  const agentScores = scores[agentType];
+  const categories = {};
+  let totalPass = 0;
+  let totalFail = 0;
+  for (const [cat, entry] of Object.entries(agentScores)) {
+    const total = (entry.pass || 0) + (entry.fail || 0);
+    let label;
+    if (entry.rate >= HIGH_THRESHOLD) {
+      label = 'high';
+    } else if (entry.rate >= MEDIUM_THRESHOLD) {
+      label = 'medium';
+    } else {
+      label = 'low';
+    }
+    categories[cat] = {
+      pass: entry.pass || 0,
+      fail: entry.fail || 0,
+      rate: entry.rate || 0,
+      total,
+      label
+    };
+    totalPass += entry.pass || 0;
+    totalFail += entry.fail || 0;
+  }
+  const overallTotal = totalPass + totalFail;
+  const overallRate = overallTotal > 0 ? totalPass / overallTotal : 0;
+  return {
+    agent: agentType,
+    categories,
+    overall_rate: overallRate,
+    overall_total: overallTotal
+  };
+}
+
+/**
  * Delete the trust scores file.
  * @param {string} planningDir - Path to .planning directory
  */
@@ -111,6 +185,8 @@ module.exports = {
   loadScores,
   recordOutcome,
   getConfidence,
+  getConfidenceSummary,
+  logTrustEvent,
   resetScores,
   TRUST_DIR,
   TRUST_FILE
