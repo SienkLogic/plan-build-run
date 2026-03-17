@@ -16,6 +16,16 @@ const fs = require('fs');
 
 const DEFAULT_MAX_TASKS = 2;
 const DEFAULT_CONTEXT_CAP_PCT = 40;
+const DEFAULT_MAX_FILES = 5;
+const DEFAULT_MAX_LINES = 50;
+
+// Lines-per-task estimation by complexity
+const LINES_PER_COMPLEXITY = {
+  simple: 20,
+  medium: 80,
+  complex: 200,
+  unknown: 100
+};
 
 /**
  * Parse plan content string to extract task metadata.
@@ -49,6 +59,33 @@ function parsePlanTasks(planContent) {
 }
 
 /**
+ * Parse plan content to extract YAML frontmatter fields.
+ * Returns an object with at least `files_modified` (array of strings).
+ * @param {string} planContent - raw plan file content
+ * @returns {{ files_modified: string[] }}
+ */
+function parsePlanFrontmatter(planContent) {
+  const result = { files_modified: [] };
+  const fmMatch = planContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) return result;
+
+  const fm = fmMatch[1];
+  // Extract files_modified array (YAML list format)
+  const filesSection = fm.match(/files_modified:\s*\n((?:\s+-\s+.*\n?)*)/);
+  if (filesSection) {
+    const items = filesSection[1].match(/^\s+-\s+"?([^"\n]+)"?\s*$/gm);
+    if (items) {
+      result.files_modified = items.map(line => {
+        const m = line.match(/^\s+-\s+"?([^"\n]+?)"?\s*$/);
+        return m ? m[1] : '';
+      }).filter(Boolean);
+    }
+  }
+
+  return result;
+}
+
+/**
  * Decide whether a plan should be executed inline or via Task() subagent.
  *
  * @param {string} planPath - absolute path to the PLAN.md file
@@ -58,6 +95,12 @@ function parsePlanTasks(planContent) {
  */
 function shouldInlineExecution(planPath, config, contextPct) {
   const workflow = (config && config.workflow) || {};
+  const features = (config && config.features) || {};
+
+  // Feature toggle check (independent of workflow.inline_execution)
+  if (features.inline_simple_tasks === false) {
+    return { inline: false, reason: 'feature disabled' };
+  }
 
   // Check if inline execution is enabled
   if (!workflow.inline_execution) {
@@ -103,11 +146,40 @@ function shouldInlineExecution(planPath, config, contextPct) {
     };
   }
 
+  // File count check from frontmatter
+  const frontmatter = parsePlanFrontmatter(planContent);
+  const maxFiles = typeof workflow.inline_max_files === 'number'
+    ? workflow.inline_max_files
+    : DEFAULT_MAX_FILES;
+  const fileCount = frontmatter.files_modified.length;
+  if (fileCount > maxFiles) {
+    return {
+      inline: false,
+      reason: `file count ${fileCount} exceeds max ${maxFiles}`
+    };
+  }
+
+  // Line estimation check from task complexity
+  const maxLines = typeof workflow.inline_max_lines === 'number'
+    ? workflow.inline_max_lines
+    : DEFAULT_MAX_LINES;
+  const estimatedLines = tasks.reduce((sum, t) => {
+    return sum + (LINES_PER_COMPLEXITY[t.complexity] || LINES_PER_COMPLEXITY.unknown);
+  }, 0);
+  if (estimatedLines > maxLines) {
+    return {
+      inline: false,
+      reason: `estimated lines ${estimatedLines} exceeds max ${maxLines}`
+    };
+  }
+
   return {
     inline: true,
     taskCount: tasks.length,
-    complexity: 'simple'
+    complexity: 'simple',
+    fileCount,
+    estimatedLines
   };
 }
 
-module.exports = { shouldInlineExecution, parsePlanTasks };
+module.exports = { shouldInlineExecution, parsePlanTasks, parsePlanFrontmatter };
