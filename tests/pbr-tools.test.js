@@ -854,7 +854,13 @@ next_top_level: something`;
     test('learnings query with no args returns JSON array (may be empty)', () => {
       const result = runTool(['learnings', 'query']);
       expect(result.status).toBe(0);
-      const json = JSON.parse(result.stdout);
+      // output() writes @file: prefix when JSON > 50KB (214+ learnings)
+      let stdout = result.stdout.trim();
+      if (stdout.startsWith('@file:')) {
+        const tmpPath = stdout.replace('@file:', '');
+        stdout = fs.readFileSync(tmpPath, 'utf8');
+      }
+      const json = JSON.parse(stdout);
       expect(Array.isArray(json)).toBe(true);
     });
 
