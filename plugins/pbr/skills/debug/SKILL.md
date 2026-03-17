@@ -231,6 +231,8 @@ When the debugger agent completes, first check for completion markers in the Tas
 
 **Spot-check:** Before routing, verify `.planning/debug/{NNN}-{slug}.md` exists and was recently updated (modified timestamp is newer than the Task() spawn time). If the debug file was not updated, warn: `⚠ Debug file not updated by agent — results may be incomplete.`
 
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check debugger output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during debugging.
+
 Display: `✓ Debug session complete — {N} hypotheses tested` (read the hypothesis count from the debug file's Hypotheses table).
 
 The debugger returns one of four outcomes:

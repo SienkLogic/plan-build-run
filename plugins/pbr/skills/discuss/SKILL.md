@@ -437,6 +437,8 @@ Reference: `skills/shared/commit-planning-docs.md` for the standard commit patte
 If `planning.commit_docs: true` in config.json:
 - Commit CONTEXT.md: `docs(planning): capture phase {N} discussion decisions`
 
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check researcher output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during research.
+
 ---
 
 ## Anti-Patterns

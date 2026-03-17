@@ -585,6 +585,8 @@ Task({
 NOTE: The pbr:executor subagent type auto-loads the agent definition.
 
 After executor completes, check for completion markers: `## PLAN COMPLETE`, `## PLAN FAILED`, or `## CHECKPOINT: {TYPE}`. Route accordingly — PLAN COMPLETE proceeds to next plan, PLAN FAILED triggers failure handling, CHECKPOINT triggers checkpoint flow. Do NOT inline it.
+
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.

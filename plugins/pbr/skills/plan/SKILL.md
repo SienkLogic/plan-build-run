@@ -417,6 +417,8 @@ Task({
 NOTE: The pbr:planner subagent type auto-loads the agent definition.
 
 After planner completes, check for completion markers: `## PLANNING COMPLETE`, `## PLANNING FAILED`, or `## PLANNING INCONCLUSIVE`. Route accordingly. Do NOT inline it.
+
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check planner output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during planning.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
