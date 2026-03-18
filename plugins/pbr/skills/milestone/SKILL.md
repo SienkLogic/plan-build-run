@@ -466,7 +466,7 @@ Read `git.branching` from config.
    - **Do NOT write to a ## History section in STATE.md** — History has been removed from STATE.md to keep it lean. Milestone completion records are preserved in the archive's STATS.md and ROADMAP.md snapshot.
    - If a ## History section exists in STATE.md (from a prior version), remove it during milestone completion to enforce the new format.
 
-7d. **Aggregate learnings from milestone phases:**
+7d. **Aggregate learnings into KNOWLEDGE.md from milestone phases:**
 
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
 
@@ -474,8 +474,10 @@ Read `git.branching` from config.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}
 ```
 
+This script aggregates SUMMARY.md patterns, decisions, and deferred items into the project-scoped `.planning/KNOWLEDGE.md` (table format with K/P/L-prefixed IDs). It also writes to the global `~/.claude/learnings.jsonl` for cross-project use.
+
 - If the script outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
-- Display the aggregation summary line to the user (e.g., "Learnings aggregated: 12 new, 3 updated, 0 errors").
+- Display the aggregation summary line to the user (e.g., "KNOWLEDGE.md: 5 new entries, 2 duplicates skipped").
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
