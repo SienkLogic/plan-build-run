@@ -1182,6 +1182,142 @@ function checkGateCompliance(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-09: Enforce-PBR-Workflow Advisory Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-09: Track enforce-PBR-workflow hook advisories and whether they were addressed.
+ * Reads hook logs for prompt-routing and check-skill-workflow advisory entries,
+ * then checks if the advised PBR skill was subsequently used.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Config object with workflow.enforce_pbr_skills setting
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkEnforceWorkflowAdvisory(planningDir, config) {
+  // Check enforce_pbr_skills setting
+  const enforceSetting = (config && config.workflow && config.workflow.enforce_pbr_skills) || 'off';
+
+  if (enforceSetting === 'off') {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-09: enforce_pbr_skills is disabled — advisory tracking skipped'
+    };
+  }
+
+  const hookLogs = readHookLogs(planningDir);
+  const events = readSessionEvents(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'info',
+      evidence: [],
+      message: 'BC-09: No session data available — cannot assess workflow advisory compliance'
+    };
+  }
+
+  // Collect advisory entries from prompt-routing and check-skill-workflow hooks
+  const advisories = [];
+  const skillUsages = []; // Track actual PBR skill invocations
+
+  for (const entry of allEntries) {
+    // Detect advisory warnings from relevant hooks
+    const isAdvisoryHook = entry.hook === 'prompt-routing' ||
+      entry.hook === 'check-skill-workflow' ||
+      entry.hook === 'enforce-pbr-workflow';
+
+    if (isAdvisoryHook && entry.details) {
+      const isAdvisory = entry.details.level === 'advisory' ||
+        entry.details.decision === 'allow' ||
+        entry.details.type === 'advisory' ||
+        (entry.details.message && /suggest|consider|recommend|use \/pbr:/i.test(entry.details.message));
+
+      if (isAdvisory) {
+        // Extract the suggested command if available
+        const suggestedCommand = entry.details.suggested_command ||
+          entry.details.command || '';
+        const message = entry.details.message || entry.details.reason || '';
+        const cmdMatch = message.match(/\/pbr:(\w+)/);
+        const suggestedSkill = cmdMatch ? cmdMatch[1] : (suggestedCommand.replace('/pbr:', '') || null);
+
+        advisories.push({
+          ts: entry.ts || entry.timestamp || '',
+          suggestedSkill,
+          message: message.substring(0, 120),
+          index: allEntries.indexOf(entry)
+        });
+      }
+    }
+
+    // Track PBR skill usages
+    const skill = extractSkillInvocation(entry);
+    if (skill) {
+      skillUsages.push({
+        skill,
+        ts: entry.ts || entry.timestamp || '',
+        index: allEntries.indexOf(entry)
+      });
+    }
+  }
+
+  if (advisories.length === 0) {
+    return {
+      status: 'info',
+      evidence: [],
+      message: `BC-09: No workflow advisories issued (enforce_pbr_skills=${enforceSetting})`
+    };
+  }
+
+  // For each advisory, check if the suggested skill was used afterward
+  let heeded = 0;
+  let ignored = 0;
+  const ignoredExamples = [];
+
+  for (const advisory of advisories) {
+    if (!advisory.suggestedSkill) {
+      // Cannot determine if heeded without a specific suggestion
+      continue;
+    }
+
+    const wasHeeded = skillUsages.some(
+      s => s.index > advisory.index && s.skill === advisory.suggestedSkill
+    );
+
+    if (wasHeeded) {
+      heeded++;
+    } else {
+      ignored++;
+      if (ignoredExamples.length < 3) {
+        const time = advisory.ts ? ` at ${advisory.ts}` : '';
+        ignoredExamples.push(
+          `Advisory to use /pbr:${advisory.suggestedSkill} was ignored${time}: "${advisory.message}"`
+        );
+      }
+    }
+  }
+
+  const total = heeded + ignored;
+  const complianceRate = total > 0 ? Math.round((heeded / total) * 100) : 100;
+
+  const evidence = [
+    `${advisories.length} workflow advisories issued, ${heeded} heeded, ${ignored} ignored (${complianceRate}% compliance rate)`,
+    ...ignoredExamples
+  ];
+
+  return {
+    status: 'info',
+    evidence,
+    message: `BC-09: ${total} trackable advisories — ${complianceRate}% compliance rate (enforce_pbr_skills=${enforceSetting})`
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1207,4 +1343,6 @@ module.exports = {
   checkCriticalMarkerCompliance,
   // BC-08
   checkGateCompliance,
+  // BC-09
+  checkEnforceWorkflowAdvisory,
 };
