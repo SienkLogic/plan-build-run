@@ -250,14 +250,16 @@ After the executor completes:
 
 3. **Update STATE.md** quick tasks table (same as Legacy Step 5i)
 
-4. **Check pending todos** (same as Step 6)
+4. **Post-execution verification (only if --full)**: If `--full` flag is set AND executor completed successfully, run the same verifier spawn as Legacy Step 5i-full. Read VERIFICATION.md result after verifier returns.
 
-5. Go to **Step 4**
+5. **Check pending todos** (same as Step 6)
+
+6. Go to **Step 4**
 
 ### Step 4: Commit Planning Docs (if configured)
 
 If `planning.commit_docs: true` in config.json:
-- Stage the quick task directory files (SUMMARY.md if generated)
+- Stage the quick task directory files (SUMMARY.md if generated, VERIFICATION.md if `--full` was used)
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
@@ -469,6 +471,45 @@ After the executor completes:
 
 If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
+#### Step 5i-full: Post-Execution Verification (only if --full)
+
+If `--full` flag is set AND executor completed successfully (status = completed or partial):
+
+Spawn `Task(subagent_type: "pbr:verifier")` with prompt:
+
+```
+You are verifier. Verify this quick task achieved its goals.
+
+<files_to_read>
+1. .planning/quick/{NNN}-{slug}/PLAN.md -- the task plan with acceptance criteria
+2. .planning/quick/{NNN}-{slug}/SUMMARY.md -- executor's completion report
+</files_to_read>
+
+Quick-mode verification:
+1. Check that files listed in PLAN.md files_modified exist on disk
+2. Check that verify commands from PLAN.md pass when re-run
+3. Check that commits exist matching the task scope (quick-{NNN})
+
+Write VERIFICATION.md to: .planning/quick/{NNN}-{slug}/VERIFICATION.md
+
+Use this frontmatter format:
+---
+status: passed|failed
+must_haves_total: {N}
+must_haves_passed: {N}
+gaps: []
+---
+
+Output: ## VERIFICATION COMPLETE
+```
+
+After verifier returns:
+- Read `.planning/quick/{NNN}-{slug}/VERIFICATION.md` frontmatter
+- If status = passed: display "Verification: PASSED" in results
+- If status = failed: display "Verification: FAILED" with gap details, suggest `/pbr:debug`
+
+If `--full` is NOT set, skip this step entirely -- no verifier overhead on the default path.
+
 #### Step 5j: Update STATE.md
 
 If STATE.md exists, update the Quick Tasks section.
@@ -498,7 +539,7 @@ Status indicators:
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `planning.commit_docs: true` in config.json:
-- Stage the quick task directory files (PLAN.md, SUMMARY.md)
+- Stage the quick task directory files (PLAN.md, SUMMARY.md, and VERIFICATION.md if `--full` was used)
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
@@ -538,6 +579,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 1. `.planning/quick/{NNN}-{slug}/` directory exists
 2. `.planning/quick/{NNN}-{slug}/SUMMARY.md` exists and is non-empty (or was intentionally skipped via `post_hoc_artifacts: false`)
 3. STATE.md contains a quick task entry for {NNN} (if STATE.md exists)
+4. If `--full` was used: `.planning/quick/{NNN}-{slug}/VERIFICATION.md` exists
 
 If SUMMARY.md is missing and was expected: the executor may have failed -- re-read executor output and report the failure.
 If STATE.md entry is missing: write it now (Step 5j logic).
@@ -553,6 +595,7 @@ Display results to the user with branded output:
 **Quick Task {NNN}:** {description}
 Commit: {hash} -- {commit message}
 Files: {list of files changed}
+{If --full was used: "Verification: PASSED" or "Verification: FAILED -- {gap details}"}
 
 
 
