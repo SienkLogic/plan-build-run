@@ -5,6 +5,13 @@ All notable changes to Plan-Build-Run will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.8.0...plan-build-run-v2.8.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* **changelog:** regenerate from correct tag ranges, removing duplicate entries ([dd996cf](https://github.com/SienkLogic/plan-build-run/commit/dd996cff6751e180145ba050ee10e207815d48ca))
+
 ## [2.8.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.7.0...plan-build-run-v2.8.0) (2026-03-18)
 
 ### Features
@@ -1189,4 +1196,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * bump to 1.3.1 (docs update) ([852b3a20](https://github.com/SienkLogic/plan-build-run/commit/852b3a20))
 * bump version to 1.3.0 (brownfield support) ([86aeaffc](https://github.com/SienkLogic/plan-build-run/commit/86aeaffc))
 * update .gitignore for development artifacts ([4b081123](https://github.com/SienkLogic/plan-build-run/commit/4b081123))
-
