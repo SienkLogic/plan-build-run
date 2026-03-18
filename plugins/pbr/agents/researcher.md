@@ -12,6 +12,8 @@ tools:
   - mcp__context7__resolve-library-id
   - mcp__context7__get-library-docs
   - Bash
+  - Write
+  - Edit
 ---
 
 <files_to_read>

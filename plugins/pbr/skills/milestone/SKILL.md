@@ -497,7 +497,7 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
 
 9. **Generate RETROSPECTIVE.md:**
 
-   The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_SKILL_DIR}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
+   The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_PLUGIN_ROOT}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
 
 9a. **Commit:**
    ```bash

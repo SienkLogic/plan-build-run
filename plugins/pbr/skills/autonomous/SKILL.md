@@ -1,7 +1,7 @@
 ---
 name: autonomous
 description: "Run multiple phases hands-free. Chains discuss, plan, build, and verify automatically."
-allowed-tools: Read, Write, Bash, Glob, Grep, Skill, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob, Grep, Skill, Task, AskUserQuestion
 argument-hint: "[--from <N>] [--through <N>] [--speculative-depth <N>] [--dry-run]"
 ---
 
