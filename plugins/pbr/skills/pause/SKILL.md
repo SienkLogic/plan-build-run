@@ -138,6 +138,31 @@ Write the handoff file to the current phase directory:
 
 Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3. Fill in all XML sections. The `<context>` section should capture your understanding of the current approach and reasoning -- not just facts. Think of it as a message to your future self explaining what was going on.
 
+### Step 4b: Write HANDOFF.json (Machine-Readable Companion)
+
+**CRITICAL: Write HANDOFF.json NOW, alongside .continue-here.md. Do NOT skip this step.**
+
+After writing `.continue-here.md`, also create `.planning/HANDOFF.json` with structured state for machine consumption:
+
+1. Read current STATE.md for phase/plan/status
+2. Read current plan file to get task progress (current task, total tasks)
+3. Check for uncommitted files via `git status --short`
+4. Read the HANDOFF.json template: `${CLAUDE_PLUGIN_ROOT}/templates/HANDOFF.json.tmpl`
+5. Fill in all fields from the template with actual session data:
+   - `status`: "paused"
+   - `created_at`: current ISO timestamp
+   - `phase`: number, slug, and name from STATE.md
+   - `plan`: number, wave, current task, total tasks
+   - `next_action`: the suggested next action from Step 3
+   - `blockers`: any blockers from STATE.md or verification failures
+   - `human_actions_pending`: any actions the user needs to take
+   - `completed_tasks`: task descriptions already done in current plan
+   - `uncommitted_files`: from `git status --short`
+   - `context_notes`: mental context about current approach and reasoning
+6. Write the filled JSON to `.planning/HANDOFF.json`
+
+**Purpose:** `.continue-here.md` is human-readable; `HANDOFF.json` is machine-readable. The resume skill reads HANDOFF.json first for structured data, falling back to `.continue-here.md` for backward compatibility.
+
 ### Step 5: Update STATE.md
 
 **CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body. Both must be updated atomically.**
@@ -170,6 +195,7 @@ If `planning.commit_docs: true` in config.json:
 
 ```bash
 git add .planning/phases/{NN}-{phase-name}/.continue-here.md
+git add .planning/HANDOFF.json
 git add .planning/STATE.md
 git commit -m "wip(planning): save session state — phase {N} plan {M}"
 ```
