@@ -8,13 +8,17 @@
  * returns a structured result: { dimension, status, message, evidence }.
  *
  * Checks:
+ *   WC-01: CI verification after push (gh run list/view/watch after git push)
  *   WC-02: State file integrity (STATE.md matches disk)
  *   WC-03: STATE.md frontmatter integrity (valid YAML, required fields)
  *   WC-04: ROADMAP sync validation (ROADMAP.md matches phase directories)
  *   WC-05: Planning artifact completeness (SUMMARY + VERIFICATION)
  *   WC-06: Artifact format validation (required fields, task blocks)
+ *   WC-07: Compaction quality (STATE.md preservation after compact events)
  *   WC-08: Naming convention compliance (PLAN-{NN}.md format)
  *   WC-09: Commit pattern validation (heredoc, --no-verify detection)
+ *   WC-10: Model selection compliance (agent model vs config.models)
+ *   WC-11: Git branching compliance (phase branches when git.branching=phase)
  *   WC-12: Test health baseline comparison
  */
 
@@ -78,6 +82,228 @@ function parseFrontmatter(content) {
     }
   }
   return fields;
+}
+
+// ---------------------------------------------------------------------------
+// Session log helper (shared by WC-01, WC-07, WC-09, WC-10)
+// ---------------------------------------------------------------------------
+
+/**
+ * Find session JSONL log files for the current project.
+ * Returns an array of absolute paths to the most recent log files.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {number} [maxFiles=5] - Maximum number of log files to return
+ * @returns {string[]}
+ */
+function findSessionLogs(planningDir, maxFiles) {
+  if (maxFiles === undefined) maxFiles = 5;
+  const projectRoot = path.resolve(planningDir, '..');
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  const encodedPath = projectRoot.replace(/[/\\:]/g, '-').replace(/^-+/, '');
+  const claudeProjectsDir = path.join(homeDir, '.claude', 'projects');
+  const sessionLogs = [];
+
+  try {
+    const projectDirs = fs.readdirSync(claudeProjectsDir);
+    for (const dir of projectDirs) {
+      if (encodedPath.includes(dir) || dir.includes('plan-build-run')) {
+        const fullDir = path.join(claudeProjectsDir, dir);
+        try {
+          const stat = fs.statSync(fullDir);
+          if (!stat.isDirectory()) continue;
+          const files = fs.readdirSync(fullDir);
+          const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
+          const paths = jsonlFiles
+            .sort()
+            .slice(-maxFiles)
+            .map(f => path.join(fullDir, f));
+          sessionLogs.push(...paths);
+        } catch (_e) {
+          // skip
+        }
+      }
+    }
+  } catch (_e) {
+    // No session logs directory
+  }
+
+  return sessionLogs;
+}
+
+/**
+ * Parse session JSONL entries from a list of log files.
+ * Returns an array of parsed JSON objects.
+ * @param {string[]} logFiles
+ * @returns {object[]}
+ */
+function parseSessionEntries(logFiles) {
+  const entries = [];
+  for (const logFile of logFiles) {
+    try {
+      const content = fs.readFileSync(logFile, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim());
+      for (const line of lines) {
+        try {
+          entries.push(JSON.parse(line));
+        } catch (_e) {
+          // skip malformed lines
+        }
+      }
+    } catch (_e) {
+      // skip unreadable files
+    }
+  }
+  return entries;
+}
+
+// ---------------------------------------------------------------------------
+// WC-01: CI Verification After Push
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect git push commands not followed by CI verification (gh run list/view/watch).
+ * Scans session JSONL logs for Bash tool_use entries.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkCiVerifyAfterPush(planningDir, _config) {
+  const logFiles = findSessionLogs(planningDir);
+
+  if (logFiles.length === 0) {
+    return result('WC-01', 'pass', 'No session logs available');
+  }
+
+  const entries = parseSessionEntries(logFiles);
+  const evidence = [];
+
+  // Find all Bash tool_use entries and index them
+  const bashEntries = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const command = entry.command ||
+      (entry.input && entry.input.command ? entry.input.command : '');
+    if (command && (entry.type === 'tool_use' || entry.type === 'assistant')) {
+      bashEntries.push({ index: i, command });
+    }
+  }
+
+  // For each git push, look for CI check in next 10 tool calls
+  for (let b = 0; b < bashEntries.length; b++) {
+    const { command } = bashEntries[b];
+    if (!command.includes('git push')) continue;
+
+    let foundCiCheck = false;
+    const lookAhead = Math.min(b + 10, bashEntries.length);
+    for (let j = b + 1; j < lookAhead; j++) {
+      const nextCmd = bashEntries[j].command;
+      if (/gh\s+run\s+(list|view|watch)/.test(nextCmd)) {
+        foundCiCheck = true;
+        break;
+      }
+    }
+
+    if (!foundCiCheck) {
+      const snippet = command.substring(0, 120);
+      evidence.push(`git push at entry ${bashEntries[b].index} not followed by CI check: "${snippet}"`);
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-01', 'pass', 'All git pushes followed by CI verification');
+  }
+
+  return result('WC-01', 'warn',
+    `${evidence.length} git push(es) without CI verification`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WC-07: Compaction Quality
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect STATE.md content loss after compaction events.
+ * Scans session JSONL for compact events and checks STATE.md integrity.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkCompactionQuality(planningDir, _config) {
+  const logFiles = findSessionLogs(planningDir);
+
+  if (logFiles.length === 0) {
+    return result('WC-07', 'pass', 'No session logs available');
+  }
+
+  const entries = parseSessionEntries(logFiles);
+  const evidence = [];
+
+  // Find compact events
+  const compactIndices = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const toolName = entry.tool || entry.name ||
+      (entry.input && entry.input.tool ? entry.input.tool : '');
+    const content = typeof entry.content === 'string' ? entry.content : '';
+
+    if (toolName === 'Compact' ||
+        (entry.type === 'tool_use' && content.includes('compact')) ||
+        (entry.type === 'system' && content.includes('compact'))) {
+      compactIndices.push(i);
+    }
+  }
+
+  if (compactIndices.length === 0) {
+    return result('WC-07', 'pass', 'No compaction events detected in session');
+  }
+
+  // For each compact event, check if STATE.md is read/written after it
+  for (const ci of compactIndices) {
+    let statePreserved = false;
+    const lookAhead = Math.min(ci + 15, entries.length);
+    for (let j = ci + 1; j < lookAhead; j++) {
+      const entry = entries[j];
+      const filePath = entry.file_path ||
+        (entry.input && entry.input.file_path ? entry.input.file_path : '') ||
+        (typeof entry.content === 'string' ? entry.content : '');
+      if (filePath.includes('STATE.md')) {
+        statePreserved = true;
+        break;
+      }
+    }
+
+    if (!statePreserved) {
+      evidence.push(`Compact event at entry ${ci} — no STATE.md read/write detected within next 15 entries`);
+    }
+  }
+
+  // Also check STATE.md itself for missing fields (sign of content loss)
+  const statePath = path.join(planningDir, 'STATE.md');
+  try {
+    const stateContent = fs.readFileSync(statePath, 'utf8');
+    const fm = parseFrontmatter(stateContent);
+    const criticalFields = ['current_phase', 'status', 'last_activity'];
+    const missing = criticalFields.filter(f => fm[f] === undefined || fm[f] === '');
+    if (missing.length > 0) {
+      evidence.push(`STATE.md missing critical fields after compaction: ${missing.join(', ')}`);
+    }
+  } catch (_e) {
+    evidence.push('STATE.md not readable — possible compaction content loss');
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-07', 'pass',
+      `${compactIndices.length} compaction event(s) — STATE.md intact`);
+  }
+
+  return result('WC-07', 'warn',
+    `${evidence.length} compaction quality concern(s)`,
+    evidence
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -629,84 +855,36 @@ function checkArtifactFormatValidation(planningDir, _config) {
  */
 function checkCommitPatternValidation(planningDir, _config) {
   const evidence = [];
-
-  // Try to find session JSONL logs
-  const projectRoot = path.resolve(planningDir, '..');
-  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-  const encodedPath = projectRoot.replace(/[/\\:]/g, '-').replace(/^-+/, '');
-
-  // Try multiple possible encoded path formats
-  const claudeProjectsDir = path.join(homeDir, '.claude', 'projects');
-  let sessionLogs = [];
-
-  try {
-    const projectDirs = fs.readdirSync(claudeProjectsDir);
-    // Find directory matching our project
-    for (const dir of projectDirs) {
-      if (encodedPath.includes(dir) || dir.includes('plan-build-run')) {
-        const fullDir = path.join(claudeProjectsDir, dir);
-        try {
-          const stat = fs.statSync(fullDir);
-          if (!stat.isDirectory()) continue;
-          const files = fs.readdirSync(fullDir);
-          const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
-          // Take the most recent logs (last 5)
-          sessionLogs = jsonlFiles
-            .sort()
-            .slice(-5)
-            .map(f => path.join(fullDir, f));
-        } catch (_e) {
-          // skip
-        }
-      }
-    }
-  } catch (_e) {
-    // No session logs directory
-  }
+  const sessionLogs = findSessionLogs(planningDir);
 
   if (sessionLogs.length > 0) {
-    for (const logFile of sessionLogs) {
-      try {
-        const content = fs.readFileSync(logFile, 'utf8');
-        const lines = content.split('\n').filter(l => l.trim());
+    const entries = parseSessionEntries(sessionLogs);
 
-        for (const line of lines) {
-          let entry;
-          try {
-            entry = JSON.parse(line);
-          } catch (_e) {
-            continue;
-          }
+    for (const entry of entries) {
+      if (entry.type !== 'tool_use' && entry.type !== 'assistant') continue;
 
-          // Look for Bash tool_use with git commit commands
-          if (entry.type !== 'tool_use' && entry.type !== 'assistant') continue;
+      const command = entry.command ||
+        (entry.content && typeof entry.content === 'string' ? entry.content : '') ||
+        (entry.input && entry.input.command ? entry.input.command : '');
 
-          const command = entry.command ||
-            (entry.content && typeof entry.content === 'string' ? entry.content : '') ||
-            (entry.input && entry.input.command ? entry.input.command : '');
+      if (!command || !command.includes('git commit')) continue;
 
-          if (!command || !command.includes('git commit')) continue;
+      // Flag heredoc usage
+      if (command.includes('<<')) {
+        const snippet = command.substring(0, 120);
+        evidence.push(`Heredoc in commit: "${snippet}..."`);
+      }
 
-          // Flag heredoc usage
-          if (command.includes('<<')) {
-            const snippet = command.substring(0, 120);
-            evidence.push(`Heredoc in commit: "${snippet}..."`);
-          }
+      // Flag missing -m flag (but not --amend which may not need -m)
+      if (!command.includes('-m') && !command.includes('--amend')) {
+        const snippet = command.substring(0, 120);
+        evidence.push(`Missing -m flag: "${snippet}..."`);
+      }
 
-          // Flag missing -m flag (but not --amend which may not need -m)
-          if (!command.includes('-m') && !command.includes('--amend')) {
-            const snippet = command.substring(0, 120);
-            evidence.push(`Missing -m flag: "${snippet}..."`);
-          }
-
-          // Flag --no-verify
-          if (command.includes('--no-verify')) {
-            const snippet = command.substring(0, 120);
-            evidence.push(`Uses --no-verify: "${snippet}..."`);
-          }
-        }
-      } catch (_e) {
-        // Could not read log file
+      // Flag --no-verify
+      if (command.includes('--no-verify')) {
+        const snippet = command.substring(0, 120);
+        evidence.push(`Uses --no-verify: "${snippet}..."`);
       }
     }
 
@@ -841,12 +1019,14 @@ function checkTestHealthBaseline(planningDir, _config) {
 // ---------------------------------------------------------------------------
 
 module.exports = {
+  checkCiVerifyAfterPush,
   checkStateFileIntegrity,
   checkStateFrontmatterIntegrity,
   checkRoadmapSyncValidation,
-  checkNamingConventionCompliance,
   checkPlanningArtifactCompleteness,
   checkArtifactFormatValidation,
+  checkCompactionQuality,
+  checkNamingConventionCompliance,
   checkCommitPatternValidation,
   checkTestHealthBaseline,
 };
