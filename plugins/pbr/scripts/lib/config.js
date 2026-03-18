@@ -41,6 +41,7 @@ const CONFIG_DEFAULTS = {
     team_discussions: false,
     inline_verify: false,
     enhanced_session_start: true,
+    extended_context: false,
     context_quality_scoring: true,
     skip_rag: false,
     zero_friction_quick: true,
