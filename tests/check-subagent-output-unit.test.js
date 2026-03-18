@@ -1,10 +1,15 @@
+// Consolidated from check-subagent-output.test.js + check-subagent-output-unit.test.js
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { createRunner } = require('./helpers');
 
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
 const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS } = require('../hooks/check-subagent-output');
+
+const _run = createRunner(SCRIPT);
 
 let tmpDir;
 let planningDir;
@@ -22,6 +27,18 @@ afterEach(() => {
   process.chdir(originalCwd);
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
+
+// Helper for integration tests that need full .planning structure
+function setupPhaseDir() {
+  fs.mkdirSync(path.join(planningDir, 'phases', '03-auth'), { recursive: true });
+  fs.mkdirSync(path.join(planningDir, 'research'), { recursive: true });
+  fs.writeFileSync(
+    path.join(planningDir, 'STATE.md'),
+    '# State\nPhase: 3 of 8 (Auth)\nStatus: building'
+  );
+}
+
+const runScript = (data) => _run(data, { cwd: tmpDir });
 
 describe('findInPhaseDir', () => {
   test('returns empty when no phases dir', () => {
@@ -659,6 +676,437 @@ describe('SKILL_CHECKS begin:pbr:synthesizer', () => {
     const synthWarnings = [];
     SKILL_CHECKS['begin:pbr:synthesizer'].check(planningDir, ['research/STACK.md', 'research/FEATURES.md'], synthWarnings);
     expect(synthWarnings.some(w => w.includes('SUMMARY.md'))).toBe(true);
+  });
+});
+
+// --- Integration tests (from base file, exercising main() via subprocess) ---
+
+describe('agent type coverage', () => {
+  test('all 10 PBR agent types are in AGENT_OUTPUTS', () => {
+    const expected = [
+      'pbr:executor', 'pbr:planner', 'pbr:verifier', 'pbr:researcher',
+      'pbr:synthesizer', 'pbr:plan-checker', 'pbr:integration-checker',
+      'pbr:debugger', 'pbr:codebase-mapper', 'pbr:general'
+    ];
+    for (const agent of expected) {
+      expect(AGENT_OUTPUTS).toHaveProperty(agent);
+      expect(AGENT_OUTPUTS[agent]).toHaveProperty('check');
+      expect(AGENT_OUTPUTS[agent]).toHaveProperty('description');
+    }
+  });
+
+  test('exactly 17 agent types are defined', () => {
+    expect(Object.keys(AGENT_OUTPUTS)).toHaveLength(17);
+  });
+});
+
+describe('main() early exits', () => {
+  test('exits 0 when no .planning directory', () => {
+    fs.rmSync(path.join(tmpDir, '.planning'), { recursive: true, force: true });
+    const result = runScript({ subagent_type: 'pbr:executor' });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('exits 0 for unknown agent types', () => {
+    const result = runScript({ subagent_type: 'pbr:unknown' });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('exits 0 for non-plan-build-run agent types', () => {
+    const result = runScript({ subagent_type: 'general-purpose' });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('handles subagent_type at top level (not nested in tool_input)', () => {
+    setupPhaseDir();
+    const result = runScript({ subagent_type: 'pbr:executor' });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Warning');
+  });
+});
+
+describe('combined warning path and skill-specific gaps', () => {
+  test('combined path: genericMissing AND skillWarnings produces merged warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'begin');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Warning');
+    expect(result.output).toContain('PLAN');
+    expect(result.output).toContain('REQUIREMENTS.md');
+    expect(result.output).toContain('Skill-specific warnings');
+  });
+
+  test('GAP-07: review skill with verifier gaps_found status triggers warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'VERIFICATION.md'),
+      '---\nstatus: gaps_found\nphase: 03-auth\n---\nGaps were found.'
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:verifier' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('gaps_found');
+    expect(result.output).toContain('Skill-specific warnings');
+  });
+
+  test('warns when .active-skill is missing for executor agent', () => {
+    setupPhaseDir();
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-03-01.md'),
+      '---\nstatus: complete\n---\nDone.'
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('.active-skill');
+    expect(result.output).toContain('missing');
+  });
+
+  test('no .active-skill warning when file exists', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-03-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\nDone.'
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('.active-skill');
+  });
+
+  test('no .active-skill warning for noFileExpected agents', () => {
+    setupPhaseDir();
+    const result = runScript({ tool_input: { subagent_type: 'pbr:general' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toBe('');
+  });
+
+  test('warns about missing ROADMAP Progress table after executor', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'ROADMAP.md'),
+      '# Roadmap\n\n## Phase 3: Auth\nGoal: Build auth\n'
+    );
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-03-01.md'),
+      '---\nstatus: complete\ncommits: ["abc"]\n---\nDone.'
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Progress table');
+  });
+
+  test('no ROADMAP warning when Progress table exists with phase row', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'ROADMAP.md'),
+      '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|----------|\n| 03. Auth | 0/1 | Pending | — |\n'
+    );
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-03-01.md'),
+      '---\nstatus: complete\ncommits: ["abc"]\n---\nDone.'
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('Progress table');
+  });
+
+  test('GAP-08: scan skill with codebase-mapper missing focus areas triggers warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'scan');
+    const codebaseDir = path.join(planningDir, 'codebase');
+    fs.mkdirSync(codebaseDir, { recursive: true });
+    fs.writeFileSync(path.join(codebaseDir, 'tech-stack.md'), '# Tech');
+    fs.writeFileSync(path.join(codebaseDir, 'arch-overview.md'), '# Arch');
+    fs.writeFileSync(path.join(codebaseDir, 'quality-report.md'), '# Quality');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:codebase-mapper' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('concerns');
+    expect(result.output).toContain('Skill-specific warnings');
+  });
+});
+
+describe('agent_type field priority (2.1.69 compat)', () => {
+  test('prefers data.agent_type over tool_input.subagent_type (forward compat)', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    const result = runScript({ agent_type: 'pbr:executor', tool_input: { subagent_type: 'pbr:planner' } });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('falls back to tool_input.subagent_type when agent_type is absent (backward compat)', () => {
+    setupPhaseDir();
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('falls back to top-level subagent_type as last resort', () => {
+    setupPhaseDir();
+    const result = runScript({ subagent_type: 'pbr:executor' });
+    expect(result.exitCode).toBe(0);
+  });
+
+  test('handles missing agent type gracefully', () => {
+    const result = runScript({ tool_input: {} });
+    expect(result.exitCode).toBe(0);
+  });
+});
+
+describe('mtime recency checks (integration)', () => {
+  test('researcher with recent .md file passes without stale warning', () => {
+    setupPhaseDir();
+    const researchFile = path.join(planningDir, 'research', 'STACK.md');
+    fs.writeFileSync(researchFile, '# Research');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('stale');
+  });
+
+  test('researcher with 10-min-old file is NOT flagged stale (B2 fix)', () => {
+    setupPhaseDir();
+    const researchFile = path.join(planningDir, 'research', 'STACK.md');
+    fs.writeFileSync(researchFile, '# Research');
+    const tenMinAgo = new Date(Date.now() - 600000);
+    fs.utimesSync(researchFile, tenMinAgo, tenMinAgo);
+    const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('stale');
+  });
+
+  test('researcher with old .md file (>30min) returns stale warning', () => {
+    setupPhaseDir();
+    const researchFile = path.join(planningDir, 'research', 'STACK.md');
+    fs.writeFileSync(researchFile, '# Research');
+    const oldTime = new Date(Date.now() - 2100000);
+    fs.utimesSync(researchFile, oldTime, oldTime);
+    const result = runScript({ tool_input: { subagent_type: 'pbr:researcher' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('stale');
+  });
+
+  test('synthesizer with old output (>30min) returns stale warning', () => {
+    setupPhaseDir();
+    const researchFile = path.join(planningDir, 'research', 'SYNTHESIS.md');
+    fs.writeFileSync(researchFile, '# Synthesis');
+    const oldTime = new Date(Date.now() - 2100000);
+    fs.utimesSync(researchFile, oldTime, oldTime);
+    const result = runScript({ tool_input: { subagent_type: 'pbr:synthesizer' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('stale');
+  });
+
+  test('synthesizer with recent output does not get stale warning', () => {
+    setupPhaseDir();
+    const researchFile = path.join(planningDir, 'research', 'SYNTHESIS.md');
+    fs.writeFileSync(researchFile, '# Synthesis');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:synthesizer' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('stale');
+  });
+});
+
+describe('post-hoc SUMMARY.md trigger', () => {
+  test('triggers post-hoc generation when executor completes without SUMMARY.md and post_hoc_artifacts is true', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { post_hoc_artifacts: true } })
+    );
+    const quickDir = path.join(planningDir, 'quick', '001-test-task');
+    fs.mkdirSync(quickDir, { recursive: true });
+    fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('post-hoc');
+  });
+
+  test('skips post-hoc generation when post_hoc_artifacts is false in config', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { post_hoc_artifacts: false } })
+    );
+    const quickDir = path.join(planningDir, 'quick', '001-test-task');
+    fs.mkdirSync(quickDir, { recursive: true });
+    fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('auto-generated post-hoc');
+  });
+
+  test('does not trigger post-hoc for non-executor agents (planner, verifier)', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { post_hoc_artifacts: true } })
+    );
+    const result = runScript({ tool_input: { subagent_type: 'pbr:planner' } });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('post-hoc');
+  });
+
+  test('logs post-hoc generation event to event log', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { post_hoc_artifacts: true } })
+    );
+    const quickDir = path.join(planningDir, 'quick', '001-test-task');
+    fs.mkdirSync(quickDir, { recursive: true });
+    fs.writeFileSync(path.join(quickDir, 'PLAN.md'), '---\nplan: quick-001\n---\nTask');
+    const result = runScript({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result.exitCode).toBe(0);
+    const eventsPath = path.join(planningDir, 'logs', 'events.jsonl');
+    if (fs.existsSync(eventsPath)) {
+      const content = fs.readFileSync(eventsPath, 'utf8');
+      expect(content).toContain('post_hoc_summary');
+    }
+  });
+});
+
+describe('completion marker validation', () => {
+  test('executor output with ## PLAN COMPLETE produces no completion marker warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Self-Check: PASSED\nAll good'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: 'Some output\n\n## PLAN COMPLETE'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('completion marker');
+  });
+
+  test('executor output with ## PLAN FAILED produces no completion marker warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: failed\ncommits: []\n---\n## Self-Check: FAILED\nIssues found'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: 'Error occurred\n\n## PLAN FAILED'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('completion marker');
+  });
+
+  test('executor output with ## CHECKPOINT: produces no completion marker warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: checkpoint\ncommits: ["abc"]\n---\n## Self-Check: PASSED\nOK'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: 'Blocked on user\n\n## CHECKPOINT: HUMAN-VERIFY'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('completion marker');
+  });
+
+  test('executor output missing all completion markers produces warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Self-Check: PASSED\nDone'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: 'I did some work but forgot the marker'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('completion marker');
+  });
+
+  test('no completion marker warning for non-executor agents', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'PLAN-01.md'),
+      '---\nplan: 01\n---\nTasks'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:planner' },
+      tool_output: 'Plan created without marker'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('completion marker');
+  });
+});
+
+describe('Self-Check section validation', () => {
+  test('SUMMARY.md with ## Self-Check: PASSED produces no self-check warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Results\nDone\n\n## Self-Check: PASSED\nAll layers green'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: '## PLAN COMPLETE'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('Self-Check section');
+  });
+
+  test('SUMMARY.md with ## Self-Check: FAILED produces no self-check warning (section exists)', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: partial\ncommits: ["abc123"]\n---\n## Results\nPartial\n\n## Self-Check: FAILED\nLayer 2 failed'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: '## PLAN COMPLETE'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).not.toContain('Self-Check section');
+  });
+
+  test('SUMMARY.md missing Self-Check section produces warning', () => {
+    setupPhaseDir();
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(
+      path.join(planningDir, 'phases', '03-auth', 'SUMMARY-01.md'),
+      '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Results\nDone'
+    );
+    const result = runScript({
+      tool_input: { subagent_type: 'pbr:executor' },
+      tool_output: '## PLAN COMPLETE'
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.output).toContain('Self-Check');
+  });
+});
+
+describe('KNOWN_AGENTS sync (B3 fix)', () => {
+  test('validate-task.js KNOWN_AGENTS matches core.cjs', () => {
+    const vtKnown = require(path.join(__dirname, '..', 'hooks', 'validate-task')).KNOWN_AGENTS;
+    const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+    expect(vtKnown).toEqual(coreKnown);
+  });
+
+  test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', () => {
+    const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+    const prefixed = coreKnown.map(a => 'pbr:' + a);
+    for (const key of Object.keys(AGENT_OUTPUTS)) {
+      expect(prefixed).toContain(key);
+    }
   });
 });
 
