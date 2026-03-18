@@ -44,6 +44,10 @@ function parseStateMd(content) {
     result.last_activity = frontmatter.last_activity || null;
     result.last_command = frontmatter.last_command || null;
     result.blockers = frontmatter.blockers || [];
+    result.velocity = frontmatter.velocity || null;
+    result.session_last = frontmatter.session_last || null;
+    result.session_stopped_at = frontmatter.session_stopped_at || null;
+    result.session_resume = frontmatter.session_resume || null;
     return result;
   }
 
@@ -228,6 +232,21 @@ function syncBodyLine(content, field, value) {
       if (withParens !== content) return withParens;
       return content.replace(/^(Phase:\s*\d+\s+of\s+\d+\s*)--\s*.+/m, `$1-- ${name}`);
     }
+    case 'session_last': {
+      const pattern = /^Last session:\s*.+/im;
+      if (pattern.test(content)) return content.replace(pattern, `Last session: ${value}`);
+      return content;
+    }
+    case 'session_stopped_at': {
+      const pattern = /^Stopped at:\s*.+/im;
+      if (pattern.test(content)) return content.replace(pattern, `Stopped at: ${value}`);
+      return content;
+    }
+    case 'session_resume': {
+      const pattern = /^Resume:\s*.+/im;
+      if (pattern.test(content)) return content.replace(pattern, `Resume: ${value}`);
+      return content;
+    }
     default:
       return content;
   }
@@ -366,7 +385,7 @@ function stateUpdate(field, value, planningDir) {
     return { success: false, error: 'STATE.md not found' };
   }
 
-  // All 9 STATE.md frontmatter fields supported by stateUpdate
+  // All 13 STATE.md frontmatter fields supported by stateUpdate
   const validFields = [
     'current_phase',
     'status',
@@ -376,7 +395,11 @@ function stateUpdate(field, value, planningDir) {
     'progress_percent',
     'phase_slug',
     'last_command',
-    'blockers'
+    'blockers',
+    'velocity',
+    'session_last',
+    'session_stopped_at',
+    'session_resume'
   ];
   if (!validFields.includes(field)) {
     return { success: false, error: `Invalid field: ${field}. Valid fields: ${validFields.join(', ')}` };
@@ -415,7 +438,7 @@ function statePatch(jsonStr, planningDir) {
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
   let fields;
   try { fields = JSON.parse(jsonStr); } catch (_e) { return { success: false, error: "Invalid JSON" }; }
-  const validFields = ["current_phase", "status", "plans_complete", "plans_total", "last_activity", "progress_percent", "phase_slug", "last_command", "blockers"];
+  const validFields = ["current_phase", "status", "plans_complete", "plans_total", "last_activity", "progress_percent", "phase_slug", "last_command", "blockers", "velocity", "session_last", "session_stopped_at", "session_resume"];
   const updates = [], errors = [];
   for (const [field, value] of Object.entries(fields)) {
     if (!validFields.includes(field)) { errors.push("Unknown field: " + field); continue; }
@@ -490,6 +513,95 @@ function stateRecordMetric(metricArgs, planningDir) {
 
   stateUpdate("last_activity", "now", dir);
   return { success: true, duration_minutes: duration, plans_completed: plansCompleted };
+}
+
+/**
+ * Record a velocity metric in STATE.md frontmatter.
+ * Stores metrics as a JSON string in the `velocity` field.
+ * Tracks last 5 entries per metric type and calculates trend.
+ *
+ * @param {string} metricType - Metric type (e.g., 'plan_duration', 'phase_duration')
+ * @param {number|string} value - Metric value
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success, metricType, value, trend }
+ */
+function stateRecordVelocity(metricType, value, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const statePath = path.join(dir, 'STATE.md');
+  if (!fs.existsSync(statePath)) {
+    return { success: false, error: 'STATE.md not found' };
+  }
+
+  // Read current velocity from frontmatter
+  const content = fs.readFileSync(statePath, 'utf8');
+  const parsed = parseStateMd(content);
+  let velocity = {};
+  if (parsed.velocity) {
+    try {
+      velocity = typeof parsed.velocity === 'string' ? JSON.parse(parsed.velocity) : parsed.velocity;
+    } catch (_) {
+      velocity = {};
+    }
+  }
+
+  // Initialize metric history if needed
+  if (!velocity[metricType]) {
+    velocity[metricType] = { history: [], trend: 'stable' };
+  }
+
+  const numValue = Number(value);
+  const entry = { value: numValue, timestamp: new Date().toISOString() };
+  velocity[metricType].history.push(entry);
+
+  // Keep last 5 entries
+  if (velocity[metricType].history.length > 5) {
+    velocity[metricType].history = velocity[metricType].history.slice(-5);
+  }
+
+  // Calculate trend from history
+  const hist = velocity[metricType].history;
+  if (hist.length >= 2) {
+    const recent = hist.slice(-3).map(h => h.value);
+    const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+    const first = hist[0].value;
+    if (avg < first * 0.85) {
+      velocity[metricType].trend = 'improving';
+    } else if (avg > first * 1.15) {
+      velocity[metricType].trend = 'degrading';
+    } else {
+      velocity[metricType].trend = 'stable';
+    }
+  }
+
+  // Write back via stateUpdate
+  const result = stateUpdate('velocity', JSON.stringify(velocity), dir);
+  if (!result.success) return result;
+  return { success: true, metricType, value: numValue, trend: velocity[metricType].trend };
+}
+
+/**
+ * Record session continuity info in STATE.md.
+ * Updates session_last, session_stopped_at, and session_resume fields.
+ *
+ * @param {string} stoppedAt - Description of where the session stopped
+ * @param {string} resumeFile - Path to resume file (e.g., .PROGRESS-02-01)
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success, session_last, session_stopped_at, session_resume }
+ */
+function stateRecordSession(stoppedAt, resumeFile, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  const r1 = stateUpdate('session_last', now, dir);
+  if (!r1.success) return r1;
+
+  const r2 = stateUpdate('session_stopped_at', stoppedAt, dir);
+  if (!r2.success) return r2;
+
+  const r3 = stateUpdate('session_resume', resumeFile, dir);
+  if (!r3.success) return r3;
+
+  return { success: true, session_last: now, session_stopped_at: stoppedAt, session_resume: resumeFile };
 }
 
 /**
@@ -735,5 +847,7 @@ module.exports = {
   stateGetStatus,
   stateSnapshot,
   statePhaseComplete,
-  stateRederive
+  stateRederive,
+  stateRecordVelocity,
+  stateRecordSession
 };
