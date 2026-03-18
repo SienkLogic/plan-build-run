@@ -169,6 +169,11 @@ This data feeds into the final report synthesis.
 
 **CRITICAL**: Spawn one `pbr:audit` agent per session, ALL in parallel. Do NOT analyze sessions sequentially.
 
+Compute paths for the spawn prompt:
+- **Plugin root**: absolute path to `plugins/pbr` (e.g., `D:/Repos/plan-build-run/plugins/pbr`)
+- **Planning dir**: absolute path to `.planning` (e.g., `D:/Repos/plan-build-run/.planning`)
+- **Config JSON**: `JSON.stringify(config)` from the loaded config.json — escape backslashes and quotes for template embedding
+
 For each session:
 
 ```
@@ -185,6 +190,14 @@ Task({
     Audit mode: {mode}
     Active dimensions: {comma-separated list of dimension codes from Step 1b}
     Preset: {preset}
+    Plugin root: {absolute path to plugins/pbr}
+    Planning dir: {absolute path to .planning}
+    Config JSON: {JSON.stringify(config) — escaped for template}
+
+    Run programmatic checks first via audit-checks/index.js runAllChecks(),
+    then analyze JSONL for session-dependent dimensions.
+    Return per-dimension results table.
+
     Only check dimensions in the active set. Skip all others.
     Output path: DO NOT write to disk — return findings inline.
 
@@ -222,30 +235,47 @@ As agents complete, check each audit agent's Task() output for `## AUDIT COMPLET
 
 Wait for all agents before proceeding.
 
-Synthesize across all sessions:
+### 5a. Parse Per-Dimension Results
 
-### 5a. Executive Summary
+From each agent's output, extract the per-dimension results tables. Each row has: Code, Dimension, Status, Evidence Summary.
+
+Merge results across sessions:
+- For **static dimensions** (SI, IH, FV): results are the same across sessions — use the single result
+- For **session-dependent dimensions** (EF, WC, BC, SQ, QM): use the **worst status** across sessions (fail > warn > pass)
+- Record which sessions contributed to each dimension's evidence
+
+### 5b. Build Category Summaries
+
+For each of the 9 categories (AC, SI, IH, EF, WC, BC, SQ, FV, QM):
+- Count pass/warn/fail per category
+- Format: `{Category Name} ({Code}): {pass}/{total} pass, {warn} warn, {fail} fail`
+
+Compute overall dimension score: `{pass}/{total} dimensions passed`
+
+### 5c. Executive Summary
 - Total sessions, total commits, releases
+- **Overall dimension score**: `{pass}/{total} dimensions passed`
 - Overall compliance: how many sessions passed/failed
 - Headline finding (the most important issue)
 
-### 5b. Per-Session Summary Table
-| Session | Duration | Commands | Compliance | UX Rating |
-|---------|----------|----------|------------|-----------|
+### 5d. Per-Session Summary Table
+| Session | Duration | Commands | Compliance | UX Rating | Dimensions Checked |
+|---------|----------|----------|------------|-----------|-------------------|
 
-### 5c. Cross-Session Patterns
+### 5e. Cross-Session Patterns
 - Recurring issues (e.g., STATE.md never read across multiple sessions)
 - Hook coverage gaps
 - Common flow mistakes
+- Dimensions that failed across ALL sessions (systemic issues)
 
-### 5d. Consolidated Findings
+### 5f. Consolidated Findings
 Merge and deduplicate findings across sessions. Categorize by severity:
 - **CRITICAL**: Workflow bypassed despite user requests, hooks not firing
 - **HIGH**: State files not consulted, missing artifacts
 - **MEDIUM**: Suboptimal flow choice, missing feedback
 - **LOW**: Minor ceremony issues, informational
 
-### 5e. Recommendations
+### 5g. Recommendations
 Prioritize as:
 - **Immediate**: Fix in next session
 - **Short-term**: Fix in next sprint/milestone
@@ -261,7 +291,7 @@ Write to: `.planning/audits/{YYYY-MM-DD}-session-audit.md`
 
 Create `.planning/audits/` directory if it doesn't exist.
 
-The report should follow this structure:
+The report should follow this v2 structure:
 
 ```markdown
 # PBR Session Audit Report — {date range}
@@ -275,6 +305,34 @@ The report should follow this structure:
 
 ## Executive Summary
 {2-3 sentence overview}
+**Overall dimension score:** {pass}/{total} dimensions passed
+
+## Dimension Coverage
+
+**Preset:** {preset}
+**Dimensions checked:** {N}/{total enabled}
+**Overall:** {pass} pass, {warn} warn, {fail} fail
+
+## Per-Category Results
+
+### Self-Integrity (SI): {pass}/{total} pass, {warn} warn
+
+| Code | Dimension | Status | Evidence Summary |
+|------|-----------|--------|------------------|
+
+### Infrastructure Health (IH): {pass}/{total} pass, {warn} warn
+
+(repeat for each active category: AC, SI, IH, EF, WC, BC, SQ, FV, QM)
+
+## Config Cross-Reference
+
+For each dimension that references an `audit.thresholds` key, show:
+
+| Dimension | Threshold Key | Configured Value | Check Result |
+|-----------|--------------|-----------------|--------------|
+| IH-03 | hook_performance_ms | 500 | pass |
+
+(Only include dimensions with non-null thresholdKey from audit-dimensions.js)
 
 ## Session Summary
 {per-session table}
@@ -287,6 +345,15 @@ The report should follow this structure:
 
 ## Cross-Session Patterns
 {recurring issues}
+
+## Trend Analysis
+
+If QM-03 baseline comparison data is available:
+- Dimensions that **regressed** (were pass, now warn/fail)
+- Dimensions that **improved** (were warn/fail, now pass)
+- Overall trend direction
+
+If no prior audit data: "No prior audit data available for trend comparison."
 
 ## Consolidated Findings
 ### Critical
@@ -311,6 +378,25 @@ The report should follow this structure:
 
 1. Glob `.planning/audits/{YYYY-MM-DD}-session-audit.md` to confirm the file exists
 2. If missing: re-attempt the write (Step 6). If still missing, display an error and include findings inline instead.
+
+---
+
+## Step 6c — Verbosity Control
+
+Apply verbosity filtering to the Per-Category Results section based on the active preset:
+
+| Preset | Per-Category Results Behavior |
+|--------|-------------------------------|
+| `minimal` | Omit Per-Category Results detail entirely. Show only category-level summary lines (e.g., "SI: 14/15 pass, 1 warn"). |
+| `standard` | Per-Category Results shows only warn/fail dimensions. Passing dimensions are omitted from the detail tables. |
+| `comprehensive` | Per-Category Results shows ALL dimensions including passing ones. |
+
+**Implementation**: After building the per-category dimension tables in Step 5, filter rows before writing to the report:
+- If preset is `minimal`: skip writing dimension tables, keep only the `### {Category} ({Code}): {summary}` header lines
+- If preset is `standard`: filter each category table to only include rows where Status is `warn` or `fail`
+- If preset is `comprehensive`: include all rows
+
+The Dimension Coverage section and Executive Summary are always included regardless of verbosity.
 
 ---
 
