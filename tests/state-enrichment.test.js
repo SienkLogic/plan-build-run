@@ -14,15 +14,17 @@ const { spawn } = require('child_process');
 const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
 const { readEventLogTail } = require('../hooks/hook-server');
 const { getEnrichedContext } = require('../hooks/progress-tracker');
+const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function startServer(planningDir, port) {
+function startServer(planningDir) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(process.execPath, [HOOK_SERVER, '--port', String(port), '--dir', planningDir], {
-      stdio: ['ignore', 'pipe', 'pipe']
+    const proc = spawn(process.execPath, [HOOK_SERVER, '--port', '0', '--dir', planningDir], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: path.dirname(planningDir)
     });
 
     let stdout = '';
@@ -36,7 +38,8 @@ function startServer(planningDir, port) {
       stdout += chunk;
       if (stdout.includes('"ready"')) {
         clearTimeout(timer);
-        resolve({ proc, port, planningDir });
+        const info = JSON.parse(stdout.match(/\{.*"ready".*\}/)[0]);
+        resolve({ proc, port: info.port, planningDir });
       }
     });
 
@@ -156,7 +159,6 @@ describe('readEventLogTail', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /context endpoint', () => {
-  const TEST_PORT = 19872;
   let server;
   let tmpDir;
   let planningDir;
@@ -181,10 +183,10 @@ describe('GET /context endpoint', () => {
     ];
     const logsDir = path.join(planningDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
-    const logPath = path.join(logsDir, 'hooks.jsonl');
+    const logPath = path.join(logsDir, getHooksFilename());
     fs.writeFileSync(logPath, sampleEvents.map(e => JSON.stringify(e)).join('\n') + '\n', 'utf8');
 
-    server = await startServer(planningDir, TEST_PORT);
+    server = await startServer(planningDir);
   }, 10000);
 
   afterAll(async () => {
@@ -193,7 +195,7 @@ describe('GET /context endpoint', () => {
   });
 
   test('returns 200 with required fields', async () => {
-    const { status, body } = await get(TEST_PORT, '/context');
+    const { status, body } = await get(server.port, '/context');
     expect(status).toBe(200);
     const parsed = JSON.parse(body);
     expect(Array.isArray(parsed.recentEvents)).toBe(true);
@@ -204,7 +206,7 @@ describe('GET /context endpoint', () => {
   });
 
   test('recentEvents contains up to 20 events', async () => {
-    const { body } = await get(TEST_PORT, '/context');
+    const { body } = await get(server.port, '/context');
     const parsed = JSON.parse(body);
     expect(parsed.recentEvents.length).toBeLessThanOrEqual(20);
     // Events may be empty on CI if the log file isn't visible to the subprocess
@@ -212,7 +214,7 @@ describe('GET /context endpoint', () => {
   });
 
   test('activeSkillHistory contains deduplicated recent active skills', async () => {
-    const { body } = await get(TEST_PORT, '/context');
+    const { body } = await get(server.port, '/context');
     const parsed = JSON.parse(body);
     // 'build' and 'plan' appeared in sample events
     expect(parsed.activeSkillHistory).toContain('build');
@@ -223,14 +225,14 @@ describe('GET /context endpoint', () => {
   });
 
   test('advisoryMessages contains events with additionalContext', async () => {
-    const { body } = await get(TEST_PORT, '/context');
+    const { body } = await get(server.port, '/context');
     const parsed = JSON.parse(body);
     expect(parsed.advisoryMessages.length).toBeGreaterThan(0);
     expect(parsed.advisoryMessages[0].additionalContext).toBe('Wrote PLAN.md');
   });
 
   test('sessionCount counts server_start events', async () => {
-    const { body } = await get(TEST_PORT, '/context');
+    const { body } = await get(server.port, '/context');
     const parsed = JSON.parse(body);
     expect(parsed.sessionCount).toBe(1);
   });
@@ -241,7 +243,6 @@ describe('GET /context endpoint', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /context with empty event log', () => {
-  const TEST_PORT = 19873;
   let server;
   let tmpDir;
   let planningDir;
@@ -256,7 +257,7 @@ describe('GET /context with empty event log', () => {
     );
     // No .hook-events.jsonl — empty log
 
-    server = await startServer(planningDir, TEST_PORT);
+    server = await startServer(planningDir);
   }, 10000);
 
   afterAll(async () => {
@@ -265,7 +266,7 @@ describe('GET /context with empty event log', () => {
   });
 
   test('returns 200 with empty arrays when no events exist', async () => {
-    const { status, body } = await get(TEST_PORT, '/context');
+    const { status, body } = await get(server.port, '/context');
     expect(status).toBe(200);
     const parsed = JSON.parse(body);
     expect(parsed.recentEvents).toEqual([]);
@@ -301,7 +302,6 @@ describe('getEnrichedContext', () => {
   });
 
   test('returns enriched context when server is up', async () => {
-    const TEST_PORT = 19874;
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-enrichment-get-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir, { recursive: true });
@@ -321,8 +321,8 @@ describe('getEnrichedContext', () => {
 
     let server;
     try {
-      server = await startServer(planningDir, TEST_PORT);
-      const config = { hook_server: { enabled: true, port: TEST_PORT } };
+      server = await startServer(planningDir);
+      const config = { hook_server: { enabled: true, port: server.port } };
       const result = await getEnrichedContext(config, planningDir);
       expect(result).not.toBeNull();
       expect(Array.isArray(result.recentEvents)).toBe(true);
