@@ -282,10 +282,99 @@ function checkAgentFailureTimeout(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// EF-05: Retry/Repetition Pattern Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect consecutive same-tool call patterns that suggest retries or repetition.
+ *
+ * Scans event logs for tool-use events sorted by timestamp. A "repetition" is
+ * when the same tool appears N+ times consecutively. If failures occurred in
+ * the sequence, it's classified as a "retry" pattern.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object (may have audit.thresholds.retry_pattern_min_count)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkRetryRepetitionPattern(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const minCount = config?.audit?.thresholds?.retry_pattern_min_count ?? 3;
+
+  const eventEntries = readJsonlFiles(logsDir, 'events');
+
+  // Filter for tool-use events and sort by timestamp
+  const toolEvents = eventEntries
+    .filter(e => e.cat === 'tool')
+    .sort((a, b) => (a.ts || '').localeCompare(b.ts || ''));
+
+  if (toolEvents.length === 0) {
+    return result('EF-05', 'pass', 'No tool events found in logs', []);
+  }
+
+  // Scan for consecutive runs of the same tool
+  const patterns = [];
+  let currentTool = null;
+  let runStart = 0;
+  let runCount = 0;
+  let runFailures = 0;
+
+  for (let i = 0; i <= toolEvents.length; i++) {
+    const entry = i < toolEvents.length ? toolEvents[i] : null;
+    const tool = entry ? (entry.tool || entry.data?.tool || 'unknown') : null;
+
+    if (tool === currentTool && i < toolEvents.length) {
+      runCount++;
+      if (entry.event === 'failure') runFailures++;
+    } else {
+      // End of a run — check if it meets the threshold
+      if (currentTool && runCount >= minCount) {
+        const startTs = toolEvents[runStart]?.ts || '';
+        const endTs = toolEvents[Math.min(runStart + runCount - 1, toolEvents.length - 1)]?.ts || '';
+        const startTime = startTs.substring(11, 16) || '??:??';
+        const endTime = endTs.substring(11, 16) || '??:??';
+        const patternType = runFailures > 0 ? 'retry' : 'repetition';
+
+        patterns.push({
+          tool: currentTool,
+          count: runCount,
+          failures: runFailures,
+          type: patternType,
+          timeWindow: `${startTime}-${endTime}`,
+        });
+      }
+
+      // Start new run
+      currentTool = tool;
+      runStart = i;
+      runCount = 1;
+      runFailures = (entry && entry.event === 'failure') ? 1 : 0;
+    }
+  }
+
+  if (patterns.length === 0) {
+    return result('EF-05', 'pass', `No consecutive same-tool patterns (${minCount}+) detected`, []);
+  }
+
+  const evidence = patterns.map(p => {
+    const failStr = p.failures > 0 ? ` (${p.failures} failures)` : '';
+    return `${p.tool} called ${p.count} times consecutively${failStr} -- ${p.type} pattern at ${p.timeWindow}`;
+  });
+
+  const hasRetries = patterns.some(p => p.type === 'retry');
+  const status = hasRetries ? 'warn' : 'pass';
+  const message = hasRetries
+    ? `${patterns.filter(p => p.type === 'retry').length} retry pattern(s) detected`
+    : `${patterns.length} repetition pattern(s) detected (no failures, likely normal batch work)`;
+
+  return result('EF-05', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkToolFailureRate,
   checkAgentFailureTimeout,
+  checkRetryRepetitionPattern,
 };
