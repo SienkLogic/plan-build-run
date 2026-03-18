@@ -347,14 +347,14 @@ function countHookEntries() {
 }
 
 /**
- * Read test coverage percentage from coverage/coverage-summary.json.
- * Prefers .last-test.json coverage if available (fresher).
- * Falls back to coverage-summary.json global lines.pct.
+ * Read test coverage percentage.
+ * Priority: .last-test.json cache > bin/lib aggregate from coverage-summary > global total.
+ * The bin/lib slice (~75%) is the enforced threshold; global (~25%) includes untested hooks.
  * @param {string} [planningDir] - Path to .planning/ for .last-test.json
  * @returns {number|null}
  */
 function getCoverage(planningDir) {
-  // Prefer .last-test.json — written by posttest hook with fresh data
+  // Prefer .last-test.json — written by posttest with fresh aggregated data
   if (planningDir) {
     try {
       const testFile = path.join(planningDir, '.last-test.json');
@@ -362,14 +362,37 @@ function getCoverage(planningDir) {
       if (data.coverage != null) return Math.round(data.coverage);
     } catch (_e) { /* fall through */ }
   }
-  // Fallback: coverage-summary.json from last `npm test --coverage`
+  // Fallback: read coverage-summary.json directly
   try {
     const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
     const data = JSON.parse(fs.readFileSync(covFile, 'utf8'));
+    // Prefer bin/lib aggregate (the enforced threshold slice)
+    const binLibCov = aggregateCoverage(data, /bin.lib/);
+    if (binLibCov != null) return binLibCov;
+    // Fallback to global
     return data.total && data.total.lines ? Math.round(data.total.lines.pct) : null;
   } catch (_e) {
     return null;
   }
+}
+
+/**
+ * Aggregate line coverage for files matching a pattern in coverage-summary.json.
+ * @param {object} covData - Parsed coverage-summary.json
+ * @param {RegExp} pattern - File path pattern to match
+ * @returns {number|null} - Rounded percentage, or null if no matches
+ */
+function aggregateCoverage(covData, pattern) {
+  let totalLines = 0;
+  let coveredLines = 0;
+  for (const [file, data] of Object.entries(covData)) {
+    if (file === 'total') continue;
+    if (pattern.test(file) && data.lines) {
+      totalLines += data.lines.total;
+      coveredLines += data.lines.covered;
+    }
+  }
+  return totalLines > 0 ? Math.round((coveredLines / totalLines) * 100) : null;
 }
 
 /**
@@ -780,4 +803,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, aggregateCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };

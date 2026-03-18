@@ -50,12 +50,27 @@ function main() {
     try { fs.unlinkSync(jestResultsFile); } catch (_e) { /* best effort */ }
   }
 
-  // Read coverage from coverage-summary.json if available
+  // Read coverage from coverage-summary.json if available.
+  // Prefer bin/lib aggregate (enforced threshold slice, ~75%) over global (~25%).
   let coverage = null;
   try {
     const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
     const covData = JSON.parse(fs.readFileSync(covFile, 'utf8'));
-    if (covData.total && covData.total.lines) {
+    // Try bin/lib slice first
+    const binLibPattern = /bin.lib/;
+    let totalLines = 0;
+    let coveredLines = 0;
+    for (const [file, data] of Object.entries(covData)) {
+      if (file === 'total') continue;
+      if (binLibPattern.test(file) && data.lines) {
+        totalLines += data.lines.total;
+        coveredLines += data.lines.covered;
+      }
+    }
+    if (totalLines > 0) {
+      coverage = Math.round((coveredLines / totalLines) * 100);
+    } else if (covData.total && covData.total.lines) {
+      // Fallback to global
       coverage = Math.round(covData.total.lines.pct);
     }
   } catch (_e) {
