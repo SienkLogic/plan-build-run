@@ -876,9 +876,9 @@ function validateRoadmap(content, _filePath) {
 }
 
 /**
- * Validate LEARNINGS.md structure. LEARNINGS.md is required for all agents —
- * every agent must document what it learned. Missing frontmatter or required
- * fields are blocking errors.
+ * Validate LEARNINGS.md structure.
+ * DEPRECATED: Per-phase LEARNINGS.md is deprecated in favor of project-scoped .planning/KNOWLEDGE.md.
+ * Validation now produces warnings instead of blocking errors for backward compatibility.
  *
  * Checks:
  * - Has YAML frontmatter (starts with ---)
@@ -894,27 +894,30 @@ function validateLearnings(content, _filePath) {
   const errors = [];
   const warnings = [];
 
+  // Deprecation notice
+  warnings.push('Per-phase LEARNINGS.md is deprecated. Use project-scoped .planning/KNOWLEDGE.md instead.');
+
   if (!content.startsWith('---')) {
-    errors.push('Missing YAML frontmatter (required: phase, key_insights, patterns)');
+    warnings.push('Missing YAML frontmatter (recommended: phase, key_insights, patterns)');
     return { errors, warnings };
   }
 
   const frontmatterEnd = content.indexOf('---', 3);
   if (frontmatterEnd === -1) {
-    errors.push('Unclosed YAML frontmatter');
+    warnings.push('Unclosed YAML frontmatter');
     return { errors, warnings };
   }
 
   const frontmatter = content.substring(3, frontmatterEnd);
 
   if (!frontmatter.includes('phase:')) {
-    errors.push('Frontmatter missing "phase" field');
+    warnings.push('Frontmatter missing "phase" field');
   }
   if (!frontmatter.includes('key_insights:')) {
-    errors.push('Frontmatter missing "key_insights" field');
+    warnings.push('Frontmatter missing "key_insights" field');
   }
   if (!frontmatter.includes('patterns:')) {
-    errors.push('Frontmatter missing "patterns" field');
+    warnings.push('Frontmatter missing "patterns" field');
   }
 
   // Validate cross_project field if present
