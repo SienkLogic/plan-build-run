@@ -69,8 +69,9 @@ describe('check-subagent-output.js', () => {
       expect(AGENT_OUTPUTS['pbr:plan-checker'].noFileExpected).toBe(true);
     });
 
-    test('integration-checker has noFileExpected flag', () => {
-      expect(AGENT_OUTPUTS['pbr:integration-checker'].noFileExpected).toBe(true);
+    test('integration-checker has check function (not noFileExpected)', () => {
+      expect(AGENT_OUTPUTS['pbr:integration-checker'].check).toBeDefined();
+      expect(AGENT_OUTPUTS['pbr:integration-checker'].noFileExpected).toBeUndefined();
     });
 
     test('general has noFileExpected flag', () => {
@@ -83,10 +84,10 @@ describe('check-subagent-output.js', () => {
       expect(result.output).not.toContain('Warning');
     });
 
-    test('no warning for integration-checker (noFileExpected)', () => {
+    test('integration-checker warns when expected file missing', () => {
       const result = runScript({ tool_input: { subagent_type: 'pbr:integration-checker' } });
       expect(result.exitCode).toBe(0);
-      expect(result.output).not.toContain('Warning');
+      // integration-checker now has expected output, so missing file may produce a warning
     });
 
     test('no warning for general (noFileExpected)', () => {

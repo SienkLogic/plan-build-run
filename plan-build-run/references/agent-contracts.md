@@ -84,7 +84,7 @@ must_haves:
   key_links: ["{connection description}"]
 provides: ["{exported item}"]
 consumes: ["{required item}"]
-requirement_ids: []
+implements: []          # REQ-IDs this plan satisfies (replaces deprecated requirement_ids)
 ---
 ```
 
@@ -178,11 +178,13 @@ must_haves:
 ```yaml
 ---
 status: passed|gaps_found|human_needed
-attempt: N
-must_haves_total: N
+phase: "{phase-slug}"
+checked_at: "{ISO-8601 timestamp}"
+must_haves_checked: N
 must_haves_passed: M
-gaps: ["gap description"]
-overrides: []
+must_haves_failed: K
+gaps: ["gap description"]       # optional
+overrides: []                   # optional
 ---
 ```
 

@@ -28,12 +28,11 @@ Task({
     - .planning/STATE.md
     - .planning/ROADMAP.md
     - .planning/REQUIREMENTS.md
-    - .planning/PROJECT.md (if exists — project vision and scope)
-    - .planning/CONTEXT.md
-    - Any .planning/phases/*/CONTEXT.md files
+    - .planning/PROJECT.md (if exists — project vision, scope, and context)
+    - Any .planning/phases/*/CONTEXT.md files (phase-level locked decisions)
     - .planning/research/SUMMARY.md (if exists)
     - .planning/notes/*.md (if notes directory exists — read frontmatter for date/promoted status)
-    - .planning/HISTORY.md (if exists — scan for decisions relevant to current work only, do NOT summarize all history)
+    - .planning/STATE.md ## History section (scan for decisions relevant to current work only, do NOT summarize all history)
 
   Return ONLY the briefing text. No preamble, no suggestions."
 })
@@ -70,10 +69,9 @@ Task({
     - .planning/STATE.md
     - .planning/ROADMAP.md
     - .planning/REQUIREMENTS.md
-    - .planning/PROJECT.md (if exists — project vision and scope)
-    - .planning/CONTEXT.md
-    - Any .planning/phases/*/CONTEXT.md files
-    - .planning/HISTORY.md (if exists — scan for decisions relevant to '{topic}' only, do NOT summarize all history)
+    - .planning/PROJECT.md (if exists — project vision, scope, and context)
+    - Any .planning/phases/*/CONTEXT.md files (phase-level locked decisions)
+    - .planning/STATE.md ## History section (scan for decisions relevant to '{topic}' only, do NOT summarize all history)
 
   Focus on: decisions, requirements, and phase goals related to '{topic}'.
   Return ONLY the briefing text. No preamble, no suggestions."

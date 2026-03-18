@@ -1,93 +1,127 @@
-# Reading Verification Results
+# Reading Verification Reports
 
-Reference card for interpreting VERIFICATION.md files produced by the verifier agent.
+A user-friendly guide to understanding verification results.
 
-## Overall Status
+---
 
-| Status | Meaning | Next Action |
-|--------|---------|-------------|
-| `passed` | All must-haves verified at all levels | Phase complete — proceed to next phase |
-| `gaps_found` | One or more must-haves failed | Gap closure needed — run `/pbr:verify-work N --auto-fix` or fix manually |
-| `human_needed` | Automated checks pass but items require manual verification | User must verify listed items, then re-run |
+## What Verification Checks
 
-Priority: `gaps_found` > `human_needed` > `passed`. Any single failure forces `gaps_found`.
+After building a phase, Plan-Build-Run runs automated verification to check whether the code actually delivers what was planned. It checks every "must-have" from the plan through three layers:
 
-## Must-Have Categories
+### Layer 1: Existence
 
-| Category | What It Checks | Example |
-|----------|---------------|---------|
-| **Truths** | Observable conditions — can this behavior be observed? | "Login redirects to dashboard" |
-| **Artifacts** | Files/exports that must exist, be substantive, and not be stubs | "src/auth/middleware.ts" |
-| **Key Links** | Connections wired between components | "Auth middleware applied to /api routes" |
+**Question**: Does the file/function/route exist at all?
 
-## Verification Levels (Artifacts)
+This is the most basic check. If the plan said "create `src/auth.ts`" — does that file exist on disk? If it said "add a `/login` route" — can we find it in the codebase?
 
-| Level | Check | Pass | Fail |
-|-------|-------|------|------|
-| L1 — Existence | File exists on disk | `EXISTS` | `MISSING` |
-| L2 — Substantive | Not a stub or placeholder | `SUBSTANTIVE` | `STUB` / `PARTIAL` |
-| L3 — Wired | Imported and used by other code | `WIRED` | `IMPORTED-UNUSED` / `ORPHANED` |
-| L4 — Functional | Produces correct results when run | `FUNCTIONAL` | `RUNTIME_ERROR` / `LOGIC_ERROR` |
+**Common failures**: File was planned but never created, renamed to a different path, or deleted by a later task.
 
-L4 is optional — only applied when automated tests or build commands exist. Items passing L1-L3 without L4 show `PASSED (L3 only)`.
+### Layer 2: Substantiveness
 
-## Truth Statuses
+**Question**: Is the code real, or just a stub/placeholder?
 
-| Status | Meaning |
-|--------|---------|
-| `VERIFIED` | Truth holds, with evidence |
-| `FAILED` | Truth does not hold |
-| `PARTIAL` | Truth partially holds |
-| `HUMAN_NEEDED` | Cannot verify programmatically |
+A file can exist but contain nothing useful — an empty function, a `throw new Error('Not implemented')`, or a component that just renders its own name. This layer catches those cases.
 
-## Key Link Statuses
+**Common failures**: Function body is empty, returns hardcoded test data, or only has a TODO comment.
 
-| Status | Meaning |
-|--------|---------|
-| `WIRED` | Correct function called with correct arguments |
-| `ARGS_WRONG` | Correct function called but arguments are incorrect or missing |
-| `IMPORTED-UNUSED` | Symbol imported but never called |
-| `ORPHANED` | No import exists |
+### Layer 3: Wiring
 
-## Gap Analysis
+**Question**: Are the pieces connected to each other?
 
-Each gap in the `gaps` frontmatter array contains:
+Code can exist and be real, but if nothing imports it or calls it, it's dead code. This layer checks that modules are imported where needed, middleware is applied to routes, and components are rendered in the right places.
 
-- **must_have** — which must-have failed
-- **level** — which verification level failed (existence, substantive, wired, functional)
-- **evidence** — what the verifier found
-- **recommendation** — suggested fix action
+**Common failures**: Module created but never imported, route handler exists but not registered in the router, component built but not used in any page.
 
-### Gap Annotations (Re-verification)
+---
 
-| Annotation | Meaning |
-|------------|---------|
-| `[PREVIOUSLY KNOWN]` | Gap existed in prior verification run |
-| `[NEW]` | Gap appeared for the first time |
-| `[REGRESSION]` | Previously passing item now fails — high priority |
+## Reading the Verification Report
 
-## Acting on Results
+A `VERIFICATION.md` file looks like this:
 
-| Result | Action |
-|--------|--------|
-| All passed | Run `/pbr:verify-work N` to complete UAT, then advance |
-| Gaps found | Run `/pbr:verify-work N --auto-fix` for automated diagnosis and fix plans |
-| Human needed | Verify listed items manually, then re-run verification |
-| Override false positive | Use the override flow in `/pbr:verify-work` to accept specific gaps |
-| Persistent gaps (3+ attempts) | Escalation options: accept gaps, re-plan, debug, or retry |
+```
+Status: passed (or gaps_found)
+Must-haves checked: 8
+Passed: 7
+Gaps: 1
+```
 
-## Frontmatter Fields
+### When status is "passed"
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | string | Overall result: passed, gaps_found, human_needed |
-| `checked_at` | ISO date | When verification ran |
-| `attempt` | integer | Verification attempt number (increments on re-verification) |
-| `must_haves_checked` | integer | Total must-haves evaluated |
-| `must_haves_passed` | integer | Must-haves that passed all levels |
-| `must_haves_failed` | integer | Must-haves that failed at any level |
-| `gaps` | array | List of gap objects (must_have, level, evidence, recommendation) |
-| `overrides` | array | Must-haves accepted as false positives by user |
-| `satisfied` | array | REQ-IDs satisfied by this phase |
-| `unsatisfied` | array | REQ-IDs not satisfied |
-| `is_re_verification` | boolean | Whether this is a re-verification run |
+All must-haves passed all three layers. The phase is complete and you can move on.
+
+### When status is "gaps_found"
+
+One or more must-haves failed verification. Each gap includes:
+
+- **Must-have**: What was expected (from the plan)
+- **Failed layer**: Which check failed (existence, substantiveness, or wiring)
+- **Evidence**: The specific command output or file content that shows the failure
+- **Suggested fix**: What to do about it
+
+---
+
+## Common Gap Types and What They Mean
+
+### "File not found"
+**Layer**: Existence
+**Meaning**: A planned file was never created or was created at a different path.
+**Fix**: Usually a simple oversight — the executor may have created it with a slightly different name. Check the phase directory for similar files.
+
+### "Function is a stub"
+**Layer**: Substantiveness
+**Meaning**: The file exists but the implementation is incomplete. Common indicators: empty function bodies, `TODO` comments, placeholder return values.
+**Fix**: The executor may have run out of context before finishing. Re-running the build usually resolves this.
+
+### "Module not imported"
+**Layer**: Wiring
+**Meaning**: The code was written correctly but nothing uses it. The import statement is missing from the consuming file.
+**Fix**: Usually a one-line fix — add the import statement to the right file.
+
+### "Test has no assertions"
+**Layer**: Substantiveness
+**Meaning**: A test file exists but doesn't actually test anything — empty `it()` blocks or `expect(true).toBe(true)`.
+**Fix**: Real test assertions need to be written. This usually happens when TDD mode is off and the executor generates placeholder tests.
+
+### "Route not registered"
+**Layer**: Wiring
+**Meaning**: A route handler function was created but never mounted on the Express/Fastify/etc. router.
+**Fix**: Add the route registration (usually `app.use()` or `router.get()`) to the main app file.
+
+---
+
+## How to Close Gaps
+
+You have several options:
+
+### Option 1: Re-run the build (most common)
+```
+/pbr:execute-phase <N>
+```
+The executor will detect what's already complete and only fix what's missing.
+
+### Option 2: Create a gap-closure plan
+```
+/pbr:plan-phase <N> --gaps
+```
+This creates a focused plan that targets only the specific gaps found during verification.
+
+### Option 3: Manual fix
+For small gaps (like a missing import), you can fix the code yourself and then re-run verification:
+```
+/pbr:verify-work <N>
+```
+
+### Option 4: Override (for false positives)
+If verification flagged something that's actually correct (e.g., a function intentionally returns an empty array), you can override the gap during review. The override is recorded in the verification report.
+
+---
+
+## Understanding Verification Attempts
+
+The verification report tracks `attempt` count. If a phase has been verified multiple times:
+
+- **Attempt 1**: Normal first verification
+- **Attempt 2**: Gaps were found and fixed, re-verifying
+- **Attempt 3+**: Escalation — Plan-Build-Run will offer additional options like accepting with gaps, switching to debug mode, or re-planning the phase
+
+Multiple attempts don't mean something is wrong — complex phases often need a round of gap-closure before passing.

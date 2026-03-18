@@ -40,6 +40,6 @@ Given phase number N:
 
 ## Error Messages
 
-- No argument and no current phase: "Which phase? Specify a number or run /pbr:progress to see where you are."
-- Phase not found: "Phase {N} not found in .planning/phases/. Run /pbr:progress to see available phases."
+- No argument and no current phase: "Which phase? Specify a number or run /pbr:status to see where you are."
+- Phase not found: "Phase {N} not found in .planning/phases/. Run /pbr:status to see available phases."
 - Wrong state: "Phase {N} hasn't been planned yet. Run /pbr:plan-phase {N} first."
