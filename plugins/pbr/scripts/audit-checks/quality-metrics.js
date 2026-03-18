@@ -336,4 +336,117 @@ function checkErrorCorrelation(auditResults) {
   return result('QM-04', 'pass', 'No cross-dimension error correlations detected');
 }
 
-module.exports = { checkSessionDegradation, checkThroughputMetrics, checkBaselineComparison, checkErrorCorrelation };
+// ---------------------------------------------------------------------------
+// QM-05: Audit Self-Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate that the audit agent checked all enabled dimensions.
+ *
+ * @param {Array<object>} activeDimensions - Array of dimension objects from resolveDimensions(), each has `.code`
+ * @param {Array<object>} auditResults - Array of check results, each has `.dimension`
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkAuditSelfValidation(activeDimensions, auditResults) {
+  if (!auditResults || auditResults.length === 0) {
+    return result('QM-05', 'fail', 'No audit results — audit agent produced no dimension checks');
+  }
+
+  if (!activeDimensions || activeDimensions.length === 0) {
+    return result('QM-05', 'pass', 'No active dimensions configured — nothing to validate');
+  }
+
+  // Build set of codes from auditResults
+  const checkedCodes = new Set();
+  for (const r of auditResults) {
+    if (r.dimension) {
+      checkedCodes.add(r.dimension.toUpperCase());
+    }
+    // Also check .code field (SI checks use code instead of dimension)
+    if (r.code) {
+      checkedCodes.add(r.code.toUpperCase());
+    }
+  }
+
+  const missing = [];
+  for (const dim of activeDimensions) {
+    const code = (dim.code || '').toUpperCase();
+    if (code && !checkedCodes.has(code)) {
+      missing.push(code);
+    }
+  }
+
+  const total = activeDimensions.length;
+  const checked = total - missing.length;
+
+  if (missing.length === 0) {
+    return result('QM-05', 'pass',
+      'All ' + total + '/' + total + ' enabled dimensions checked',
+      ['All ' + total + '/' + total + ' enabled dimensions checked']
+    );
+  }
+
+  return result('QM-05', 'warn',
+    checked + '/' + total + ' enabled dimensions checked (' + missing.length + ' missing)',
+    ['Missing dimensions: ' + missing.join(', ')]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Aggregator: Run All Quality Metric Checks
+// ---------------------------------------------------------------------------
+
+/**
+ * Run all 5 QM checks and return aggregated results.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {Array<object>} sessionData - Parsed JSONL entries
+ * @param {Array<object>} auditResults - Dimension check results from other categories
+ * @param {Array<object>} activeDimensions - Active dimension objects from resolveDimensions()
+ * @returns {Array<{ dimension: string, status: string, message: string, evidence: string[] }>}
+ */
+function runAllQualityMetricChecks(planningDir, sessionData, auditResults, activeDimensions) {
+  const checks = [
+    { code: 'QM-01', fn: function () { return checkSessionDegradation(sessionData); } },
+    { code: 'QM-02', fn: function () { return checkThroughputMetrics(sessionData); } },
+    { code: 'QM-03', fn: function () { return checkBaselineComparison(planningDir, auditResults); } },
+    { code: 'QM-04', fn: function () { return checkErrorCorrelation(auditResults); } },
+    { code: 'QM-05', fn: function () { return checkAuditSelfValidation(activeDimensions, auditResults); } },
+  ];
+
+  const results = [];
+  let passCount = 0;
+  let warnCount = 0;
+  let failCount = 0;
+
+  for (const check of checks) {
+    try {
+      const r = check.fn();
+      results.push(r);
+      if (r.status === 'pass') passCount++;
+      else if (r.status === 'warn') warnCount++;
+      else failCount++;
+    } catch (err) {
+      results.push({
+        dimension: check.code,
+        status: 'fail',
+        message: err.message,
+        evidence: [],
+      });
+      failCount++;
+    }
+  }
+
+  console.log('QM checks: ' + passCount + ' pass, ' + warnCount + ' warn, ' + failCount + ' fail');
+
+  return results;
+}
+
+module.exports = {
+  checkSessionDegradation,
+  checkThroughputMetrics,
+  checkBaselineComparison,
+  checkErrorCorrelation,
+  checkAuditSelfValidation,
+  runAllQualityMetricChecks,
+};
