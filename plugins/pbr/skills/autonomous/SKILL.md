@@ -116,6 +116,48 @@ For each remaining phase N:
   Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
 - If Skill returns failure: attempt single retry. If retry fails: stop loop, display error.
 
+### 3c-speculative. Speculative Planning (during build)
+
+**Gate:** Only execute this sub-step if ALL conditions are met:
+- `speculativeDepth > 0` (from Step 1.3 -- speculative_planning is true AND depth > 0)
+- Phase N build was just invoked (not skipped because SUMMARYs exist)
+
+**Procedure:**
+
+1. Determine candidate phases for speculative planning:
+   - Start from N+1, up to N+speculativeDepth
+   - For each candidate phase C:
+     a. Skip if C is beyond `--through` limit
+     b. Skip if C already has PLAN-*.md files
+     c. Skip if C already has CONTEXT.md AND the CONTEXT.md was NOT auto-generated
+     d. Read ROADMAP.md `### Phase C:` section, extract `**Depends on:**` line
+     e. Parse dependency phase numbers (same regex as build-dependency.js: `/Phase\s+(\d+)/gi`)
+     f. For each dependency D: check if D is completed (has VERIFICATION.md) OR is currently building (D == N)
+     g. If ALL dependencies are satisfied or in-flight: C is a candidate
+     h. If ANY dependency is neither completed nor in-flight: skip C AND all phases after C
+
+2. For each candidate phase C (in order):
+   - Check agent budget: if current concurrent agents >= `parallelization.max_concurrent_agents`, skip remaining candidates
+   - Log: `Speculative planning: Phase {C} (while Phase {N} builds)`
+   - Invoke planner as background task:
+     ```
+     Task({
+       subagent_type: "pbr:planner",
+       model: "sonnet",
+       run_in_background: true,
+       prompt: "Plan Phase {C}. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building."
+     })
+     ```
+   - Plans are written directly to the normal phase directory (NOT .speculative/) per locked decision #2
+
+3. After Phase N build completes (the Skill() call returns), proceed to staleness check in 3c-stale below.
+
+Important constraints:
+- Plan-only: Do NOT invoke discuss for speculative phases (locked decision #2). The planner only needs ROADMAP + CONTEXT.md.
+- Exception: if a phase-level CONTEXT.md already exists from a prior manual `/pbr:discuss-phase`, that is fine -- the planner will use it.
+- Do NOT speculate on phases that already have plans.
+- Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
+
 ### 3d. Verify Phase (Lightweight-First)
 
 - Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
