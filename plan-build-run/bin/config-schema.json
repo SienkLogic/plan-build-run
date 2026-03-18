@@ -131,6 +131,11 @@
           "default": true,
           "description": "Enable enhanced SessionStart briefing with structured context injection (~500 tokens)."
         },
+        "extended_context": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable aggressive 1M context window optimizations: higher max_concurrent_agents (5 vs 3), default team review, always-parallel codebase scan, and pre-loading multiple build steps. Safe optimizations (parallel researcher+seed-scan, full SUMMARY reads) are gated on context_window_tokens >= 500000 regardless of this flag. Auto-set to true by the quality model profile."
+        },
         "context_quality_scoring": {
           "type": "boolean",
           "default": true,
