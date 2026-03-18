@@ -14,23 +14,26 @@ module.exports = {
     'auto-continue\\.test\\.js',
     'progress-tracker\\.test\\.js',
   ],
-  // Coverage thresholds — 70% minimum for all metrics (quick-001)
   coverageThreshold: {
     global: {
+      statements: 50,
+      branches: 30,
+      functions: 50,
+      lines: 50,
+    },
+    './plan-build-run/bin/lib/': {
       statements: 70,
       branches: 60,
       functions: 70,
       lines: 70,
     },
+    // hooks + plugins thresholds set in T2 after measuring baseline
   },
   testMatch: ['**/tests/**/*.test.js'],
   coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/'],
   collectCoverageFrom: [
     'plan-build-run/bin/lib/**/*.cjs',
-    // Only include hooks with dedicated *-unit.test.js files that test handleHttp exports.
-    // All other hooks are either subprocess-only (stdin + process.exit) or mirrors of
-    // plugins/pbr/scripts/ files tested via that path. See hooks/ README for details.
-    // hooks/ files excluded — they're mirrors of plugins/pbr/scripts/ tested via that path.
-    // check-subagent-output unit tests import from hooks/ but exercise the same code.
+    'hooks/**/*.js',
+    'plugins/pbr/scripts/**/*.js',
   ],
 };
