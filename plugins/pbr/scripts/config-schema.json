@@ -1355,6 +1355,54 @@
       "maximum": 50,
       "default": 25,
       "description": "Target orchestrator context budget as percentage of total window. Range 15-50%. Higher values enable more inline work."
+    },
+    "audit": {
+      "type": "object",
+      "description": "Audit system configuration. Controls which dimensions run and their thresholds.",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": ["minimal", "standard", "comprehensive", "custom"],
+          "default": "standard",
+          "description": "Audit preset controlling which dimension categories are active by default."
+        },
+        "categories": {
+          "type": "object",
+          "properties": {
+            "self_integrity": { "type": "boolean", "default": true },
+            "infrastructure": { "type": "boolean", "default": true },
+            "error_analysis": { "type": "boolean", "default": true },
+            "workflow_compliance": { "type": "boolean", "default": true },
+            "behavioral_compliance": { "type": "boolean", "default": true },
+            "session_quality": { "type": "boolean", "default": true },
+            "feature_verification": { "type": "boolean", "default": true },
+            "quality_metrics": { "type": "boolean", "default": true }
+          },
+          "additionalProperties": false,
+          "description": "Per-category enable/disable toggles. Overrides the preset's defaults."
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" },
+          "description": "Per-dimension enable/disable overrides. Keys are dimension IDs (e.g., 'SI-01') or slugs (e.g., 'skill-template-refs'). Sparse: only list exceptions."
+        },
+        "thresholds": {
+          "type": "object",
+          "properties": {
+            "hook_performance_ms": { "type": "integer", "minimum": 100, "default": 500 },
+            "session_duration_warn_ms": { "type": "integer", "minimum": 60000, "default": 3600000 },
+            "tool_failure_rate_warn": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.10 },
+            "stale_file_age_hours": { "type": "integer", "minimum": 1, "default": 24 },
+            "retry_pattern_min_count": { "type": "integer", "minimum": 2, "default": 3 },
+            "agent_timeout_ms": { "type": "integer", "minimum": 60000, "default": 600000 },
+            "disk_usage_warn_mb": { "type": "integer", "minimum": 1, "default": 50 },
+            "log_rotation_max_days": { "type": "integer", "minimum": 1, "default": 30 }
+          },
+          "additionalProperties": false,
+          "description": "Tunable numeric thresholds referenced by audit dimensions."
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false
