@@ -45,10 +45,12 @@ The executor receives input from three sources:
 ### From Planner (PLAN files)
 - **Path**: `.planning/phases/{NN}-{slug}/{NN}-{MM}-PLAN.md`
 - **Frontmatter**: phase, plan, wave, depends_on, files_modified, must_haves (truths + artifacts + key_links), provides, consumes, implements, closes_issues
-- **Body**: XML `<task>` elements, each containing 5 child elements:
+- **Body**: XML `<task>` elements, each containing 7 child elements:
   - `<name>` — human-readable task description
+  - `<read_first>` — files to read before editing (prevents blind edits)
   - `<files>` — list of files to create/modify (commit scope)
   - `<action>` — numbered steps to execute
+  - `<acceptance_criteria>` — grep-verifiable conditions run after task completion
   - `<verify>` — command(s) to validate the task (may contain `<automated>` child)
   - `<done>` — definition of done for the task
 
@@ -126,15 +128,25 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
 ```
 5. For each task (sequential order):
    a. Read task XML
-   b. Execute <action> steps
-   c. Run <verify> commands
+   b. Read read_first files:
+      - Parse <read_first> element from task XML
+      - Read each listed file using the Read tool
+      - If any file doesn't exist, log warning but continue (file may be created by this task)
+      - CRITICAL: Do NOT skip this step. Blind edits are the #1 executor failure mode.
+   c. Execute <action> steps
+   d. Run <verify> commands
       - If <verify> contains an <automated> child element, extract and run the command inside it
       - If <verify> is plain text (no <automated> child), run it as before (backward compat)
       - Both forms produce the same result — <automated> is machine-parseable, plain text is human-readable
-   d. If verify passes: commit
-   e. If verify fails: apply deviation rules
-   f. If checkpoint: STOP and return
-   g. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
+   e. Run acceptance_criteria:
+      - Parse <acceptance_criteria> element from task XML
+      - Run each criterion as a shell command
+      - If any criterion fails: apply Node Repair (RETRY strategy first, then deviation Rule 1)
+      - If still failing after repair budget exhausted: log to SUMMARY.md deferred, proceed to next task
+   f. If verify + acceptance_criteria pass: commit
+   g. If verify fails: apply deviation rules, then Node Repair System
+   h. If checkpoint: STOP and return
+   i. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
 ```
 </step>
 
@@ -353,6 +365,40 @@ Never enter an infinite fix loop. 3 strikes = move on.
 
 ---
 
+## Node Repair System
+
+When a task fails (verify or acceptance_criteria), apply repair strategies in order:
+
+1. **RETRY** — Re-read the action steps and try again. Budget: `workflow.node_repair_budget` from config (default 2) retries per task. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get workflow.node_repair_budget`
+2. **DECOMPOSE** — Break the failing task into 2-3 smaller subtasks. Execute each subtask independently. Each gets its own commit.
+3. **PRUNE** — If non-essential parts are failing, skip them. Document skipped items in SUMMARY.md deferred section. Only prune if the must-have can still be achieved without the pruned parts.
+4. **ESCALATE** — Return `CHECKPOINT: TASK-FAILURE` with the task ID, error details, strategies attempted, and remaining tasks.
+
+Apply strategies in order: exhaust RETRY budget before trying DECOMPOSE, exhaust DECOMPOSE before PRUNE, exhaust PRUNE before ESCALATE.
+
+Log each strategy attempt: `"Node repair: {STRATEGY} on task {id} (attempt {n}/{budget})"`
+
+CRITICAL: Each repair attempt MUST be logged. Silent retries are forbidden.
+
+---
+
+## Analysis Paralysis Guard
+
+If you make 5 or more consecutive Read, Grep, or Glob calls without any Edit, Write, or Bash(non-read) call:
+
+**STOP. You are in analysis paralysis.**
+
+You MUST either:
+
+a) **Write code** — make an Edit or Write call based on what you've read
+b) **Report blocked** — state specifically what information is missing or what decision is needed
+
+Track this yourself: after each tool call, note whether it was read-only or write. If your last 5 calls were all reads, trigger the guard.
+
+This guard prevents spending the entire context window reading without producing output.
+
+---
+
 <checkpoint_protocol>
 ## Checkpoint Handling
 
@@ -483,6 +529,13 @@ Re-run the verify command from the last completed task:
 # whatever the task's verify field specified
 ```
 
+### Layer 4: SUMMARY.md Claim Verification
+After writing SUMMARY.md, verify your own claims:
+- For each file in `key_files`: run `ls -la {path}` to confirm existence
+- For each commit SHA in `commits`: run `git log --oneline {sha} -1` to confirm it exists
+- For each item in `provides`: verify the exported symbol/endpoint/module actually exists in the codebase
+- If any claim is unverified, mark the specific claim as FAILED in self-check output
+
 ### Result
 Append to SUMMARY.md:
 - `## Self-Check: PASSED` — all layers green
@@ -557,6 +610,9 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 12. DO NOT re-execute completed tasks when continuing
 13. DO NOT force-push or amend commits
 14. DO NOT re-read PLAN.md or PLAN files if the plan was already provided in your prompt context — this wastes tokens on redundant reads
+15. DO NOT skip read_first — reading files before editing is mandatory
+16. DO NOT silently retry — every repair attempt must be logged
+17. DO NOT make 5+ consecutive read-only calls — trigger the paralysis guard
 
 </anti_patterns>
 
