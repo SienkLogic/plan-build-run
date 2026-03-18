@@ -315,6 +315,34 @@ function buildContext(planningDir, stateFile) {
     parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
   }
 
+  // Check for WAITING.json (external wait state)
+  const waitingPath = path.join(planningDir, 'WAITING.json');
+  if (fs.existsSync(waitingPath)) {
+    try {
+      const waiting = JSON.parse(fs.readFileSync(waitingPath, 'utf8'));
+      parts.push(`\nProject is in WAITING state: ${waiting.reason || 'unknown reason'}`);
+      if (waiting.created_at) {
+        parts.push(`Waiting since: ${waiting.created_at}`);
+      }
+      parts.push('Run /pbr:resume to clear waiting state and continue.');
+    } catch (_e) {
+      parts.push('\nWAITING.json exists but could not be parsed.');
+    }
+  }
+
+  // Check for HANDOFF.json (machine-readable pause state)
+  const handoffPath = path.join(planningDir, 'HANDOFF.json');
+  if (fs.existsSync(handoffPath)) {
+    try {
+      const handoff = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+      const nextAction = handoff.next_action || 'unknown';
+      parts.push(`\nPrevious session left a handoff: ${nextAction}`);
+      parts.push('Run /pbr:resume to restore context.');
+    } catch (_e) {
+      parts.push('\nHANDOFF.json exists but could not be parsed.');
+    }
+  }
+
   // Check for .continue-here.md files
   const phasesDir = path.join(planningDir, 'phases');
   if (fs.existsSync(phasesDir)) {
