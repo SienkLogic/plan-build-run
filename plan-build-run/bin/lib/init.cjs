@@ -16,6 +16,40 @@ const { phaseInfo, phasePlanIndex } = require('./phase.cjs');
 const { resolveSessionPath } = require('./core.cjs');
 
 /**
+ * Detect drift between STATE.md and filesystem-derived progress.
+ * Compares plans_complete and progress_percent.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ drift_detected: boolean, stale_fields: string[] }}
+ */
+function detectDrift(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  try {
+    const progress = stateCheckProgress(dir);
+    const state = stateLoad(dir);
+    const stale_fields = [];
+
+    if (state.exists && state.state) {
+      const stPlansComplete = Number(state.state.plans_complete || 0);
+      const fsPlansComplete = progress.completed_plans;
+      if (stPlansComplete !== fsPlansComplete) {
+        stale_fields.push('plans_complete');
+      }
+
+      const stProgress = Number(state.state.progress || 0);
+      const fsProgress = progress.percentage;
+      if (stProgress !== fsProgress) {
+        stale_fields.push('progress_percent');
+      }
+    }
+
+    return { drift_detected: stale_fields.length > 0, stale_fields };
+  } catch (_e) {
+    return { drift_detected: false, stale_fields: [] };
+  }
+}
+
+/**
  * Initialize context for executing a phase (building plans).
  *
  * @param {string} phaseNum - Phase number
@@ -46,7 +80,8 @@ function initExecutePhase(phaseNum, planningDir, overrideModel) {
     phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, has_context: phase.has_context, status: phase.filesystem_status, plan_count: phase.plan_count, completed: phase.completed },
     plans: (plans.plans || []).map(p => ({ file: p.file, plan_id: p.plan_id, wave: p.wave, autonomous: p.autonomous, has_summary: p.has_summary, must_haves_count: p.must_haves_count, depends_on: p.depends_on })),
     waves: plans.waves || {},
-    branch_name: gitState.branch, git_clean: gitState.clean
+    branch_name: gitState.branch, git_clean: gitState.clean,
+    drift: detectDrift(dir)
   };
 }
 
@@ -81,7 +116,8 @@ function initPlanPhase(phaseNum, planningDir, overrideModel) {
     config: { depth: depthProfile.depth || 'standard', profile: depthProfile.profile || 'balanced', features: config.features || {}, planning: config.planning || {} },
     phase: { num: phaseNum, dir: phaseDirName, goal: phaseGoal, depends_on: phaseDeps },
     existing_artifacts: existingArtifacts,
-    workflow: { research_phase: (config.features || {}).research_phase !== false, plan_checking: (config.features || {}).plan_checking !== false }
+    workflow: { research_phase: (config.features || {}).research_phase !== false, plan_checking: (config.features || {}).plan_checking !== false },
+    drift: detectDrift(dir)
   };
 }
 
@@ -166,7 +202,7 @@ function initProgress(planningDir) {
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
   const progress = stateCheckProgress(dir);
-  return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage };
+  return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage, drift: detectDrift(dir) };
 }
 
 /**
@@ -294,6 +330,7 @@ function initStateBundle(phaseNum, planningDir) {
 }
 
 module.exports = {
+  detectDrift,
   initExecutePhase,
   initPlanPhase,
   initQuick,
