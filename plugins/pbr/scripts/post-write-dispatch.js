@@ -20,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('./hook-logger');
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
@@ -258,6 +259,7 @@ async function handleHttp(reqBody, _cache) {
   try {
     return await processEvent(data, planningDir);
   } catch (_e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
     return null;
   }
 }
@@ -280,6 +282,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on parse errors
+      logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
       process.exit(0);
     }
   });
