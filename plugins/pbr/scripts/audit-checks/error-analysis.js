@@ -3,14 +3,18 @@
 /**
  * Error & Failure Analysis Check Module
  *
- * Implements EF-01, EF-02, EF-05 error and failure analysis dimensions
+ * Implements all 7 EF error and failure analysis dimensions
  * for the PBR audit system. Each check returns a structured result:
  * { dimension, status, message, evidence }.
  *
  * Checks:
  *   EF-01: Tool failure rate analysis (PostToolUseFailure events by tool type)
  *   EF-02: Agent failure/timeout detection (missing completion markers, null durations)
+ *   EF-03: Hook false positive detection (blocks on legitimate writes)
+ *   EF-04: Hook false negative detection (bad actions not blocked)
  *   EF-05: Retry/repetition pattern detection (same tool called 3+ times consecutively)
+ *   EF-06: Cross-session interference detection (overlapping sessions, .active-skill races)
+ *   EF-07: Session cleanup verification (SessionEnd cleanup and stale file removal)
  *
  * Config dependencies:
  *   - config.audit.thresholds.tool_failure_rate_warn (EF-01, default 0.10)
@@ -370,6 +374,462 @@ function checkRetryRepetitionPattern(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// EF-03: Hook False Positive Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Analyze PreToolUse block decisions for potential false positives.
+ *
+ * A false positive is a block that was later overridden (same file allowed
+ * afterward), or a block on a file that belongs to the plan's files_modified
+ * list, or a block from check-skill-workflow / check-doc-sprawl on a
+ * legitimate PBR artifact path.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkHookFalsePositive(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookEntries = readJsonlFiles(logsDir, 'hooks');
+
+  // Collect block and allow decisions from PreToolUse hooks
+  const blocks = [];
+  const allows = [];
+
+  for (const entry of hookEntries) {
+    const action = entry.action || entry.decision || '';
+    const file = entry.details?.file || entry.data?.file || entry.file || '';
+    const hook = entry.hook || '';
+    const reason = entry.reason || entry.details?.reason || '';
+    const ts = entry.ts || '';
+
+    if (action === 'block') {
+      blocks.push({ hook, file, reason, ts });
+    } else if (action === 'allow') {
+      allows.push({ file, ts });
+    }
+  }
+
+  if (blocks.length === 0) {
+    return result('EF-03', 'pass', 'No hook blocks found in logs', []);
+  }
+
+  // Build a set of allowed files for quick lookup
+  const allowedFiles = new Map();
+  for (const a of allows) {
+    if (!a.file) continue;
+    const existing = allowedFiles.get(a.file);
+    if (!existing || a.ts > existing) {
+      allowedFiles.set(a.file, a.ts);
+    }
+  }
+
+  // Known PBR artifact path patterns that are legitimate write targets
+  const pbrArtifactPatterns = [
+    /\.planning\//,
+    /PLAN.*\.md$/i,
+    /SUMMARY.*\.md$/i,
+    /VERIFICATION.*\.md$/i,
+    /STATE\.md$/i,
+    /ROADMAP\.md$/i,
+    /CONTEXT\.md$/i,
+  ];
+
+  const evidence = [];
+
+  for (const block of blocks) {
+    const reasons = [];
+
+    // Check if same file was allowed later (block was retried and succeeded)
+    if (block.file && allowedFiles.has(block.file)) {
+      const allowTs = allowedFiles.get(block.file);
+      if (allowTs > block.ts) {
+        reasons.push('allowed later');
+      }
+    }
+
+    // Check if block was from check-skill-workflow or check-doc-sprawl on a PBR artifact
+    const isFalsePositiveHook = block.hook === 'check-skill-workflow' ||
+      block.hook === 'check-doc-sprawl' ||
+      block.hook === 'pre-write-dispatch';
+    if (isFalsePositiveHook && block.file) {
+      const normalized = block.file.replace(/\\/g, '/');
+      const isPbrArtifact = pbrArtifactPatterns.some(p => p.test(normalized));
+      if (isPbrArtifact) {
+        reasons.push('block on legitimate PBR artifact path');
+      }
+    }
+
+    if (reasons.length > 0) {
+      const fileStr = block.file ? ` on ${block.file}` : '';
+      const timeStr = block.ts ? ` at ${block.ts.substring(11, 16)}` : '';
+      evidence.push(
+        `${block.hook} blocked${fileStr}${timeStr} — possible false positive (${reasons.join(', ')})`
+      );
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('EF-03', 'pass', `${blocks.length} block(s) reviewed, no false positives detected`, []);
+  }
+
+  return result('EF-03', 'warn',
+    `${evidence.length} potential false positive(s) in ${blocks.length} total blocks`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EF-04: Hook False Negative Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect bad actions that should have been blocked but weren't.
+ *
+ * Scans for: non-conventional commits that passed validation, writes to files
+ * outside files_modified, and destructive git commands that were allowed.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkHookFalseNegative(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookEntries = readJsonlFiles(logsDir, 'hooks');
+  const eventEntries = readJsonlFiles(logsDir, 'events');
+
+  const evidence = [];
+
+  // 1. Check for commits with non-conventional format that passed validation
+  const conventionalPattern = /^(feat|fix|refactor|test|docs|chore|wip|revert|perf|ci|build)\(.+\):\s.+/;
+  const commitEvents = eventEntries.filter(
+    e => (e.event === 'commit-validated' && e.status === 'allow') ||
+         (e.cat === 'tool' && e.tool === 'Bash' && e.data?.command && /git commit/.test(e.data.command))
+  );
+
+  for (const ce of commitEvents) {
+    const msg = ce.data?.message || ce.details?.message || '';
+    if (msg && !conventionalPattern.test(msg)) {
+      evidence.push(
+        `Non-conventional commit passed validation: "${msg.substring(0, 60)}"`
+      );
+    }
+  }
+
+  // 2. Check for destructive git commands that were allowed
+  const destructivePatterns = [
+    /git\s+push\s+--force/,
+    /git\s+push\s+-f\b/,
+    /git\s+reset\s+--hard/,
+    /git\s+checkout\s+--\s/,
+    /git\s+clean\s+-f/,
+    /git\s+branch\s+-D/,
+  ];
+
+  const bashEvents = hookEntries.filter(
+    e => (e.hook === 'pre-bash-dispatch' || e.hook === 'check-dangerous-commands') &&
+         (e.action === 'allow' || e.decision === 'allow')
+  );
+
+  for (const be of bashEvents) {
+    const cmd = be.details?.cmd || be.data?.cmd || be.data?.command || '';
+    for (const dp of destructivePatterns) {
+      if (dp.test(cmd)) {
+        const timeStr = be.ts ? ` at ${be.ts.substring(11, 16)}` : '';
+        evidence.push(
+          `Destructive command allowed${timeStr}: "${cmd.substring(0, 80)}"`
+        );
+        break;
+      }
+    }
+  }
+
+  // 3. Check for writes outside files_modified that were allowed
+  // Look for allow decisions on writes, cross-reference with plan frontmatter if available
+  const writeAllows = hookEntries.filter(
+    e => e.hook === 'pre-write-dispatch' && (e.action === 'allow' || e.decision === 'allow')
+  );
+
+  // Try to read current plan's files_modified from any available PLAN file
+  let filesModified = null;
+  try {
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const phaseDirs = fs.readdirSync(phasesDir);
+      for (const pd of phaseDirs) {
+        const planFiles = fs.readdirSync(path.join(phasesDir, pd)).filter(f => /^PLAN.*\.md$/i.test(f));
+        for (const pf of planFiles) {
+          try {
+            const content = fs.readFileSync(path.join(phasesDir, pd, pf), 'utf8');
+            const fmMatch = content.match(/files_modified:\s*\n((?:\s+-\s+"[^"]+"\n?)+)/);
+            if (fmMatch) {
+              const files = fmMatch[1].match(/"([^"]+)"/g);
+              if (files) {
+                filesModified = files.map(f => f.replace(/"/g, ''));
+              }
+            }
+          } catch (_e) { /* skip unreadable */ }
+        }
+      }
+    }
+  } catch (_e) { /* no plan files available */ }
+
+  if (filesModified && filesModified.length > 0) {
+    for (const wa of writeAllows) {
+      const file = wa.details?.file || wa.data?.file || '';
+      if (!file) continue;
+      const normalized = file.replace(/\\/g, '/');
+      // Skip .planning writes — those are always allowed
+      if (normalized.includes('.planning/')) continue;
+      const isInPlan = filesModified.some(fm => normalized.endsWith(fm) || normalized.includes(fm));
+      if (!isInPlan) {
+        evidence.push(
+          `Write allowed outside files_modified: "${normalized}"`
+        );
+      }
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('EF-04', 'pass', 'No false negatives detected in hook enforcement', []);
+  }
+
+  return result('EF-04', 'warn',
+    `${evidence.length} potential false negative(s) in hook enforcement`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EF-06: Cross-Session Interference Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect cross-session interference: overlapping sessions, .active-skill
+ * claim races, and stale lock files.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkCrossSessionInterference(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookEntries = readJsonlFiles(logsDir, 'hooks');
+  const eventEntries = readJsonlFiles(logsDir, 'events');
+
+  const evidence = [];
+  let hasFail = false;
+
+  // 1. Extract session IDs and detect overlapping sessions
+  const sessionTimestamps = new Map(); // sessionId -> [timestamps]
+
+  for (const entry of [...hookEntries, ...eventEntries]) {
+    const sessionId = entry.session_id || entry.sessionId || entry.details?.session_id || null;
+    const ts = entry.ts || '';
+    if (!sessionId || !ts) continue;
+
+    if (!sessionTimestamps.has(sessionId)) {
+      sessionTimestamps.set(sessionId, []);
+    }
+    sessionTimestamps.get(sessionId).push(ts);
+  }
+
+  // Check for overlapping sessions: two sessions with interleaved timestamps
+  const sessions = Array.from(sessionTimestamps.entries());
+  for (let i = 0; i < sessions.length; i++) {
+    for (let j = i + 1; j < sessions.length; j++) {
+      const [idA, tsA] = sessions[i];
+      const [idB, tsB] = sessions[j];
+      if (tsA.length === 0 || tsB.length === 0) continue;
+
+      const minA = tsA.reduce((a, b) => a < b ? a : b);
+      const maxA = tsA.reduce((a, b) => a > b ? a : b);
+      const minB = tsB.reduce((a, b) => a < b ? a : b);
+      const maxB = tsB.reduce((a, b) => a > b ? a : b);
+
+      // Overlap: session A's range intersects session B's range
+      if (minA <= maxB && minB <= maxA) {
+        const overlapStart = minA > minB ? minA : minB;
+        evidence.push(
+          `Two sessions active simultaneously at ${overlapStart.substring(11, 16)} (session ${idA.substring(0, 8)} and ${idB.substring(0, 8)})`
+        );
+        hasFail = true;
+      }
+    }
+  }
+
+  // 2. Look for .active-skill conflict entries in hook logs
+  const activeSkillConflicts = hookEntries.filter(e => {
+    const details = JSON.stringify(e.details || e.data || {}).toLowerCase();
+    return details.includes('active-skill') || details.includes('active_skill');
+  }).filter(e => {
+    const action = e.action || e.decision || '';
+    return action === 'block' || action === 'warn' || action === 'warned';
+  });
+
+  for (const conflict of activeSkillConflicts) {
+    const hook = conflict.hook || 'unknown';
+    const action = conflict.action || conflict.decision || '';
+    const ts = conflict.ts ? ` at ${conflict.ts.substring(11, 16)}` : '';
+    evidence.push(
+      `${hook} ${action} on active-skill conflict${ts}`
+    );
+    if (action === 'block') hasFail = true;
+  }
+
+  // 3. Check if .active-skill currently exists (stale from crashed session)
+  const activeSkillPath = path.join(planningDir, '.active-skill');
+  try {
+    if (fs.existsSync(activeSkillPath)) {
+      const stat = fs.statSync(activeSkillPath);
+      const ageMs = Date.now() - stat.mtimeMs;
+      const ageMin = Math.round(ageMs / 60000);
+      evidence.push(
+        `.active-skill exists (${ageMin}min old) — may be stale from crashed session`
+      );
+    }
+  } catch (_e) { /* best-effort */ }
+
+  if (evidence.length === 0) {
+    return result('EF-06', 'pass', 'No cross-session interference detected', []);
+  }
+
+  const status = hasFail ? 'fail' : 'warn';
+  const message = hasFail
+    ? `Cross-session interference detected: ${evidence.length} issue(s)`
+    : `${evidence.length} potential cross-session issue(s) found`;
+
+  return result('EF-06', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
+// EF-07: Session Cleanup Verification
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify that session-cleanup.js fires at SessionEnd and removes stale files.
+ *
+ * Checks for: cleanup log entries matching SessionEnd events, orphaned
+ * artifacts (.active-skill, .active-operation, .auto-next, .context-tracker,
+ * stale .checkpoint-manifest.json), and old hook log files.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkSessionCleanupVerification(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookEntries = readJsonlFiles(logsDir, 'hooks');
+  const eventEntries = readJsonlFiles(logsDir, 'events');
+
+  const evidence = [];
+
+  // 1. Find SessionEnd events and verify matching cleanup entries
+  const sessionEndEvents = eventEntries.filter(
+    e => e.event === 'SessionEnd' || (e.cat === 'lifecycle' && e.event === 'session-end')
+  );
+
+  const cleanupEntries = hookEntries.filter(
+    e => e.hook === 'session-cleanup' && (e.action === 'cleaned' || e.decision === 'cleaned' || e.action === 'nothing')
+  );
+
+  // For each SessionEnd, check if there's a cleanup entry near the same time
+  for (const se of sessionEndEvents) {
+    const seTs = se.ts || '';
+    if (!seTs) continue;
+
+    const hasMatchingCleanup = cleanupEntries.some(ce => {
+      const ceTs = ce.ts || '';
+      if (!ceTs) return false;
+      // Within 60 seconds of each other
+      try {
+        const diff = Math.abs(new Date(ceTs).getTime() - new Date(seTs).getTime());
+        return diff < 60000;
+      } catch (_e) {
+        return false;
+      }
+    });
+
+    if (!hasMatchingCleanup) {
+      evidence.push(
+        `SessionEnd at ${seTs.substring(11, 16)} has no matching cleanup entry`
+      );
+    }
+  }
+
+  // 2. Check for orphaned artifacts that cleanup should have removed
+  const orphanChecks = [
+    { file: '.active-skill', desc: '.active-skill (should not exist between sessions)' },
+    { file: '.active-operation', desc: '.active-operation (should not exist between sessions)' },
+    { file: '.auto-next', desc: '.auto-next (transient signal file)' },
+    { file: '.context-tracker', desc: '.context-tracker (session-scoped)' },
+  ];
+
+  for (const check of orphanChecks) {
+    const filePath = path.join(planningDir, check.file);
+    try {
+      if (fs.existsSync(filePath)) {
+        evidence.push(`${check.desc} exists — cleanup may have missed it`);
+      }
+    } catch (_e) { /* best-effort */ }
+  }
+
+  // 3. Check for stale .checkpoint-manifest.json (>24 hours old)
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  try {
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const dirs = fs.readdirSync(phasesDir);
+      for (const dir of dirs) {
+        const manifestPath = path.join(phasesDir, dir, '.checkpoint-manifest.json');
+        try {
+          if (fs.existsSync(manifestPath)) {
+            const stat = fs.statSync(manifestPath);
+            const ageMs = Date.now() - stat.mtimeMs;
+            if (ageMs > STALE_MS) {
+              const ageHrs = Math.round(ageMs / 3600000);
+              evidence.push(
+                `.checkpoint-manifest.json in ${dir} is ${ageHrs}h old — cleanup should have removed it`
+              );
+            }
+          }
+        } catch (_e) { /* skip */ }
+      }
+    }
+  } catch (_e) { /* best-effort */ }
+
+  // 4. Check hook log rotation — if hooks-*.jsonl has files older than 30 days
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  try {
+    if (fs.existsSync(logsDir)) {
+      const logFiles = fs.readdirSync(logsDir).filter(f => /^hooks-.*\.jsonl/.test(f));
+      for (const lf of logFiles) {
+        const stat = fs.statSync(path.join(logsDir, lf));
+        const ageMs = Date.now() - stat.mtimeMs;
+        if (ageMs > THIRTY_DAYS_MS) {
+          const ageDays = Math.round(ageMs / (24 * 60 * 60 * 1000));
+          evidence.push(
+            `${lf} is ${ageDays} days old — log rotation may not be running`
+          );
+        }
+      }
+    }
+  } catch (_e) { /* best-effort */ }
+
+  if (evidence.length === 0) {
+    const cleanupCount = cleanupEntries.length;
+    return result('EF-07', 'pass',
+      `Session cleanup verified (${cleanupCount} cleanup event(s) found)`, []);
+  }
+
+  return result('EF-07', 'warn',
+    `${evidence.length} session cleanup gap(s) found`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -377,4 +837,8 @@ module.exports = {
   checkToolFailureRate,
   checkAgentFailureTimeout,
   checkRetryRepetitionPattern,
+  checkHookFalsePositive,
+  checkHookFalseNegative,
+  checkCrossSessionInterference,
+  checkSessionCleanupVerification,
 };
