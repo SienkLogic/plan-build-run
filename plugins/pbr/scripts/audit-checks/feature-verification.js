@@ -411,6 +411,214 @@ function checkAutoContinueChain(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// FV-08: Negative Knowledge Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether negative knowledge tracking is enabled and producing records.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkNegativeKnowledgeTracking(planningDir, config) {
+  const features = (config && config.features) || {};
+  if (features.negative_knowledge !== true) {
+    return result('FV-08', 'pass', 'Feature disabled by config');
+  }
+
+  const nkDir = path.join(planningDir, 'negative-knowledge');
+  let files;
+  try {
+    files = fs.readdirSync(nkDir).filter(function (f) {
+      return f.endsWith('.md') || f.endsWith('.json');
+    });
+  } catch (_e) {
+    return result('FV-08', 'warn', 'Enabled but no negative-knowledge/ directory — acceptable early in project');
+  }
+
+  if (files.length === 0) {
+    return result('FV-08', 'warn', 'Enabled but no negative knowledge recorded — acceptable early in project');
+  }
+
+  return result('FV-08', 'pass', `Negative knowledge active (${files.length} file(s))`, files);
+}
+
+// ---------------------------------------------------------------------------
+// FV-09: Decision Journal Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether decision journal tracking is enabled and producing records.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkDecisionJournalTracking(planningDir, config) {
+  const features = (config && config.features) || {};
+  if (features.decision_journal !== true) {
+    return result('FV-09', 'pass', 'Feature disabled by config');
+  }
+
+  const decisionsDir = path.join(planningDir, 'decisions');
+  let files;
+  try {
+    files = fs.readdirSync(decisionsDir).filter(function (f) {
+      return f.endsWith('.md') || f.endsWith('.json');
+    });
+  } catch (_e) {
+    return result('FV-09', 'warn', 'Enabled but no decisions/ directory found');
+  }
+
+  if (files.length === 0) {
+    return result('FV-09', 'warn', 'Enabled but no decisions recorded');
+  }
+
+  return result('FV-09', 'pass', `Decision journal active (${files.length} file(s))`, files);
+}
+
+// ---------------------------------------------------------------------------
+// FV-10: Phase Boundary Enforcement
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether phase boundary enforcement is enabled and producing log entries.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkPhaseBoundaryEnforcement(planningDir, config) {
+  const safety = (config && config.safety) || {};
+  if (safety.enforce_phase_boundaries !== true) {
+    return result('FV-10', 'pass', 'Feature disabled by config');
+  }
+
+  const entries = scanHookLogs(planningDir, function (entry) {
+    return entry.script && String(entry.script).includes('check-phase-boundary');
+  });
+
+  if (entries.length === 0) {
+    return result('FV-10', 'warn', 'Enabled but no phase boundary enforcement entries in recent hook logs');
+  }
+
+  let blockCount = 0;
+  let allowCount = 0;
+  for (const entry of entries) {
+    const decision = (entry.decision || entry.action || '').toLowerCase();
+    if (decision === 'block') {
+      blockCount++;
+    } else {
+      allowCount++;
+    }
+  }
+
+  return result('FV-10', 'pass', `Phase boundary enforcement active (${entries.length} entries: ${blockCount} block, ${allowCount} allow)`, [
+    `Found ${entries.length} check-phase-boundary entries in recent hook logs`,
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// FV-11: Destructive Op Confirmation
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether destructive op confirmation is enabled and producing log entries.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkDestructiveOpConfirmation(planningDir, config) {
+  const safety = (config && config.safety) || {};
+  if (safety.always_confirm_destructive !== true) {
+    return result('FV-11', 'pass', 'Feature disabled by config');
+  }
+
+  const entries = scanHookLogs(planningDir, function (entry) {
+    return entry.script && String(entry.script).includes('check-dangerous-commands');
+  });
+
+  if (entries.length === 0) {
+    return result('FV-11', 'warn', 'No destructive ops attempted — no trigger');
+  }
+
+  let blockCount = 0;
+  let allowCount = 0;
+  for (const entry of entries) {
+    const decision = (entry.decision || entry.action || '').toLowerCase();
+    if (decision === 'block') {
+      blockCount++;
+    } else {
+      allowCount++;
+    }
+  }
+
+  return result('FV-11', 'pass', `Destructive op confirmation active (${entries.length} entries: ${blockCount} block, ${allowCount} allow)`, [
+    `Found ${entries.length} check-dangerous-commands entries in recent hook logs`,
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// FV-12: Context Budget Accuracy
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether context budget tracking is accurate and functioning.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkContextBudgetAccuracy(planningDir, _config) {
+  const budgetPath = path.join(planningDir, '.context-budget.json');
+  let content;
+  try {
+    content = fs.readFileSync(budgetPath, 'utf8');
+  } catch (_e) {
+    return result('FV-12', 'warn', 'No .context-budget.json file found');
+  }
+
+  let data;
+  try {
+    data = JSON.parse(content);
+  } catch (_e) {
+    return result('FV-12', 'warn', 'context-budget.json exists but is not valid JSON');
+  }
+
+  const evidence = [];
+
+  if (typeof data.chars_read !== 'number') {
+    evidence.push('chars_read is missing or not a number');
+  }
+
+  if (!data.source) {
+    evidence.push('source field is missing');
+  } else {
+    evidence.push(`source: ${data.source}`);
+  }
+
+  if (data.estimated_percent != null) {
+    evidence.push(`estimated_percent: ${data.estimated_percent}`);
+  }
+
+  // Valid data with real source
+  if (data.source === 'claude-code') {
+    return result('FV-12', 'pass', 'Context budget tracked with real Claude Code data', evidence);
+  }
+
+  // Valid data with heuristic source
+  if (data.source === 'bridge' || data.source === 'heuristic') {
+    if (typeof data.chars_read === 'number') {
+      return result('FV-12', 'pass', `Context budget tracked (source: ${data.source})`, evidence);
+    }
+  }
+
+  // Data exists but has issues
+  if (evidence.some(function (e) { return e.includes('missing'); })) {
+    return result('FV-12', 'warn', 'context-budget.json has incomplete data', evidence);
+  }
+
+  return result('FV-12', 'pass', 'Context budget data present', evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -424,4 +632,9 @@ module.exports = {
   checkLearningsSystemActivity,
   checkIntelSystemActivity,
   checkAutoContinueChain,
+  checkNegativeKnowledgeTracking,
+  checkDecisionJournalTracking,
+  checkPhaseBoundaryEnforcement,
+  checkDestructiveOpConfirmation,
+  checkContextBudgetAccuracy,
 };
