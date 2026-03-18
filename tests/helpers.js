@@ -17,7 +17,8 @@ const { getLogFilename: getEventsFilename } = require('../hooks/event-logger');
  * Returns { tmpDir, planningDir }.
  */
 function createTmpPlanning(prefix = 'plan-build-run-test-') {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  // Resolve symlinks so file_path and process.cwd() match (macOS /var → /private/var)
+  const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
   const planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir);
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });

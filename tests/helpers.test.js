@@ -129,8 +129,8 @@ describe('createRunner', () => {
       const run = createRunner(scriptPath);
       const result = run(undefined, { cwd: tmpDir });
       expect(result.exitCode).toBe(0);
-      // Normalize paths for comparison (Windows may resolve symlinks differently)
-      expect(path.resolve(result.output)).toBe(path.resolve(tmpDir));
+      // Normalize paths for comparison (macOS /var -> /private/var symlink)
+      expect(fs.realpathSync(result.output.trim())).toBe(fs.realpathSync(tmpDir));
     } finally {
       fs.unlinkSync(scriptPath);
       cleanupTmp(tmpDir);
