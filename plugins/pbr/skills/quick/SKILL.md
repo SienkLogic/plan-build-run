@@ -62,6 +62,8 @@ Strip these flags from `$ARGUMENTS` before using the remainder as the task descr
 - `--discuss --research --full`: All quality layers
 - No flags: Standard quick task flow (zero-friction or legacy based on config)
 
+**Note:** `--full` converts the zero-friction path to use a PLAN.md so plan-checker can validate it. The executor then reads the PLAN.md instead of inline instructions. This adds 1-2 tool calls but enables structured validation.
+
 ## Core Principle
 
 **Quick tasks are for small, well-defined work.** If the user describes something that would take more than 3-5 tasks or touches multiple subsystems, suggest using the full plan/build cycle instead.
@@ -207,6 +209,33 @@ When done, output ## PLAN COMPLETE with a list of commits made.
 
 This is the 2nd tool call. Code is now running.
 
+### Step 2-full: Plan-Checker Loop for Zero-Friction (only if --full)
+
+If `--full` flag is set in the zero-friction path, add plan-checker validation before executor spawn:
+
+1. **Create PLAN.md**: Write a PLAN.md to `.planning/quick/{NNN}-{slug}/PLAN.md` using the same format as Legacy Step 5f. This is required so the plan-checker has a structured plan to validate.
+
+2. **Run plan-checker loop**: Same logic as Legacy Step 5g-full:
+
+```
+iteration = 0
+max_iterations = 2
+while iteration < max_iterations:
+  Spawn Task(subagent_type: "pbr:plan-checker") with quick-mode validation profile
+  (same prompt as Legacy Step 5g-full)
+
+  If CHECK PASSED: break
+  If CHECK FAILED: fix PLAN.md, iteration += 1
+
+If max_iterations reached: warn user and continue.
+```
+
+3. **Spawn executor with PLAN.md**: Instead of the inline zero-friction prompt, use the legacy-style executor prompt with `files_to_read` pointing to the PLAN.md (same as Legacy Step 5h).
+
+**Note:** `--full` converts the zero-friction path to use a PLAN.md so plan-checker can validate it. The executor then reads the PLAN.md instead of inline instructions.
+
+If `--full` is NOT set, skip this step entirely -- the zero-friction path proceeds directly to Step 2 executor spawn with no overhead.
+
 ### Step 3: Post-Execution Recording (after executor returns)
 
 After the executor completes:
@@ -332,6 +361,46 @@ Before proceeding to Step 5g, confirm these exist on disk:
 2. `.planning/quick/{NNN}-{slug}/PLAN.md` exists, is non-empty, and contains at least one `<task>` block
 
 If either check fails, you have skipped steps. Go back and complete Steps 5d-5f. Do NOT proceed to spawning an executor.
+
+#### Step 5g-full: Plan-Checker Loop (only if --full)
+
+If `--full` flag is set, run the plan-checker before spawning the executor:
+
+```
+iteration = 0
+max_iterations = 2
+while iteration < max_iterations:
+  Spawn Task(subagent_type: "pbr:plan-checker") with prompt:
+    You are plan-checker validating a QUICK TASK plan (not a full phase plan).
+
+    <files_to_read>
+    1. .planning/quick/{NNN}-{slug}/PLAN.md
+    </files_to_read>
+
+    Quick-mode validation profile -- check ONLY these dimensions:
+    1. Task completeness: all 5 elements present (name, files, action, verify, done)
+    2. Verification commands: verify commands are executable
+    3. Scope sanity: <= 3 tasks, <= 8 files total
+
+    SKIP these full-plan-only dimensions:
+    - Cross-plan data contracts
+    - Wave/dependency correctness
+    - Requirement coverage (quick tasks don't have requirement IDs)
+    - Context compliance (no phase CONTEXT.md for quick tasks unless --discuss)
+
+    Output: ## CHECK PASSED or ## CHECK FAILED with specific issues.
+
+  If plan-checker returns CHECK PASSED: break loop, proceed to executor
+  If plan-checker returns CHECK FAILED:
+    - Read the issues
+    - Fix PLAN.md inline (rewrite the plan addressing issues)
+    - iteration += 1
+    - Loop again
+
+If max_iterations reached without passing: warn user "Plan-checker did not pass after 2 iterations. Proceeding with current plan." and continue to executor.
+```
+
+If `--full` is NOT set, skip this step entirely -- zero overhead on the default path.
 
 #### Step 5g: Local LLM Task Validation (optional, advisory)
 
