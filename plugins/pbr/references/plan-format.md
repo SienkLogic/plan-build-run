@@ -71,11 +71,13 @@ closes_issues:
 | `must_haves.key_links` | YES | array | Connections between components. Append `: grep command` for verification. |
 | `provides` | NO | array | What this plan exports for other plans to consume (classes, endpoints, modules) |
 | `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
-| `implements` | NO (WARNING if absent) | array | REQ-IDs from REQUIREMENTS.md this plan addresses. Primary traceability field. |
+| `implements` | YES (WARNING if absent) | array | REQ-IDs from REQUIREMENTS.md or ROADMAP this plan addresses. Primary traceability field. |
 | `requirement_ids` | NO | array | DEPRECATED — use `implements:` instead. Kept for backward compat. |
 | `dependency_fingerprints` | NO | object | Hashes of dependency phase SUMMARY.md files at plan-creation time. Used to detect stale plans. |
 | `data_contracts` | NO | array | Cross-boundary parameter mappings for calls where arguments originate from external boundaries. Format: `"param: source (context) [fallback]"` |
 | `closes_issues` | NO | number[] | GitHub issue numbers to close when this plan's final commit lands. Default: `[]` |
+
+> **Note:** The `implements` field is mandatory for new plans. The plan-checker validates that listed IDs trace to ROADMAP phase items. Existing plans without `implements` receive a WARNING (not a blocker) during the transition period.
 
 ### Data Contracts
 
