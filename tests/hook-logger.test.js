@@ -103,16 +103,14 @@ describe('hook-logger.js', () => {
     expect(last.hook).toBe('after-rotation');
   });
 
-  test('gracefully handles missing .planning directory', () => {
-    // Remove the .planning dir
+  test('gracefully handles missing .planning directory in cwd', () => {
+    // Remove the .planning dir from tmpDir
     fs.rmSync(planningDir, { recursive: true, force: true });
 
     const { logHook } = getLogger();
-    // Should not throw
+    // Should not throw -- resolveProjectRoot walks up and may find an ancestor's .planning/
+    // or falls back to cwd where it auto-creates .planning/logs/
     expect(() => logHook('test', 'Event', 'allow')).not.toThrow();
-
-    // getLogPath() auto-creates .planning/logs/ with recursive: true
-    expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl'))).toBe(true);
   });
 
   test('includes extra details in entry', () => {

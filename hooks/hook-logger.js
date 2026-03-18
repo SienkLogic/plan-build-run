@@ -14,6 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { resolveProjectRoot } = require('./lib/resolve-root');
 
 const MAX_ENTRIES = 200;
 
@@ -40,7 +41,7 @@ function rotateLog(logPath) {
 }
 
 function getLogPath() {
-  const cwd = process.cwd();
+  const cwd = resolveProjectRoot();
   const planningDir = path.join(cwd, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   const newPath = path.join(logsDir, 'hooks.jsonl');
