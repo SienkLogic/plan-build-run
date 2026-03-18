@@ -1262,6 +1262,42 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
 If any item fails, investigate before marking phase complete.
 
+**8b-ii. Calculate and write velocity metrics to STATE.md (informational only):**
+
+After updating STATE.md status, calculate velocity metrics from this phase's build data:
+
+1. Read all SUMMARY.md files in the current phase directory. Extract `metrics.duration_minutes` from each frontmatter (if present). If duration is not in frontmatter, estimate from git log: time between first and last commit for that plan using `git log --format=%aI`.
+
+2. Calculate:
+   - `plans_executed`: count of SUMMARY.md files in this phase
+   - `avg_duration_minutes`: mean of all plan durations (round to nearest integer)
+   - `phase_duration_minutes`: total time from first plan start to last plan completion
+   - `trend`: compare this phase's avg\_duration to the previous phase's avg\_duration (read prior phase SUMMARY.md files if they exist):
+     - If >20% faster: "improving"
+     - If >20% slower: "degrading"
+     - Otherwise: "stable"
+     - If no previous phase data: "baseline"
+
+3. Count total plans across all phases from ROADMAP.md progress table for the `total_plans` metric.
+
+4. Write a `## Metrics` section to STATE.md. If a `## Metrics` section already exists, replace it. Otherwise insert it before `## History` (or append at end if no History section):
+
+```
+## Metrics
+
+| Metric | Value |
+|--------|-------|
+| Plans executed (this phase) | {plans_executed} |
+| Avg plan duration | {avg_duration_minutes} min |
+| Phase duration | {phase_duration_minutes} min |
+| Trend | {trend} |
+| Total plans (all phases) | {total_plans} |
+```
+
+5. Keep the metrics section concise (under 10 lines) to respect the 100-line STATE.md cap from RH-56. The metrics section replaces itself on each phase completion — it does NOT accumulate.
+
+6. Metrics are **informational only** — they do NOT gate any workflow decisions.
+
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 If `planning.commit_docs` is `true`:
