@@ -189,7 +189,33 @@ function initResume(planningDir, sessionId) {
   try { autoNext = fs.readFileSync(autoNextPath, "utf8").trim(); } catch (_e) { /* file not found */ }
   try { continueHere = fs.readFileSync(path.join(dir, ".continue-here"), "utf8").trim(); } catch (_e) { /* file not found */ }
   try { activeSkill = fs.readFileSync(activeSkillPath, "utf8").trim(); } catch (_e) { /* file not found */ }
-  return { state: state.state, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, current_phase: state.current_phase, progress: state.progress };
+
+  // Drift detection and auto-repair
+  const drift = detectDrift(dir);
+  let rederived = false;
+  let corrections = [];
+  let rederive_error = undefined;
+
+  if (drift.drift_detected) {
+    try {
+      const { stateRederive } = require('./state.cjs');
+      const rederiveResult = stateRederive(dir);
+      if (rederiveResult.success) {
+        rederived = true;
+        corrections = rederiveResult.corrected || [];
+      } else {
+        rederive_error = rederiveResult.error || 'stateRederive returned failure';
+      }
+    } catch (e) {
+      rederived = false;
+      corrections = [];
+      rederive_error = e.message;
+    }
+  }
+
+  const result = { state: state.state, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, current_phase: state.current_phase, progress: state.progress, drift, rederived, corrections };
+  if (rederive_error) result.rederive_error = rederive_error;
+  return result;
 }
 
 /**
