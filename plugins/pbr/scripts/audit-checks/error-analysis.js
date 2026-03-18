@@ -769,6 +769,8 @@ function checkSessionCleanupVerification(planningDir, config) {
   const orphanChecks = [
     { file: '.active-skill', desc: '.active-skill (should not exist between sessions)' },
     { file: '.active-operation', desc: '.active-operation (should not exist between sessions)' },
+    { file: '.active-plan', desc: '.active-plan (should not exist between sessions)' },
+    { file: '.session.json', desc: '.session.json (consolidated session state)' },
     { file: '.auto-next', desc: '.auto-next (transient signal file)' },
     { file: '.context-tracker', desc: '.context-tracker (session-scoped)' },
   ];
