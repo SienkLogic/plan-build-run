@@ -1374,5 +1374,70 @@ describe('milestone-scoped phase counting in frontmatter', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// statePhaseComplete
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('statePhaseComplete', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('marks phase complete in frontmatter and body', () => {
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 3',
+      'phase_slug: "api-layer"',
+      'status: "executing"',
+      'plans_complete: 2',
+      'plans_total: 2',
+      'progress_percent: 50',
+      'last_activity: "2026-03-10 Built plan 2"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 3 of 6 (Api Layer)',
+      'Status: Executing',
+      'Plan: 2 of 2',
+      'Progress: [██████████░░░░░░░░░░] 50%',
+      'Last activity: 2026-03-10 Built plan 2',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = statePhaseComplete(3, path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.phase, 3, 'should return phase number');
+    assert.strictEqual(result.status, 'complete', 'should return complete status');
+
+    const updated = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    // Frontmatter should have status: "complete"
+    assert.ok(/status:\s*"complete"/.test(updated), 'frontmatter status should be "complete"');
+    // Body should have "Status: Complete"
+    assert.ok(/^Status:\s*Complete/m.test(updated), 'body Status should be Complete');
+    // last_activity should mention phase complete
+    assert.ok(/Phase 3 complete/.test(updated), 'last_activity should mention phase complete');
+  });
+
+  test('returns error when STATE.md not found', () => {
+    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = statePhaseComplete(1, path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, false, 'should fail');
+    assert.ok(result.error, 'should have error message');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // summary-extract command
 // ─────────────────────────────────────────────────────────────────────────────
