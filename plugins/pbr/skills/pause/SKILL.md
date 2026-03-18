@@ -213,6 +213,8 @@ Remaining: {count} plans in this phase
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 ### No work was done this session

@@ -207,6 +207,8 @@ New revert commit: {hash} — revert({scope}): undo {description}
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Anti-Patterns
 
 1. **DO NOT** use `git reset` — always use `git revert` to preserve history

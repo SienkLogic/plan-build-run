@@ -184,6 +184,8 @@ Promoted from quick note captured on {original date}.
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Write failure
 If the Write tool fails (permissions, disk full, etc.), display:
 ```

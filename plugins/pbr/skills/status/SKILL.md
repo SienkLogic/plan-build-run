@@ -414,6 +414,8 @@ Build options dynamically from the decision tree results. Always include "Someth
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 ### No `.planning/` directory at all

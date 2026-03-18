@@ -313,6 +313,8 @@ Full report: .planning/audits/{filename}
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Agent fails to analyze a session
 If an audit agent fails:
 ```

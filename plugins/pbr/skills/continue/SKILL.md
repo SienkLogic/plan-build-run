@@ -233,6 +233,8 @@ In these cases, explain why auto-continue stopped and what the user needs to do.
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Anti-Patterns
 
 1. **DO NOT** ask the user what to do — determine it from state

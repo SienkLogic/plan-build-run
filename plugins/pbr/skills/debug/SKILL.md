@@ -484,6 +484,8 @@ If `planning.commit_docs: true` in config.json:
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 ### User provides a stack trace or error in arguments

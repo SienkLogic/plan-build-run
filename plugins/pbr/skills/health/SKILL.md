@@ -265,6 +265,8 @@ After all checks, look for `.planning/logs/decisions.jsonl`. If it exists, displ
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Completion
 
 After all checks complete, display the branded result:

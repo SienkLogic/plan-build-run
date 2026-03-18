@@ -354,6 +354,8 @@ If .continue-here.md is more than 7 days old:
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 ### .continue-here.md references deleted files

@@ -704,6 +704,8 @@ Tags (complete only):
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 For all edge case handling, see `${CLAUDE_SKILL_DIR}/templates/edge-cases.md`.
