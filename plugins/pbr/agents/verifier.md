@@ -242,9 +242,21 @@ L4 column shows `-` when no automated verification is available. Only artifacts 
 
 After verifying all must-haves, collect `implements:[]` from all plan frontmatters in the phase.
 
-- For each REQ-ID: if all must-haves for that plan passed → add to `satisfied:[]`
-- If any must-have for that plan failed → add to `unsatisfied:[]`
-- Write `satisfied:[]` and `unsatisfied:[]` to the VERIFICATION.md frontmatter
+**Deliverable cross-check per REQ-ID:**
+
+1. For each REQ-ID found in any plan's `implements:[]`:
+   a. Identify which plan(s) reference this REQ-ID
+   b. For each such plan, check if ALL must-haves (truths, artifacts, key_links) passed
+   c. If all passed for every referencing plan → add REQ-ID to `satisfied:[]`
+   d. If any must-have for any referencing plan failed → add REQ-ID to `unsatisfied:[]` with the specific failed must-have reference
+
+2. **Untraced requirements detection:** Read ROADMAP.md and extract all REQ-IDs listed for this phase (e.g., from the phase's requirements column or bullet list). Compare against the set of REQ-IDs found across all plans' `implements:[]` fields. Any ROADMAP REQ-ID that does NOT appear in any plan's `implements:[]` → add to `untraced:[]` array. These are requirements listed in the roadmap for this phase but not referenced by any plan.
+
+3. Write `satisfied:[]`, `unsatisfied:[]`, and `untraced:[]` to the VERIFICATION.md frontmatter.
+
+4. **Requirements Coverage row:** Add a "Requirements Coverage" row to the verification summary table:
+   `{satisfied_count}/{total_req_count} requirements satisfied, {untraced_count} untraced`
+   where `total_req_count` = satisfied + unsatisfied + untraced.
 
 </step>
 
@@ -516,6 +528,7 @@ gaps:
     recommendation: "{action to fix}"
 satisfied: []
 unsatisfied: []
+untraced: []
 cross_phase_regressions: []
 ---
 ```
@@ -525,6 +538,12 @@ cross_phase_regressions: []
 
 | # | Must-Have | Status | Evidence |
 |---|----------|--------|----------|
+
+## Requirements Coverage
+
+| Metric | Value |
+|--------|-------|
+| Requirements Coverage | {satisfied}/{total} satisfied, {untraced} untraced |
 
 ## Gaps (if any)
 
