@@ -491,6 +491,87 @@ describe('auto-continue.js', () => {
     });
   });
 
+  describe('config flag migration (_auto_chain_active)', () => {
+    test('reads next command from workflow._auto_chain_active config flag', () => {
+      const config = {
+        features: { auto_continue: true },
+        workflow: { _auto_chain_active: '/pbr:execute-phase 5' },
+      };
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
+      // Do NOT create .auto-next signal file
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:execute-phase 5');
+    });
+
+    test('clears _auto_chain_active flag after reading', () => {
+      const config = {
+        features: { auto_continue: true },
+        workflow: { _auto_chain_active: '/pbr:build-phase 3' },
+      };
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
+
+      run();
+
+      // Re-read config and verify flag is cleared
+      const updated = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+      expect(updated.workflow._auto_chain_active).toBeFalsy();
+    });
+
+    test('backward compat: reads .auto-next signal file when config flag absent', () => {
+      writeConfig();
+      writeSignal('/pbr:execute-phase 3');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:execute-phase 3');
+    });
+
+    test('config flag takes priority over .auto-next signal file', () => {
+      const config = {
+        features: { auto_continue: true },
+        workflow: { _auto_chain_active: '/pbr:build-phase 7' },
+      };
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
+      // Also create .auto-next (should be ignored in favor of config flag)
+      writeSignal('/pbr:execute-phase 1');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:build-phase 7');
+    });
+  });
+
+  describe('session-cleanup config flag clearing', () => {
+    test('session-cleanup clears stale _auto_chain_active flag', () => {
+      const config = {
+        features: { auto_continue: true },
+        workflow: { _auto_chain_active: '/pbr:stale-command' },
+      };
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config));
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+
+      // Run session-cleanup
+      const cleanupScript = path.join(__dirname, '..', 'hooks', 'session-cleanup.js');
+      try {
+        execSync(`node "${cleanupScript}"`, {
+          cwd: tmpDir,
+          encoding: 'utf8',
+          timeout: 5000,
+          input: JSON.stringify({ reason: 'test' }),
+          stdio: ['pipe', 'pipe', 'pipe'],
+        });
+      } catch (_e) { /* may exit non-zero */ }
+
+      const updated = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+      expect(updated.workflow._auto_chain_active).toBeFalsy();
+    });
+  });
+
   describe('pending todos reminder', () => {
     test('pending todos reminder fires when .auto-next absent but pending/ has items', () => {
       writeConfig();
