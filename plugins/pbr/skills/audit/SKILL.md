@@ -2,7 +2,7 @@
 name: audit
 description: "Review past Claude Code sessions for PBR workflow compliance and UX quality."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
-argument-hint: "[--from DATE] [--to DATE] [--today] [--mode compliance|ux|full]"
+argument-hint: "[--from DATE] [--to DATE] [--today] [--mode compliance|ux|full] [--preset minimal|standard|comprehensive] [--dimension ID...] [--skip ID...] [--only ID...]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 0 immediately.**
@@ -49,6 +49,10 @@ Parse `$ARGUMENTS` for:
 | `--to DATE` | Now | End of audit window |
 | `--today` | false | Shorthand for `--from` start of today `--to` now |
 | `--mode MODE` | `full` | `compliance` = workflow only, `ux` = user experience only, `full` = both |
+| `--preset PRESET` | config.json audit.preset | Override audit preset (minimal/standard/comprehensive) |
+| `--dimension ID` | (none) | Add specific dimension(s) to the active set. Accepts code (SI-01) or slug (skill-template-refs). Repeatable. |
+| `--skip ID` | (none) | Remove specific dimension(s) from the active set. Accepts code or slug. Repeatable. |
+| `--only ID` | (none) | Run ONLY these dimensions, ignoring preset/categories. Accepts code or slug. Repeatable. |
 
 **Natural language parsing**: Accept formats like:
 - `--today` or just `today`
@@ -65,6 +69,38 @@ Display the parsed time range to the user:
 Audit window: {from} → {to}
 Mode: {mode}
 ```
+
+---
+
+## Step 1b — Resolve Dimensions
+
+Load the project's `config.json` audit section. Build `cliFlags` from parsed arguments:
+
+```javascript
+const cliFlags = {
+  preset: parsedArgs.preset,       // string or undefined
+  dimension: parsedArgs.dimension, // array of ID/slug strings or undefined
+  skip: parsedArgs.skip,           // array of ID/slug strings or undefined
+  only: parsedArgs.only,           // array of ID/slug strings or undefined
+};
+```
+
+Call `audit-dimensions.js` `resolveDimensions(config, cliFlags)` to compute the active dimension set.
+
+Display the resolution summary:
+
+```
+Preset: {preset} ({N} base dimensions)
+Active dimensions: {N} ({breakdown by category, e.g., "SI: 15, IH: 10, EF: 7, WC: 12"})
+```
+
+If `--dimension` or `--skip` was used, also display:
+
+```
+Adjustments: +{added} -{removed}
+```
+
+Store the resolved dimension list for use in Step 4.
 
 ---
 
@@ -147,6 +183,9 @@ Task({
     Session JSONL: {absolute_path_to_session.jsonl}
     Subagent logs: {list of subagent jsonl paths, or 'none'}
     Audit mode: {mode}
+    Active dimensions: {comma-separated list of dimension codes from Step 1b}
+    Preset: {preset}
+    Only check dimensions in the active set. Skip all others.
     Output path: DO NOT write to disk — return findings inline.
 
     Analyze this session for PBR workflow compliance and/or UX quality
