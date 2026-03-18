@@ -678,18 +678,25 @@ function checkCrossSessionInterference(planningDir, config) {
     if (action === 'block') hasFail = true;
   }
 
-  // 3. Check if .active-skill currently exists (stale from crashed session)
-  const activeSkillPath = path.join(planningDir, '.active-skill');
-  try {
-    if (fs.existsSync(activeSkillPath)) {
-      const stat = fs.statSync(activeSkillPath);
-      const ageMs = Date.now() - stat.mtimeMs;
-      const ageMin = Math.round(ageMs / 60000);
-      evidence.push(
-        `.active-skill exists (${ageMin}min old) — may be stale from crashed session`
-      );
-    }
-  } catch (_e) { /* best-effort */ }
+  // 3. Check if stale session files exist (leftover from crashed session)
+  const staleSessionFiles = [
+    { file: '.active-skill', desc: '.active-skill' },
+    { file: '.session.json', desc: '.session.json (consolidated session state)' },
+  ];
+
+  for (const sf of staleSessionFiles) {
+    const filePath = path.join(planningDir, sf.file);
+    try {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        const ageMs = Date.now() - stat.mtimeMs;
+        const ageMin = Math.round(ageMs / 60000);
+        evidence.push(
+          `${sf.desc} exists (${ageMin}min old) — may be stale from crashed session`
+        );
+      }
+    } catch (_e) { /* best-effort */ }
+  }
 
   if (evidence.length === 0) {
     return result('EF-06', 'pass', 'No cross-session interference detected', []);
