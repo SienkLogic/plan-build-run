@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { getHooksLogPath } = require('./helpers');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
 
 const {
   getHookHealthSummary,
@@ -17,6 +19,7 @@ let tmpDir;
 let planningDir;
 
 beforeEach(() => {
+  clearRootCache();
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-pt-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -25,6 +28,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.cwd.mockRestore();
+  clearRootCache();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -47,13 +51,13 @@ describe('HOOK_HEALTH_MAX_ENTRIES', () => {
 });
 
 describe('getHookHealthSummary', () => {
-  test('returns null when no hooks.jsonl', () => {
+  test('returns null when no hooks log', () => {
     const result = getHookHealthSummary(planningDir);
     expect(result).toBeNull();
   });
 
   test('returns null when no failures', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     const entries = [
       JSON.stringify({ hook: 'test', decision: 'allow' }),
       JSON.stringify({ hook: 'test', decision: 'allow' }),
@@ -64,7 +68,7 @@ describe('getHookHealthSummary', () => {
   });
 
   test('returns summary string when failures found', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     const entries = [
       JSON.stringify({ hook: 'test', decision: 'allow' }),
       JSON.stringify({ hook: 'validate-commit', decision: 'block' }),
@@ -78,7 +82,7 @@ describe('getHookHealthSummary', () => {
   });
 
   test('identifies multiple failing hooks', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     const entries = [];
     for (let i = 0; i < 5; i++) {
       entries.push(JSON.stringify({ hook: 'validate-commit', decision: 'block' }));
@@ -92,14 +96,14 @@ describe('getHookHealthSummary', () => {
   });
 
   test('handles malformed jsonl entries', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     fs.writeFileSync(hooksLog, 'not json\n{bad\n');
     const result = getHookHealthSummary(planningDir);
     expect(result).toBeNull();
   });
 
-  test('returns null for empty hooks.jsonl', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+  test('returns null for empty hooks log', () => {
+    const hooksLog = getHooksLogPath(planningDir);
     fs.writeFileSync(hooksLog, '');
     const result = getHookHealthSummary(planningDir);
     expect(result).toBeNull();
