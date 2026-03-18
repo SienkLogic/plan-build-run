@@ -228,11 +228,48 @@ If orchestrator provides revision feedback: parse concerns, update files in plac
 
 **CRITICAL: ROADMAP.md requires TWO phase representations. Both are mandatory.**
 
-1. Summary Checklist (under `## Phases`)
+1. Summary Checklist (under milestone section, `### Phase Checklist`)
 2. Detail Sections (under `## Phase Details`)
-3. Progress Table
+3. Progress Table (with Milestone column)
 
-Reference full template: `${CLAUDE_PLUGIN_ROOT}/templates/roadmap.md`
+Reference full template: `${CLAUDE_PLUGIN_ROOT}/templates/ROADMAP.md.tmpl`
+
+#### Heading Format
+
+Use `# Roadmap: {Project Name}` (not `# Project Roadmap`).
+
+#### Milestone Index
+
+Add a `## Milestones` section at the top (before the first `## Milestone:` section) with emoji status indicators:
+- Checkmark for shipped, construction for in-progress, clipboard for planned
+- Format: `- {emoji} v1.0 {Name} -- Phases 1-{N} ({status})`
+
+#### Per-Phase Required Fields
+
+Each phase MUST include:
+- `**Goal:**`, `**Provides:**`, `**Depends on:**` (existing)
+- `**Requirements:** [{REQ-IDs}]` — mapped requirement IDs from REQUIREMENTS.md (after Depends on)
+- `**Success Criteria:**` — 2-5 numbered observable user behaviors (after Requirements)
+
+#### Completed Milestone Collapse
+
+When referencing completed milestones, use `<details>` collapse:
+```markdown
+<details>
+<summary>v1.0 {Name} (Phases 1-{N}) -- SHIPPED YYYY-MM-DD</summary>
+
+{milestone content: phase checklist and phase details}
+
+</details>
+```
+
+#### Progress Table Format
+
+Use 5 columns (not 3):
+```markdown
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|---------------|--------|-----------|
+```
 
 ### STATE.md Structure
 
