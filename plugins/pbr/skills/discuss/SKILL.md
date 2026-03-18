@@ -23,6 +23,9 @@ Then proceed to Step 1.
 
 **References:** `@references/questioning.md`, `@references/ui-brand.md`
 
+Reference: `skills/shared/context-budget.md` for the universal orchestrator rules.
+Reference: `skills/shared/context-loader-task.md` for efficient context loading patterns.
+
 You are running the **discuss** skill. Your job is to help the user think through a phase BEFORE planning begins. You identify gray areas where the user's preference matters, ask structured questions, and capture every decision in a CONTEXT.md file that the planner must honor.
 
 This skill runs **inline** (no Task delegation).
@@ -54,6 +57,8 @@ releaseClaim(phaseDir, sessionId)
 ## Flow
 
 ### Step 1: Parse Phase Number and Check for Existing Plans
+
+**CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "discuss" to `.planning/.active-skill` using the Write tool.
 
 Parse `$ARGUMENTS`:
 - If argument is `--project`: enter PROJECT mode (see Step 1-project below). Skip Steps 2-8.
@@ -145,6 +150,8 @@ Skip to Cleanup step. Do NOT run Steps 2-8 of the phase flow.
 ---
 
 ### Step 2: Load Phase Context
+
+Reference: `skills/shared/context-loader-task.md` for efficient context loading patterns.
 
 Read the following files to understand what this phase needs to accomplish:
 
@@ -270,7 +277,10 @@ For each gray area where the user made a decision (not "Let Claude decide"), ask
 
 ### Step 6: Capture Deferred Ideas
 
+Reference: The deferred section prevents scope creep in downstream planning. See CONTEXT.md template.
+
 During the conversation, the user may mention ideas they want but not in this phase. Track these separately:
+
 - Ideas explicitly deferred by the user ("let's do that later")
 - Ideas that are out of scope for this phase based on ROADMAP.md
 - Ideas the user considered but rejected
@@ -313,6 +323,14 @@ Read `${CLAUDE_SKILL_DIR}/templates/CONTEXT.md.tmpl` for the template structure.
 
 **Decision Summary generation:** The `## Decision Summary` section at the top of CONTEXT.md is a compact digest (~300 tokens) of all decisions. For each locked decision, write only the title and the user's choice in one phrase (no scope/quality/integration details). List deferred and discretion items as comma-separated titles only. This summary is injected into agent prompts by the plan skill -- keep it concise.
 
+**Downstream awareness:** The CONTEXT.md written here is consumed by:
+
+- `/pbr:plan-phase` -- planner reads locked decisions as constraints
+- `/pbr:execute-phase` -- executor receives decisions via planner's plan
+- `/pbr:verify-work` -- verifier checks deliverables against phase intent
+
+Ensure all locked decisions are written clearly enough for mechanical consumption.
+
 ### Step 7.5: Update STATE.md Pointer
 
 Update `.planning/STATE.md`'s `## Accumulated Context` section to add a reference to the new CONTEXT.md:
@@ -351,6 +369,8 @@ After writing CONTEXT.md, display branded output per `@references/ui-brand.md`:
 - `/pbr:progress` — see project status
 - `/pbr:explore` — explore ideas further
 ```
+
+**Cleanup:** Delete `.planning/.active-skill` before finishing. This must happen on all paths (success, cancel, and error).
 
 ---
 
@@ -421,6 +441,18 @@ These come from:
 - If user says "that's enough" or "skip the details", respect that
 - Write what you have — partial follow-ups are fine
 - Mark missing follow-up areas as Claude's Discretion
+
+---
+
+## Error Handling
+
+Reference: `skills/shared/error-reporting.md` for error output patterns.
+
+If any step fails (file read error, directory not found, write failure):
+
+1. Display branded error using the pattern from `error-reporting.md`
+2. Clear `.planning/.active-skill` before exiting
+3. Do NOT leave partial CONTEXT.md files -- write atomically or not at all
 
 ---
 
