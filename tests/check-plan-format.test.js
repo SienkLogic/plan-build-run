@@ -52,6 +52,7 @@ describe('check-plan-format.js', () => {
 phase: 03-auth
 plan: 01
 wave: 1
+type: feature
 depends_on: []
 files_modified: ["src/auth.ts"]
 autonomous: true

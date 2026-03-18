@@ -170,12 +170,23 @@ function validatePlan(content, _filePath) {
       errors.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
-      const requiredFields = ['phase', 'plan', 'wave'];
+      const requiredFields = ['phase', 'plan', 'wave', 'type', 'depends_on', 'files_modified', 'autonomous'];
       for (const field of requiredFields) {
         if (!frontmatter.includes(`${field}:`)) {
           errors.push(`Frontmatter missing "${field}" field`);
         }
       }
+
+      // Validate type enum value
+      const typeMatch = frontmatter.match(/^type:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (typeMatch) {
+        const typeValue = typeMatch[1].trim();
+        const validTypes = ['feature', 'bugfix', 'refactor', 'infrastructure', 'docs', 'chore'];
+        if (!validTypes.includes(typeValue)) {
+          warnings.push(`Unexpected type value: "${typeValue}" (expected: ${validTypes.join(', ')})`);
+        }
+      }
+
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       }
