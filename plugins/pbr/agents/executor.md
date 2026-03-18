@@ -426,6 +426,55 @@ git stash push -m "pbr-checkpoint: task ${TASK_NUM} paused" --include-untracked 
 ```
 
 Include the stash reference in your checkpoint response so the continuation agent can restore it with `git stash pop`.
+
+### Structured Checkpoint Return Format
+
+When you encounter a task with `type="checkpoint:*"`, complete any `<action>` steps first (some checkpoint tasks have preparatory work), then return a structured checkpoint marker.
+
+For `checkpoint:human-verify`:
+
+```text
+## CHECKPOINT: human-verify
+
+<checkpoint>
+  <type>human-verify</type>
+  <task_id>{task id from the plan}</task_id>
+  <description>{what the user should verify}</description>
+  <what_built>{summary of what was built in preceding tasks}</what_built>
+  <verify_steps>{copy the verify steps from the task}</verify_steps>
+  <resume_signal>{what user says to proceed}</resume_signal>
+</checkpoint>
+```
+
+For `checkpoint:decision`:
+
+```text
+## CHECKPOINT: decision
+
+<checkpoint>
+  <type>decision</type>
+  <task_id>{task id}</task_id>
+  <description>{the decision to be made}</description>
+  <options>{the options from the task's verify section}</options>
+  <resume_signal>{what user says to proceed}</resume_signal>
+</checkpoint>
+```
+
+For `checkpoint:human-action`:
+
+```text
+## CHECKPOINT: human-action
+
+<checkpoint>
+  <type>human-action</type>
+  <task_id>{task id}</task_id>
+  <description>{what the user needs to do}</description>
+  <required_action>{step-by-step instructions from the task}</required_action>
+  <resume_signal>{what user says to proceed}</resume_signal>
+</checkpoint>
+```
+
+STOP after outputting the checkpoint marker. Do NOT continue to subsequent tasks. The orchestrator will handle checkpoint resolution and spawn a continuation if needed.
 </checkpoint_protocol>
 
 ---
