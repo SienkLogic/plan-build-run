@@ -107,6 +107,8 @@ Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determ
 - `standard` (balanced): 4 mappers -- all areas. Full analysis.
 - `comprehensive` (thorough): 4 mappers -- all areas. Full analysis.
 
+**Extended context override:** If `features.extended_context` is `true` in `.planning/config.json`, always spawn 4 mappers (all areas: tech, arch, quality, concerns) regardless of the depth profile's `scan.mapper_count` and `scan.mapper_areas`. The 1M context window allows the orchestrator to absorb all 4 mapper outputs without context pressure. Log: "Extended context: spawning all 4 mappers regardless of depth"
+
 Display to the user:
 ```
 ◐ Spawning {mapper_count} codebase mapper(s) in parallel...
@@ -272,6 +274,8 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 - If "No" or "Other": skip commit
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

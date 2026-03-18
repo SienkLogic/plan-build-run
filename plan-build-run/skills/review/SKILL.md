@@ -99,6 +99,12 @@ Execute these steps in order.
    - PLAN.md files exist (needed for must-have extraction)
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
+7. Resolve verification depth:
+   - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js trust-gate {N}`
+   - Parse the JSON response to get `depth` (light/standard/thorough)
+   - Log: "Verification depth: {depth} (trust-based)"
+   - Store as `verification_depth` for use in Step 3
+   - If the command fails or graduated_verification is disabled, default to "standard"
 
 **Validation errors:**
 
@@ -148,6 +154,8 @@ Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verif
    - Read it and check the status
    - If `status: passed` and no `--auto-fix` flag: skip to Step 4 (conversational UAT)
    - If `status: gaps_found`: present gaps and proceed to Step 4
+     - Check for `fix_plans:` in frontmatter. If present, summarize each fix plan (gap, effort, tasks) before presenting gaps.
+     - Classify gaps by severity: Critical (blocks functionality) vs Non-Critical (cosmetic, optional). Display severity counts: "Critical: {N}, Non-Critical: {N}"
    - If `status: human_needed`: proceed to Step 4
 
 3. If it does NOT exist: proceed to Step 3 (automated verification)
@@ -160,7 +168,9 @@ Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verif
 
 #### Team Review Mode
 
-If `--teams` flag is present OR `config.parallelization.use_teams` is true:
+If `--teams` flag is present OR `config.parallelization.use_teams` is true OR `features.extended_context` is `true` in `.planning/config.json`:
+
+When triggered by `extended_context`, log: "Extended context: auto-enabling team review (3 parallel verifiers)"
 
 1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
 2. Display to the user: `◆ Spawning 3 verifiers in parallel (functional, security, performance)...`
@@ -218,6 +228,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
 2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
 3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+4. .planning/phases/{NN}-{slug}/CONTEXT.md — locked decisions and phase constraints (if exists)
 </files_to_read>
 ```
 
@@ -227,6 +238,16 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - `{NN}-{slug}` — the phase directory name
 - `{N}` — the phase number
 - `{date}`, `{count}`, `{phase name}` — fill from context
+- `{verification_depth}` — the depth resolved in Step 1.7 (light/standard/thorough)
+
+**Append this block to the verifier prompt after the placeholders:**
+
+```
+**Verification depth:** {verification_depth}
+- light: Check L1 (existence) and basic frontmatter only. Skip L2/L3/L4 and anti-pattern scan. Budget: <=400 tokens output.
+- standard: Full 3-layer verification (L1-L3). Current default behavior.
+- thorough: Full 4-layer verification (L1-L4) + cross-phase regression check (even if context_window_tokens < 500000) + full anti-pattern scan.
+```
 
 Wait for the verifier to complete.
 
@@ -370,6 +391,13 @@ If regressions exist, include them in the gap count for the "Gaps Found" flow in
 
 **Skip if:** `auto_mode` is true — skip the interactive UAT walkthrough entirely. Still run automated verification (Step 3). If automated verification passed, auto-accept and proceed to Step 6 "All Items Pass" path. If automated verification found gaps, proceed to Step 6 "Gaps Found" path.
 
+**Autonomy gate:** Read `autonomy.level` from config.
+- If level is "guided", "collaborative", or "adaptive" AND automated verification passed (status: passed):
+  Skip interactive UAT. Log: "UAT skipped (autonomy: {level}, verification: passed)."
+  Proceed directly to Step 6 "All Items Pass" path.
+- If level is "supervised" OR verification has gaps:
+  Run full interactive UAT as currently defined.
+
 Walk the user through each deliverable one by one. This is an interactive conversation, not an automated check.
 
 **For each plan in the phase:**
@@ -447,7 +475,7 @@ If all automated checks and UAT items passed:
 Use the branded output from `references/ui-brand.md`:
 - If more phases remain: use the "Phase Complete" banner template
 - If this was the last phase in the current milestone: use the "Milestone Complete" banner template
-- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
+- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Active milestones use `## Milestone:` headings directly; completed milestones are wrapped in `<details><summary>## Milestone:` blocks or use the legacy `-- COMPLETED` suffix. Check the active milestone's `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
 - Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
@@ -573,8 +601,11 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 If gaps were found and `--auto-fix` was NOT specified:
 
-1. List all gaps clearly
-2. **Default to auto-fix** — offer it as the recommended action, not a hidden flag
+1. List all gaps clearly, grouped by severity (Critical first, then Non-Critical)
+2. If VERIFICATION.md frontmatter contains `fix_plans:`, present existing fix plans:
+   - For each fix plan: show gap, estimated effort, and planned tasks
+   - Offer to create these as follow-up plans directly
+3. **Default to auto-fix** — offer it as the recommended action, not a hidden flag
 
 ```
 Phase {N}: {name} — Gaps Found
@@ -695,10 +726,12 @@ Ask user: "Would you like to proceed with gap-closure plans without root cause a
 
 | File | Purpose | When |
 |------|---------|------|
-| `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report | Step 3 (created or updated with UAT) |
+| `.planning/phases/{NN}-{slug}/VERIFICATION.md` | Verification report (depth-aware) | Step 3 (created or updated with UAT) |
 | `.planning/phases/{NN}-{slug}/*-PLAN.md` | Gap-closure plans | Step 6b (--auto-fix only) |
 | `.planning/ROADMAP.md` | Status → `verified` + Completed date | Step 6 |
 | `.planning/STATE.md` | Updated with review status | Step 6 |
+
+**Graduated depth behavior:** Step 1.7 resolves verification depth via trust-gate. Step 3 passes depth to verifier. Step 5 checks autonomy.level to gate UAT.
 
 ---
 

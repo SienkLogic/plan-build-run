@@ -2,7 +2,7 @@
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] | add | insert <N> | remove <N>"
+argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] [--prd <file>] | add | insert <N> | remove <N>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -81,6 +81,7 @@ Parse the phase number and optional flags:
 | `3 --audit` | Plan phase 3, then force full plan-checker validation |
 | `3 --auto` | Plan phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
 | `1 --through 3` | Plan phases 1 through 3 in a single planner session (requires planning.multi_phase: true) |
+| `3 --prd path/to/prd.md` | Plan phase 3 using a PRD file as input — skip discussion, generate CONTEXT.md from PRD |
 
 ### Subcommands
 
@@ -97,7 +98,7 @@ Parse the phase number and optional flags:
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
-- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`, `3 --prd <file>`
 - A phase number followed by --through and another number: `1 --through 3`
 - The word `check` (legacy alias)
 
@@ -150,6 +151,10 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      c. Parse start phase (N) and end phase (M). Validate both exist in ROADMAP.md.
      d. Store `through_phases = [N, N+1, ..., M]`
      e. Log: "Multi-phase planning: phases {N} through {M}"
+   - If `--prd <file>` is present in `$ARGUMENTS`:
+     a. Extract the file path from the argument
+     b. Set `prd_mode = true`
+     c. Log: "PRD express path — will generate CONTEXT.md from PRD, skip discussion"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
@@ -159,6 +164,48 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss-phase {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
+
+#### --prd express path
+
+If `prd_mode` is `true`:
+
+1. Read the PRD file specified by the `--prd` argument
+2. Parse the PRD content, looking for these sections (case-insensitive):
+   - **Requirements** / **Functional Requirements** / **User Stories**
+   - **Scope** / **In Scope** / **Out of Scope**
+   - **Constraints** / **Technical Constraints**
+   - **Decisions** / **Architecture Decisions** / **Design Decisions**
+   - **Goals** / **Objectives**
+3. Generate `.planning/phases/{NN}-{slug}/CONTEXT.md` from the PRD:
+   ```markdown
+   ---
+   source: prd
+   prd_file: "{original file path}"
+   generated: "{ISO timestamp}"
+   ---
+   # Phase {N} Context (from PRD)
+
+   ## Decision Summary
+   {Extracted decisions from PRD, each as a locked decision}
+
+   ## Scope
+   {Extracted scope boundaries}
+
+   ## Constraints
+   {Extracted constraints}
+
+   ## Requirements Mapping
+   {Map PRD requirements to phase REQ-IDs where possible}
+
+   ## Deferred Ideas
+   {Any out-of-scope items from the PRD}
+   ```
+4. Log: "Generated CONTEXT.md from PRD ({line_count} lines)"
+5. **Skip Step 6 (CONTEXT.md existence check)** — we just created one
+6. **Skip Steps 3 and 4** (assumption surfacing and research) — the PRD provides the context
+7. Proceed directly to **Step 5** (planning) with the PRD-derived context
+
+---
 
 #### --preview mode
 
@@ -208,7 +255,7 @@ If `--preview` is present in `$ARGUMENTS`:
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
-1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
+1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, **Requirements:** (REQ-IDs), and **Success Criteria:**
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
 3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
@@ -247,6 +294,12 @@ To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-de
 **If research is needed:**
 
 Display to the user: `◆ Spawning researcher...`
+
+**Parallel research optimization (1M context):** If `context_window_tokens` in `.planning/config.json` is >= 500000, spawn the researcher Task() AND the pre-planner briefing Task() (Step 4.5) in parallel using `run_in_background: true` for both. Both are independent -- the researcher analyzes technologies while the briefing scans seeds and deferred items. Wait for both to complete before proceeding to the planner.
+
+Display: `◆ Spawning researcher + pre-planner briefing in parallel (1M context)...`
+
+If `context_window_tokens` < 500000, maintain the existing sequential flow: researcher first, then pre-planner briefing.
 
 Spawn a researcher Task():
 
@@ -293,6 +346,8 @@ After the researcher completes, check the Task() output for a completion marker:
 
 **CRITICAL (no hook): Run pre-planner briefing before spawning the planner. Do NOT skip this step.**
 
+**Note:** If `context_window_tokens` >= 500000, this step was already spawned in parallel with the researcher in Step 4. Skip spawning it again -- just read the results.
+
 Consolidate seed scanning and deferred idea surfacing into a single lightweight Task():
 
 ```
@@ -307,10 +362,25 @@ Task({
    If empty, output: ## Seeds\nNo matching seeds found.
 
 2. DEFERRED IDEAS:
-   Read `.planning/CONTEXT.md`. If it has a section containing 'deferred' or 'ideas' (case-insensitive),
-   extract items that mention Phase {NN} or keywords matching the phase slug.
-   If relevant items found, output a ## Deferred Ideas section listing them.
-   If none found, output: ## Deferred Ideas\nNo relevant deferred items.
+   Collect deferred items from three sources:
+
+   a. **Project CONTEXT.md**: Read `.planning/CONTEXT.md`. Check for `<deferred>` XML tags (preferred)
+      OR `## Deferred` / `## Deferred Ideas` markdown headers (backward compat).
+      Extract items that mention Phase {NN} or keywords matching the phase slug.
+
+   b. **Phase CONTEXT.md**: Read `.planning/phases/{NN}-{slug}/CONTEXT.md` (if exists).
+      Check for `<deferred>` XML tags OR markdown deferred headers. Extract relevant items.
+
+   c. **Prior phase SUMMARY.md files**: Read SUMMARY-*.md files from the prior phase directory
+      (`.planning/phases/{prior_phase_dir}/SUMMARY-*.md`, where prior_phase_dir is phase N-1).
+      Extract the `deferred:` field from each SUMMARY frontmatter. List any deferred items
+      from the prior phase that might now be in scope for this phase.
+
+   Output a ## Deferred Ideas section with sub-sections:
+   - 'From project CONTEXT.md:' (items from project-level deferred, or 'None')
+   - 'From phase CONTEXT.md:' (items from current phase deferred, or 'None')
+   - 'From prior phase:' (items from prior phase SUMMARY.md deferred fields, or 'None')
+   If all three sources are empty, output: ## Deferred Ideas\nNo relevant deferred items.
 
 Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
 })
@@ -418,6 +488,8 @@ Task({
 NOTE: The pbr:planner subagent type auto-loads the agent definition.
 
 After planner completes, check for completion markers: `## PLANNING COMPLETE`, `## PLANNING FAILED`, or `## PLANNING INCONCLUSIVE`. Route accordingly. Do NOT inline it.
+
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check planner output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during planning.
 ```
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
@@ -441,11 +513,13 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
-{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
+4. .planning/phases/{NN}-{slug}/CONTEXT.md — phase-level decisions and deferred items (if exists)
+5. .planning/phases/{prior_phase_dir}/SUMMARY-*.md — prior phase summaries with deferred items (if prior phase exists)
+{if learnings_temp_path exists}6. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
 
-If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 4 entirely.
+Items 4-5 provide the planner with deferred items from the current phase CONTEXT.md and from prior phase SUMMARY.md files, enabling the deferred-items forward path. If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 6 entirely. If no prior phase exists, omit item 5.
 
 Wait for the planner to complete.
 
@@ -536,10 +610,37 @@ After the plan checker returns, display its result:
 
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
+**YAML Issue Parsing:** After the plan-checker returns with issues, parse the YAML `issues:` block from the checker output (located under the `## Issues` heading). Count BLOCKER and WARNING issues separately.
+
+**Issue Count Tracking:** Track `issue_count` per iteration. If the current iteration's `issue_count >= prev_issue_count` (count did not decrease), break early with:
+`⚠ Revision loop stalled (issue count not decreasing). Escalating to user.`
+
+**Iteration Display:** At the start of each iteration, display:
+`◆ Revision iteration {N}/3 — {blocker_count} blockers, {warning_count} warnings`
+
 Follow the revision loop pattern with:
-- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl`)
+- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl` — pass the YAML issues block verbatim in the `<checker_issues>` section)
 - **Checker**: plan-checker (back to Step 6)
+- **Early exit**: if issue count does not decrease between iterations, stop the loop and escalate
 - **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
+
+```
+prev_issue_count = Infinity
+
+LOOP (iteration = 1 to 3):
+  1. Parse YAML issues from checker output
+  2. Count: blocker_count = issues where severity == "BLOCKER"
+           warning_count = issues where severity == "WARNING"
+           issue_count = blocker_count + warning_count
+  3. Display: ◆ Revision iteration {iteration}/3 — {blocker_count} blockers, {warning_count} warnings
+  4. If issue_count >= prev_issue_count:
+     → Display stall warning, escalate to user
+  5. prev_issue_count = issue_count
+  6. Read revision-prompt.md.tmpl, fill in YAML issues block
+  7. Re-spawn planner with revision prompt
+  8. Re-run plan-checker (Step 6)
+  9. If checker returns PASSED → exit loop, proceed to Step 8
+```
 
 ---
 
