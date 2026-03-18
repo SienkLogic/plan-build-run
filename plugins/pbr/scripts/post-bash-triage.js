@@ -72,9 +72,18 @@ async function checkTestTriage(data) {
   const exitCode = data.tool_exit_code;
 
   // Only triage test commands that failed
-  if (exitCode === 0 || exitCode === undefined) return null;
-  if (!TEST_COMMAND_PATTERNS.some(p => p.test(command))) return null;
-  if (!toolOutput || toolOutput.length < 20) return null;
+  if (exitCode === 0 || exitCode === undefined) {
+    try { logHook('post-bash-triage', 'PostToolUse', 'skip', { reason: 'test passed or no exit code' }); } catch (_e) { /* never crash */ }
+    return null;
+  }
+  if (!TEST_COMMAND_PATTERNS.some(p => p.test(command))) {
+    try { logHook('post-bash-triage', 'PostToolUse', 'skip', { reason: 'not a test command', command: command.slice(0, 80) }); } catch (_e) { /* never crash */ }
+    return null;
+  }
+  if (!toolOutput || toolOutput.length < 20) {
+    try { logHook('post-bash-triage', 'PostToolUse', 'skip', { reason: 'insufficient output' }); } catch (_e) { /* never crash */ }
+    return null;
+  }
 
   const cwd = process.cwd();
   const llmConfig = loadLocalLlmConfig(cwd);
@@ -135,6 +144,9 @@ function main() {
   process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
+
+      try { logHook('post-bash-triage', 'PostToolUse', 'entry', {}); } catch (_e) { /* never crash */ }
+
       const result = await checkTestTriage(data);
       if (result) {
         process.stdout.write(JSON.stringify(result.output));
