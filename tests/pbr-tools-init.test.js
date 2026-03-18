@@ -473,4 +473,40 @@ describe('pbr-tools compound init commands', () => {
       expect(typeof result.drift.drift_detected).toBe('boolean');
     });
   });
+
+  describe('initResume auto-repair', () => {
+    test('returns rederived: true with corrections when state is drifted', () => {
+      // STATE.md says 0 complete, but filesystem has 1 complete summary
+      var planningDir = path.join(tmpDir, '.planning');
+      var phaseDir = path.join(planningDir, 'phases', '03-auth');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+        '---', 'status: complete', '---', '# Summary'
+      ].join('\n'));
+      var result = initResume();
+      expect(result).toHaveProperty('rederived', true);
+      expect(result.corrections).toContain('plans_complete');
+    });
+
+    test('returns rederived: false when state is clean', () => {
+      // STATE.md matches filesystem (1 plan, 0 complete)
+      var planningDir = path.join(tmpDir, '.planning');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      var result = initResume();
+      expect(result).toHaveProperty('rederived', false);
+      expect(result.corrections).toEqual([]);
+    });
+  });
 });
