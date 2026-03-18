@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { getHooksLogPath, getEventsLogPath } = require('./helpers');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
 
 const {
   readRoadmapSummary, readCurrentPlan, readConfigHighlights,
@@ -15,6 +17,7 @@ let planningDir;
 let originalCwd;
 
 beforeEach(() => {
+  clearRootCache();
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cbcu-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
@@ -24,6 +27,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.chdir(originalCwd);
+  clearRootCache();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -158,7 +162,7 @@ describe('readRecentErrors', () => {
   });
 
   test('finds error events', () => {
-    const logPath = path.join(planningDir, 'logs', 'events.jsonl');
+    const logPath = getEventsLogPath(planningDir);
     const entries = [
       JSON.stringify({ cat: 'error', event: 'test-fail', error: 'broken' }),
       JSON.stringify({ cat: 'workflow', event: 'hook', status: 'block', reason: 'denied' })
@@ -169,14 +173,14 @@ describe('readRecentErrors', () => {
   });
 
   test('finds tool-failure events', () => {
-    const logPath = path.join(planningDir, 'logs', 'events.jsonl');
+    const logPath = getEventsLogPath(planningDir);
     fs.writeFileSync(logPath, JSON.stringify({ cat: 'hook', event: 'tool-failure', message: 'timeout' }) + '\n');
     const result = readRecentErrors(planningDir);
     expect(result.length).toBe(1);
   });
 
   test('respects maxErrors parameter', () => {
-    const logPath = path.join(planningDir, 'logs', 'events.jsonl');
+    const logPath = getEventsLogPath(planningDir);
     const entries = Array.from({ length: 10 }, (_, i) =>
       JSON.stringify({ cat: 'error', event: `err-${i}`, error: `error ${i}` })
     );
@@ -192,7 +196,7 @@ describe('readRecentAgents', () => {
   });
 
   test('finds agent spawn events', () => {
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     const entries = [
       JSON.stringify({ event: 'SubagentStart', decision: 'spawned', agent_type: 'pbr:executor', description: 'Build phase 1' }),
       JSON.stringify({ event: 'SubagentStop', decision: 'completed', agent_type: 'pbr:executor' })
@@ -205,7 +209,7 @@ describe('readRecentAgents', () => {
   });
 
   test('returns agents without description', () => {
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     fs.writeFileSync(logPath, JSON.stringify({ event: 'SubagentStart', decision: 'spawned', agent_type: 'pbr:planner' }) + '\n');
     const result = readRecentAgents(planningDir);
     expect(result.length).toBe(1);
@@ -213,7 +217,7 @@ describe('readRecentAgents', () => {
   });
 
   test('respects maxAgents parameter', () => {
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     const entries = Array.from({ length: 10 }, (_, i) =>
       JSON.stringify({ event: 'SubagentStart', decision: 'spawned', agent_type: `pbr:agent-${i}` })
     );

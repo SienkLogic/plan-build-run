@@ -1,8 +1,10 @@
+const { getHooksLogPath, getEventsLogPath } = require('./helpers');
 const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../hooks/context-budget-check');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
 
 const SCRIPT_PATH = path.resolve(__dirname, '..', 'hooks', 'context-budget-check.js');
 
@@ -145,8 +147,11 @@ Implement JWT authentication middleware
   });
 
   describe('readRecentErrors', () => {
-    test('extracts recent errors from events.jsonl', () => {
+    test('extracts recent errors from events log', () => {
       const { tmpDir, planningDir } = makeTmpDir();
+      const savedCwd = process.cwd();
+      clearRootCache();
+      process.chdir(tmpDir);
       const logsDir = path.join(planningDir, 'logs');
       fs.mkdirSync(logsDir, { recursive: true });
 
@@ -156,27 +161,37 @@ Implement JWT authentication middleware
         JSON.stringify({ ts: '2026-01-01T00:02:00Z', cat: 'workflow', event: 'phase-end', phase: 1 }),
         JSON.stringify({ ts: '2026-01-01T00:03:00Z', cat: 'workflow', event: 'tool-failure', error: 'timeout after 30s' }),
       ];
-      fs.writeFileSync(path.join(logsDir, 'events.jsonl'), events.join('\n') + '\n');
+      fs.writeFileSync(getEventsLogPath(planningDir), events.join('\n') + '\n');
 
       const result = readRecentErrors(planningDir, 3);
       expect(result.length).toBe(2);
       expect(result[0]).toContain('timeout');
       expect(result[1]).toContain('ENOENT');
 
+      process.chdir(savedCwd);
+      clearRootCache();
       cleanup(tmpDir);
     });
 
     test('returns empty array when no events log', () => {
       const { tmpDir, planningDir } = makeTmpDir();
+      const savedCwd = process.cwd();
+      clearRootCache();
+      process.chdir(tmpDir);
       const result = readRecentErrors(planningDir, 3);
       expect(result).toEqual([]);
+      process.chdir(savedCwd);
+      clearRootCache();
       cleanup(tmpDir);
     });
   });
 
   describe('readRecentAgents', () => {
-    test('extracts recent agents from hooks.jsonl', () => {
+    test('extracts recent agents from hooks log', () => {
       const { tmpDir, planningDir } = makeTmpDir();
+      const savedCwd = process.cwd();
+      clearRootCache();
+      process.chdir(tmpDir);
       const logsDir = path.join(planningDir, 'logs');
       fs.mkdirSync(logsDir, { recursive: true });
 
@@ -186,7 +201,7 @@ Implement JWT authentication middleware
         JSON.stringify({ ts: '2026-01-01T00:02:00Z', hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: 'pbr:executor', description: 'Execute plan 01' }),
         JSON.stringify({ ts: '2026-01-01T00:03:00Z', hook: 'log-subagent', event: 'SubagentStop', decision: 'completed', agent_type: 'pbr:executor' }),
       ];
-      fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
+      fs.writeFileSync(getHooksLogPath(planningDir), hookEntries.join('\n') + '\n');
 
       const result = readRecentAgents(planningDir, 5);
       expect(result.length).toBe(2);
@@ -195,18 +210,28 @@ Implement JWT authentication middleware
       expect(result[1]).toContain('pbr:executor');
       expect(result[1]).toContain('Execute plan 01');
 
+      process.chdir(savedCwd);
+      clearRootCache();
       cleanup(tmpDir);
     });
 
     test('returns empty array when no hooks log', () => {
       const { tmpDir, planningDir } = makeTmpDir();
+      const savedCwd = process.cwd();
+      clearRootCache();
+      process.chdir(tmpDir);
       const result = readRecentAgents(planningDir, 5);
       expect(result).toEqual([]);
+      process.chdir(savedCwd);
+      clearRootCache();
       cleanup(tmpDir);
     });
 
     test('respects maxAgents limit', () => {
       const { tmpDir, planningDir } = makeTmpDir();
+      const savedCwd = process.cwd();
+      clearRootCache();
+      process.chdir(tmpDir);
       const logsDir = path.join(planningDir, 'logs');
       fs.mkdirSync(logsDir, { recursive: true });
 
@@ -214,11 +239,13 @@ Implement JWT authentication middleware
       for (let i = 0; i < 10; i++) {
         hookEntries.push(JSON.stringify({ ts: `2026-01-01T00:0${i}:00Z`, hook: 'log-subagent', event: 'SubagentStart', decision: 'spawned', agent_type: `pbr:agent-${i}` }));
       }
-      fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), hookEntries.join('\n') + '\n');
+      fs.writeFileSync(getHooksLogPath(planningDir), hookEntries.join('\n') + '\n');
 
       const result = readRecentAgents(planningDir, 3);
       expect(result.length).toBe(3);
 
+      process.chdir(savedCwd);
+      clearRootCache();
       cleanup(tmpDir);
     });
   });
