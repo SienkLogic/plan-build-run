@@ -19,3 +19,4 @@ drafts/
 *.PROGRESS-*
 # Suspended derivative plugins — restore with: git checkout <commit> -- plugins/codex-pbr plugins/cursor-pbr plugins/copilot-pbr
 plugins/_suspended/
+hooks/dist/
