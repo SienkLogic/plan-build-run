@@ -15,6 +15,7 @@ const {
   checkMilestoneSummaryGate,
   checkBuildDependencyGate,
   checkCheckpointManifest,
+  checkDebuggerAdvisory,
   checkActiveSkillIntegrity,
   KNOWN_AGENTS
 } = require('../hooks/validate-task');
@@ -699,5 +700,43 @@ describe('checkActiveSkillIntegrity', () => {
   test('returns null when no .planning dir', () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
     expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:planner' } })).toBeNull();
+  });
+});
+
+describe('checkDebuggerAdvisory', () => {
+  test('returns null when subagent_type is not pbr:debugger', () => {
+    const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when .active-skill is not debug', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when .active-skill is debug and .planning/debug/ exists', () => {
+    fs.mkdirSync(path.join(planningDir, 'debug'), { recursive: true });
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
+    const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+    expect(result).toBeNull();
+  });
+
+  test('returns advisory when .active-skill is debug and .planning/debug/ missing', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'debug');
+    const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+    expect(result).toContain('Debugger advisory');
+    expect(result).toContain('.planning/debug/');
+  });
+
+  test('returns null when .active-skill file does not exist', () => {
+    const result = checkDebuggerAdvisory({ tool_input: { subagent_type: 'pbr:debugger' } });
+    expect(result).toBeNull();
+  });
+});
+
+describe('module loading', () => {
+  test('validate-task module loads without throwing', () => {
+    expect(() => require('../hooks/validate-task.js')).not.toThrow();
   });
 });
