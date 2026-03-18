@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { stateUpdate, stateRecordActivity, stateUpdateProgress } = require('../plan-build-run/bin/lib/state.cjs');
+const { stateUpdate, stateRecordActivity, stateUpdateProgress, stateRecordVelocity, stateRecordSession, parseStateMd } = require('../plan-build-run/bin/lib/state.cjs');
 const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
 const { syncBodyLine: _syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
 
@@ -383,5 +383,235 @@ describe('stateUpdateProgress', () => {
     const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
     expect(content).toMatch(/progress_percent:\s*\d+/);
     expect(content).toMatch(/^Progress: \[/m);
+  });
+});
+
+describe('stateUpdate — velocity and session fields', () => {
+  let tmpDir;
+  let origCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-velocity-session-'));
+    buildFixture(tmpDir);
+    origCwd = process.cwd();
+    process.chdir(tmpDir);
+    configClearCache();
+  });
+
+  afterEach(() => {
+    process.chdir(origCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('stateUpdate accepts velocity as valid field', () => {
+    const result = stateUpdate('velocity', '{"plan_duration":{"history":[],"trend":"stable"}}');
+    expect(result.success).toBe(true);
+    expect(result.field).toBe('velocity');
+  });
+
+  test('stateUpdate accepts session_last as valid field', () => {
+    const result = stateUpdate('session_last', '2026-03-18 10:00:00');
+    expect(result.success).toBe(true);
+    expect(result.field).toBe('session_last');
+  });
+
+  test('stateUpdate accepts session_stopped_at as valid field', () => {
+    const result = stateUpdate('session_stopped_at', 'Phase 3, Plan 2, Task 4');
+    expect(result.success).toBe(true);
+    expect(result.field).toBe('session_stopped_at');
+  });
+
+  test('stateUpdate accepts session_resume as valid field', () => {
+    const result = stateUpdate('session_resume', '.PROGRESS-03-02');
+    expect(result.success).toBe(true);
+    expect(result.field).toBe('session_resume');
+  });
+
+  test('velocity field persists in frontmatter', () => {
+    stateUpdate('velocity', '{"test":"data"}');
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    expect(content).toContain('velocity:');
+    expect(content).toContain('test');
+  });
+
+  test('session fields persist in frontmatter', () => {
+    stateUpdate('session_last', '2026-03-18 14:30:00');
+    stateUpdate('session_stopped_at', 'Plan 02-01 task 3');
+    stateUpdate('session_resume', '.PROGRESS-02-01');
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    expect(content).toContain('session_last:');
+    expect(content).toContain('session_stopped_at:');
+    expect(content).toContain('session_resume:');
+  });
+});
+
+describe('stateRecordVelocity', () => {
+  let tmpDir;
+  let origCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-record-velocity-'));
+    buildFixture(tmpDir);
+    origCwd = process.cwd();
+    process.chdir(tmpDir);
+    configClearCache();
+  });
+
+  afterEach(() => {
+    process.chdir(origCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('records a velocity metric and returns success', () => {
+    const result = stateRecordVelocity('plan_duration', 15);
+    expect(result.success).toBe(true);
+    expect(result.metricType).toBe('plan_duration');
+    expect(result.value).toBe(15);
+    expect(result.trend).toBe('stable');
+  });
+
+  test('stores metric in frontmatter velocity field', () => {
+    stateRecordVelocity('plan_duration', 10);
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    expect(content).toContain('velocity:');
+    expect(content).toContain('plan_duration');
+  });
+
+  test('keeps last 5 entries per metric type', () => {
+    for (let i = 1; i <= 7; i++) {
+      stateRecordVelocity('plan_duration', i * 10);
+    }
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    const parsed = parseStateMd(content);
+    const velocity = typeof parsed.velocity === 'string' ? JSON.parse(parsed.velocity) : parsed.velocity;
+    expect(velocity.plan_duration.history.length).toBe(5);
+    // Should keep the last 5 (values 30-70)
+    expect(velocity.plan_duration.history[0].value).toBe(30);
+  });
+
+  test('calculates improving trend when recent values are lower', () => {
+    // First entry with high value
+    stateRecordVelocity('phase_duration', 100);
+    // Add lower values
+    stateRecordVelocity('phase_duration', 50);
+    stateRecordVelocity('phase_duration', 40);
+    const result = stateRecordVelocity('phase_duration', 30);
+    expect(result.trend).toBe('improving');
+  });
+
+  test('returns error when STATE.md missing', () => {
+    fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
+    const result = stateRecordVelocity('plan_duration', 10);
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('stateRecordSession', () => {
+  let tmpDir;
+  let origCwd;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-record-session-'));
+    buildFixture(tmpDir);
+    origCwd = process.cwd();
+    process.chdir(tmpDir);
+    configClearCache();
+  });
+
+  afterEach(() => {
+    process.chdir(origCwd);
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('records session info and returns success', () => {
+    const result = stateRecordSession('Phase 3, Plan 2, Task 4', '.PROGRESS-03-02');
+    expect(result.success).toBe(true);
+    expect(result.session_last).toBeTruthy();
+    expect(result.session_stopped_at).toBe('Phase 3, Plan 2, Task 4');
+    expect(result.session_resume).toBe('.PROGRESS-03-02');
+  });
+
+  test('sets all three session fields in frontmatter', () => {
+    stateRecordSession('Plan 01-01 task 2', '.PROGRESS-01-01');
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    expect(content).toContain('session_last:');
+    expect(content).toContain('session_stopped_at:');
+    expect(content).toContain('session_resume:');
+    expect(content).toContain('Plan 01-01 task 2');
+    expect(content).toContain('.PROGRESS-01-01');
+  });
+
+  test('session_last is auto-timestamped', () => {
+    const result = stateRecordSession('test', 'test-file');
+    expect(result.session_last).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  });
+
+  test('returns error when STATE.md missing', () => {
+    fs.rmSync(path.join(tmpDir, '.planning', 'STATE.md'));
+    const result = stateRecordSession('test', 'test-file');
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('parseStateMd — velocity and session extraction', () => {
+  test('extracts velocity from frontmatter', () => {
+    const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\nvelocity: "{\\"plan_duration\\":{\\"history\\":[],\\"trend\\":\\"stable\\"}}"\n---\n# State\n';
+    const result = parseStateMd(content);
+    expect(result.velocity).toBeTruthy();
+  });
+
+  test('extracts session fields from frontmatter', () => {
+    const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\nsession_last: "2026-03-18 10:00:00"\nsession_stopped_at: "Plan 2 task 3"\nsession_resume: ".PROGRESS-02-01"\n---\n# State\n';
+    const result = parseStateMd(content);
+    expect(result.session_last).toBe('2026-03-18 10:00:00');
+    expect(result.session_stopped_at).toBe('Plan 2 task 3');
+    expect(result.session_resume).toBe('.PROGRESS-02-01');
+  });
+
+  test('returns null for missing session fields', () => {
+    const content = '---\nversion: 2\ncurrent_phase: 1\nstatus: "building"\n---\n# State\n';
+    const result = parseStateMd(content);
+    expect(result.session_last).toBeNull();
+    expect(result.session_stopped_at).toBeNull();
+    expect(result.session_resume).toBeNull();
+    expect(result.velocity).toBeNull();
+  });
+});
+
+describe('syncBodyLine — session fields', () => {
+  const { syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
+
+  const contentWithSessionLines = [
+    '---', 'version: 2', 'current_phase: 1', 'status: "building"', '---',
+    '## Session',
+    'Last session: 2026-03-17 09:00:00',
+    'Stopped at: Plan 01-01 task 2',
+    'Resume: .PROGRESS-01-01',
+  ].join('\n');
+
+  test('syncBodyLine for session_last replaces Last session line', () => {
+    const result = syncBodyLine(contentWithSessionLines, 'session_last', '2026-03-18 14:00:00');
+    expect(result).toMatch(/^Last session: 2026-03-18 14:00:00$/m);
+  });
+
+  test('syncBodyLine for session_stopped_at replaces Stopped at line', () => {
+    const result = syncBodyLine(contentWithSessionLines, 'session_stopped_at', 'Plan 02-01 task 5');
+    expect(result).toMatch(/^Stopped at: Plan 02-01 task 5$/m);
+  });
+
+  test('syncBodyLine for session_resume replaces Resume line', () => {
+    const result = syncBodyLine(contentWithSessionLines, 'session_resume', '.PROGRESS-02-01');
+    expect(result).toMatch(/^Resume: .PROGRESS-02-01$/m);
+  });
+
+  test('syncBodyLine for session fields is no-op when body lines are absent', () => {
+    const noSessionContent = [
+      '---', 'version: 2', '---',
+      '## Position',
+      'Status: Building',
+    ].join('\n');
+    expect(syncBodyLine(noSessionContent, 'session_last', 'value')).toBe(noSessionContent);
+    expect(syncBodyLine(noSessionContent, 'session_stopped_at', 'value')).toBe(noSessionContent);
+    expect(syncBodyLine(noSessionContent, 'session_resume', 'value')).toBe(noSessionContent);
   });
 });
