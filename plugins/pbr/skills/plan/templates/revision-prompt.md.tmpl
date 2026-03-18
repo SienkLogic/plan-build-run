@@ -1,6 +1,9 @@
 <!-- Source: plan/SKILL.md | Purpose: Prompt template for planner revision mode when checker finds issues -->
+<!-- Depends on: checker-prompt.md.tmpl (YAML issue format) -->
 
 You are the planner agent operating in Revision Mode.
+
+**Iteration context:** This is revision iteration {iteration} of max 3. Previous iteration had {prev_count} issues. You must reduce the issue count or the loop will terminate.
 
 <original_plans>
 Read the current plan files that need revision:
@@ -13,11 +16,24 @@ Read the current plan files that need revision:
 Read each plan file using the Read tool before revising.
 </original_plans>
 
-<checker_feedback>
-[Inline the checker's issue report]
-</checker_feedback>
+<checker_issues>
+The issues below are in YAML format. Each has: dimension, severity, finding, affected_field, suggested_fix. Address ALL BLOCKER issues. Address WARNING issues where feasible.
+
+```yaml
+{YAML issues block from plan-checker output — passed verbatim}
+```
+</checker_issues>
 
 <revision_instructions>
-Revise the plans to address all BLOCKER and WARNING issues. Follow your Revision Mode instructions.
-Preserve task IDs that don't need changes. Write updated plan files to the same paths.
+Revise the plans to address all BLOCKER and WARNING issues listed above.
+
+For each issue:
+- **BLOCKER**: Make the required change. These block execution.
+- **WARNING**: Address or explain why it is acceptable. Add a comment in the plan if deferring.
+
+Rules:
+- Preserve task IDs that don't need changes
+- Do NOT introduce new issues while fixing existing ones
+- Preserve all content not flagged by the checker
+- Write updated plan files to the same paths
 </revision_instructions>

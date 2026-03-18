@@ -538,10 +538,37 @@ After the plan checker returns, display its result:
 
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
+**YAML Issue Parsing:** After the plan-checker returns with issues, parse the YAML `issues:` block from the checker output (located under the `## Issues` heading). Count BLOCKER and WARNING issues separately.
+
+**Issue Count Tracking:** Track `issue_count` per iteration. If the current iteration's `issue_count >= prev_issue_count` (count did not decrease), break early with:
+`⚠ Revision loop stalled (issue count not decreasing). Escalating to user.`
+
+**Iteration Display:** At the start of each iteration, display:
+`◆ Revision iteration {N}/3 — {blocker_count} blockers, {warning_count} warnings`
+
 Follow the revision loop pattern with:
-- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl`)
+- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl` — pass the YAML issues block verbatim in the `<checker_issues>` section)
 - **Checker**: plan-checker (back to Step 6)
+- **Early exit**: if issue count does not decrease between iterations, stop the loop and escalate
 - **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
+
+```
+prev_issue_count = Infinity
+
+LOOP (iteration = 1 to 3):
+  1. Parse YAML issues from checker output
+  2. Count: blocker_count = issues where severity == "BLOCKER"
+           warning_count = issues where severity == "WARNING"
+           issue_count = blocker_count + warning_count
+  3. Display: ◆ Revision iteration {iteration}/3 — {blocker_count} blockers, {warning_count} warnings
+  4. If issue_count >= prev_issue_count:
+     → Display stall warning, escalate to user
+  5. prev_issue_count = issue_count
+  6. Read revision-prompt.md.tmpl, fill in YAML issues block
+  7. Re-spawn planner with revision prompt
+  8. Re-run plan-checker (Step 6)
+  9. If checker returns PASSED → exit loop, proceed to Step 8
+```
 
 ---
 
