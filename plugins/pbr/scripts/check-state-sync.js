@@ -28,6 +28,61 @@ const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
 /**
+ * Module-level mtime cache for dirty flag detection.
+ * Keyed by absolute file path, value is the mtimeMs after our last write.
+ * Used to detect external edits between state-sync invocations.
+ */
+const _lastWriteTimes = new Map();
+
+/**
+ * Clear the mtime cache. Exported for testing.
+ */
+function clearMtimeCache() {
+  _lastWriteTimes.clear();
+}
+
+/**
+ * Check if a file has been externally modified since our last write.
+ * Returns true if dirty (external edit detected), false if clean.
+ * On first call for a file (no cached mtime), records current mtime and returns false.
+ *
+ * @param {string} filePath - Absolute path to the file
+ * @returns {boolean} true if external edit detected
+ */
+function isDirty(filePath) {
+  try {
+    const currentMtime = fs.statSync(filePath).mtimeMs;
+    const lastMtime = _lastWriteTimes.get(filePath);
+
+    if (lastMtime === undefined) {
+      // First run — record current mtime, allow write
+      _lastWriteTimes.set(filePath, currentMtime);
+      return false;
+    }
+
+    // If mtime differs from what we last wrote, someone else edited it
+    return currentMtime !== lastMtime;
+  } catch (_e) {
+    // File doesn't exist or stat failed — not dirty
+    return false;
+  }
+}
+
+/**
+ * Record the current mtime of a file after we wrote it.
+ *
+ * @param {string} filePath - Absolute path to the file
+ */
+function recordWriteMtime(filePath) {
+  try {
+    const mtime = fs.statSync(filePath).mtimeMs;
+    _lastWriteTimes.set(filePath, mtime);
+  } catch (_e) {
+    // Best effort
+  }
+}
+
+/**
  * Write content to a file atomically using write-then-rename.
  * Writes to a PID-stamped temp file, then renames over the original.
  * If the rename fails, cleans up the temp file and re-throws.
@@ -385,8 +440,13 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            atomicWriteFile(roadmapPath, updatedRoadmap);
-            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
+            if (isDirty(roadmapPath)) {
+              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
+            } else {
+              atomicWriteFile(roadmapPath, updatedRoadmap);
+              recordWriteMtime(roadmapPath);
+              messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
+            }
           }
         }
       } catch (e) {
@@ -424,8 +484,13 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          atomicWriteFile(statePath, updatedState);
-          messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
+          if (isDirty(statePath)) {
+            logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(statePath), reason: 'external edit detected' });
+          } else {
+            atomicWriteFile(statePath, updatedState);
+            recordWriteMtime(statePath);
+            messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
+          }
         }
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'STATE.md update failed', error: e.message });
@@ -469,8 +534,13 @@ function checkStateSync(data) {
         } else {
           const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
           if (updatedRoadmap !== roadmapContent) {
-            atomicWriteFile(roadmapPath, updatedRoadmap);
-            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
+            if (isDirty(roadmapPath)) {
+              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
+            } else {
+              atomicWriteFile(roadmapPath, updatedRoadmap);
+              recordWriteMtime(roadmapPath);
+              messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
+            }
           }
         }
       } catch (e) {
@@ -506,8 +576,13 @@ function checkStateSync(data) {
 
         const updatedState = updateStatePosition(stateContent, stateUpdates);
         if (updatedState !== stateContent) {
-          atomicWriteFile(statePath, updatedState);
-          messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
+          if (isDirty(statePath)) {
+            logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(statePath), reason: 'external edit detected' });
+          } else {
+            atomicWriteFile(statePath, updatedState);
+            recordWriteMtime(statePath);
+            messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
+          }
         }
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'STATE.md update failed', error: e.message });
@@ -556,8 +631,13 @@ function checkStateSync(data) {
             const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
             const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
             if (updatedRoadmap !== roadmapContent) {
-              atomicWriteFile(roadmapPath, updatedRoadmap);
-              messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
+              if (isDirty(roadmapPath)) {
+                logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
+              } else {
+                atomicWriteFile(roadmapPath, updatedRoadmap);
+                recordWriteMtime(roadmapPath);
+                messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
+              }
             }
           }
         }
@@ -608,5 +688,6 @@ module.exports = {
   updateStatePosition,
   buildProgressBar,
   calculateOverallProgress,
-  checkStateSync
+  checkStateSync,
+  clearMtimeCache
 };
