@@ -14,7 +14,7 @@ const {
   determinePhaseStatus,
   lockedFileUpdate
 } = require('./core');
-const { stateUpdate, statePatch, stateUpdateProgress, updateFrontmatterField } = require('./state');
+const { statePatch, stateUpdateProgress, updateFrontmatterField } = require('./state');
 const {
   roadmapAppendPhase,
   roadmapRemovePhase,

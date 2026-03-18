@@ -499,7 +499,7 @@ function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
     }
 
     // Build the phase heading block
-    const paddedNum = String(phaseNum).padStart(2, '0');
+    const _paddedNum = String(phaseNum).padStart(2, '0');
     const block = [];
     block.push(`### Phase ${phaseNum}: ${name}`);
     if (goal) block.push(`**Goal:** ${goal}`);

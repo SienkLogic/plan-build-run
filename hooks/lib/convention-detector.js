@@ -67,7 +67,7 @@ function detectNaming(contents) {
   // Match class declarations
   const classRegex = /class\s+([A-Z][a-zA-Z0-9]*)/g;
 
-  for (const { content, filePath } of contents) {
+  for (const { content, filePath: _filePath } of contents) {
     let match;
 
     funcRegex.lastIndex = 0;

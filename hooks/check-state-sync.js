@@ -296,9 +296,9 @@ function checkStateSync(data) {
   const phaseSlug = phaseDirName.replace(/^\d+-/, '');
   const phaseName = phaseSlug.replace(/-/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
-  let totalPhases = 0;
+  let _totalPhases = 0;
   try {
-    totalPhases = fs.readdirSync(phasesDir, { withFileTypes: true })
+    _totalPhases = fs.readdirSync(phasesDir, { withFileTypes: true })
       .filter(e => e.isDirectory() && /^\d+-/.test(e.name)).length;
   } catch (_e) { /* leave as 0 */ }
 
