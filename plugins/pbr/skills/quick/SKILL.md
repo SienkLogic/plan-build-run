@@ -21,9 +21,9 @@ This skill **spawns a single Task(subagent_type: "pbr:executor")** for execution
 **Before ANY tool calls**, display this banner:
 
 ```
-+--------------------------------------------------------------+
-|  PLAN-BUILD-RUN > QUICK TASK                                 |
-+--------------------------------------------------------------+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► QUICK TASK                                ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
