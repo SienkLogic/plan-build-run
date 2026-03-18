@@ -1,24 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { createRunner } = require('./helpers');
 const { parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases, checkFilesystemDrift } = require('../hooks/check-roadmap-sync');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-roadmap-sync.js');
-
-function runScript(input, cwd) {
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: typeof input === 'string' ? input : JSON.stringify(input),
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: cwd || process.cwd(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status || 1, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (input, cwd) => _run(input, { cwd });
 
 describe('check-roadmap-sync.js', () => {
   describe('parseState', () => {

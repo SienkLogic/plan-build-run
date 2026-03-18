@@ -2,23 +2,11 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-bash-dispatch.js');
-
-function runScript(toolInput, cwd) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: cwd || os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (toolInput, cwd) => _run({ tool_input: toolInput }, { cwd: cwd || os.tmpdir() });
 
 describe('pre-bash-dispatch.js', () => {
   describe('normal commands pass through', () => {
