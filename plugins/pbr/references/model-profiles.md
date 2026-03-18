@@ -86,6 +86,7 @@ When using `/pbr:settings model-profile {preset}`, these feature defaults are al
 |---------|---------|----------|--------|----------|
 | `workflow.inline_execution` | `true` | `false` | `false` | `false` |
 | `features.inline_verify` | `true` | `false` | `false` | `false` |
+| `features.extended_context` | `true` | `false` | `false` | `false` |
 | `workflow.phase_boundary_clear` | `"recommend"` | `"off"` | `"off"` | `"off"` |
 | `workflow.autonomous` | `false` | `false` | `false` | `false` |
 | `workflow.speculative_planning` | `false` | `false` | `false` | `false` |

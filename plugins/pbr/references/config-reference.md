@@ -85,6 +85,7 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 | `auto_advance` | `false` | Chain build, review, and plan automatically (requires `mode: autonomous`) |
 | `team_discussions` | `false` | Enable team-based discussion workflows (never used for execution) |
 | `inline_verify` | `false` | Per-task verification after each executor commit; adds ~10-20s latency per plan |
+| `extended_context` | `false` | Enable aggressive 1M context optimizations: higher concurrency (5 agents vs 3), default team review, always-parallel scan, pre-load build steps. Auto-set by quality profile. Safe optimizations (parallel research, full SUMMARY reads) use `context_window_tokens >= 500000` instead. |
 
 **Notable interactions:**
 - `goal_verification: false` skips post-build verification; the build skill suggests running `/pbr:verify-work` manually.
@@ -92,6 +93,7 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 - `auto_advance: true` requires `mode: autonomous` to function. Hard stops at checkpoints, verification gaps, errors, and milestone boundaries.
 - `inline_verify: true` spawns a haiku-model verifier after each plan within a wave, catching issues before dependent plans run.
 - `session_phase_limit: N` (top-level) triggers auto-pause after N phases when `auto_continue: true`. In TMUX, the pause auto-cycles to a fresh session.
+- `extended_context: true` enables aggressive parallelization and deeper context usage. Requires `context_window_tokens >= 500000` to have any effect. Automatically set by the `quality` model profile. Safe optimizations (parallel researcher+seed-scan, full SUMMARY reads, pre-load steps) remain gated on `context_window_tokens >= 500000` only — they do not require this flag.
 
 ---
 
