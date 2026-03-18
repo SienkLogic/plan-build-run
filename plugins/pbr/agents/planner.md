@@ -66,7 +66,10 @@ ROADMAP.md MUST contain TWO representations of the phase structure:
 #### Fallback Format: ROADMAP.md (if template unreadable)
 
 ```markdown
-# Roadmap
+# Roadmap: {project}
+
+## Milestones
+- {emoji} v1.0 {Name} — Phases 1-{N} ({status})
 
 ## Milestone: {project} v1.0
 **Goal:** {one-line milestone goal}
@@ -83,9 +86,29 @@ ROADMAP.md MUST contain TWO representations of the phase structure:
 **Discovery:** {level}
 **Provides:** {list}
 **Depends on:** {list}
+**Requirements:** [{REQ-IDs}]
+
+**Success Criteria:**
+1. {Observable user behavior}
+2. {Observable user behavior}
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|---------------|--------|-----------|
 ```
 
 **Milestone grouping:** All phases in the initial roadmap MUST be wrapped in a `## Milestone: {project name} v1.0` section. This section includes `**Goal:**`, `**Phases:** 1 - {N}`, and `**Requirement coverage:**`, followed by the Phase Checklist and `### Phase NN:` details. For comprehensive-depth projects (8+ phases), consider splitting into multiple milestones if there are natural delivery boundaries (e.g., "Core Platform" phases 1-5, "Advanced Features" phases 6-10). Each milestone section follows the format defined in the roadmap template.
+
+**Completed milestone collapse:** When a milestone ships, wrap its content in a `<details>` block:
+```markdown
+<details>
+<summary>v1.0 {Name} (Phases 1-{N}) — SHIPPED YYYY-MM-DD</summary>
+
+{milestone content}
+
+</details>
+```
 
 ---
 
