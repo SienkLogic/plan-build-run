@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { parseStateMd, updateLegacyStateField, updateFrontmatterField } = require('../plan-build-run/bin/lib/state.cjs');
 const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plan-build-run/bin/lib/roadmap.cjs');
-const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, validateStatusTransition, sessionLoad, sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
+const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, STATUS_LABELS, validateStatusTransition, sessionLoad, sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
 const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plan-build-run/bin/lib/config.cjs');
 const { historyAppend, historyLoad } = require('../plan-build-run/bin/lib/history.cjs');
 
@@ -674,21 +674,41 @@ next_top_level: something`;
   });
 
   describe('VALID_STATUS_TRANSITIONS', () => {
-    test('defines transitions for all known statuses', () => {
-      const expectedStatuses = ['pending', 'planned', 'building', 'built', 'partial', 'verified', 'needs_fixes', 'skipped'];
-      for (const status of expectedStatuses) {
+    test('defines transitions for all 13 primary states plus legacy pending alias', () => {
+      const allStates = [
+        'not_started', 'discussed', 'ready_to_plan', 'planning', 'planned',
+        'ready_to_execute', 'building', 'built', 'partial', 'verified',
+        'needs_fixes', 'complete', 'skipped',
+        'pending' // legacy alias
+      ];
+      for (const status of allStates) {
         expect(VALID_STATUS_TRANSITIONS).toHaveProperty(status);
         expect(Array.isArray(VALID_STATUS_TRANSITIONS[status])).toBe(true);
-        expect(VALID_STATUS_TRANSITIONS[status].length).toBeGreaterThan(0);
       }
     });
 
-    test('pending (legacy alias) can transition to planned, discussed, skipped, not_started', () => {
-      expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'discussed', 'skipped', 'not_started']);
+    test('not_started can transition to discussed, ready_to_plan, planned, or skipped', () => {
+      expect(VALID_STATUS_TRANSITIONS.not_started).toEqual(['discussed', 'ready_to_plan', 'planned', 'skipped']);
+    });
+
+    test('discussed can transition to ready_to_plan or planning', () => {
+      expect(VALID_STATUS_TRANSITIONS.discussed).toEqual(['ready_to_plan', 'planning']);
+    });
+
+    test('ready_to_plan can transition to planning or planned', () => {
+      expect(VALID_STATUS_TRANSITIONS.ready_to_plan).toEqual(['planning', 'planned']);
+    });
+
+    test('planning can transition to planned', () => {
+      expect(VALID_STATUS_TRANSITIONS.planning).toEqual(['planned']);
     });
 
     test('planned can transition to ready_to_execute or building', () => {
       expect(VALID_STATUS_TRANSITIONS.planned).toEqual(['ready_to_execute', 'building']);
+    });
+
+    test('ready_to_execute can transition to building', () => {
+      expect(VALID_STATUS_TRANSITIONS.ready_to_execute).toEqual(['building']);
     });
 
     test('building can transition to built, partial, or needs_fixes', () => {
@@ -707,8 +727,59 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.needs_fixes).toEqual(['planned', 'building', 'ready_to_plan']);
     });
 
+    test('complete is terminal (no outgoing transitions)', () => {
+      expect(VALID_STATUS_TRANSITIONS.complete).toEqual([]);
+    });
+
     test('skipped can transition to not_started or pending (unskip)', () => {
       expect(VALID_STATUS_TRANSITIONS.skipped).toEqual(['not_started', 'pending']);
+    });
+
+    test('pending (legacy alias) can transition to planned, discussed, skipped, not_started', () => {
+      expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'discussed', 'skipped', 'not_started']);
+    });
+
+    test('full lifecycle path: not_started through complete', () => {
+      const lifecycle = [
+        'not_started', 'discussed', 'ready_to_plan', 'planning', 'planned',
+        'ready_to_execute', 'building', 'built', 'verified', 'complete'
+      ];
+      for (let i = 0; i < lifecycle.length - 1; i++) {
+        const from = lifecycle[i];
+        const to = lifecycle[i + 1];
+        expect(VALID_STATUS_TRANSITIONS[from]).toContain(to);
+      }
+    });
+  });
+
+  describe('STATUS_LABELS', () => {
+    test('provides labels for all 13 primary states', () => {
+      const expected = {
+        not_started: 'Not Started',
+        discussed: 'Discussed',
+        ready_to_plan: 'Ready to Plan',
+        planning: 'Planning',
+        planned: 'Planned',
+        ready_to_execute: 'Ready to Execute',
+        building: 'Building',
+        built: 'Built',
+        partial: 'Partial',
+        verified: 'Verified',
+        needs_fixes: 'Needs Fixes',
+        complete: 'Complete',
+        skipped: 'Skipped',
+      };
+      for (const [key, label] of Object.entries(expected)) {
+        expect(STATUS_LABELS[key]).toBe(label);
+      }
+    });
+
+    test('legacy reviewed maps to Verified', () => {
+      expect(STATUS_LABELS.reviewed).toBe('Verified');
+    });
+
+    test('legacy pending maps to Not Started', () => {
+      expect(STATUS_LABELS.pending).toBe('Not Started');
     });
   });
 
@@ -721,6 +792,22 @@ next_top_level: something`;
       expect(validateStatusTransition('verified', 'building')).toEqual({ valid: true });
       expect(validateStatusTransition('needs_fixes', 'building')).toEqual({ valid: true });
       expect(validateStatusTransition('skipped', 'pending')).toEqual({ valid: true });
+    });
+
+    test('new states: valid transitions for discussed, ready_to_plan, ready_to_execute', () => {
+      expect(validateStatusTransition('not_started', 'discussed')).toEqual({ valid: true });
+      expect(validateStatusTransition('discussed', 'ready_to_plan')).toEqual({ valid: true });
+      expect(validateStatusTransition('discussed', 'planning')).toEqual({ valid: true });
+      expect(validateStatusTransition('ready_to_plan', 'planning')).toEqual({ valid: true });
+      expect(validateStatusTransition('planning', 'planned')).toEqual({ valid: true });
+      expect(validateStatusTransition('planned', 'ready_to_execute')).toEqual({ valid: true });
+      expect(validateStatusTransition('ready_to_execute', 'building')).toEqual({ valid: true });
+    });
+
+    test('invalid transition: not_started -> built (skips many steps)', () => {
+      const result = validateStatusTransition('not_started', 'built');
+      expect(result.valid).toBe(false);
+      expect(result.warning).toContain('Suspicious status transition');
     });
 
     test('invalid transition returns { valid: false, warning }', () => {
@@ -744,6 +831,11 @@ next_top_level: something`;
 
     test('skipped -> building is invalid (must unskip first)', () => {
       const result = validateStatusTransition('skipped', 'building');
+      expect(result.valid).toBe(false);
+    });
+
+    test('complete is terminal: no valid outgoing transitions', () => {
+      const result = validateStatusTransition('complete', 'building');
       expect(result.valid).toBe(false);
     });
 
