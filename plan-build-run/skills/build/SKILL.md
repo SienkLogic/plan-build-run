@@ -1474,7 +1474,7 @@ Use the branded output templates from `references/ui-brand.md`. Route based on s
 | `passed` + more phases in current milestone | "Phase Complete" template |
 | `passed` + last phase in current milestone | "Milestone Complete" template |
 
-**Milestone boundary detection:** To determine "last phase in current milestone", read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone. For projects with a single milestone or no explicit milestone sections, "last phase in ROADMAP" is equivalent.
+**Milestone boundary detection:** To determine "last phase in current milestone", read ROADMAP.md and find the `## Milestone:` section containing the current phase. Active milestones use `## Milestone:` headings directly; completed milestones are wrapped in `<details><summary>## Milestone:` blocks or use the legacy `-- COMPLETED` suffix. Check the active milestone's `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone. For projects with a single milestone or no explicit milestone sections, "last phase in ROADMAP" is equivalent.
 | `gaps_found` | "Gaps Found" template |
 
 Before the branded banner, include the results table:
