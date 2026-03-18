@@ -568,20 +568,18 @@ options:
 - If "Skip for now": display reminder: "Tag v{version} is local only. Push when ready: `git push origin main --follow-tags`"
 - If "Other": follow user instructions (e.g., create a PR, push to a different branch, etc.)
 
-9d. **Offer npm release:**
+9d. **Automatic npm release:**
 
-Use AskUserQuestion to offer publishing this milestone as an npm release:
+After pushing, automatically run the npm release to publish this milestone:
 
-```
-question: "Publish v{version} to npm? This runs `npm run release` which bumps version, generates changelog, and creates a GitHub Release."
-header: "Release"
-options:
-  - label: "Yes, release"    description: "Run npm run release --minor to publish v{version}"
-  - label: "Skip release"    description: "Don't publish to npm right now"
+```bash
+npm run release -- --minor
 ```
 
-- If "Yes, release": run `npm run release --minor` via Bash. Display the output. If it fails, show the error but don't block — the milestone is already archived.
-- If "Skip release" or "Other": display reminder: "Run `npm run release` when ready to publish."
+Display the output to the user. The `--minor` flag is used because milestone completions always represent new features.
+
+- If the release succeeds: display the new version number and GitHub Release URL
+- If the release fails: show the error as an advisory warning — the milestone is already archived. Suggest the user run `npm run release` manually after fixing the issue.
 
 ### Post-Completion Smoke Test
 

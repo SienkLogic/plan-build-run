@@ -56,8 +56,8 @@ function getNextVersion(forceLevel) {
     // Fallback: check commit types since last tag
   }
 
-  // Fallback: scan commits since last tag
-  const lastTag = run('git describe --tags --abbrev=0 2>/dev/null || echo ""');
+  // Fallback: scan commits since last RELEASE tag (plan-build-run-v*, not milestone v* tags)
+  const lastTag = run('git tag --sort=-creatordate --list "plan-build-run-v*" | head -1 2>/dev/null || echo ""');
   const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
   const log = run(`git log --oneline --no-merges ${range}`);
 
