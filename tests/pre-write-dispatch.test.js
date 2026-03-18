@@ -1,57 +1,31 @@
-const { execSync } = require('child_process');
+const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-write-dispatch.js');
-
-function makeTmpDir() {
-  // Resolve symlinks so file_path and process.cwd() match (macOS /var → /private/var)
-  const tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pwd-')));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
-  return { tmpDir, planningDir };
-}
-
-function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
-function runScript(tmpDir, toolInput) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 
 describe('pre-write-dispatch.js', () => {
   test('exits 0 with advisory for source writes without active skill (PBR enforcement)', () => {
-    const { tmpDir } = makeTmpDir();
+    const { tmpDir } = createTmpPlanning();
     const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'index.ts') });
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.output);
     expect(parsed.additionalContext).toContain('PBR workflow required');
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('exits 0 with empty tool_input', () => {
-    const { tmpDir } = makeTmpDir();
+    const { tmpDir } = createTmpPlanning();
     const result = runScript(tmpDir, {});
     expect(result.exitCode).toBe(0);
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('blocks when skill workflow is violated (quick skill, no plan)', () => {
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     const filePath = path.join(tmpDir, 'src', 'app.js');
     const result = runScript(tmpDir, { file_path: filePath });
@@ -59,20 +33,20 @@ describe('pre-write-dispatch.js', () => {
     const parsed = JSON.parse(result.output);
     expect(parsed.decision).toBe('block');
     expect(parsed.reason).toContain('quick');
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('allows quick skill writes inside .planning/', () => {
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     const filePath = path.join(planningDir, 'quick', '001-fix', 'PLAN.md');
     const result = runScript(tmpDir, { file_path: filePath });
     expect(result.exitCode).toBe(0);
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('warns on cross-phase write (dispatches to phase boundary check)', () => {
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     const phasesDir = path.join(planningDir, 'phases');
     fs.mkdirSync(phasesDir, { recursive: true });
@@ -84,11 +58,11 @@ describe('pre-write-dispatch.js', () => {
       expect(parsed.additionalContext).toContain('phase 4');
       expect(parsed.additionalContext).toContain('current phase is 2');
     }
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('blocks cross-phase write when enforcement is on', () => {
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ safety: { enforce_phase_boundaries: true } }));
@@ -99,11 +73,11 @@ describe('pre-write-dispatch.js', () => {
     expect(result.exitCode).toBe(2);
     const parsed = JSON.parse(result.output);
     expect(parsed.decision).toBe('block');
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('skill workflow block takes priority over phase boundary', () => {
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     // Set up both: active skill = quick AND cross-phase write
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
@@ -117,7 +91,7 @@ describe('pre-write-dispatch.js', () => {
     expect(parsed.decision).toBe('block');
     // Should be the workflow violation, not phase boundary
     expect(parsed.reason).toContain('quick');
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   test('SUMMARY write dispatches to check-summary-gate', () => {
@@ -125,7 +99,7 @@ describe('pre-write-dispatch.js', () => {
     // This test verifies that writing a SUMMARY.md to a phase directory is NOT
     // blocked by check-summary-gate (gate only prevents STATE.md status advancement
     // without a SUMMARY, not SUMMARY writes themselves).
-    const { tmpDir, planningDir } = makeTmpDir();
+    const { tmpDir, planningDir } = createTmpPlanning();
     const phaseDir = path.join(planningDir, 'phases', '01-init');
     fs.mkdirSync(phaseDir, { recursive: true });
 
@@ -144,12 +118,12 @@ describe('pre-write-dispatch.js', () => {
       expect(parsed.decision).not.toBe('block');
     }
 
-    cleanup(tmpDir);
+    cleanupTmp(tmpDir);
   });
 
   describe('agent STATE.md write blocker', () => {
     test('blocks STATE.md write when active agent is blocked', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
       const filePath = path.join(tmpDir, '.planning', 'STATE.md');
       const result = runScript(tmpDir, { file_path: filePath, content: '---\nstatus: "building"\n---' });
@@ -157,11 +131,11 @@ describe('pre-write-dispatch.js', () => {
       const parsed = JSON.parse(result.output);
       expect(parsed.decision).toBe('block');
       expect(parsed.reason).toContain('pbr:executor');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('allows STATE.md write when no active agent', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       // No .active-agent file — should pass through to other checks
       const phasesDir = path.join(planningDir, 'phases', '01-init');
       fs.mkdirSync(phasesDir, { recursive: true });
@@ -169,11 +143,11 @@ describe('pre-write-dispatch.js', () => {
       const filePath = path.join(tmpDir, '.planning', 'STATE.md');
       const result = runScript(tmpDir, { file_path: filePath, content: '---\nstatus: "planning"\ncurrent_phase: 1\nphase_slug: "init"\n---' });
       expect(result.exitCode).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('agent blocker takes priority over other checks', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       // Set up agent blocker AND skill workflow violation
       fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:planner');
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
@@ -183,13 +157,13 @@ describe('pre-write-dispatch.js', () => {
       const parsed = JSON.parse(result.output);
       // Should be the agent blocker, not skill workflow
       expect(parsed.reason).toContain('pbr:planner');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('allow decision format', () => {
     test('pass-through returns { decision: "allow" } JSON', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
       const filePath = path.join(planningDir, 'phases', '01-init', 'PLAN.md');
       fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -198,22 +172,22 @@ describe('pre-write-dispatch.js', () => {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('blocked writes return decision block', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
       const filePath = path.join(tmpDir, 'src', 'app.js');
       const result = runScript(tmpDir, { file_path: filePath });
       expect(result.exitCode).toBe(2);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('block');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('handles CRLF in file_path gracefully', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
       const phasesDir = path.join(planningDir, 'phases', '01-init');
@@ -224,11 +198,11 @@ describe('pre-write-dispatch.js', () => {
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
       expect(output.decision).toBe('allow');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('advisory returns include decision allow', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 5');
       const phasesDir = path.join(planningDir, 'phases');
       fs.mkdirSync(phasesDir, { recursive: true });
@@ -240,7 +214,7 @@ describe('pre-write-dispatch.js', () => {
         // Advisory cross-phase warning should still include decision allow or additionalContext
         expect(output.additionalContext).toContain('phase 4');
       }
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
@@ -250,13 +224,13 @@ describe('pre-write-dispatch.js', () => {
       // No .planning/ subdirectory created
       const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'src', 'app.ts') });
       expect(result.exitCode).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('cross-platform path handling', () => {
     test('soft warning extracts phase number from backslash-separated path', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
       const phasesDir = path.join(planningDir, 'phases');
       fs.mkdirSync(path.join(phasesDir, '02-auth'), { recursive: true });
@@ -270,25 +244,15 @@ describe('pre-write-dispatch.js', () => {
         expect(parsed.additionalContext).toContain('phase 2');
         expect(parsed.additionalContext).toContain('current phase is 1');
       }
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   test('handles malformed JSON gracefully', () => {
-    const { tmpDir } = makeTmpDir();
-    try {
-      const result = execSync(`node "${SCRIPT}"`, {
-        input: 'not valid json',
-        encoding: 'utf8',
-        timeout: 5000,
-        cwd: tmpDir,
-      });
-      // Should exit 0 without crashing
-      expect(result).toBeDefined();
-    } catch (e) {
-      // Exit 0 is expected even for bad input
-      expect(e.status).toBe(0);
-    }
-    cleanup(tmpDir);
+    const { tmpDir } = createTmpPlanning();
+    const result = _run('not valid json', { cwd: tmpDir });
+    // Should exit 0 without crashing
+    expect(result.exitCode).toBe(0);
+    cleanupTmp(tmpDir);
   });
 });

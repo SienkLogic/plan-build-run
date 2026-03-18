@@ -1,37 +1,12 @@
 const { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
-const { execSync } = require('child_process');
+const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'suggest-compact.js');
-
-function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-sc-'));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
-  return { tmpDir, planningDir };
-}
-
-function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
-function runScript(tmpDir, toolInput) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 
 describe('suggest-compact.js', () => {
   describe('loadCounter', () => {
@@ -42,116 +17,116 @@ describe('suggest-compact.js', () => {
     });
 
     test('loads existing counter', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       fs.writeFileSync(counterPath, JSON.stringify({ count: 42, lastSuggested: 0 }));
       const counter = loadCounter(counterPath);
       expect(counter.count).toBe(42);
       expect(counter.lastSuggested).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('handles malformed JSON gracefully', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       fs.writeFileSync(counterPath, 'not json');
       const counter = loadCounter(counterPath);
       expect(counter.count).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('saveCounter', () => {
     test('writes counter to file', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: 10, lastSuggested: 0 });
       const data = JSON.parse(fs.readFileSync(counterPath, 'utf8'));
       expect(data.count).toBe(10);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('getThreshold', () => {
     test('returns default when no config.json', () => {
-      const { tmpDir } = makeTmpDir();
+      const { tmpDir } = createTmpPlanning();
       expect(getThreshold(tmpDir)).toBe(DEFAULT_THRESHOLD);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns default when no hooks.compactThreshold in config', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), '{"depth": "standard"}');
       expect(getThreshold(tmpDir)).toBe(DEFAULT_THRESHOLD);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns configured threshold', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ hooks: { compactThreshold: 30 } }));
       expect(getThreshold(tmpDir)).toBe(30);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('getScaledThreshold', () => {
     test('returns 250 when config has context_window_tokens: 1000000', () => {
       const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
       configClearCache();
       expect(getScaledThreshold(planningDir)).toBe(250);
       configClearCache();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns 50 (default) when no config', () => {
       const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       configClearCache();
       expect(getScaledThreshold(planningDir)).toBe(50);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('resetCounter', () => {
     test('deletes counter file', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       fs.writeFileSync(counterPath, JSON.stringify({ count: 99, lastSuggested: 50 }));
       resetCounter(planningDir);
       expect(fs.existsSync(counterPath)).toBe(false);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('does not throw when file does not exist', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       expect(() => resetCounter(planningDir)).not.toThrow();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('checkCompaction', () => {
     test('returns null below threshold', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('increments counter each call', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       checkCompaction(planningDir, tmpDir);
       checkCompaction(planningDir, tmpDir);
       checkCompaction(planningDir, tmpDir);
       const counter = loadCounter(path.join(planningDir, '.compact-counter'));
       expect(counter.count).toBe(3);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('suggests at threshold', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       // Pre-seed counter just below threshold
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
@@ -161,22 +136,22 @@ describe('suggest-compact.js', () => {
       expect(result.additionalContext).toContain('[Context Budget]');
       expect(result.additionalContext).toContain(`${DEFAULT_THRESHOLD}`);
       expect(result.additionalContext).toContain('/compact');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('does not re-suggest immediately after first suggestion', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       // Set counter at threshold with lastSuggested already set
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD, lastSuggested: DEFAULT_THRESHOLD });
 
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('re-suggests after reminder interval', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       // Set counter at threshold + REMINDER_INTERVAL - 1 (one call away from re-suggestion)
       const count = DEFAULT_THRESHOLD + REMINDER_INTERVAL - 1;
@@ -185,11 +160,11 @@ describe('suggest-compact.js', () => {
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget]');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('uses configured threshold', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       // Set low threshold
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ hooks: { compactThreshold: 5 } }));
@@ -200,7 +175,7 @@ describe('suggest-compact.js', () => {
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('5 tool calls');
       expect(result.additionalContext).toContain('threshold: 5');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
@@ -212,62 +187,62 @@ describe('suggest-compact.js', () => {
     }
 
     test('returns null when bridge file is absent', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       expect(checkBridgeTier(planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for PEAK tier (25%)', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 25);
       expect(checkBridgeTier(planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns DEGRADING for 55%', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 55);
       const result = checkBridgeTier(planningDir);
       expect(result).not.toBeNull();
       expect(result.tier).toBe('DEGRADING');
       expect(result.message).toContain('50-70%');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns POOR for 75%', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 75);
       const result = checkBridgeTier(planningDir);
       expect(result).not.toBeNull();
       expect(result.tier).toBe('POOR');
       expect(result.message).toContain('70-85%');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns CRITICAL for 90%', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 90);
       const result = checkBridgeTier(planningDir);
       expect(result).not.toBeNull();
       expect(result.tier).toBe('CRITICAL');
       expect(result.message).toContain('85%+');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for stale bridge (120s old)', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 90, 120000);
       expect(checkBridgeTier(planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns tier for bridge just under staleness threshold (59s old)', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 75, 59000);
       const result = checkBridgeTier(planningDir);
       expect(result).not.toBeNull();
       expect(result.tier).toBe('POOR');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
@@ -279,7 +254,7 @@ describe('suggest-compact.js', () => {
     }
 
     test('emits tier-labeled DEGRADING message when bridge is fresh at 55%', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 55);
       // Seed counter at threshold so counter would trigger too
       const counterPath = path.join(planningDir, '.compact-counter');
@@ -288,11 +263,11 @@ describe('suggest-compact.js', () => {
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget - DEGRADING]');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('emits tier-labeled POOR message when bridge is fresh at 75%', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 75);
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
@@ -300,11 +275,11 @@ describe('suggest-compact.js', () => {
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget - POOR]');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('CRITICAL tier always emits regardless of debounce', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 90);
       // Set counter so it would be debounced normally (just after suggestion)
       const counterPath = path.join(planningDir, '.compact-counter');
@@ -313,11 +288,11 @@ describe('suggest-compact.js', () => {
       const result = checkCompaction(planningDir, tmpDir);
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget - CRITICAL]');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('falls back to counter warning when bridge is stale (120s old)', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 90, 120000);
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
@@ -326,11 +301,11 @@ describe('suggest-compact.js', () => {
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget]');
       expect(result.additionalContext).not.toContain('[Context Budget - ');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('falls back to counter warning when bridge is absent', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
 
@@ -338,11 +313,11 @@ describe('suggest-compact.js', () => {
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('[Context Budget]');
       expect(result.additionalContext).not.toContain('[Context Budget - ');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('PEAK tier (25%) falls through to counter check', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       makeBridge(planningDir, 25);
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
@@ -352,28 +327,28 @@ describe('suggest-compact.js', () => {
       // Should use counter-based message (no tier label)
       expect(result.additionalContext).toContain('[Context Budget]');
       expect(result.additionalContext).not.toContain('[Context Budget - ');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('composition advice', () => {
     test('returns null when no ledger file exists', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const result = buildCompositionAdvice(planningDir);
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null when ledger is empty array', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), '[]');
       const result = buildCompositionAdvice(planningDir);
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('groups by phase and computes totals', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const now = new Date().toISOString();
       const entries = [
         { file: 'a.js', timestamp: now, est_tokens: 1000, phase: 'auth', stale: false },
@@ -387,11 +362,11 @@ describe('suggest-compact.js', () => {
       expect(result).toContain('3 reads');
       // No stale entries, so no phase-level stale info and no /compact suggestion
       expect(result).not.toContain('stale');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('identifies stale entries', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
       // Write config with stale_after_minutes: 60
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
@@ -413,11 +388,11 @@ describe('suggest-compact.js', () => {
       expect(result).toContain('~3k');
       expect(result).toContain('/compact');
       configClearCache();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('handles null phase as untracked', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const oldTimestamp = new Date(Date.now() - 120 * 60 * 1000).toISOString();
       const entries = [
         { file: 'x.js', timestamp: oldTimestamp, est_tokens: 500, phase: null, stale: false },
@@ -426,11 +401,11 @@ describe('suggest-compact.js', () => {
       const result = buildCompositionAdvice(planningDir);
       expect(result).not.toBeNull();
       expect(result).toContain('untracked');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('checkCompaction includes composition when bridge tier active and ledger exists', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
       configClearCache();
 
@@ -452,17 +427,17 @@ describe('suggest-compact.js', () => {
       expect(result.additionalContext).toContain('Context composition');
       expect(result.additionalContext).toContain('stale');
       configClearCache();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
   describe('hook execution', () => {
     test('exits 0 silently below threshold', () => {
-      const { tmpDir } = makeTmpDir();
+      const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, { file_path: path.join(tmpDir, 'app.js') });
       expect(result.exitCode).toBe(0);
       expect(result.output).toBe('');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 when not a Plan-Build-Run project', () => {
@@ -474,7 +449,7 @@ describe('suggest-compact.js', () => {
     });
 
     test('outputs suggestion at threshold', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       const counterPath = path.join(planningDir, '.compact-counter');
       saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
 
@@ -483,23 +458,14 @@ describe('suggest-compact.js', () => {
       const parsed = JSON.parse(result.output);
       expect(parsed.additionalContext).toContain('[Context Budget]');
       expect(parsed.additionalContext).toContain('/compact');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('handles malformed JSON input gracefully', () => {
-      const { tmpDir } = makeTmpDir();
-      try {
-        const result = execSync(`node "${SCRIPT}"`, {
-          input: 'not json',
-          encoding: 'utf8',
-          timeout: 5000,
-          cwd: tmpDir,
-        });
-        expect(result).toBeDefined();
-      } catch (e) {
-        expect(e.status).toBe(0);
-      }
-      cleanup(tmpDir);
+      const { tmpDir } = createTmpPlanning();
+      const result = _run('not json', { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
     });
   });
 });
