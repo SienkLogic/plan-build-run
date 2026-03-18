@@ -2,6 +2,18 @@
 
 When execution doesn't go exactly as planned, these 5 rules govern what the executor can do on its own versus what requires user approval.
 
+## Taxonomy Reference
+
+When documenting deviations in SUMMARY.md, use this structured format:
+
+```yaml
+deviations:
+  - rule: 1          # 1=Bug, 2=Missing Dependency, 3=Critical Gap, 4=Architectural, 5=Scope Creep
+    description: "What happened"
+    action: "auto"   # auto (Rules 1-3, 5) | ask (Rule 4)
+    justification: "Why this action was taken"
+```
+
 ---
 
 ## Rule 1: Bug Discovered
