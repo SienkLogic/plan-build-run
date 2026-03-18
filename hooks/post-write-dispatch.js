@@ -14,6 +14,12 @@
  *   - SUMMARY*.md or VERIFICATION.md in .planning/phases/ → state sync (auto-update tracking files)
  *   - Other files → exit immediately (no work needed)
  *
+ * Independent dispatch (RH-21):
+ *   All checks run independently — no early returns. Results are collected
+ *   into an array and merged into a single additionalContext response.
+ *   Individual check failures are logged via logHook() and do not prevent
+ *   other checks from running.
+ *
  * Exit codes:
  *   0 = always (PostToolUse hooks are advisory)
  */
