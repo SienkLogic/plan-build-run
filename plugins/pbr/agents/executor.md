@@ -318,6 +318,8 @@ Only append to the LAST commit of the plan — intermediate commits (RED/GREEN i
 
 **Reference**: Read `${CLAUDE_PLUGIN_ROOT}/references/deviation-rules.md` for full rule definitions and the taxonomy format used in SUMMARY.md deviations.
 
+**Node Repair Reference**: Read `${CLAUDE_PLUGIN_ROOT}/references/node-repair.md` for the repair taxonomy (RETRY, DECOMPOSE, PRUNE, ESCALATE) and budget limits.
+
 When documenting deviations, use the structured format from the reference:
 ```yaml
 deviations:
@@ -397,9 +399,20 @@ When a task fails (verify or acceptance_criteria), apply repair strategies in or
 
 Apply strategies in order: exhaust RETRY budget before trying DECOMPOSE, exhaust DECOMPOSE before PRUNE, exhaust PRUNE before ESCALATE.
 
+### Repair Loop Per Task
+
+For each task during execution:
+1. Execute task
+2. Verify (run tests if applicable, check file exists)
+3. If fail -> RETRY (adjust based on error, 1 retry max)
+4. If retry fails -> DECOMPOSE (split into 2-3 sub-tasks)
+5. If sub-tasks fail -> PRUNE (if not must-have) or ESCALATE (if must-have)
+6. Record all repair actions in SUMMARY.md deviations field with the repair strategy used
+
 Log each strategy attempt: `"Node repair: {STRATEGY} on task {id} (attempt {n}/{budget})"`
 
 CRITICAL: Each repair attempt MUST be logged. Silent retries are forbidden.
+CRITICAL: Each deviation entry in SUMMARY.md must include which repair strategy was applied (RETRY, DECOMPOSE, PRUNE, or ESCALATE).
 
 ---
 
