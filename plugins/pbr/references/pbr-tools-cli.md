@@ -230,6 +230,21 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans 1 2 5
 
 **Output:** `{ "success": true, "old_plans": "1/5", "new_plans": "2/5" }`
 
+### Roadmap Format Notes
+
+**Phase sections** in ROADMAP.md include these fields (parsed by the dashboard and plan skill):
+- `**Goal:**` — phase objective
+- `**Requirements:**` — mapped REQ-IDs (e.g., `REQ-F-001, REQ-F-002`)
+- `**Success Criteria:**` — verifiable conditions for phase completion
+- `**Provides:**` — exported capabilities (bulleted list)
+- `**Depends on:**` — prerequisite phases
+- `**Implements:**` — REQ-IDs implemented
+
+**Milestone collapse format** (created by `/pbr:milestone complete`):
+- **New format:** `<details><summary>## Milestone: {name} ({version}) — SHIPPED {date}</summary>` wrapping phase table and archive link
+- **Legacy format:** `## Milestone: {name} ({version}) -- COMPLETED` (still recognized for backward compat)
+- **Milestone index:** `## Milestones` section near top of ROADMAP.md with version/name/status/date table
+
 ---
 
 ## History Commands
