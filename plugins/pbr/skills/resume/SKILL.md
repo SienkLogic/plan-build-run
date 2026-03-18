@@ -136,13 +136,13 @@ Use the selected pause point for the rest of the resume flow.
 ### Step 3a: Normal Resume (from .continue-here.md)
 
 1. Read the `.continue-here.md` file completely
-2. Parse all sections:
-   - Position (phase, plan, status)
-   - Completed work
-   - Remaining work
-   - Decisions
-   - Blockers
-   - Next steps
+2. Parse sections. If the file contains `<current_state>`, parse XML sections. Otherwise, fall back to parsing markdown headers (`## Position`, `## Completed This Session`, etc.) for backward compatibility with old-format files.
+   - `<current_state>` -- phase, plan, status, branch, working files
+   - `<completed_work>` -- what was done last session
+   - `<remaining_work>` -- what's left in this phase
+   - `<decisions_made>` -- key decisions that affect future work
+   - `<context>` -- approach, reasoning, things to watch out for
+   - `<next_action>` -- the single most important next step with exact command
 
 3. Display the resume context using the branded banner:
 
@@ -167,6 +167,10 @@ Remaining in this phase:
 Key decisions:
 {bulleted list of decisions}
 
+{If context section has content:}
+Session context:
+{approach and reasoning from <context> section}
+
 {If blockers exist:}
 Blockers:
 {bulleted list of blockers}
@@ -178,7 +182,7 @@ Blockers:
    - Check git log to verify commits mentioned in completed work
    - If anything is inconsistent, warn: "Some state has changed since the pause. {details}"
 
-5. Present the next action from the continue-here file.
+5. Present the next action from the continue-here file. When a `<next_action>` section exists with a `Command:` field, prefer that over inferring the next action from state -- the pause skill captured the exact command to run.
 
 **If only one clear next action exists**, present it with branded routing:
 ```
