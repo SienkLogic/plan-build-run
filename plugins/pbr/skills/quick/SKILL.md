@@ -171,12 +171,22 @@ Continue to the selected path (Step 2 or Step 5).
 
 Display to the user: `> Spawning executor...`
 
+**Context Assembly:** Build the executor prompt's `files_to_read` block dynamically at spawn time. Always include STATE.md and CLAUDE.md as base files. Add CONTEXT.md line only if `--discuss` was used AND the file was created. Add RESEARCH.md line only if `--research` was used AND the file was created. Only include files that exist on disk.
+
 Spawn a `Task(subagent_type: "pbr:executor")` with the following inline prompt:
 
 > **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
 
 ```
 You are executor. Execute this quick task directly.
+
+<files_to_read>
+CRITICAL (no hook): Read these files BEFORE any other action:
+1. .planning/STATE.md -- current project state (if exists)
+2. CLAUDE.md -- project instructions
+{3. .planning/quick/{NNN}-{slug}/CONTEXT.md -- task context (only if --discuss was used)}
+{4. .planning/quick/{NNN}-{slug}/RESEARCH.md -- research findings (only if --research was used)}
+</files_to_read>
 
 Do NOT look for a PLAN.md file. Execute based on this description:
 
@@ -345,6 +355,8 @@ Spawn a `Task(subagent_type: "pbr:executor")` with the following prompt:
 
 > **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
 
+**Context Assembly:** Build the `files_to_read` block dynamically. Always include PLAN.md, STATE.md, and CLAUDE.md. Add CONTEXT.md line only if `--discuss` was used AND the file was created. Add RESEARCH.md line only if `--research` was used AND the file was created. Only include files that exist on disk.
+
 ```
 You are executor. Execute the following quick task plan.
 
@@ -352,6 +364,9 @@ You are executor. Execute the following quick task plan.
 CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/quick/{NNN}-{slug}/PLAN.md -- the quick task plan with task details
 2. .planning/STATE.md -- current project state and progress (if exists)
+3. CLAUDE.md -- project instructions
+{4. .planning/quick/{NNN}-{slug}/CONTEXT.md -- task context (only if --discuss was used)}
+{5. .planning/quick/{NNN}-{slug}/RESEARCH.md -- research findings (only if --research was used)}
 </files_to_read>
 
 Plan file: .planning/quick/{NNN}-{slug}/PLAN.md
