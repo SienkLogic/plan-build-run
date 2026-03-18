@@ -751,17 +751,15 @@ function validateConfig(content, _filePath) {
     return { errors, warnings };
   }
 
-  // Required: planning section with depth
-  if (!parsed.planning) {
-    errors.push('Missing "planning" section (required: planning.depth)');
-  } else if (!parsed.planning.depth) {
-    errors.push('Missing "planning.depth" field (expected: "quick", "standard", or "thorough")');
-  } else if (!['quick', 'standard', 'thorough'].includes(parsed.planning.depth)) {
-    warnings.push(`Unexpected planning.depth value: "${parsed.planning.depth}" (expected: quick, standard, or thorough)`);
+  // Optional: top-level depth field (has default in schema)
+  if (parsed.depth !== undefined) {
+    if (!['quick', 'standard', 'comprehensive'].includes(parsed.depth)) {
+      warnings.push(`Unexpected depth value: "${parsed.depth}" (expected: quick, standard, or comprehensive)`);
+    }
   }
 
-  // Advisory: known top-level keys
-  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel'];
+  // Advisory: known top-level keys (must match config-schema.json properties)
+  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'local_llm', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
   for (const key of Object.keys(parsed)) {
     if (!knownKeys.includes(key)) {
       warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
