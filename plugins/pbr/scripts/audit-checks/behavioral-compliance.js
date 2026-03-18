@@ -1522,6 +1522,101 @@ function checkContextDelegationThreshold(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-12: Skill Self-Read Prevention
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-12: Detect skills that wasted tokens reading their own SKILL.md.
+ * Claude Code auto-loads SKILL.md for the active skill, so reading it again
+ * is a token waste.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkSkillSelfReadPrevention(planningDir, _config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-12: No session data available — cannot assess skill self-reads'
+    };
+  }
+
+  const evidence = [];
+
+  // Track active-skill state and detect Read events for SKILL.md files
+  let currentSkill = null;
+
+  for (const entry of allEntries) {
+    // Update current active skill from hook logs
+    if (entry.hook && entry.details && entry.details.active_skill != null) {
+      currentSkill = entry.details.active_skill;
+    }
+    // Also update from skill invocations
+    const invokedSkill = extractSkillInvocation(entry);
+    if (invokedSkill) {
+      currentSkill = invokedSkill;
+    }
+
+    // Skip entries from agent contexts (agents may legitimately read skill files)
+    if (entry.task_id || entry.subagent ||
+      (entry.details && (entry.details.subagent_type || entry.details.task_id || entry.details.inside_task))) {
+      continue;
+    }
+
+    // Detect Read tool events targeting SKILL.md files
+    const isRead = entry.tool === 'Read' ||
+      (entry.details && entry.details.tool === 'Read');
+    if (!isRead) continue;
+
+    const filePath = (entry.tool_input && entry.tool_input.file_path) ||
+      (entry.details && (entry.details.file_path || entry.details.file)) ||
+      entry.file || entry.path || '';
+    const normalized = filePath.replace(/\\/g, '/');
+
+    // Check if this is a SKILL.md file under /skills/
+    if (!/\/skills\//.test(normalized) || !/SKILL\.md$/i.test(normalized)) continue;
+
+    // Extract skill name from path: skills/{skill-name}/SKILL.md
+    const skillMatch = normalized.match(/\/skills\/([^/]+)\/SKILL\.md$/i);
+    if (!skillMatch) continue;
+    const readSkillName = skillMatch[1];
+
+    // Check if the active skill matches the SKILL.md being read
+    if (currentSkill && readSkillName === currentSkill) {
+      const ts = entry.ts || entry.timestamp || '';
+      const time = ts ? ts.substring(11, 16) : 'unknown';
+      evidence.push(
+        `${currentSkill} skill read its own skills/${currentSkill}/SKILL.md at ${time} — wasted tokens`
+      );
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'info',
+      evidence,
+      message: `BC-12: Found ${evidence.length} skill self-read(s) — token waste detected`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: 'BC-12: No skill self-reads detected'
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1553,4 +1648,6 @@ module.exports = {
   checkUnmanagedCommitDetection,
   // BC-11
   checkContextDelegationThreshold,
+  // BC-12
+  checkSkillSelfReadPrevention,
 };
