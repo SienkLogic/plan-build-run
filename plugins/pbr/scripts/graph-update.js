@@ -120,11 +120,13 @@ function updateGraph(planningDir, projectRoot, changedFile) {
 
   // Skip files inside .planning/
   if (normalizedFile.includes('.planning/') || normalizedFile.startsWith('.planning')) {
+    try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'inside .planning', file: normalizedFile }); } catch (_e) { /* never crash */ }
     return null;
   }
 
   // Skip non-source files
   if (!isSourceFile(normalizedFile)) {
+    try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'non-source file', file: normalizedFile }); } catch (_e) { /* never crash */ }
     return null;
   }
 
@@ -133,6 +135,7 @@ function updateGraph(planningDir, projectRoot, changedFile) {
 
   // Check if graph is enabled
   if (!graphModule.isGraphEnabled(planningDir)) {
+    try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'graph disabled' }); } catch (_e) { /* never crash */ }
     return null;
   }
 
@@ -162,7 +165,11 @@ function main() {
     try {
       const data = JSON.parse(input);
       const filePath = (data.tool_input && data.tool_input.file_path) || '';
+
+      try { logHook('graph-update', 'PostToolUse', 'entry', { file: filePath }); } catch (_e) { /* never crash */ }
+
       if (!filePath) {
+        try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'no file path' }); } catch (_e) { /* never crash */ }
         process.exit(0);
         return;
       }
@@ -171,6 +178,7 @@ function main() {
       const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
       const planningDir = findPlanningDir(absFilePath);
       if (!planningDir) {
+        try { logHook('graph-update', 'PostToolUse', 'skip', { reason: 'no .planning dir', file: filePath }); } catch (_e) { /* never crash */ }
         process.exit(0);
         return;
       }
