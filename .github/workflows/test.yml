@@ -31,9 +31,9 @@ jobs:
             echo ""
             echo "Required format: {type}({scope}): {description}"
             echo "  Types: feat, fix, refactor, test, docs, chore, wip, perf, ci, build, revert"
-            echo "  Scope: optional but recommended (e.g., tools, planning, hooks)"
+            echo "  Scopes: hooks, skills, agents, cli, dashboard, templates, plugin, ci, config, tests, commands, refs"
             echo ""
-            echo "WHY: Release-please uses this to generate the changelog."
+            echo "WHY: git-cliff uses this to generate grouped changelogs."
             exit 1
           fi
 

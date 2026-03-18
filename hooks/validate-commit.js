@@ -3,8 +3,12 @@
 /**
  * PreToolUse hook: Validates git commit message format.
  *
- * Expected format: {type}({phase}-{plan}): {description}
- * Valid types: feat, fix, refactor, test, docs, chore
+ * Expected format: {type}({scope}): {description}
+ * Valid types: feat, fix, refactor, test, docs, chore, wip, revert, perf, ci, build
+ *
+ * Scopes: Component names (hooks, skills, agents, cli, dashboard, templates,
+ * plugin, ci, config, tests, commands, refs), descriptive words, quick-{NNN},
+ * planning, or legacy phase-plan numbers ({NN}-{MM}).
  *
  * Also accepts:
  * - Merge commits (starts with "Merge")
@@ -25,7 +29,7 @@ const { logEvent } = require('./event-logger');
 const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
 const { classifyCommit } = require('../plan-build-run/bin/lib/local-llm/operations/classify-commit.cjs');
 
-const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert'];
+const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert', 'perf', 'ci', 'build'];
 
 const SENSITIVE_PATTERNS = [
   /^\.env$/,                          // .env exactly (not .env.example)
@@ -46,8 +50,8 @@ const SAFE_PATTERNS = [
 ];
 
 // Pattern: type(scope): description
-// Scope can be: NN-MM (phase-plan), quick-NNN, planning, or any word
-const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip|revert)(\([a-zA-Z0-9._-]+\))?:\s+.+/;
+// Scope can be: component name, NN-MM (phase-plan), quick-NNN, planning, or any word
+const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip|revert|perf|ci|build)(\([a-zA-Z0-9._/-]+\))?!?:\s+.+/;
 
 // Merge commits are always allowed
 const MERGE_PATTERN = /^Merge\s/;

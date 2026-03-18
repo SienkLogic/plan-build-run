@@ -104,7 +104,9 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 
 ## Key Conventions
 
-**Commit format**: `{type}({scope}): {description}` — enforced by PreToolUse hook. Types: feat, fix, refactor, test, docs, chore, wip. Scopes: `{NN}-{MM}` (phase-plan), `quick-{NNN}`, `planning`, `tools`, or descriptive word.
+**Commit format**: `{type}({scope}): {description}` — enforced by PreToolUse hook. Types: feat, fix, refactor, test, docs, chore, wip, revert, perf, ci, build. Scopes should be **component names**: `hooks`, `skills`, `agents`, `cli`, `dashboard`, `templates`, `plugin`, `ci`, `config`, `tests`, `commands`, `refs`. Also accepts `quick-{NNN}`, `planning`, or descriptive words.
+
+**Releases**: Run `node scripts/release.js` to bump version, generate changelog (via git-cliff), tag, push, and create GitHub Release. The changelog groups entries by component (Hooks, Skills, Agents, etc.) based on commit scope and message keywords.
 
 **Skill frontmatter** (SKILL.md):
 ```yaml

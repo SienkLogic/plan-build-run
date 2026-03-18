@@ -65,6 +65,9 @@
     "lint": "eslint hooks/ tests/",
     "validate": "node hooks/validate-plugin-structure.js",
     "sync:generate": "node scripts/generate-derivatives.js",
-    "sync:verify": "node scripts/generate-derivatives.js --verify"
+    "sync:verify": "node scripts/generate-derivatives.js --verify",
+    "release": "node scripts/release.js",
+    "release:dry": "node scripts/release.js --dry-run",
+    "changelog": "node scripts/clean-changelog.js --write"
   }
 }

@@ -15,14 +15,34 @@ Plan-Build-Run's commit conventions, commit points, branching strategy, and hook
 | Part | Description | Example |
 |------|-------------|---------|
 | `{type}` | Conventional commit type | `feat`, `fix`, `chore` |
-| `{scope}` | Descriptive word for the area of change | `auth`, `executor`, `changelog` |
-| `{description}` | Imperative, lowercase description | `add discord oauth flow` |
+| `{scope}` | Component name for the area of change | `hooks`, `skills`, `agents` |
+| `{description}` | Imperative, lowercase description | `add drift detection to state sync` |
 
 The format is configurable via `config.json` at `git.commit_format`. The default is `{type}({scope}): {description}`.
 
+### Component Scopes
+
+Use these scopes to indicate which part of PBR the change affects. git-cliff uses these to group changelog entries by component.
+
+| Scope | What It Covers | Example |
+|-------|---------------|---------|
+| `hooks` | Hook scripts in `hooks/` and `plugins/pbr/scripts/` | `feat(hooks): add drift detection to state sync` |
+| `skills` | SKILL.md files and skill logic | `feat(skills): add velocity metrics to status` |
+| `agents` | Agent definitions in `agents/` | `fix(agents): scale executor budget for 1M context` |
+| `cli` | `pbr-tools.cjs` and `bin/lib/` modules | `feat(cli): implement stateRederive command` |
+| `dashboard` | Dashboard UI and server | `fix(dashboard): handle missing phases in chart` |
+| `templates` | `.tmpl` template files | `feat(templates): add XML sections to CONTEXT.md` |
+| `plugin` | Plugin manifests, CLAUDE.md, commands | `chore(plugin): bump version to 2.9.0` |
+| `config` | Config schema, validation, defaults | `feat(config): add node_repair_budget setting` |
+| `ci` | GitHub Actions, lint, coverage | `fix(ci): lower branch coverage threshold` |
+| `tests` | Test files and fixtures | `test(tests): add resolve-root macOS symlink test` |
+| `refs` | Reference docs in `references/` | `docs(refs): document hook ordering expectations` |
+| `commands` | Command registration files | `feat(commands): add autonomous command` |
+
 ### Full Example
+
 ```
-feat(auth): implement discord oauth client
+feat(hooks): implement stateRederive with drift detection
 ```
 
 ---
@@ -31,14 +51,17 @@ feat(auth): implement discord oauth client
 
 | Type | When to Use | Example |
 |------|------------|---------|
-| `feat` | New feature or functionality | `feat(auth): implement discord oauth client` |
-| `fix` | Bug fix (including during execution) | `fix(api): handle null user profile from discord` |
-| `refactor` | Code restructuring, no behavior change | `refactor(auth): extract token validation into helper` |
-| `test` | Adding or modifying tests | `test(auth): add failing tests for oauth flow` |
-| `docs` | Documentation changes | `docs(planning): add api endpoint documentation` |
-| `chore` | Build config, dependencies, tooling | `chore(deps): configure typescript and eslint` |
-| `wip` | Work in progress (use sparingly) | `wip(auth): partial oauth implementation` |
-| `revert` | Reverting a previous commit | `revert(auth): revert discord oauth changes` |
+| `feat` | New feature or functionality | `feat(skills): add velocity metrics to status` |
+| `fix` | Bug fix (including during execution) | `fix(hooks): resolve MSYS path bridging on Windows` |
+| `refactor` | Code restructuring, no behavior change | `refactor(cli): extract state mutations to lib/state.cjs` |
+| `test` | Adding or modifying tests | `test(hooks): add resolve-root tests for walk-up discovery` |
+| `docs` | Documentation changes | `docs(refs): document hook ordering expectations` |
+| `chore` | Build config, dependencies, tooling | `chore(plugin): bump version to 2.9.0` |
+| `wip` | Work in progress (use sparingly) | `wip(skills): partial checkpoint routing` |
+| `revert` | Reverting a previous commit | `revert(hooks): revert auto-continue signal file change` |
+| `perf` | Performance improvement | `perf(cli): cache resolveProjectRoot result` |
+| `ci` | CI/CD changes | `ci(ci): add markdownlint job to test workflow` |
+| `build` | Build system changes | `build(plugin): update hooks.json paths` |
 
 ---
 
@@ -59,16 +82,16 @@ feat(auth): implement discord oauth client
 
 ---
 
-## Special Commit Scopes
+## Special Commit Patterns
 
-Beyond descriptive scopes, Plan-Build-Run recognizes these additional patterns:
+Beyond component scopes, Plan-Build-Run recognizes these additional patterns:
 
 | Pattern | When Used | Example |
 |---------|-----------|---------|
 | `{type}(quick-{NNN})` | Quick-task commits via `/pbr:quick` | `feat(quick-001): add health endpoint` |
 | `docs(planning)` | Planning document commits | `docs(planning): add phase 3 plans` |
-| `wip: {desc}` or `wip({area}): {desc}` | Work-in-progress (use sparingly) | `wip(auth): partial oauth implementation` |
-| Merge commits | Git merge operations | `Merge branch 'plan-build-run/phase-02-auth'` |
+| `wip: {desc}` or `wip({area}): {desc}` | Work-in-progress (use sparingly) | `wip(skills): partial checkpoint routing` |
+| Merge commits | Git merge operations | `Merge branch 'feature/auth-rework'` |
 
 ---
 
