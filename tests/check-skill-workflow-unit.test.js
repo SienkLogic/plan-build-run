@@ -1,3 +1,4 @@
+// Consolidated from check-skill-workflow.test.js + check-skill-workflow-unit.test.js
 'use strict';
 
 const fs = require('fs');
@@ -129,6 +130,132 @@ describe('checkSkillRules', () => {
   test('statusline returns null for non-settings files', () => {
     expect(checkSkillRules('statusline', '/tmp/test.js', planningDir)).toBeNull();
   });
+
+  test('statusline passes for settings.json without content check', () => {
+    const filePath = path.join(tmpDir, '.claude', 'settings.json');
+    expect(checkSkillRules('statusline', filePath, planningDir)).toBeNull();
+  });
+
+  test('review allows writes to .planning/', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-agent'), 'verifier');
+    const filePath = path.join(planningDir, 'VERIFICATION.md');
+    expect(checkSkillRules('review', filePath, planningDir)).toBeNull();
+  });
+
+  test('discuss allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'notes.md');
+    expect(checkSkillRules('discuss', filePath, planningDir)).toBeNull();
+  });
+
+  test('discuss blocks source code writes', () => {
+    const filePath = path.join(tmpDir, 'src', 'app.js');
+    const result = checkSkillRules('discuss', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('discuss-readonly');
+  });
+
+  test('begin allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'STATE.md');
+    expect(checkSkillRules('begin', filePath, planningDir)).toBeNull();
+  });
+
+  test('begin blocks source code writes', () => {
+    const filePath = path.join(tmpDir, 'src', 'main.py');
+    const result = checkSkillRules('begin', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('begin-readonly');
+  });
+
+  test('milestone allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'ROADMAP.md');
+    expect(checkSkillRules('milestone', filePath, planningDir)).toBeNull();
+  });
+
+  test('milestone blocks writes outside .planning/', () => {
+    const filePath = path.join(tmpDir, 'src', 'index.ts');
+    const result = checkSkillRules('milestone', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('milestone-readonly');
+  });
+
+  test('explore allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'ROADMAP.md');
+    expect(checkSkillRules('explore', filePath, planningDir)).toBeNull();
+  });
+
+  test('explore blocks writes outside .planning/', () => {
+    const filePath = path.join(tmpDir, 'src', 'index.ts');
+    const result = checkSkillRules('explore', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('explore-readonly');
+  });
+
+  test('import allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'ROADMAP.md');
+    expect(checkSkillRules('import', filePath, planningDir)).toBeNull();
+  });
+
+  test('import blocks writes outside .planning/', () => {
+    const filePath = path.join(tmpDir, 'src', 'index.ts');
+    const result = checkSkillRules('import', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('import-readonly');
+  });
+
+  test('scan allows writes to .planning/', () => {
+    const filePath = path.join(planningDir, 'ROADMAP.md');
+    expect(checkSkillRules('scan', filePath, planningDir)).toBeNull();
+  });
+
+  test('scan blocks writes outside .planning/', () => {
+    const filePath = path.join(tmpDir, 'src', 'index.ts');
+    const result = checkSkillRules('scan', filePath, planningDir);
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('scan-readonly');
+  });
+
+  describe('newly registered skills', () => {
+    const readOnlySkills = ['note', 'todo', 'health', 'help', 'config', 'continue', 'resume', 'pause', 'status', 'dashboard'];
+
+    readOnlySkills.forEach(skill => {
+      test(`${skill} skill allows writes to .planning/`, () => {
+        const filePath = path.join(planningDir, 'notes.md');
+        expect(checkSkillRules(skill, filePath, planningDir)).toBeNull();
+      });
+
+      test(`${skill} skill blocks writes outside .planning/`, () => {
+        const filePath = path.join(tmpDir, 'src', 'index.ts');
+        const result = checkSkillRules(skill, filePath, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.rule).toBe(`${skill}-readonly`);
+      });
+    });
+
+    test('do skill shares quick rules - blocks without PLAN.md', () => {
+      const filePath = path.join(tmpDir, 'src', 'index.ts');
+      const result = checkSkillRules('do', filePath, planningDir);
+      expect(result).not.toBeNull();
+      expect(result.rule).toBe('quick-requires-plan');
+    });
+
+    test('do skill shares quick rules - allows with PLAN.md', () => {
+      const quickDir = path.join(planningDir, 'quick', '001-fix');
+      fs.mkdirSync(quickDir, { recursive: true });
+      fs.writeFileSync(path.join(quickDir, 'PLAN.md'), 'content');
+      const filePath = path.join(tmpDir, 'src', 'index.ts');
+      expect(checkSkillRules('do', filePath, planningDir)).toBeNull();
+    });
+
+    test('debug skill returns null (intentionally unrestricted)', () => {
+      const filePath = path.join(tmpDir, 'src', 'index.ts');
+      expect(checkSkillRules('debug', filePath, planningDir)).toBeNull();
+    });
+
+    test('setup skill returns null (intentionally unrestricted)', () => {
+      const filePath = path.join(tmpDir, 'src', 'index.ts');
+      expect(checkSkillRules('setup', filePath, planningDir)).toBeNull();
+    });
+  });
 });
 
 describe('checkStatuslineContent', () => {
@@ -166,11 +293,28 @@ describe('checkStatuslineContent', () => {
     });
     expect(result).toBeNull();
   });
+
+  test('warns on macOS /Users/ path', () => {
+    const result = checkStatuslineContent({
+      tool_input: {
+        file_path: '/Users/dave/.claude/settings.json',
+        content: '"/Users/dave/.claude/plugins/pbr"'
+      }
+    });
+    expect(result).not.toBeNull();
+    expect(result.rule).toBe('statusline-hardcoded-path');
+  });
 });
 
 describe('hasPlanFile', () => {
   test('returns false for nonexistent dir', () => {
     expect(hasPlanFile('/nonexistent')).toBe(false);
+  });
+
+  test('returns false for empty directory', () => {
+    const dir = path.join(tmpDir, 'empty-dir');
+    fs.mkdirSync(dir, { recursive: true });
+    expect(hasPlanFile(dir)).toBe(false);
   });
 
   test('finds PLAN.md at root level', () => {
@@ -229,6 +373,31 @@ describe('checkWorkflow', () => {
   test('returns null for statusline non-settings write', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'statusline');
     expect(checkWorkflow({ tool_input: { file_path: '/tmp/test.js' } })).toBeNull();
+  });
+});
+
+describe('checkWorkflow — STATE.md write path', () => {
+  test('STATE.md write inside .planning/ passes through when build skill active', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    const phaseDir = path.join(planningDir, 'phases', '01-init');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN.md'), 'content');
+    const stateMdPath = path.join(planningDir, 'STATE.md');
+    const result = checkSkillRules('build', stateMdPath, planningDir);
+    expect(result).toBeNull();
+  });
+
+  test('STATE.md write inside .planning/ passes through for read-only skills', () => {
+    const stateMdPath = path.join(planningDir, 'STATE.md');
+    const readOnlySkills = ['plan', 'review', 'discuss', 'begin', 'milestone', 'note', 'todo', 'health'];
+    for (const skill of readOnlySkills) {
+      expect(checkSkillRules(skill, stateMdPath, planningDir)).toBeNull();
+    }
+  });
+
+  test('STATE.md path edge case: normalized Windows backslash path is still inside .planning/', () => {
+    const windowsStylePath = planningDir.replace(/\//g, '\\') + '\\STATE.md';
+    expect(checkSkillRules('plan', windowsStylePath, planningDir)).toBeNull();
   });
 });
 
