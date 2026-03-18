@@ -430,8 +430,6 @@ If the briefing Task() fails:
 
 ## Anti-Patterns
 
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
-
 Additionally for this skill:
 
 1. **DO NOT** act like an interviewer — be a thinking partner

@@ -335,8 +335,6 @@ Note: Session {id} is {size}MB. Sampling key sections (first 200 lines, last 200
 
 ## Anti-Patterns
 
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
-
 Additionally for this skill:
 
 1. **DO NOT** read JSONL files in main context — always delegate to audit agents
