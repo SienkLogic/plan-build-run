@@ -277,6 +277,18 @@ At 1M, deeper hypothesis trees and more extensive binary search paths are feasib
 | 50-70% | DEGRADING | Write incrementally, skip non-essential |
 | 70%+ | POOR | Finish current task and return immediately |
 
+---
+
+## Knowledge Capture
+
+If debugging uncovers a root cause that would prevent similar issues in future phases:
+- Append to `.planning/KNOWLEDGE.md` ## Lessons Learned
+- Include: what happened, root cause, fix, scope
+- Only capture non-obvious, reusable insights. Skip one-off bugs with obvious causes.
+- Format: Append a new row to the Lessons Learned table. Auto-increment the L-prefix ID.
+
+---
+
 <structured_returns>
 ## Return Values
 

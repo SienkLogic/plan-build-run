@@ -388,6 +388,18 @@ Never enter an infinite fix loop. 3 strikes = move on.
 
 ---
 
+## Knowledge Capture
+
+After completing tasks, check if you discovered any:
+- **Rules**: Project-specific constraints that agents must follow (append to `.planning/KNOWLEDGE.md` ## Rules)
+- **Patterns**: Reusable approaches worth documenting (append to `.planning/KNOWLEDGE.md` ## Patterns)
+- **Lessons**: Failures or surprises with root causes (append to `.planning/KNOWLEDGE.md` ## Lessons Learned)
+
+Capture criteria: Only non-obvious, reusable knowledge. Skip obvious things and one-off fixes.
+Format: Append a new row to the appropriate table. Auto-increment the ID (K/P/L prefix + next number).
+
+---
+
 ## Node Repair System
 
 When a task fails (verify or acceptance_criteria), apply repair strategies in order:

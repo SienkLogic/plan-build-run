@@ -485,6 +485,15 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 
 ---
 
+## Knowledge Capture
+
+If verification reveals a pattern worth knowing (e.g., a common gap type, a wiring pattern that works well):
+- Append to `.planning/KNOWLEDGE.md` under the appropriate section
+- Only capture non-obvious, reusable insights
+- Format: Append a new row to the appropriate table. Auto-increment the ID (K/P/L prefix + next number).
+
+---
+
 <downstream_consumer>
 
 ## Downstream Consumers
