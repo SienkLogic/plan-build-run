@@ -212,6 +212,8 @@ Note {N} not found. Valid range: 1-{max}.
 
 ---
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the note file.
+
 ## Anti-Patterns
 
 1. **DO NOT** ask questions on append — just write and confirm

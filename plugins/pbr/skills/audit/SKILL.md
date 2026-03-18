@@ -335,6 +335,10 @@ Note: Session {id} is {size}MB. Sampling key sections (first 200 lines, last 200
 
 ---
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the audit report file.
+
+---
+
 ## Anti-Patterns
 
 Additionally for this skill:

@@ -167,6 +167,8 @@ Additionally for this skill:
 - Read UI-SPEC.md output only for summary presentation, not deep inspection
 - If user requests multiple rounds of changes, warn about context budget after 3 iterations
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit UI-SPEC.md.
+
 ## Anti-Patterns
 
 1. DO NOT analyze the frontend codebase yourself -- the ui-researcher agent does this
