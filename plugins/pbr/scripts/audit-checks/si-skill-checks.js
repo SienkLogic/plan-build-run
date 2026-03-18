@@ -271,6 +271,7 @@ function checkSkillReferenceFileLinks(pluginRoot) {
 
 /**
  * Scans SKILL.md files for subagent_type: "pbr:X" patterns.
+ * Also scans for pbr:{name} references in Task() spawn descriptions.
  * Verifies each referenced agent file exists under pluginRoot/agents/.
  */
 function checkSkillAgentTypeRefs(pluginRoot) {
@@ -278,23 +279,29 @@ function checkSkillAgentTypeRefs(pluginRoot) {
   const files = collectSkillMdOnly(absRoot);
   const evidence = [];
 
-  const pattern = /subagent_type:\s*"pbr:([^"]+)"/g;
+  // Match both subagent_type: "pbr:name" and pbr:name in backtick-quoted refs
+  const patterns = [
+    /subagent_type:\s*"pbr:([^"]+)"/g,
+    /subagent_type:\s*['"]pbr:([^'"]+)['"]/g,
+  ];
 
   for (const filePath of files) {
     const content = fs.readFileSync(filePath, 'utf8');
     const label = relLabel(absRoot, filePath);
     const seen = new Set();
 
-    pattern.lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(content)) !== null) {
-      const agentName = match[1];
-      if (seen.has(agentName)) continue;
-      seen.add(agentName);
+    for (const pattern of patterns) {
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        const agentName = match[1];
+        if (seen.has(agentName)) continue;
+        seen.add(agentName);
 
-      const agentPath = path.join(absRoot, 'agents', `${agentName}.md`);
-      if (!fs.existsSync(agentPath)) {
-        evidence.push(`${label} -> agents/${agentName}.md (MISSING)`);
+        const agentPath = path.join(absRoot, 'agents', `${agentName}.md`);
+        if (!fs.existsSync(agentPath)) {
+          evidence.push(`${label} -> agents/${agentName}.md (MISSING)`);
+        }
       }
     }
   }
@@ -316,6 +323,10 @@ function checkSkillAgentTypeRefs(pluginRoot) {
  * For each skill that spawns a subagent_type, extracts completion markers
  * the skill checks for and compares against markers documented in the agent file.
  *
+ * Uses a proximity heuristic: markers within 50 lines of an agent spawn are
+ * associated with that agent. Markers in structured_returns or completion
+ * protocol sections of the agent file are the expected contract.
+ *
  * Status is 'warn' (not 'fail') since marker detection is heuristic.
  */
 function checkSkillAgentCompletionMarkers(pluginRoot) {
@@ -323,46 +334,69 @@ function checkSkillAgentCompletionMarkers(pluginRoot) {
   const files = collectSkillMdOnly(absRoot);
   const evidence = [];
 
-  // Common completion markers pattern: ## <WORD> COMPLETE, ## <WORD> FAILED, etc.
+  // Completion marker keywords
+  const MARKER_KEYWORDS = ['COMPLETE', 'FAILED', 'INCONCLUSIVE', 'CHECKPOINT'];
   const markerPattern = /##\s+([\w-]+\s+)?(COMPLETE|FAILED|INCONCLUSIVE|CHECKPOINT)/g;
 
   for (const filePath of files) {
     const content = fs.readFileSync(filePath, 'utf8');
     const label = relLabel(absRoot, filePath);
+    const lines = content.split(/\r?\n/);
 
-    // Find all agent types used in this skill
-    const agentPattern = /subagent_type:\s*"pbr:([^"]+)"/g;
-    const agents = new Set();
-    let agentMatch;
-    agentPattern.lastIndex = 0;
-    while ((agentMatch = agentPattern.exec(content)) !== null) {
-      agents.add(agentMatch[1]);
+    // Find agent spawn locations (line numbers)
+    const agentSpawns = []; // { name, line }
+    const agentPattern = /subagent_type:\s*"pbr:([^"]+)"/;
+    for (let i = 0; i < lines.length; i++) {
+      const m = agentPattern.exec(lines[i]);
+      if (m) agentSpawns.push({ name: m[1], line: i });
     }
 
-    if (agents.size === 0) continue;
+    if (agentSpawns.length === 0) continue;
 
-    // Extract markers the skill looks for
-    const skillMarkers = new Set();
-    markerPattern.lastIndex = 0;
-    let mkMatch;
-    while ((mkMatch = markerPattern.exec(content)) !== null) {
-      skillMarkers.add(mkMatch[2]); // COMPLETE, FAILED, etc.
+    // Extract all markers from the skill with line numbers
+    const skillMarkerLocs = []; // { keyword, line }
+    for (let i = 0; i < lines.length; i++) {
+      markerPattern.lastIndex = 0;
+      let mkMatch;
+      while ((mkMatch = markerPattern.exec(lines[i])) !== null) {
+        skillMarkerLocs.push({ keyword: mkMatch[2], line: i });
+      }
     }
 
-    if (skillMarkers.size === 0) continue;
+    if (skillMarkerLocs.length === 0) continue;
 
-    // Check each agent file for those markers
-    for (const agentName of agents) {
-      const agentPath = path.join(absRoot, 'agents', `${agentName}.md`);
+    // For each agent, find markers within 50 lines of any of its spawn points
+    // If no proximity match, fall back to all markers in the skill
+    const PROXIMITY = 50;
+    const checkedPairs = new Set();
+
+    for (const spawn of agentSpawns) {
+      const agentPath = path.join(absRoot, 'agents', `${spawn.name}.md`);
       if (!fs.existsSync(agentPath)) continue; // SI-04 handles missing agents
 
       const agentContent = fs.readFileSync(agentPath, 'utf8');
 
-      for (const marker of skillMarkers) {
-        // Check if the agent documents this marker (case-insensitive search)
-        const markerRegex = new RegExp(marker, 'i');
+      // Find markers near this spawn
+      let nearbyMarkers = skillMarkerLocs.filter(
+        m => Math.abs(m.line - spawn.line) <= PROXIMITY
+      );
+
+      // Fall back to all skill markers if none nearby
+      if (nearbyMarkers.length === 0) {
+        nearbyMarkers = skillMarkerLocs;
+      }
+
+      const uniqueKeywords = [...new Set(nearbyMarkers.map(m => m.keyword))];
+
+      for (const keyword of uniqueKeywords) {
+        const pairKey = `${spawn.name}:${keyword}`;
+        if (checkedPairs.has(pairKey)) continue;
+        checkedPairs.add(pairKey);
+
+        // Check if the agent documents this marker (case-insensitive)
+        const markerRegex = new RegExp(keyword, 'i');
         if (!markerRegex.test(agentContent)) {
-          evidence.push(`${label} expects '${marker}' but agents/${agentName}.md does not document it`);
+          evidence.push(`${label} expects '${keyword}' but agents/${spawn.name}.md does not document it`);
         }
       }
     }
