@@ -1,37 +1,12 @@
-const { execSync } = require('child_process');
+const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { handleHttp } = require('../hooks/log-notification');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'log-notification.js');
-
-function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ln-'));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
-  return { tmpDir, planningDir };
-}
-
-function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
-function runScript(tmpDir, stdinData) {
-  const input = JSON.stringify(stdinData);
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (cwd, data) => _run(data, { cwd });
 
 describe('log-notification.js', () => {
   describe('handleHttp', () => {
@@ -91,21 +66,21 @@ describe('log-notification.js', () => {
 
   describe('hook execution', () => {
     test('exits 0 with valid notification data', () => {
-      const { tmpDir } = makeTmpDir();
+      const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, {
         notification_type: 'agent_complete',
         message: 'Done',
         agent_id: 'test-agent'
       });
       expect(result.exitCode).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 with empty input', () => {
-      const { tmpDir } = makeTmpDir();
+      const { tmpDir } = createTmpPlanning();
       const result = runScript(tmpDir, {});
       expect(result.exitCode).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 when .planning directory does not exist', () => {
@@ -116,23 +91,14 @@ describe('log-notification.js', () => {
     });
 
     test('exits 0 with malformed JSON input', () => {
-      const { tmpDir } = makeTmpDir();
-      try {
-        const result = execSync(`node "${SCRIPT}"`, {
-          input: 'not json',
-          encoding: 'utf8',
-          timeout: 5000,
-          cwd: tmpDir,
-        });
-        expect(result).toBeDefined();
-      } catch (e) {
-        expect(e.status).toBe(0);
-      }
-      cleanup(tmpDir);
+      const { tmpDir } = createTmpPlanning();
+      const result = _run('not json', { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
     });
 
     test('writes to hooks.jsonl log file', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir } = createTmpPlanning();
       runScript(tmpDir, {
         notification_type: 'agent_complete',
         message: 'Task done',
@@ -147,7 +113,7 @@ describe('log-notification.js', () => {
         expect(entry.hook).toBe('log-notification');
       }
       // Log file may not exist if logHook is a no-op in test — that's ok
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 });

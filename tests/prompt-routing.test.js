@@ -1,38 +1,18 @@
-const { execSync } = require('child_process');
+const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { analyzePrompt, handleHttp, INTENT_PATTERNS } = require('../hooks/prompt-routing');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'prompt-routing.js');
+const _run = createRunner(SCRIPT);
+const runScript = (cwd, data) => _run(data, { cwd });
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pr-'));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
+  const { tmpDir, planningDir } = createTmpPlanning();
   // analyzePrompt requires STATE.md to exist
   fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nstatus: executing\n---\n');
   return { tmpDir, planningDir };
-}
-
-function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
-function runScript(tmpDir, stdinData) {
-  const input = JSON.stringify(stdinData);
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
 }
 
 describe('prompt-routing.js', () => {
@@ -57,21 +37,21 @@ describe('prompt-routing.js', () => {
       expect(analyzePrompt(null, planningDir)).toBeNull();
       expect(analyzePrompt(undefined, planningDir)).toBeNull();
       expect(analyzePrompt('', planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for non-string prompt', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt(123, planningDir)).toBeNull();
       expect(analyzePrompt({}, planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for slash commands', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       expect(analyzePrompt('/pbr:do something here', planningDir)).toBeNull();
       expect(analyzePrompt('/help me with this task', planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for short prompts (< 15 chars)', () => {
@@ -79,7 +59,7 @@ describe('prompt-routing.js', () => {
       expect(analyzePrompt('yes', planningDir)).toBeNull();
       expect(analyzePrompt('ok do it', planningDir)).toBeNull();
       expect(analyzePrompt('3', planningDir)).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null when .planning dir does not exist', () => {
@@ -103,7 +83,7 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('There is a bug in the authentication module', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:debug');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('detects error keywords', () => {
@@ -114,7 +94,7 @@ describe('prompt-routing.js', () => {
         expect(result).not.toBeNull();
         expect(result.command).toBe('/pbr:debug');
       }
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('detects status/progress intent and suggests /pbr:progress', () => {
@@ -122,7 +102,7 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('what is the current status of the project', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:progress');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('detects exploration intent and suggests /pbr:explore', () => {
@@ -130,7 +110,7 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('how should we handle the caching layer', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:explore');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('detects refactor/architecture intent and suggests /pbr:plan-phase add', () => {
@@ -138,7 +118,7 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('we need to refactor the entire database layer', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:plan-phase add');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('detects generic task intent and suggests /pbr:do', () => {
@@ -146,14 +126,14 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('add a new endpoint for user preferences', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:do');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for prompts that match no pattern', () => {
       const { tmpDir, planningDir } = makeTmpDir();
       const result = analyzePrompt('the sky is blue and water is wet today', planningDir);
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('first matching pattern wins (bug beats generic task)', () => {
@@ -162,7 +142,7 @@ describe('prompt-routing.js', () => {
       const result = analyzePrompt('the build is broken and we need to fix it now', planningDir);
       expect(result).not.toBeNull();
       expect(result.command).toBe('/pbr:debug');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
@@ -176,7 +156,7 @@ describe('prompt-routing.js', () => {
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('/pbr:debug');
       expect(result.additionalContext).toContain('[pbr]');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('returns null for non-matching prompt', () => {
@@ -186,7 +166,7 @@ describe('prompt-routing.js', () => {
         planningDir
       });
       expect(result).toBeNull();
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('handles missing data gracefully', () => {
@@ -202,7 +182,7 @@ describe('prompt-routing.js', () => {
       });
       expect(result).not.toBeNull();
       expect(result.additionalContext).toContain('/pbr:debug');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
   });
 
@@ -217,7 +197,7 @@ describe('prompt-routing.js', () => {
         const parsed = JSON.parse(result.output);
         expect(parsed.additionalContext).toContain('/pbr:debug');
       }
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 with non-matching prompt', () => {
@@ -227,14 +207,14 @@ describe('prompt-routing.js', () => {
       });
       expect(result.exitCode).toBe(0);
       expect(result.output).toBe('');
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 with empty input', () => {
       const { tmpDir } = makeTmpDir();
       const result = runScript(tmpDir, {});
       expect(result.exitCode).toBe(0);
-      cleanup(tmpDir);
+      cleanupTmp(tmpDir);
     });
 
     test('exits 0 when not a PBR project', () => {
@@ -247,18 +227,9 @@ describe('prompt-routing.js', () => {
 
     test('exits 0 with malformed JSON input', () => {
       const { tmpDir } = makeTmpDir();
-      try {
-        const result = execSync(`node "${SCRIPT}"`, {
-          input: 'not json',
-          encoding: 'utf8',
-          timeout: 5000,
-          cwd: tmpDir,
-        });
-        expect(result).toBeDefined();
-      } catch (e) {
-        expect(e.status).toBe(0);
-      }
-      cleanup(tmpDir);
+      const result = _run('not json', { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
     });
   });
 });
