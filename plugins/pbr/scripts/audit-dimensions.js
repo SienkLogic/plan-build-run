@@ -340,6 +340,203 @@ function getActivePresetCategories(presetName) {
 }
 
 // ---------------------------------------------------------------------------
+// Resolve a dimension identifier (code like "SI-01" or slug like "skill-template-refs")
+// ---------------------------------------------------------------------------
+function resolveDimension(identifier) {
+  return getDimensionById(identifier) || getDimensionBySlug(identifier);
+}
+
+// ---------------------------------------------------------------------------
+// resolveDimensions(config, cliFlags) — compute the active dimension set
+//
+// Resolution order (LOCKED — additive composition):
+//   1. Start with preset (cliFlags.preset || config.audit.preset || "standard")
+//   2. Get base categories from PRESETS[preset]
+//   3. Apply config.audit.categories toggles
+//   4. Apply config.audit.overrides per-dimension toggles
+//   5. Apply cliFlags.dimension — ADD these dimensions
+//   6. Apply cliFlags.skip — REMOVE these dimensions
+//   7. If cliFlags.only is non-empty — OVERRIDE everything with exactly those
+//   8. Return sorted by code
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the final active dimension set.
+ * @param {object} config - Full config.json object (must have config.audit)
+ * @param {object} cliFlags - { preset?, dimension?, skip?, only? }
+ * @returns {object[]} Array of dimension objects sorted by code
+ */
+function resolveDimensions(config, cliFlags) {
+  const flags = cliFlags || {};
+  const audit = (config && config.audit) || {};
+
+  // Step 7 early: --only overrides everything
+  if (flags.only && flags.only.length > 0) {
+    const result = [];
+    for (const id of flags.only) {
+      const dim = resolveDimension(id);
+      if (dim) result.push(dim);
+    }
+    return result.sort((a, b) => a.code.localeCompare(b.code));
+  }
+
+  // Step 1: Determine preset
+  const presetName = flags.preset || audit.preset || 'standard';
+  const presetCategories = PRESETS[presetName] || [];
+
+  // Step 2: Build active categories set from preset
+  const activeCategories = new Set(presetCategories);
+
+  // Step 3: Apply config.audit.categories toggles
+  const categoryToggles = audit.categories || {};
+  for (const [cat, enabled] of Object.entries(categoryToggles)) {
+    if (enabled === false) {
+      activeCategories.delete(cat);
+    } else if (enabled === true) {
+      activeCategories.add(cat);
+    }
+  }
+
+  // Collect dimensions from active categories
+  const activeMap = new Map();
+  for (const d of DIMENSIONS) {
+    if (activeCategories.has(d.category)) {
+      activeMap.set(d.code, d);
+    }
+  }
+
+  // Step 4: Apply config.audit.overrides per-dimension toggles
+  const overrides = audit.overrides || {};
+  for (const [id, enabled] of Object.entries(overrides)) {
+    if (enabled === false) {
+      // Try to resolve the identifier
+      const d = resolveDimension(id);
+      if (d) activeMap.delete(d.code);
+    } else if (enabled === true) {
+      const d = resolveDimension(id);
+      if (d) activeMap.set(d.code, d);
+    }
+  }
+
+  // Step 5: Apply cliFlags.dimension — ADD
+  if (flags.dimension && flags.dimension.length > 0) {
+    for (const id of flags.dimension) {
+      const d = resolveDimension(id);
+      if (d) activeMap.set(d.code, d);
+    }
+  }
+
+  // Step 6: Apply cliFlags.skip — REMOVE
+  if (flags.skip && flags.skip.length > 0) {
+    for (const id of flags.skip) {
+      const d = resolveDimension(id);
+      if (d) activeMap.delete(d.code);
+    }
+  }
+
+  return Array.from(activeMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+}
+
+// ---------------------------------------------------------------------------
+// explainResolution(config, cliFlags) — human-readable trace of resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Return an array of strings explaining each resolution step.
+ * @param {object} config - Full config.json object
+ * @param {object} cliFlags - { preset?, dimension?, skip?, only? }
+ * @returns {string[]}
+ */
+function explainResolution(config, cliFlags) {
+  const flags = cliFlags || {};
+  const audit = (config && config.audit) || {};
+  const steps = [];
+
+  // --only overrides everything
+  if (flags.only && flags.only.length > 0) {
+    const resolved = flags.only.map(id => resolveDimension(id)).filter(Boolean);
+    steps.push(`--only override -> ${resolved.length} dimensions (ignoring preset/categories)`);
+    steps.push(`Final: ${resolved.length} active dimensions`);
+    return steps;
+  }
+
+  // Step 1: Preset
+  const presetName = flags.preset || audit.preset || 'standard';
+  const presetCategories = PRESETS[presetName] || [];
+  let baseDims = 0;
+  for (const cat of presetCategories) {
+    baseDims += getDimensionsByCategory(cat).length;
+  }
+  steps.push(`Preset '${presetName}' -> ${presetCategories.length} categories (${baseDims} dimensions)`);
+
+  // Step 2: Category toggles
+  const activeCategories = new Set(presetCategories);
+  const categoryToggles = audit.categories || {};
+  for (const [cat, enabled] of Object.entries(categoryToggles)) {
+    if (enabled === false && activeCategories.has(cat)) {
+      const removed = getDimensionsByCategory(cat).length;
+      activeCategories.delete(cat);
+      steps.push(`Category '${cat}' disabled by config -> -${removed} dimensions`);
+    } else if (enabled === true && !activeCategories.has(cat)) {
+      const added = getDimensionsByCategory(cat).length;
+      activeCategories.add(cat);
+      steps.push(`Category '${cat}' enabled by config -> +${added} dimensions`);
+    }
+  }
+
+  // Current count
+  let currentCount = 0;
+  const activeMap = new Map();
+  for (const d of DIMENSIONS) {
+    if (activeCategories.has(d.category)) {
+      activeMap.set(d.code, d);
+      currentCount++;
+    }
+  }
+
+  // Step 3: Overrides
+  const overrides = audit.overrides || {};
+  for (const [id, enabled] of Object.entries(overrides)) {
+    const d = resolveDimension(id);
+    if (!d) continue;
+    if (enabled === false && activeMap.has(d.code)) {
+      activeMap.delete(d.code);
+      steps.push(`Override ${d.code} disabled by config -> -1 dimension`);
+    } else if (enabled === true && !activeMap.has(d.code)) {
+      activeMap.set(d.code, d);
+      steps.push(`Override ${d.code} enabled by config -> +1 dimension`);
+    }
+  }
+
+  // Step 4: --dimension adds
+  if (flags.dimension && flags.dimension.length > 0) {
+    let added = 0;
+    for (const id of flags.dimension) {
+      const d = resolveDimension(id);
+      if (d && !activeMap.has(d.code)) {
+        activeMap.set(d.code, d);
+        added++;
+        steps.push(`--dimension ${d.code} added -> +1 dimension`);
+      }
+    }
+  }
+
+  // Step 5: --skip removes
+  if (flags.skip && flags.skip.length > 0) {
+    for (const id of flags.skip) {
+      const d = resolveDimension(id);
+      if (d && activeMap.has(d.code)) {
+        activeMap.delete(d.code);
+        steps.push(`--skip ${d.code} removed -> -1 dimension`);
+      }
+    }
+  }
+
+  steps.push(`Final: ${activeMap.size} active dimensions`);
+  return steps;
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 module.exports = {
@@ -350,4 +547,6 @@ module.exports = {
   getDimensionBySlug,
   getDimensionsByCategory,
   getActivePresetCategories,
+  resolveDimensions,
+  explainResolution,
 };
