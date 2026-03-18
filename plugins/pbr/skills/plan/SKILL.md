@@ -2,7 +2,7 @@
 name: plan
 description: "Create a detailed plan for a phase. Research, plan, and verify before building."
 allowed-tools: Read, Write, Bash, Glob, Grep, WebFetch, WebSearch, Task, AskUserQuestion, Skill
-argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] | add | insert <N> | remove <N>"
+argument-hint: "<phase-number> [--skip-research] [--assumptions] [--gaps] [--model <model>] [--auto] [--through <N>] [--prd <file>] | add | insert <N> | remove <N>"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
@@ -81,6 +81,7 @@ Parse the phase number and optional flags:
 | `3 --audit` | Plan phase 3, then force full plan-checker validation |
 | `3 --auto` | Plan phase 3 with auto mode — suppress confirmation gates, auto-advance on success |
 | `1 --through 3` | Plan phases 1 through 3 in a single planner session (requires planning.multi_phase: true) |
+| `3 --prd path/to/prd.md` | Plan phase 3 using a PRD file as input — skip discussion, generate CONTEXT.md from PRD |
 
 ### Subcommands
 
@@ -97,7 +98,7 @@ Parse the phase number and optional flags:
 - Empty (no arguments)
 - A phase number: integer (`3`, `03`) or decimal (`3.1`)
 - A subcommand: `add`, `insert <N>`, `remove <N>`
-- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`
+- A phase number followed by flags: `3 --skip-research`, `3 --assumptions`, `3 --gaps`, `3 --teams`, `3 --auto`, `3 --prd <file>`
 - A phase number followed by --through and another number: `1 --through 3`
 - The word `check` (legacy alias)
 
@@ -150,6 +151,10 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      c. Parse start phase (N) and end phase (M). Validate both exist in ROADMAP.md.
      d. Store `through_phases = [N, N+1, ..., M]`
      e. Log: "Multi-phase planning: phases {N} through {M}"
+   - If `--prd <file>` is present in `$ARGUMENTS`:
+     a. Extract the file path from the argument
+     b. Set `prd_mode = true`
+     c. Log: "PRD express path — will generate CONTEXT.md from PRD, skip discussion"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
@@ -159,6 +164,48 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
    - Phase does not already have PLAN.md files (unless user confirms re-planning)
 5. If no phase number given, read current phase from `.planning/STATE.md`
 6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss-phase {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
+
+#### --prd express path
+
+If `prd_mode` is `true`:
+
+1. Read the PRD file specified by the `--prd` argument
+2. Parse the PRD content, looking for these sections (case-insensitive):
+   - **Requirements** / **Functional Requirements** / **User Stories**
+   - **Scope** / **In Scope** / **Out of Scope**
+   - **Constraints** / **Technical Constraints**
+   - **Decisions** / **Architecture Decisions** / **Design Decisions**
+   - **Goals** / **Objectives**
+3. Generate `.planning/phases/{NN}-{slug}/CONTEXT.md` from the PRD:
+   ```markdown
+   ---
+   source: prd
+   prd_file: "{original file path}"
+   generated: "{ISO timestamp}"
+   ---
+   # Phase {N} Context (from PRD)
+
+   ## Decision Summary
+   {Extracted decisions from PRD, each as a locked decision}
+
+   ## Scope
+   {Extracted scope boundaries}
+
+   ## Constraints
+   {Extracted constraints}
+
+   ## Requirements Mapping
+   {Map PRD requirements to phase REQ-IDs where possible}
+
+   ## Deferred Ideas
+   {Any out-of-scope items from the PRD}
+   ```
+4. Log: "Generated CONTEXT.md from PRD ({line_count} lines)"
+5. **Skip Step 6 (CONTEXT.md existence check)** — we just created one
+6. **Skip Steps 3 and 4** (assumption surfacing and research) — the PRD provides the context
+7. Proceed directly to **Step 5** (planning) with the PRD-derived context
+
+---
 
 #### --preview mode
 
