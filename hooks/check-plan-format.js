@@ -156,7 +156,6 @@ async function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on parse errors
-      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-plan-format failed: ' + _e.message }));
       process.exit(0);
     }
   });
@@ -364,6 +363,83 @@ function validateSummary(content, _filePath) {
           }
         }
       }
+
+      // Validate deviations structure if present (enriched artifact support)
+      const deviationsResult = validateDeviationsField(frontmatter);
+      errors.push(...deviationsResult.errors);
+      warnings.push(...deviationsResult.warnings);
+    }
+  }
+
+  return { errors, warnings };
+}
+
+/**
+ * Validate the deviations field structure in SUMMARY.md frontmatter.
+ * Deviations use a taxonomy: rule (1-4), action (auto|ask), description, justification.
+ * Invalid rule numbers or action values produce errors; missing fields produce warnings.
+ *
+ * @param {string} frontmatter - The frontmatter content (between --- delimiters)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateDeviationsField(frontmatter) {
+  const errors = [];
+  const warnings = [];
+
+  // Find the deviations block in frontmatter
+  const deviationsIdx = frontmatter.indexOf('deviations:');
+  if (deviationsIdx === -1) return { errors, warnings };
+
+  const afterDeviations = frontmatter.substring(deviationsIdx + 'deviations:'.length);
+
+  // Check if it's an empty/inline value (e.g., "deviations: []" or "deviations: none")
+  const firstLine = afterDeviations.split(/\r?\n/)[0].trim();
+  if (firstLine === '[]' || firstLine === 'none' || firstLine === '~' || firstLine === 'null') {
+    return { errors, warnings };
+  }
+
+  // Parse YAML-style list items: "  - rule: N" blocks
+  const itemMatches = afterDeviations.match(/^\s+-\s+rule:/gm);
+  if (!itemMatches) return { errors, warnings };
+
+  // Validate each deviation entry
+  const VALID_RULES = [1, 2, 3, 4];
+  const VALID_ACTIONS = ['auto', 'ask'];
+
+  // Extract individual deviation blocks
+  const lines = afterDeviations.split(/\r?\n/);
+  let currentItem = null;
+  const items = [];
+
+  for (const line of lines) {
+    // New item starts with "  - rule:" pattern
+    if (/^\s+-\s+rule:/.test(line)) {
+      if (currentItem) items.push(currentItem);
+      currentItem = { raw: line };
+      const ruleMatch = line.match(/rule:\s*(\d+)/);
+      if (ruleMatch) currentItem.rule = parseInt(ruleMatch[1], 10);
+    } else if (currentItem) {
+      // Check for next top-level key (end of deviations block)
+      if (/^[a-zA-Z_][a-zA-Z0-9_]*:/.test(line)) break;
+      // Parse sub-fields
+      const actionMatch = line.match(/^\s+action:\s*["']?(\w+)/);
+      if (actionMatch) currentItem.action = actionMatch[1];
+      const descMatch = line.match(/^\s+description:/);
+      if (descMatch) currentItem.hasDescription = true;
+    }
+  }
+  if (currentItem) items.push(currentItem);
+
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.rule !== undefined && !VALID_RULES.includes(item.rule)) {
+      errors.push(`deviations[${i}]: invalid rule "${item.rule}" (must be 1-4)`);
+    }
+    if (item.action && !VALID_ACTIONS.includes(item.action)) {
+      errors.push(`deviations[${i}]: invalid action "${item.action}" (must be auto|ask)`);
+    }
+    if (!item.hasDescription) {
+      warnings.push(`deviations[${i}]: missing "description" field`);
     }
   }
 
@@ -447,6 +523,15 @@ async function checkPlanWrite(data) {
   return null;
 }
 
+/** All valid STATE.md status values (13 canonical + legacy aliases). */
+const VALID_STATE_STATUSES = [
+  'not_started', 'discussed', 'ready_to_plan', 'planning',
+  'planned', 'ready_to_execute', 'building', 'built',
+  'partial', 'verified', 'needs_fixes', 'complete', 'skipped',
+  // Legacy aliases
+  'pending', 'reviewed', 'milestone_complete'
+];
+
 function validateState(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -466,6 +551,25 @@ function validateState(content, _filePath) {
         if (!frontmatter.includes(`${field}:`)) {
           warnings.push(`Frontmatter missing "${field}" field`);
         }
+      }
+
+      // Validate status value against the 13-state lifecycle + legacy aliases
+      const statusMatch = frontmatter.match(/^status:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (statusMatch) {
+        const statusValue = statusMatch[1].trim();
+        if (!VALID_STATE_STATUSES.includes(statusValue)) {
+          warnings.push(`Unknown status value: "${statusValue}" (valid: ${VALID_STATE_STATUSES.slice(0, 13).join(', ')})`);
+        }
+      }
+
+      // Advisory: velocity metrics fields (new feature — warning only)
+      if (!frontmatter.includes('velocity_plans_per_session:') && !frontmatter.includes('velocity:')) {
+        warnings.push('Frontmatter missing velocity metrics (velocity_plans_per_session) — optional for tracking');
+      }
+
+      // Advisory: session continuity fields (new feature — warning only)
+      if (!frontmatter.includes('session_last:') && !frontmatter.includes('session_stopped_at:')) {
+        warnings.push('Frontmatter missing session continuity fields (session_last, session_stopped_at) — optional for resume');
       }
     }
   }
@@ -499,6 +603,21 @@ function validateVerification(content, _filePath) {
       }
       if (!frontmatter.includes('unsatisfied:')) {
         warnings.push('Frontmatter missing "unsatisfied" field — add unsatisfied:[] listing REQ-IDs that failed verification');
+      }
+
+      // Advisory: fix_plans field when gaps are found (enriched artifact support)
+      const statusMatch = frontmatter.match(/^status:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      const hasGaps = statusMatch && statusMatch[1].trim() === 'gaps_found';
+      if (hasGaps && !frontmatter.includes('fix_plans:')) {
+        warnings.push('Frontmatter has status "gaps_found" but no "fix_plans" field — add fix_plans with gap/effort/tasks for each gap');
+      }
+
+      // Advisory: gap severity classification
+      const gapsFoundMatch = frontmatter.match(/gaps_found:\s*(\d+)/);
+      if (gapsFoundMatch && parseInt(gapsFoundMatch[1], 10) > 0) {
+        if (!frontmatter.includes('severity:') && !frontmatter.includes('gap_severity:')) {
+          warnings.push('Gaps found but no severity classification — add severity (critical|non-critical) to gap entries');
+        }
       }
     }
   }
@@ -953,5 +1072,5 @@ function validateContext(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, validateContext, checkPlanWrite, checkStateWrite, syncStateBody };
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, validateContext, validateDeviationsField, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }

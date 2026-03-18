@@ -7,7 +7,7 @@ const os = require('os');
 const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS } = require('../hooks/check-subagent-output');
+const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS } = require('../hooks/check-subagent-output');
 
 const _run = createRunner(SCRIPT);
 
@@ -1107,6 +1107,107 @@ describe('KNOWN_AGENTS sync (B3 fix)', () => {
     for (const key of Object.keys(AGENT_OUTPUTS)) {
       expect(prefixed).toContain(key);
     }
+  });
+});
+
+describe('checkDeviationsRequiringReview', () => {
+  test('deviation with action "ask" triggers warning', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+      '---',
+      'status: complete',
+      'deviations:',
+      '  - rule: 3',
+      '    action: ask',
+      '    description: "Missing API endpoint blocks feature"',
+      '  - rule: 4',
+      '    action: ask',
+      '    description: "Architecture needs redesign"',
+      '---',
+      'Results',
+    ].join('\n'));
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('2 deviation(s) requiring review');
+    expect(warnings[0]).toContain('Missing API endpoint');
+    expect(warnings[0]).toContain('Architecture needs redesign');
+  });
+
+  test('deviation with action "auto" does not trigger warning', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+      '---',
+      'status: complete',
+      'deviations:',
+      '  - rule: 1',
+      '    action: auto',
+      '    description: "Fixed typo"',
+      '  - rule: 2',
+      '    action: auto',
+      '    description: "Installed missing dep"',
+      '---',
+      'Results',
+    ].join('\n'));
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('empty deviations array does not trigger warning', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+      '---',
+      'status: complete',
+      'deviations: []',
+      '---',
+      'Results',
+    ].join('\n'));
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('mixed auto and ask deviations only warns about ask ones', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+      '---',
+      'status: complete',
+      'deviations:',
+      '  - rule: 1',
+      '    action: auto',
+      '    description: "Fixed typo"',
+      '  - rule: 4',
+      '    action: ask',
+      '    description: "Needs architectural decision"',
+      '---',
+      'Results',
+    ].join('\n'));
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('1 deviation(s)');
+    expect(warnings[0]).toContain('Needs architectural decision');
+    expect(warnings[0]).not.toContain('Fixed typo');
+  });
+
+  test('no SUMMARY files produces no warnings', () => {
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/PLAN-01.md'], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('SUMMARY without frontmatter produces no warnings', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '# Summary\nNo frontmatter');
+    const warnings = [];
+    checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(0);
   });
 });
 

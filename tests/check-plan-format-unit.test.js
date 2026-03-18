@@ -2409,6 +2409,190 @@ describe('validateSummary metrics warnings', () => {
   });
 });
 
+describe('validateSummary deviations field validation', () => {
+  const { validateDeviationsField } = require('../hooks/check-plan-format');
+
+  test('SUMMARY with valid deviations passes without error', () => {
+    const content = [
+      '---',
+      'phase: "03-auth"',
+      'plan: "03-01"',
+      'status: complete',
+      'provides: ["auth module"]',
+      'requires: []',
+      'key_files:',
+      '  - "src/auth.ts"',
+      'deferred: []',
+      'duration: 12.5',
+      'requirements-completed: ["REQ-F-001"]',
+      'deviations:',
+      '  - rule: 1',
+      '    action: auto',
+      '    description: "Fixed typo in import"',
+      '    justification: "Obvious bug"',
+      '  - rule: 3',
+      '    action: ask',
+      '    description: "Missing API endpoint"',
+      '    justification: "Blocks functionality"',
+      '---',
+      '',
+      '## Task Results',
+    ].join('\n');
+    const result = validateSummary(content, '/fake/SUMMARY.md');
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('SUMMARY with invalid deviation rule (rule: 5) gets error', () => {
+    const content = [
+      '---',
+      'phase: "03-auth"',
+      'plan: "03-01"',
+      'status: complete',
+      'provides: ["auth module"]',
+      'requires: []',
+      'key_files:',
+      '  - "src/auth.ts"',
+      'deferred: []',
+      'duration: 12.5',
+      'requirements-completed: ["REQ-F-001"]',
+      'deviations:',
+      '  - rule: 5',
+      '    action: auto',
+      '    description: "Bad rule"',
+      '---',
+      '',
+      '## Task Results',
+    ].join('\n');
+    const result = validateSummary(content, '/fake/SUMMARY.md');
+    const ruleError = result.errors.find(e => e.includes('invalid rule'));
+    expect(ruleError).toBeDefined();
+    expect(ruleError).toContain('"5"');
+  });
+
+  test('SUMMARY with invalid deviation action gets error', () => {
+    const content = [
+      '---',
+      'phase: "03-auth"',
+      'plan: "03-01"',
+      'status: complete',
+      'provides: ["auth module"]',
+      'requires: []',
+      'key_files:',
+      '  - "src/auth.ts"',
+      'deferred: []',
+      'deviations:',
+      '  - rule: 2',
+      '    action: ignore',
+      '    description: "Bad action"',
+      '---',
+      '',
+      '## Task Results',
+    ].join('\n');
+    const result = validateSummary(content, '/fake/SUMMARY.md');
+    const actionError = result.errors.find(e => e.includes('invalid action'));
+    expect(actionError).toBeDefined();
+    expect(actionError).toContain('"ignore"');
+  });
+
+  test('SUMMARY with empty deviations array passes', () => {
+    const content = [
+      '---',
+      'phase: "03-auth"',
+      'plan: "03-01"',
+      'status: complete',
+      'provides: ["auth module"]',
+      'requires: []',
+      'key_files:',
+      '  - "src/auth.ts"',
+      'deferred: []',
+      'deviations: []',
+      '---',
+      '',
+      '## Task Results',
+    ].join('\n');
+    const result = validateSummary(content, '/fake/SUMMARY.md');
+    const deviationErrors = result.errors.filter(e => e.includes('deviation'));
+    expect(deviationErrors).toHaveLength(0);
+  });
+
+  test('validateDeviationsField returns empty for no deviations key', () => {
+    const result = validateDeviationsField('phase: 01\nplan: 01');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test('validateDeviationsField warns on missing description', () => {
+    const fm = 'deviations:\n  - rule: 1\n    action: auto\n';
+    const result = validateDeviationsField(fm);
+    expect(result.warnings.some(w => w.includes('description'))).toBe(true);
+  });
+});
+
+describe('validateVerification fix_plans and gap severity', () => {
+  test('VERIFICATION with gaps_found and fix_plans produces no fix_plans warning', () => {
+    const content = [
+      '---',
+      'status: gaps_found',
+      'phase: 03-auth',
+      'checked_at: 2026-03-06T00:00:00Z',
+      'must_haves_checked: 3',
+      'must_haves_passed: 2',
+      'must_haves_failed: 1',
+      'satisfied: []',
+      'unsatisfied: []',
+      'fix_plans:',
+      '  - gap: "Auth module missing"',
+      '    effort: small',
+      '    tasks: ["Add auth.ts"]',
+      '---',
+      'Body',
+    ].join('\n');
+    const result = validateVerification(content, 'VERIFICATION.md');
+    const fixPlanWarning = result.warnings.find(w => w.includes('fix_plans'));
+    expect(fixPlanWarning).toBeUndefined();
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('VERIFICATION with gaps_found but no fix_plans gets warning', () => {
+    const content = [
+      '---',
+      'status: gaps_found',
+      'phase: 03-auth',
+      'checked_at: 2026-03-06T00:00:00Z',
+      'must_haves_checked: 3',
+      'must_haves_passed: 2',
+      'must_haves_failed: 1',
+      'satisfied: []',
+      'unsatisfied: []',
+      '---',
+      'Body',
+    ].join('\n');
+    const result = validateVerification(content, 'VERIFICATION.md');
+    const fixPlanWarning = result.warnings.find(w => w.includes('fix_plans'));
+    expect(fixPlanWarning).toBeDefined();
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('VERIFICATION with status passed does not warn about fix_plans', () => {
+    const content = [
+      '---',
+      'status: passed',
+      'phase: 03-auth',
+      'checked_at: 2026-03-06T00:00:00Z',
+      'must_haves_checked: 3',
+      'must_haves_passed: 3',
+      'must_haves_failed: 0',
+      'satisfied: []',
+      'unsatisfied: []',
+      '---',
+      'Body',
+    ].join('\n');
+    const result = validateVerification(content, 'VERIFICATION.md');
+    const fixPlanWarning = result.warnings.find(w => w.includes('fix_plans'));
+    expect(fixPlanWarning).toBeUndefined();
+  });
+});
+
 describe('LLM integration smoke test', () => {
   test('check-plan-format module loads with LLM requires', () => {
     expect(() => require('../hooks/check-plan-format.js')).not.toThrow();
