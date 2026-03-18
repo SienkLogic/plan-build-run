@@ -1200,29 +1200,29 @@ All checks passed.`);
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('STATE.md with 100 lines does not trigger line count warning', () => {
+    test('STATE.md with 99 lines does not trigger line count warning', () => {
       const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
-      while (lines.length < 100) lines.push('Some content line');
+      while (lines.length < 99) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
       const result = checkStateWrite({ tool_input: { file_path: filePath } });
-      // Should pass clean (null) or have warnings that don't mention "150 lines"
+      // Should pass clean (null) or have warnings that don't mention line cap
       if (result) {
         const ctx = result.output?.additionalContext || '';
-        expect(ctx).not.toContain('exceeds 150 lines');
+        expect(ctx).not.toContain('100-line cap');
       }
     });
 
-    test('STATE.md with 160 lines triggers advisory warning mentioning 150 lines', () => {
+    test('STATE.md with 101 lines triggers advisory warning mentioning 100-line cap', () => {
       const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
-      while (lines.length < 160) lines.push('Some content line');
+      while (lines.length < 101) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
       const result = checkStateWrite({ tool_input: { file_path: filePath } });
       expect(result).not.toBeNull();
       const ctx = result.output?.additionalContext || '';
-      expect(ctx).toContain('exceeds 150 lines');
-      expect(ctx).toContain('160');
+      expect(ctx).toContain('100-line cap');
+      expect(ctx).toContain('101');
     });
   });
 

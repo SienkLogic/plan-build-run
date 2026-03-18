@@ -1,6 +1,6 @@
 # Skill x Fragment Matrix
 
-Generated: 2026-03-18
+Generated: 2026-03-18 (updated after Plan 07-05)
 
 Legend: Y = referenced, - = not referenced
 
@@ -8,41 +8,41 @@ Legend: Y = referenced, - = not referenced
 
 | Skill | ACE | ATR | CPD | CFL | CTB | CLT | DGS | DMP | ERR | GTP | MEM | PAP | RVL | STU | UAP | Total |
 |-------|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|-------|
-| audit |  - | Y | - | - | Y | - | - | - | - | - | - | - | - | - | Y  | 3 |
-| autonomous |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
+| audit |  - | Y | Y | - | Y | - | - | - | Y | - | - | - | - | - | -  | 4 |
+| autonomous |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
 | begin |  - | Y | Y | - | Y | - | - | - | - | Y | - | - | - | Y | -  | 5 |
 | build |  Y | Y | Y | Y | Y | - | - | - | - | Y | Y | Y | - | Y | -  | 9 |
-| config |  - | - | - | - | - | - | - | - | - | Y | - | - | - | - | -  | 1 |
-| continue |  - | - | - | - | Y | - | - | - | - | - | - | - | - | - | -  | 1 |
+| config |  - | - | Y | - | - | - | - | - | - | Y | - | - | - | - | -  | 2 |
+| continue |  - | - | - | - | Y | - | - | - | Y | - | - | - | - | - | -  | 2 |
 | dashboard |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| debug |  - | Y | Y | - | Y | - | - | - | - | Y | Y | - | - | - | -  | 5 |
-| discuss |  - | - | Y | - | - | - | - | Y | - | Y | Y | - | - | - | -  | 4 |
+| debug |  - | Y | Y | - | Y | - | - | - | Y | Y | Y | - | - | - | -  | 6 |
+| discuss |  - | - | Y | - | Y | Y | - | Y | Y | Y | Y | - | - | - | -  | 7 |
 | do |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| explore |  - | Y | Y | - | Y | Y | - | Y | - | Y | - | - | - | - | Y  | 7 |
-| health |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
+| explore |  - | Y | Y | - | Y | Y | - | Y | Y | Y | - | - | - | - | -  | 7 |
+| health |  - | - | - | - | - | - | - | - | Y | - | - | - | - | - | -  | 1 |
 | help |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| import |  - | Y | Y | Y | Y | - | Y | - | - | Y | - | - | Y | - | -  | 7 |
+| import |  - | Y | Y | Y | Y | - | Y | - | Y | Y | - | - | Y | - | -  | 8 |
 | intel |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| milestone |  - | Y | Y | - | Y | - | - | - | - | Y | - | - | - | - | -  | 4 |
-| note |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| pause |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
+| milestone |  - | Y | Y | - | Y | - | - | - | Y | Y | - | - | - | - | -  | 5 |
+| note |  - | - | Y | - | - | - | - | - | Y | - | - | - | - | - | -  | 2 |
+| pause |  - | - | Y | - | - | - | - | - | Y | - | - | - | - | - | -  | 2 |
 | plan |  - | Y | - | Y | Y | - | Y | - | Y | Y | Y | Y | Y | - | -  | 9 |
-| profile |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| profile-user |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
+| profile |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
+| profile-user |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
 | quick |  - | Y | Y | - | Y | - | - | - | - | Y | - | - | - | - | -  | 4 |
 | release |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| resume |  - | - | - | - | - | - | - | - | - | Y | - | - | - | - | -  | 1 |
+| resume |  - | - | - | - | - | - | - | - | Y | Y | - | - | - | - | -  | 2 |
 | review |  - | Y | - | Y | Y | - | - | - | - | Y | - | Y | - | Y | -  | 6 |
-| scan |  - | Y | Y | - | Y | Y | - | - | - | Y | - | - | - | - | Y  | 6 |
-| setup |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| status |  - | - | - | - | - | - | - | - | - | Y | - | - | - | - | -  | 1 |
+| scan |  - | Y | Y | - | Y | Y | - | - | Y | Y | - | - | - | - | -  | 6 |
+| setup |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
+| status |  - | - | - | - | - | - | - | - | Y | Y | - | - | - | - | -  | 2 |
 | statusline |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| test |  - | Y | - | - | Y | - | - | - | - | - | - | Y | - | - | -  | 3 |
-| todo |  - | - | Y | - | - | - | - | - | - | - | - | - | - | - | -  | 1 |
-| ui-phase |  - | Y | - | - | Y | - | - | - | - | - | - | - | - | - | -  | 2 |
-| ui-review |  - | Y | - | - | Y | - | - | - | - | - | - | - | - | - | -  | 2 |
-| undo |  - | - | - | - | - | - | - | - | - | - | - | - | - | - | -  | 0 |
-| **Total** |  **1** | **14** | **11** | **4** | **15** | **2** | **2** | **2** | **1** | **14** | **4** | **4** | **2** | **3** | **3**  | |
+| test |  - | Y | Y | - | Y | - | - | - | Y | - | - | Y | - | Y | -  | 6 |
+| todo |  - | - | Y | - | - | - | - | - | Y | - | - | - | - | - | -  | 2 |
+| ui-phase |  - | Y | Y | - | Y | - | - | - | - | - | - | - | - | - | -  | 3 |
+| ui-review |  - | Y | Y | - | Y | - | - | - | - | - | - | - | - | - | -  | 3 |
+| undo |  - | - | - | - | - | - | - | - | Y | - | - | - | - | - | -  | 1 |
+| **Total** |  **1** | **14** | **21** | **4** | **16** | **3** | **2** | **2** | **17** | **14** | **4** | **4** | **2** | **4** | **0**  | |
 
 ### Fragment Key
 
@@ -131,46 +131,55 @@ Legend: Y = referenced, - = not referenced
 
 ### Fragments with Lowest Adoption
 
+- **universal-anti-patterns** (0/34 skills — elevated to CLAUDE.md in Plan 07-02, so direct references removed)
 - **agent-context-enrichment** (1/34 skills)
-- **error-reporting** (1/34 skills)
-- **context-loader-task** (2/34 skills)
 - **digest-select** (2/34 skills)
 - **domain-probes** (2/34 skills)
+- **revision-loop** (2/34 skills)
 
 ### Most Under-Instrumented Skills
 
-- **autonomous** (0 fragments, 2 references)
-- **dashboard** (0 fragments, 0 references)
-- **do** (0 fragments, 0 references)
-- **health** (0 fragments, 2 references)
-- **help** (0 fragments, 0 references)
-- **intel** (0 fragments, 0 references)
-- **note** (0 fragments, 1 references)
-- **profile** (0 fragments, 0 references)
+- **dashboard** (0 fragments)
+- **do** (0 fragments)
+- **help** (0 fragments)
+- **intel** (0 fragments)
+- **release** (0 fragments)
+- **statusline** (0 fragments)
 
 ### Fragment Categories
 
-**Mandatory (should be in every skill)**:
-- context-budget (15/34)
-- universal-anti-patterns (3/34)
+**Mandatory (should be in every skill with error paths)**:
+- error-reporting (17/34 — up from 1)
+- context-budget (16/34)
 - config-loading (4/34)
-- error-reporting (1/34)
 
 **Conditional (only relevant for certain skill types)**:
+- commit-planning-docs (21/34 — up from 11, covers all skills that write .planning/ files)
 - domain-probes (only exploration/analysis skills)
 - revision-loop (only iterative skills)
 - agent-context-enrichment (only skills spawning agents)
 - agent-type-resolution (only skills spawning agents)
 - phase-argument-parsing (only phase-aware skills)
 - digest-select (only skills choosing digests)
-- commit-planning-docs (only skills that commit)
 - gate-prompts (only skills with approval gates)
 
-### Adoption Priority (Recommended Order)
+## Changes Made
 
-1. **context-budget** + **universal-anti-patterns** to all skills missing them
-2. **config-loading** + **error-reporting** to all interactive skills
-3. **memory-capture** to long-running skills that generate insights
-4. **state-update** to skills that modify project state
-5. Conditional fragments to applicable skill subsets
+### Phase 07 Fragment Adoption (Before/After)
+
+| Fragment | Before (Plan 07-01) | After (Plan 07-05) | Delta |
+|----------|--------------------|--------------------|-------|
+| error-reporting (ERR) | 1 | 17 | +16 |
+| commit-planning-docs (CPD) | 11 | 21 | +10 |
+| context-budget (CTB) | 15 | 16 | +1 |
+| context-loader-task (CLT) | 2 | 3 | +1 |
+| state-update (STU) | 3 | 4 | +1 |
+| config-loading (CFL) | 4 | 4 | 0 |
+| universal-anti-patterns (UAP) | 3 | 0 | -3 (elevated to CLAUDE.md) |
+
+### Skills Changed in Phase 07
+
+- **Plan 07-03**: discuss (6 patterns), review (CONTEXT.md pass-through)
+- **Plan 07-04**: test (6 patterns), config/setup/profile (commit-planning-docs)
+- **Plan 07-05**: 14 skills gained error-reporting, 6 skills gained commit-planning-docs
 
