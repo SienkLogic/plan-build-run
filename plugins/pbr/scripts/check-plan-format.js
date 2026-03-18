@@ -446,6 +446,15 @@ async function checkPlanWrite(data) {
   return null;
 }
 
+/** All valid STATE.md status values (13 canonical + legacy aliases). */
+const VALID_STATE_STATUSES = [
+  'not_started', 'discussed', 'ready_to_plan', 'planning',
+  'planned', 'ready_to_execute', 'building', 'built',
+  'partial', 'verified', 'needs_fixes', 'complete', 'skipped',
+  // Legacy aliases
+  'pending', 'reviewed', 'milestone_complete'
+];
+
 function validateState(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -465,6 +474,25 @@ function validateState(content, _filePath) {
         if (!frontmatter.includes(`${field}:`)) {
           warnings.push(`Frontmatter missing "${field}" field`);
         }
+      }
+
+      // Validate status value against the 13-state lifecycle + legacy aliases
+      const statusMatch = frontmatter.match(/^status:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (statusMatch) {
+        const statusValue = statusMatch[1].trim();
+        if (!VALID_STATE_STATUSES.includes(statusValue)) {
+          warnings.push(`Unknown status value: "${statusValue}" (valid: ${VALID_STATE_STATUSES.slice(0, 13).join(', ')})`);
+        }
+      }
+
+      // Advisory: velocity metrics fields (new feature — warning only)
+      if (!frontmatter.includes('velocity_plans_per_session:') && !frontmatter.includes('velocity:')) {
+        warnings.push('Frontmatter missing velocity metrics (velocity_plans_per_session) — optional for tracking');
+      }
+
+      // Advisory: session continuity fields (new feature — warning only)
+      if (!frontmatter.includes('session_last:') && !frontmatter.includes('session_stopped_at:')) {
+        warnings.push('Frontmatter missing session continuity fields (session_last, session_stopped_at) — optional for resume');
       }
     }
   }
