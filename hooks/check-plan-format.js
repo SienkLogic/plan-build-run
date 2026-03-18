@@ -25,9 +25,9 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { lockedFileUpdate } = require('../plan-build-run/bin/lib/core.cjs');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
+const { lockedFileUpdate } = require('./pbr-tools');
+const { resolveConfig } = require('./local-llm/health');
+const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.
@@ -173,13 +173,10 @@ async function main() {
 function validateMustHaves(frontmatter) {
   const warnings = [];
 
-  // Extract the must_haves block: from "must_haves:" to the next top-level key
-  // Top-level keys are lines starting with a non-space character followed by a colon
   const mustHavesIdx = frontmatter.indexOf('must_haves:');
   if (mustHavesIdx === -1) return { errors: [], warnings };
 
   const afterMustHaves = frontmatter.substring(mustHavesIdx + 'must_haves:'.length);
-  // Find next top-level key (line starting with non-whitespace, non-dash, containing colon)
   const nextKeyMatch = afterMustHaves.match(/\n[a-zA-Z_][a-zA-Z0-9_]*:/);
   const mustHavesBlock = nextKeyMatch
     ? afterMustHaves.substring(0, nextKeyMatch.index)
@@ -187,7 +184,6 @@ function validateMustHaves(frontmatter) {
 
   const requiredSubFields = ['truths', 'artifacts', 'key_links'];
   for (const subField of requiredSubFields) {
-    // Check for the sub-field with proper indentation (at least 2 spaces)
     const subFieldRegex = new RegExp(`^\\s+${subField}:`, 'm');
     if (!subFieldRegex.test(mustHavesBlock)) {
       warnings.push(`must_haves missing "${subField}" sub-field`);
@@ -230,11 +226,9 @@ function validatePlan(content, _filePath) {
           warnings.push(`Unexpected type value: "${typeValue}" (expected: ${PLAN_VALID_TYPES.join(', ')})`);
         }
       }
-
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
       } else {
-        // Validate must_haves sub-fields (warnings during migration period)
         const mhResult = validateMustHaves(frontmatter);
         warnings.push(...mhResult.warnings);
       }
@@ -537,8 +531,8 @@ function checkStateWrite(data) {
 
   // Line count advisory
   const lineCount = content.split('\n').length;
-  if (lineCount > 150) {
-    result.warnings.push(`Advisory: STATE.md exceeds 150 lines (${lineCount} lines). Consider trimming stale session data.`);
+  if (lineCount > 100) {
+    result.warnings.push(`Advisory: STATE.md exceeds 100-line cap (${lineCount} lines). Move history entries older than the current milestone to PROJECT.md or archive.`);
   }
 
   if (result.warnings.length > 0) {
@@ -623,7 +617,7 @@ function syncStateBody(content, filePath) {
   if (fmProgress !== null && bodyProgressMatch) {
     const bodyPct = parseInt(bodyProgressMatch[1], 10);
     if (bodyPct !== fmProgress) {
-      const { buildProgressBar } = require('../plan-build-run/bin/lib/state.cjs');
+      const { buildProgressBar } = require('./lib/state');
       updated = updated.replace(/^Progress:\s*.+/m, `Progress: ${buildProgressBar(fmProgress)}`);
       drifts.push(`progress ${bodyPct}%→${fmProgress}%`);
     }
@@ -832,30 +826,18 @@ function validateConfig(content, _filePath) {
     return { errors, warnings };
   }
 
-  // Required: planning section with depth
-  if (!parsed.planning) {
-    errors.push('Missing "planning" section (required: planning.depth)');
-  } else if (!parsed.planning.depth) {
-    errors.push('Missing "planning.depth" field (expected: "quick", "standard", or "thorough")');
-  } else if (!['quick', 'standard', 'thorough'].includes(parsed.planning.depth)) {
-    warnings.push(`Unexpected planning.depth value: "${parsed.planning.depth}" (expected: quick, standard, or thorough)`);
-  }
-
-  // Advisory: known top-level keys
-  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel', 'workflow'];
-  for (const key of Object.keys(parsed)) {
-    if (!knownKeys.includes(key)) {
-      warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
+  // Optional: top-level depth field (has default in schema)
+  if (parsed.depth !== undefined) {
+    if (!['quick', 'standard', 'comprehensive'].includes(parsed.depth)) {
+      warnings.push(`Unexpected depth value: "${parsed.depth}" (expected: quick, standard, or comprehensive)`);
     }
   }
 
-  // Validate workflow section
-  if (parsed.workflow) {
-    if (parsed.workflow.node_repair_budget !== undefined) {
-      const budget = parsed.workflow.node_repair_budget;
-      if (typeof budget !== 'number' || budget < 0 || budget > 10) {
-        warnings.push('workflow.node_repair_budget should be a number between 0 and 10');
-      }
+  // Advisory: known top-level keys (must match config-schema.json properties)
+  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'local_llm', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
+  for (const key of Object.keys(parsed)) {
+    if (!knownKeys.includes(key)) {
+      warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
     }
   }
 

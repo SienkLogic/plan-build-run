@@ -531,8 +531,8 @@ function checkStateWrite(data) {
 
   // Line count advisory
   const lineCount = content.split('\n').length;
-  if (lineCount > 150) {
-    result.warnings.push(`Advisory: STATE.md exceeds 150 lines (${lineCount} lines). Consider trimming stale session data.`);
+  if (lineCount > 100) {
+    result.warnings.push(`Advisory: STATE.md exceeds 100-line cap (${lineCount} lines). Move history entries older than the current milestone to PROJECT.md or archive.`);
   }
 
   if (result.warnings.length > 0) {
