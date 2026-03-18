@@ -192,9 +192,8 @@ const AGENT_OUTPUTS = {
     check: () => []
   },
   'pbr:integration-checker': {
-    description: 'advisory output (no file expected)',
-    noFileExpected: true,
-    check: () => []
+    description: 'INTEGRATION-REPORT.md in the phase directory',
+    check: (planningDir) => findInPhaseDir(planningDir, /^INTEGRATION-REPORT\.md$/i)
   },
   'pbr:debugger': {
     description: 'debug file in .planning/debug/',
@@ -263,19 +262,26 @@ const AGENT_OUTPUTS = {
     }
   },
   'pbr:ui-checker': {
-    description: 'advisory output (UI validation results returned inline)',
-    noFileExpected: true,
-    check: () => []
+    description: 'UI-REVIEW.md in the phase directory',
+    check: (planningDir) => findInPhaseDir(planningDir, /^UI-REVIEW\.md$/i)
   },
   'pbr:ui-researcher': {
-    description: 'advisory output (UI research findings returned inline)',
-    noFileExpected: true,
-    check: () => []
+    description: 'UI-SPEC.md in the phase directory',
+    check: (planningDir) => findInPhaseDir(planningDir, /^UI-SPEC\.md$/i)
   },
   'pbr:roadmapper': {
-    description: 'ROADMAP.md updates',
-    noFileExpected: true,
-    check: () => []
+    description: 'ROADMAP.md in .planning/',
+    check: (planningDir) => {
+      const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+      if (fs.existsSync(roadmapPath)) {
+        const result = ['ROADMAP.md'];
+        if (!isRecent(roadmapPath)) {
+          result._stale = true;
+        }
+        return result;
+      }
+      return [];
+    }
   },
   'pbr:nyquist-auditor': {
     description: 'test files generated for phase coverage',
