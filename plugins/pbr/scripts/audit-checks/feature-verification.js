@@ -619,6 +619,88 @@ function checkContextBudgetAccuracy(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// FV-13: Config Feature Coverage (Meta-Check)
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregate meta-check: compute percentage of enabled features that have
+ * evidence of running. Calls FV-01 through FV-12 if priorResults is not
+ * provided.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @param {Array} [priorResults] - Optional pre-computed results from FV-01..FV-12
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkConfigFeatureCoverage(planningDir, config, priorResults) {
+  // All FV-01 through FV-12 check functions in order
+  var checkFns = [
+    checkArchitectureGuardActivity,
+    checkDependencyBreakDetection,
+    checkSecurityScanningActivity,
+    checkTrustTrackingActivity,
+    checkLearningsSystemActivity,
+    checkIntelSystemActivity,
+    checkAutoContinueChain,
+    checkNegativeKnowledgeTracking,
+    checkDecisionJournalTracking,
+    checkPhaseBoundaryEnforcement,
+    checkDestructiveOpConfirmation,
+    checkContextBudgetAccuracy,
+  ];
+
+  var results = priorResults;
+  if (!results || results.length === 0) {
+    results = checkFns.map(function (fn) {
+      try {
+        return fn(planningDir, config);
+      } catch (err) {
+        return result('??', 'fail', 'Check threw: ' + err.message);
+      }
+    });
+  }
+
+  // Classify: "Feature disabled" passes are not enabled features
+  var enabledCount = 0;
+  var passCount = 0;
+  var evidence = [];
+
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var dim = r.dimension || ('FV-' + String(i + 1).padStart(2, '0'));
+    var isDisabled = r.status === 'pass' && r.message && r.message.toLowerCase().includes('disabled');
+
+    if (isDisabled) {
+      evidence.push(dim + ': disabled (not counted)');
+      continue;
+    }
+
+    enabledCount++;
+    if (r.status === 'pass') {
+      passCount++;
+      evidence.push(dim + ': pass');
+    } else {
+      evidence.push(dim + ': ' + r.status + ' — ' + r.message);
+    }
+  }
+
+  if (enabledCount === 0) {
+    return result('FV-13', 'pass', 'No features enabled — nothing to verify', evidence);
+  }
+
+  var coverage = Math.round((passCount / enabledCount) * 100);
+  evidence.unshift('Coverage: ' + coverage + '% (' + passCount + '/' + enabledCount + ' enabled features passing)');
+
+  if (coverage >= 80) {
+    return result('FV-13', 'pass', 'Feature coverage ' + coverage + '% (>= 80%)', evidence);
+  }
+  if (coverage >= 50) {
+    return result('FV-13', 'warn', 'Feature coverage ' + coverage + '% (50-79%)', evidence);
+  }
+  return result('FV-13', 'fail', 'Feature coverage ' + coverage + '% (< 50%)', evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -637,4 +719,5 @@ module.exports = {
   checkPhaseBoundaryEnforcement,
   checkDestructiveOpConfirmation,
   checkContextBudgetAccuracy,
+  checkConfigFeatureCoverage,
 };
