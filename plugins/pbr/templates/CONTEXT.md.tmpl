@@ -35,6 +35,20 @@
 - {other paths}
 </canonical_refs>
 
+<specifics>
+{User references, preferences, and "I want it like X" moments captured during discussion.
+ These are NOT decisions -- they're directional hints for the planner.}
+
+- **{Reference}** -- {Context from user}
+</specifics>
+
+<code_context>
+{Reusable assets, established patterns, and integration points relevant to this phase.
+ Planner should leverage these rather than creating from scratch.}
+
+- **{Pattern/Asset}** -- {Location and how to reuse}
+</code_context>
+
 <deferred>
 {Ideas explicitly excluded from this phase. Plans MUST NOT include these.}
 
@@ -58,3 +72,6 @@
 - Discretion areas are documented when the planner exercises choice
 - Phase-level CONTEXT.md files (in phase directories) override project-level for that phase
 - Backward compatibility: existing CONTEXT.md files using markdown headers (## Decisions, ## Deferred Ideas) remain valid
+- The `<specifics>` section captures user references and "I want it like X" moments -- directional hints, not locked decisions
+- The `<code_context>` section captures reusable assets and established patterns -- planner should leverage these rather than reinventing
+- XML sections in order: domain, decisions, canonical_refs, specifics, code_context, deferred
