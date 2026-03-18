@@ -171,4 +171,71 @@ function checkThroughputMetrics(sessionData) {
   ]);
 }
 
-module.exports = { checkSessionDegradation, checkThroughputMetrics };
+// ---------------------------------------------------------------------------
+// QM-04: Error Correlation Across Dimensions
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect correlated failures across audit dimension results.
+ * Groups failing/warning dimensions by category prefix and checks
+ * known correlation pairs.
+ *
+ * @param {Array<object>} auditResults - Array of dimension check results:
+ *   [{ dimension: "SI-01", status: "pass"|"warn"|"fail", message, evidence }]
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkErrorCorrelation(auditResults) {
+  if (!auditResults || auditResults.length === 0) {
+    return result('QM-04', 'pass', 'No audit results provided for correlation analysis');
+  }
+
+  // Group failing/warning dimensions by category prefix
+  const categoryFailures = {};
+  for (const r of auditResults) {
+    if (!r.dimension || (r.status !== 'warn' && r.status !== 'fail')) {
+      continue;
+    }
+    const prefix = r.dimension.split('-')[0];
+    if (!categoryFailures[prefix]) {
+      categoryFailures[prefix] = [];
+    }
+    categoryFailures[prefix].push(r.dimension);
+  }
+
+  const correlations = [];
+
+  // Check for categories with 2+ failures (cluster)
+  for (const [prefix, dims] of Object.entries(categoryFailures)) {
+    if (dims.length >= 2) {
+      correlations.push(`Cluster in ${prefix}: ${dims.join(', ')} (${dims.length} issues)`);
+    }
+  }
+
+  // Known correlation pairs
+  if (categoryFailures.EF && categoryFailures.BC) {
+    correlations.push(
+      `EF+BC correlation: errors causing behavioral drift (EF: ${categoryFailures.EF.join(', ')}, BC: ${categoryFailures.BC.join(', ')})`
+    );
+  }
+  if (categoryFailures.IH && categoryFailures.WC) {
+    correlations.push(
+      `IH+WC correlation: infrastructure issues impacting workflow (IH: ${categoryFailures.IH.join(', ')}, WC: ${categoryFailures.WC.join(', ')})`
+    );
+  }
+  if (categoryFailures.SQ && categoryFailures.EF) {
+    correlations.push(
+      `SQ+EF correlation: errors degrading session quality (SQ: ${categoryFailures.SQ.join(', ')}, EF: ${categoryFailures.EF.join(', ')})`
+    );
+  }
+
+  if (correlations.length > 0) {
+    return result('QM-04', 'warn',
+      `${correlations.length} cross-dimension error correlation(s) detected`,
+      correlations
+    );
+  }
+
+  return result('QM-04', 'pass', 'No cross-dimension error correlations detected');
+}
+
+module.exports = { checkSessionDegradation, checkThroughputMetrics, checkErrorCorrelation };
