@@ -119,6 +119,13 @@ Determine the logical next action (same routing logic as `/pbr:progress`):
 - If phase reviewed, has gaps: "Fix gaps in phase N"
 - If phase complete: "Plan phase N+1"
 
+#### Mental Context
+Reflect on the current approach:
+- What strategy is being followed for this phase?
+- Why was this approach chosen over alternatives?
+- What's been tricky or surprising?
+- Any user preferences expressed in the current conversation?
+
 ### Step 4: Write .continue-here.md
 
 **CRITICAL: Write pause state NOW before displaying confirmation. Do NOT skip this step.**
@@ -129,7 +136,7 @@ Write the handoff file to the current phase directory:
 
 **Content:**
 
-Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3.
+Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3. Fill in all XML sections. The `<context>` section should capture your understanding of the current approach and reasoning -- not just facts. Think of it as a message to your future self explaining what was going on.
 
 ### Step 5: Update STATE.md
 
