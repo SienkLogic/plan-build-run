@@ -170,12 +170,24 @@ function updateProgressTable(content, phaseNum, plansComplete, status, completed
 
   // Find the Progress table by looking for a header row with "Plans Complete"
   let inProgressTable = false;
+  let colIdx = { phase: -1, plans: -1, status: -1, completed: -1 };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
     if (!inProgressTable) {
-      if (line.includes('|') && /Plans\s*Complete/i.test(line)) {
+      if (line.includes('|') && /Plans?\s*Complete/i.test(line)) {
+        // Dynamically detect column positions from header row
+        const headers = line.split('|').map(h => h.trim().toLowerCase());
+        colIdx = {
+          phase: headers.findIndex(h => /phase/i.test(h)),
+          milestone: headers.findIndex(h => /milestone/i.test(h)),
+          plans: headers.findIndex(h => /plans?\s*complete/i.test(h)),
+          status: headers.findIndex(h => /status/i.test(h)),
+          completed: headers.findIndex(h => /completed/i.test(h))
+        };
+        // Need at least phase and plans columns
+        if (colIdx.phase === -1) colIdx.phase = 1; // fallback
         inProgressTable = true;
       }
       continue;
@@ -189,18 +201,22 @@ function updateProgressTable(content, phaseNum, plansComplete, status, completed
 
     // Check if this row matches our phase number
     const parts = line.split('|');
-    if (parts.length < 5) continue; // Need at least: empty | Phase | Plans | Status | Completed | empty
+    if (parts.length < 3) continue;
 
-    const phaseCol = (parts[1] || '').trim();
+    const phaseCol = (parts[colIdx.phase] || '').trim();
     const phaseMatch = phaseCol.match(/^(\d+)\./);
     if (!phaseMatch) continue;
 
     if (phaseMatch[1] === paddedPhase || String(parseInt(phaseMatch[1], 10)) === String(parseInt(phaseNum, 10))) {
-      // Update this row
-      parts[2] = ` ${plansComplete} `;
-      parts[3] = ` ${status} `;
-      if (completedDate !== undefined && completedDate !== null) {
-        parts[4] = ` ${completedDate} `;
+      // Update columns using dynamic indices
+      if (colIdx.plans !== -1 && colIdx.plans < parts.length) {
+        parts[colIdx.plans] = ` ${plansComplete} `;
+      }
+      if (colIdx.status !== -1 && colIdx.status < parts.length) {
+        parts[colIdx.status] = ` ${status} `;
+      }
+      if (completedDate !== undefined && completedDate !== null && colIdx.completed !== -1 && colIdx.completed < parts.length) {
+        parts[colIdx.completed] = ` ${completedDate} `;
       }
       lines[i] = parts.join('|');
 
