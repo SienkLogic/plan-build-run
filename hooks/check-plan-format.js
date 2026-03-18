@@ -157,6 +157,42 @@ async function main() {
   });
 }
 
+/**
+ * Validate must_haves sub-field structure within frontmatter.
+ * Checks that truths, artifacts, and key_links sub-fields exist under must_haves.
+ * Uses warnings (not errors) during migration period — existing plans should not
+ * suddenly be blocked.
+ *
+ * @param {string} frontmatter - The frontmatter content (between --- delimiters)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateMustHaves(frontmatter) {
+  const warnings = [];
+
+  // Extract the must_haves block: from "must_haves:" to the next top-level key
+  // Top-level keys are lines starting with a non-space character followed by a colon
+  const mustHavesIdx = frontmatter.indexOf('must_haves:');
+  if (mustHavesIdx === -1) return { errors: [], warnings };
+
+  const afterMustHaves = frontmatter.substring(mustHavesIdx + 'must_haves:'.length);
+  // Find next top-level key (line starting with non-whitespace, non-dash, containing colon)
+  const nextKeyMatch = afterMustHaves.match(/\n[a-zA-Z_][a-zA-Z0-9_]*:/);
+  const mustHavesBlock = nextKeyMatch
+    ? afterMustHaves.substring(0, nextKeyMatch.index)
+    : afterMustHaves;
+
+  const requiredSubFields = ['truths', 'artifacts', 'key_links'];
+  for (const subField of requiredSubFields) {
+    // Check for the sub-field with proper indentation (at least 2 spaces)
+    const subFieldRegex = new RegExp(`^\\s+${subField}:`, 'm');
+    if (!subFieldRegex.test(mustHavesBlock)) {
+      warnings.push(`must_haves missing "${subField}" sub-field`);
+    }
+  }
+
+  return { errors: [], warnings };
+}
+
 /** Canonical required fields for PLAN.md frontmatter. */
 const PLAN_REQUIRED_FIELDS = ['phase', 'plan', 'wave', 'type', 'depends_on', 'files_modified', 'autonomous'];
 
@@ -193,6 +229,10 @@ function validatePlan(content, _filePath) {
 
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
+      } else {
+        // Validate must_haves sub-fields (warnings during migration period)
+        const mhResult = validateMustHaves(frontmatter);
+        warnings.push(...mhResult.warnings);
       }
       // Blocking: implements:[] is required for REQ-ID traceability (Phase 66)
       if (!frontmatter.includes('implements:')) {
