@@ -785,6 +785,177 @@ function checkOrchestratorBudgetDiscipline(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-06: Artifact Creation Order
+// ---------------------------------------------------------------------------
+
+/**
+ * Artifact types in expected creation order within a phase.
+ * Lower index = must be created first.
+ */
+const ARTIFACT_ORDER = {
+  'PLAN': 0,
+  'SUMMARY': 1,
+  'VERIFICATION': 2,
+};
+
+/**
+ * Extract artifact type and phase directory from a file path.
+ * @param {string} filePath - File path from event
+ * @returns {{ artifact: string, phaseDir: string }|null}
+ */
+function extractArtifactInfo(filePath) {
+  if (!filePath) return null;
+  const normalized = filePath.replace(/\\/g, '/');
+
+  // Match phase directory patterns like phases/03-something/PLAN-01.md
+  const phaseMatch = normalized.match(/phases\/(\d{2}-[^/]+)\//);
+  if (!phaseMatch) return null;
+
+  const phaseDir = phaseMatch[1];
+  const basename = path.basename(normalized);
+
+  if (/^PLAN/i.test(basename)) return { artifact: 'PLAN', phaseDir };
+  if (/^SUMMARY/i.test(basename)) return { artifact: 'SUMMARY', phaseDir };
+  if (/^VERIFICATION/i.test(basename)) return { artifact: 'VERIFICATION', phaseDir };
+
+  return null;
+}
+
+/**
+ * Check if an entry is a git commit event (Bash tool running git commit).
+ * @param {Object} entry - JSONL entry
+ * @returns {string|null} Phase directory if commit is phase-related, null otherwise
+ */
+function extractCommitPhase(entry) {
+  // Look for Bash tool events containing "git commit"
+  const input = entry.tool_input || (entry.details && entry.details.command) || '';
+  const inputStr = typeof input === 'string' ? input : JSON.stringify(input);
+
+  if (!/git\s+commit/i.test(inputStr)) return null;
+
+  // Try to extract phase from the commit message or context
+  const phaseMatch = inputStr.match(/(\d{2})-(\d{2})/);
+  if (phaseMatch) {
+    // This gives us a phase-plan reference; return just the phase part
+    return phaseMatch[1];
+  }
+
+  return null;
+}
+
+/**
+ * BC-06: Check that artifacts are created in the expected order within each phase.
+ * Expected: PLAN write < commit(s) < SUMMARY write < VERIFICATION write.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkArtifactCreationOrder(planningDir, _config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-06: No session data available — cannot assess artifact order'
+    };
+  }
+
+  // Collect artifact write timestamps per phase directory
+  // Map<phaseDir, Map<artifactType, { ts: string, index: number }>>
+  const phaseArtifacts = new Map();
+
+  let eventIndex = 0;
+  for (const entry of allEntries) {
+    eventIndex++;
+    const ts = entry.ts || entry.timestamp || '';
+
+    // Check for Write/Edit events targeting artifact files
+    const isWrite = entry.tool === 'Write' || entry.tool === 'Edit' ||
+      (entry.details && (entry.details.tool === 'Write' || entry.details.tool === 'Edit'));
+
+    if (isWrite) {
+      const filePath = (entry.tool_input && (entry.tool_input.file_path || entry.tool_input.filePath)) ||
+        (entry.details && (entry.details.file_path || entry.details.file)) ||
+        entry.file || entry.path || '';
+
+      const info = extractArtifactInfo(filePath);
+      if (info) {
+        if (!phaseArtifacts.has(info.phaseDir)) phaseArtifacts.set(info.phaseDir, new Map());
+        const artifacts = phaseArtifacts.get(info.phaseDir);
+        // Record first occurrence only (the initial write matters for ordering)
+        if (!artifacts.has(info.artifact)) {
+          artifacts.set(info.artifact, { ts, index: eventIndex });
+        }
+      }
+    }
+
+    // Also check entryTargetsFile for artifact patterns
+    if (!isWrite) {
+      for (const [artifactName, _order] of Object.entries(ARTIFACT_ORDER)) {
+        const pattern = new RegExp(`${artifactName}.*\\.md`, 'i');
+        if (entryTargetsFile(entry, pattern)) {
+          // Try to extract phase from the entry
+          const searchStr = JSON.stringify(entry);
+          const pdMatch = searchStr.match(/phases\/(\d{2}-[^/"]+)\//);
+          if (pdMatch) {
+            const phaseDir = pdMatch[1];
+            if (!phaseArtifacts.has(phaseDir)) phaseArtifacts.set(phaseDir, new Map());
+            const artifacts = phaseArtifacts.get(phaseDir);
+            if (!artifacts.has(artifactName)) {
+              artifacts.set(artifactName, { ts, index: eventIndex });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const evidence = [];
+
+  // Check ordering within each phase
+  for (const [phaseDir, artifacts] of phaseArtifacts) {
+    const entries = Array.from(artifacts.entries())
+      .map(([name, data]) => ({ name, ...data, order: ARTIFACT_ORDER[name] }))
+      .sort((a, b) => a.index - b.index); // Sort by actual occurrence order
+
+    // Compare each pair: if a later-ordered artifact appears before an earlier one
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        if (entries[j].order < entries[i].order) {
+          const timeA = entries[i].ts ? ` (${entries[i].ts.substring(11, 16)})` : '';
+          const timeB = entries[j].ts ? ` (${entries[j].ts.substring(11, 16)})` : '';
+          evidence.push(
+            `${phaseDir}: ${entries[j].name}.md written${timeB} before ${entries[i].name}.md${timeA} — out of order`
+          );
+        }
+      }
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-06: Found ${evidence.length} out-of-order artifact creation(s)`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: 'BC-06: All artifacts created in expected order (PLAN < SUMMARY < VERIFICATION)'
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -804,4 +975,6 @@ module.exports = {
   checkPostConditionVerification,
   // BC-05
   checkOrchestratorBudgetDiscipline,
+  // BC-06
+  checkArtifactCreationOrder,
 };
