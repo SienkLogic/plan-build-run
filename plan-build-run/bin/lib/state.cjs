@@ -622,6 +622,42 @@ function stateSnapshot(planningDir) {
   };
 }
 
+/**
+ * Atomically mark a phase as complete in STATE.md.
+ * Updates status to "complete" and records phase completion in last_activity,
+ * all within a single lockedFileUpdate call for atomicity.
+ *
+ * @param {number|string} phaseNum - Phase number to mark complete
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success: true, phase, status } or { success: false, error }
+ */
+function statePhaseComplete(phaseNum, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const statePath = path.join(dir, 'STATE.md');
+  if (!fs.existsSync(statePath)) {
+    return { success: false, error: 'STATE.md not found' };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const activityValue = `${today} Phase ${phaseNum} complete`;
+
+  const result = lockedFileUpdate(statePath, (content) => {
+    let updated = content;
+    // Update frontmatter fields
+    updated = updateFrontmatterField(updated, 'status', 'complete');
+    updated = updateFrontmatterField(updated, 'last_activity', activityValue);
+    // Sync body lines
+    updated = syncBodyLine(updated, 'status', 'complete');
+    updated = syncBodyLine(updated, 'last_activity', activityValue);
+    return updated;
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+  return { success: true, phase: Number(phaseNum), status: 'complete' };
+}
+
 module.exports = {
   parseStateMd,
   updateLegacyStateField,
@@ -637,5 +673,6 @@ module.exports = {
   stateRecordActivity,
   stateUpdateProgress,
   stateGetStatus,
-  stateSnapshot
+  stateSnapshot,
+  statePhaseComplete
 };
