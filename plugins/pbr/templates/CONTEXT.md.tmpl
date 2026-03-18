@@ -6,33 +6,40 @@
 ## Structure
 
 ```markdown
-# Project Context
+# Phase Context
 
-## Locked Decisions
+**Created by:** {skill}
+**Date:** {date}
 
-{Technology choices, architecture decisions, and constraints that are NON-NEGOTIABLE.
- These MUST be honored by every plan and executor — no exceptions.}
+## Decision Summary
 
-| Decision | Rationale | Locked By |
-|----------|-----------|-----------|
-| {e.g., "Use TypeScript"} | {User preference, team skill} | User |
-| {e.g., "PostgreSQL via Supabase"} | {Existing infrastructure} | User |
+<!-- Compact digest for agent prompt injection. ~300 tokens max. -->
 
-## User Constraints
+<domain>
+{Problem domain context -- what this phase is about, key terminology, system boundaries}
+</domain>
 
-{Budget, timeline, skill level, hosting, team size — factors that shape planning}
+<decisions>
+{Locked decisions from discuss. NON-NEGOTIABLE during planning.}
 
-- {e.g., "Solo developer, no team"}
-- {e.g., "Deploy to Hetzner VPS"}
-- {e.g., "Must work offline"}
+- [ ] **{Decision title}** -- {Description}
+  - Scope: {RH-IDs}
+  - Quality: {acceptance criteria}
+  - Integration: {how it connects to other components}
+</decisions>
 
-## Deferred Ideas
+<canonical_refs>
+{Specs, ADRs, design docs, research files with FULL paths. Downstream agents MUST read these.}
 
-{Features explicitly moved to v2 or out-of-scope. Plans MUST NOT include these.}
+- .planning/research/{file}.md -- {description}
+- {other paths}
+</canonical_refs>
 
-| Idea | Reason Deferred |
-|------|----------------|
-| {feature} | {reason} |
+<deferred>
+{Ideas explicitly excluded from this phase. Plans MUST NOT include these.}
+
+- **{Idea}** -- {Reason deferred}
+</deferred>
 
 ## Claude's Discretion Areas
 
@@ -46,7 +53,8 @@
 
 ## Rules
 
-- Locked decisions are immutable once set — only the user can change them
+- Locked decisions are immutable once set -- only the user can change them
 - Deferred ideas must NEVER appear in plans
 - Discretion areas are documented when the planner exercises choice
 - Phase-level CONTEXT.md files (in phase directories) override project-level for that phase
+- Backward compatibility: existing CONTEXT.md files using markdown headers (## Decisions, ## Deferred Ideas) remain valid
