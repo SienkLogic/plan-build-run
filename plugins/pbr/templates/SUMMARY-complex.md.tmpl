@@ -41,6 +41,13 @@ metrics:
   commits: {n}
   files_created: {n}
   files_modified: {n}
+requirements_completed:
+  - "REQ-ID: brief description of how it was satisfied"
+deviations:
+  - rule: 1          # 1=Bug, 2=Missing Critical, 3=Blocking, 4=Architectural
+    description: "..."
+    action: "auto"   # auto | ask
+    justification: "..."
 deferred:
   - "{thing noticed but not implemented}"
 self_check_failures:
@@ -86,6 +93,20 @@ architecture_notes:
 ## Dependencies Provided
 
 {What other plans can now depend on}
+
+## Deviations
+
+| # | Rule | Description | Action | Justification |
+|---|------|-------------|--------|---------------|
+| 1 | Rule 1 (Bug) | {description} | auto | {why} |
+
+## Self-Check
+
+- [ ] All tasks completed per plan
+- [ ] Commits match task count
+- [ ] No TODO/FIXME left in new code
+- [ ] Key files exist and are substantive
+- [ ] requirements_completed matches plan implements
 
 ## Deferred Items
 
