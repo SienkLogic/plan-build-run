@@ -1545,6 +1545,34 @@ describe('validateState', () => {
     const result = validateState(content, '/fake/STATE.md');
     expect(result.warnings).toContain('Unclosed YAML frontmatter');
   });
+
+  test('accepts all 13 primary status values without errors or warnings', () => {
+    const allStates = [
+      'not_started', 'discussed', 'ready_to_plan', 'planning', 'planned',
+      'ready_to_execute', 'building', 'built', 'partial', 'verified',
+      'needs_fixes', 'complete', 'skipped'
+    ];
+    for (const status of allStates) {
+      const content = `---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "${status}"\n---\n# State\n`;
+      const result = validateState(content, '/fake/STATE.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    }
+  });
+
+  test('missing History section does not produce error or warning', () => {
+    const content = '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "building"\n---\n# State\n## Current Position\nNo history section here.\n';
+    const result = validateState(content, '/fake/STATE.md');
+    expect(result.errors).toHaveLength(0);
+    const historyWarning = result.warnings.find(w => w.toLowerCase().includes('history'));
+    expect(historyWarning).toBeUndefined();
+  });
+
+  test('velocity fields in frontmatter pass validation', () => {
+    const content = '---\nversion: 2\ncurrent_phase: 1\nphase_slug: "test"\nstatus: "building"\nvelocity: "{}"\nsession_last: "2026-03-18"\n---\n# State\n';
+    const result = validateState(content, '/fake/STATE.md');
+    expect(result.errors).toHaveLength(0);
+  });
 });
 
 describe('validateSummary key_files path-existence warning', () => {

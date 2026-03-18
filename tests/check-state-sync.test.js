@@ -806,6 +806,50 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     });
   });
 
+  describe('new status display labels in progress table', () => {
+    let tmpDir;
+    let planningDir;
+    let phasesDir;
+    let phaseDir;
+    let origCwd;
+
+    beforeEach(() => {
+      clearMtimeCache();
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-labels-'));
+      planningDir = path.join(tmpDir, '.planning');
+      phasesDir = path.join(planningDir, 'phases');
+      phaseDir = path.join(phasesDir, '03-api-endpoints');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+
+      origCwd = process.cwd();
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      clearMtimeCache();
+    });
+
+    test('ready_to_execute maps to Ready to Execute in STATUS_LABELS', () => {
+      const { STATUS_LABELS } = require('../plan-build-run/bin/lib/core.cjs');
+      expect(STATUS_LABELS.ready_to_execute).toBe('Ready to Execute');
+    });
+
+    test('ready_to_plan maps to Ready to Plan in STATUS_LABELS', () => {
+      const { STATUS_LABELS } = require('../plan-build-run/bin/lib/core.cjs');
+      expect(STATUS_LABELS.ready_to_plan).toBe('Ready to Plan');
+    });
+
+    test('updateStatePosition with ready_to_execute updates body Status line', () => {
+      const stateContent = `---\nversion: 2\ncurrent_phase: 3\nstatus: "ready_to_execute"\n---\n# State\n\n## Current Position\nPhase: 3 of 10\nStatus: Planned\n`;
+      // syncBodyLine converts underscores to spaces and title-cases each word
+      const result = updateStatePosition(stateContent, { status: 'ready_to_execute' });
+      expect(result).toContain('Status: Ready To Execute');
+    });
+  });
+
   describe('CLI-routed state mutations', () => {
     const scriptPath = path.join(__dirname, '..', 'hooks', 'check-state-sync.js');
 
