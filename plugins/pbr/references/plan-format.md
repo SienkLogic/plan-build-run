@@ -257,6 +257,39 @@ task id="02-01-T3" type="auto" tdd="true" complexity="medium"
 
 The `<feature>` element is optional — standard TDD tasks without it are still valid. Use `<feature>` when the planner wants to record the behavior/implementation split explicitly for traceability.
 
+## Checkpoint System
+
+Plans use 3 checkpoint types for human-in-the-loop interaction. Most plans have zero checkpoints — only use them when the plan explicitly requires human input.
+
+| Type | Frequency | Purpose | Executor Action |
+|------|-----------|---------|-----------------|
+| `checkpoint:human-verify` | ~90% of checkpoints | User verifies output | Show what was built, ask "looks good?" |
+| `checkpoint:decision` | ~9% of checkpoints | User chooses between options | Present options with context, wait for selection |
+| `checkpoint:human-action` | ~1% of checkpoints | User does something outside Claude | Explain what's needed, wait for confirmation |
+
+### Structured Checkpoint Return Format
+
+When an executor encounters a checkpoint task, it MUST return a completion marker with structured data:
+
+```text
+## CHECKPOINT: {TYPE}
+
+<checkpoint>
+  <type>{human-verify|decision|human-action}</type>
+  <task_id>{plan_id}-T{N}</task_id>
+  <description>{what this checkpoint is about}</description>
+  <what_built>{for human-verify: summary of what was built}</what_built>
+  <verify_steps>{for human-verify: numbered steps to verify}</verify_steps>
+  <options>{for decision: lettered options with descriptions}</options>
+  <required_action>{for human-action: what the user needs to do}</required_action>
+  <resume_signal>{what response means "proceed"}</resume_signal>
+</checkpoint>
+```
+
+Not all fields apply to all types. Use only the relevant fields for the checkpoint type.
+
+---
+
 ### Checkpoint: Human Verify
 
 ```xml
