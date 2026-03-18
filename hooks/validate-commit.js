@@ -233,6 +233,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Parse error - don't block
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] validate-commit failed: ' + _e.message }));
       process.exit(0);
     }
   });

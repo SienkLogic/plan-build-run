@@ -40,7 +40,7 @@ function main() {
       process.exit(2);
     } catch (_e) {
       process.stderr.write(`[pbr] intercept-plan-mode error: ${_e.message}\n`);
-      process.stdout.write(JSON.stringify({ decision: 'allow' }));
+      process.stdout.write(JSON.stringify({ decision: 'allow', additionalContext: '⚠ [PBR] intercept-plan-mode failed: ' + _e.message }));
       process.exit(0);
     }
   });

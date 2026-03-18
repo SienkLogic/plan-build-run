@@ -136,7 +136,7 @@ function main() {
       // Don't block on errors — but emit valid output so Claude Code
       // doesn't report "hook error" for silent exit
       process.stderr.write(`[pbr] pre-bash-dispatch error: ${e.message}\n`);
-      process.stdout.write(JSON.stringify({ decision: 'allow' }));
+      process.stdout.write(JSON.stringify({ decision: 'allow', additionalContext: '⚠ [PBR] pre-bash-dispatch failed: ' + e.message }));
       process.exit(0);
     }
   });

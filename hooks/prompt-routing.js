@@ -173,6 +173,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Never block on errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] prompt-routing failed: ' + _e.message }));
       process.exit(0);
     }
   });

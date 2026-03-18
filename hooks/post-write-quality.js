@@ -40,6 +40,7 @@ function main() {
       }
       process.exit(0);
     } catch (_e) {
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] post-write-quality failed: ' + _e.message }));
       process.exit(0);
     }
   });

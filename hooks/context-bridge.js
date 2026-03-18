@@ -337,6 +337,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Never block on tracking errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] context-bridge failed: ' + _e.message }));
       process.exit(0);
     }
   });

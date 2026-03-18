@@ -175,6 +175,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Parse error — don't block
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-dangerous-commands failed: ' + _e.message }));
       process.exit(0);
     }
   });

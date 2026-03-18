@@ -19,8 +19,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { logHook } = require('./hook-logger');
-const { logEvent } = require('./event-logger');
+const { logHook, getLogPath: getHooksLogPath } = require('./hook-logger');
+const { logEvent, getLogPath: getEventsLogPath } = require('./event-logger');
 const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
 const { tailLines, lockedFileUpdate, sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
 // Session-scoped paths: sessionLoad accepts sessionId, delegates to resolveSessionPath internally
@@ -121,6 +121,7 @@ function main() {
     logEvent('workflow', 'compaction', { timestamp });
   } catch (e) {
     logHook('context-budget-check', 'PreCompact', 'error', { error: e.message });
+    process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] context-budget-check failed: ' + e.message }));
   }
 
   process.exit(0);
@@ -283,7 +284,7 @@ function readCurrentPlan(planningDir, stateContent, sessionId) {
 function readRecentErrors(planningDir, maxErrors) {
   const count = maxErrors || 3;
   try {
-    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+    const eventsLog = getEventsLogPath();
     // Only read the last 50 lines — errors are rare, so 50 tail lines
     // is more than enough to find the most recent ones
     const lines = tailLines(eventsLog, 50);
@@ -308,7 +309,7 @@ function readRecentErrors(planningDir, maxErrors) {
 function readRecentAgents(planningDir, maxAgents) {
   const count = maxAgents || 5;
   try {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath();
     // Only read the last 30 lines — agent spawns are interspersed with
     // other hook events, so 30 tail lines covers recent agents well
     const lines = tailLines(hooksLog, 30);

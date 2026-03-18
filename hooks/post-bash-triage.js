@@ -142,6 +142,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] post-bash-triage failed: ' + _e.message }));
       process.exit(0);
     }
   });

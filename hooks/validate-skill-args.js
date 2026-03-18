@@ -212,7 +212,7 @@ function main() {
       // Don't block on errors — emit valid output for Claude Code
       process.stderr.write(`[pbr] validate-skill-args error: ${_e.message}
 `);
-      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      process.stdout.write(JSON.stringify({ decision: "allow", additionalContext: '⚠ [PBR] validate-skill-args failed: ' + _e.message }));
       process.exit(0);
     }
   });

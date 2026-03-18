@@ -248,6 +248,7 @@ function main() {
     }
   } catch (_e) {
     logHook('status-line', 'StatusLine', 'error', { error: _e.message });
+    process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] status-line failed: ' + _e.message }));
   }
 
   process.exit(0);

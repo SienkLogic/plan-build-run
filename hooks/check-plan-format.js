@@ -156,6 +156,7 @@ async function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on parse errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-plan-format failed: ' + _e.message }));
       process.exit(0);
     }
   });

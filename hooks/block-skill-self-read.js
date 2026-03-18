@@ -72,7 +72,7 @@ function main() {
       // Don't block on errors — emit valid output for Claude Code
       process.stderr.write(`[pbr] block-skill-self-read error: ${_e.message}
 `);
-      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      process.stdout.write(JSON.stringify({ decision: "allow", additionalContext: '⚠ [PBR] block-skill-self-read failed: ' + _e.message }));
       process.exit(0);
     }
 }

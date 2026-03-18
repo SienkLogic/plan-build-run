@@ -266,6 +266,7 @@ function main() {
     } catch (_e) {
       // Don't block on parse errors
       logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] post-write-dispatch failed: ' + _e.message }));
       process.exit(0);
     }
   });
