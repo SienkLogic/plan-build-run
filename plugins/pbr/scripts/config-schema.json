@@ -565,6 +565,29 @@
             "enabled",
             "disabled"
           ]
+        },
+        "auto_pr": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, create a GitHub PR after successful phase verification."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ci": {
+      "type": "object",
+      "properties": {
+        "gate_enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, block wave advancement until CI passes."
+        },
+        "wait_timeout_seconds": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 3600,
+          "default": 120,
+          "description": "Maximum seconds to wait for CI completion before timing out."
         }
       },
       "additionalProperties": false
@@ -898,7 +921,11 @@
               "phase",
               "plan",
               "status",
-              "context"
+              "agent",
+              "git",
+              "hooks",
+              "context",
+              "dev"
             ]
           }
         },
