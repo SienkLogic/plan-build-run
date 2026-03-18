@@ -827,10 +827,20 @@ function validateConfig(content, _filePath) {
   }
 
   // Advisory: known top-level keys
-  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel'];
+  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel', 'workflow'];
   for (const key of Object.keys(parsed)) {
     if (!knownKeys.includes(key)) {
       warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
+    }
+  }
+
+  // Validate workflow section
+  if (parsed.workflow) {
+    if (parsed.workflow.node_repair_budget !== undefined) {
+      const budget = parsed.workflow.node_repair_budget;
+      if (typeof budget !== 'number' || budget < 0 || budget > 10) {
+        warnings.push('workflow.node_repair_budget should be a number between 0 and 10');
+      }
     }
   }
 
