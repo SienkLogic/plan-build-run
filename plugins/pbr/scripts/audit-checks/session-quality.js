@@ -268,12 +268,122 @@ function checkBriefingFreshness(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// SQ-03: Session Duration & Cost Analysis
+// ---------------------------------------------------------------------------
+
+/**
+ * Measure session durations and tool call volumes. Flags sessions exceeding
+ * the configured duration threshold.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Audit config (uses config.audit.thresholds.session_duration_warn_ms)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkSessionDurationCost(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const eventLogs = readEventLogs(logsDir);
+
+  // Get duration threshold from config (default 1 hour)
+  const thresholds = (config && config.audit && config.audit.thresholds) || {};
+  const session_duration_warn_ms = thresholds.session_duration_warn_ms || 3600000;
+
+  // Find all session-start events
+  const sessionStarts = eventLogs
+    .filter(e => e.cat === 'workflow' && e.event === 'session-start' && e.ts)
+    .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+  if (sessionStarts.length === 0) {
+    return result('SQ-03', 'info', 'No session data', ['No session-start events found in logs']);
+  }
+
+  // Find session-end events
+  const sessionEnds = eventLogs
+    .filter(e => e.cat === 'workflow' && (e.event === 'session-end' || e.event === 'session-stop') && e.ts)
+    .sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+
+  // Count all tool-use events for cost proxy
+  const toolUseEvents = eventLogs.filter(
+    e => e.cat === 'tool' || e.event === 'tool-use' || e.event === 'PostToolUse'
+  );
+
+  // Also check hook logs for tool-use events as a supplementary source
+  const hookLogs = readHookLogs(logsDir);
+  const hookToolEvents = hookLogs.filter(e => e.event === 'PostToolUse' || e.event === 'PreToolUse');
+
+  const evidence = [];
+  let anyExceeded = false;
+
+  for (let i = 0; i < sessionStarts.length; i++) {
+    const startTs = new Date(sessionStarts[i].ts).getTime();
+    const startDate = new Date(sessionStarts[i].ts).toISOString().slice(0, 16);
+
+    // Find the matching end: next session-end after this start but before next start
+    const nextStartTs = i + 1 < sessionStarts.length
+      ? new Date(sessionStarts[i + 1].ts).getTime()
+      : Infinity;
+
+    const matchingEnd = sessionEnds.find(e => {
+      const endTs = new Date(e.ts).getTime();
+      return endTs > startTs && endTs <= nextStartTs;
+    });
+
+    let endTs;
+    if (matchingEnd) {
+      endTs = new Date(matchingEnd.ts).getTime();
+    } else {
+      // Use last event before next session start as approximate end
+      const eventsInRange = eventLogs
+        .filter(e => e.ts && new Date(e.ts).getTime() > startTs && new Date(e.ts).getTime() < nextStartTs)
+        .map(e => new Date(e.ts).getTime());
+      endTs = eventsInRange.length > 0 ? Math.max(...eventsInRange) : startTs;
+    }
+
+    const durationMs = endTs - startTs;
+    const durationMin = Math.round(durationMs / 60000);
+
+    // Count tool calls within this session's time range
+    const sessionToolCalls = toolUseEvents.filter(e => {
+      if (!e.ts) return false;
+      const t = new Date(e.ts).getTime();
+      return t >= startTs && t < nextStartTs;
+    }).length;
+
+    const sessionHookCalls = hookToolEvents.filter(e => {
+      if (!e.ts) return false;
+      const t = new Date(e.ts).getTime();
+      return t >= startTs && t < nextStartTs;
+    }).length;
+
+    const totalCalls = sessionToolCalls + sessionHookCalls;
+
+    if (durationMs > session_duration_warn_ms) {
+      anyExceeded = true;
+    }
+
+    evidence.push(`Session ${startDate}: ${durationMin}min, ${totalCalls} tool calls`);
+  }
+
+  let status;
+  let message;
+  if (anyExceeded) {
+    status = 'warn';
+    message = `${sessionStarts.length} session(s) analyzed — some exceeded ${Math.round(session_duration_warn_ms / 60000)}min threshold`;
+  } else {
+    status = 'pass';
+    message = `${sessionStarts.length} session(s) analyzed — all within duration threshold`;
+  }
+
+  return result('SQ-03', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkSessionStartQuality,
   checkBriefingFreshness,
+  checkSessionDurationCost,
   // Shared helpers exported for reuse by other SQ checks and tests
   readJsonlFiles,
   readHookLogs,
