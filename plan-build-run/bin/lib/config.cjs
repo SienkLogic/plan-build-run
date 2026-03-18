@@ -452,6 +452,40 @@ function configEnsureSection(planningDir, section, defaults) {
   return { success: true, created: false };
 }
 
+// ─── Global defaults (cross-project) ─────────────────────────────────────────
+
+const os = require('os');
+
+/**
+ * Load global defaults from ~/.pbr/defaults.json.
+ * Returns empty object if file doesn't exist or is invalid.
+ * This is the plan-specified API; loadUserDefaults() returns null on missing.
+ *
+ * @returns {object} Global defaults (never null)
+ */
+function loadGlobalDefaults() {
+  const defaultsPath = path.join(os.homedir(), '.pbr', 'defaults.json');
+  if (!fs.existsSync(defaultsPath)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(defaultsPath, 'utf-8'));
+  } catch (_e) { return {}; }
+}
+
+/**
+ * Save arbitrary data as global defaults to ~/.pbr/defaults.json.
+ * Unlike saveUserDefaults(), this saves the full data object without filtering.
+ *
+ * @param {object} data - Data to save as global defaults
+ * @returns {{ saved: boolean, path: string }}
+ */
+function saveGlobalDefaults(data) {
+  const dir = path.join(os.homedir(), '.pbr');
+  fs.mkdirSync(dir, { recursive: true });
+  const defaultsPath = path.join(dir, 'defaults.json');
+  fs.writeFileSync(defaultsPath, JSON.stringify(data, null, 2), 'utf-8');
+  return { saved: true, path: defaultsPath };
+}
+
 // ─── User-level defaults ──────────────────────────────────────────────────────
 
 const USER_DEFAULTS_DIR = path.join(
@@ -718,6 +752,10 @@ module.exports = {
 
   // Depth profiles
   DEPTH_PROFILE_DEFAULTS,
+
+  // Global defaults (cross-project)
+  loadGlobalDefaults,
+  saveGlobalDefaults,
 
   // User defaults
   loadUserDefaults,
