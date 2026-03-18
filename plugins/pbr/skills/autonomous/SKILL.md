@@ -2,7 +2,7 @@
 name: autonomous
 description: "Run multiple phases hands-free. Chains discuss, plan, build, and verify automatically."
 allowed-tools: Read, Write, Bash, Glob, Grep, Skill, AskUserQuestion
-argument-hint: "[--from <N>] [--through <N>] [--dry-run]"
+argument-hint: "[--from <N>] [--through <N>] [--speculative-depth <N>] [--dry-run]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 0 immediately.**
@@ -43,12 +43,19 @@ Stop immediately. Do NOT proceed.
 |----------|---------|---------|
 | `--from N` | Start from phase N | Current phase from STATE.md |
 | `--through N` | Stop after phase N | Last phase in current milestone |
+| `--speculative-depth N` | How many phases ahead to plan speculatively | From config `workflow.speculative_depth` (default 2) |
 | `--dry-run` | Show which phases would execute without doing anything | Off |
 
-3. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
-4. Read `.planning/ROADMAP.md` to build phase list for current milestone.
-5. Filter to phases from `--from` through `--through` that are not yet complete.
-6. If no phases to execute, display: "All phases in range are complete." and stop.
+3. Determine speculative planning settings:
+   - Read `workflow.speculative_planning` from config — if false, speculative depth = 0
+   - Read `workflow.speculative_depth` from config (default: 2)
+   - If `--speculative-depth N` provided, override config value
+   - Store as `speculativeDepth` for use in Step 3
+
+4. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
+5. Read `.planning/ROADMAP.md` to build phase list for current milestone.
+6. Filter to phases from `--from` through `--through` that are not yet complete.
+7. If no phases to execute, display: "All phases in range are complete." and stop.
 
 **If `--dry-run`:** Display the phase list with planned actions per phase, then stop without executing.
 
@@ -56,8 +63,12 @@ Stop immediately. Do NOT proceed.
 DRY RUN — Would execute:
   Phase 3 (data-layer): discuss -> plan -> build -> verify
   Phase 4 (api-endpoints): plan -> build -> verify  (CONTEXT.md exists, skip discuss)
+    [speculative: plan Phase 5 during Phase 4 build]
   Phase 5 (frontend): discuss -> plan -> build -> verify
+Speculative depth: 2
 ```
+
+When `speculativeDepth > 0`, append the speculative depth value and annotate phases where speculative planning would occur. When `speculativeDepth == 0` (speculative_planning is false), omit the speculation lines.
 
 ---
 
