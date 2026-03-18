@@ -360,6 +360,58 @@ must_haves:
       const implementationError = result.errors.find(e => /implementation/i.test(e));
       expect(implementationError).toBeUndefined();
     });
+
+    // Phase 04: canonical field validation tests
+    test('plan missing type field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'depends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "type" field');
+    });
+
+    test('plan missing depends_on field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "depends_on" field');
+    });
+
+    test('plan missing files_modified field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "files_modified" field');
+    });
+
+    test('plan missing autonomous field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "autonomous" field');
+    });
+
+    test('plan with invalid type value produces warning', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: banana\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const typeWarning = result.warnings.find(w => w.includes('Unexpected type value'));
+      expect(typeWarning).toBeDefined();
+      expect(typeWarning).toContain('banana');
+    });
+
+    test('plan with all 7 canonical fields passes without new errors', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toEqual([]);
+    });
+
+    test('existing plans with phase/plan/wave/must_haves/implements still pass', () => {
+      // Plans without the new canonical fields should get errors for the missing fields
+      // but NOT lose their existing validation behavior
+      const content = buildValidPlan();
+      const result = validatePlan(content, 'test-PLAN.md');
+      // phase, plan, wave are present in buildValidPlan - should not error on those
+      expect(result.errors.find(e => /phase/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /plan"/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /wave/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /must_haves/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /implements/.test(e))).toBeUndefined();
+    });
   });
 
   describe('validateSummary', () => {
