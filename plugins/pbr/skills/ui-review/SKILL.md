@@ -12,7 +12,9 @@ argument-hint: "<phase-number> [--url <dev-server-url>]"
 **Before ANY tool calls**, display this banner:
 
 ```
-PLAN-BUILD-RUN > UI VISUAL AUDIT
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► UI REVIEW                                 ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
