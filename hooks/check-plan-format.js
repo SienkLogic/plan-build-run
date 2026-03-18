@@ -157,6 +157,12 @@ async function main() {
   });
 }
 
+/** Canonical required fields for PLAN.md frontmatter. */
+const PLAN_REQUIRED_FIELDS = ['phase', 'plan', 'wave', 'type', 'depends_on', 'files_modified', 'autonomous'];
+
+/** Valid values for the type: field in PLAN.md frontmatter. */
+const PLAN_VALID_TYPES = ['feature', 'bugfix', 'refactor', 'infrastructure', 'docs', 'chore'];
+
 function validatePlan(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -170,8 +176,7 @@ function validatePlan(content, _filePath) {
       errors.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
-      const requiredFields = ['phase', 'plan', 'wave', 'type', 'depends_on', 'files_modified', 'autonomous'];
-      for (const field of requiredFields) {
+      for (const field of PLAN_REQUIRED_FIELDS) {
         if (!frontmatter.includes(`${field}:`)) {
           errors.push(`Frontmatter missing "${field}" field`);
         }
@@ -181,9 +186,8 @@ function validatePlan(content, _filePath) {
       const typeMatch = frontmatter.match(/^type:\s*["']?([^"'\r\n]+)["']?\s*$/m);
       if (typeMatch) {
         const typeValue = typeMatch[1].trim();
-        const validTypes = ['feature', 'bugfix', 'refactor', 'infrastructure', 'docs', 'chore'];
-        if (!validTypes.includes(typeValue)) {
-          warnings.push(`Unexpected type value: "${typeValue}" (expected: ${validTypes.join(', ')})`);
+        if (!PLAN_VALID_TYPES.includes(typeValue)) {
+          warnings.push(`Unexpected type value: "${typeValue}" (expected: ${PLAN_VALID_TYPES.join(', ')})`);
         }
       }
 
