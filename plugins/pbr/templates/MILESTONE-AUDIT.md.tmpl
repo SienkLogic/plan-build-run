@@ -1,0 +1,44 @@
+---
+version: "{version}"
+status: "{passed | gaps_found}"
+audited_at: "{ISO timestamp}"
+scores:
+  requirements: "{satisfied}/{total}"
+  phases: "{verified}/{total}"
+  integration: "{passed}/{total}"
+  flows: "{passed}/{total}"
+gaps:
+  - requirement: "{REQ-ID}"
+    phase: "{phase number}"
+    severity: "{critical | non-critical}"
+    description: "{what's missing}"
+tech_debt:
+  - phase: "{phase number}"
+    item: "{description}"
+    severity: "{low | medium | high}"
+---
+# Milestone Audit: {version}
+
+> Audited: {date}
+> Status: **{STATUS}**
+
+## Scores
+
+| Dimension | Score | Status |
+|-----------|-------|--------|
+| Requirements | {N}/{M} | {PASS/FAIL} |
+| Phases | {N}/{M} | {PASS/FAIL} |
+| Integration | {N}/{M} | {PASS/FAIL} |
+| Flows | {N}/{M} | {PASS/FAIL} |
+
+## Gaps
+
+{gap details or "No gaps found."}
+
+## Tech Debt
+
+{tech debt items or "No tech debt identified."}
+
+## Recommendations
+
+{actionable recommendations based on audit findings}
