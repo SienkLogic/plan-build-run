@@ -26,6 +26,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { getLogPath: getHooksLogPath } = require('./hook-logger');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -89,12 +90,9 @@ function readEventLogTail(logFile, maxLines) {
   }
 }
 
-/** Append a JSON event object as a single line to .planning/logs/hooks.jsonl */
-function appendEvent(planningDir, eventObj) {
-  if (!planningDir) return;
-  const logsDir = path.join(planningDir, 'logs');
-  try { fs.mkdirSync(logsDir, { recursive: true }); } catch (_e) { /* exists */ }
-  const logPath = path.join(logsDir, 'hooks.jsonl');
+/** Append a JSON event object as a single line to today's hooks log. */
+function appendEvent(_planningDir, eventObj) {
+  const logPath = getHooksLogPath();
   try {
     fs.appendFileSync(logPath, JSON.stringify(eventObj) + '\n', 'utf8');
   } catch (_e) {
@@ -232,7 +230,7 @@ function createServer(planningDir) {
     // Enriched context endpoint
     if (req.method === 'GET' && req.url === '/context') {
       try {
-        const logFile = path.join(planningDir, 'logs', 'hooks.jsonl');
+        const logFile = getHooksLogPath();
         const events = readEventLogTail(logFile, 500);
         const response = {
           recentEvents: events.slice(-20),
@@ -315,7 +313,7 @@ function main() {
 
   server.listen(args.port, '127.0.0.1', () => {
     // Signal readiness to parent process
-    process.stdout.write(JSON.stringify({ status: 'ready', port: args.port, pid: process.pid }) + '\n');
+    process.stdout.write(JSON.stringify({ status: 'ready', port: server.address().port, pid: process.pid }) + '\n');
   });
 
   // Graceful shutdown
