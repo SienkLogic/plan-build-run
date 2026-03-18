@@ -100,6 +100,31 @@ Handle responses:
 **If no active sessions found:**
 - Go to **New Session Flow** (Step 3a)
 
+### Step 2b: UAT Gap Intake (conditional)
+
+**Trigger:** If `$ARGUMENTS` contains `--from-uat`, OR if no arguments provided and UAT.md gaps exist for the current phase.
+
+When triggered:
+
+1. Read the current phase's VERIFICATION.md (or UAT.md if it exists):
+   - Look for `status: gaps_found` in frontmatter
+   - Parse the gaps section for individual gap entries
+2. For each gap entry, extract:
+   - Gap description (symptom)
+   - Expected vs. actual behavior
+   - Affected files/components
+3. Pre-fill the debug session with UAT context:
+   - **Issue title**: derived from the first/primary gap description
+   - **Symptoms**: populated from gap details (expected, actual, scope)
+   - **Category**: set to the gap's category if available (e.g., "test", "integration")
+   - **Context**: include the phase context and related plan information
+4. Skip the symptom-gathering questions in Step 3a (symptoms are already populated from UAT gaps)
+5. Proceed directly to **Generate Session ID** and **Create Debug File** with the pre-filled data
+
+**If `--from-uat` is specified but no gaps exist:**
+- Display: "No UAT/verification gaps found for the current phase. Starting a standard debug session."
+- Fall through to normal Step 3a flow
+
 ### Step 3a: New Session Flow
 
 #### Gather Symptoms
