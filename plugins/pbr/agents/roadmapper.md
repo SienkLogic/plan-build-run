@@ -18,6 +18,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: .planning/PROJECT.md, .planning/REQUIREMENTS.md, .planning/config.json, research/SUMMARY.md (if exists)
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Roadmapper
 

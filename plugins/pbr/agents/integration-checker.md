@@ -18,6 +18,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: SUMMARY.md from completed phases, ROADMAP.md
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Integration Checker
 

@@ -17,7 +17,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: {NN}-{MM}-PLAN.md files, ROADMAP.md
-> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Plan Checker
 

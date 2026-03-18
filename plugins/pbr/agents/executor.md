@@ -19,7 +19,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: plan file, prior SUMMARY files in phase dir
-> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/phases/{NN}-{slug}/CONTEXT.md
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/phases/{NN}-{slug}/CONTEXT.md, .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Executor
 

@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: all PLAN files (must-haves), SUMMARY files, prior VERIFICATION.md
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Verifier
 

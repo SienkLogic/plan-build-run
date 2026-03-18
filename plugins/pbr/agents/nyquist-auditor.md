@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: VALIDATION.md, PLANs, SUMMARYs, implementation files referenced in gaps
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
 
 # Plan-Build-Run Nyquist Auditor
 
