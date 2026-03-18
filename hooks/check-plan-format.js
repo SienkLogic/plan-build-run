@@ -254,7 +254,7 @@ function validatePlan(content, _filePath) {
   // Check each task has required elements
   const taskTags = content.match(/<task\b[^>]*>/g) || [];
   const taskBlocks = content.split(/<task\b[^>]*>/).slice(1);
-  const requiredElements = ['name', 'files', 'action', 'verify', 'done'];
+  const requiredElements = ['name', 'read_first', 'files', 'action', 'acceptance_criteria', 'verify', 'done'];
 
   taskBlocks.forEach((block, index) => {
     const taskEnd = block.indexOf('</task>');
@@ -269,6 +269,17 @@ function validatePlan(content, _filePath) {
     for (const elem of requiredElements) {
       if (!taskContent.includes(`<${elem}>`) && !taskContent.includes(`<${elem} `)) {
         errors.push(`Task ${index + 1}: missing <${elem}> element`);
+      }
+    }
+
+    // Validate read_first paths don't contain wildcards
+    const readFirstMatch = taskContent.match(/<read_first>([\s\S]*?)<\/read_first>/);
+    if (readFirstMatch) {
+      const rfPaths = readFirstMatch[1].split(/\n/).map(l => l.trim()).filter(Boolean);
+      for (const rfPath of rfPaths) {
+        if (rfPath.includes('*')) {
+          warnings.push(`Task ${index + 1}: read_first should use specific paths, not globs: "${rfPath}"`);
+        }
       }
     }
 

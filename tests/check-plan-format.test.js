@@ -26,8 +26,14 @@ function runScript(input, cwd) {
 function buildValidPlan({ frontmatterExtra = '', taskContent = null } = {}) {
   const task = taskContent !== null ? taskContent : `<task type="auto">
   <name>Task 1</name>
+  <read_first>
+    src/file.ts
+  </read_first>
   <files>src/file.ts</files>
   <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "something" src/file.ts
+  </acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`;
@@ -71,16 +77,28 @@ Create authentication middleware
 
 <task type="auto">
   <name>Task 1: Create auth middleware</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
   <files>src/auth/middleware.ts</files>
   <action>Create JWT verification middleware</action>
+  <acceptance_criteria>
+    grep -q "requireAuth" src/auth/middleware.ts
+  </acceptance_criteria>
   <verify>npm test -- auth.test.ts</verify>
   <done>Auth middleware validates JWT tokens</done>
 </task>
 
 <task type="auto">
   <name>Task 2: Create login endpoint</name>
+  <read_first>
+    src/auth/middleware.ts
+  </read_first>
   <files>src/auth/login.ts</files>
   <action>Create POST /login endpoint</action>
+  <acceptance_criteria>
+    grep -q "login" src/auth/login.ts
+  </acceptance_criteria>
   <verify>curl -X POST localhost:3000/login</verify>
   <done>Login returns JWT token</done>
 </task>

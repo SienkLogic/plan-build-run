@@ -50,6 +50,10 @@ describe('checkPlanWrite', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -58,8 +62,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -184,8 +190,10 @@ wave: 1
 ---
 <task type="auto">
   <name>T1</name>
+  <read_first>f</read_first>
   <files>f</files>
   <action>a</action>
+  <acceptance_criteria>test -f f</acceptance_criteria>
   <verify>v</verify>
   <done>d</done>
 </task>`;
@@ -273,6 +281,10 @@ describe('checkPlanWrite — LLM enrichment branch', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -281,8 +293,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -302,6 +316,10 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -310,8 +328,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -329,6 +349,10 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -337,8 +361,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
