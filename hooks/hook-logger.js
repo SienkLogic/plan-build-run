@@ -7,65 +7,81 @@
  *   const { logHook } = require('./hook-logger');
  *   logHook('validate-commit', 'PreToolUse', 'allow', { message: 'chore: ...' });
  *
- * Log file: .planning/logs/hooks.jsonl (in the project's .planning directory)
- * Format: One JSON line per entry (JSONL)
- * Rotation: Keeps last 200 entries max (checked once per process)
+ * Log files: .planning/logs/hooks-YYYY-MM-DD.jsonl (one file per day, no size cap)
+ * Format: One JSON line per entry (JSONL), append-only
+ * Retention: Old daily files are cleaned up after MAX_DAYS days by session-cleanup.js
  */
 
 const fs = require('fs');
 const path = require('path');
 const { resolveProjectRoot } = require('./lib/resolve-root');
 
-const MAX_ENTRIES = 200;
+const MAX_DAYS = 30;
 
-/** Module-level flag: rotation runs at most once per process */
-let _rotated = false;
-
-/**
- * Rotate log file if it exceeds MAX_ENTRIES lines.
- * Called once per process on first getLogPath() invocation.
- */
-function rotateLog(logPath) {
-  try {
-    if (!fs.existsSync(logPath)) return;
-    const content = fs.readFileSync(logPath, 'utf8').trim();
-    if (!content) return;
-    const lines = content.split('\n');
-    if (lines.length > MAX_ENTRIES) {
-      const kept = lines.slice(lines.length - MAX_ENTRIES);
-      fs.writeFileSync(logPath, kept.join('\n') + '\n', 'utf8');
-    }
-  } catch (_e) {
-    // Best-effort rotation — never fail the hook
-  }
+/** Return today's date string as YYYY-MM-DD (local time). */
+function getTodayDate() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
-function getLogPath() {
-  const cwd = resolveProjectRoot();
-  const planningDir = path.join(cwd, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  const newPath = path.join(logsDir, 'hooks.jsonl');
-  const oldPath = path.join(planningDir, '.hook-log');
+/** Return the log filename for a given date (defaults to today). */
+function getLogFilename(date) {
+  return `hooks-${date || getTodayDate()}.jsonl`;
+}
 
-  // Auto-create .planning/logs/ directory if it doesn't exist.
-  // Uses recursive:true so both .planning/ and logs/ are created in one call.
-  // This ensures SessionStart events are captured even before /pbr:begin runs.
+/** Return the full path to the hooks log for a given date (defaults to today). */
+function getLogPath(date) {
+  const cwd = resolveProjectRoot();
+  const logsDir = path.join(cwd, '.planning', 'logs');
+
+  // Auto-create .planning/logs/ if it doesn't exist.
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }
 
-  // One-time migration: move old .hook-log to new location
-  if (fs.existsSync(oldPath) && !fs.existsSync(newPath)) {
-    fs.renameSync(oldPath, newPath);
+  // One-time migration: rename legacy hooks.jsonl to yesterday's dated file.
+  const legacyPath = path.join(logsDir, 'hooks.jsonl');
+  if (fs.existsSync(legacyPath)) {
+    const yesterday = new Date(Date.now() - 86400000);
+    const yDate = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const migratedPath = path.join(logsDir, `hooks-${yDate}.jsonl`);
+    // Only migrate if the dated file doesn't already exist (avoid overwriting)
+    if (!fs.existsSync(migratedPath)) {
+      try { fs.renameSync(legacyPath, migratedPath); } catch (_e) { /* best-effort */ }
+    } else {
+      try { fs.unlinkSync(legacyPath); } catch (_e) { /* best-effort */ }
+    }
   }
 
-  // Rotate once per process
-  if (!_rotated) {
-    _rotated = true;
-    rotateLog(newPath);
+  // One-time migration: move very old .hook-log to dated file
+  const veryOldPath = path.join(cwd, '.planning', '.hook-log');
+  if (fs.existsSync(veryOldPath)) {
+    try { fs.unlinkSync(veryOldPath); } catch (_e) { /* best-effort */ }
   }
 
-  return newPath;
+  return path.join(logsDir, getLogFilename(date));
+}
+
+/**
+ * Delete hooks-*.jsonl files older than MAX_DAYS days.
+ * Called by session-cleanup.js at session end — not called on every log write.
+ */
+function cleanOldHookLogs(logsDir) {
+  try {
+    const cutoff = Date.now() - MAX_DAYS * 86400000;
+    const files = fs.readdirSync(logsDir);
+    for (const file of files) {
+      if (!/^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(file)) continue;
+      const filePath = path.join(logsDir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs < cutoff) fs.unlinkSync(filePath);
+    }
+  } catch (_e) {
+    // Best-effort cleanup — never fail the caller
+  }
 }
 
 function logHook(hookName, eventType, decision, details = {}, startTime) {
@@ -91,4 +107,4 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
   }
 }
 
-module.exports = { logHook };
+module.exports = { logHook, getLogPath, getLogFilename, cleanOldHookLogs };

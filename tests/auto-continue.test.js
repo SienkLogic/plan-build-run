@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
+const { getLogFilename } = require('../hooks/hook-logger');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'auto-continue.js');
 
@@ -82,7 +83,7 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
 
     // Check hook log
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = path.join(planningDir, 'logs', getLogFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
@@ -130,7 +131,7 @@ describe('auto-continue.js', () => {
     expect(output).toBe('');
 
     // Should log empty-signal
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = path.join(planningDir, 'logs', getLogFilename());
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
     expect(entry.decision).toBe('empty-signal');
@@ -150,7 +151,7 @@ describe('auto-continue.js', () => {
 
     run();
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = path.join(planningDir, 'logs', getLogFilename());
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
     expect(entry.hook).toBe('auto-continue');
@@ -299,7 +300,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('TMUX auto-cycle');
 
       // Check hook log for cycle-tmux decision
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'cycle-tmux');
       expect(entry).toBeDefined();
@@ -331,7 +332,7 @@ describe('auto-continue.js', () => {
       expect(parsed.reason).toContain('/pbr:resume-work');
 
       // Check hook log for cycle-compact decision
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'cycle-compact');
       expect(entry).toBeDefined();
@@ -347,7 +348,7 @@ describe('auto-continue.js', () => {
       const parsed = JSON.parse(output);
       expect(parsed.reason).toContain('SESSION CHECKPOINT');
 
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'cycle-banner');
       expect(entry).toBeDefined();
@@ -410,7 +411,7 @@ describe('auto-continue.js', () => {
 
       run();
 
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'phase-boundary-enforce');
       expect(entry).toBeDefined();
@@ -435,7 +436,7 @@ describe('auto-continue.js', () => {
       expect(fs.existsSync(path.join(planningDir, '.phase-boundary-pending'))).toBe(false);
 
       // Hook log should show phase-boundary-recommend
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'phase-boundary-recommend');
       expect(entry).toBeDefined();
@@ -594,7 +595,7 @@ describe('auto-continue.js', () => {
         });
       } catch (_e) { /* ignore exit code */ }
       // Read hook log to verify pending-todos was logged
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       expect(fs.existsSync(logPath)).toBe(true);
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const pendingEntry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'pending-todos');
@@ -610,7 +611,7 @@ describe('auto-continue.js', () => {
 
       run();
 
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entries = lines.map(l => JSON.parse(l));
       // Should not have a pending-todos entry
@@ -624,7 +625,7 @@ describe('auto-continue.js', () => {
 
       run();
 
-      const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const logPath = path.join(planningDir, 'logs', getLogFilename());
       const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
       const entries = lines.map(l => JSON.parse(l));
       const pendingEntry = entries.find(e => e.decision === 'pending-todos');

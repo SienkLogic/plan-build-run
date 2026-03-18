@@ -13,7 +13,7 @@ const http = require('http');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogPath: getHooksLogPath } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
@@ -531,8 +531,8 @@ function countNotes(notesDir) {
 const FAILURE_DECISIONS = /^(block|error|warn|warning|block-coauthor|block-sensitive|unlink-failed)$/;
 const HOOK_HEALTH_MAX_ENTRIES = 50;
 
-function getHookHealthSummary(planningDir) {
-  const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+function getHookHealthSummary(_planningDir) {
+  const logPath = getHooksLogPath();
   try {
     if (!fs.existsSync(logPath)) return null;
     const content = fs.readFileSync(logPath, 'utf8').trim();

@@ -104,6 +104,8 @@ const {
   configLoad: _configLoad,
   configClearCache: _configClearCache,
   configValidate: _configValidate,
+  configFormat: _configFormat,
+  configWrite: _configWrite,
   resolveDepthProfile,
   DEPTH_PROFILE_DEFAULTS,
   loadUserDefaults,
@@ -743,6 +745,11 @@ async function main() {
       const config = configLoad();
       if (!config) error('No config.json found. Run /pbr:setup first.');
       output(saveUserDefaults(config));
+    } else if (command === 'config' && subcommand === 'format') {
+      const config = configLoad();
+      if (!config) error('No config.json found.');
+      _configWrite(planningDir, config);
+      output({ formatted: true, path: path.join(planningDir, 'config.json') });
     } else if (command === 'config' && subcommand === 'resolve-depth') {
       const dir = args[2] || undefined;
       const config = configLoad(dir);

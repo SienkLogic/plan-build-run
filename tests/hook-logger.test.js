@@ -26,11 +26,16 @@ describe('hook-logger.js', () => {
     return require('../hooks/hook-logger');
   }
 
+  function getDatedLogPath(planDir) {
+    const { getLogFilename } = require('../hooks/hook-logger');
+    return path.join(planDir, 'logs', getLogFilename());
+  }
+
   test('creates valid JSONL entry with required fields', () => {
     const { logHook } = getLogger();
     logHook('test-hook', 'PreToolUse', 'allow');
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     expect(fs.existsSync(logPath)).toBe(true);
 
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
@@ -50,7 +55,7 @@ describe('hook-logger.js', () => {
     logHook('hook-1', 'Event1', 'allow');
     logHook('hook-2', 'Event2', 'deny');
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(2);
 
@@ -66,7 +71,7 @@ describe('hook-logger.js', () => {
     logHook('concurrent-1', 'Event', 'allow');
     logHook('concurrent-2', 'Event', 'allow');
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const content = fs.readFileSync(logPath, 'utf8').trim();
     const lines = content.split('\n');
     expect(lines).toHaveLength(2);
@@ -76,31 +81,20 @@ describe('hook-logger.js', () => {
     expect(hooks).toContain('concurrent-2');
   });
 
-  test('rotation trims to 200 lines', () => {
-    // Seed a file with 250 lines
-    const logsDir = path.join(planningDir, 'logs');
-    fs.mkdirSync(logsDir, { recursive: true });
-    const logPath = path.join(logsDir, 'hooks.jsonl');
-
-    const seedLines = [];
-    for (let i = 0; i < 250; i++) {
-      seedLines.push(JSON.stringify({ ts: new Date().toISOString(), hook: `seed-${i}`, event: 'E', decision: 'a' }));
-    }
-    fs.writeFileSync(logPath, seedLines.join('\n') + '\n', 'utf8');
-
-    // Importing the logger should trigger rotation on first getLogPath call
+  test('no rotation — daily files accumulate all entries', () => {
+    // With dated daily files there is no per-file entry cap.
+    // Writing 250 entries should all be retained.
     const { logHook } = getLogger();
-    logHook('after-rotation', 'Event', 'allow');
+    for (let i = 0; i < 250; i++) {
+      logHook(`seed-${i}`, 'Event', 'allow');
+    }
 
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
-    // Should be 200 (rotated) + 1 (new append) = 201 max, but rotation keeps 200
-    // The rotation runs once on first getLogPath, then append adds one more
-    expect(lines.length).toBeLessThanOrEqual(201);
-    expect(lines.length).toBeGreaterThanOrEqual(200);
+    expect(lines.length).toBe(250);
 
-    // The new entry should be present
     const last = JSON.parse(lines[lines.length - 1]);
-    expect(last.hook).toBe('after-rotation');
+    expect(last.hook).toBe('seed-249');
   });
 
   test('gracefully handles missing .planning directory in cwd', () => {
@@ -121,7 +115,7 @@ describe('hook-logger.js', () => {
       roadmapStatus: 'planned'
     });
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
 
@@ -130,32 +124,23 @@ describe('hook-logger.js', () => {
     expect(entry.roadmapStatus).toBe('planned');
   });
 
-  test('migrates old .hook-log to new logs/hooks.jsonl location', () => {
-    // Create old-style log file with some content
+  test('removes legacy .hook-log file on first write', () => {
+    // The very old .hook-log format is cleaned up on first write (not migrated).
     const oldPath = path.join(planningDir, '.hook-log');
-    const oldContent = '{"ts":"2025-01-01T00:00:00.000Z","hook":"old-hook","event":"PreToolUse","decision":"allow"}\n';
-    fs.writeFileSync(oldPath, oldContent, 'utf8');
+    fs.writeFileSync(oldPath, '{"ts":"2025-01-01T00:00:00.000Z","hook":"old-hook"}\n', 'utf8');
 
     const { logHook } = getLogger();
     logHook('new-hook', 'PostToolUse', 'allow');
 
-    const newPath = path.join(planningDir, 'logs', 'hooks.jsonl');
-
     // Old file should be gone
     expect(fs.existsSync(oldPath)).toBe(false);
 
-    // New file should exist with migrated + new content
-    expect(fs.existsSync(newPath)).toBe(true);
-    const lines = fs.readFileSync(newPath, 'utf8').trim().split('\n');
-    expect(lines).toHaveLength(2);
-
-    // First line should be the migrated entry
-    const migrated = JSON.parse(lines[0]);
-    expect(migrated.hook).toBe('old-hook');
-
-    // Second line should be the new entry
-    const newEntry = JSON.parse(lines[1]);
-    expect(newEntry.hook).toBe('new-hook');
+    // Today's dated log should exist with only the new entry
+    const logPath = getDatedLogPath(planningDir);
+    expect(fs.existsSync(logPath)).toBe(true);
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0]).hook).toBe('new-hook');
   });
 
   test('includes duration_ms when startTime is provided', () => {
@@ -163,7 +148,7 @@ describe('hook-logger.js', () => {
     const startTime = Date.now() - 42;
     logHook('timed-hook', 'PreToolUse', 'allow', {}, startTime);
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
 
@@ -177,7 +162,7 @@ describe('hook-logger.js', () => {
     const { logHook } = getLogger();
     logHook('no-time-hook', 'PreToolUse', 'allow', { extra: 'data' });
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
 
@@ -190,7 +175,7 @@ describe('hook-logger.js', () => {
     const { logHook } = getLogger();
     logHook('bad-time-hook', 'PreToolUse', 'allow', {}, -1);
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
 
@@ -201,22 +186,23 @@ describe('hook-logger.js', () => {
     const { logHook } = getLogger();
     logHook('string-time-hook', 'PreToolUse', 'allow', {}, 'not-a-number');
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getDatedLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[0]);
 
     expect(entry.duration_ms).toBeUndefined();
   });
 
-  test('handles empty existing log file', () => {
+  test('handles empty existing dated log file', () => {
+    const { logHook, getLogFilename } = getLogger();
     const logsDir = path.join(planningDir, 'logs');
     fs.mkdirSync(logsDir, { recursive: true });
-    fs.writeFileSync(path.join(logsDir, 'hooks.jsonl'), '');
+    // Pre-create an empty dated log file
+    fs.writeFileSync(path.join(logsDir, getLogFilename()), '');
 
-    const { logHook } = getLogger();
     logHook('after-empty', 'PreToolUse', 'allow');
 
-    const lines = fs.readFileSync(path.join(logsDir, 'hooks.jsonl'), 'utf8').trim().split('\n');
+    const lines = fs.readFileSync(getDatedLogPath(planningDir), 'utf8').trim().split('\n');
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]);
     expect(entry.hook).toBe('after-empty');
@@ -233,8 +219,8 @@ describe('hook-logger.js', () => {
     // logs/ directory should now exist
     expect(fs.existsSync(logsDir)).toBe(true);
 
-    // hooks.jsonl should be written inside it
-    const logPath = path.join(logsDir, 'hooks.jsonl');
+    // Today's dated log should be written inside it
+    const logPath = getDatedLogPath(planningDir);
     expect(fs.existsSync(logPath)).toBe(true);
 
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');

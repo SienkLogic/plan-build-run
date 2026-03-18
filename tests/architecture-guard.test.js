@@ -10,6 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { getLogFilename } = require('../hooks/hook-logger');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
 
 // Helper: create a temp project with .planning
 function makeTempProject(opts = {}) {
@@ -197,18 +199,23 @@ describe('architecture-guard.js', () => {
       }
     });
 
-    test('logs violations to hooks.jsonl with architecture_guard event type', () => {
+    test('logs violations to daily hooks log with architecture_guard event type', () => {
+      const savedCwd = process.cwd();
       const { tmp, planningDir } = makeTempProject();
+      clearRootCache();
+      process.chdir(tmp);
       try {
         writeFile(tmp, 'plan-build-run/bin/lib/bad.cjs', 'function helper() {}');
         runGuard(planningDir, tmp, 'plan-build-run/bin/lib/bad.cjs');
 
-        const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+        const logPath = path.join(planningDir, 'logs', getLogFilename());
         expect(fs.existsSync(logPath)).toBe(true);
         const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
         const entry = JSON.parse(lines[lines.length - 1]);
         expect(entry.event).toBe('architecture_guard');
       } finally {
+        process.chdir(savedCwd);
+        clearRootCache();
         cleanupTemp(tmp);
       }
     });

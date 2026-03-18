@@ -20,7 +20,8 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogFilename: getHooksFilename, cleanOldHookLogs } = require('./hook-logger');
+const { getLogFilename: getEventsFilename, cleanOldEventLogs } = require('./event-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
 const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
@@ -49,7 +50,6 @@ function tryRemove(filePath) {
 }
 
 const STALE_CHECKPOINT_MS = 24 * 60 * 60 * 1000; // 24 hours
-const MAX_HOOKS_LOG_BYTES = 200 * 1024; // 200KB
 
 function cleanStaleCheckpoints(planningDir) {
   const removed = [];
@@ -75,22 +75,9 @@ function cleanStaleCheckpoints(planningDir) {
   return removed;
 }
 
-function rotateHooksLog(planningDir) {
-  try {
-    const logsDir = path.join(planningDir, 'logs');
-    const hooksLog = path.join(logsDir, 'hooks.jsonl');
-    if (!fs.existsSync(hooksLog)) return false;
-
-    const stat = fs.statSync(hooksLog);
-    if (stat.size <= MAX_HOOKS_LOG_BYTES) return false;
-
-    const rotatedPath = hooksLog + '.1';
-    // Overwrite any existing .1 file
-    fs.renameSync(hooksLog, rotatedPath);
-    return true;
-  } catch (_e) {
-    return false;
-  }
+/** @deprecated Daily dated log files no longer need size-based rotation. */
+function rotateHooksLog(_planningDir) {
+  return false;
 }
 
 function findOrphanedProgressFiles(planningDir) {
@@ -151,9 +138,9 @@ function writeSessionHistory(planningDir, data) {
 
     const sessionsFile = path.join(logsDir, 'sessions.jsonl');
 
-    // Mine existing logs for session stats
-    const hooksLog = path.join(logsDir, 'hooks.jsonl');
-    const eventsLog = path.join(logsDir, 'events.jsonl');
+    // Mine existing logs for session stats (today's dated log files)
+    const hooksLog = path.join(logsDir, getHooksFilename());
+    const eventsLog = path.join(logsDir, getEventsFilename());
 
     let agentsSpawned = 0;
     let commitsCreated = 0;
@@ -396,8 +383,15 @@ function main() {
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);
   cleaned.push(...staleCheckpoints);
 
-  // Rotate hooks.jsonl if >200KB
+  // Rotate hooks.jsonl if >200KB (no-op now that we use daily dated files)
   const rotated = rotateHooksLog(planningDir);
+
+  // Clean up daily log files older than 30 days
+  const logsDir = path.join(planningDir, 'logs');
+  if (fs.existsSync(logsDir)) {
+    cleanOldHookLogs(logsDir);
+    cleanOldEventLogs(logsDir);
+  }
 
   // Detect orphaned .PROGRESS-* files (executor crash artifacts)
   const orphans = findOrphanedProgressFiles(planningDir);
@@ -558,8 +552,9 @@ function handleHttp(reqBody) {
  */
 function extractSessionLearnings(planningDir, sessionId) {
   const logsDir = path.join(planningDir, 'logs');
-  const hooksLog = path.join(logsDir, 'hooks.jsonl');
-  const eventsLog = path.join(logsDir, 'events.jsonl');
+  // Use today's dated log files (built from planningDir, not from resolved project root).
+  const hooksLog = path.join(logsDir, getHooksFilename());
+  const eventsLog = path.join(logsDir, getEventsFilename());
 
   const gatesTriggered = [];
   const agentFailures = [];

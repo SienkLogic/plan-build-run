@@ -10,25 +10,53 @@
  * Usage as CLI:
  *   node event-logger.js <category> <event> [JSON-details]
  *
- * Log file: .planning/logs/events.jsonl
- * Format: One JSON line per entry (JSONL)
- * Rotation: Keeps last 1000 entries max
+ * Log files: .planning/logs/events-YYYY-MM-DD.jsonl (one file per day, no size cap)
+ * Format: One JSON line per entry (JSONL), append-only
+ * Retention: Old daily files are cleaned up after MAX_DAYS days by session-cleanup.js
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const MAX_ENTRIES = 1000;
+const MAX_DAYS = 30;
 
-function getLogPath() {
+/** Return today's date string as YYYY-MM-DD (local time). */
+function getTodayDate() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Return the log filename for a given date (defaults to today). */
+function getLogFilename(date) {
+  return `events-${date || getTodayDate()}.jsonl`;
+}
+
+/** Return the full path to the events log for a given date (defaults to today). */
+function getLogPath(date) {
   const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
   const logsDir = path.join(cwd, '.planning', 'logs');
-  // Auto-create .planning/logs/ if needed (recursive handles both levels).
-  // Ensures events are captured even before /pbr:begin creates .planning/.
+  // Auto-create .planning/logs/ if needed.
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }
-  return path.join(logsDir, 'events.jsonl');
+
+  // One-time migration: rename legacy events.jsonl to yesterday's dated file.
+  const legacyPath = path.join(logsDir, 'events.jsonl');
+  if (fs.existsSync(legacyPath)) {
+    const yesterday = new Date(Date.now() - 86400000);
+    const yDate = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const migratedPath = path.join(logsDir, `events-${yDate}.jsonl`);
+    if (!fs.existsSync(migratedPath)) {
+      try { fs.renameSync(legacyPath, migratedPath); } catch (_e) { /* best-effort */ }
+    } else {
+      try { fs.unlinkSync(legacyPath); } catch (_e) { /* best-effort */ }
+    }
+  }
+
+  return path.join(logsDir, getLogFilename(date));
 }
 
 function logEvent(category, event, details = {}) {
@@ -43,23 +71,28 @@ function logEvent(category, event, details = {}) {
   };
 
   try {
-    let lines = [];
-    if (fs.existsSync(logPath)) {
-      const content = fs.readFileSync(logPath, 'utf8').trim();
-      if (content) {
-        lines = content.split('\n');
-      }
-    }
-
-    lines.push(JSON.stringify(entry));
-
-    if (lines.length > MAX_ENTRIES) {
-      lines = lines.slice(lines.length - MAX_ENTRIES);
-    }
-
-    fs.writeFileSync(logPath, lines.join('\n') + '\n', 'utf8');
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n', 'utf8');
   } catch (_e) {
     // Best-effort logging — never fail the caller
+  }
+}
+
+/**
+ * Delete events-*.jsonl files older than MAX_DAYS days.
+ * Called by session-cleanup.js at session end.
+ */
+function cleanOldEventLogs(logsDir) {
+  try {
+    const cutoff = Date.now() - MAX_DAYS * 86400000;
+    const files = fs.readdirSync(logsDir);
+    for (const file of files) {
+      if (!/^events-\d{4}-\d{2}-\d{2}\.jsonl$/.test(file)) continue;
+      const filePath = path.join(logsDir, file);
+      const stat = fs.statSync(filePath);
+      if (stat.mtimeMs < cutoff) fs.unlinkSync(filePath);
+    }
+  } catch (_e) {
+    // Best-effort cleanup — never fail the caller
   }
 }
 
@@ -89,4 +122,4 @@ function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { logEvent };
+module.exports = { logEvent, getLogPath, getLogFilename, cleanOldEventLogs };

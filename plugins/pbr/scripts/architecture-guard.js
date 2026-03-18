@@ -20,14 +20,14 @@
 
 const fs = require('fs');
 const path = require('path');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogFilename } = require('./hook-logger');
 
 // ─── Log helper: write directly to planningDir ────────────────────────────────
 
 const MAX_LOG_ENTRIES = 200;
 
 /**
- * Write an architecture_guard log entry to .planning/logs/hooks.jsonl.
+ * Write an architecture_guard log entry to .planning/logs/hooks-YYYY-MM-DD.jsonl.
  * @param {string} planningDir
  * @param {string} file
  * @param {string} violation
@@ -38,7 +38,7 @@ function writeGuardLog(planningDir, file, violation) {
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
     }
-    const logPath = path.join(logsDir, 'hooks.jsonl');
+    const logPath = path.join(logsDir, getLogFilename());
     const entry = {
       ts: new Date().toISOString(),
       hook: 'architecture-guard',

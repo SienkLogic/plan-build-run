@@ -299,7 +299,23 @@ function configValidate(preloadedConfig, planningDir) {
   const warnings = [];
   const errors = [];
 
-  validateObject(config, schema, '', errors, warnings);
+  // Strip _guide_* and _comment_* keys before validation (they're documentation, not config)
+  const configForValidation = {};
+  for (const [k, v] of Object.entries(config)) {
+    if (!k.startsWith('_guide') && !k.startsWith('_comment')) {
+      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+        const inner = {};
+        for (const [ik, iv] of Object.entries(v)) {
+          if (!ik.startsWith('_comment')) inner[ik] = iv;
+        }
+        configForValidation[k] = inner;
+      } else {
+        configForValidation[k] = v;
+      }
+    }
+  }
+
+  validateObject(configForValidation, schema, '', errors, warnings);
 
   // Schema version check — detect outdated or future config format
   if (config.schema_version && config.schema_version > CURRENT_SCHEMA_VERSION) {
@@ -513,12 +529,361 @@ function resolveConfig(dir) {
   return config;
 }
 
+// --- Config guide comments (injected into formatted output) ---
+
+/**
+ * Canonical section order and guide comments for config.json.
+ * Each entry: [guideKey, guide lines array, ...config keys in this section]
+ * Config keys are written in alphabetical order within each section.
+ */
+const CONFIG_SECTIONS = [
+  {
+    guide: '_guide_meta',
+    lines: [
+      'schema_version: config schema version for migration detection',
+      'version: planning format version (v2 is current)'
+    ],
+    keys: ['schema_version', 'version']
+  },
+  {
+    guide: '_guide_core',
+    lines: [
+      'ceremony_level: auto|low|medium|high — override risk-based ceremony (auto = classifier decides)',
+      'context_strategy: aggressive|balanced|conservative — how aggressively PBR manages context budget',
+      'depth: quick|standard|comprehensive — thoroughness of research, planning, and verification',
+      'mode: interactive|autonomous — interactive pauses at gates, autonomous runs hands-free'
+    ],
+    keys: ['ceremony_level', 'context_strategy', 'depth', 'mode']
+  },
+  {
+    guide: '_guide_context_window',
+    lines: [
+      'agent_checkpoint_pct: 40-80 — context % where agents checkpoint and return',
+      'context_window_tokens: 100k-2M — your model\'s context size, scales all thresholds',
+      'orchestrator_budget_pct: 15-50 — % of context reserved for orchestrator (higher = more inline work)',
+      'session_cycling: tmux|compact-first|compact|manual — what happens when phase limit is reached',
+      'session_phase_limit: 0-20 — max phases per session before auto-pause (0 = disabled)',
+      'skip_rag_max_lines: projects under this LOC can load entire codebase into context',
+      '',
+      '--- 1M CONTEXT (Opus 4.6) RECOMMENDED VALUES ---',
+      'context_window_tokens: 1000000',
+      'agent_checkpoint_pct: 70  (default 50 for 200k models)',
+      'orchestrator_budget_pct: 35  (default 25 for 200k models)',
+      'session_phase_limit: 10  (default 3 for 200k, scales: 3@200k, 6@500k, 10@1M)',
+      'session_cycling: compact-first  (try /compact before cycling sessions)',
+      'context_budget.threshold_curve: adaptive  (shifts warnings up: 60/75/85 vs 50/70/85)',
+      'workflow.inline_context_cap_pct: 50  (500k tokens before forcing subagent delegation)',
+      'workflow.inline_max_files: 10, inline_max_lines: 100, inline_max_tasks: 3',
+      'workflow.max_phases_in_context: 6  (hold 6 phase plans simultaneously)',
+      'debug.max_hypothesis_rounds: 8  (longer investigation chains)'
+    ],
+    keys: ['agent_checkpoint_pct', 'context_window_tokens', 'orchestrator_budget_pct', 'session_cycling', 'session_phase_limit', 'skip_rag_max_lines']
+  },
+  {
+    guide: '_guide_autonomy',
+    lines: [
+      'autonomy.level: supervised|guided|collaborative|adaptive — progressive autonomy control',
+      'gates.confirm_*: pause for user confirmation (all false in autonomous mode)',
+      'gates.auto_checkpoints: auto-resolve checkpoint:human-verify tasks during build',
+      'gates.checkpoint_auto_resolve: none|verify-only|verify-and-decision|all',
+      'safety.always_confirm_destructive: always ask before destructive git ops',
+      'safety.always_confirm_external_services: always ask before calling external APIs',
+      'safety.enforce_phase_boundaries: prevent agents from working outside assigned phase'
+    ],
+    keys: ['autonomy', 'gates', 'safety']
+  },
+  {
+    guide: '_guide_features',
+    lines: [
+      '--- CORE WORKFLOW ---',
+      'atomic_commits: one commit per task (not batched)',
+      'context_isolation: heavy work delegated to subagents to protect main context',
+      'session_persistence: persist state across sessions via STATE.md',
+      'structured_planning: use phased planning with ROADMAP + plan files',
+      '',
+      '--- RESEARCH & PLANNING ---',
+      'machine_executable_plans: programmatic task execution from parsed plans',
+      'plan_checking: validate plans via plan-checker agent before execution',
+      'pre_research: speculatively research upcoming phases at 70%+ completion',
+      'research_phase: run researcher agent before planning',
+      'reverse_spec: generate specs from existing code',
+      'spec_diffing: semantic diff when plans change',
+      '',
+      '--- EXECUTION ---',
+      'inline_simple_tasks: simple tasks (<N files, <N lines) run inline without subagent',
+      'post_hoc_artifacts: auto-generate SUMMARY.md from git history after execution',
+      'tdd_mode: red-green-refactor (3 commits per task instead of 1)',
+      'zero_friction_quick: skip pre-execution ceremony for quick tasks',
+      '',
+      '--- VERIFICATION ---',
+      'agent_feedback_loop: verification results feed back into executor prompts',
+      'confidence_calibration: confidence scores based on historical agent accuracy',
+      'goal_verification: run verifier agent after builds to check goals met',
+      'graduated_verification: trust-based verification depth (light/standard/thorough)',
+      'inline_verify: per-task verification after each commit (+10-20s per plan)',
+      'integration_verification: cross-phase integration checks',
+      'multi_layer_validation: parallel BugBot-style review passes',
+      'self_verification: executor self-checks before presenting output',
+      'trust_tracking: trust scores per agent type and task category',
+      '',
+      '--- AUTOMATION ---',
+      'auto_advance: chain build, review, plan automatically (requires autonomous mode)',
+      'auto_continue: write .auto-next signal on phase completion for chaining',
+      '',
+      '--- CONTEXT & SESSION ---',
+      'context_quality_scoring: track signal-to-noise ratio in context',
+      'enhanced_session_start: structured context injection at session start (~500 tokens)',
+      'mental_model_snapshots: capture working context at session end for instant resume',
+      'multi_phase_awareness: hold multiple phase plans simultaneously in context',
+      'rich_agent_prompts: enrich agent prompts with full project context',
+      'session_metrics: show metrics dashboard at session end',
+      'skip_rag: load entire codebase for small projects (under skip_rag_max_lines)',
+      'status_line: show PBR status bar in session UI',
+      '',
+      '--- KNOWLEDGE & INTELLIGENCE ---',
+      'adaptive_ceremony: risk-based ceremony adjustment per task',
+      'convention_memory: auto-detect and store project conventions',
+      'decision_journal: record WHY decisions were made in .planning/decisions/',
+      'dependency_break_detection: warn when upstream changes invalidate downstream plans',
+      'living_requirements: auto-update requirement status as phases complete',
+      'natural_language_routing: intent detection in /pbr:do',
+      'negative_knowledge: track what failed and why in .planning/negative-knowledge/',
+      'pattern_routing: file modification patterns trigger specialized agents',
+      'smart_next_task: dependency graph analysis for auto-continue suggestions',
+      'tech_debt_surfacing: surface tech debt in status dashboard',
+      '',
+      '--- QUALITY & SECURITY ---',
+      'architecture_graph: live module dependency tracking',
+      'architecture_guard: warn on dependency violations',
+      'predictive_impact: impact analysis using architecture graph',
+      'regression_prevention: smart test selection from changed files',
+      'security_scanning: OWASP-style scanning of changed files during build',
+      '',
+      '--- UI & VISUALIZATION ---',
+      'contextual_help: activity-specific suggestions based on current state',
+      'progress_visualization: phase dependency graph and timeline in dashboard',
+      '',
+      '--- TEAMS (disabled by default) ---',
+      'agent_teams: parallel worktree-based agent teams',
+      'competing_hypotheses: multiple approaches for complex problems',
+      'dynamic_teams: dynamic team composition per task',
+      'team_discussions: multi-perspective planning discussions',
+      'team_onboarding: generate onboarding guide from project docs'
+    ],
+    keys: ['features']
+  },
+  {
+    guide: '_guide_models',
+    lines: [
+      'Per-agent model: sonnet|opus|haiku|inherit',
+      'complexity_map: auto-select model by task difficulty',
+      'model_profiles: custom named presets (e.g. \'budget\' using haiku everywhere)'
+    ],
+    keys: ['models', 'model_profiles']
+  },
+  {
+    guide: '_guide_parallelization',
+    lines: [
+      'enabled: allow parallel plan execution within a wave',
+      'max_concurrent_agents: 1-10 — max simultaneous executor subagents',
+      'min_plans_for_parallel: minimum plans in a wave to trigger parallel execution',
+      'plan_level: parallelize at plan level (multiple plans in same wave)',
+      'task_level: parallelize at task level within a plan (not currently used)',
+      'use_teams: use Agent Teams for coordination (discussion only, never execution)',
+      'teams.*: roles and coordination strategy for team discussions'
+    ],
+    keys: ['parallelization', 'teams']
+  },
+  {
+    guide: '_guide_workflow',
+    lines: [
+      'autonomous: enable /pbr:autonomous for hands-free multi-phase execution',
+      'enforce_pbr_skills: advisory|block|off — PBR workflow compliance enforcement',
+      'inline_context_cap_pct: context % above which always spawn subagent',
+      'inline_execution: trivial plans execute inline without subagent',
+      'inline_max_files: max files for inline execution eligibility',
+      'inline_max_lines: max estimated lines of change for inline execution',
+      'inline_max_tasks: max tasks for inline execution eligibility',
+      'max_phases_in_context: max phase plans held simultaneously by orchestrator',
+      'phase_boundary_clear: recommend|enforce|off — /clear at phase boundaries',
+      'phase_replay: failed verification triggers replay with enriched context',
+      'speculative_planning: plan phase N+1 while executor runs phase N'
+    ],
+    keys: ['workflow']
+  },
+  {
+    guide: '_guide_git',
+    lines: [
+      'git.auto_pr: create GitHub PR after successful phase verification',
+      'git.branching: none|phase|milestone|disabled — branching strategy',
+      'git.commit_format: commit message template with {type}, {phase}, {plan}, {description}',
+      'git.mode: enabled|disabled — disabled skips all git operations',
+      'ci.gate_enabled: block wave advancement until CI passes',
+      'ci.wait_timeout_seconds: max seconds to wait for CI completion',
+      'planning.commit_docs: commit SUMMARY/VERIFICATION after builds',
+      'planning.max_tasks_per_plan: 1-10 — keeps plans focused and atomic',
+      'planning.multi_phase: enable --through flag for multi-phase planning',
+      'planning.search_gitignored: include gitignored files in codebase scanning'
+    ],
+    keys: ['ci', 'git', 'planning']
+  },
+  {
+    guide: '_guide_verification',
+    lines: [
+      'validation_passes: which review passes run with multi_layer_validation',
+      '  options: correctness, security, performance, style, tests, accessibility, docs, deps',
+      'verification.confidence_gate: skip verification if executor reports 100% completion + tests pass',
+      'verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification'
+    ],
+    keys: ['validation_passes', 'verification']
+  },
+  {
+    guide: '_guide_context_budget',
+    lines: [
+      'context_budget.threshold_curve: linear|adaptive — warning threshold scaling',
+      '  linear = fixed 50/70/85%, adaptive = shifts up for 1M context (60/75/85%)',
+      'context_ledger.enabled: track what files are in context and when they go stale',
+      'context_ledger.stale_after_minutes: 5-1440 — minutes before a read is considered stale'
+    ],
+    keys: ['context_budget', 'context_ledger']
+  },
+  {
+    guide: '_guide_hooks',
+    lines: [
+      'hook_server.enabled: route hooks through persistent HTTP server (faster than per-hook processes)',
+      'hook_server.port: TCP port for hook server (localhost only)',
+      'hooks.autoFormat: run auto-formatting after file writes',
+      'hooks.blockDocSprawl: block creation of excessive documentation files',
+      'hooks.compactThreshold: 10-200 — context % at which to suggest compaction',
+      'hooks.detectConsoleLogs: warn when console.log statements are added',
+      'hooks.typeCheck: run type checking after file writes'
+    ],
+    keys: ['hook_server', 'hooks']
+  },
+  {
+    guide: '_guide_intelligence',
+    lines: [
+      'intel.enabled: persistent codebase intelligence (architecture maps, file graph)',
+      'intel.auto_update: PostToolUse hooks queue intel updates on code changes',
+      'intel.inject_on_start: inject architecture summary into session context at start',
+      'learnings.enabled: cross-phase knowledge transfer via LEARNINGS.md',
+      'learnings.read_depth: 1-20 — how many prior phases\' learnings the planner reads',
+      'learnings.cross_project_knowledge: copy learnings to ~/.claude/pbr-knowledge/ for reuse'
+    ],
+    keys: ['intel', 'learnings']
+  },
+  {
+    guide: '_guide_tools',
+    lines: [
+      'dashboard: web UI for browsing .planning/ state (default port 3141)',
+      'debug.max_hypothesis_rounds: 1-20 — max hypothesis cycles for /pbr:debug',
+      'depth_profiles: override built-in quick/standard/comprehensive defaults',
+      'developer_profile: behavioral profiling from session history + prompt injection',
+      'local_llm: offload classification tasks to local Ollama instance',
+      'prd.auto_extract: skip confirmation gate during PRD import',
+      'spinner_tips: custom messages shown during agent execution',
+      'status_line: status bar appearance (sections, branding, context bar)',
+      'timeouts: task/build/verify timeout limits in milliseconds',
+      'ui.enabled: enable UI design pipeline (/pbr:ui-phase, /pbr:ui-review)',
+      'worktree.sparse_paths: glob patterns for sparse checkout in agent worktrees'
+    ],
+    keys: ['dashboard', 'debug', 'depth_profiles', 'developer_profile', 'local_llm', 'prd', 'spinner_tips', 'status_line', 'timeouts', 'ui', 'worktree']
+  }
+];
+
+/**
+ * Sort object keys alphabetically, recursing into nested objects.
+ * Arrays are left as-is.
+ *
+ * @param {*} obj - Value to sort
+ * @returns {*} Sorted copy
+ */
+function sortKeys(obj) {
+  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) return obj;
+  const sorted = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = sortKeys(obj[key]);
+  }
+  return sorted;
+}
+
+/**
+ * Format a config object into the canonical section-ordered, guide-commented JSON string.
+ * Strips any existing _guide_* / _comment_* keys, applies defaults for missing fields,
+ * then rebuilds in section order with guide comments and alphabetized keys.
+ *
+ * @param {object} config - Config object to format
+ * @returns {string} Formatted JSON string
+ */
+function configFormat(config) {
+  // 1. Strip guide/comment keys and ensure all defaults present
+  const clean = {};
+  for (const [k, v] of Object.entries(config)) {
+    if (!k.startsWith('_guide') && !k.startsWith('_comment')) {
+      clean[k] = v;
+    }
+  }
+  // Also strip _comment keys from features if present
+  if (clean.features) {
+    const cleanFeatures = {};
+    for (const [k, v] of Object.entries(clean.features)) {
+      if (!k.startsWith('_comment')) cleanFeatures[k] = v;
+    }
+    clean.features = cleanFeatures;
+  }
+  const full = configEnsureComplete(clean);
+
+  // 2. Build ordered output object
+  const output = {};
+  const placed = new Set();
+
+  for (const section of CONFIG_SECTIONS) {
+    // Add guide comment
+    output[section.guide] = section.lines;
+
+    // Add config keys in alphabetical order
+    for (const key of section.keys) {
+      if (full[key] !== undefined) {
+        output[key] = sortKeys(full[key]);
+        placed.add(key);
+      }
+    }
+  }
+
+  // 3. Add any remaining keys not covered by sections (future-proofing)
+  const remaining = Object.keys(full).filter(k => !placed.has(k) && !k.startsWith('_'));
+  if (remaining.length > 0) {
+    for (const key of remaining.sort()) {
+      output[key] = sortKeys(full[key]);
+    }
+  }
+
+  return JSON.stringify(output, null, 2) + '\n';
+}
+
+/**
+ * Write config.json in the canonical formatted style with guide comments.
+ * Ensures all defaults are present and sections are properly ordered.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object to write
+ */
+function configWrite(planningDir, config) {
+  const configPath = path.join(planningDir, 'config.json');
+  fs.writeFileSync(configPath, configFormat(config), 'utf8');
+  // Invalidate cache so next configLoad() picks up changes
+  configClearCache();
+}
+
 module.exports = {
   configLoad,
   configClearCache,
   configValidate,
   configEnsureComplete,
+  configFormat,
+  configWrite,
   CONFIG_DEFAULTS,
+  CONFIG_SECTIONS,
   resolveConfig,
   resolveDepthProfile,
   DEPTH_PROFILE_DEFAULTS,

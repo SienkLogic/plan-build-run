@@ -19,7 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogPath: getHooksLogPath } = require('./hook-logger');
 const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
 const { resolveConfig } = require('./local-llm/health');
 const { classifyError } = require('./local-llm/operations/classify-error');
@@ -1180,11 +1180,9 @@ async function handleHttp(reqBody) {
  * @param {number} [decision.fileCount] - Number of files in the plan
  * @param {number} [decision.estimatedLines] - Estimated lines of code
  */
-function logInlineDecision(planningDir, decision) {
+function logInlineDecision(_planningDir, decision) {
   try {
-    const logsDir = path.join(planningDir, 'logs');
-    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
-    const logFile = path.join(logsDir, 'hooks.jsonl');
+    const logFile = getHooksLogPath();
     const entry = JSON.stringify({
       timestamp: new Date().toISOString(),
       hook: 'inline-execution-gate',
