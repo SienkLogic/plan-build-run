@@ -275,10 +275,178 @@ function checkStateFrontmatterIntegrity(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// WC-04: ROADMAP Sync Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate ROADMAP.md phase entries match actual phase directories on disk.
+ * Detects orphan directories (on disk but not in ROADMAP) and phantom phases
+ * (in ROADMAP but not on disk).
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkRoadmapSyncValidation(planningDir, _config) {
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  let content;
+
+  try {
+    content = fs.readFileSync(roadmapPath, 'utf8');
+  } catch (_e) {
+    return result('WC-04', 'fail', 'ROADMAP.md not found', [
+      `Expected at: ${roadmapPath}`,
+    ]);
+  }
+
+  // Get actual phase directories
+  const phasesDir = path.join(planningDir, 'phases');
+  let actualDirs = [];
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    actualDirs = entries
+      .filter(e => e.isDirectory() && /^\d{2}-/.test(e.name))
+      .map(e => e.name)
+      .sort();
+  } catch (_e) {
+    return result('WC-04', 'warn', 'Could not read phases/ directory', [
+      `Expected at: ${phasesDir}`,
+    ]);
+  }
+
+  // Extract actual phase numbers from disk
+  const diskPhaseNums = new Set();
+  for (const dir of actualDirs) {
+    const num = parseInt(dir.substring(0, 2), 10);
+    if (!isNaN(num)) diskPhaseNums.add(num);
+  }
+
+  // Extract phase entries from ROADMAP.md
+  // Look for patterns like:
+  //   "| N. Name |" in progress tables
+  //   "### Phase N: Name"
+  //   "| {N}. {name} |"
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  const roadmapPhaseNums = new Set();
+
+  // Find the active milestone section (look for "## Progress" or most recent non-COMPLETED milestone)
+  // We scan the entire file for phase references under the active milestone
+  let inActiveMilestone = false;
+  for (const line of lines) {
+    // Detect active milestone sections (not COMPLETED)
+    if (/^##\s+Milestone:.*(?:ACTIVE|COMPLETED)/i.test(line)) {
+      inActiveMilestone = !line.includes('COMPLETED');
+    }
+    if (/^##\s+Progress\b/.test(line)) {
+      inActiveMilestone = true;
+    }
+
+    if (!inActiveMilestone) continue;
+
+    // Match table rows: "| N. Name |" or "|N. Name|"
+    const tableMatch = line.match(/\|\s*(\d{1,2})\.\s+/);
+    if (tableMatch) {
+      roadmapPhaseNums.add(parseInt(tableMatch[1], 10));
+    }
+
+    // Match headers: "### Phase N: Name" or "### Phase NN: Name"
+    const headerMatch = line.match(/^###\s+Phase\s+(\d{1,2})\b/);
+    if (headerMatch) {
+      roadmapPhaseNums.add(parseInt(headerMatch[1], 10));
+    }
+  }
+
+  const evidence = [];
+
+  // Orphan directories: on disk but not in ROADMAP
+  for (const num of diskPhaseNums) {
+    if (!roadmapPhaseNums.has(num)) {
+      const dirName = actualDirs.find(d => parseInt(d.substring(0, 2), 10) === num);
+      evidence.push(`Orphan directory: "${dirName}" (phase ${num}) not in ROADMAP`);
+    }
+  }
+
+  // Phantom phases: in ROADMAP but not on disk
+  for (const num of roadmapPhaseNums) {
+    if (!diskPhaseNums.has(num)) {
+      evidence.push(`Phantom phase: phase ${num} in ROADMAP but no directory on disk`);
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-04', 'pass', 'ROADMAP.md aligns with phase directories');
+  }
+
+  return result('WC-04', 'fail',
+    `ROADMAP has ${evidence.length} sync issue(s) with disk`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WC-08: Naming Convention Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan all phase directories for PLAN files and verify they follow
+ * the PLAN-{NN}.md naming convention.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkNamingConventionCompliance(planningDir, _config) {
+  const phasesDir = path.join(planningDir, 'phases');
+  let phaseDirs;
+
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    phaseDirs = entries
+      .filter(e => e.isDirectory() && /^\d{2}-/.test(e.name))
+      .map(e => e.name)
+      .sort();
+  } catch (_e) {
+    return result('WC-08', 'warn', 'Could not read phases/ directory');
+  }
+
+  const conformingPattern = /^PLAN-\d{2}\.md$/;
+  const planFilePattern = /^PLAN.*\.md$/i;
+  const evidence = [];
+
+  for (const dir of phaseDirs) {
+    const dirPath = path.join(phasesDir, dir);
+    let files;
+    try {
+      files = fs.readdirSync(dirPath);
+    } catch (_e) {
+      continue;
+    }
+
+    const planFiles = files.filter(f => planFilePattern.test(f));
+    for (const planFile of planFiles) {
+      if (!conformingPattern.test(planFile)) {
+        evidence.push(`${dir}/${planFile} does not match PLAN-{NN}.md convention`);
+      }
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-08', 'pass', 'All PLAN files follow naming convention');
+  }
+
+  return result('WC-08', 'warn',
+    `${evidence.length} PLAN file(s) do not follow naming convention`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkStateFileIntegrity,
   checkStateFrontmatterIntegrity,
+  checkRoadmapSyncValidation,
+  checkNamingConventionCompliance,
 };
