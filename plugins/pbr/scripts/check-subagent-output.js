@@ -524,6 +524,45 @@ function logCompliance(planningDir, agentType, violation, severity) {
 }
 
 /**
+ * Check for seeds whose trigger matches the completed phase slug.
+ * When an executor completes, check if any seed files in .planning/seeds/
+ * have a trigger field matching the current phase slug.
+ * @param {string} planningDir - Path to .planning/
+ * @param {string[]} warnings - Mutable warnings array to push into
+ */
+function checkTriggeredSeeds(planningDir, warnings) {
+  try {
+    const seedsDir = path.join(planningDir, 'seeds');
+    if (!fs.existsSync(seedsDir)) return;
+
+    // Get current phase slug from STATE.md
+    const stateFile = path.join(planningDir, 'STATE.md');
+    if (!fs.existsSync(stateFile)) return;
+    const stateContent = fs.readFileSync(stateFile, 'utf8');
+    const slugMatch = stateContent.match(/^phase_slug:\s*"?([^"\n]+)"?/mi);
+    if (!slugMatch) return;
+    const phaseSlug = slugMatch[1].trim();
+
+    const seeds = fs.readdirSync(seedsDir).filter(f => f.endsWith('.md'));
+    const triggered = [];
+    for (const seed of seeds) {
+      try {
+        const content = fs.readFileSync(path.join(seedsDir, seed), 'utf-8');
+        const triggerMatch = content.match(/trigger:\s*"([^"]+)"/);
+        if (triggerMatch && phaseSlug.includes(triggerMatch[1])) {
+          const idMatch = seed.match(/SEED-(\d+)/);
+          triggered.push({ id: idMatch ? idMatch[1] : seed, trigger: triggerMatch[1] });
+        }
+      } catch (_e) { /* skip unreadable seeds */ }
+    }
+    if (triggered.length > 0) {
+      const seedList = triggered.map(s => `SEED-${s.id} (trigger: ${s.trigger})`).join(', ');
+      warnings.push(`Seed(s) triggered by phase completion: ${seedList}. Review with /pbr:explore.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+}
+
+/**
  * Check that LEARNINGS.md exists in the current phase directory.
  * LEARNINGS.md is REQUIRED for all agents — every agent must document what it learned.
  * @param {string} planningDir - Path to .planning/
@@ -649,6 +688,8 @@ const SKILL_CHECKS = {
         }
       } catch (_e) { /* best-effort */ }
       checkLearningsRequired(planningDir, warnings, 'executor');
+      // Check for seeds triggered by this phase completion
+      checkTriggeredSeeds(planningDir, warnings);
       // Log post-hoc skip for non-quick executors (audit evidence)
       logEvent('post_hoc', 'post_hoc_skipped', { reason: 'not_quick_task', feature: 'post_hoc_artifacts' });
       // Update conventions after successful build
