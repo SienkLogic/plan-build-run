@@ -1318,6 +1318,210 @@ function checkEnforceWorkflowAdvisory(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-10: Unmanaged Commit Detection
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-10: Detect git commits made outside PBR skill context.
+ * Cross-references .active-skill state against git commit Bash events.
+ * Commits without an active PBR skill context are "unmanaged".
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkUnmanagedCommitDetection(planningDir, _config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-10: No session data available — cannot assess commit management'
+    };
+  }
+
+  const evidence = [];
+  const commitFormatPattern = /^(feat|fix|refactor|test|docs|chore|wip|revert)\([a-zA-Z0-9._-]+\):\s+.+/;
+
+  // Track active-skill state over time from hook logs
+  // Hook logs from validate-commit contain the commit validation context
+  const activeSkillEntries = [];
+  for (const entry of allEntries) {
+    // Detect active-skill state changes from hook logs
+    if (entry.hook && entry.details && entry.details.active_skill != null) {
+      activeSkillEntries.push({
+        skill: entry.details.active_skill,
+        ts: entry.ts || entry.timestamp || '',
+      });
+    }
+    // Also detect skill invocations as implicit active-skill markers
+    const skill = extractSkillInvocation(entry);
+    if (skill) {
+      activeSkillEntries.push({ skill, ts: entry.ts || entry.timestamp || '' });
+    }
+  }
+
+  // Find all git commit Bash events
+  for (const entry of allEntries) {
+    const command = (entry.tool_input && entry.tool_input.command) ||
+      (entry.details && entry.details.command) || '';
+    const commandStr = typeof command === 'string' ? command : JSON.stringify(command);
+
+    if (!/\bgit\s+commit\b/i.test(commandStr)) continue;
+
+    const ts = entry.ts || entry.timestamp || '';
+    const time = ts ? ts.substring(11, 16) : 'unknown';
+
+    // Extract commit message for format check
+    const msgMatch = commandStr.match(/-m\s+["']([^"']+)["']/) ||
+      commandStr.match(/<<'?EOF'?\s*\n([\s\S]*?)\nEOF/);
+    const commitMsg = msgMatch ? msgMatch[1].trim().split('\n')[0].trim() : '';
+
+    // Check if there was an active PBR skill at the time of this commit
+    // Look at the most recent active-skill entry before this commit timestamp
+    const priorSkills = activeSkillEntries.filter(s => s.ts <= ts || !ts);
+    const lastSkill = priorSkills.length > 0 ? priorSkills[priorSkills.length - 1] : null;
+
+    // Also check validate-commit hook logs for this commit — if the hook fired,
+    // there may be active-skill info
+    const commitHookEntry = allEntries.find(e =>
+      e.hook === 'validate-commit' &&
+      e.details && e.details.message === commitMsg
+    );
+    const hookActiveSkill = commitHookEntry && commitHookEntry.details &&
+      commitHookEntry.details.active_skill;
+
+    const hasActiveSkill = (lastSkill && lastSkill.skill) || hookActiveSkill;
+
+    if (!hasActiveSkill) {
+      // No active skill context detected
+      const hasGoodFormat = commitFormatPattern.test(commitMsg);
+      const formatNote = hasGoodFormat ? '' : ' (also lacks conventional format)';
+      evidence.push(
+        `Commit '${commitMsg || '(unparseable)'}' at ${time} — no active PBR skill context detected${formatNote}`
+      );
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-10: Found ${evidence.length} unmanaged commit(s) outside PBR skill context`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: 'BC-10: All commits were within PBR skill context'
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BC-11: Context Delegation Threshold
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-11: Detect when context exceeded inline_context_cap_pct but no subagent was spawned.
+ * Uses config.workflow.inline_context_cap_pct threshold.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Config object with workflow.inline_context_cap_pct
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkContextDelegationThreshold(planningDir, config) {
+  const hookLogs = readHookLogs(planningDir);
+  const events = readSessionEvents(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-11: No session data available — cannot assess context delegation'
+    };
+  }
+
+  // Read inline_context_cap_pct from config (default 50)
+  const capPct = (config && config.workflow && config.workflow.inline_context_cap_pct != null)
+    ? config.workflow.inline_context_cap_pct
+    : 50;
+
+  const evidence = [];
+
+  // Find context usage reports from suggest-compact or track-context-budget hooks
+  for (let i = 0; i < allEntries.length; i++) {
+    const entry = allEntries[i];
+
+    // Look for context percentage reports
+    const isContextHook = entry.hook === 'suggest-compact' ||
+      entry.hook === 'track-context-budget' ||
+      entry.hook === 'context-budget-check';
+
+    if (!isContextHook) continue;
+
+    // Extract context percentage from entry details
+    let pctUsed = null;
+    if (entry.details) {
+      pctUsed = entry.details.pct_used || entry.details.estimated_percent ||
+        entry.details.percent || entry.details.context_pct || null;
+      // Also check tier info — DEGRADING is typically >=50%, POOR >=70%
+      if (pctUsed == null && entry.details.tier) {
+        if (entry.details.tier === 'POOR' || entry.details.tier === 'CRITICAL') pctUsed = 70;
+        else if (entry.details.tier === 'DEGRADING') pctUsed = 55;
+      }
+    }
+
+    if (pctUsed == null || pctUsed <= capPct) continue;
+
+    const ts = entry.ts || entry.timestamp || '';
+    const time = ts ? ts.substring(11, 16) : 'unknown';
+
+    // Check if a Task (subagent) was spawned in the next 5 events
+    const lookAhead = allEntries.slice(i + 1, i + 6);
+    const taskSpawned = lookAhead.some(e =>
+      e.tool === 'Task' ||
+      e.event === 'subagent-start' ||
+      e.event === 'task-start' ||
+      (e.details && e.details.tool === 'Task') ||
+      (e.details && e.details.subagent_type)
+    );
+
+    if (!taskSpawned) {
+      evidence.push(
+        `Context at ${pctUsed}% (cap: ${capPct}%) at ${time} but no subagent spawned in next 5 tool calls`
+      );
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-11: Context delegation threshold breached ${evidence.length} time(s) without subagent spawn`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: `BC-11: Context delegation threshold (${capPct}%) respected — subagents spawned when needed`
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1345,4 +1549,8 @@ module.exports = {
   checkGateCompliance,
   // BC-09
   checkEnforceWorkflowAdvisory,
+  // BC-10
+  checkUnmanagedCommitDetection,
+  // BC-11
+  checkContextDelegationThreshold,
 };
