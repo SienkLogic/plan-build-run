@@ -1,4 +1,4 @@
-const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../hooks/status-line');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../hooks/status-line');
 const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
 
 /** Strip ANSI escape codes for readable assertions */
@@ -1199,6 +1199,177 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5\nPlan: 0 of 3';
       const result = strip(buildStatusLine(content, null, DEFAULTS));
       expect(result).toContain('Plan 0/3');
+    });
+  });
+
+  describe('dev line helpers', () => {
+    const fsMod = require('fs');
+    const pathMod = require('path');
+    const osMod = require('os');
+
+    test('getVersion reads package.json version', () => {
+      const ver = getVersion();
+      expect(ver).toMatch(/^\d+\.\d+\.\d+/);
+    });
+
+    test('countTodos returns 0 when no pending dir', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      try {
+        expect(countTodos(tmpDir)).toBe(0);
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('countTodos counts .md files in pending/', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      const pending = pathMod.join(tmpDir, 'todos', 'pending');
+      fsMod.mkdirSync(pending, { recursive: true });
+      fsMod.writeFileSync(pathMod.join(pending, 'todo-1.md'), 'todo');
+      fsMod.writeFileSync(pathMod.join(pending, 'todo-2.md'), 'todo');
+      fsMod.writeFileSync(pathMod.join(pending, 'not-md.txt'), 'skip');
+      try {
+        expect(countTodos(tmpDir)).toBe(2);
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('countQuickTasks counts dirs and detects open tasks', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      const quickDir = pathMod.join(tmpDir, 'quick');
+      fsMod.mkdirSync(pathMod.join(quickDir, '001-done'), { recursive: true });
+      fsMod.writeFileSync(pathMod.join(quickDir, '001-done', 'SUMMARY.md'), 'done');
+      fsMod.mkdirSync(pathMod.join(quickDir, '002-open'), { recursive: true });
+      try {
+        const result = countQuickTasks(tmpDir);
+        expect(result.total).toBe(2);
+        expect(result.open).toBe(1);
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('countHookEntries counts from hooks.json', () => {
+      const count = countHookEntries();
+      expect(count).toBeGreaterThan(0);
+    });
+
+    test('getCoverage reads coverage-summary.json', () => {
+      const cov = getCoverage();
+      // May be null if no coverage file, or a number if present
+      if (cov !== null) {
+        expect(typeof cov).toBe('number');
+        expect(cov).toBeGreaterThanOrEqual(0);
+        expect(cov).toBeLessThanOrEqual(100);
+      }
+    });
+
+    test('getLastTestResult returns null when no cache file', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      try {
+        expect(getLastTestResult(tmpDir)).toBeNull();
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('getLastTestResult reads cached test data', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      fsMod.writeFileSync(pathMod.join(tmpDir, '.last-test.json'),
+        JSON.stringify({ passed: 125, failed: 0, total: 125 }));
+      try {
+        const result = getLastTestResult(tmpDir);
+        expect(result.total).toBe(125);
+        expect(result.failed).toBe(0);
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('getCiStatus returns null when no cache file', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      try {
+        expect(getCiStatus(tmpDir)).toBeNull();
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('getCiStatus reads cached CI data', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      fsMod.writeFileSync(pathMod.join(tmpDir, '.ci-status.json'),
+        JSON.stringify({ status: 'pass', branch: 'main' }));
+      try {
+        const result = getCiStatus(tmpDir);
+        expect(result.status).toBe('pass');
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe('buildStatusLine with dev section', () => {
+    const fsMod = require('fs');
+    const pathMod = require('path');
+    const osMod = require('os');
+
+    test('renders dev line with version and quick tasks', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      const quickDir = pathMod.join(tmpDir, 'quick');
+      fsMod.mkdirSync(pathMod.join(quickDir, '001-task'), { recursive: true });
+      fsMod.writeFileSync(pathMod.join(quickDir, '001-task', 'SUMMARY.md'), 'done');
+      const content = 'Phase: 1 of 5\nStatus: building';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
+      expect(result).toContain('dev');
+      expect(result).toContain('Q:1');
+      try {} finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('renders test failures in red', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      fsMod.writeFileSync(pathMod.join(tmpDir, '.last-test.json'),
+        JSON.stringify({ passed: 123, failed: 2, total: 125 }));
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
+      const raw = buildStatusLine(content, null, cfg, {}, tmpDir);
+      const result = strip(raw);
+      expect(result).toContain('2 fail');
+      // Red color for failures
+      expect(raw).toContain('\x1b[31m');
+      try {} finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('renders CI pass in green', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      fsMod.writeFileSync(pathMod.join(tmpDir, '.ci-status.json'),
+        JSON.stringify({ status: 'pass', branch: 'main' }));
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
+      expect(result).toContain('CI');
+      try {} finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('shows todo count when todos exist', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-dev-'));
+      const pending = pathMod.join(tmpDir, 'todos', 'pending');
+      fsMod.mkdirSync(pending, { recursive: true });
+      fsMod.writeFileSync(pathMod.join(pending, 'fix-bug.md'), 'todo');
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
+      const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
+      expect(result).toContain('1 todo');
+      try {} finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 });

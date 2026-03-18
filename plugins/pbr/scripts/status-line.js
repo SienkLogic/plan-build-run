@@ -255,6 +255,142 @@ function isHookServerRunning(port) {
  * @param {string} [planningDir] - Path to .planning/ directory
  * @returns {'running'|'failed'|'stopped'}
  */
+// ---------------------------------------------------------------------------
+// Dev line helpers — PBR development stats from local files
+// ---------------------------------------------------------------------------
+
+/**
+ * Read project version from package.json in cwd.
+ * @returns {string|null}
+ */
+function getVersion() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+    return pkg.version || null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Count pending todos in .planning/todos/pending/.
+ * @param {string} planningDir
+ * @returns {number}
+ */
+function countTodos(planningDir) {
+  try {
+    const dir = path.join(planningDir, 'todos', 'pending');
+    if (!fs.existsSync(dir)) return 0;
+    return fs.readdirSync(dir).filter(f => f.endsWith('.md')).length;
+  } catch (_e) {
+    return 0;
+  }
+}
+
+/**
+ * Count quick tasks in .planning/quick/.
+ * Returns { total, open } where open = dirs without SUMMARY.md.
+ * @param {string} planningDir
+ * @returns {{ total: number, open: number }}
+ */
+function countQuickTasks(planningDir) {
+  try {
+    const dir = path.join(planningDir, 'quick');
+    if (!fs.existsSync(dir)) return { total: 0, open: 0 };
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && /^\d+/.test(e.name));
+    let open = 0;
+    for (const e of entries) {
+      if (!fs.existsSync(path.join(dir, e.name, 'SUMMARY.md'))) open++;
+    }
+    return { total: entries.length, open };
+  } catch (_e) {
+    return { total: 0, open: 0 };
+  }
+}
+
+/**
+ * Count skill directories in plugins/pbr/skills/.
+ * @returns {number}
+ */
+function countSkills() {
+  try {
+    const dir = path.join(process.cwd(), 'plugins', 'pbr', 'skills');
+    if (!fs.existsSync(dir)) return 0;
+    return fs.readdirSync(dir, { withFileTypes: true })
+      .filter(e => e.isDirectory() && e.name !== 'shared').length;
+  } catch (_e) {
+    return 0;
+  }
+}
+
+/**
+ * Count hook entries in hooks/hooks.json.
+ * @returns {number}
+ */
+function countHookEntries() {
+  try {
+    const hooksFile = path.join(process.cwd(), 'hooks', 'hooks.json');
+    const data = JSON.parse(fs.readFileSync(hooksFile, 'utf8'));
+    let count = 0;
+    if (data.hooks) {
+      for (const groups of Object.values(data.hooks)) {
+        for (const group of groups) {
+          if (group.hooks) count += group.hooks.length;
+        }
+      }
+    }
+    return count;
+  } catch (_e) {
+    return 0;
+  }
+}
+
+/**
+ * Read test coverage percentage from coverage/coverage-summary.json.
+ * Returns the global lines.pct, or null if no coverage data.
+ * @returns {number|null}
+ */
+function getCoverage() {
+  try {
+    const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
+    const data = JSON.parse(fs.readFileSync(covFile, 'utf8'));
+    return data.total && data.total.lines ? Math.round(data.total.lines.pct) : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Read last test result from .planning/.last-test.json.
+ * Expected format: { passed: number, failed: number, total: number, timestamp: string }
+ * @param {string} planningDir
+ * @returns {{ passed: number, failed: number, total: number }|null}
+ */
+function getLastTestResult(planningDir) {
+  try {
+    const testFile = path.join(planningDir, '.last-test.json');
+    return JSON.parse(fs.readFileSync(testFile, 'utf8'));
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
+ * Read CI status from .planning/.ci-status.json.
+ * Expected format: { status: "pass"|"fail"|"pending", branch: string, timestamp: string }
+ * @param {string} planningDir
+ * @returns {{ status: string }|null}
+ */
+function getCiStatus(planningDir) {
+  try {
+    const ciFile = path.join(planningDir, '.ci-status.json');
+    return JSON.parse(fs.readFileSync(ciFile, 'utf8'));
+  } catch (_e) {
+    return null;
+  }
+}
+
 function getHookServerStatus(port, planningDir) {
   if (isHookServerRunning(port)) return 'running';
 
@@ -520,7 +656,7 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     output += '\n' + line2.join(sep);
   }
 
-  // LLM offload section — renders on a second line below the main status
+  // LLM offload section — renders on a third line below the main status
   // Shows session stats + lifetime total when both are available
   if (sections.includes('llm') && planningDir) {
     try {
@@ -551,8 +687,81 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     }
   }
 
+  // Dev line — PBR development stats (version, skills, hooks, coverage, todos, quick, tests, ci)
+  // Only renders when at least one dev section is enabled
+  if (sections.includes('dev') && planningDir) {
+    const devParts = [];
+
+    // Version from package.json
+    const ver = getVersion();
+    if (ver) {
+      devParts.push(`${c.boldCyan}\u25C6 dev${c.reset} ${c.dim}v${ver}${c.reset}`);
+    }
+
+    // Skill count
+    const skillCount = countSkills();
+    if (skillCount > 0) {
+      devParts.push(`${c.dim}${skillCount} skills${c.reset}`);
+    }
+
+    // Hook entry count
+    const hookCount = countHookEntries();
+    if (hookCount > 0) {
+      devParts.push(`${c.dim}${hookCount} hooks${c.reset}`);
+    }
+
+    // Test coverage from coverage/coverage-summary.json
+    const cov = getCoverage();
+    if (cov != null) {
+      const covColor = cov >= 70 ? c.green : cov >= 50 ? c.yellow : c.red;
+      devParts.push(`${covColor}${cov}% cov${c.reset}`);
+    }
+
+    // Last test result from .planning/.last-test.json
+    const testResult = getLastTestResult(planningDir);
+    if (testResult) {
+      if (testResult.failed > 0) {
+        devParts.push(`${c.red}\u2717 ${testResult.failed} fail${c.reset}`);
+      } else {
+        devParts.push(`${c.green}\u2713 ${testResult.total} pass${c.reset}`);
+      }
+    }
+
+    // CI status from .planning/.ci-status.json
+    const ciResult = getCiStatus(planningDir);
+    if (ciResult) {
+      if (ciResult.status === 'pass') {
+        devParts.push(`${c.green}\u2713 CI${c.reset}`);
+      } else if (ciResult.status === 'fail') {
+        devParts.push(`${c.red}\u2717 CI${c.reset}`);
+      } else if (ciResult.status === 'pending') {
+        devParts.push(`${c.yellow}\u25CB CI${c.reset}`);
+      }
+    }
+
+    // Pending todos
+    const todoCount = countTodos(planningDir);
+    if (todoCount > 0) {
+      devParts.push(`${c.yellow}${todoCount} todo${todoCount !== 1 ? 's' : ''}${c.reset}`);
+    }
+
+    // Quick tasks
+    const quick = countQuickTasks(planningDir);
+    if (quick.total > 0) {
+      if (quick.open > 0) {
+        devParts.push(`${c.yellow}Q:${quick.total} (${quick.open} open)${c.reset}`);
+      } else {
+        devParts.push(`${c.dim}Q:${quick.total}${c.reset}`);
+      }
+    }
+
+    if (devParts.length > 0) {
+      output += '\n' + devParts.join(sep);
+    }
+  }
+
   return output;
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
