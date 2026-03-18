@@ -1,33 +1,20 @@
 'use strict';
 
-const { execSync } = require('child_process');
+const { createRunner, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'intercept-plan-mode.js');
+const _run = createRunner(SCRIPT);
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-ipm-'));
 }
 
-function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
 function runScript(tmpDir, stdinData = '') {
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: stdinData,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return { exitCode: 0, stdout: result, stderr: '' };
-  } catch (e) {
-    return { exitCode: e.status, stdout: e.stdout || '', stderr: e.stderr || '' };
-  }
+  const { exitCode, output } = _run(stdinData || undefined, { cwd: tmpDir });
+  return { exitCode, stdout: output, stderr: '' };
 }
 
 describe('intercept-plan-mode.js', () => {
@@ -38,7 +25,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir);
         expect(result.exitCode).toBe(0);
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -48,7 +35,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir);
         expect(result.stdout).toBe('');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -58,7 +45,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir, '');
         expect(result.exitCode).toBe(0);
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
   });
@@ -71,7 +58,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir);
         expect(result.exitCode).toBe(2);
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -83,7 +70,7 @@ describe('intercept-plan-mode.js', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.decision).toBe('block');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -95,7 +82,7 @@ describe('intercept-plan-mode.js', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.reason).toContain('/pbr:plan-phase');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -107,7 +94,7 @@ describe('intercept-plan-mode.js', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.reason).toContain('Plan-Build-Run');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -118,7 +105,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir, '');
         expect(result.exitCode).toBe(2);
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -131,7 +118,7 @@ describe('intercept-plan-mode.js', () => {
         const parsed = JSON.parse(result.stdout);
         expect(parsed.decision).toBe('block');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
   });
@@ -144,7 +131,7 @@ describe('intercept-plan-mode.js', () => {
         const result = runScript(tmpDir);
         expect(() => JSON.parse(result.stdout)).not.toThrow();
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
 
@@ -157,7 +144,7 @@ describe('intercept-plan-mode.js', () => {
         expect(parsed).toHaveProperty('decision');
         expect(parsed).toHaveProperty('reason');
       } finally {
-        cleanup(tmpDir);
+        cleanupTmp(tmpDir);
       }
     });
   });
