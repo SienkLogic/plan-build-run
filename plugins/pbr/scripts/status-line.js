@@ -257,6 +257,35 @@ function main() {
     const slConfig = loadStatusLineConfig(planningDir);
     const content = fs.readFileSync(stateFile, 'utf8');
     const ctxPercent = getContextPercent(stdinData);
+
+    // Bridge real context data to .context-budget.json for TMUX status bar
+    if (ctxPercent != null) {
+      try {
+        const { saveBridge } = require('./context-bridge');
+        const bridgePath = path.join(planningDir, '.context-budget.json');
+        const bridge = {
+          timestamp: new Date().toISOString(),
+          estimated_percent: ctxPercent,
+          source: 'claude-code',
+          tool_calls: 0,
+          chars_read: 0
+        };
+        // Preserve existing bridge fields (warnings, tier, etc.)
+        try {
+          const existing = JSON.parse(fs.readFileSync(bridgePath, 'utf8'));
+          bridge.tool_calls = existing.tool_calls || 0;
+          bridge.chars_read = existing.chars_read || 0;
+          bridge.warnings_issued = existing.warnings_issued || [];
+          bridge.last_warned_tier = existing.last_warned_tier || 'PEAK';
+          bridge.calls_since_warn = existing.calls_since_warn || 0;
+          bridge.thresholds = existing.thresholds;
+        } catch (_e) { /* no existing bridge */ }
+        saveBridge(bridgePath, bridge);
+      } catch (_e) {
+        // Best-effort — never fail the status line
+      }
+    }
+
     const status = buildStatusLine(content, ctxPercent, slConfig, stdinData, planningDir);
 
     if (status) {

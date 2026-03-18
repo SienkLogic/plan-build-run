@@ -223,10 +223,9 @@ function updateBridge(planningDir, stdinData) {
 
   // Check if Claude Code provides real context percentage in stdin
   // Look for context_percent, usage_percent, context_usage, or similar fields
-  const contextPercent = stdinData.context_percent
-    || stdinData.usage_percent
-    || (stdinData.context && stdinData.context.percent)
-    || null;
+  const contextPercent = (stdinData.context_window && stdinData.context_window.used_percentage != null)
+    ? stdinData.context_window.used_percentage
+    : (stdinData.context_percent || stdinData.usage_percent || (stdinData.context && stdinData.context.percent) || null);
 
   const source = contextPercent !== null ? 'bridge' : 'heuristic';
   const estimatedPercent = contextPercent !== null
@@ -244,6 +243,41 @@ function updateBridge(planningDir, stdinData) {
     calls_since_warn: 0,
     tool_calls: 0
   };
+
+  // If status-line.js recently wrote real data (source: "claude-code"),
+  // use that instead of the heuristic. Check freshness (< 120 seconds).
+  if (bridge && bridge.source === 'claude-code' && bridge.timestamp) {
+    const age = Date.now() - new Date(bridge.timestamp).getTime();
+    if (age < 120000) {
+      // Real data is fresh — just update tool_calls and save
+      bridge.tool_calls = (bridge.tool_calls || 0) + 1;
+      bridge.calls_since_warn = (bridge.calls_since_warn || 0) + 1;
+      // Still read chars from tracker for informational purposes
+      const trackerPath2 = path.join(planningDir, '.context-tracker');
+      try {
+        const tracker = JSON.parse(fs.readFileSync(trackerPath2, 'utf8'));
+        bridge.chars_read = tracker.total_chars || 0;
+      } catch (_e) { /* keep existing */ }
+      // Check tier warnings using the real percentage
+      const thresholds = getEffectiveThresholds(planningDir);
+      bridge.thresholds = thresholds;
+      const tier = getTier(bridge.estimated_percent, thresholds);
+      let output = null;
+      if (shouldWarn(bridge, tier.name)) {
+        const msg = TIER_MESSAGES[tier.name];
+        if (msg) {
+          bridge.last_warned_tier = tier.name;
+          bridge.calls_since_warn = 0;
+          bridge.warnings_issued = bridge.warnings_issued || [];
+          bridge.warnings_issued.push({ tier: tier.name, percent: bridge.estimated_percent, timestamp: new Date().toISOString() });
+          if (bridge.warnings_issued.length > 20) bridge.warnings_issued = bridge.warnings_issued.slice(-20);
+          output = { additionalContext: `[Context Monitor — ${tier.name}] ${bridge.estimated_percent}% used (claude-code). ${msg}` };
+        }
+      }
+      saveBridge(bridgePath, bridge);
+      return { bridge, output };
+    }
+  }
 
   // Update bridge
   bridge.timestamp = new Date().toISOString();
