@@ -20,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('./hook-logger');
 const { checkPlanWrite, checkStateWrite } = require('./check-plan-format');
 const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
@@ -92,49 +93,84 @@ function checkContextWrite(data) {
  * @returns {Promise<Object|null>} Hook response object or null
  */
 async function processEvent(data, planningDir) {
-  // Route CONTEXT.md writes to sync hook (runs first, always returns null)
-  checkContextWrite(data);
+  const results = [];
 
-  // Plan format check (PLAN.md, SUMMARY*.md)
-  // Note: SUMMARY files intentionally trigger BOTH this check AND the state-sync
-  // check below. The plan format check validates frontmatter structure, while
-  // state-sync auto-updates ROADMAP.md and STATE.md tracking fields.
-  const planResult = await checkPlanWrite(data);
-  if (planResult) {
-    return planResult.output;
+  /**
+   * Extract additionalContext string from a check result.
+   * Checks return various shapes: { output: { additionalContext } }, { additionalContext },
+   * { output: { decision, reason } }. Normalize to a string or null.
+   */
+  function extractContext(result) {
+    if (!result) return null;
+    const output = result.output || result;
+    if (output.additionalContext) return output.additionalContext;
+    if (output.decision && output.reason) return `[${output.decision}] ${output.reason}`;
+    return null;
   }
 
-  // ROADMAP.md structural validation (before sync checks)
-  const roadmapResult = checkRoadmapWrite(data);
-  if (roadmapResult) {
-    return roadmapResult.output;
+  // Route CONTEXT.md writes to sync hook (side-effect only, always returns null)
+  try {
+    checkContextWrite(data);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkContextWrite', error: e.message });
+  }
+
+  // Plan format check (PLAN.md, SUMMARY*.md)
+  // SUMMARY files trigger BOTH this check AND the state-sync check below.
+  try {
+    const planResult = await checkPlanWrite(data);
+    const ctx = extractContext(planResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkPlanWrite', error: e.message });
+  }
+
+  // ROADMAP.md structural validation
+  try {
+    const roadmapResult = checkRoadmapWrite(data);
+    const ctx = extractContext(roadmapResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkRoadmapWrite', error: e.message });
   }
 
   // Roadmap sync check (STATE.md)
-  const syncResult = checkSync(data);
-  if (syncResult) {
-    return syncResult.output;
+  try {
+    const syncResult = checkSync(data);
+    const ctx = extractContext(syncResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkSync', error: e.message });
   }
 
-  // STATE.md frontmatter validation (after roadmap sync, advisory only)
-  const stateResult = checkStateWrite(data);
-  if (stateResult) {
-    return stateResult.output;
+  // STATE.md frontmatter validation (advisory only)
+  try {
+    const stateResult = checkStateWrite(data);
+    const ctx = extractContext(stateResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkStateWrite', error: e.message });
   }
 
   // State sync check (SUMMARY/VERIFICATION → STATE.md + ROADMAP.md)
-  const stateSyncResult = checkStateSync(data);
-  if (stateSyncResult) {
-    return stateSyncResult.output;
+  try {
+    const stateSyncResult = checkStateSync(data);
+    const ctx = extractContext(stateSyncResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkStateSync', error: e.message });
   }
 
-  // Quality checks (Prettier, tsc, console.log detection) — consolidated from post-write-quality.js
-  const qualityResult = checkQuality(data);
-  if (qualityResult) {
-    return qualityResult.output;
+  // Quality checks (Prettier, tsc, console.log detection)
+  try {
+    const qualityResult = checkQuality(data);
+    const ctx = extractContext(qualityResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkQuality', error: e.message });
   }
 
-  // Intel queue: track code file changes for auto-update
+  // Intel queue: track code file changes for auto-update (side-effect only)
   try {
     queueIntelUpdate(data, planningDir);
   } catch (_e) {
@@ -142,7 +178,6 @@ async function processEvent(data, planningDir) {
   }
 
   // LLM file intent classification — advisory enrichment for non-planning files
-  // Skipped for .planning/ files (already handled by plan format / state checks above)
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const normalizedPath = filePath.replace(/\\/g, '/');
   if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
@@ -170,14 +205,17 @@ async function processEvent(data, planningDir) {
       if (contentSnippet) {
         const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
         if (llmResult && llmResult.file_type) {
-          return {
-            additionalContext: `[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`
-          };
+          results.push(`[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`);
         }
       }
     } catch (_llmErr) {
       // Never propagate LLM errors
     }
+  }
+
+  // Merge all results into a single response
+  if (results.length > 0) {
+    return { additionalContext: results.join('\n') };
   }
 
   return null;
@@ -198,6 +236,7 @@ async function handleHttp(reqBody, _cache) {
   try {
     return await processEvent(data, planningDir);
   } catch (_e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
     return null;
   }
 }
@@ -220,6 +259,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on parse errors
+      logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
       process.exit(0);
     }
   });

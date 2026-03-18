@@ -58,8 +58,9 @@ describe('post-write-dispatch.js', () => {
     const result = runScript(tmpDir, { file_path: planPath });
     expect(result.exitCode).toBe(0); // PostToolUse always exits 0
     const parsed = JSON.parse(result.output);
-    expect(parsed.decision).toBe('block');
-    expect(parsed.reason).toContain('Missing YAML frontmatter');
+    // Independent dispatch merges all results into additionalContext
+    expect(parsed.additionalContext).toBeDefined();
+    expect(parsed.additionalContext).toContain('Missing YAML frontmatter');
     cleanup(tmpDir);
   });
 
@@ -106,8 +107,9 @@ must_haves:
     const result = runScript(tmpDir, { file_path: statePath });
     expect(result.exitCode).toBe(0);
     const parsed = JSON.parse(result.output);
-    expect(parsed.decision).toBe('block');
-    expect(parsed.reason).toContain('regression');
+    // Independent dispatch merges all results into additionalContext
+    expect(parsed.additionalContext).toBeDefined();
+    expect(parsed.additionalContext).toContain('regression');
     cleanup(tmpDir);
   });
 
@@ -237,8 +239,9 @@ deferred: []
       const result = runScript(tmpDir, { file_path: winPath });
       expect(result.exitCode).toBe(0);
       const parsed = JSON.parse(result.output);
-      expect(parsed.decision).toBe('block');
-      expect(parsed.reason).toContain('Missing YAML frontmatter');
+      // Independent dispatch merges all results into additionalContext
+      expect(parsed.additionalContext).toBeDefined();
+      expect(parsed.additionalContext).toContain('Missing YAML frontmatter');
       cleanup(tmpDir);
     });
 
