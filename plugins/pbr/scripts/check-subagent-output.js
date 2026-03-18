@@ -439,6 +439,66 @@ function checkSummaryCommits(planningDir, foundFiles, warnings) {
 }
 
 /**
+ * Check SUMMARY.md deviations for Rule 3/4 (action: "ask") that require user review.
+ * These deviations were flagged by the executor as needing human decision.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {string[]} foundFiles - List of found output files (relative to planningDir)
+ * @param {string[]} warnings - Array to push warnings into
+ */
+function checkDeviationsRequiringReview(planningDir, foundFiles, warnings) {
+  const summaryFiles = foundFiles.filter(f => /SUMMARY/i.test(f));
+  for (const relPath of summaryFiles) {
+    try {
+      const fullPath = path.join(planningDir, relPath);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fm = fmMatch[1];
+
+      // Parse deviations block for items with action: "ask"
+      const deviationsIdx = fm.indexOf('deviations:');
+      if (deviationsIdx === -1) continue;
+
+      const afterDeviations = fm.substring(deviationsIdx + 'deviations:'.length);
+      const firstLine = afterDeviations.split(/\r?\n/)[0].trim();
+      if (firstLine === '[]' || firstLine === 'none' || firstLine === '~' || firstLine === 'null') continue;
+
+      const askDeviations = [];
+      const lines = afterDeviations.split(/\r?\n/);
+      let currentItem = null;
+
+      for (const line of lines) {
+        if (/^\s+-\s+rule:/.test(line)) {
+          if (currentItem && currentItem.action === 'ask') askDeviations.push(currentItem);
+          currentItem = {};
+          const ruleMatch = line.match(/rule:\s*(\d+)/);
+          if (ruleMatch) currentItem.rule = ruleMatch[1];
+        } else if (currentItem) {
+          if (/^[a-zA-Z_][a-zA-Z0-9_]*:/.test(line)) {
+            if (currentItem.action === 'ask') askDeviations.push(currentItem);
+            currentItem = null;
+            break;
+          }
+          const actionMatch = line.match(/^\s+action:\s*["']?(\w+)/);
+          if (actionMatch) currentItem.action = actionMatch[1];
+          const descMatch = line.match(/^\s+description:\s*["']?(.+?)["']?\s*$/);
+          if (descMatch) currentItem.description = descMatch[1];
+        }
+      }
+      if (currentItem && currentItem.action === 'ask') askDeviations.push(currentItem);
+
+      if (askDeviations.length > 0) {
+        const descriptions = askDeviations
+          .map(d => d.description || `Rule ${d.rule || '?'}`)
+          .join('; ');
+        warnings.push(`Executor flagged ${askDeviations.length} deviation(s) requiring review: ${descriptions}`);
+      }
+    } catch (_e) { /* best-effort */ }
+  }
+}
+
+/**
  * Log a compliance violation to .planning/logs/compliance.jsonl.
  * These are surfaced to the user at session end by session-cleanup.js.
  * @param {string} planningDir - Path to .planning/
@@ -559,6 +619,8 @@ const SKILL_CHECKS = {
     description: 'build executor SUMMARY commits, self-check, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
       checkSummaryCommits(planningDir, found, warnings);
+      // Check for deviations requiring user review (Rule 3/4 with action: "ask")
+      checkDeviationsRequiringReview(planningDir, found, warnings);
       // Validate self-verification ran when feature is enabled
       const summaryFiles = found.filter(f => /SUMMARY/i.test(f));
       for (const relPath of summaryFiles) {
@@ -1237,5 +1299,5 @@ function validateSelfCheck(summaryPath, config) {
   return warnings;
 }
 
-module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild, validateSelfCheck };
+module.exports = { AGENT_OUTPUTS, SKILL_CHECKS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, logInlineDecision, handleHttp, extractVerificationOutcome, shouldTrackTrust, loadFeatureFlag, updateConventionsAfterBuild, validateSelfCheck };
 if (require.main === module || process.argv[1] === __filename) { main(); }
