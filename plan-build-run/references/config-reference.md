@@ -1,4 +1,4 @@
-# Configuration Reference
+# Config Reference Guide
 
 Complete reference for `.planning/config.json` -- the file that controls all Plan-Build-Run workflow behavior. Created by `/pbr:new-project`, modifiable via `/pbr:settings` or direct editing. Validated against `config-schema.json`.
 
@@ -9,11 +9,12 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 | Property | Type | Allowed Values | Default | Description |
 |----------|------|---------------|---------|-------------|
 | `version` | integer | `1`, `2` | `2` | Schema version; v1 configs are auto-migrated to v2 on load |
-| `schema_version` | integer | `1`, `2` | `2` | Config schema version for migration detection |
 | `context_strategy` | string | `aggressive`, `conservative`, `balanced` | `aggressive` | How aggressively PBR manages the context budget |
 | `mode` | string | `interactive`, `autonomous` | `interactive` | Whether PBR pauses for user input or runs hands-free |
 | `depth` | string | `quick`, `standard`, `comprehensive` | `standard` | Controls thoroughness of research, planning, and verification |
-| `session_phase_limit` | integer | `0`-`20` | `3` | Maximum phases to complete per session before auto-pause. `0` = disabled |
+| `session_phase_limit` | integer | `0`-`20` | `3` | Maximum phases to complete per session before auto-pause. Set to `0` to disable. Only effective when `features.auto_continue` is `true`. |
+| `context_window_tokens` | integer | `100000`-`2000000` | `200000` | Context window size in tokens for the active Claude model. Scales hook thresholds and agent budgets. Set to `1000000` for 1M-context models. |
+| `agent_checkpoint_pct` | integer | `40`-`80` | `50` | Context usage % at which agents checkpoint. Set to `65` for 1M-context models. |
 
 ### context_strategy
 
@@ -40,47 +41,27 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 
 See [depth_profiles](#depth_profiles) for the exact feature overrides each depth level applies.
 
----
+### context_window_tokens
 
-## Phase 14: Quality & Safety
+Sets the active model's context window size in tokens. This is the single source of truth for context scaling across all PBR subsystems.
 
-Phase 14 adds three configurable quality and safety features to the build workflow.
+| Value | Meaning |
+|-------|---------|
+| `200000` | Default — Claude Sonnet, Haiku, and most standard models |
+| `1000000` | Claude models with 1M extended context (set by `quality` model profile) |
 
-### features (Phase 14 toggles)
+Arbitrary integer values between `100000` and `2000000` are valid. Set to your model's actual context window size for accurate threshold scaling.
 
-| Property | Default | Description |
-|----------|---------|-------------|
-| `features.multi_layer_validation` | `false` | Enables parallel multi-layer review passes (BugBot-style). When true, build skill spawns one reviewer Task() per pass listed in `validation_passes`. Default false to preserve budget. Set to true for quality profile. |
-| `features.regression_prevention` | `true` | Enables smart test selection — maps changed files to affected test files by naming convention. When enabled, build skill scopes test runs to relevant files instead of always running the full suite. |
-| `features.security_scanning` | `true` | Enables OWASP-style security scanning of changed files during build. Checks for hardcoded secrets, eval usage, shell injection, path traversal, prototype pollution, unsafe regex, and other vulnerabilities. |
+### agent_checkpoint_pct
 
-### validation_passes
+The context usage percentage at which agents should stop work and return output (checkpoint). Higher values let agents do more work per invocation at the cost of less headroom before context compaction.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `validation_passes` | string[] | `["correctness", "security"]` | Ordered list of pass names run when `features.multi_layer_validation` is true. |
+| Value | Meaning |
+|-------|---------|
+| `50` | Default — agents checkpoint at 50% usage (standard for 200k models) |
+| `65` | Recommended for 1M-context models — agents can safely work to 65% |
 
-**Available pass names:**
-
-| Pass | Focus | Severity |
-|------|-------|----------|
-| `correctness` | Logic errors, edge cases, off-by-one, null handling | high |
-| `security` | Injection, auth bypass, secrets exposure, OWASP Top 10 | high |
-| `performance` | O(n²) loops, unnecessary allocations, blocking I/O | medium |
-| `style` | Naming conventions, code organization, consistency | low |
-| `tests` | Missing test coverage, weak assertions, flaky patterns | medium |
-| `accessibility` | ARIA labels, keyboard nav, screen reader compat | medium |
-| `docs` | Missing JSDoc, outdated comments, README drift | low |
-| `deps` | Outdated deps, unused imports, license conflicts, CVEs | medium |
-
-**Profile defaults:**
-
-| Setting | quick | standard | comprehensive |
-|---------|-------|----------|---------------|
-| `features.multi_layer_validation` | `false` | `false` | `true` |
-| `features.regression_prevention` | `true` | `true` | `true` |
-| `features.security_scanning` | `true` | `true` | `true` |
-| `validation_passes` | `["correctness"]` | `["correctness", "security"]` | `["correctness", "security", "performance", "tests"]` |
+Valid range: `40`–`80`. Values outside this range are rejected by schema validation. Set by the `quality` profile to `65`; all other profiles default to `50`.
 
 ---
 
@@ -103,20 +84,22 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 | `auto_continue` | `false` | Write `.auto-next` signal on phase completion for chaining |
 | `auto_advance` | `false` | Chain build, review, and plan automatically (requires `mode: autonomous`) |
 | `team_discussions` | `false` | Enable team-based discussion workflows (never used for execution) |
-| `inline_verify` | `false` | Per-task verification after each executor commit |
+| `inline_verify` | `false` | Per-task verification after each executor commit; adds ~10-20s latency per plan |
+| `extended_context` | `false` | Enable aggressive 1M context optimizations: higher concurrency (5 agents vs 3), default team review, always-parallel scan, pre-load build steps. Auto-set by quality profile. Safe optimizations (parallel research, full SUMMARY reads) use `context_window_tokens >= 500000` instead. |
 
 **Notable interactions:**
 - `goal_verification: false` skips post-build verification; the build skill suggests running `/pbr:verify-work` manually.
-- `auto_continue: true` writes `.planning/.auto-next` containing the next command.
-- `auto_advance: true` requires `mode: autonomous`. Hard stops at checkpoints, verification gaps, errors, and milestone boundaries.
-- `inline_verify: true` spawns a haiku-model verifier after each plan within a wave.
-- `session_phase_limit` (top-level) triggers auto-pause after N phases when `auto_continue: true`.
+- `auto_continue: true` writes `.planning/.auto-next` containing the next command (e.g., `/pbr:plan-phase 4`).
+- `auto_advance: true` requires `mode: autonomous` to function. Hard stops at checkpoints, verification gaps, errors, and milestone boundaries.
+- `inline_verify: true` spawns a haiku-model verifier after each plan within a wave, catching issues before dependent plans run.
+- `session_phase_limit: N` (top-level) triggers auto-pause after N phases when `auto_continue: true`. In TMUX, the pause auto-cycles to a fresh session.
+- `extended_context: true` enables aggressive parallelization and deeper context usage. Requires `context_window_tokens >= 500000` to have any effect. Automatically set by the `quality` model profile. Safe optimizations (parallel researcher+seed-scan, full SUMMARY reads, pre-load steps) remain gated on `context_window_tokens >= 500000` only — they do not require this flag.
 
 ---
 
 ## models
 
-Per-agent model selection. Valid values: `sonnet`, `opus`, `haiku`, `inherit`.
+Per-agent model selection. Valid values for all fields: `sonnet`, `opus`, `haiku`, `inherit`.
 
 | Property | Default | Description |
 |----------|---------|-------------|
@@ -127,21 +110,17 @@ Per-agent model selection. Valid values: `sonnet`, `opus`, `haiku`, `inherit`.
 | `integration_checker` | `sonnet` | Model for the integration-checker agent |
 | `debugger` | `inherit` | Model for the debugger agent |
 | `mapper` | `sonnet` | Model for the codebase-mapper agent |
-| `synthesizer` | `haiku` | Model for the synthesizer agent |
+| `synthesizer` | `haiku` | Model for the synthesizer agent (combines team outputs) |
 
 ### models.complexity_map
 
-Maps task complexity to model tiers for auto-selection.
+Maps task complexity to model tiers. Used when agents auto-select models based on task difficulty.
 
 | Property | Default | Description |
 |----------|---------|-------------|
 | `simple` | `haiku` | Model for simple tasks |
 | `medium` | `sonnet` | Model for medium-complexity tasks |
 | `complex` | `inherit` | Model for high-complexity tasks |
-
-### model_profiles
-
-User-defined custom model profiles. Each key is a profile name; value maps agent names to model strings. Partial profiles allowed -- omitted agents fall back to the active profile defaults.
 
 ---
 
@@ -153,10 +132,14 @@ Controls whether and how plans execute concurrently within a wave.
 |----------|------|---------|-------------|
 | `enabled` | boolean | `true` | Enable parallel plan execution |
 | `plan_level` | boolean | `true` | Parallelize at plan level (multiple plans in same wave) |
-| `task_level` | boolean | `false` | Parallelize at task level within a plan |
+| `task_level` | boolean | `false` | Parallelize at task level within a plan (not currently used) |
 | `max_concurrent_agents` | integer | `3` | Maximum simultaneous executor subagents (1-10) |
-| `min_plans_for_parallel` | integer | `2` | Minimum plans in a wave to trigger parallel execution |
-| `use_teams` | boolean | `false` | Use Agent Teams for coordination |
+| `min_plans_for_parallel` | integer | `2` | Minimum plans in a wave to trigger parallel execution (min: 1) |
+| `use_teams` | boolean | `false` | Use Agent Teams for coordination (discussion only, never execution) |
+
+**Behavior notes:**
+- When `enabled: true` and a wave has >= `min_plans_for_parallel` plans, the build orchestrator spawns executors in parallel using `run_in_background: true`.
+- Git lock conflicts can occur with parallel execution. Executors retry with 2s waits (max 3 attempts). If conflicts persist, reduce `max_concurrent_agents`.
 
 ---
 
@@ -166,10 +149,12 @@ Configures Agent Teams for multi-perspective planning and review discussions.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `planning_roles` | string[] | `["architect", "security-reviewer", "test-designer"]` | Roles for team planning discussions |
-| `review_roles` | string[] | `["functional-reviewer", "security-auditor", "performance-analyst"]` | Roles for team review discussions |
-| `synthesis_model` | string | `sonnet` | Model for the synthesizer agent that combines team outputs |
-| `coordination` | string | `file-based` | How team members coordinate: `file-based` or `sequential` |
+| `planning_roles` | string[] | `["architect", "security-reviewer", "test-designer"]` | Roles used during team planning discussions |
+| `review_roles` | string[] | `["functional-reviewer", "security-auditor", "performance-analyst"]` | Roles used during team review discussions |
+| `synthesis_model` | string | `sonnet` | Model used for the synthesizer agent that combines team outputs |
+| `coordination` | string | `file-based` | How team members coordinate: `file-based` (parallel writes) or `sequential` |
+
+**Interaction with parallelization:** Teams require `parallelization.max_concurrent_agents` > 1 to be useful. Setting `max_concurrent_agents: 1` with teams configured is a validation error.
 
 ---
 
@@ -179,9 +164,11 @@ Controls planning behavior and documentation.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `commit_docs` | boolean | `true` | Commit planning docs after builds |
-| `max_tasks_per_plan` | integer | `3` | Maximum tasks per plan (1-10) |
+| `commit_docs` | boolean | `true` | Commit planning docs (SUMMARY, VERIFICATION) after builds |
+| `max_tasks_per_plan` | integer | `3` | Maximum tasks per plan; keeps plans focused and atomic (1-10) |
 | `search_gitignored` | boolean | `false` | Include gitignored files in codebase scanning |
+
+When `commit_docs: true`, after all plans in a phase complete, the build orchestrator stages and commits planning artifacts with the message format `docs({phase}): add build summaries and verification`.
 
 ---
 
@@ -191,31 +178,42 @@ Controls git integration and branching strategy.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `branching` | string | `none` | Strategy: `none`, `phase`, `milestone`, `disabled` |
-| `commit_format` | string | `{type}({scope}): {description}` | Commit message template |
+| `branching` | string | `none` | Branching strategy: `none`, `phase`, `milestone`, `disabled`. Recommended: `phase` -- enables safe undo via phase manifests and clean PR history |
+| `commit_format` | string | `{type}({scope}): {description}` | Commit message template. Use a short descriptive word as the scope (e.g., `auth`, `config`, `executor`) rather than phase-plan numbers. |
 | `phase_branch_template` | string | `plan-build-run/phase-{phase}-{slug}` | Phase branch name pattern |
 | `milestone_branch_template` | string | `plan-build-run/{milestone}-{slug}` | Milestone branch name pattern |
 | `mode` | string | `enabled` | Git mode: `enabled` or `disabled` |
+| `auto_pr` | boolean | `false` | Create a GitHub PR after successful phase verification when branching is enabled |
+
+When `git.mode` is `disabled`, no git commands run at all -- no commits, branching, or hook validation. Useful for prototyping or non-git projects. See `references/git-integration.md` for full branching strategy details.
+
+---
+
+## ci
+
+Controls CI integration for build gates.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ci.gate_enabled` | boolean | `false` | Block wave advancement until CI passes |
+| `ci.wait_timeout_seconds` | number | `120` | Max seconds to wait for CI completion |
 
 ---
 
 ## gates
 
-Confirmation gates that pause execution for user approval. Setting to `false` makes that step automatic.
+Confirmation gates that pause execution to ask the user before proceeding. Setting a gate to `false` makes that step automatic.
 
 | Property | Default | When Triggered |
 |----------|---------|----------------|
-| `confirm_project` | `true` | Before creating a new PBR project |
+| `confirm_project` | `true` | Before creating a new PBR project (`/pbr:new-project`) |
 | `confirm_roadmap` | `true` | Before finalizing a roadmap |
 | `confirm_plan` | `true` | Before finalizing plans for a phase |
-| `confirm_execute` | `false` | Before starting phase execution |
+| `confirm_execute` | `false` | Before starting phase execution (`/pbr:execute-phase`) |
 | `confirm_transition` | `true` | Before transitioning to the next phase |
 | `issues_review` | `true` | Before proceeding when issues are detected |
-| `confirm_research` | `true` | Before research phase |
-| `confirm_seeds` | `true` | Before seed selection |
-| `confirm_deferred` | `true` | Before deferred item review |
-| `confirm_commit_docs` | `true` | Before committing planning docs |
-| `auto_checkpoints` | `false` | Auto-resolve `checkpoint:human-verify` tasks if automated verify passes |
+
+**Key interaction:** Gates are unreachable in `mode: autonomous`. Setting `mode: autonomous` with any gates enabled is a validation error.
 
 ---
 
@@ -226,48 +224,54 @@ Safety controls for destructive or external operations.
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `always_confirm_destructive` | boolean | `true` | Always ask before destructive git operations |
-| `always_confirm_external_services` | boolean | `true` | Always ask before calling external APIs |
-| `enforce_phase_boundaries` | boolean | `true` | Prevent agents from working outside assigned phase scope |
+| `always_confirm_external_services` | boolean | `true` | Always ask before calling external APIs or services |
+| `enforce_phase_boundaries` | boolean | `true` | Prevent agents from working outside their assigned phase scope |
 
----
-
-## timeouts
-
-Controls execution timeouts.
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `task_default_ms` | integer | `300000` | Default timeout per task in milliseconds (5 min) |
-| `build_max_ms` | integer | -- | Maximum time for entire build command |
-| `verify_max_ms` | integer | -- | Maximum time for verification |
+The `always_confirm_destructive` and `always_confirm_external_services` flags cannot be disabled via `/pbr:settings`; they require direct editing of `config.json` as a deliberate action.
 
 ---
 
 ## hooks
 
-Controls behavior of hook scripts.
+Controls behavior of hook scripts that fire during Claude Code lifecycle events.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `autoFormat` | boolean | `false` | Run auto-formatting after file writes |
 | `typeCheck` | boolean | `false` | Run type checking after file writes |
 | `detectConsoleLogs` | boolean | `false` | Warn when console.log statements are added |
-| `blockDocSprawl` | boolean | `false` | Block excessive documentation file creation |
-| `compactThreshold` | integer | `50` | Context budget % at which to suggest compaction (10-200) |
+| `blockDocSprawl` | boolean | `false` | Block creation of excessive documentation files |
+| `compactThreshold` | integer | `50` | Context budget percentage at which to suggest compaction (10-200) |
+
+All hook checks are disabled by default and must be opted into via config.
 
 ---
 
 ## debug
 
+Controls debug workflow behavior.
+
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `max_hypothesis_rounds` | integer | `5` | Maximum hypothesis-test cycles the debugger runs (1-20) |
+| `max_hypothesis_rounds` | integer | `5` | Maximum hypothesis-test cycles the debugger agent runs (1-20) |
+
+This value is overridden by the active depth profile if a `depth_profiles` entry sets `debug.max_hypothesis_rounds`.
+
+---
+
+## deployment
+
+Controls post-milestone deployment verification.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `deployment.smoke_test_command` | string | `""` | Bash command to run after milestone completion (e.g., `"curl -sf https://myapp.com/health"`) |
 
 ---
 
 ## depth_profiles
 
-Override built-in depth profile defaults. Each key (`quick`, `standard`, `comprehensive`) maps to settings that take effect when that depth is active.
+Override the built-in depth profile defaults. Each key (`quick`, `standard`, `comprehensive`) maps to an object of settings that take effect when that depth is active.
 
 **Built-in defaults:**
 
@@ -281,125 +285,329 @@ Override built-in depth profile defaults. Each key (`quick`, `standard`, `compre
 | `scan.mapper_areas` | `["tech", "arch"]` | `["tech", "arch", "quality", "concerns"]` | `["tech", "arch", "quality", "concerns"]` |
 | `debug.max_hypothesis_rounds` | `3` | `5` | `10` |
 
+User overrides in `depth_profiles` merge on top of these defaults. For example, to keep standard depth but increase debug rounds:
+
+```json
+{
+  "depth": "standard",
+  "depth_profiles": {
+    "standard": {
+      "debug.max_hypothesis_rounds": 8
+    }
+  }
+}
+```
+
 ---
 
-## prd
+## session_phase_limit
 
-Settings for PRD import via `/pbr:import --prd`.
+Controls how many phases PBR completes in a single session before suggesting a pause-and-resume cycle. This prevents context degradation in long autonomous runs.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `auto_extract` | boolean | `false` | Skip confirmation gate during PRD import |
+| Value | Behavior |
+|-------|----------|
+| `0` | Disabled -- PBR never auto-pauses for session cycling |
+| `1`-`20` | After completing this many phases, PBR writes `/pbr:pause-work` to `.auto-next` and triggers a session cycle |
+
+**Interaction with TMUX:** When running inside a TMUX session, the auto-pause automatically sends `/clear` and `/pbr:resume-work` to the current pane after a 3-second delay, creating a seamless session cycle. Outside TMUX, a banner instructs the user to manually run `/clear` then `/pbr:resume-work`.
+
+**Tracking:** Phase completions are tracked in `.planning/.session-tracker` (reset each session start). The counter increments when an executor subagent completes successfully.
+
+See `references/tmux-setup.md` for TMUX environment setup.
 
 ---
 
 ## spinner_tips
 
-Custom spinner tips shown during agent execution (Claude Code 2.1.45+).
+Custom spinner tips shown during agent execution. Requires Claude Code 2.1.45+.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `tips` | string[] | `[]` | Custom tip strings to display |
-| `exclude_defaults` | boolean | `false` | Only show custom tips, suppress defaults |
-
----
-
-## dashboard
-
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `auto_launch` | boolean | `false` | Auto-launch dashboard on session start |
-| `port` | integer | `3141` | Dashboard server port (1024-65535) |
+| `tips` | string[] | `[]` | Array of custom tip strings to display in the spinner |
+| `exclude_defaults` | boolean | `false` | When true, only show custom tips (suppress default Claude Code tips) |
 
 ---
 
 ## status_line
 
-Controls the status line displayed in session UI.
+Controls the status line displayed in the session UI.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `sections` | string[] | `["phase", "plan", "status", "context"]` | Which sections to display |
-| `brand_text` | string | -- | Custom brand text |
-| `max_status_length` | integer | -- | Max character length for status section (10-200) |
+| `sections` | string[] | `["phase", "plan", "status", "context"]` | Which sections to display; allowed values: `phase`, `plan`, `status`, `context` |
+| `brand_text` | string | -- | Custom brand text for the status line |
+| `max_status_length` | integer | -- | Maximum character length for the status section (10-200) |
 
 ### status_line.context_bar
 
+Controls the visual context budget bar.
+
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `width` | integer | -- | Width in characters (1-50) |
-| `thresholds.green` | integer | -- | Green threshold (0-100) |
-| `thresholds.yellow` | integer | -- | Yellow threshold (0-100) |
-| `chars.filled` | string | -- | Filled bar character |
-| `chars.empty` | string | -- | Empty bar character |
+| `width` | integer | -- | Width of the context bar in characters (1-50) |
+| `thresholds.green` | integer | -- | Percentage threshold for green indicator (0-100) |
+| `thresholds.yellow` | integer | -- | Percentage threshold for yellow indicator (0-100) |
+| `chars.filled` | string | -- | Character used for the filled portion of the bar |
+| `chars.empty` | string | -- | Character used for the empty portion of the bar |
 
 ---
 
-## workflow
+## Common Configurations
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enforce_pbr_skills` | string | `advisory` | Enforcement level: `advisory`, `block`, `off` |
+### Quick Solo Development
+
+Minimal overhead for small fixes or solo prototyping. Skips research, plan-checking, and verification. No gates, no branching.
+
+```json
+{
+  "version": 2,
+  "depth": "quick",
+  "mode": "interactive",
+  "features": {
+    "structured_planning": true,
+    "goal_verification": false,
+    "integration_verification": false,
+    "context_isolation": true,
+    "atomic_commits": true,
+    "research_phase": false,
+    "plan_checking": false
+  },
+  "gates": {
+    "confirm_project": false,
+    "confirm_roadmap": false,
+    "confirm_plan": false,
+    "confirm_execute": false,
+    "confirm_transition": false,
+    "issues_review": false
+  },
+  "git": {
+    "branching": "none",
+    "mode": "enabled"
+  }
+}
+```
+
+### Comprehensive Team Workflow
+
+Full verification, team discussions, parallel execution, and all gates enabled. Good for multi-phase projects with code review requirements.
+
+```json
+{
+  "version": 2,
+  "depth": "comprehensive",
+  "mode": "interactive",
+  "features": {
+    "structured_planning": true,
+    "goal_verification": true,
+    "integration_verification": true,
+    "context_isolation": true,
+    "atomic_commits": true,
+    "research_phase": true,
+    "plan_checking": true,
+    "tdd_mode": true,
+    "inline_verify": true,
+    "team_discussions": true
+  },
+  "parallelization": {
+    "enabled": true,
+    "plan_level": true,
+    "max_concurrent_agents": 3,
+    "use_teams": true
+  },
+  "teams": {
+    "planning_roles": ["architect", "security-reviewer", "test-designer"],
+    "review_roles": ["functional-reviewer", "security-auditor", "performance-analyst"],
+    "coordination": "file-based"
+  },
+  "gates": {
+    "confirm_project": true,
+    "confirm_roadmap": true,
+    "confirm_plan": true,
+    "confirm_execute": true,
+    "confirm_transition": true,
+    "issues_review": true
+  },
+  "git": {
+    "branching": "phase",
+    "mode": "enabled"
+  }
+}
+```
+
+### Autonomous CI/CD Mode
+
+Hands-free execution with no gates and automatic phase chaining. Suitable for CI pipelines or unattended runs.
+
+```json
+{
+  "version": 2,
+  "depth": "standard",
+  "mode": "autonomous",
+  "features": {
+    "structured_planning": true,
+    "goal_verification": true,
+    "integration_verification": true,
+    "context_isolation": true,
+    "atomic_commits": true,
+    "research_phase": true,
+    "plan_checking": true,
+    "auto_continue": true,
+    "auto_advance": true
+  },
+  "gates": {
+    "confirm_project": false,
+    "confirm_roadmap": false,
+    "confirm_plan": false,
+    "confirm_execute": false,
+    "confirm_transition": false,
+    "issues_review": false
+  },
+  "git": {
+    "branching": "phase",
+    "mode": "enabled"
+  },
+  "planning": {
+    "commit_docs": true
+  }
+}
+```
 
 ---
 
-## hook_server
+## Global Defaults File
 
-Persistent HTTP hook server settings.
+PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.json`. When creating a new project via `/pbr:new-project` or `/pbr:settings` Quick Start, these defaults pre-populate configuration fields instead of hardcoded values.
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Route hook events to persistent server |
-| `port` | integer | `19836` | TCP port (127.0.0.1 only, 1024-65535) |
-| `event_log` | boolean | `true` | Append events to `.planning/.hook-events.jsonl` |
+**Location:** `~/.claude/pbr-defaults.json` (created by `config save-defaults`)
+
+**Commands:**
+- `pbr-tools.cjs config save-defaults` -- Save current project config as global defaults (only portable keys: mode, depth, features, models, parallelization, planning, git, gates, safety, hooks, dashboard, status_line)
+- `pbr-tools.cjs config load-defaults` -- Load global defaults (returns JSON or `{ exists: false }`)
+
+**Portable keys saved:** mode, depth, context_strategy, features, models, parallelization, planning, git, gates, safety, hooks, dashboard, status_line. Project-specific state (version, schema_version) is excluded.
+
+**Precedence:** Global defaults < project config.json < CLI arguments. Global defaults only affect new project creation and Quick Start flow.
+
+---
+
+## Troubleshooting
+
+### Validation Errors
+
+Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config validate`
+
+**"config.json not found"** -- No `.planning/config.json` exists. Run `/pbr:new-project` to create one, or create the file manually.
+
+**"config.json is not valid JSON"** -- Syntax error in the JSON file. Check for trailing commas, missing quotes, or unescaped characters.
+
+**"mode=autonomous with active gates: gates are unreachable in autonomous mode"** -- You set `mode: autonomous` but left one or more gates enabled. Autonomous mode never pauses for confirmation, so enabled gates are contradictory. Set all gates to `false` or switch back to `mode: interactive`.
+
+**"parallelization.max_concurrent_agents=1 with teams.coordination set: teams require concurrent agents to be useful"** -- Teams need multiple agents running in parallel. Either increase `max_concurrent_agents` above 1 or remove the `teams` configuration.
+
+### Validation Warnings
+
+**"features.auto_continue=true with mode=interactive"** -- `auto_continue` only fires in autonomous mode. It has no effect in interactive mode. Either switch to `mode: autonomous` or disable `auto_continue`.
+
+**"parallelization.enabled=false with plan_level=true"** -- `plan_level` is ignored when parallelization is disabled. Either enable parallelization or remove the `plan_level` setting.
+
+### Contradictory Configurations to Avoid
+
+| Configuration | Problem |
+|---------------|---------|
+| `mode: autonomous` + any gate `true` | Gates never fire in autonomous mode (validation error) |
+| `max_concurrent_agents: 1` + `teams.coordination` set | Teams cannot coordinate with only one agent (validation error) |
+| `auto_continue: true` + `mode: interactive` | auto_continue is ignored in interactive mode (warning) |
+| `parallelization.enabled: false` + `plan_level: true` | plan_level has no effect when parallelization is off (warning) |
+| `auto_advance: true` + `mode: interactive` | auto_advance requires autonomous mode to chain phases |
+| `tdd_mode: true` + `depth: quick` | quick depth skips verification, which conflicts with TDD's verify-first approach |
+| `git.mode: disabled` + `atomic_commits: true` | atomic_commits has no effect when git is disabled |
+| `git.branching: phase` + `git.mode: disabled` | Branching settings are ignored when git is disabled |
 
 ---
 
 ## local_llm
 
-Offloads selected inference tasks to a locally running Ollama instance.
+Offloads selected PBR inference tasks to a locally running Ollama instance, reducing frontier model usage and latency for fast classification calls. The key `enabled` defaults to `false`, so users without Ollama see no change — all LLM calls continue routing to Claude as normal. When enabled, PBR uses a `local_first` routing strategy: fast tasks (artifact classification, task validation) go to the local model; complex tasks (planning, execution) stay on the frontier model.
+
+### Quick setup
+
+1. Install Ollama:
+   - **Linux/macOS**: `curl -fsSL https://ollama.com/install.sh | sh`
+   - **Windows**: Download from [ollama.com/download](https://ollama.com/download) and run the installer
+2. Pull the recommended model: `ollama pull qwen2.5-coder:7b`
+3. Add to `.planning/config.json`:
+
+   ```json
+   "local_llm": {
+     "enabled": true,
+     "model": "qwen2.5-coder:7b"
+   }
+   ```
+
+4. Verify connectivity: `node /path/to/${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm health`
+
+### Field reference
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable local LLM offloading |
-| `provider` | string | `ollama` | Backend provider (only `ollama` supported) |
-| `endpoint` | string | `http://localhost:11434` | Ollama API base URL |
-| `model` | string | `qwen2.5-coder:7b` | Model tag for local inference |
-| `timeout_ms` | integer | `3000` | Per-request timeout (>= 500ms) |
-| `max_retries` | integer | `1` | Retry attempts before fallback |
-| `fallback` | string | `frontier` | Fallback on failure: `frontier` or `skip` |
-| `routing_strategy` | string | `local_first` | `local_first` or `frontier_first` |
+| `local_llm.enabled` | boolean | `false` | Enable local LLM offloading; `false` = all calls use frontier |
+| `local_llm.provider` | string | `"ollama"` | Backend provider; only `"ollama"` is supported |
+| `local_llm.endpoint` | string | `"http://localhost:11434"` | Ollama API base URL |
+| `local_llm.model` | string | `"qwen2.5-coder:7b"` | Model tag to use for local inference |
+| `local_llm.timeout_ms` | integer | `3000` | Per-request timeout in milliseconds; >= 500 |
+| `local_llm.max_retries` | integer | `1` | Number of retry attempts on failure before falling back |
+| `local_llm.fallback` | string | `"frontier"` | What to use when local LLM fails: `"frontier"` or `"skip"` |
+| `local_llm.routing_strategy` | string | `"local_first"` | `"local_first"` sends fast tasks local; `"always_local"` routes everything |
 
-### local_llm.features
+### features sub-table
+
+Controls which PBR tasks are eligible for local LLM offloading.
 
 | Property | Default | Description |
 |----------|---------|-------------|
-| `artifact_classification` | `true` | Classify artifact types locally |
-| `task_validation` | `true` | Validate task scope locally |
-| `plan_adequacy` | `false` | Check plan adequacy locally |
-| `gap_detection` | `false` | Detect gaps locally |
-| `context_summarization` | `false` | Summarize context windows locally |
-| `source_scoring` | `false` | Score source files locally |
-| `commit_classification` | `false` | Classify commit types locally |
-| `test_triage` | `false` | Triage test failures locally |
-| `file_intent_classification` | `false` | Classify file intent locally |
+| `artifact_classification` | `true` | Classify artifact types (PLAN, SUMMARY, VERIFICATION) locally |
+| `task_validation` | `true` | Validate task scope and completeness locally |
+| `context_summarization` | `false` | Summarize context windows locally (higher token demand) |
+| `source_scoring` | `false` | Score source files by relevance locally |
 
-### local_llm.metrics
+### advanced sub-table
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Enable metrics logging |
-| `log_file` | string | -- | Custom log file path |
-| `show_session_summary` | boolean | `false` | Show summary at session end |
-| `frontier_token_rate` | number | -- | Estimated frontier token cost rate |
+| Property | Default | Description |
+|----------|---------|-------------|
+| `confidence_threshold` | `0.9` | Minimum confidence (0–1) for local output to be accepted; below this, falls back to frontier |
+| `shadow_mode` | `false` | Run local LLM in parallel with frontier but discard local results — useful for tuning confidence thresholds without affecting output |
+| `max_input_tokens` | `2000` | Truncate inputs longer than this before sending to local model |
+| `keep_alive` | `"30m"` | How long Ollama keeps the model loaded between requests (Ollama format: `"5m"`, `"1h"`) |
+| `num_ctx` | `4096` | Context window size passed to Ollama; **must be 4096 on Windows** (see Windows gotchas) |
+| `disable_after_failures` | `3` | Automatically disable local LLM for the session after this many consecutive failures |
 
-### local_llm.advanced
+### Hardware requirements
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `confidence_threshold` | number | `0.9` | Minimum confidence for local output (0-1) |
-| `max_input_tokens` | integer | `2000` | Truncate inputs longer than this |
-| `keep_alive` | string | `30m` | How long Ollama keeps model loaded |
-| `num_ctx` | integer | `4096` | Context window size (must be 4096 on Windows) |
-| `disable_after_failures` | integer | `3` | Auto-disable after N consecutive failures |
-| `shadow_mode` | boolean | `false` | Run local in parallel with frontier but discard results |
+| Tier | Hardware | Notes |
+|------|----------|-------|
+| Recommended | RTX 3060+ with 8 GB VRAM | Full GPU acceleration; qwen2.5-coder:7b loads entirely in VRAM |
+| Functional | GTX 1660+ with 6 GB VRAM | GPU acceleration with slight layer offload to RAM |
+| Marginal | CPU only, 32 GB RAM | Works but adds 5-20s latency per call; disable context-heavy features |
+
+For GPU acceleration, ensure NVIDIA drivers are 520+ and CUDA 11.8+ is installed. AMD GPU support is available via ROCm on Linux only.
+
+### Windows gotchas
+
+- **Smart App Control**: May block `ollama_llama_server.exe` on first run. Allow it via Security settings or disable Smart App Control.
+- **Windows Defender**: Add an exclusion for `%LOCALAPPDATA%\Programs\Ollama\ollama_llama_server.exe` to prevent Defender from scanning inference calls in real time.
+- **`num_ctx` must be 4096**: Higher values cause GPU memory fragmentation on Windows and result in OOM errors mid-session. Always set `advanced.num_ctx: 4096` in your config.
+- **Firewall**: Ollama listens on `localhost:11434` by default. If you see connection refused errors, check that Windows Firewall is not blocking loopback connections.
+
+### Viewing metrics
+
+After enabling local LLM, PBR logs per-call metrics to `.planning/logs/local-llm-metrics.jsonl`. Use the built-in subcommands to inspect them:
+
+```bash
+# Show session summary (calls routed, latency, token savings)
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics
+
+# Suggest routing threshold adjustments based on recent accuracy
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm adjust-thresholds
+```
+
+Metrics include: routing decision, model used, latency ms, confidence score, whether the frontier fallback was triggered, and estimated tokens saved.

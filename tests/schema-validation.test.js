@@ -170,7 +170,8 @@ describe('config-schema.json is valid JSON Schema', () => {
       'structured_planning', 'goal_verification', 'integration_verification',
       'context_isolation', 'atomic_commits', 'session_persistence',
       'research_phase', 'plan_checking', 'tdd_mode', 'status_line',
-      'auto_continue', 'auto_advance', 'team_discussions', 'inline_verify'
+      'auto_continue', 'auto_advance', 'team_discussions', 'inline_verify',
+      'extended_context'
     ];
     for (const toggle of expectedToggles) {
       expect(features).toHaveProperty(toggle);

@@ -74,10 +74,10 @@ Use AskUserQuestion:
       description: "Leave model settings unchanged."
 
 Apply the selected profile to the models block in config.json:
-- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku
-- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet
-- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku
-- **Keep current**: no change to models block
+- **Balanced**: executor=sonnet, researcher=sonnet, planner=sonnet, verifier=sonnet, synthesizer=haiku, context_window_tokens=200000, agent_checkpoint_pct=50, extended_context=false
+- **Quality**: executor=opus, researcher=sonnet, planner=opus, verifier=sonnet, synthesizer=sonnet, context_window_tokens=1000000, agent_checkpoint_pct=65, extended_context=true
+- **Budget**: executor=haiku, researcher=haiku, planner=sonnet, verifier=haiku, synthesizer=haiku, context_window_tokens=200000, agent_checkpoint_pct=50, extended_context=false
+- **Keep current**: no change to models block, no change to context_window_tokens
 
 ---
 
@@ -203,6 +203,16 @@ WARNING: .claude/settings.json has includeGitInstructions: true
 **CRITICAL: Write `.planning/config.json` NOW with all changes from Steps 2-3. Do NOT skip this step.**
 
 Write the updated config.json to disk with all applied changes.
+
+### Commit Changes
+
+Reference: `skills/shared/commit-planning-docs.md` for the commit pattern.
+
+If `planning.commit_docs` is true in config.json, commit modified files:
+
+```text
+docs(setup): reconfigure project — {changed_settings}
+```
 
 ---
 
