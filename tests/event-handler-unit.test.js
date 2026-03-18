@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
 // Import the writeAutoVerifySignal indirectly via module — it's not exported.
 // We test it through the main flow by testing shouldAutoVerify + getPhaseFromState combinations.
@@ -13,13 +13,11 @@ let tmpDir;
 let planningDir;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-ehu-'));
-  planningDir = path.join(tmpDir, '.planning');
-  fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  ({ tmpDir, planningDir } = createTmpPlanning('pbr-ehu-'));
 });
 
 afterEach(() => {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  cleanupTmp(tmpDir);
 });
 
 describe('shouldAutoVerify edge cases', () => {

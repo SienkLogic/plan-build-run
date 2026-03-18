@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
 const { buildAgentContext, resolveAgentType, handleHttp } = require('../hooks/log-subagent');
 
@@ -12,16 +12,14 @@ let planningDir;
 let originalCwd;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-lsau-'));
-  planningDir = path.join(tmpDir, '.planning');
-  fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  ({ tmpDir, planningDir } = createTmpPlanning('pbr-lsau-'));
   originalCwd = process.cwd();
   process.chdir(tmpDir);
 });
 
 afterEach(() => {
   process.chdir(originalCwd);
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  cleanupTmp(tmpDir);
 });
 
 describe('buildAgentContext additional paths', () => {

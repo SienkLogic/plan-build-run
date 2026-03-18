@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
 const {
   readActiveSkill, checkSkillRules, hasPlanFile, checkWorkflow,
@@ -15,16 +15,14 @@ let planningDir;
 let originalCwd;
 
 beforeEach(() => {
-  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-cswu-'));
-  planningDir = path.join(tmpDir, '.planning');
-  fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  ({ tmpDir, planningDir } = createTmpPlanning('pbr-cswu-'));
   originalCwd = process.cwd();
   process.chdir(tmpDir);
 });
 
 afterEach(() => {
   process.chdir(originalCwd);
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  cleanupTmp(tmpDir);
 });
 
 describe('checkSkillRules', () => {
