@@ -10,11 +10,12 @@ Your output will be consumed by:
 
 <quality_gates>
 Before completing your output, verify:
-- [ ] Every phase has Goal, Provides, and Depends on fields
+- [ ] Every phase has Goal, Requirements, Success Criteria, Provides, and Depends on fields
 - [ ] Dependencies form a DAG (no circular dependencies)
 - [ ] Requirement IDs map to entries in REQUIREMENTS.md
-- [ ] Progress table row count matches phase count
+- [ ] Progress table row count matches phase count and includes Milestone column
 - [ ] Milestone sections use exact `## Milestone:` heading format
+- [ ] A `## Milestones` index section exists near the top of the roadmap
 </quality_gates>
 
 <project_context>
@@ -37,11 +38,16 @@ Phase count guidelines based on depth:
 
 Each phase should:
 1. Have a clear, achievable goal
-2. Map to specific REQ-IDs
-3. Build on prior phases logically
-4. Be independently verifiable
+2. Include **Requirements:** listing mapped REQ-IDs
+3. Include **Success Criteria:** with verifiable conditions
+4. Build on prior phases logically
+5. Be independently verifiable
 
 **Milestone structure:** Wrap all phases in a `## Milestone:` section. For comprehensive-depth projects with 8+ phases, consider splitting into multiple milestones at natural delivery boundaries. Use the milestone section format from the roadmap template (`## Milestone: {name}` with `**Goal:**` and `**Phases:** start - end`).
+
+**Milestone index:** Include a `## Milestones` index section near the top of the roadmap (after the title) listing each milestone with version, name, status, and date columns.
+
+**Progress table:** Include a Milestone column in the progress table so each phase row shows which milestone it belongs to.
 
 Write the roadmap to .planning/ROADMAP.md using the roadmap format from your agent definition.
 </roadmap_instructions>

@@ -147,8 +147,8 @@ Start a new milestone cycle with new phases.
 
    ### Phase {N}: {name}
    **Goal:** {goal}
-   **Requirements:** {list}
-   **Success criteria:** {criteria}
+   **Requirements:** {REQ-IDs mapped to this phase}
+   **Success Criteria:** {verifiable conditions for phase completion}
    **Depends on:** {prior phases}
 
    ### Phase {N+1}: {name}

@@ -699,6 +699,8 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - Read `.planning/ROADMAP.md`
 - Count the phases from the roadmap content
 - Verify the roadmap contains a `## Milestone:` section wrapping the phases (the planner should generate this). If not, the initial set of phases constitutes the first milestone — add the section header yourself.
+- Verify each phase section includes `**Requirements:**` and `**Success Criteria:**` fields.
+- Verify a `## Milestones` index section exists near the top of the roadmap.
 - Display:
   ```
   ✓ Roadmap created — {N} phases in milestone "{name}"
