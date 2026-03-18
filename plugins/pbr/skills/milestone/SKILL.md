@@ -408,6 +408,17 @@ Read `git.branching` from config.
 
    - Move validated requirements from active to completed section
 
+**CRITICAL (no hook): Run PROJECT.md evolution review NOW. Do NOT skip this step.**
+
+6b. **PROJECT.md Evolution Review:**
+   After moving the milestone to completed status, review and evolve the project definition:
+
+   1. **Move completed Active Requirements to Validated** — Any requirement from the completed milestone that was satisfied (per VERIFICATION.md) should move from Active to Validated section
+   2. **Review Out of Scope** — Check if any previously out-of-scope items are now unblocked by the completed milestone's deliverables. If so, note them for the user's consideration (do not move them automatically)
+   3. **Annotate Key Decisions with outcomes** — For each Key Decision in PROJECT.md that relates to the completed milestone, add an Outcome column value: `Good` (decision worked well), `Revisit` (decision caused issues), or `Pending` (outcome not yet clear)
+   4. **Update Constraints** — Remove or update any constraints that changed during the milestone (e.g., a technology constraint that was relaxed)
+   5. **Refresh Core Value** — If the project direction shifted meaningfully during the milestone, suggest an updated Core Value statement to the user via AskUserQuestion
+
 **CRITICAL (no hook): Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
 
 7. **Collapse completed phases in ROADMAP.md:**
@@ -448,12 +459,12 @@ Read `git.branching` from config.
    - Update last activity timestamp
    - Record the milestone version in the history/completed section
 
-7c. **Append history to STATE.md:**
-   - Use `historyAppend()` (via `pbr-tools.cjs history append`) to write a milestone completion record to STATE.md ## History section:
-     ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
-     ```
-   - This writes to STATE.md ## History section (not a separate HISTORY.md file)
+7c. **Record milestone completion in STATE.md frontmatter:**
+   - Update STATE.md frontmatter with milestone completion data:
+     - Set `last_milestone_version: "{version}"`
+     - Set `last_milestone_completed: "{ISO datetime}"`
+   - **Do NOT write to a ## History section in STATE.md** — History has been removed from STATE.md to keep it lean. Milestone completion records are preserved in the archive's STATS.md and ROADMAP.md snapshot.
+   - If a ## History section exists in STATE.md (from a prior version), remove it during milestone completion to enforce the new format.
 
 7d. **Aggregate learnings from milestone phases:**
 

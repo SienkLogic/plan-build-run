@@ -732,9 +732,18 @@ Write the project state files from templates:
    - `{project_name}` — from questioning
    - `{2-3 sentences}` — project description from questioning
    - `{ONE sentence}` — core value statement
-   - Out-of-scope features
+   - **Requirements** section with three lifecycle categories:
+     - `### Active` — v1 requirements committed for this milestone
+     - `### Validated` — requirements completed and verified (empty at project start)
+     - `### Out of Scope` — deferred and excluded items with rationale
+   - **Key Decisions** table with Outcome column:
+     ```markdown
+     | Decision | Rationale | Date | Outcome |
+     |----------|-----------|------|---------|
+     | {decision} | {why} | {date} | Pending |
+     ```
+     All initial decisions start with Outcome = `Pending`. Updated to `Good`, `Revisit`, or `Pending` during `/pbr:milestone complete` (see PROJECT.md Evolution Review step).
    - Technical context and constraints
-   - Initial key decisions from the questioning conversation
 3. Write to `.planning/PROJECT.md`
 4. Ensure the `## Milestones` section is filled in with the project name and phase count from the roadmap
 
@@ -768,23 +777,15 @@ Write the project state files from templates:
 4. Do NOT write a separate CONTEXT.md file. All context lives in PROJECT.md now.
 5. **Backwards compat migration:** If `.planning/CONTEXT.md` exists (from a prior project version), read its content and merge into PROJECT.md ## Context section. Log: "PBR > Migrated CONTEXT.md into PROJECT.md"
 
-**CRITICAL (no hook): Write history to STATE.md NOW. Do NOT skip this step.**
+**9d. Initialize velocity and session fields in STATE.md frontmatter:**
+Add these fields to the STATE.md YAML frontmatter during initialization:
+- `velocity: {}` — empty object, populated as plans are executed
+- `session_last: ""` — set when `/pbr:pause-work` is run
+- `session_stopped_at: ""` — set when `/pbr:pause-work` is run
+- `session_resume: ""` — set when `/pbr:pause-work` is run
 
-**9d. Write initial history to STATE.md ## History section:**
-Append to `.planning/STATE.md` a `## History` section with the initial entry:
-
-```markdown
-## History
-
-### {date} -- Project Created
-
-- Initialized Plan-Build-Run project
-- Depth: {depth}, Mode: {mode}
-- Roadmap: {N} phases planned
-```
-
-Do NOT write a separate HISTORY.md file. All history lives in STATE.md now.
-**Backwards compat:** If `.planning/HISTORY.md` exists, the history.js library reads from it as a fallback. On next historyAppend call, entries go to STATE.md ## History.
+**Do NOT write a ## History section to STATE.md.** History has been removed from STATE.md to keep it lean. Milestone completion records are preserved in milestone archives.
+**Backwards compat:** If `.planning/HISTORY.md` exists from a prior project, it is ignored during new project initialization.
 
 **CRITICAL (no hook): Create phase directories NOW. Do NOT skip this step.**
 
