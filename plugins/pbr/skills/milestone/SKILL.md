@@ -493,15 +493,19 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git tag -a {version} -m "Milestone: {name}"
    ```
 
-9. **Commit:**
+9. **Generate RETROSPECTIVE.md:**
+
+   The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_SKILL_DIR}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
+
+9a. **Commit:**
    ```bash
-   git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md
+   git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/RETROSPECTIVE.md
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
 **CRITICAL (no hook): Generate changelog entry NOW. Do NOT skip this step.**
 
-9a. **Generate changelog entry:**
+9b. **Generate changelog entry:**
 
    Generate a user-facing changelog entry for this milestone. Read all SUMMARY.md files from the milestone phases (now in `.planning/milestones/{version}/phases/`) and categorize deliverables into Keep a Changelog sections:
 
@@ -546,7 +550,7 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git commit -m "docs: update changelog for {version}"
    ```
 
-9b. **Push milestone to remote:**
+9c. **Push milestone to remote:**
 
 Use AskUserQuestion to ask the user how they want to publish the milestone:
 
@@ -562,7 +566,7 @@ options:
 - If "Skip for now": display reminder: "Tag v{version} is local only. Push when ready: `git push origin main --follow-tags`"
 - If "Other": follow user instructions (e.g., create a PR, push to a different branch, etc.)
 
-9c. **Offer npm release:**
+9d. **Offer npm release:**
 
 Use AskUserQuestion to offer publishing this milestone as an npm release:
 
@@ -631,9 +635,9 @@ Verify milestone completion with cross-phase integration checks.
 
 6. **Write audit report:**
 
-   Create `.planning/{version}-MILESTONE-AUDIT.md` using the template:
+   Create `.planning/{version}-MILESTONE-AUDIT.md` using the structured template:
 
-   Read `${CLAUDE_SKILL_DIR}/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
+   Read `${CLAUDE_SKILL_DIR}/templates/MILESTONE-AUDIT.md.tmpl` for the audit report format with YAML frontmatter scores. Fill in all `{variable}` placeholders with actual data from the audit. The YAML frontmatter MUST include `scores` (requirements, phases, integration, flows), `gaps` array, and `tech_debt` array.
 
    **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
 
