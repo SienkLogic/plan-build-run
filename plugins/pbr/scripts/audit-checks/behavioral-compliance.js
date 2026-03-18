@@ -529,6 +529,262 @@ function checkPreConditionVerification(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-04: Post-Condition Verification
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if an entry represents a build-complete event.
+ * @param {Object} entry - JSONL entry
+ * @returns {boolean}
+ */
+function isBuildComplete(entry) {
+  // Task completion for executor agent
+  if (entry.event === 'task-complete' && entry.details) {
+    if (entry.details.agent === 'executor' || entry.details.subagent_type === 'pbr:executor') return true;
+  }
+
+  // Subagent stop for executor
+  if (entry.event === 'subagent-stop' && entry.details) {
+    if (entry.details.agent === 'executor' || entry.details.subagent_type === 'pbr:executor') return true;
+  }
+
+  // Hook log from check-subagent-output indicating build completion
+  if (entry.hook === 'check-subagent-output' && entry.details) {
+    if (entry.details.skill === 'build') return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if an entry represents a verify-complete event.
+ * @param {Object} entry - JSONL entry
+ * @returns {boolean}
+ */
+function isVerifyComplete(entry) {
+  if (entry.event === 'task-complete' && entry.details) {
+    if (entry.details.agent === 'verifier' || entry.details.subagent_type === 'pbr:verifier') return true;
+  }
+
+  if (entry.event === 'subagent-stop' && entry.details) {
+    if (entry.details.agent === 'verifier' || entry.details.subagent_type === 'pbr:verifier') return true;
+  }
+
+  if (entry.hook === 'check-subagent-output' && entry.details) {
+    if (entry.details.skill === 'verify') return true;
+  }
+
+  return false;
+}
+
+/**
+ * BC-04: Check that post-conditions are met after skill execution.
+ * Build must produce SUMMARY.md, verify must produce VERIFICATION.md.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkPostConditionVerification(planningDir, _config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-04: No session data available — cannot assess post-conditions'
+    };
+  }
+
+  const evidence = [];
+  const summaryPattern = /SUMMARY.*\.md/i;
+  const verificationPattern = /VERIFICATION.*\.md/i;
+
+  // Track build-complete and verify-complete events, then look for subsequent artifact writes
+  const buildCompletes = [];
+  const verifyCompletes = [];
+
+  for (const entry of allEntries) {
+    if (isBuildComplete(entry)) {
+      const phase = extractPhaseFromEntry(entry);
+      buildCompletes.push({ phase, ts: entry.ts || entry.timestamp || '' });
+    }
+    if (isVerifyComplete(entry)) {
+      const phase = extractPhaseFromEntry(entry);
+      verifyCompletes.push({ phase, ts: entry.ts || entry.timestamp || '' });
+    }
+  }
+
+  // For each build-complete, check if SUMMARY.md was written in the session
+  for (const bc of buildCompletes) {
+    const summaryWritten = allEntries.some(e => entryTargetsFile(e, summaryPattern));
+    if (!summaryWritten) {
+      const phaseLabel = bc.phase ? `Phase ${bc.phase}` : 'Unknown phase';
+      evidence.push(`${phaseLabel}: build completed but no SUMMARY.md written in session`);
+    }
+  }
+
+  // For each verify-complete, check if VERIFICATION.md was written in the session
+  for (const vc of verifyCompletes) {
+    const verificationWritten = allEntries.some(e => entryTargetsFile(e, verificationPattern));
+    if (!verificationWritten) {
+      const phaseLabel = vc.phase ? `Phase ${vc.phase}` : 'Unknown phase';
+      evidence.push(`${phaseLabel}: verify completed but no VERIFICATION.md written in session`);
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-04: Found ${evidence.length} missing post-condition artifact(s)`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: 'BC-04: All post-conditions verified (SUMMARY after build, VERIFICATION after verify)'
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BC-05: Orchestrator Budget Discipline
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if an event appears to be from orchestrator context (not inside a Task subagent).
+ * Events inside Task() typically have subagent markers or task_id fields.
+ * @param {Object} entry - JSONL entry
+ * @returns {boolean} true if this looks like an orchestrator-level event
+ */
+function isOrchestratorLevel(entry) {
+  // Events with subagent or task markers are inside Task() contexts
+  if (entry.task_id) return false;
+  if (entry.subagent) return false;
+  if (entry.details && entry.details.subagent_type) return false;
+  if (entry.details && entry.details.task_id) return false;
+  if (entry.cat === 'subagent') return false;
+
+  // Hook logs from within subagents
+  if (entry.hook && entry.details && entry.details.inside_task) return false;
+
+  return true;
+}
+
+/**
+ * Check if a file path is an executor-level file that the orchestrator should not read.
+ * @param {string} filePath - File path to check
+ * @returns {boolean}
+ */
+function isExecutorLevelFile(filePath) {
+  if (!filePath) return false;
+  const normalized = filePath.replace(/\\/g, '/');
+
+  // Source files that should be delegated to executor
+  if (/plugins\/pbr\/scripts\//.test(normalized)) return true;
+  if (/\/src\//.test(normalized)) return true;
+
+  // Plan action details (the executor reads these, not the orchestrator)
+  if (/PLAN-?\d+\.md$/i.test(normalized)) return true;
+
+  return false;
+}
+
+/**
+ * BC-05: Check that the orchestrator stays within its context budget.
+ * Flags orchestrator-level reads of executor files and budget overruns.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Config object with orchestrator_budget_pct
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkOrchestratorBudgetDiscipline(planningDir, config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-05: No session data available — cannot assess orchestrator budget'
+    };
+  }
+
+  const evidence = [];
+  const budgetPct = (config && config.orchestrator_budget_pct) || 35;
+
+  // Find orchestrator-level Read events targeting executor files
+  const orchestratorSourceReads = [];
+  for (const entry of allEntries) {
+    if (!isOrchestratorLevel(entry)) continue;
+
+    // Look for Read tool events
+    const isRead = entry.tool === 'Read' || entry.event === 'read' ||
+      (entry.details && entry.details.tool === 'Read');
+    if (!isRead) continue;
+
+    // Extract file path
+    const filePath = (entry.tool_input && entry.tool_input.file_path) ||
+      (entry.details && entry.details.file_path) ||
+      entry.file || entry.path || '';
+
+    if (isExecutorLevelFile(filePath)) {
+      orchestratorSourceReads.push(filePath);
+    }
+  }
+
+  if (orchestratorSourceReads.length > 0) {
+    evidence.push(
+      `Orchestrator read ${orchestratorSourceReads.length} executor-level file(s) directly: ` +
+      orchestratorSourceReads.slice(0, 5).map(f => path.basename(f)).join(', ') +
+      (orchestratorSourceReads.length > 5 ? ` (+${orchestratorSourceReads.length - 5} more)` : '')
+    );
+  }
+
+  // Check context budget data from .context-budget.json
+  const budgetPath = path.join(planningDir, '.context-budget.json');
+  try {
+    if (fs.existsSync(budgetPath)) {
+      const budgetData = JSON.parse(fs.readFileSync(budgetPath, 'utf8'));
+      const pctUsed = budgetData.pct_used || budgetData.estimated_percent || 0;
+      if (pctUsed > budgetPct) {
+        evidence.push(
+          `Orchestrator context budget exceeded: ${pctUsed}% used (threshold: ${budgetPct}%)`
+        );
+      }
+    }
+  } catch (_e) {
+    // Budget file may not exist or be unreadable — not an error
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-05: Orchestrator budget discipline concern(s) found`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: `BC-05: Orchestrator stayed within budget (threshold: ${budgetPct}%)`
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -544,4 +800,8 @@ module.exports = {
   checkStateMachineTransitions,
   // BC-03
   checkPreConditionVerification,
+  // BC-04
+  checkPostConditionVerification,
+  // BC-05
+  checkOrchestratorBudgetDiscipline,
 };
