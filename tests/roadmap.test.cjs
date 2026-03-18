@@ -665,6 +665,168 @@ describe('roadmap update-plan-progress command', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GSD-aligned format: parseRoadmapMd with new format
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('roadmap analyze with GSD-aligned format', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('extracts requirements and success_criteria from phases', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap: Test Project
+
+## Milestone: v1.0 -- Core Features
+
+**Phases:** 1 - 2
+
+### Phase 1: Foundation
+**Goal:** Set up project infrastructure
+**Requirements:** REQ-F-001, REQ-F-002
+**Success Criteria:** All tests pass, CI green
+
+### Phase 2: API
+**Goal:** Build REST API
+**Requirements:** REQ-F-003
+**Success Criteria:** API endpoints respond correctly
+`
+    );
+
+    const result = runPbrTools('roadmap analyze', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.phases.length, 2, 'should find 2 phases');
+    assert.strictEqual(output.phases[0].name, 'Foundation', 'phase 1 name');
+    assert.strictEqual(output.phases[0].goal, 'Set up project infrastructure', 'phase 1 goal');
+    assert.strictEqual(output.phases[0].requirements, 'REQ-F-001, REQ-F-002', 'phase 1 requirements');
+    assert.strictEqual(output.phases[0].success_criteria, 'All tests pass, CI green', 'phase 1 success_criteria');
+    assert.strictEqual(output.phases[1].requirements, 'REQ-F-003', 'phase 2 requirements');
+  });
+
+  test('details-wrapped completed milestone does not break parsing', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap
+
+<details>
+<summary>
+
+## Milestone: v1.0 -- COMPLETED
+
+</summary>
+
+**Phases:** 1 - 1
+
+### Phase 1: Foundation
+**Goal:** Set up base
+
+</details>
+
+## Milestone: v2.0
+
+**Phases:** 2 - 2
+
+### Phase 2: Build
+**Goal:** Build features
+**Requirements:** REQ-002
+**Success Criteria:** Features work
+`
+    );
+
+    const result = runPbrTools('roadmap analyze', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.ok(output.phases.length >= 2, 'should find at least 2 phases');
+    const phase1 = output.phases.find(p => p.number === 1);
+    const phase2 = output.phases.find(p => p.number === 2);
+    assert.ok(phase1, 'phase 1 from collapsed milestone should be found');
+    assert.ok(phase2, 'phase 2 from active milestone should be found');
+    assert.strictEqual(phase2.goal, 'Build features', 'active phase goal extracted');
+    assert.strictEqual(phase2.requirements, 'REQ-002', 'active phase requirements extracted');
+  });
+
+  test('update-plan-progress works with Milestone column in progress table', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+
+### Phase 1: Test
+**Goal:** Test goal
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Test | v1.0 | 0/2 | Planned | - |
+`
+    );
+
+    const p1 = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(p1, { recursive: true });
+    fs.writeFileSync(path.join(p1, '01-01-PLAN.md'), '# Plan 1');
+    fs.writeFileSync(path.join(p1, '01-02-PLAN.md'), '# Plan 2');
+    fs.writeFileSync(path.join(p1, '01-01-SUMMARY.md'), '# Summary 1');
+
+    const result = runPbrTools('roadmap update-plan-progress 1', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.success, true, 'should succeed');
+    assert.strictEqual(output.plan_count, 2, 'plan_count should be 2');
+    assert.strictEqual(output.summary_count, 1, 'summary_count should be 1');
+
+    const roadmap = fs.readFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), 'utf-8');
+    assert.ok(roadmap.includes('1/2'), 'roadmap should contain updated plan count');
+  });
+
+  test('update-plan-progress works without Milestone column (backward compat)', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap
+
+### Phase 1: Test
+**Goal:** Test goal
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Test | 0/1 | Planned | - |
+`
+    );
+
+    const p1 = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(p1, { recursive: true });
+    fs.writeFileSync(path.join(p1, '01-01-PLAN.md'), '# Plan 1');
+    fs.writeFileSync(path.join(p1, '01-01-SUMMARY.md'), '# Summary 1');
+
+    const result = runPbrTools('roadmap update-plan-progress 1', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.success, true, 'should succeed');
+    assert.strictEqual(output.complete, true, 'should be complete');
+
+    const roadmap = fs.readFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), 'utf-8');
+    assert.ok(roadmap.includes('1/1'), 'roadmap should contain updated plan count');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // phase add command
 // ─────────────────────────────────────────────────────────────────────────────
 
