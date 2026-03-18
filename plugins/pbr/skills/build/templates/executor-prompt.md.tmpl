@@ -20,6 +20,7 @@ CRITICAL: Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/{plan_id}-PLAN.md — the full plan with task details
 2. .planning/PROJECT.md — project context and locked decisions (if exists)
 3. .planning/STATE.md — current project state and progress
+4. .planning/ROADMAP.md — phase goals and dependencies (read Phase {phase_num} section only)
 </files_to_read>
 
 <plan_summary>
@@ -45,6 +46,11 @@ Available context files (read via Read tool as needed):
 {If PROJECT.md exists:}
   - Project context (locked decisions): {absolute path to PROJECT.md}
 </project_context>
+
+<phase_goal>
+Phase {phase_num}: {phase_name}
+Goal: {phase_goal}
+</phase_goal>
 
 <prior_work>
 Completed plans in this phase:
