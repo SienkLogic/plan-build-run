@@ -1,4 +1,4 @@
-const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, isHookServerRunning, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../hooks/status-line');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../hooks/status-line');
 const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
 
 /** Strip ANSI escape codes for readable assertions */
@@ -188,8 +188,8 @@ describe('status-line.js', () => {
         expect(DEFAULTS.context_bar).toHaveProperty('chars');
       });
 
-      test('default sections include phase, plan, status, agent, git, context, llm', () => {
-        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'agent', 'git', 'context', 'llm']);
+      test('default sections include phase, plan, status, agent, git, hooks, context, llm', () => {
+        expect(DEFAULTS.sections).toEqual(['phase', 'plan', 'status', 'agent', 'git', 'hooks', 'context', 'llm']);
       });
 
       test('default brand text is diamond PBR', () => {
@@ -566,6 +566,38 @@ describe('status-line.js', () => {
       const fm = parseFrontmatter(content);
       expect(fm.current_phase).toBe('5');
     });
+
+    test('skips YAML null values', () => {
+      const content = '---\ncurrent_phase: null\nphase_slug: null\nstatus: "milestone_complete"\n---\n# Body';
+      const fm = parseFrontmatter(content);
+      expect(fm.current_phase).toBeUndefined();
+      expect(fm.phase_slug).toBeUndefined();
+      expect(fm.status).toBe('milestone_complete');
+    });
+
+    test('skips empty values', () => {
+      const content = '---\ncurrent_phase: \nstatus: building\n---\n# Body';
+      const fm = parseFrontmatter(content);
+      expect(fm.current_phase).toBeUndefined();
+      expect(fm.status).toBe('building');
+    });
+  });
+
+  describe('buildStatusLine between milestones (null phases)', () => {
+    test('shows only brand when all frontmatter phase fields are null', () => {
+      const content = '---\ncurrent_phase: null\nphase_slug: null\nphase_name: null\nstatus: "milestone_complete"\nplans_total: 17\nplans_complete: 17\n---\n# State\nPhase: (none)';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('\u25C6 PBR');
+      // Should NOT show "Phase null" or "null/17"
+      expect(result).not.toContain('null');
+      expect(result).toContain('milestone_complete');
+    });
+
+    test('shows plan count when plans_complete and plans_total are valid numbers', () => {
+      const content = '---\ncurrent_phase: null\nstatus: "milestone_complete"\nplans_total: 17\nplans_complete: 17\n---\n# State';
+      const result = strip(buildStatusLine(content, null));
+      expect(result).toContain('Plan 17/17');
+    });
   });
 
   describe('buildStatusLine prefers frontmatter over body', () => {
@@ -929,8 +961,8 @@ describe('status-line.js', () => {
       expect(DEFAULTS.sections).not.toContain('milestone');
     });
 
-    test('default sections do not include hooks', () => {
-      expect(DEFAULTS.sections).not.toContain('hooks');
+    test('default sections include hooks', () => {
+      expect(DEFAULTS.sections).toContain('hooks');
     });
   });
 
@@ -1032,17 +1064,17 @@ describe('status-line.js', () => {
   });
 
   describe('buildStatusLine with hooks section', () => {
-    test('shows filled circle when hook server is running', () => {
+    test('shows green filled circle with label when hook server is running', () => {
       const cpMod = require('child_process');
       const spy = jest.spyOn(cpMod, 'execSync').mockReturnValue('1');
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'hooks'] };
       const result = strip(buildStatusLine(content, null, cfg));
-      expect(result).toContain('\u25CF');
+      expect(result).toContain('\u25CF hooks');
       spy.mockRestore();
     });
 
-    test('shows empty circle when hook server is down', () => {
+    test('shows dim empty circle with label when hook server is stopped', () => {
       const cpMod = require('child_process');
       const spy = jest.spyOn(cpMod, 'execSync').mockImplementation(() => {
         throw new Error('connection refused');
@@ -1050,8 +1082,100 @@ describe('status-line.js', () => {
       const content = 'Phase: 1 of 5';
       const cfg = { ...DEFAULTS, sections: ['phase', 'hooks'] };
       const result = strip(buildStatusLine(content, null, cfg));
-      expect(result).toContain('\u25CB');
+      expect(result).toContain('\u25CB hooks');
       spy.mockRestore();
+    });
+
+    test('shows red filled circle when circuit breaker is open', () => {
+      const cpMod = require('child_process');
+      const fsMod = require('fs');
+      const pathMod = require('path');
+      const osMod = require('os');
+
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hooks-'));
+      // Write circuit breaker file with open state
+      fsMod.writeFileSync(
+        pathMod.join(tmpDir, '.hook-server-circuit.json'),
+        JSON.stringify({ failures: 5, openedAt: Date.now() })
+      );
+
+      const spy = jest.spyOn(cpMod, 'execSync').mockImplementation(() => {
+        throw new Error('connection refused');
+      });
+      const content = 'Phase: 1 of 5';
+      const cfg = { ...DEFAULTS, sections: ['phase', 'hooks'] };
+      const raw = buildStatusLine(content, null, cfg, {}, tmpDir);
+      const result = strip(raw);
+      expect(result).toContain('\u25CF hooks');
+      // Verify it uses red color (not green or dim)
+      expect(raw).toContain('\x1b[31m\u25CF hooks');
+      spy.mockRestore();
+      fsMod.rmSync(tmpDir, { recursive: true, force: true });
+    });
+  });
+
+  describe('getHookServerStatus', () => {
+    const fsMod = require('fs');
+    const pathMod = require('path');
+    const osMod = require('os');
+
+    test('returns running when server is listening', () => {
+      const netMod = require('net');
+      const server = netMod.createServer();
+      server.listen(0);
+      const port = server.address().port;
+      try {
+        expect(getHookServerStatus(port)).toBe('running');
+      } finally {
+        server.close();
+      }
+    });
+
+    test('returns stopped when server is down and no circuit file', () => {
+      expect(getHookServerStatus(59998)).toBe('stopped');
+    });
+
+    test('returns stopped when server is down and no planningDir', () => {
+      expect(getHookServerStatus(59998, null)).toBe('stopped');
+    });
+
+    test('returns failed when circuit breaker is open', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
+      fsMod.writeFileSync(
+        pathMod.join(tmpDir, '.hook-server-circuit.json'),
+        JSON.stringify({ failures: 5, openedAt: Date.now() })
+      );
+      try {
+        expect(getHookServerStatus(59998, tmpDir)).toBe('failed');
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('returns stopped when circuit breaker cooldown expired', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
+      fsMod.writeFileSync(
+        pathMod.join(tmpDir, '.hook-server-circuit.json'),
+        JSON.stringify({ failures: 5, openedAt: Date.now() - 60000 })
+      );
+      try {
+        expect(getHookServerStatus(59998, tmpDir)).toBe('stopped');
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    test('returns stopped when failures below threshold', () => {
+      const tmpDir = fsMod.mkdtempSync(pathMod.join(osMod.tmpdir(), 'sl-hs-'));
+      fsMod.writeFileSync(
+        pathMod.join(tmpDir, '.hook-server-circuit.json'),
+        JSON.stringify({ failures: 3, openedAt: 0 })
+      );
+      try {
+        expect(getHookServerStatus(59998, tmpDir)).toBe('stopped');
+      } finally {
+        fsMod.rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
   });
 

@@ -37,7 +37,7 @@ const c = {
 
 // Default status_line config — works out of the box with zero config
 const DEFAULTS = {
-  sections: ['phase', 'plan', 'status', 'agent', 'git', 'context', 'llm'],
+  sections: ['phase', 'plan', 'status', 'agent', 'git', 'hooks', 'context', 'llm'],
   brand_text: '\u25C6 PBR',
   max_status_length: 50,
   context_bar: {
@@ -134,6 +134,7 @@ function statusColor(statusText) {
   if (lower.includes('complete') || lower.includes('verified')) return c.green;
   if (lower.includes('needs_fixes') || lower.includes('partial')) return c.yellow;
   if (lower.includes('progress') || lower.includes('building') || lower.includes('executing') || lower.includes('planning')) return c.yellow;
+  if (lower.includes('discussing') || lower.includes('researching')) return c.magenta;
   if (lower.includes('verifying')) return c.blue;
   if (lower.includes('planned') || lower.includes('ready')) return c.cyan;
   if (lower.includes('blocked') || lower.includes('failed')) return c.red;
@@ -183,6 +184,22 @@ function formatTokens(tokens) {
 }
 
 /**
+ * Count phase directories in .planning/phases/ as a fallback for total phases.
+ * Returns the count as a string, or null if the directory doesn't exist.
+ */
+function countPhaseDirs(planningDir) {
+  try {
+    const phasesDir = path.join(planningDir, 'phases');
+    if (!fs.existsSync(phasesDir)) return null;
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    const count = entries.filter(e => e.isDirectory() && /^\d+/.test(e.name)).length;
+    return count > 0 ? String(count) : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
  * Read the current milestone name from ROADMAP.md.
  * Looks for `## Milestone: {name}` headers, returns the first non-completed one.
  * Returns null if no ROADMAP.md or no milestone header found.
@@ -226,6 +243,36 @@ function isHookServerRunning(port) {
   }
 }
 
+/**
+ * Get hook server status with circuit breaker awareness.
+ * Returns one of: 'running', 'failed', 'stopped'.
+ *
+ * - 'running': TCP probe succeeds (server is responsive)
+ * - 'failed': Circuit breaker is open (5+ consecutive failures, cooldown active)
+ * - 'stopped': Server not running, no circuit breaker issues (normal idle)
+ *
+ * @param {number} [port=19836] - Hook server port
+ * @param {string} [planningDir] - Path to .planning/ directory
+ * @returns {'running'|'failed'|'stopped'}
+ */
+function getHookServerStatus(port, planningDir) {
+  if (isHookServerRunning(port)) return 'running';
+
+  // Check circuit breaker state for failure detection
+  if (planningDir) {
+    try {
+      const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
+      const data = JSON.parse(fs.readFileSync(circuitPath, 'utf8'));
+      if (data.failures >= 5) {
+        const elapsed = Date.now() - (data.openedAt || 0);
+        if (elapsed < 30000) return 'failed';
+      }
+    } catch (_e) { /* no circuit file — server is simply stopped */ }
+  }
+
+  return 'stopped';
+}
+
 function main() {
   const stdinData = readStdin();
   const cwd = process.cwd();
@@ -240,6 +287,39 @@ function main() {
     const slConfig = loadStatusLineConfig(planningDir);
     const content = fs.readFileSync(stateFile, 'utf8');
     const ctxPercent = getContextPercent(stdinData);
+
+    // Bridge real context data to .context-budget.json for TMUX status bar
+    if (ctxPercent != null) {
+      try {
+        const bridgeMod = require('./lib/context');
+        const bridgePath = path.join(planningDir, '.context-budget.json');
+        const bridge = {
+          timestamp: new Date().toISOString(),
+          estimated_percent: ctxPercent,
+          source: 'claude-code',
+          tool_calls: 0,
+          chars_read: 0
+        };
+        // Preserve existing bridge fields (warnings, tier, etc.)
+        try {
+          const existing = JSON.parse(fs.readFileSync(bridgePath, 'utf8'));
+          bridge.tool_calls = existing.tool_calls || 0;
+          bridge.chars_read = existing.chars_read || 0;
+          bridge.warnings_issued = existing.warnings_issued || [];
+          bridge.last_warned_tier = existing.last_warned_tier || 'PEAK';
+          bridge.calls_since_warn = existing.calls_since_warn || 0;
+          bridge.thresholds = existing.thresholds;
+        } catch (_e) { /* no existing bridge */ }
+        if (bridgeMod && bridgeMod.saveBridge) {
+          bridgeMod.saveBridge(bridgePath, bridge);
+        } else {
+          fs.writeFileSync(bridgePath, JSON.stringify(bridge), 'utf8');
+        }
+      } catch (_e) {
+        // Best-effort — never fail the status line
+      }
+    }
+
     const status = buildStatusLine(content, ctxPercent, slConfig, stdinData, planningDir);
 
     if (status) {
@@ -266,7 +346,13 @@ function parseFrontmatter(content) {
   const result = {};
   for (const line of fm.split(/\r?\n/)) {
     const m = line.match(/^(\w[\w_]*):\s*"?([^"]*)"?\s*$/);
-    if (m) result[m[1]] = m[2];
+    if (m) {
+      const val = m[2].trim();
+      // Skip YAML nulls and empty values — they'd render as literal "null"
+      if (val && val !== 'null' && val !== 'undefined') {
+        result[m[1]] = val;
+      }
+    }
   }
   return result;
 }
@@ -306,7 +392,8 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
 
     const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
-    const phaseTotal = phaseMatch && phaseMatch[2];
+    const fmPhasesTotal = fm && fm.phases_total;
+    const phaseTotal = fmPhasesTotal || (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
     // Format phase_slug from "foo-bar" to "Foo Bar" for display
     const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
     const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
@@ -373,13 +460,15 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     }
   }
 
-  // Hooks section — hook server status indicator
+  // Hooks section — hook server status indicator (3 states)
   if (sections.includes('hooks')) {
-    const running = isHookServerRunning(19836);
-    if (running) {
-      line2.push(`${c.green}\u25CF${c.reset}`);
+    const hsStatus = getHookServerStatus(19836, planningDir);
+    if (hsStatus === 'running') {
+      line2.push(`${c.green}\u25CF hooks${c.reset}`);
+    } else if (hsStatus === 'failed') {
+      line2.push(`${c.red}\u25CF hooks${c.reset}`);
     } else {
-      line2.push(`${c.red}\u25CB${c.reset}`);
+      line2.push(`${c.dim}\u25CB hooks${c.reset}`);
     }
   }
 
@@ -410,15 +499,16 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
       chars: barCfg.chars || DEFAULTS.context_bar.chars
     });
     let ctxSuffix = '';
-    // Append tier label for unhealthy tiers
+    // Append tier label only when current context % warrants it
+    // (budget file may have stale last_warned_tier from a previous session)
     try {
       const budgetPath = path.join(planningDir, '.context-budget.json');
       if (fs.existsSync(budgetPath)) {
         const budget = JSON.parse(fs.readFileSync(budgetPath, 'utf8'));
-        const tier = budget.tier || (budget.last_warned_tier);
-        if (tier === 'DEGRADING') ctxSuffix = ` ${c.yellow}DEGRADING${c.reset}`;
-        else if (tier === 'POOR') ctxSuffix = ` ${c.red}POOR${c.reset}`;
-        else if (tier === 'CRITICAL') ctxSuffix = ` ${c.boldRed}CRITICAL${c.reset}`;
+        const thresholds = budget.thresholds || { degrading: 50, poor: 70, critical: 85 };
+        if (ctxPercent >= thresholds.critical) ctxSuffix = ` ${c.boldRed}CRITICAL${c.reset}`;
+        else if (ctxPercent >= thresholds.poor) ctxSuffix = ` ${c.red}POOR${c.reset}`;
+        else if (ctxPercent >= thresholds.degrading) ctxSuffix = ` ${c.yellow}DEGRADING${c.reset}`;
       }
     } catch (_e) {
       // Skip silently if file missing or malformed
@@ -469,4 +559,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, isHookServerRunning, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
