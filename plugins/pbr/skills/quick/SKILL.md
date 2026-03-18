@@ -46,15 +46,20 @@ Additionally for this skill:
 
 Parse `$ARGUMENTS` for optional flags before extracting the task description:
 
-- **`--discuss`**: Include a brief discussion step before building. When passed, after identifying the task, ask 2-3 clarifying questions about the approach before spawning the executor. This adds lightweight discussion without the full `/pbr:discuss-phase` overhead.
-- **`--full`**: Run the complete begin-plan-build chain. When passed, instead of the quick task flow, chain directly: `Skill({ skill: "pbr:plan", args: "" })` with the task description carried over. This escalates to the full pipeline including research.
+- **`--discuss`**: Before spawning the executor, ask 2-3 clarifying questions about the approach. Write the Q&A results to `.planning/quick/{NNN}-{slug}/CONTEXT.md` as a lightweight decision record. Pass this CONTEXT.md to the executor via files_to_read.
+- **`--research`**: Spawn a `Task(subagent_type: "pbr:researcher")` to investigate the task domain before execution. The researcher writes findings to `.planning/quick/{NNN}-{slug}/RESEARCH.md`. Pass this RESEARCH.md to the executor via files_to_read.
+- **`--full`**: Enable plan-checker validation (max 2 iterations) before executor spawn AND post-execution verification via verifier agent. Creates VERIFICATION.md in the quick task directory. Does NOT escalate to /pbr:plan -- stays in quick pipeline.
 
 Strip these flags from `$ARGUMENTS` before using the remainder as the task description.
 
 **Flag combinations:**
-- `--discuss` alone: Quick task with brief discussion step
-- `--full` alone: Escalate to full pipeline
-- `--discuss --full`: Escalate to full pipeline (--full takes precedence)
+- `--discuss` alone: Quick task with discussion + CONTEXT.md
+- `--research` alone: Quick task with research + RESEARCH.md
+- `--full` alone: Quick task with plan-checking + verification
+- `--discuss --research`: Discussion + research before execution
+- `--discuss --full`: Discussion + plan-checking + verification
+- `--research --full`: Research + plan-checking + verification
+- `--discuss --research --full`: All quality layers
 - No flags: Standard quick task flow (zero-friction or legacy based on config)
 
 ## Core Principle
@@ -80,12 +85,14 @@ From the init output:
 3. Read `features.zero_friction_quick` from config (default: `true`)
 
 **Route decision:**
-- If `--full` flag: clean up `.active-skill` if it exists, then chain to `Skill({ skill: "pbr:plan", args: "" })`. STOP here.
-- If `--discuss` flag: ask 2-3 clarifying questions about the approach, then continue with the selected path below.
+- If `--full` flag: continue with the selected path below (plan-checker and verifier steps will activate later). Do NOT escalate to `Skill({ skill: "pbr:plan" })`.
+- If `--discuss` flag: go to **Step 1c** (ask clarifying questions, write CONTEXT.md), then continue.
+- If `--research` flag: go to **Step 1d** (spawn researcher, write RESEARCH.md), then continue.
+- If both `--discuss` and `--research`: run Step 1c first, then Step 1d.
 - If `features.zero_friction_quick` is `true` (default): go to **Step 2** (zero-friction path)
 - If `features.zero_friction_quick` is `false`: go to **Step 5** (legacy path)
 
-**DO NOT fall back to the legacy flow when `zero_friction_quick` is `true` unless `--full` flag is set.** The zero-friction path is the intended default experience.
+**DO NOT fall back to the legacy flow when `zero_friction_quick` is `true`.** The zero-friction path is the intended default experience.
 
 ### Step 1b: Get Task Description (if needed)
 
@@ -95,6 +102,49 @@ If `$ARGUMENTS` is provided and non-empty (after stripping flags):
 If `$ARGUMENTS` is empty:
 - Ask the user: "What do you need done? Describe the task in a sentence or two."
   This is a freeform text prompt -- do NOT use AskUserQuestion here. Task descriptions require arbitrary text input, not option selection.
+
+### Step 1c: Discussion (only if `--discuss` flag is set)
+
+Ask 2-3 clarifying questions about the approach, constraints, and edge cases. Use plain text prompts (not AskUserQuestion -- these require freeform answers).
+
+After receiving answers, write the Q&A to `.planning/quick/{NNN}-{slug}/CONTEXT.md`:
+
+```markdown
+# Quick Task Context
+
+**Task:** {description}
+**Date:** {YYYY-MM-DD}
+
+## Discussion
+
+{Q&A content -- each question and answer}
+
+## Decisions
+
+{Key decisions derived from the discussion}
+```
+
+**Note:** The task directory `.planning/quick/{NNN}-{slug}/` must be created before writing CONTEXT.md. In the zero-friction path, create it now (it will be reused in Step 3). In the legacy path, it is created in Step 5e.
+
+Continue to Step 1d if `--research` is also set, otherwise continue to the selected path (Step 2 or Step 5).
+
+### Step 1d: Research (only if `--research` flag is set)
+
+Spawn a `Task(subagent_type: "pbr:researcher")` with the following prompt:
+
+```
+Research the following task domain for a quick task.
+Task: {description}
+Write findings to: .planning/quick/{NNN}-{slug}/RESEARCH.md
+Focus on: existing patterns in the codebase, potential risks, recommended approach.
+Keep it concise (under 500 tokens).
+```
+
+**Note:** The task directory `.planning/quick/{NNN}-{slug}/` must exist before the researcher writes to it. Create it if not already created by Step 1c.
+
+After the researcher completes, verify `.planning/quick/{NNN}-{slug}/RESEARCH.md` exists. If missing, log a warning and continue without research context.
+
+Continue to the selected path (Step 2 or Step 5).
 
 ---
 
