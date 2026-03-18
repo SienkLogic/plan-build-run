@@ -82,31 +82,43 @@ const KNOWN_AGENTS = [
  *   skipped -> pending (unskip)
  */
 const VALID_STATUS_TRANSITIONS = {
-  pending:     ['planned', 'skipped'],
-  planned:     ['building'],
-  building:    ['built', 'partial', 'needs_fixes'],
-  built:       ['verified', 'needs_fixes'],
-  partial:     ['building', 'needs_fixes'],
-  verified:    ['building'],
-  needs_fixes: ['planned', 'building'],
-  skipped:     ['pending']
+  not_started:       ['discussed', 'ready_to_plan', 'planned', 'skipped'],
+  discussed:         ['ready_to_plan', 'planning'],
+  ready_to_plan:     ['planning', 'planned'],
+  planning:          ['planned'],
+  planned:           ['ready_to_execute', 'building'],
+  ready_to_execute:  ['building'],
+  building:          ['built', 'partial', 'needs_fixes'],
+  built:             ['verified', 'needs_fixes'],
+  partial:           ['building', 'needs_fixes'],
+  verified:          ['complete', 'building'],
+  needs_fixes:       ['planned', 'building', 'ready_to_plan'],
+  complete:          [],
+  skipped:           ['not_started', 'pending'],
+  // Legacy aliases (backward compat)
+  pending:           ['planned', 'discussed', 'skipped', 'not_started']
 };
 
 /**
  * Human-readable labels for plan/phase statuses.
  */
 const STATUS_LABELS = {
-  pending:     'Pending',
-  planned:     'Planned',
-  building:    'Building',
-  built:       'Built',
-  partial:     'Partial',
-  verified:    'Verified',
-  needs_fixes: 'Needs Fixes',
-  skipped:     'Skipped',
-  discussed:   'Discussed',
-  not_started: 'Not Started',
-  reviewed:    'Reviewed'
+  not_started:      'Not Started',
+  discussed:        'Discussed',
+  ready_to_plan:    'Ready to Plan',
+  planning:         'Planning',
+  planned:          'Planned',
+  ready_to_execute: 'Ready to Execute',
+  building:         'Building',
+  built:            'Built',
+  partial:          'Partial',
+  verified:         'Verified',
+  needs_fixes:      'Needs Fixes',
+  complete:         'Complete',
+  skipped:          'Skipped',
+  // Legacy aliases
+  pending:          'Not Started',
+  reviewed:         'Verified'
 };
 
 /**
