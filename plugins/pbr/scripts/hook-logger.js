@@ -34,6 +34,14 @@ function getLogFilename(date) {
 
 /** Return the full path to the hooks log for a given date (defaults to today). */
 function getLogPath(date) {
+  const logDirOverride = process.env.PBR_LOG_DIR;
+  if (logDirOverride) {
+    if (!fs.existsSync(logDirOverride)) {
+      fs.mkdirSync(logDirOverride, { recursive: true });
+    }
+    return path.join(logDirOverride, getLogFilename(date));
+  }
+
   const cwd = resolveProjectRoot();
   const logsDir = path.join(cwd, '.planning', 'logs');
 
@@ -84,7 +92,7 @@ function cleanOldHookLogs(logsDir) {
   }
 }
 
-function logHook(hookName, eventType, decision, details = {}, startTime) {
+function logHook(hookName, eventType, decision, details = {}, startTime, source) {
   const logPath = getLogPath();
   if (!logPath) return;
 
@@ -95,6 +103,8 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
     decision,
     ...details
   };
+
+  if (source) entry.source = source;
 
   if (typeof startTime === 'number' && startTime > 0) {
     entry.duration_ms = Date.now() - startTime;
@@ -107,4 +117,4 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
   }
 }
 
-module.exports = { logHook, getLogPath, getLogFilename, cleanOldHookLogs };
+module.exports = { logHook, getLogPath, getLogFilename, cleanOldHookLogs, getTodayDate };
