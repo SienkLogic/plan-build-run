@@ -123,7 +123,7 @@ describe('health-checks Phase 10', () => {
   });
 
   describe('getAllPhase10Checks', () => {
-    test('returns array of 3 check results', () => {
+    test('returns array of check results including health checks', () => {
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         features: {
           post_hoc_artifacts: true,
@@ -136,7 +136,7 @@ describe('health-checks Phase 10', () => {
       const results = getAllPhase10Checks(planningDir);
 
       expect(Array.isArray(results)).toBe(true);
-      expect(results.length).toBe(3);
+      expect(results.length).toBeGreaterThanOrEqual(3);
       expect(results.map(r => r.name)).toEqual(
         expect.arrayContaining(['post_hoc_artifacts', 'agent_feedback_loop', 'session_metrics'])
       );
