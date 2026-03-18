@@ -158,6 +158,30 @@ Important constraints:
 - Do NOT speculate on phases that already have plans.
 - Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
 
+### 3c-stale. Staleness Check (after build completes)
+
+**Gate:** Only execute if speculative planners were dispatched in 3c-speculative for this phase N.
+
+**Procedure:**
+
+1. Wait for any outstanding speculative planner tasks to complete (they run in background).
+2. Read Phase N's SUMMARY.md files. For each SUMMARY.md, extract `deviations` from YAML frontmatter.
+3. Compute total deviation count across all SUMMARY files for Phase N.
+4. If total deviations == 0: speculative plans are fresh -- no action needed. Log:
+   `Phase {N} build: 0 deviations -- speculative plans for Phase(s) {list} are valid.`
+5. If total deviations > 0: check each speculatively-planned phase C:
+   a. Read ROADMAP.md dependencies for Phase C
+   b. If Phase C depends on Phase N (directly):
+      - Delete the speculative PLAN-*.md files for Phase C
+      - Log: `Phase {N} had {count} deviation(s) -- re-planning Phase {C}`
+      - Re-invoke planner synchronously:
+        ```
+        Skill({ skill: "pbr:plan", args: "{C} --auto" })
+        ```
+   c. If Phase C does NOT depend on Phase N: plans are still valid, no action needed.
+
+Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
+
 ### 3d. Verify Phase (Lightweight-First)
 
 - Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
