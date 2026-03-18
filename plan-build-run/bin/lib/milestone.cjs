@@ -6,7 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const { escapeRegex, getMilestonePhaseFilter, output, error } = require('./core.cjs');
 const { extractFrontmatter } = require('./frontmatter.cjs');
-const { writeStateMd } = require('./state.cjs');
 
 function cmdRequirementsMarkComplete(cwd, reqIdsRaw, raw) {
   if (!reqIdsRaw || reqIdsRaw.length === 0) {
@@ -177,6 +176,67 @@ function cmdMilestoneComplete(cwd, version, options, raw) {
     fs.writeFileSync(milestonesPath, `# Milestones\n\n${milestoneEntry}`, 'utf-8');
   }
 
+  // Create/append RETROSPECTIVE.md
+  const retroPath = path.join(cwd, '.planning', 'RETROSPECTIVE.md');
+  const retroEntry = `## ${version} ${milestoneName} (Shipped: ${today})\n\n### What Was Built\n${accomplishmentsList || '(see MILESTONES.md)'}\n\n### What Worked\n- (to be filled by user)\n\n### What Was Inefficient\n- (to be filled by user)\n\n### Patterns Established\n- (to be filled by user)\n\n### Key Lessons\n- (to be filled by user)\n\n---\n\n`;
+
+  if (fs.existsSync(retroPath)) {
+    const existingRetro = fs.readFileSync(retroPath, 'utf-8');
+    // Insert after the header for reverse chronological order
+    const retroHeaderMatch = existingRetro.match(/^(#[^\n]*\n(?:>[^\n]*\n)*\n?)/);
+    if (retroHeaderMatch) {
+      const retroHeader = retroHeaderMatch[1];
+      const retroRest = existingRetro.slice(retroHeader.length);
+      fs.writeFileSync(retroPath, retroHeader + retroEntry + retroRest, 'utf-8');
+    } else {
+      fs.writeFileSync(retroPath, retroEntry + existingRetro, 'utf-8');
+    }
+  } else {
+    fs.writeFileSync(retroPath, `# Retrospective\n\n> Living document updated after each milestone.\n> Cross-milestone trends help improve the development process.\n\n${retroEntry}`, 'utf-8');
+  }
+
+  // Collapse completed milestone section in ROADMAP.md with <details> tags
+  if (fs.existsSync(roadmapPath)) {
+    let roadmapContent = fs.readFileSync(roadmapPath, 'utf-8');
+
+    // Find the milestone section by name and wrap it
+    const milestoneHeadingPattern = new RegExp(
+      `(## Milestone:\\s*${escapeRegex(milestoneName)}[^\\n]*\\n)([\\s\\S]*?)(?=\\n## |$)`
+    );
+    const milestoneMatch = roadmapContent.match(milestoneHeadingPattern);
+    if (milestoneMatch) {
+      const fullMatch = milestoneMatch[0];
+      const collapsed = `<details>\n<summary>## Milestone: ${milestoneName} (${version}) — SHIPPED ${today}</summary>\n\n${fullMatch}\n</details>\n`;
+      roadmapContent = roadmapContent.replace(fullMatch, collapsed);
+    }
+
+    // Update or create milestone index section at top of ROADMAP.md
+    const indexRow = `| ${version} | ${milestoneName} | SHIPPED | ${today} |`;
+    const indexTableHeader = '| Version | Name | Status | Date |\n|---------|------|--------|------|\n';
+    const indexPattern = /## Milestones\n\n\| Version \| Name \| Status \| Date \|\n\|[-|]+\|\n((?:\|[^\n]*\n)*)/;
+    const indexMatch = roadmapContent.match(indexPattern);
+
+    if (indexMatch) {
+      // Append row to existing index table
+      const existingRows = indexMatch[1];
+      roadmapContent = roadmapContent.replace(
+        indexMatch[0],
+        `## Milestones\n\n${indexTableHeader}${indexRow}\n${existingRows}`
+      );
+    } else {
+      // Create index section after the title line
+      const titleMatch = roadmapContent.match(/^(#[^\n]*\n\n?)/);
+      if (titleMatch) {
+        const titleEnd = titleMatch[0].length;
+        roadmapContent = roadmapContent.slice(0, titleEnd) +
+          `## Milestones\n\n${indexTableHeader}${indexRow}\n\n` +
+          roadmapContent.slice(titleEnd);
+      }
+    }
+
+    fs.writeFileSync(roadmapPath, roadmapContent, 'utf-8');
+  }
+
   // Update STATE.md
   if (fs.existsSync(statePath)) {
     let stateContent = fs.readFileSync(statePath, 'utf-8');
@@ -192,7 +252,7 @@ function cmdMilestoneComplete(cwd, version, options, raw) {
       /(\*\*Last Activity Description:\*\*\s*).*/,
       `$1${version} milestone completed and archived`
     );
-    writeStateMd(statePath, stateContent, cwd);
+    fs.writeFileSync(statePath, stateContent, 'utf-8');
   }
 
   // Archive phase directories if requested
@@ -229,6 +289,7 @@ function cmdMilestoneComplete(cwd, version, options, raw) {
       phases: phasesArchived,
     },
     milestones_updated: true,
+    retrospective_updated: true,
     state_updated: fs.existsSync(statePath),
   };
 
