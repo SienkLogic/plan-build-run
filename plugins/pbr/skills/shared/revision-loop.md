@@ -16,6 +16,7 @@ This pattern applies whenever:
 ### Flow
 
 ```
+prev_issue_count = Infinity
 iteration = 0
 
 LOOP:
@@ -27,18 +28,33 @@ LOOP:
      a. iteration += 1
      b. If iteration > 3:
         → Escalate to user (see "After 3 Iterations" below)
-     c. Re-spawn the producing agent with checker feedback appended
-     d. After revision completes, go to LOOP
+     c. Parse issue count from checker output
+     d. If issue_count >= prev_issue_count:
+        → Escalate to user: "Revision loop stalled (issue count not decreasing)"
+     e. prev_issue_count = issue_count
+     f. Re-spawn the producing agent with checker feedback appended
+     g. After revision completes, go to LOOP
 ```
+
+### Issue Count Tracking
+
+Track the number of BLOCKER + WARNING issues returned by the checker on each iteration. If the count does not decrease between consecutive iterations, the producing agent is stuck and further iterations will not help. Break early and escalate to the user.
+
+Display iteration progress before each revision spawn:
+`◆ Revision iteration {N}/3 — {blocker_count} blockers, {warning_count} warnings`
 
 ### Re-spawn Prompt Structure
 
-When re-spawning the producing agent for revision, append the checker feedback:
+When re-spawning the producing agent for revision, pass the checker's YAML-formatted issues. The checker's output contains a `## Issues` heading followed by a YAML block. Parse this block and pass it verbatim to the revision agent.
 
 ```
-<checker_feedback>
-{Inline the checker's issue report}
-</checker_feedback>
+<checker_issues>
+The issues below are in YAML format. Each has: dimension, severity, finding,
+affected_field, suggested_fix. Address ALL BLOCKER issues. Address WARNING
+issues where feasible.
+
+{YAML issues block from checker output — passed verbatim}
+</checker_issues>
 
 <revision_instructions>
 Address ALL BLOCKER and WARNING issues identified above.
@@ -46,6 +62,8 @@ Address ALL BLOCKER and WARNING issues identified above.
 - For each WARNING: address or explain why it's acceptable
 - Do NOT introduce new issues while fixing existing ones
 - Preserve all content not flagged by the checker
+This is revision iteration {N} of max 3. Previous iteration had {prev_count}
+issues. You must reduce the count or the loop will terminate.
 </revision_instructions>
 ```
 

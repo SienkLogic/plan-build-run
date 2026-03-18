@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Stop hook: Auto-continue via signal files.
+ * Stop hook: Auto-continue via config flag (with signal file backward compat).
  *
  * When enabled (features.auto_continue: true in config.json),
- * reads .planning/.auto-next signal file on session stop.
- * If present, reads the next command and injects it.
- * Signal file is ONE-SHOT: read and delete to prevent infinite loops.
+ * reads workflow._auto_chain_active from config.json on session stop.
+ * If set, reads the next command and clears the flag (one-shot).
+ * Falls back to .planning/.auto-next signal file for backward compat.
  *
- * Hard stops (signal file NOT written):
+ * Hard stops (flag NOT set):
  * - Milestone completion
  * - human_needed flag set
  * - Execution errors
@@ -156,8 +156,60 @@ function main() {
       }
     }
 
-    // Check for signal file
-    if (!fs.existsSync(signalPath)) {
+    // Primary: read next command from config flag workflow._auto_chain_active
+    let nextCommand = '';
+    let source = 'none';
+    if (config.workflow && config.workflow._auto_chain_active) {
+      nextCommand = String(config.workflow._auto_chain_active).trim();
+      source = 'config-flag';
+      // Clear the flag immediately (one-shot) by writing config back without it
+      try {
+        const configPath = path.join(planningDir, 'config.json');
+        const rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (rawConfig.workflow) {
+          delete rawConfig.workflow._auto_chain_active;
+        }
+        fs.writeFileSync(configPath, JSON.stringify(rawConfig, null, 2), 'utf8');
+      } catch (_clearErr) {
+        logHook('auto-continue', 'Stop', 'flag-clear-failed', { error: _clearErr.message });
+      }
+    }
+
+    // Backward compat: fall back to .auto-next signal file if config flag was empty
+    let signalFileRead = false;
+    if (!nextCommand && fs.existsSync(signalPath)) {
+      nextCommand = fs.readFileSync(signalPath, 'utf8').trim();
+      signalFileRead = true;
+      source = nextCommand ? 'signal-file' : 'none';
+      // Delete the signal file (migration path — old writers may still create it)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          fs.unlinkSync(signalPath);
+          break;
+        } catch (unlinkErr) {
+          if (attempt === 2) {
+            logHook('auto-continue', 'Stop', 'unlink-failed', { error: unlinkErr.message });
+          } else {
+            const delay = 100 * Math.pow(2, attempt);
+            try {
+              const buf = new SharedArrayBuffer(4);
+              Atomics.wait(new Int32Array(buf), 0, 0, delay);
+            } catch (_atomicsErr) {
+              // Fallback for environments without SharedArrayBuffer
+              const end = Date.now() + delay;
+              while (Date.now() < end) { /* fallback busy-wait */ }
+            }
+          }
+        }
+      }
+    }
+
+    if (!nextCommand) {
+      // Signal file existed but was empty
+      if (signalFileRead) {
+        logHook('auto-continue', 'Stop', 'empty-signal', {});
+        process.exit(0);
+      }
       // No auto-continue signal — check for pending todos as a reminder
       const todoPendingDir = path.join(planningDir, 'todos', 'pending');
       try {
@@ -165,7 +217,6 @@ function main() {
           const pending = fs.readdirSync(todoPendingDir).filter(f => f.endsWith('.md'));
           if (pending.length > 0) {
             logHook('auto-continue', 'Stop', 'pending-todos', { count: pending.length });
-            // Non-blocking reminder — write to stderr so it shows in hook output
             process.stderr.write(`[pbr] ${pending.length} pending todo(s) in .planning/todos/pending/ — run /pbr:check-todos to review\n`);
           }
         }
@@ -192,36 +243,6 @@ function main() {
       process.exit(0);
     }
 
-    // Read and DELETE the signal file (one-shot)
-    const nextCommand = fs.readFileSync(signalPath, 'utf8').trim();
-    // Retry unlink with exponential backoff for Windows file locking (antivirus/indexer)
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        fs.unlinkSync(signalPath);
-        break;
-      } catch (unlinkErr) {
-        if (attempt === 2) {
-          logHook('auto-continue', 'Stop', 'unlink-failed', { error: unlinkErr.message });
-        } else {
-          // Exponential backoff: 100ms, 200ms — use Atomics.wait for non-spinning delay
-          const delay = 100 * Math.pow(2, attempt);
-          try {
-            const buf = new SharedArrayBuffer(4);
-            Atomics.wait(new Int32Array(buf), 0, 0, delay);
-          } catch (_atomicsErr) {
-            // Fallback for environments without SharedArrayBuffer
-            const end = Date.now() + delay;
-            while (Date.now() < end) { /* fallback busy-wait */ }
-          }
-        }
-      }
-    }
-
-    if (!nextCommand) {
-      logHook('auto-continue', 'Stop', 'empty-signal', {});
-      process.exit(0);
-    }
-
     // Track consecutive continues for session length guard
     const countPath = path.join(planningDir, '.continue-count');
     let continueCount = 0;
@@ -243,7 +264,7 @@ function main() {
       ? ` (last message excerpt: ${lastMsg.slice(0, 200)})`
       : '';
 
-    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand, hasLastMsg: !!lastMsg, continueCount });
+    logHook('auto-continue', 'Stop', 'continue', { next: nextCommand, source, hasLastMsg: !!lastMsg, continueCount });
 
     // Build reason string with optional advisory
     let reasonStr = `Auto-continue: execute ${nextCommand}${msgSuffix}`;

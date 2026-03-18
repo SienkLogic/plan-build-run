@@ -204,6 +204,16 @@ WARNING: .claude/settings.json has includeGitInstructions: true
 
 Write the updated config.json to disk with all applied changes.
 
+### Commit Changes
+
+Reference: `skills/shared/commit-planning-docs.md` for the commit pattern.
+
+If `planning.commit_docs` is true in config.json, commit modified files:
+
+```text
+docs(setup): reconfigure project — {changed_settings}
+```
+
 ---
 
 ## Step 7: Verification

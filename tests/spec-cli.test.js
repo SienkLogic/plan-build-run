@@ -114,6 +114,10 @@ describe('pbr-tools spec CLI', () => {
     fs.writeFileSync(planFileB, FIXTURE_PLAN_B, 'utf-8');
     fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
     fs.writeFileSync(srcFile, 'module.exports = { render: function() {} };', 'utf-8');
+    // Enable spec features so spec reverse/impact commands work
+    fs.mkdirSync(path.join(tmpDir, '.planning'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
+      JSON.stringify({ features: { reverse_spec: true, impact_analysis: true } }));
   });
 
   afterEach(() => {
@@ -162,7 +166,7 @@ describe('pbr-tools spec CLI', () => {
 
   describe('spec reverse', () => {
     test('outputs generated spec JSON for source files', () => {
-      const result = run(`spec reverse "${srcFile}"`);
+      const result = run(`spec reverse "${srcFile}"`, { env: { PBR_PROJECT_ROOT: tmpDir } });
       expect(result.code).toBe(0);
       const parsed = JSON.parse(result.stdout);
       expect(parsed.frontmatter).toBeDefined();

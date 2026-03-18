@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { execSync: _execSync } = require('child_process');
 
 // Mock execSync before requiring the module
 jest.mock('child_process', () => ({

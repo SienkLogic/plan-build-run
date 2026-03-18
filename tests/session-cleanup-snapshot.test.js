@@ -28,7 +28,7 @@ jest.mock('../plugins/pbr/scripts/local-llm/metrics', () => ({
   formatSessionSummary: jest.fn(() => '')
 }));
 
-const { writeSnapshot, loadLatestSnapshot } = require('../plugins/pbr/scripts/lib/snapshot-manager');
+const { writeSnapshot, loadLatestSnapshot: _loadLatestSnapshot } = require('../plugins/pbr/scripts/lib/snapshot-manager');
 const { configLoad } = require('../plugins/pbr/scripts/pbr-tools');
 
 describe('session-cleanup snapshot integration', () => {

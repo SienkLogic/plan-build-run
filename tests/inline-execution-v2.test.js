@@ -121,7 +121,7 @@ describe('shouldInlineExecution v2 - file count check', () => {
 describe('shouldInlineExecution v2 - line estimation check', () => {
   test('returns inline:false when estimated lines exceed inline_max_lines', () => {
     // 3 medium tasks = 3 * 80 = 240 estimated lines
-    const planPath = createTempPlan(
+    const _planPath = createTempPlan(
       [
         { id: 'T1', complexity: 'medium', name: 'Task 1' },
         { id: 'T2', complexity: 'medium', name: 'Task 2' },

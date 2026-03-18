@@ -28,21 +28,79 @@ const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
 /**
- * Write content to a file atomically using write-then-rename.
- * Writes to a PID-stamped temp file, then renames over the original.
- * If the rename fails, cleans up the temp file and re-throws.
- *
- * @param {string} filePath - Target file path
- * @param {string} content - Content to write
+ * Path to PBR lib modules for lazy-requiring state/core functions.
+ * Lazy-loaded to avoid circular dependency issues at module load time.
  */
-function atomicWriteFile(filePath, content) {
-  const tmpPath = filePath + '.tmp.' + process.pid;
+const pbrToolsPath = (() => {
+  // Works from both hooks/ (root) and plugins/pbr/scripts/ locations
+  const fromRoot = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib');
+  const fromPlugin = path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib');
+  try { if (fs.existsSync(path.join(fromRoot, 'state.cjs'))) return fromRoot; } catch (_e) { /* fallthrough */ }
+  return fromPlugin;
+})();
+
+/** @returns {typeof import('../../../plan-build-run/bin/lib/state.cjs')} */
+function getStateLib() {
+  return require(path.join(pbrToolsPath, 'state.cjs'));
+}
+
+/** @returns {typeof import('../../../plan-build-run/bin/lib/core.cjs')} */
+function getCoreLib() {
+  return require(path.join(pbrToolsPath, 'core.cjs'));
+}
+
+/**
+ * Module-level mtime cache for dirty flag detection.
+ * Keyed by absolute file path, value is the mtimeMs after our last write.
+ * Used to detect external edits between state-sync invocations.
+ */
+const _lastWriteTimes = new Map();
+
+/**
+ * Clear the mtime cache. Exported for testing.
+ */
+function clearMtimeCache() {
+  _lastWriteTimes.clear();
+}
+
+/**
+ * Check if a file has been externally modified since our last write.
+ * Returns true if dirty (external edit detected), false if clean.
+ * On first call for a file (no cached mtime), records current mtime and returns false.
+ *
+ * @param {string} filePath - Absolute path to the file
+ * @returns {boolean} true if external edit detected
+ */
+function isDirty(filePath) {
   try {
-    fs.writeFileSync(tmpPath, content, 'utf8');
-    fs.renameSync(tmpPath, filePath);
-  } catch (e) {
-    try { fs.unlinkSync(tmpPath); } catch (_) { /* best effort cleanup */ }
-    throw e;
+    const currentMtime = fs.statSync(filePath).mtimeMs;
+    const lastMtime = _lastWriteTimes.get(filePath);
+
+    if (lastMtime === undefined) {
+      // First run — record current mtime, allow write
+      _lastWriteTimes.set(filePath, currentMtime);
+      return false;
+    }
+
+    // If mtime differs from what we last wrote, someone else edited it
+    return currentMtime !== lastMtime;
+  } catch (_e) {
+    // File doesn't exist or stat failed — not dirty
+    return false;
+  }
+}
+
+/**
+ * Record the current mtime of a file after we wrote it.
+ *
+ * @param {string} filePath - Absolute path to the file
+ */
+function recordWriteMtime(filePath) {
+  try {
+    const mtime = fs.statSync(filePath).mtimeMs;
+    _lastWriteTimes.set(filePath, mtime);
+  } catch (_e) {
+    // Best effort
   }
 }
 
@@ -155,131 +213,6 @@ function updateProgressTable(content, phaseNum, plansComplete, status, completed
 }
 
 /**
- * Update the Current Position section in STATE.md.
- *
- * Handles the legacy (non-frontmatter) format:
- *   ## Current Position
- *   Phase: 1 of 10 (Setup)
- *   Plan: 0 of 2 in current phase
- *   Status: Ready to plan
- *   Last activity: 2026-02-08 -- Project initialized
- *   Progress: [████░░░░░░░░░░░░░░░░] 20%
- *
- * @param {string} content - Full STATE.md content
- * @param {object} updates - Fields to update
- * @param {string} [updates.planLine] - New Plan: line value (e.g., "2 of 3 in current phase")
- * @param {string} [updates.status] - New Status: value (e.g., "Building")
- * @param {string} [updates.lastActivity] - New Last activity: value
- * @param {number} [updates.progressPct] - New progress percentage (0-100)
- * @returns {string} Updated content
- */
-function updateStatePosition(content, updates) {
-  const lines = content.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (updates.phaseLine !== undefined && /^Phase:\s/.test(line)) {
-      lines[i] = `Phase: ${updates.phaseLine}`;
-    }
-
-    if (updates.planLine !== undefined && /^Plan:\s/.test(line)) {
-      lines[i] = `Plan: ${updates.planLine}`;
-    }
-
-    if (updates.status !== undefined && /^Status:\s/.test(line)) {
-      lines[i] = `Status: ${updates.status}`;
-    }
-
-    if (updates.lastActivity !== undefined && /^Last activity:\s/i.test(line)) {
-      lines[i] = `Last activity: ${updates.lastActivity}`;
-    }
-
-    if (updates.progressPct !== undefined && /^Progress:\s/.test(line)) {
-      lines[i] = `Progress: ${buildProgressBar(updates.progressPct)}`;
-    }
-  }
-
-  // Also update frontmatter fields if present
-  if (content.startsWith('---')) {
-    const fmEnd = content.indexOf('---', 3);
-    if (fmEnd !== -1) {
-      let fm = content.substring(0, fmEnd + 3);
-      const body = content.substring(fmEnd + 3);
-
-      if (updates.fmCurrentPhase !== undefined) {
-        fm = fm.replace(/^(current_phase:\s*).*/m, (_, p) => `${p}${updates.fmCurrentPhase}`);
-      }
-      if (updates.fmPhaseSlug !== undefined) {
-        fm = fm.replace(/^(phase_slug:\s*).*/m, (_, p) => `${p}"${updates.fmPhaseSlug}"`);
-      }
-      if (updates.fmPhaseName !== undefined) {
-        fm = fm.replace(/^(phase_name:\s*).*/m, (_, p) => `${p}"${updates.fmPhaseName}"`);
-      }
-      if (updates.fmPlansComplete !== undefined) {
-        fm = fm.replace(/^(plans_complete:\s*).*/m, (_, p) => `${p}${updates.fmPlansComplete}`);
-      }
-      if (updates.fmStatus !== undefined) {
-        fm = fm.replace(/^(status:\s*).*/m, (_, p) => `${p}"${updates.fmStatus}"`);
-      }
-      if (updates.fmLastActivity !== undefined) {
-        fm = fm.replace(/^(last_activity:\s*).*/m, (_, p) => `${p}"${updates.fmLastActivity}"`);
-      }
-      if (updates.fmProgressPct !== undefined) {
-        fm = fm.replace(/^(progress_percent:\s*).*/m, (_, p) => `${p}${updates.fmProgressPct}`);
-      }
-
-      // Reconstruct with updated frontmatter + body with line updates
-      const updatedBody = updateStatePositionBody(body, updates);
-      return fm + updatedBody;
-    }
-  }
-
-  return lines.join('\n');
-}
-
-/**
- * Update only the body (after frontmatter) of STATE.md.
- */
-function updateStatePositionBody(body, updates) {
-  const lines = body.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (updates.phaseLine !== undefined && /^Phase:\s/.test(line)) {
-      lines[i] = `Phase: ${updates.phaseLine}`;
-    }
-    if (updates.planLine !== undefined && /^Plan:\s/.test(line)) {
-      lines[i] = `Plan: ${updates.planLine}`;
-    }
-    if (updates.status !== undefined && /^Status:\s/.test(line)) {
-      lines[i] = `Status: ${updates.status}`;
-    }
-    if (updates.lastActivity !== undefined && /^Last activity:\s/i.test(line)) {
-      lines[i] = `Last activity: ${updates.lastActivity}`;
-    }
-    if (updates.progressPct !== undefined && /^Progress:\s/.test(line)) {
-      lines[i] = `Progress: ${buildProgressBar(updates.progressPct)}`;
-    }
-  }
-
-  return lines.join('\n');
-}
-
-/**
- * Build a text progress bar: [████░░░░░░░░░░░░░░░░] 20%
- * @param {number} pct - Percentage 0-100
- * @returns {string}
- */
-function buildProgressBar(pct) {
-  const width = 20;
-  const filled = Math.round((pct / 100) * width);
-  const empty = width - filled;
-  return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${pct}%`;
-}
-
-/**
  * Calculate overall progress percentage from all phase directories.
  * Counts completed summaries vs total plans across all phases.
  *
@@ -375,17 +308,22 @@ function checkStateSync(data) {
     const newStatus = allComplete ? 'Complete' : 'In progress';
     const completedDate = allComplete ? today : null;
 
-    // Update ROADMAP.md Progress table
+    // Update ROADMAP.md Progress table via lockedFileUpdate
     if (fs.existsSync(roadmapPath)) {
       try {
-        const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
-        if (!hasProgressTable) {
-          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        if (isDirty(roadmapPath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
         } else {
-          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
-          if (updatedRoadmap !== roadmapContent) {
-            atomicWriteFile(roadmapPath, updatedRoadmap);
+          const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+          const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+          if (!hasProgressTable) {
+            messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+          } else {
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+              return updateProgressTable(content, phaseNum, plansComplete, newStatus, completedDate);
+            });
+            recordWriteMtime(roadmapPath);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
           }
         }
@@ -394,37 +332,37 @@ function checkStateSync(data) {
       }
     }
 
-    // Update STATE.md
+    // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)
     if (fs.existsSync(statePath)) {
       try {
-        const stateContent = fs.readFileSync(statePath, 'utf8');
-        const overallPct = calculateOverallProgress(phasesDir);
-        const stateUpdates = {
-          planLine: `${artifacts.completeSummaries} of ${artifacts.plans} in current phase`,
-          status: allComplete ? 'Built' : 'Building',
-          lastActivity: `${today} -- Phase ${phaseNum} plan completed`,
-          progressPct: overallPct,
-          fmPlansComplete: artifacts.completeSummaries,
-          fmStatus: allComplete ? 'built' : 'building',
-          fmLastActivity: today,
-          fmProgressPct: overallPct
-        };
+        if (isDirty(statePath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(statePath), reason: 'external edit detected' });
+        } else {
+          const stateContent = fs.readFileSync(statePath, 'utf8');
+          const overallPct = calculateOverallProgress(phasesDir);
+          const stateLib = getStateLib();
 
-        // Detect phase mismatch and add phase updates
-        const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
-          || stateContent.match(/^Phase:\s*(\d+)\s/m);
-        const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
-        if (currentPhase !== null && currentPhase !== phaseNumInt) {
-          stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
-          stateUpdates.fmCurrentPhase = phaseNumInt;
-          stateUpdates.fmPhaseSlug = phaseSlug;
-          stateUpdates.fmPhaseName = phaseName;
-          messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
-        }
+          stateLib.stateUpdate('plans_complete', String(artifacts.completeSummaries), planningDir);
+          stateLib.stateUpdate('status', allComplete ? 'built' : 'building', planningDir);
+          stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} plan completed`, planningDir);
+          stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
 
-        const updatedState = updateStatePosition(stateContent, stateUpdates);
-        if (updatedState !== stateContent) {
-          atomicWriteFile(statePath, updatedState);
+          // Detect phase mismatch and add phase updates
+          const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
+            || stateContent.match(/^Phase:\s*(\d+)\s/m);
+          const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
+          if (currentPhase !== null && currentPhase !== phaseNumInt) {
+            stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
+            stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
+            // phase_name frontmatter not in stateUpdate's valid fields — use lockedFileUpdate directly
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(statePath, (content) => {
+              return stateLib.updateFrontmatterField(content, 'phase_name', phaseName);
+            });
+            messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
+          }
+
+          recordWriteMtime(statePath);
           messages.push(`STATE.md: ${artifacts.completeSummaries}/${artifacts.plans} plans, ${overallPct}%`);
         }
       } catch (e) {
@@ -459,17 +397,22 @@ function checkStateSync(data) {
     const completedDate = isPassed ? today : null;
     const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
 
-    // Update ROADMAP.md Progress table
+    // Update ROADMAP.md Progress table via lockedFileUpdate
     if (fs.existsSync(roadmapPath)) {
       try {
-        const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
-        if (!hasProgressTable) {
-          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        if (isDirty(roadmapPath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
         } else {
-          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
-          if (updatedRoadmap !== roadmapContent) {
-            atomicWriteFile(roadmapPath, updatedRoadmap);
+          const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+          const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+          if (!hasProgressTable) {
+            messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+          } else {
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+              return updateProgressTable(content, phaseNum, plansComplete, roadmapStatus, completedDate);
+            });
+            recordWriteMtime(roadmapPath);
             messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
           }
         }
@@ -478,35 +421,36 @@ function checkStateSync(data) {
       }
     }
 
-    // Update STATE.md
+    // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)
     if (fs.existsSync(statePath)) {
       try {
-        const stateContent = fs.readFileSync(statePath, 'utf8');
-        const overallPct = calculateOverallProgress(phasesDir);
-        const stateUpdates = {
-          status: stateStatus,
-          lastActivity: `${today} -- Phase ${phaseNum} ${isPassed ? 'verified' : 'needs fixes'}`,
-          progressPct: overallPct,
-          fmStatus: isPassed ? 'verified' : 'needs_fixes',
-          fmLastActivity: today,
-          fmProgressPct: overallPct
-        };
+        if (isDirty(statePath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(statePath), reason: 'external edit detected' });
+        } else {
+          const stateContent = fs.readFileSync(statePath, 'utf8');
+          const overallPct = calculateOverallProgress(phasesDir);
+          const stateLib = getStateLib();
 
-        // Detect phase mismatch and add phase updates
-        const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
-          || stateContent.match(/^Phase:\s*(\d+)\s/m);
-        const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
-        if (currentPhase !== null && currentPhase !== phaseNumInt) {
-          stateUpdates.phaseLine = `${phaseNumInt} of ${totalPhases} (${phaseName})`;
-          stateUpdates.fmCurrentPhase = phaseNumInt;
-          stateUpdates.fmPhaseSlug = phaseSlug;
-          stateUpdates.fmPhaseName = phaseName;
-          messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
-        }
+          stateLib.stateUpdate('status', isPassed ? 'verified' : 'needs_fixes', planningDir);
+          stateLib.stateUpdate('last_activity', `${today} -- Phase ${phaseNum} ${isPassed ? 'verified' : 'needs fixes'}`, planningDir);
+          stateLib.stateUpdate('progress_percent', String(overallPct), planningDir);
 
-        const updatedState = updateStatePosition(stateContent, stateUpdates);
-        if (updatedState !== stateContent) {
-          atomicWriteFile(statePath, updatedState);
+          // Detect phase mismatch and add phase updates
+          const currentPhaseMatch = stateContent.match(/^current_phase:\s*(\d+)/m)
+            || stateContent.match(/^Phase:\s*(\d+)\s/m);
+          const currentPhase = currentPhaseMatch ? parseInt(currentPhaseMatch[1], 10) : null;
+          if (currentPhase !== null && currentPhase !== phaseNumInt) {
+            stateLib.stateUpdate('current_phase', String(phaseNumInt), planningDir);
+            stateLib.stateUpdate('phase_slug', phaseSlug, planningDir);
+            // phase_name frontmatter not in stateUpdate's valid fields — use lockedFileUpdate directly
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(statePath, (content) => {
+              return stateLib.updateFrontmatterField(content, 'phase_name', phaseName);
+            });
+            messages.push(`STATE.md: Phase ${currentPhase} → ${phaseNumInt}`);
+          }
+
+          recordWriteMtime(statePath);
           messages.push(`STATE.md: ${stateStatus}, ${overallPct}%`);
         }
       } catch (e) {
@@ -554,9 +498,14 @@ function checkStateSync(data) {
           const planningOrder = statusOrder['planning'];
           if (currentOrder < planningOrder) {
             const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
-            const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
-            if (updatedRoadmap !== roadmapContent) {
-              atomicWriteFile(roadmapPath, updatedRoadmap);
+            if (isDirty(roadmapPath)) {
+              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
+            } else {
+              const coreLib = getCoreLib();
+              coreLib.lockedFileUpdate(roadmapPath, (content) => {
+                return updateProgressTable(content, phaseNum, plansComplete, 'Planning', null);
+              });
+              recordWriteMtime(roadmapPath);
               messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
             }
           }
@@ -600,13 +549,72 @@ function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
+// Re-export lib functions for backward compatibility with existing tests.
+// These were previously defined locally but are now delegated to lib/state.cjs.
+// DEPRECATED: Use stateUpdate() from lib/state.cjs for STATE.md mutations instead.
+function buildProgressBar(pct) {
+  return getStateLib().buildProgressBar(pct);
+}
+
+/**
+ * @deprecated Use stateUpdate() from lib/state.cjs instead.
+ * Kept as a re-export shim for backward compatibility with existing tests.
+ */
+function updateStatePosition(content, updates) {
+  const stateLib = getStateLib();
+  let result = content;
+
+  // Frontmatter field updates
+  if (result.startsWith('---')) {
+    if (updates.fmCurrentPhase !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'current_phase', updates.fmCurrentPhase);
+    if (updates.fmPhaseSlug !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'phase_slug', updates.fmPhaseSlug);
+    if (updates.fmPhaseName !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'phase_name', updates.fmPhaseName);
+    if (updates.fmPlansComplete !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'plans_complete', updates.fmPlansComplete);
+    if (updates.fmStatus !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'status', updates.fmStatus);
+    if (updates.fmLastActivity !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'last_activity', updates.fmLastActivity);
+    if (updates.fmProgressPct !== undefined)
+      result = stateLib.updateFrontmatterField(result, 'progress_percent', updates.fmProgressPct);
+  }
+
+  // Body line updates via syncBodyLine
+  if (updates.status !== undefined)
+    result = stateLib.syncBodyLine(result, 'status', updates.status);
+  if (updates.planLine !== undefined) {
+    // planLine sets "Plan: N of M in current phase" — extract N for plans_complete sync
+    result = result.replace(/^(Plan:\s*).+/m, `$1${updates.planLine}`);
+  }
+  if (updates.phaseLine !== undefined) {
+    result = result.replace(/^(Phase:\s*).+/m, `$1${updates.phaseLine}`);
+  }
+  if (updates.lastActivity !== undefined)
+    result = stateLib.syncBodyLine(result, 'last_activity', updates.lastActivity);
+  if (updates.progressPct !== undefined)
+    result = stateLib.syncBodyLine(result, 'progress_percent', updates.progressPct);
+
+  // Legacy (no frontmatter) — update body lines directly
+  if (!content.startsWith('---')) {
+    if (updates.status !== undefined)
+      result = result.replace(/^(Status:\s*).+/m, `$1${updates.status}`);
+    if (updates.progressPct !== undefined)
+      result = result.replace(/^(Progress:\s*).+/m, `$1${buildProgressBar(updates.progressPct)}`);
+  }
+
+  return result;
+}
+
 module.exports = {
-  atomicWriteFile,
   extractPhaseNum,
   countPhaseArtifacts,
   updateProgressTable,
   updateStatePosition,
   buildProgressBar,
   calculateOverallProgress,
-  checkStateSync
+  checkStateSync,
+  clearMtimeCache
 };

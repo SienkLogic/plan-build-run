@@ -311,8 +311,6 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 
 ## Anti-Patterns
 
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
-
 Additionally for this skill:
 
 1. **DO NOT** modify any source code — scan is read-only analysis

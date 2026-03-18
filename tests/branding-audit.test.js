@@ -167,7 +167,7 @@ describe('FOUN-03: branding audit detects upstream GSD references', () => {
   });
 
   test('exits with code 2 for nonexistent directory', () => {
-    const { exitCode, stderr } = runAudit('/nonexistent/path/abc123');
+    const { exitCode, stderr: _stderr } = runAudit('/nonexistent/path/abc123');
     expect(exitCode).toBe(2);
   });
 });

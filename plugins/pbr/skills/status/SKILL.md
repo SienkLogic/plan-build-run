@@ -245,6 +245,11 @@ Phase Status:
 | PROJECT.md | {exists / not found -- run /pbr:new-project} (includes ## Context section) |
 | REQUIREMENTS.md | {exists / not found -- run /pbr:new-project} |
 
+{If STATE.md contains a ## Metrics section, display velocity metrics in a single compact line:}
+Velocity:  {plans_executed} plans | avg {avg_duration_minutes} min/plan | trend: {trend}
+Total:     {total_plans} plans across all phases
+{If no ## Metrics section exists in STATE.md, skip this block entirely — do not show "No metrics".}
+
 {If context tier is DEGRADING, POOR, or CRITICAL:}
 ⚠ Context: {percentage}% used ({tier}) — {recommendation_text}
   Run `/compact` to reclaim context before spawning more agents.
@@ -413,6 +418,8 @@ Build options dynamically from the decision tree results. Always include "Someth
 - This skill remains read-only — display the command, do not execute it
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

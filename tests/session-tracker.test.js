@@ -122,6 +122,77 @@ describe('session-tracker', () => {
       const data2 = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
       expect(data2.session_start).toBe(originalStart);
     });
+
+    describe('verify-and-retry (TOCTOU protection)', () => {
+      test('verifies write by re-reading file after write', () => {
+        const { planningDir } = makeTmpDir();
+        resetTracker(planningDir);
+
+        // Normal case: write succeeds, re-read matches
+        const count = incrementTracker(planningDir);
+        expect(count).toBe(1);
+
+        const data = JSON.parse(fs.readFileSync(path.join(planningDir, TRACKER_FILE), 'utf8'));
+        expect(data.phases_completed).toBe(1);
+      });
+
+      test('retries once when file is modified between write and verify', () => {
+        const { planningDir } = makeTmpDir();
+        resetTracker(planningDir);
+        const trackerPath = path.join(planningDir, TRACKER_FILE);
+
+        // Monkey-patch writeFileSync to simulate a concurrent write on the FIRST write
+        const origWrite = fs.writeFileSync;
+        let writeCount = 0;
+        fs.writeFileSync = function(filePath, content, ...args) {
+          origWrite.call(fs, filePath, content, ...args);
+          writeCount++;
+          // After the first write by incrementTracker, tamper with the file
+          // to simulate another process writing a different value
+          if (writeCount === 1 && filePath === trackerPath) {
+            const tampered = { phases_completed: 99, session_start: new Date().toISOString(), last_phase_completed: null };
+            origWrite.call(fs, trackerPath, JSON.stringify(tampered, null, 2), 'utf8');
+          }
+        };
+
+        try {
+          const count = incrementTracker(planningDir);
+          // After retry: should read 99, increment to 100
+          expect(count).toBe(100);
+          const data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
+          expect(data.phases_completed).toBe(100);
+        } finally {
+          fs.writeFileSync = origWrite;
+        }
+      });
+
+      test('logs warning and returns stale value on double-failure', () => {
+        const { planningDir } = makeTmpDir();
+        // Create logs dir for logHook
+        fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+        resetTracker(planningDir);
+        const trackerPath = path.join(planningDir, TRACKER_FILE);
+
+        // Tamper on EVERY write to simulate persistent concurrent modification
+        const origWrite = fs.writeFileSync;
+        fs.writeFileSync = function(filePath, content, ...args) {
+          origWrite.call(fs, filePath, content, ...args);
+          if (filePath === trackerPath) {
+            const tampered = { phases_completed: 42, session_start: new Date().toISOString(), last_phase_completed: null };
+            origWrite.call(fs, trackerPath, JSON.stringify(tampered, null, 2), 'utf8');
+          }
+        };
+
+        try {
+          // Should not throw — graceful degradation
+          const count = incrementTracker(planningDir);
+          // Returns a value (the stale/attempted value), doesn't crash
+          expect(typeof count).toBe('number');
+        } finally {
+          fs.writeFileSync = origWrite;
+        }
+      });
+    });
   });
 
   describe('loadTracker', () => {

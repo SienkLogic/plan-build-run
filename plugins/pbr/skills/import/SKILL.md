@@ -721,6 +721,8 @@ Requirements traced: {count}/{total} REQ-IDs covered
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 **IMPORTANT:** On ALL error exits below, delete `.planning/.active-skill` if it exists before displaying the error message.
 
 ### Phase not found

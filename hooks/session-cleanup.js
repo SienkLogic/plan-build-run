@@ -344,6 +344,22 @@ function main() {
   // signal consumed by auto-continue.js (Stop hook). SessionEnd cleanup
   // races with the Stop hook and would delete the signal before it is read.
 
+  // Clean up stale workflow._auto_chain_active config flag.
+  // If the Stop hook didn't consume it (e.g., auto_continue disabled), clear it.
+  try {
+    const configPath = path.join(planningDir, 'config.json');
+    if (fs.existsSync(configPath)) {
+      const rawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (rawConfig.workflow && rawConfig.workflow._auto_chain_active) {
+        delete rawConfig.workflow._auto_chain_active;
+        fs.writeFileSync(configPath, JSON.stringify(rawConfig, null, 2), 'utf8');
+        cleaned.push('workflow._auto_chain_active');
+      }
+    }
+  } catch (_e) {
+    // best-effort — don't fail the hook
+  }
+
   // Session-scoped cleanup: remove the entire session directory if session_id is available
   if (sessionId) {
     try {

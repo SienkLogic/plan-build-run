@@ -45,6 +45,8 @@
  *   state resolve-blocker --text "..."  Remove blocker
  *   state record-session --stopped-at "..." [--resume-file path]
  *   state record-activity <description> Record activity in STATE.md
+ *   state phase-complete <N>            Mark phase complete in STATE.md
+ *   state rederive                      Re-derive state from filesystem, fix drift
  *   state-bundle <phase>                Full state bundle for a phase
  *   state-snapshot                      Structured parse of STATE.md
  *
@@ -730,6 +732,12 @@ async function main() {
       output(stateRecordActivity(description));
     } else if (command === 'state' && subcommand === 'update-progress') {
       output(stateUpdateProgress());
+    } else if (command === 'state' && subcommand === 'phase-complete') {
+      const p = args[2];
+      if (!p) error('Usage: pbr-tools.cjs state phase-complete <phase>');
+      output(getState().statePhaseComplete(Number(p), planningDir));
+    } else if (command === 'state' && subcommand === 'rederive') {
+      output(getState().stateRederive(planningDir));
     } else if (command === 'state' && subcommand === 'add-decision') {
       // GSD pattern: --summary "text" --phase N
       const phaseIdx = args.indexOf('--phase');

@@ -6,7 +6,7 @@ const os = require('os');
 
 const { stateUpdate, stateRecordActivity, stateUpdateProgress } = require('../plan-build-run/bin/lib/state.cjs');
 const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
-const { syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
+const { syncBodyLine: _syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
 
 const STATE_FM = [
   '---', 'version: 2', 'current_phase: 3',

@@ -307,10 +307,25 @@ Task({
    If empty, output: ## Seeds\nNo matching seeds found.
 
 2. DEFERRED IDEAS:
-   Read `.planning/CONTEXT.md`. If it has a section containing 'deferred' or 'ideas' (case-insensitive),
-   extract items that mention Phase {NN} or keywords matching the phase slug.
-   If relevant items found, output a ## Deferred Ideas section listing them.
-   If none found, output: ## Deferred Ideas\nNo relevant deferred items.
+   Collect deferred items from three sources:
+
+   a. **Project CONTEXT.md**: Read `.planning/CONTEXT.md`. Check for `<deferred>` XML tags (preferred)
+      OR `## Deferred` / `## Deferred Ideas` markdown headers (backward compat).
+      Extract items that mention Phase {NN} or keywords matching the phase slug.
+
+   b. **Phase CONTEXT.md**: Read `.planning/phases/{NN}-{slug}/CONTEXT.md` (if exists).
+      Check for `<deferred>` XML tags OR markdown deferred headers. Extract relevant items.
+
+   c. **Prior phase SUMMARY.md files**: Read SUMMARY-*.md files from the prior phase directory
+      (`.planning/phases/{prior_phase_dir}/SUMMARY-*.md`, where prior_phase_dir is phase N-1).
+      Extract the `deferred:` field from each SUMMARY frontmatter. List any deferred items
+      from the prior phase that might now be in scope for this phase.
+
+   Output a ## Deferred Ideas section with sub-sections:
+   - 'From project CONTEXT.md:' (items from project-level deferred, or 'None')
+   - 'From phase CONTEXT.md:' (items from current phase deferred, or 'None')
+   - 'From prior phase:' (items from prior phase SUMMARY.md deferred fields, or 'None')
+   If all three sources are empty, output: ## Deferred Ideas\nNo relevant deferred items.
 
 Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
 })
@@ -443,11 +458,13 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/CONTEXT.md — locked decisions and constraints (if exists)
 2. .planning/ROADMAP.md — phase goals, dependencies, and structure
 3. .planning/phases/{NN}-{slug}/RESEARCH.md — research findings (if exists)
-{if learnings_temp_path exists}4. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
+4. .planning/phases/{NN}-{slug}/CONTEXT.md — phase-level decisions and deferred items (if exists)
+5. .planning/phases/{prior_phase_dir}/SUMMARY-*.md — prior phase summaries with deferred items (if prior phase exists)
+{if learnings_temp_path exists}6. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
 </files_to_read>
 ```
 
-If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 4 entirely.
+Items 4-5 provide the planner with deferred items from the current phase CONTEXT.md and from prior phase SUMMARY.md files, enabling the deferred-items forward path. If `{learnings_temp_path}` was produced in the learnings injection step above, replace `{if...}{/if}` with the actual line. If no learnings were found, omit item 6 entirely. If no prior phase exists, omit item 5.
 
 Wait for the planner to complete.
 
@@ -538,10 +555,37 @@ After the plan checker returns, display its result:
 
 Reference: `skills/shared/revision-loop.md` for the full Check-Revise-Escalate pattern.
 
+**YAML Issue Parsing:** After the plan-checker returns with issues, parse the YAML `issues:` block from the checker output (located under the `## Issues` heading). Count BLOCKER and WARNING issues separately.
+
+**Issue Count Tracking:** Track `issue_count` per iteration. If the current iteration's `issue_count >= prev_issue_count` (count did not decrease), break early with:
+`⚠ Revision loop stalled (issue count not decreasing). Escalating to user.`
+
+**Iteration Display:** At the start of each iteration, display:
+`◆ Revision iteration {N}/3 — {blocker_count} blockers, {warning_count} warnings`
+
 Follow the revision loop pattern with:
-- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl`)
+- **Producer**: planner (re-spawned with `${CLAUDE_SKILL_DIR}/templates/revision-prompt.md.tmpl` — pass the YAML issues block verbatim in the `<checker_issues>` section)
 - **Checker**: plan-checker (back to Step 6)
+- **Early exit**: if issue count does not decrease between iterations, stop the loop and escalate
 - **Escalation**: present issues to user, offer "Proceed anyway" or "Adjust approach" (re-enter Step 5)
+
+```
+prev_issue_count = Infinity
+
+LOOP (iteration = 1 to 3):
+  1. Parse YAML issues from checker output
+  2. Count: blocker_count = issues where severity == "BLOCKER"
+           warning_count = issues where severity == "WARNING"
+           issue_count = blocker_count + warning_count
+  3. Display: ◆ Revision iteration {iteration}/3 — {blocker_count} blockers, {warning_count} warnings
+  4. If issue_count >= prev_issue_count:
+     → Display stall warning, escalate to user
+  5. prev_issue_count = issue_count
+  6. Read revision-prompt.md.tmpl, fill in YAML issues block
+  7. Re-spawn planner with revision prompt
+  8. Re-run plan-checker (Step 6)
+  9. If checker returns PASSED → exit loop, proceed to Step 8
+```
 
 ---
 

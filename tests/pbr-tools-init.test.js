@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress } = require('../plan-build-run/bin/lib/init.cjs');
+const { detectDrift, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress } = require('../plan-build-run/bin/lib/init.cjs');
 const { statePatch, stateAdvancePlan, stateRecordMetric } = require('../plan-build-run/bin/lib/state.cjs');
 const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
 
@@ -415,6 +415,98 @@ describe('pbr-tools compound init commands', () => {
       expect(result.success).toBe(true);
       expect(result.duration_minutes).toBeNull();
       expect(result.plans_completed).toBeNull();
+    });
+  });
+
+  describe('detectDrift', () => {
+    test('returns drift_detected: false when STATE.md matches filesystem', () => {
+      // Default fixture: STATE.md says plans_complete: 1, filesystem has 0 complete summaries
+      // Update STATE.md to say 0 complete to match filesystem (no complete summaries)
+      var planningDir = path.join(tmpDir, '.planning');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      var result = detectDrift(planningDir);
+      expect(result.drift_detected).toBe(false);
+      expect(result.stale_fields).toEqual([]);
+    });
+
+    test('returns drift_detected: true when STATE.md plans_complete differs', () => {
+      // STATE.md says 0 complete, but add a complete summary to filesystem
+      var planningDir = path.join(tmpDir, '.planning');
+      var phaseDir = path.join(planningDir, 'phases', '03-auth');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+        '---', 'status: complete', '---', '# Summary'
+      ].join('\n'));
+      var result = detectDrift(planningDir);
+      expect(result.drift_detected).toBe(true);
+      expect(result.stale_fields).toContain('plans_complete');
+    });
+
+    test('initExecutePhase includes drift field', () => {
+      var result = initExecutePhase('3');
+      expect(result).toHaveProperty('drift');
+      expect(typeof result.drift.drift_detected).toBe('boolean');
+      expect(Array.isArray(result.drift.stale_fields)).toBe(true);
+    });
+
+    test('initPlanPhase includes drift field', () => {
+      var result = initPlanPhase('3');
+      expect(result).toHaveProperty('drift');
+      expect(typeof result.drift.drift_detected).toBe('boolean');
+    });
+
+    test('initProgress includes drift field', () => {
+      var result = initProgress();
+      expect(result).toHaveProperty('drift');
+      expect(typeof result.drift.drift_detected).toBe('boolean');
+    });
+  });
+
+  describe('initResume auto-repair', () => {
+    test('returns rederived: true with corrections when state is drifted', () => {
+      // STATE.md says 0 complete, but filesystem has 1 complete summary
+      var planningDir = path.join(tmpDir, '.planning');
+      var phaseDir = path.join(planningDir, 'phases', '03-auth');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), [
+        '---', 'status: complete', '---', '# Summary'
+      ].join('\n'));
+      var result = initResume();
+      expect(result).toHaveProperty('rederived', true);
+      expect(result.corrections).toContain('plans_complete');
+    });
+
+    test('returns rederived: false when state is clean', () => {
+      // STATE.md matches filesystem (1 plan, 0 complete)
+      var planningDir = path.join(tmpDir, '.planning');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), [
+        '---', 'version: 2', 'current_phase: 3',
+        'phase_slug: auth', 'status: executing', 'progress_percent: 0',
+        'plans_total: 1', 'plans_complete: 0', 'last_activity: 2026-02-20',
+        '---', '# Project State', '', 'Phase: 3 of 5',
+        'Plan: 0 of 1', 'Status: executing', 'Progress: 0%',
+      ].join('\n'));
+      var result = initResume();
+      expect(result).toHaveProperty('rederived', false);
+      expect(result.corrections).toEqual([]);
     });
   });
 });

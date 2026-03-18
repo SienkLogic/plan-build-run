@@ -1374,5 +1374,180 @@ describe('milestone-scoped phase counting in frontmatter', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// statePhaseComplete
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('statePhaseComplete', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('marks phase complete in frontmatter and body', () => {
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 3',
+      'phase_slug: "api-layer"',
+      'status: "executing"',
+      'plans_complete: 2',
+      'plans_total: 2',
+      'progress_percent: 50',
+      'last_activity: "2026-03-10 Built plan 2"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 3 of 6 (Api Layer)',
+      'Status: Executing',
+      'Plan: 2 of 2',
+      'Progress: [██████████░░░░░░░░░░] 50%',
+      'Last activity: 2026-03-10 Built plan 2',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = statePhaseComplete(3, path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.phase, 3, 'should return phase number');
+    assert.strictEqual(result.status, 'complete', 'should return complete status');
+
+    const updated = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    // Frontmatter should have status: "complete"
+    assert.ok(/status:\s*"complete"/.test(updated), 'frontmatter status should be "complete"');
+    // Body should have "Status: Complete"
+    assert.ok(/^Status:\s*Complete/m.test(updated), 'body Status should be Complete');
+    // last_activity should mention phase complete
+    assert.ok(/Phase 3 complete/.test(updated), 'last_activity should mention phase complete');
+  });
+
+  test('returns error when STATE.md not found', () => {
+    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = statePhaseComplete(1, path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, false, 'should fail');
+    assert.ok(result.error, 'should have error message');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// stateRederive
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('stateRederive', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('detects drift and corrects STATE.md', () => {
+    // STATE.md says 0 complete, but filesystem has 1 completed summary
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 1',
+      'phase_slug: "test-phase"',
+      'status: "executing"',
+      'plans_complete: 0',
+      'plans_total: 0',
+      'progress_percent: 0',
+      'last_activity: "2026-03-10"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 1 of 1 (Test Phase)',
+      'Status: Executing',
+      'Plan: 0 of 0',
+      'Progress: [░░░░░░░░░░░░░░░░░░░░] 0%',
+      'Last activity: 2026-03-10',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    // Create a phase with 1 plan and 1 completed summary
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
+
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.ok(result.corrected.length > 0, 'should have corrected fields');
+    assert.strictEqual(result.derived.plans_complete, 1, 'derived plans_complete should be 1');
+    assert.strictEqual(result.derived.plans_total, 1, 'derived plans_total should be 1');
+
+    // Verify STATE.md was updated
+    const updated = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    assert.ok(/plans_complete:\s*1/.test(updated), 'plans_complete should be corrected to 1');
+    assert.ok(/plans_total:\s*1/.test(updated), 'plans_total should be corrected to 1');
+  });
+
+  test('returns corrected=[] when STATE.md matches filesystem', () => {
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 1',
+      'phase_slug: "test-phase"',
+      'status: "executing"',
+      'plans_complete: 1',
+      'plans_total: 1',
+      'progress_percent: 100',
+      'last_activity: "2026-03-10"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 1 of 1 (Test Phase)',
+      'Status: Executing',
+      'Plan: 1 of 1',
+      'Progress: [████████████████████] 100%',
+      'Last activity: 2026-03-10',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    // Filesystem matches: 1 plan, 1 completed
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
+
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.corrected.length, 0, 'should have no corrections');
+    assert.strictEqual(result.derived.plans_complete, 1);
+    assert.strictEqual(result.derived.plans_total, 1);
+  });
+
+  test('handles missing STATE.md gracefully', () => {
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, false, 'should fail');
+    assert.ok(result.error, 'should have error message');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // summary-extract command
 // ─────────────────────────────────────────────────────────────────────────────

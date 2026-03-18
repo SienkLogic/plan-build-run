@@ -16,7 +16,9 @@ References: @references/questioning.md, @references/ui-brand.md
 **Before ANY tool calls**, display this banner:
 
 ```
-PLAN-BUILD-RUN > AUTONOMOUS MODE
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► AUTONOMOUS MODE                           ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -214,6 +216,10 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
 - On `--from N`: check `.autonomous-state.json` for prior run context
 - Display prior run info if available: "Resuming from prior autonomous run. Last completed: Phase {N}."
 - Clean up `.autonomous-state.json` on successful completion of all phases
+
+---
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit modified .planning/ files.
 
 ---
 

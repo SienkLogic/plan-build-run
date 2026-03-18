@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, syncStateBody, checkStateWrite } = require('../hooks/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateContext, syncStateBody, checkStateWrite } = require('../hooks/check-plan-format');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-plan-format.js');
 
@@ -26,8 +26,14 @@ function runScript(input, cwd) {
 function buildValidPlan({ frontmatterExtra = '', taskContent = null } = {}) {
   const task = taskContent !== null ? taskContent : `<task type="auto">
   <name>Task 1</name>
+  <read_first>
+    src/file.ts
+  </read_first>
   <files>src/file.ts</files>
   <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "something" src/file.ts
+  </acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`;
@@ -52,6 +58,7 @@ describe('check-plan-format.js', () => {
 phase: 03-auth
 plan: 01
 wave: 1
+type: feature
 depends_on: []
 files_modified: ["src/auth.ts"]
 autonomous: true
@@ -70,16 +77,28 @@ Create authentication middleware
 
 <task type="auto">
   <name>Task 1: Create auth middleware</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
   <files>src/auth/middleware.ts</files>
   <action>Create JWT verification middleware</action>
+  <acceptance_criteria>
+    grep -q "requireAuth" src/auth/middleware.ts
+  </acceptance_criteria>
   <verify>npm test -- auth.test.ts</verify>
   <done>Auth middleware validates JWT tokens</done>
 </task>
 
 <task type="auto">
   <name>Task 2: Create login endpoint</name>
+  <read_first>
+    src/auth/middleware.ts
+  </read_first>
   <files>src/auth/login.ts</files>
   <action>Create POST /login endpoint</action>
+  <acceptance_criteria>
+    grep -q "login" src/auth/login.ts
+  </acceptance_criteria>
   <verify>curl -X POST localhost:3000/login</verify>
   <done>Login returns JWT token</done>
 </task>
@@ -359,6 +378,250 @@ must_haves:
       expect(behaviorError).toBeUndefined();
       const implementationError = result.errors.find(e => /implementation/i.test(e));
       expect(implementationError).toBeUndefined();
+    });
+
+    // Phase 04: canonical field validation tests
+    test('plan missing type field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'depends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "type" field');
+    });
+
+    test('plan missing depends_on field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "depends_on" field');
+    });
+
+    test('plan missing files_modified field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "files_modified" field');
+    });
+
+    test('plan missing autonomous field produces error', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toContain('Frontmatter missing "autonomous" field');
+    });
+
+    test('plan with invalid type value produces warning', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: banana\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const typeWarning = result.warnings.find(w => w.includes('Unexpected type value'));
+      expect(typeWarning).toBeDefined();
+      expect(typeWarning).toContain('banana');
+    });
+
+    test('plan with all 7 canonical fields passes without new errors', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      expect(result.errors).toEqual([]);
+    });
+
+    test('existing plans with phase/plan/wave/must_haves/implements still pass', () => {
+      // Plans without the new canonical fields should get errors for the missing fields
+      // but NOT lose their existing validation behavior
+      const content = buildValidPlan();
+      const result = validatePlan(content, 'test-PLAN.md');
+      // phase, plan, wave are present in buildValidPlan - should not error on those
+      expect(result.errors.find(e => /phase/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /plan"/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /wave/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /must_haves/.test(e))).toBeUndefined();
+      expect(result.errors.find(e => /implements/.test(e))).toBeUndefined();
+    });
+
+    // Phase 04: must_haves sub-field validation tests
+    test('must_haves without truths produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  artifacts:
+    - path: "src/a.ts"
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const truthsWarning = result.warnings.find(w => w.includes('must_haves missing "truths"'));
+      expect(truthsWarning).toBeDefined();
+    });
+
+    test('must_haves without artifacts produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: ["Something works"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const artifactsWarning = result.warnings.find(w => w.includes('must_haves missing "artifacts"'));
+      expect(artifactsWarning).toBeDefined();
+    });
+
+    test('must_haves without key_links produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: ["Something works"]
+  artifacts:
+    - path: "src/a.ts"
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const keyLinksWarning = result.warnings.find(w => w.includes('must_haves missing "key_links"'));
+      expect(keyLinksWarning).toBeDefined();
+    });
+
+    test('must_haves with all 3 sub-fields and valid content passes', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const mustHaveWarnings = result.warnings.filter(w => w.includes('must_haves missing'));
+      expect(mustHaveWarnings).toHaveLength(0);
+    });
+
+    // Phase 05: read_first and acceptance_criteria validation tests
+    test('validatePlan: plan with read_first and acceptance_criteria passes validation', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const rfError = result.errors.find(e => /read_first/i.test(e));
+      expect(rfError).toBeUndefined();
+      const acError = result.errors.find(e => /acceptance_criteria/i.test(e));
+      expect(acError).toBeUndefined();
+    });
+
+    test('validatePlan: plan missing read_first produces error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const rfError = result.errors.find(e => /read_first/i.test(e));
+      expect(rfError).toBeDefined();
+    });
+
+    test('validatePlan: plan missing acceptance_criteria produces error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const acError = result.errors.find(e => /acceptance_criteria/i.test(e));
+      expect(acError).toBeDefined();
+    });
+
+    test('validatePlan: plan with glob in read_first produces warning', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/**/*.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const globWarning = result.warnings.find(w => /read_first.*glob/i.test(w) || /read_first.*specific/i.test(w));
+      expect(globWarning).toBeDefined();
+    });
+
+    test('must_haves with empty truths: [] passes (empty is valid, missing is not)', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: []
+  artifacts: []
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const mustHaveWarnings = result.warnings.filter(w => w.includes('must_haves missing'));
+      expect(mustHaveWarnings).toHaveLength(0);
     });
   });
 
@@ -937,29 +1200,29 @@ All checks passed.`);
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('STATE.md with 100 lines does not trigger line count warning', () => {
+    test('STATE.md with 99 lines does not trigger line count warning', () => {
       const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
-      while (lines.length < 100) lines.push('Some content line');
+      while (lines.length < 99) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
       const result = checkStateWrite({ tool_input: { file_path: filePath } });
-      // Should pass clean (null) or have warnings that don't mention "150 lines"
+      // Should pass clean (null) or have warnings that don't mention line cap
       if (result) {
         const ctx = result.output?.additionalContext || '';
-        expect(ctx).not.toContain('exceeds 150 lines');
+        expect(ctx).not.toContain('100-line cap');
       }
     });
 
-    test('STATE.md with 160 lines triggers advisory warning mentioning 150 lines', () => {
+    test('STATE.md with 101 lines triggers advisory warning mentioning 100-line cap', () => {
       const lines = ['---', 'version: 2', 'current_phase: 3', 'phase_slug: "test"', 'status: "building"', '---'];
-      while (lines.length < 160) lines.push('Some content line');
+      while (lines.length < 101) lines.push('Some content line');
       const filePath = path.join(tmpDir, 'STATE.md');
       fs.writeFileSync(filePath, lines.join('\n'));
       const result = checkStateWrite({ tool_input: { file_path: filePath } });
       expect(result).not.toBeNull();
       const ctx = result.output?.additionalContext || '';
-      expect(ctx).toContain('exceeds 150 lines');
-      expect(ctx).toContain('160');
+      expect(ctx).toContain('100-line cap');
+      expect(ctx).toContain('101');
     });
   });
 
@@ -1059,6 +1322,180 @@ All checks passed.`);
       const result = syncStateBody(content, filePath);
       expect(result).not.toBeNull();
       expect(result.content).toContain('Phase: 12 of 10 (Testing)');
+    });
+  });
+
+  describe('validateContext', () => {
+    test('valid CONTEXT.md with all 4 XML sections returns no errors or warnings', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '# Phase Context',
+        '',
+        '<domain>',
+        'Auth domain context',
+        '</domain>',
+        '',
+        '<decisions>',
+        'Use JWT tokens',
+        '</decisions>',
+        '',
+        '<canonical_refs>',
+        '.planning/research/auth.md',
+        '</canonical_refs>',
+        '',
+        '<deferred>',
+        'OAuth2 support deferred to v2',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('missing canonical_refs section produces 1 warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '<domain>',
+        'Auth domain',
+        '</domain>',
+        '',
+        '<decisions>',
+        'Use JWT',
+        '</decisions>',
+        '',
+        '<deferred>',
+        'OAuth2 deferred',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('canonical_refs');
+    });
+
+    test('missing decisions section produces 1 warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '<domain>',
+        'Auth domain',
+        '</domain>',
+        '',
+        '<canonical_refs>',
+        'refs here',
+        '</canonical_refs>',
+        '',
+        '<deferred>',
+        'deferred items',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('decisions');
+    });
+
+    test('legacy markdown-header format (## Decisions, ## Deferred Ideas) produces no errors', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '## Domain',
+        'Auth domain context',
+        '',
+        '## Decisions',
+        'Use JWT tokens',
+        '',
+        '## Canonical References',
+        'refs here',
+        '',
+        '## Deferred Ideas',
+        'OAuth2 deferred',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('completely empty content produces 1 error', () => {
+      const result = validateContext('', '/fake/CONTEXT.md');
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('validateSummary metrics warnings', () => {
+    test('SUMMARY with duration and requirements-completed has no metrics warnings', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'duration: 12.5',
+        'requirements-completed: ["REQ-F-001"]',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      expect(result.errors).toHaveLength(0);
+      const metricsWarnings = result.warnings.filter(w => w.includes('duration') || w.includes('requirements-completed'));
+      expect(metricsWarnings).toHaveLength(0);
+    });
+
+    test('SUMMARY without duration field produces warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'requirements-completed: ["REQ-F-001"]',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      const durationWarnings = result.warnings.filter(w => w.includes('duration'));
+      expect(durationWarnings).toHaveLength(1);
+    });
+
+    test('SUMMARY without requirements-completed field produces warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'duration: 12.5',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      const reqWarnings = result.warnings.filter(w => w.includes('requirements-completed'));
+      expect(reqWarnings).toHaveLength(1);
     });
   });
 

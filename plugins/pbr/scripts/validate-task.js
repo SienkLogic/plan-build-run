@@ -259,6 +259,16 @@ function main() {
 
       process.exit(0);
     } catch (_e) {
+      // Fail-open telemetry: log error details to hooks.jsonl
+      try {
+        logHook('validate-task', 'PreToolUse', 'error', {
+          error: _e.message,
+          stack: _e.stack,
+          gate: 'unknown'
+        });
+      } catch (_logErr) {
+        // fail-open: logging failure must not block
+      }
       // Don't block on errors — emit valid output for Claude Code
       process.stderr.write(`[pbr] validate-task error: ${_e.message}
 `);

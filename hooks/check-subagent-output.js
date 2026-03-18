@@ -923,6 +923,34 @@ async function main() {
     skillCheck.check(planningDir, found, skillWarnings);
   }
 
+  // Completion marker validation for executor agents
+  if (agentType === 'pbr:executor') {
+    const toolOutput = data.tool_output || '';
+    const hasCompletionMarker = /## PLAN COMPLETE|## PLAN FAILED|## CHECKPOINT:/i.test(toolOutput);
+    if (toolOutput && !hasCompletionMarker) {
+      skillWarnings.push('Executor did not return a completion marker (expected ## PLAN COMPLETE, ## PLAN FAILED, or ## CHECKPOINT:). Build skill may not route correctly.');
+    }
+
+    // Self-Check section validation in SUMMARY.md body
+    if (found.length > 0) {
+      const summaryFiles = found.filter(f => /SUMMARY/i.test(f));
+      let hasSelfCheckSection = false;
+      for (const relPath of summaryFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const content = fs.readFileSync(fullPath, 'utf8');
+          if (/^## Self-Check:\s*(PASSED|FAILED)/mi.test(content)) {
+            hasSelfCheckSection = true;
+            break;
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+      if (!hasSelfCheckSection) {
+        skillWarnings.push('Executor SUMMARY.md missing ## Self-Check section. Self-verification may have been skipped.');
+      }
+    }
+  }
+
   // Log compliance violations for tracking and session-end summary
   if (genericMissing) {
     logCompliance(planningDir, agentType, `Missing expected output: ${outputSpec.description}`, 'required');
@@ -1075,6 +1103,34 @@ async function handleHttp(reqBody) {
   const skillCheckKey = `${activeSkill}:${agentType}`;
   const skillCheck = SKILL_CHECKS[skillCheckKey];
   if (skillCheck) skillCheck.check(planningDir, found, skillWarnings);
+
+  // Completion marker validation for executor agents
+  if (agentType === 'pbr:executor') {
+    const toolOutput = data.tool_output || '';
+    const hasCompletionMarker = /## PLAN COMPLETE|## PLAN FAILED|## CHECKPOINT:/i.test(toolOutput);
+    if (toolOutput && !hasCompletionMarker) {
+      skillWarnings.push('Executor did not return a completion marker (expected ## PLAN COMPLETE, ## PLAN FAILED, or ## CHECKPOINT:). Build skill may not route correctly.');
+    }
+
+    // Self-Check section validation in SUMMARY.md body
+    if (found.length > 0) {
+      const summaryFiles = found.filter(f => /SUMMARY/i.test(f));
+      let hasSelfCheckSection = false;
+      for (const relPath of summaryFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const content = fs.readFileSync(fullPath, 'utf8');
+          if (/^## Self-Check:\s*(PASSED|FAILED)/mi.test(content)) {
+            hasSelfCheckSection = true;
+            break;
+          }
+        } catch (_e) { /* best-effort */ }
+      }
+      if (!hasSelfCheckSection) {
+        skillWarnings.push('Executor SUMMARY.md missing ## Self-Check section. Self-verification may have been skipped.');
+      }
+    }
+  }
 
   // LLM classification helper (advisory, never throws)
   async function getLlmNote() {

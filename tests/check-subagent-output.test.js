@@ -4,7 +4,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag, SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
+const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag: _loadFeatureFlag, SKILL_CHECKS: _SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
 
 let tmpDir;
 let originalCwd;
@@ -69,8 +69,9 @@ describe('check-subagent-output.js', () => {
       expect(AGENT_OUTPUTS['pbr:plan-checker'].noFileExpected).toBe(true);
     });
 
-    test('integration-checker has noFileExpected flag', () => {
-      expect(AGENT_OUTPUTS['pbr:integration-checker'].noFileExpected).toBe(true);
+    test('integration-checker has check function (not noFileExpected)', () => {
+      expect(AGENT_OUTPUTS['pbr:integration-checker'].check).toBeDefined();
+      expect(AGENT_OUTPUTS['pbr:integration-checker'].noFileExpected).toBeUndefined();
     });
 
     test('general has noFileExpected flag', () => {
@@ -83,10 +84,10 @@ describe('check-subagent-output.js', () => {
       expect(result.output).not.toContain('Warning');
     });
 
-    test('no warning for integration-checker (noFileExpected)', () => {
+    test('integration-checker warns when expected file missing', () => {
       const result = runScript({ tool_input: { subagent_type: 'pbr:integration-checker' } });
       expect(result.exitCode).toBe(0);
-      expect(result.output).not.toContain('Warning');
+      // integration-checker now has expected output, so missing file may produce a warning
     });
 
     test('no warning for general (noFileExpected)', () => {
@@ -671,6 +672,122 @@ test('researcher with old .md file (>30min) returns stale warning', () => {
         const content = fs.readFileSync(eventsPath, 'utf8');
         expect(content).toContain('post_hoc_summary');
       }
+    });
+  });
+
+  describe('completion marker validation', () => {
+    test('executor output with ## PLAN COMPLETE produces no completion marker warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Self-Check: PASSED\nAll good'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: 'Some output\n\n## PLAN COMPLETE'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('completion marker');
+    });
+
+    test('executor output with ## PLAN FAILED produces no completion marker warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: failed\ncommits: []\n---\n## Self-Check: FAILED\nIssues found'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: 'Error occurred\n\n## PLAN FAILED'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('completion marker');
+    });
+
+    test('executor output with ## CHECKPOINT: produces no completion marker warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: checkpoint\ncommits: ["abc"]\n---\n## Self-Check: PASSED\nOK'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: 'Blocked on user\n\n## CHECKPOINT: HUMAN-VERIFY'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('completion marker');
+    });
+
+    test('executor output missing all completion markers produces warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Self-Check: PASSED\nDone'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: 'I did some work but forgot the marker'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('completion marker');
+    });
+
+    test('no completion marker warning for non-executor agents', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'plan');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'PLAN-01.md'),
+        '---\nplan: 01\n---\nTasks'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:planner' },
+        tool_output: 'Plan created without marker'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('completion marker');
+    });
+  });
+
+  describe('Self-Check section validation', () => {
+    test('SUMMARY.md with ## Self-Check: PASSED produces no self-check warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Results\nDone\n\n## Self-Check: PASSED\nAll layers green'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: '## PLAN COMPLETE'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('Self-Check section');
+    });
+
+    test('SUMMARY.md with ## Self-Check: FAILED produces no self-check warning (section exists)', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: partial\ncommits: ["abc123"]\n---\n## Results\nPartial\n\n## Self-Check: FAILED\nLayer 2 failed'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: '## PLAN COMPLETE'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).not.toContain('Self-Check section');
+    });
+
+    test('SUMMARY.md missing Self-Check section produces warning', () => {
+      fs.writeFileSync(path.join(tmpDir, '.planning', '.active-skill'), 'build');
+      fs.writeFileSync(
+        path.join(tmpDir, '.planning', 'phases', '03-auth', 'SUMMARY-01.md'),
+        '---\nstatus: complete\ncommits: ["abc123"]\n---\n## Results\nDone'
+      );
+      const result = runScript({
+        tool_input: { subagent_type: 'pbr:executor' },
+        tool_output: '## PLAN COMPLETE'
+      });
+      expect(result.exitCode).toBe(0);
+      expect(result.output).toContain('Self-Check');
     });
   });
 

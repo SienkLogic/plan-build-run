@@ -11,11 +11,14 @@ Read and check each of these plan files:
 {For each PLAN.md file in .planning/phases/{NN}-{slug}/:}
 | {plan_id} | {absolute path to PLAN.md} |
 
-Read each plan file using the Read tool. Verify all 7 dimensions against each plan.
+Read each plan file using the Read tool. Verify all 9 dimensions against each plan.
 </plans_to_check>
 
 <!-- Context blocks: Read and fill templates/prompt-partials/phase-project-context.md.tmpl -->
 <!-- Omit <prior_work> -- checker only needs plans and context -->
 
-Run all 7 verification dimensions on these plans. Return your structured report.
+Run all 9 verification dimensions on these plans. Return issues in YAML format under a `## Issues` heading. Each issue must have: dimension, severity, finding, affected_field, suggested_fix.
+
+If all dimensions pass, return `## CHECK PASSED` with no issues block.
+
 Do NOT write any files. Return your findings as your response text.

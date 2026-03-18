@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-+==============================================================+
-|  PLAN-BUILD-RUN > PROFILE-USER                               |
-+==============================================================+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► USER PROFILE                              ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -190,6 +190,10 @@ clearly and wait for your input rather than assuming a default.
 
 (... one section per dimension ...)
 ```
+
+---
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit USER-PROFILE.md.
 
 ---
 

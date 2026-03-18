@@ -4,6 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { logHook } = require('./hook-logger');
 
 const TRACKER_FILE = '.session-tracker';
 
@@ -44,18 +45,63 @@ function resetTracker(planningDir, sessionId) {
  */
 function incrementTracker(planningDir, sessionId) {
   const trackerPath = getTrackerPath(planningDir, sessionId);
-  let raw;
-  try {
-    raw = fs.readFileSync(trackerPath, 'utf8');
-  } catch (_e) {
-    // File missing — create it first
-    resetTracker(planningDir, sessionId);
-    raw = fs.readFileSync(trackerPath, 'utf8');
+
+  function readData() {
+    let raw;
+    try {
+      raw = fs.readFileSync(trackerPath, 'utf8');
+    } catch (_e) {
+      // File missing — create it first
+      resetTracker(planningDir, sessionId);
+      raw = fs.readFileSync(trackerPath, 'utf8');
+    }
+    return JSON.parse(raw);
   }
-  const data = JSON.parse(raw);
+
+  function writeAndVerify(data) {
+    const expected = data.phases_completed;
+    fs.writeFileSync(trackerPath, JSON.stringify(data, null, 2), 'utf8');
+    // Re-read to verify (accept-and-retry for TOCTOU)
+    try {
+      const verifyRaw = fs.readFileSync(trackerPath, 'utf8');
+      const verifyData = JSON.parse(verifyRaw);
+      return verifyData.phases_completed === expected;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  // First attempt: read, increment, write, verify
+  let data = readData();
   data.phases_completed += 1;
   data.last_phase_completed = new Date().toISOString();
-  fs.writeFileSync(trackerPath, JSON.stringify(data, null, 2), 'utf8');
+
+  if (writeAndVerify(data)) {
+    return data.phases_completed;
+  }
+
+  // Retry once: re-read latest value, increment that, write again
+  try {
+    data = readData();
+    data.phases_completed += 1;
+    data.last_phase_completed = new Date().toISOString();
+
+    if (writeAndVerify(data)) {
+      return data.phases_completed;
+    }
+  } catch (_e) {
+    // Retry failed to even read — fall through to graceful degradation
+  }
+
+  // Double-failure: log warning, return the stale value
+  try {
+    logHook('session-tracker', 'increment', 'verify-failed', {
+      trackerPath,
+      attempted: data.phases_completed
+    });
+  } catch (_e) {
+    // logHook failure must not crash the hook
+  }
   return data.phases_completed;
 }
 

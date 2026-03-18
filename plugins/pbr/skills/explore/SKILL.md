@@ -412,6 +412,8 @@ Stage only the files created during this session. Do not stage unrelated changes
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Researcher agent fails
 If a mid-conversation researcher Task() fails, display:
 ```
@@ -432,8 +434,6 @@ If the briefing Task() fails:
 ---
 
 ## Anti-Patterns
-
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
 
 Additionally for this skill:
 

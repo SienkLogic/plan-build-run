@@ -37,7 +37,8 @@ feat(auth): implement discord oauth client
 | `test` | Adding or modifying tests | `test(auth): add failing tests for oauth flow` |
 | `docs` | Documentation changes | `docs(planning): add api endpoint documentation` |
 | `chore` | Build config, dependencies, tooling | `chore(deps): configure typescript and eslint` |
-| `style` | Formatting, whitespace (no logic change) | `style(auth): fix import ordering` |
+| `wip` | Work in progress (use sparingly) | `wip(auth): partial oauth implementation` |
+| `revert` | Reverting a previous commit | `revert(auth): revert discord oauth changes` |
 
 ---
 
@@ -52,6 +53,7 @@ feat(auth): implement discord oauth client
 | `docs` | Documentation (hidden — mostly planning artifacts) | No |
 | `chore` | Build config, deps, tooling, internal scaffolding | No |
 | `wip` | Work in progress (use sparingly) | No |
+| `revert` | Reverting a previous commit | YES |
 
 **TDD commits**: RED phase → `test({scope}): RED - ...`, GREEN phase → `refactor({scope}): GREEN - ...`, REFACTOR phase → `refactor({scope}): REFACTOR - ...`
 
@@ -265,7 +267,7 @@ Plan-Build-Run uses Claude Code hooks (defined in `hooks/hooks.json`) to enforce
 
 The commit validation hook (`PreToolUse` on Bash commands) enforces the commit format:
 - Checks that `git commit -m "..."` messages match the pattern: `{type}({scope}): {description}`
-- Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `wip`
+- Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `wip`, `revert`
 - Allows merge commits (starting with "Merge")
 - Allows quick-task, planning, and WIP scope patterns
 - Blocks commits with sensitive file patterns (`.env`, `.key`, `.pem`, credentials) unless they match safe patterns (`.example`, `.template`, `.sample`, test directories)

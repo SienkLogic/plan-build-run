@@ -274,6 +274,8 @@ Show a brief summary: count of pending todos, grouped by theme, plus usage hint.
 
 After any todo operation, update the "Pending Todos" section of STATE.md with the current count and list.
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Git Integration
 
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.

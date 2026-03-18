@@ -12,7 +12,9 @@ argument-hint: "<phase-number> [--url <dev-server-url>]"
 **Before ANY tool calls**, display this banner:
 
 ```
-PLAN-BUILD-RUN > UI VISUAL AUDIT
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► UI REVIEW                                 ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
@@ -22,7 +24,7 @@ Then proceed to Step 1.
 Read the following files:
 
 ```bash
-node $CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load
 ```
 
 Also read `.planning/config.json` to check for `ui.enabled` setting.
@@ -190,6 +192,8 @@ Additionally for this skill:
 - Delegate ALL analysis to the ui-checker subagent -- do not analyze UI implementation yourself
 - Read UI-REVIEW.md output for score presentation, extract only the scoring table and key findings
 - Keep follow-up suggestions concise -- one `/pbr:do` command per dimension
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit UI-REVIEW.md.
 
 ## Anti-Patterns
 

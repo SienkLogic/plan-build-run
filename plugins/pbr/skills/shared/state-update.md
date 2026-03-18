@@ -107,7 +107,7 @@ Resume file: {path or "None"}
    Phase 1: verified 2026-02-08
    Phase 2: verified 2026-02-09
    ```
-2. **Remove decisions already captured in CONTEXT.md** -- avoid duplication between STATE.md and phase CONTEXT.md files
+2. **Remove decisions already captured in phase CONTEXT.md files** -- avoid duplication between STATE.md and phase-level CONTEXT.md
 3. **Remove old session entries** -- keep only the current session's continuity data
 4. **Keep these always:** current phase detail, active blockers, core value statement, milestone info
 
@@ -115,34 +115,35 @@ If still over 150 lines after compaction, the Accumulated Context section has gr
 
 ---
 
-## HISTORY.md Archival
+## History Archival
 
-When a milestone completes or a phase is verified, archive historical context to `.planning/HISTORY.md` to keep STATE.md lean:
+When a milestone completes or a phase is verified, archive historical context to the STATE.md ## History section to keep the Accumulated Context section lean:
 
 ### What to Archive
 
-| Trigger | What moves to HISTORY.md |
-|---------|-------------------------|
+| Trigger | What moves to STATE.md ## History |
+|---------|----------------------------------|
 | Phase verified | One-liner summary: "Phase {N} ({name}): verified {date}" |
 | Milestone complete | Full milestone record: name, phases covered, key decisions |
-| Accumulated Context > 20 lines | Decisions from completed phases (keep only current-phase decisions in STATE.md) |
+| Accumulated Context > 20 lines | Decisions from completed phases (keep only current-phase decisions in Accumulated Context) |
 
 ### How to Archive
 
-Use `pbr-tools.cjs history append`:
+Use `pbr-tools.cjs` to append to STATE.md ## History:
+
 ```
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append phase "Phase 3 (Auth)" "Verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "v1.0 User Auth" "Phases 1-4. All verified. Core auth flow complete."
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase 3 (Auth): verified 2026-02-10. Key decisions: JWT + httpOnly cookies, Discord OAuth."
 ```
 
 ### After Archiving
 
-Remove the archived content from STATE.md. The Accumulated Context section should contain ONLY:
+Remove the archived content from the Accumulated Context section. It should contain ONLY:
+
 - Decisions relevant to the **current** phase
 - Active (unresolved) blockers
 - Pending todos for the current milestone
 
-Historical decisions live in HISTORY.md and per-phase SUMMARY.md files.
+Historical decisions live in STATE.md ## History and per-phase SUMMARY.md files.
 
 ---
 

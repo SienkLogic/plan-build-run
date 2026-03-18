@@ -12,6 +12,7 @@
  * - STATE.md: frontmatter fields (warnings only, auto-synced)
  * - config.json: valid JSON, required fields
  * - RESEARCH.md: frontmatter with confidence, sources_checked
+ * - CONTEXT.md: XML-style sections (domain, decisions, canonical_refs, deferred) or legacy markdown headers
  *
  * Returns decision: "block" for structural errors (forces Claude to fix and retry).
  * Returns message for non-blocking warnings.
@@ -63,8 +64,9 @@ async function main() {
       const isLearnings = basename === 'LEARNINGS.md';
       const isConfig = basename === 'config.json' && filePath.includes('.planning');
       const isResearch = basename === 'RESEARCH.md';
+      const isContext = basename === 'CONTEXT.md' && filePath.includes('.planning');
 
-      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) {
+      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch && !isContext) {
         process.exit(0);
       }
 
@@ -85,7 +87,9 @@ async function main() {
                 ? validateConfig(content, filePath)
                 : isResearch
                   ? validateResearch(content, filePath)
-                  : validateSummary(content, filePath);
+                  : isContext
+                    ? validateContext(content, filePath)
+                    : validateSummary(content, filePath);
 
       // LLM advisory enrichment — advisory only, never blocks
       if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -103,7 +107,7 @@ async function main() {
         }
       }
 
-      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -157,6 +161,44 @@ async function main() {
   });
 }
 
+/**
+ * Validate must_haves sub-field structure within frontmatter.
+ * Checks that truths, artifacts, and key_links sub-fields exist under must_haves.
+ * Uses warnings (not errors) during migration period — existing plans should not
+ * suddenly be blocked.
+ *
+ * @param {string} frontmatter - The frontmatter content (between --- delimiters)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateMustHaves(frontmatter) {
+  const warnings = [];
+
+  const mustHavesIdx = frontmatter.indexOf('must_haves:');
+  if (mustHavesIdx === -1) return { errors: [], warnings };
+
+  const afterMustHaves = frontmatter.substring(mustHavesIdx + 'must_haves:'.length);
+  const nextKeyMatch = afterMustHaves.match(/\n[a-zA-Z_][a-zA-Z0-9_]*:/);
+  const mustHavesBlock = nextKeyMatch
+    ? afterMustHaves.substring(0, nextKeyMatch.index)
+    : afterMustHaves;
+
+  const requiredSubFields = ['truths', 'artifacts', 'key_links'];
+  for (const subField of requiredSubFields) {
+    const subFieldRegex = new RegExp(`^\\s+${subField}:`, 'm');
+    if (!subFieldRegex.test(mustHavesBlock)) {
+      warnings.push(`must_haves missing "${subField}" sub-field`);
+    }
+  }
+
+  return { errors: [], warnings };
+}
+
+/** Canonical required fields for PLAN.md frontmatter. */
+const PLAN_REQUIRED_FIELDS = ['phase', 'plan', 'wave', 'type', 'depends_on', 'files_modified', 'autonomous'];
+
+/** Valid values for the type: field in PLAN.md frontmatter. */
+const PLAN_VALID_TYPES = ['feature', 'bugfix', 'refactor', 'infrastructure', 'docs', 'chore'];
+
 function validatePlan(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -170,14 +212,25 @@ function validatePlan(content, _filePath) {
       errors.push('Unclosed YAML frontmatter');
     } else {
       const frontmatter = content.substring(3, frontmatterEnd);
-      const requiredFields = ['phase', 'plan', 'wave'];
-      for (const field of requiredFields) {
+      for (const field of PLAN_REQUIRED_FIELDS) {
         if (!frontmatter.includes(`${field}:`)) {
           errors.push(`Frontmatter missing "${field}" field`);
         }
       }
+
+      // Validate type enum value
+      const typeMatch = frontmatter.match(/^type:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (typeMatch) {
+        const typeValue = typeMatch[1].trim();
+        if (!PLAN_VALID_TYPES.includes(typeValue)) {
+          warnings.push(`Unexpected type value: "${typeValue}" (expected: ${PLAN_VALID_TYPES.join(', ')})`);
+        }
+      }
       if (!frontmatter.includes('must_haves:')) {
         errors.push('Frontmatter missing "must_haves" field (truths/artifacts/key_links required)');
+      } else {
+        const mhResult = validateMustHaves(frontmatter);
+        warnings.push(...mhResult.warnings);
       }
       // Blocking: implements:[] is required for REQ-ID traceability (Phase 66)
       if (!frontmatter.includes('implements:')) {
@@ -199,7 +252,7 @@ function validatePlan(content, _filePath) {
   // Check each task has required elements
   const taskTags = content.match(/<task\b[^>]*>/g) || [];
   const taskBlocks = content.split(/<task\b[^>]*>/).slice(1);
-  const requiredElements = ['name', 'files', 'action', 'verify', 'done'];
+  const requiredElements = ['name', 'read_first', 'files', 'action', 'acceptance_criteria', 'verify', 'done'];
 
   taskBlocks.forEach((block, index) => {
     const taskEnd = block.indexOf('</task>');
@@ -214,6 +267,17 @@ function validatePlan(content, _filePath) {
     for (const elem of requiredElements) {
       if (!taskContent.includes(`<${elem}>`) && !taskContent.includes(`<${elem} `)) {
         errors.push(`Task ${index + 1}: missing <${elem}> element`);
+      }
+    }
+
+    // Validate read_first paths don't contain wildcards
+    const readFirstMatch = taskContent.match(/<read_first>([\s\S]*?)<\/read_first>/);
+    if (readFirstMatch) {
+      const rfPaths = readFirstMatch[1].split(/\n/).map(l => l.trim()).filter(Boolean);
+      for (const rfPath of rfPaths) {
+        if (rfPath.includes('*')) {
+          warnings.push(`Task ${index + 1}: read_first should use specific paths, not globs: "${rfPath}"`);
+        }
       }
     }
 
@@ -276,6 +340,14 @@ function validateSummary(content, _filePath) {
         warnings.push('Frontmatter missing "deferred" field (forces executor to consciously record scope creep)');
       }
 
+      // Metrics fields — warnings only (executors may not always have timing data)
+      if (!frontmatter.includes('duration:')) {
+        warnings.push('Frontmatter missing "duration" field (minutes as number — dashboard depends on this)');
+      }
+      if (!frontmatter.includes('requirements-completed:')) {
+        warnings.push('Frontmatter missing "requirements-completed" field (array of REQ-IDs — status skill depends on this)');
+      }
+
       // Validate key_files paths exist on disk — warning only (files may not exist yet during planning)
       const keyFilesMatch = frontmatter.match(/key_files:\s*\n((?:\s+-\s+.*\n?)*)/);
       if (keyFilesMatch) {
@@ -312,8 +384,9 @@ async function checkPlanWrite(data) {
   const isLearnings = basename === 'LEARNINGS.md';
   const isConfig = basename === 'config.json' && filePath.includes('.planning');
   const isResearch = basename === 'RESEARCH.md';
+  const isContext = basename === 'CONTEXT.md' && filePath.includes('.planning');
 
-  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) return null;
+  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch && !isContext) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -329,7 +402,9 @@ async function checkPlanWrite(data) {
             ? validateConfig(content, filePath)
             : isResearch
               ? validateResearch(content, filePath)
-              : validateSummary(content, filePath);
+              : isContext
+                ? validateContext(content, filePath)
+                : validateSummary(content, filePath);
 
   // LLM advisory enrichment — advisory only, never blocks
   if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -347,7 +422,7 @@ async function checkPlanWrite(data) {
     }
   }
 
-  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -456,8 +531,8 @@ function checkStateWrite(data) {
 
   // Line count advisory
   const lineCount = content.split('\n').length;
-  if (lineCount > 150) {
-    result.warnings.push(`Advisory: STATE.md exceeds 150 lines (${lineCount} lines). Consider trimming stale session data.`);
+  if (lineCount > 100) {
+    result.warnings.push(`Advisory: STATE.md exceeds 100-line cap (${lineCount} lines). Move history entries older than the current milestone to PROJECT.md or archive.`);
   }
 
   if (result.warnings.length > 0) {
@@ -751,17 +826,15 @@ function validateConfig(content, _filePath) {
     return { errors, warnings };
   }
 
-  // Required: planning section with depth
-  if (!parsed.planning) {
-    errors.push('Missing "planning" section (required: planning.depth)');
-  } else if (!parsed.planning.depth) {
-    errors.push('Missing "planning.depth" field (expected: "quick", "standard", or "thorough")');
-  } else if (!['quick', 'standard', 'thorough'].includes(parsed.planning.depth)) {
-    warnings.push(`Unexpected planning.depth value: "${parsed.planning.depth}" (expected: quick, standard, or thorough)`);
+  // Optional: top-level depth field (has default in schema)
+  if (parsed.depth !== undefined) {
+    if (!['quick', 'standard', 'comprehensive'].includes(parsed.depth)) {
+      warnings.push(`Unexpected depth value: "${parsed.depth}" (expected: quick, standard, or comprehensive)`);
+    }
   }
 
-  // Advisory: known top-level keys
-  const knownKeys = ['planning', 'git', 'models', 'ui', 'autonomous', 'local_llm', 'developer_profile', 'cross_project', 'intel'];
+  // Advisory: known top-level keys (must match config-schema.json properties)
+  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'local_llm', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
   for (const key of Object.keys(parsed)) {
     if (!knownKeys.includes(key)) {
       warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);
@@ -811,5 +884,47 @@ function validateResearch(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, checkPlanWrite, checkStateWrite, syncStateBody };
+/**
+ * Validate CONTEXT.md structure. Accepts both XML-style sections (<domain>, <decisions>,
+ * <canonical_refs>, <deferred>) and legacy markdown-header format (## Domain, ## Decisions, etc.).
+ * Missing sections produce WARNINGS, not errors — CONTEXT.md is written by discuss,
+ * and not all phases run discuss.
+ *
+ * @param {string} content - Full CONTEXT.md content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateContext(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  if (!content || content.trim().length === 0) {
+    errors.push('CONTEXT.md is empty — expected frontmatter and section content');
+    return { errors, warnings };
+  }
+
+  // Check for domain section (XML or markdown)
+  if (!/<domain>/i.test(content) && !/^##\s+Domain/mi.test(content)) {
+    warnings.push('Missing <domain> section (or ## Domain heading) — recommended for phase context');
+  }
+
+  // Check for decisions section (XML or markdown)
+  if (!/<decisions>/i.test(content) && !/^##\s+(Locked\s+)?Decisions/mi.test(content)) {
+    warnings.push('Missing <decisions> section (or ## Decisions heading) — recommended for locked decisions');
+  }
+
+  // Check for canonical_refs section (XML or markdown)
+  if (!/<canonical_refs>/i.test(content) && !/^##\s+Canonical\s+Ref/mi.test(content)) {
+    warnings.push('Missing <canonical_refs> section (or ## Canonical References heading) — recommended for reference docs');
+  }
+
+  // Check for deferred section (XML or markdown)
+  if (!/<deferred>/i.test(content) && !/^##\s+Deferred/mi.test(content)) {
+    warnings.push('Missing <deferred> section (or ## Deferred heading) — recommended for excluded scope');
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, validateContext, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }

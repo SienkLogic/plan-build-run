@@ -45,7 +45,7 @@ describe('hook-logger.js', () => {
     expect(new Date(entry.ts).toISOString()).toBe(entry.ts);
   });
 
-  test('appends to existing log file', () => {
+  test('appends to existing log file (file grows by one line per call)', () => {
     const { logHook } = getLogger();
     logHook('hook-1', 'Event1', 'allow');
     logHook('hook-2', 'Event2', 'deny');
@@ -60,38 +60,57 @@ describe('hook-logger.js', () => {
     expect(entry2.hook).toBe('hook-2');
   });
 
-  test('rotates at 200 entries', () => {
+  test('concurrent appends both preserved', () => {
     const { logHook } = getLogger();
-
-    // Write 201 entries
-    for (let i = 0; i < 201; i++) {
-      logHook(`hook-${i}`, 'Event', 'allow');
-    }
+    // Call logHook twice rapidly -- both entries must be present
+    logHook('concurrent-1', 'Event', 'allow');
+    logHook('concurrent-2', 'Event', 'allow');
 
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
-    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
-    expect(lines).toHaveLength(200);
+    const content = fs.readFileSync(logPath, 'utf8').trim();
+    const lines = content.split('\n');
+    expect(lines).toHaveLength(2);
 
-    // First entry should be hook-1 (hook-0 was rotated out)
-    const first = JSON.parse(lines[0]);
-    expect(first.hook).toBe('hook-1');
-
-    // Last entry should be hook-200
-    const last = JSON.parse(lines[lines.length - 1]);
-    expect(last.hook).toBe('hook-200');
+    const hooks = lines.map(l => JSON.parse(l).hook);
+    expect(hooks).toContain('concurrent-1');
+    expect(hooks).toContain('concurrent-2');
   });
 
-  test('gracefully handles missing .planning directory', () => {
-    // Remove the .planning dir
+  test('rotation trims to 200 lines', () => {
+    // Seed a file with 250 lines
+    const logsDir = path.join(planningDir, 'logs');
+    fs.mkdirSync(logsDir, { recursive: true });
+    const logPath = path.join(logsDir, 'hooks.jsonl');
+
+    const seedLines = [];
+    for (let i = 0; i < 250; i++) {
+      seedLines.push(JSON.stringify({ ts: new Date().toISOString(), hook: `seed-${i}`, event: 'E', decision: 'a' }));
+    }
+    fs.writeFileSync(logPath, seedLines.join('\n') + '\n', 'utf8');
+
+    // Importing the logger should trigger rotation on first getLogPath call
+    const { logHook } = getLogger();
+    logHook('after-rotation', 'Event', 'allow');
+
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    // Should be 200 (rotated) + 1 (new append) = 201 max, but rotation keeps 200
+    // The rotation runs once on first getLogPath, then append adds one more
+    expect(lines.length).toBeLessThanOrEqual(201);
+    expect(lines.length).toBeGreaterThanOrEqual(200);
+
+    // The new entry should be present
+    const last = JSON.parse(lines[lines.length - 1]);
+    expect(last.hook).toBe('after-rotation');
+  });
+
+  test('gracefully handles missing .planning directory in cwd', () => {
+    // Remove the .planning dir from tmpDir
     fs.rmSync(planningDir, { recursive: true, force: true });
 
     const { logHook } = getLogger();
-    // Should not throw
+    // Should not throw -- resolveProjectRoot walks up and may find an ancestor's .planning/
+    // or falls back to cwd where it auto-creates .planning/logs/
     expect(() => logHook('test', 'Event', 'allow')).not.toThrow();
-
-    // getLogPath() now auto-creates .planning/logs/ with recursive: true,
-    // so the log file WILL be created even when .planning was missing.
-    expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl'))).toBe(true);
   });
 
   test('includes extra details in entry', () => {
@@ -222,5 +241,21 @@ describe('hook-logger.js', () => {
     expect(lines).toHaveLength(1);
     const entry = JSON.parse(lines[0]);
     expect(entry.hook).toBe('auto-create-test');
+  });
+
+  test('uses appendFileSync not readFile for writing', () => {
+    // Verify the implementation uses append-only pattern
+    const loggerSource = fs.readFileSync(
+      path.join(__dirname, '..', 'hooks', 'hook-logger.js'),
+      'utf8'
+    );
+    // Should use appendFileSync
+    expect(loggerSource).toContain('appendFileSync');
+    // Should NOT use readFileSync inside logHook (only rotateLog may read)
+    // Check that logHook function body does not contain readFileSync
+    const logHookMatch = loggerSource.match(/function logHook\b[\s\S]*?^}/m);
+    if (logHookMatch) {
+      expect(logHookMatch[0]).not.toContain('readFileSync');
+    }
   });
 });

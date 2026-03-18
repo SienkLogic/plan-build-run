@@ -11,9 +11,9 @@ allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
 **Before ANY tool calls**, display this banner:
 
 ```
-+==============================================================+
-|  PLAN-BUILD-RUN > PROFILE-USER                               |
-+==============================================================+
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► USER PROFILE                              ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.

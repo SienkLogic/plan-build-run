@@ -1,248 +1,286 @@
-<overview>
-Git integration for PBR framework.
-</overview>
+# Git Integration Reference
 
-<core_principle>
+Plan-Build-Run's commit conventions, commit points, branching strategy, and hook scripts.
 
-**Commit outcomes, not process.**
+---
 
-The git log should read like a changelog of what shipped, not a diary of planning activity.
-</core_principle>
-
-<commit_points>
-
-| Event                   | Commit? | Why                                              |
-| ----------------------- | ------- | ------------------------------------------------ |
-| BRIEF + ROADMAP created | YES     | Project initialization                           |
-| PLAN.md created         | NO      | Intermediate - commit with plan completion       |
-| RESEARCH.md created     | NO      | Intermediate                                     |
-| DISCOVERY.md created    | NO      | Intermediate                                     |
-| **Task completed**      | YES     | Atomic unit of work (1 commit per task)         |
-| **Plan completed**      | YES     | Metadata commit (SUMMARY + STATE + ROADMAP)     |
-| Handoff created         | YES     | WIP state preserved                              |
-
-</commit_points>
-
-<git_check>
-
-```bash
-[ -d .git ] && echo "GIT_EXISTS" || echo "NO_GIT"
-```
-
-If NO_GIT: Run `git init` silently. PBR projects always get their own repo.
-</git_check>
-
-<commit_formats>
-
-<format name="initialization">
-## Project Initialization (brief + roadmap together)
+## Commit Message Format
 
 ```
-docs: initialize [project-name] ([N] phases)
-
-[One-liner from PROJECT.md]
-
-Phases:
-1. [phase-name]: [goal]
-2. [phase-name]: [goal]
-3. [phase-name]: [goal]
+{type}({scope}): {description}
 ```
 
-What to commit:
+### Components
 
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "docs: initialize [project-name] ([N] phases)" --files .planning/
+| Part | Description | Example |
+|------|-------------|---------|
+| `{type}` | Conventional commit type | `feat`, `fix`, `chore` |
+| `{scope}` | Descriptive word for the area of change | `auth`, `executor`, `changelog` |
+| `{description}` | Imperative, lowercase description | `add discord oauth flow` |
+
+The format is configurable via `config.json` at `git.commit_format`. The default is `{type}({scope}): {description}`.
+
+### Full Example
+```
+feat(auth): implement discord oauth client
 ```
 
-</format>
+---
 
-<format name="task-completion">
-## Task Completion (During Plan Execution)
+## Commit Types
 
-Each task gets its own commit immediately after completion.
+| Type | When to Use | Example |
+|------|------------|---------|
+| `feat` | New feature or functionality | `feat(auth): implement discord oauth client` |
+| `fix` | Bug fix (including during execution) | `fix(api): handle null user profile from discord` |
+| `refactor` | Code restructuring, no behavior change | `refactor(auth): extract token validation into helper` |
+| `test` | Adding or modifying tests | `test(auth): add failing tests for oauth flow` |
+| `docs` | Documentation changes | `docs(planning): add api endpoint documentation` |
+| `chore` | Build config, dependencies, tooling | `chore(deps): configure typescript and eslint` |
+| `wip` | Work in progress (use sparingly) | `wip(auth): partial oauth implementation` |
+| `revert` | Reverting a previous commit | `revert(auth): revert discord oauth changes` |
+
+---
+
+## Commit Type Discipline
+
+| Type | Use For | Appears in Changelog |
+|------|---------|---------------------|
+| `feat` | User-visible features ONLY (new commands, new config options, changed behavior users notice) | YES |
+| `fix` | Bug fixes users would notice | YES |
+| `refactor` | Internal restructuring, TDD GREEN commits, code cleanup | No |
+| `test` | Test additions including TDD RED commits | No |
+| `docs` | Documentation (hidden — mostly planning artifacts) | No |
+| `chore` | Build config, deps, tooling, internal scaffolding | No |
+| `wip` | Work in progress (use sparingly) | No |
+| `revert` | Reverting a previous commit | YES |
+
+**TDD commits**: RED phase → `test({scope}): RED - ...`, GREEN phase → `refactor({scope}): GREEN - ...`, REFACTOR phase → `refactor({scope}): REFACTOR - ...`
+
+---
+
+## Special Commit Scopes
+
+Beyond descriptive scopes, Plan-Build-Run recognizes these additional patterns:
+
+| Pattern | When Used | Example |
+|---------|-----------|---------|
+| `{type}(quick-{NNN})` | Quick-task commits via `/pbr:quick` | `feat(quick-001): add health endpoint` |
+| `docs(planning)` | Planning document commits | `docs(planning): add phase 3 plans` |
+| `wip: {desc}` or `wip({area}): {desc}` | Work-in-progress (use sparingly) | `wip(auth): partial oauth implementation` |
+| Merge commits | Git merge operations | `Merge branch 'plan-build-run/phase-02-auth'` |
+
+---
+
+## Session Affinity Metadata
+
+When a session ID is available, append a `[session:{short_id}]` suffix to the commit description. The `short_id` is the first 8 characters of the session_id. This enables conflict tracing across concurrent sessions.
+
+Example:
+```
+feat(auth): implement discord oauth client [session:a1b2c3d4]
+```
+
+When no session ID is available (e.g., manual commits), omit the suffix.
+
+---
+
+## Commit Body (Optional)
+
+For commits that need explanation, add a body after a blank line:
 
 ```
-{type}({phase}-{plan}): {task-name}
+feat(02-01): implement discord oauth client [session:a1b2c3d4]
 
-- [Key change 1]
-- [Key change 2]
-- [Key change 3]
+- Uses discord-oauth2 library for token exchange
+- Stores tokens in httpOnly cookies for security
+- Supports identify and email OAuth scopes
+
+Deviation: Added null check for user.email (Rule 3 -- critical gap)
 ```
 
-**Commit types:**
-- `feat` - New feature/functionality
-- `fix` - Bug fix
-- `test` - Test-only (TDD RED phase)
-- `refactor` - Code cleanup (TDD REFACTOR phase)
-- `perf` - Performance improvement
-- `chore` - Dependencies, config, tooling
+---
 
-**Examples:**
+## Commit Points
+
+Plan-Build-Run defines strict rules about WHEN commits happen:
+
+### One Task = One Commit
+
+Each successfully completed plan task gets exactly one atomic commit. No more, no less.
+
+### TDD Tasks = Three Commits
+
+TDD tasks (`tdd="true"`) produce exactly 3 commits following Red-Green-Refactor:
+
+```
+test(auth): RED - add failing tests for auth middleware
+refactor(auth): GREEN - implement auth middleware to pass tests
+refactor(auth): REFACTOR - extract token verification helper
+```
+
+### Commit Preconditions
+
+A commit is created only when:
+1. All `<action>` steps in the task are complete
+2. All `<verify>` commands pass with exit code 0
+3. Only files listed in the task's `<files>` element are staged (plus deviation-required files)
+
+### Deviation Commits
+
+When an executor applies a deviation rule during a task, the deviation is included in the same task commit (not a separate commit):
+
+```
+# Rule 1 auto-fix: rolled into the task's commit
+# Rule 2 auto-install: package.json/lock added to same commit
+# Rule 3 critical gap: null check added in same commit
+```
+
+---
+
+## Atomic Commit Rules
+
+1. **One task = one commit** (TDD tasks get 3)
+2. **Commit only after verify passes** -- never commit broken code
+3. **Stage only files listed in `<files>`** plus any deviation-required files
+4. **Never use `git add .` or `git add -A`** -- stage specific files
+5. **Include all files from the task** -- do not leave modified files unstaged
+6. **Commit message must describe what was done** -- not just the task name
+7. **Use the configured commit format** -- from `config.json` `git.commit_format`
+
+---
+
+## Staging Examples
 
 ```bash
 # Standard task
-git add src/api/auth.ts src/types/user.ts
-git commit -m "feat(08-02): create user registration endpoint
+git add src/auth/discord.ts src/auth/types.ts
+git commit -m "feat(auth): implement Discord OAuth client with token exchange"
 
-- POST /auth/register validates email and password
-- Checks for duplicate users
-- Returns JWT token on success
-"
+# Task that also installed a dependency (Rule 2)
+git add src/auth/discord.ts src/auth/types.ts package.json package-lock.json
+git commit -m "feat(auth): implement Discord OAuth client with token exchange"
 
-# TDD task - RED phase
-git add src/__tests__/jwt.test.ts
-git commit -m "test(07-02): add failing test for JWT generation
-
-- Tests token contains user ID claim
-- Tests token expires in 1 hour
-- Tests signature verification
-"
-
-# TDD task - GREEN phase
-git add src/utils/jwt.ts
-git commit -m "feat(07-02): implement JWT generation
-
-- Uses jose library for signing
-- Includes user ID and expiry claims
-- Signs with HS256 algorithm
-"
+# TDD RED
+git add tests/auth/discord.test.ts
+git commit -m "test(auth): add failing tests for Discord OAuth flow"
 ```
 
-</format>
+---
 
-<format name="plan-completion">
-## Plan Completion (After All Tasks Done)
+## Git Retry Logic
 
-After all tasks committed, one final metadata commit captures plan completion.
+If `git commit` fails with a lock error (`fatal: Unable to create ... .git/index.lock`):
+1. Wait 2 seconds
+2. Retry the commit
+3. Maximum 3 attempts
+4. If still failing after 3 attempts, report the error and stop
+
+This commonly occurs when parallel executors compete for the git index lock.
+
+---
+
+## Branching Strategy
+
+Configured via `config.json` at `git.branching`:
+
+| Strategy | Behavior |
+|----------|----------|
+| `none` | All commits go directly to the current branch (default) |
+| `phase` | Each phase gets its own branch: `plan-build-run/phase-{NN}-{slug}`. Squash-merged to main on completion. |
+| `milestone` | Each milestone gets a branch: `plan-build-run/{milestone}-{slug}`. Merged on milestone completion. |
+| `disabled` | No git operations at all. No commits, no branching. Useful for prototyping or non-git projects. |
+
+### Phase Branching Flow
+
+When `git.branching` is `phase`:
+1. Build orchestrator creates branch: `git checkout -b plan-build-run/phase-{NN}-{slug}`
+2. All executor commits go to the phase branch
+3. After all plans complete and verification passes, orchestrator asks user to confirm squash merge
+4. If confirmed: `git checkout main && git merge --squash plan-build-run/phase-{NN}-{slug}`
+5. Phase branch is deleted after merge
+
+Branch name templates are configured in `config.json`:
+- `git.phase_branch_template`: Default `plan-build-run/phase-{phase}-{slug}`
+- `git.milestone_branch_template`: Default `plan-build-run/{milestone}-{slug}`
+
+### PR Creation
+
+When `git.auto_pr: true` and `git.branching` is `phase` or `milestone`, the build skill creates a GitHub PR after verification passes:
+
+1. Push the phase branch to the remote
+2. Create a PR via `gh pr create` with structured title and body
+3. PR title follows the commit convention: `feat(phase-{N}): {phase slug}`
+4. PR body includes phase goal, key files changed, and must-have verification results
+
+When `git.auto_pr: false` (default), the build skill offers the user a choice after verification:
+- Create PR now
+- Skip PR creation
+- Push branch only (create PR later)
+
+PR creation requires `gh` CLI authenticated with repo write access.
+
+### CI Integration
+
+When `ci.gate_enabled: true`, the build skill checks GitHub Actions status after each wave completes:
+
+1. Run: `gh run list --branch $(git branch --show-current) --limit 1 --json status,conclusion,url`
+2. If `status == completed` and `conclusion == success`: proceed to next wave
+3. If `status == in_progress`: wait up to `ci.wait_timeout_seconds`, re-check
+4. If `conclusion != success` or timeout: surface warning with run URL and offer:
+   - **Wait**: continue polling
+   - **Continue anyway**: proceed despite CI failure (logged as deviation)
+   - **Abort**: stop the build
+
+CI gate requires `gh` CLI and GitHub Actions configured on the repository. The gate only activates when there are commits pushed to a remote branch (branching must be enabled).
+
+### Git Mode
+
+The `git.mode` field controls whether git integration is active:
+
+| Mode | Behavior |
+|------|----------|
+| `enabled` | Normal operation -- commits, branching, hooks all active (default) |
+| `disabled` | No git commands are run. No commits, no branching. Useful for non-git projects. |
+
+---
+
+## Hook Scripts
+
+Plan-Build-Run uses Claude Code hooks (defined in `hooks/hooks.json`) to enforce conventions and track progress during execution. All hooks log via `hook-logger.js` to `.planning/.hook-log` (JSONL format, max 200 entries).
+
+### Hook Summary
+
+| Hook Event | Script | Purpose |
+|------------|--------|---------|
+| `SessionStart` | `progress-tracker.js` | Displays current project progress on session start |
+| `PostToolUse` (Write/Edit) | `check-plan-format.js` | Validates plan file YAML frontmatter after writes |
+| `PostToolUse` (Write/Edit) | `check-roadmap-sync.js` | Ensures ROADMAP.md stays in sync with phase changes |
+| `PreToolUse` (Bash) | `validate-commit.js` | Validates commit message format before `git commit` runs |
+| `PreCompact` | `context-budget-check.js` | Warns about context budget before compaction |
+| `Stop` | `auto-continue.js` | Handles auto-continuation signal when session ends |
+| `SubagentStart` | `log-subagent.js start` | Logs subagent spawn events |
+| `SubagentStop` | `log-subagent.js stop` | Logs subagent completion events |
+| `SessionEnd` | `session-cleanup.js` | Cleans up temporary state on session end |
+
+### validate-commit.js Details
+
+The commit validation hook (`PreToolUse` on Bash commands) enforces the commit format:
+- Checks that `git commit -m "..."` messages match the pattern: `{type}({scope}): {description}`
+- Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `wip`, `revert`
+- Allows merge commits (starting with "Merge")
+- Allows quick-task, planning, and WIP scope patterns
+- Blocks commits with sensitive file patterns (`.env`, `.key`, `.pem`, credentials) unless they match safe patterns (`.example`, `.template`, `.sample`, test directories)
+- Exit code 2 blocks the commit; exit code 0 allows it
+
+---
+
+## Planning Doc Commits
+
+When `config.json` has `planning.commit_docs: true`, the build orchestrator commits planning artifacts (SUMMARY.md, VERIFICATION.md) after all plans in a phase complete:
 
 ```
-docs({phase}-{plan}): complete [plan-name] plan
-
-Tasks completed: [N]/[N]
-- [Task 1 name]
-- [Task 2 name]
-- [Task 3 name]
-
-SUMMARY: .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md
+docs({phase}): add build summaries and verification
 ```
 
-What to commit:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "docs({phase}-{plan}): complete [plan-name] plan" --files .planning/phases/XX-name/{phase}-{plan}-PLAN.md .planning/phases/XX-name/{phase}-{plan}-SUMMARY.md .planning/STATE.md .planning/ROADMAP.md
-```
-
-**Note:** Code files NOT included - already committed per-task.
-
-</format>
-
-<format name="handoff">
-## Handoff (WIP)
-
-```
-wip: [phase-name] paused at task [X]/[Y]
-
-Current: [task name]
-[If blocked:] Blocked: [reason]
-```
-
-What to commit:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "wip: [phase-name] paused at task [X]/[Y]" --files .planning/
-```
-
-</format>
-</commit_formats>
-
-<example_log>
-
-**Old approach (per-plan commits):**
-```
-a7f2d1 feat(checkout): Stripe payments with webhook verification
-3e9c4b feat(products): catalog with search, filters, and pagination
-8a1b2c feat(auth): JWT with refresh rotation using jose
-5c3d7e feat(foundation): Next.js 15 + Prisma + Tailwind scaffold
-2f4a8d docs: initialize ecommerce-app (5 phases)
-```
-
-**New approach (per-task commits):**
-```
-# Phase 04 - Checkout
-1a2b3c docs(04-01): complete checkout flow plan
-4d5e6f feat(04-01): add webhook signature verification
-7g8h9i feat(04-01): implement payment session creation
-0j1k2l feat(04-01): create checkout page component
-
-# Phase 03 - Products
-3m4n5o docs(03-02): complete product listing plan
-6p7q8r feat(03-02): add pagination controls
-9s0t1u feat(03-02): implement search and filters
-2v3w4x feat(03-01): create product catalog schema
-
-# Phase 02 - Auth
-5y6z7a docs(02-02): complete token refresh plan
-8b9c0d feat(02-02): implement refresh token rotation
-1e2f3g test(02-02): add failing test for token refresh
-4h5i6j docs(02-01): complete JWT setup plan
-7k8l9m feat(02-01): add JWT generation and validation
-0n1o2p chore(02-01): install jose library
-
-# Phase 01 - Foundation
-3q4r5s docs(01-01): complete scaffold plan
-6t7u8v feat(01-01): configure Tailwind and globals
-9w0x1y feat(01-01): set up Prisma with database
-2z3a4b feat(01-01): create Next.js 15 project
-
-# Initialization
-5c6d7e docs: initialize ecommerce-app (5 phases)
-```
-
-Each plan produces 2-4 commits (tasks + metadata). Clear, granular, bisectable.
-
-</example_log>
-
-<anti_patterns>
-
-**Still don't commit (intermediate artifacts):**
-- PLAN.md creation (commit with plan completion)
-- RESEARCH.md (intermediate)
-- DISCOVERY.md (intermediate)
-- Minor planning tweaks
-- "Fixed typo in roadmap"
-
-**Do commit (outcomes):**
-- Each task completion (feat/fix/test/refactor)
-- Plan completion metadata (docs)
-- Project initialization (docs)
-
-**Key principle:** Commit working code and shipped outcomes, not planning process.
-
-</anti_patterns>
-
-<commit_strategy_rationale>
-
-## Why Per-Task Commits?
-
-**Context engineering for AI:**
-- Git history becomes primary context source for future Claude sessions
-- `git log --grep="{phase}-{plan}"` shows all work for a plan
-- `git diff <hash>^..<hash>` shows exact changes per task
-- Less reliance on parsing SUMMARY.md = more context for actual work
-
-**Failure recovery:**
-- Task 1 committed ✅, Task 2 failed ❌
-- Claude in next session: sees task 1 complete, can retry task 2
-- Can `git reset --hard` to last successful task
-
-**Debugging:**
-- `git bisect` finds exact failing task, not just failing plan
-- `git blame` traces line to specific task context
-- Each commit is independently revertable
-
-**Observability:**
-- Solo developer + Claude workflow benefits from granular attribution
-- Atomic commits are git best practice
-- "Commit noise" irrelevant when consumer is Claude, not humans
-
-</commit_strategy_rationale>
+This keeps the planning trail in version control alongside the code it describes.

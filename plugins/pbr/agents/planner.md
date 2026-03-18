@@ -155,7 +155,7 @@ For every cross-boundary call in a task's `<action>`, document:
 
 Read `references/plan-format.md` for the complete plan file specification including:
 - YAML frontmatter schema and field definitions
-- XML task format with all 5 mandatory elements
+- XML task format with all 7 mandatory elements (name, read_first, files, action, acceptance_criteria, verify, done)
 - Task type variants (auto, tdd, checkpoint:human-verify, checkpoint:decision, checkpoint:human-action)
 - Task ID format
 
@@ -180,8 +180,10 @@ consumes: ["{item}"]
 ```xml
 <task id="{plan}-T1" type="auto" tdd="false" complexity="medium">
 <name>{task name}</name>
+<read_first>{files executor must read before editing}</read_first>
 <files>...</files>
 <action>...</action>
+<acceptance_criteria>{grep-verifiable conditions}</acceptance_criteria>
 <verify>...</verify>
 <done>...</done>
 </task>
@@ -235,7 +237,7 @@ The planner's output is read by four consumers:
 
 ### Executor
 - **Reads:** `{NN}-{MM}-PLAN.md` files
-- **Needs:** Complete YAML frontmatter, all 5 task elements (name, files, action, verify, done), self-contained action instructions (no references to CONTEXT.md — embed locked decisions directly in task actions)
+- **Needs:** Complete YAML frontmatter, all 7 task elements (name, read_first, files, action, acceptance_criteria, verify, done), self-contained action instructions (no references to CONTEXT.md — embed locked decisions directly in task actions)
 - **Contract:** Executor follows tasks mechanically. If the plan says it, the executor does it. If the plan omits it, the executor skips it.
 
 ### Plan-Checker
@@ -317,7 +319,7 @@ Before writing any plan file, check if a directory already exists for this phase
 3. If not found: create the directory with `{NN}-{slug}` naming
 4. NEVER create a second directory for the same phase number
 
-Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREMENTS.md or ROADMAP.md for traceability; `requirement_ids` is a deprecated alias — use `implements` as the primary field), XML tasks with all 5 elements, clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
+Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREMENTS.md or ROADMAP.md for traceability; `requirement_ids` is a deprecated alias — use `implements` as the primary field), XML tasks with all 7 elements (name, read_first, files, action, acceptance_criteria, verify, done), clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
 </step>
 
 <step name="self-check">
@@ -325,7 +327,9 @@ Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREM
 
 **CRITICAL — Run the self-check. Plans missing must-have coverage or incomplete tasks cause executor failures.**
 - [ ] All must-haves covered by at least one task
-- [ ] All tasks have all 5 elements
+- [ ] All tasks have all 7 elements (name, read_first, files, action, acceptance_criteria, verify, done)
+- [ ] All tasks have read_first with specific file paths (no globs)
+- [ ] All tasks have acceptance_criteria with grep-verifiable conditions
 - [ ] No task exceeds 3 files (ideally)
 - [ ] No plan exceeds 3 tasks / 8 files total
 - [ ] Dependencies are acyclic, no file conflicts within same wave
@@ -437,19 +441,21 @@ At 1M, reading full SUMMARY bodies for direct deps surfaces deviations, deferred
 
 ### Planner-Specific Anti-Patterns
 1. DO NOT create plans that violate CONTEXT.md locked decisions
-2. DO NOT create tasks without all 5 elements
-3. DO NOT write vague action instructions
-4. DO NOT exceed scope limits (3 tasks, 8 files per plan)
-5. DO NOT create circular dependencies
-6. DO NOT put conflicting file modifications in the same wave
-7. DO NOT write non-executable verify commands
-8. DO NOT create tasks that require human judgment in autonomous plans
-9. DO NOT plan for features outside the current phase goal
-10. DO NOT assume research is done — check discovery level
-11. DO NOT leave done conditions vague — they must be observable
-12. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
-13. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
-14. DO NOT leave implements: empty in PLAN frontmatter — use implements: as the primary traceability field (requirement_ids: is deprecated)
+2. DO NOT create tasks without all 7 elements (name, read_first, files, action, acceptance_criteria, verify, done)
+3. DO NOT leave read_first empty — list at least the files from `<files>` that already exist
+4. DO NOT write subjective acceptance_criteria — each criterion must be a shell command returning 0/non-0
+5. DO NOT write vague action instructions
+6. DO NOT exceed scope limits (3 tasks, 8 files per plan)
+7. DO NOT create circular dependencies
+8. DO NOT put conflicting file modifications in the same wave
+9. DO NOT write non-executable verify commands
+10. DO NOT create tasks that require human judgment in autonomous plans
+11. DO NOT plan for features outside the current phase goal
+12. DO NOT assume research is done — check discovery level
+13. DO NOT leave done conditions vague — they must be observable
+14. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
+15. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
+16. DO NOT leave implements: empty in PLAN frontmatter — use implements: as the primary traceability field (requirement_ids: is deprecated)
 
 </anti_patterns>
 
@@ -551,7 +557,7 @@ You may output 0-2 suggestions per run. Prefer 0 (most runs discover nothing nov
 - [ ] PLAN files exist with XML task structure
 - [ ] Each plan: frontmatter complete (depends_on, files_modified, must_haves)
 - [ ] Each plan: implements: field populated (list REQ-IDs; use [] only if phase has no REQUIREMENTS.md)
-- [ ] Each task: all 5 elements (name, files, action, verify, done)
+- [ ] Each task: all 7 elements (name, read_first, files, action, acceptance_criteria, verify, done)
 - [ ] Wave structure maximizes parallelism
 - [ ] Every REQ-ID from ROADMAP/REQUIREMENTS appears in at least one plan
 - [ ] Gap closure mode (if VERIFICATION.md exists): gaps clustered, tasks derived from gap.missing

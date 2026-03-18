@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 
 // Mock the LLM classify-artifact module so advisory enrichment doesn't fire in tests
-jest.mock('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs', () => ({
+jest.mock('../hooks/local-llm/operations/classify-artifact', () => ({
   classifyArtifact: jest.fn().mockResolvedValue(null)
 }));
 
@@ -50,6 +50,10 @@ describe('checkPlanWrite', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -58,8 +62,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -184,8 +190,10 @@ wave: 1
 ---
 <task type="auto">
   <name>T1</name>
+  <read_first>f</read_first>
   <files>f</files>
   <action>a</action>
+  <acceptance_criteria>test -f f</acceptance_criteria>
   <verify>v</verify>
   <done>d</done>
 </task>`;
@@ -265,7 +273,7 @@ describe('validateRoadmap branch coverage', () => {
 
 describe('checkPlanWrite — LLM enrichment branch', () => {
   test('adds LLM classification warning when classifyArtifact returns result', async () => {
-    const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
+    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
     classifyArtifact.mockResolvedValueOnce({ classification: 'good', confidence: 0.95, reason: 'looks solid' });
 
     const filePath = path.join(tmpDir, 'PLAN-llm1.md');
@@ -273,6 +281,10 @@ describe('checkPlanWrite — LLM enrichment branch', () => {
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -281,8 +293,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -294,7 +308,7 @@ must_haves:
   });
 
   test('LLM classification without reason omits reason suffix', async () => {
-    const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
+    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
     classifyArtifact.mockResolvedValueOnce({ classification: 'ok', confidence: 0.8 });
 
     const filePath = path.join(tmpDir, 'PLAN-llm2.md');
@@ -302,6 +316,10 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -310,8 +328,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -321,7 +341,7 @@ must_haves:
   });
 
   test('LLM error is silently ignored', async () => {
-    const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
+    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
     classifyArtifact.mockRejectedValueOnce(new Error('LLM down'));
 
     const filePath = path.join(tmpDir, 'PLAN-llm3.md');
@@ -329,6 +349,10 @@ must_haves:
 phase: 01-setup
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/file.ts"]
+autonomous: true
 implements: [42]
 must_haves:
   truths: ["works"]
@@ -337,8 +361,10 @@ must_haves:
 ---
 <task type="auto">
   <name>Task 1</name>
+  <read_first>src/file.ts</read_first>
   <files>src/file.ts</files>
   <action>Do it</action>
+  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
   <verify>npm test</verify>
   <done>Done</done>
 </task>`);
@@ -413,7 +439,7 @@ describe('checkStateWrite — syncStateBody branch', () => {
     fs.writeFileSync(filePath, longContent);
     const result = checkStateWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
-    expect(result.output.additionalContext).toContain('exceeds 150 lines');
+    expect(result.output.additionalContext).toContain('exceeds 100-line cap');
   });
 });
 
@@ -578,19 +604,19 @@ describe('validateConfig', () => {
     expect(result.errors.some(e => /must be a JSON object/i.test(e))).toBe(true);
   });
 
-  test('missing planning section errors', () => {
+  test('empty object passes without errors', () => {
     const result = validateConfig('{}', 'config.json');
-    expect(result.errors.some(e => /planning/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 
-  test('missing planning.depth errors', () => {
-    const content = JSON.stringify({ planning: {} });
+  test('valid depth value passes', () => {
+    const content = JSON.stringify({ depth: 'standard' });
     const result = validateConfig(content, 'config.json');
-    expect(result.errors.some(e => /depth/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 
   test('unexpected depth value warns', () => {
-    const content = JSON.stringify({ planning: { depth: 'extreme' } });
+    const content = JSON.stringify({ depth: 'extreme' });
     const result = validateConfig(content, 'config.json');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings.some(w => /extreme/i.test(w))).toBe(true);

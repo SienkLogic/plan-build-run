@@ -9,24 +9,47 @@
  *
  * Log file: .planning/logs/hooks.jsonl (in the project's .planning directory)
  * Format: One JSON line per entry (JSONL)
- * Rotation: Keeps last 200 entries max
+ * Rotation: Keeps last 200 entries max (checked once per process)
  */
 
 const fs = require('fs');
 const path = require('path');
+const { resolveProjectRoot } = require('./lib/resolve-root');
 
 const MAX_ENTRIES = 200;
 
-function getLogPath() {
-  const cwd = process.cwd();
-  const planningDir = path.join(cwd, '.planning');
-  if (!fs.existsSync(planningDir)) return null;
+/** Module-level flag: rotation runs at most once per process */
+let _rotated = false;
 
+/**
+ * Rotate log file if it exceeds MAX_ENTRIES lines.
+ * Called once per process on first getLogPath() invocation.
+ */
+function rotateLog(logPath) {
+  try {
+    if (!fs.existsSync(logPath)) return;
+    const content = fs.readFileSync(logPath, 'utf8').trim();
+    if (!content) return;
+    const lines = content.split('\n');
+    if (lines.length > MAX_ENTRIES) {
+      const kept = lines.slice(lines.length - MAX_ENTRIES);
+      fs.writeFileSync(logPath, kept.join('\n') + '\n', 'utf8');
+    }
+  } catch (_e) {
+    // Best-effort rotation — never fail the hook
+  }
+}
+
+function getLogPath() {
+  const cwd = resolveProjectRoot();
+  const planningDir = path.join(cwd, '.planning');
   const logsDir = path.join(planningDir, 'logs');
   const newPath = path.join(logsDir, 'hooks.jsonl');
   const oldPath = path.join(planningDir, '.hook-log');
 
-  // Auto-create logs/ directory if it doesn't exist
+  // Auto-create .planning/logs/ directory if it doesn't exist.
+  // Uses recursive:true so both .planning/ and logs/ are created in one call.
+  // This ensures SessionStart events are captured even before /pbr:begin runs.
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
   }
@@ -36,12 +59,18 @@ function getLogPath() {
     fs.renameSync(oldPath, newPath);
   }
 
+  // Rotate once per process
+  if (!_rotated) {
+    _rotated = true;
+    rotateLog(newPath);
+  }
+
   return newPath;
 }
 
 function logHook(hookName, eventType, decision, details = {}, startTime) {
   const logPath = getLogPath();
-  if (!logPath) return; // Not a Plan-Build-Run project
+  if (!logPath) return;
 
   const entry = {
     ts: new Date().toISOString(),
@@ -56,22 +85,7 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
   }
 
   try {
-    let lines = [];
-    if (fs.existsSync(logPath)) {
-      const content = fs.readFileSync(logPath, 'utf8').trim();
-      if (content) {
-        lines = content.split('\n');
-      }
-    }
-
-    lines.push(JSON.stringify(entry));
-
-    // Keep only last MAX_ENTRIES
-    if (lines.length > MAX_ENTRIES) {
-      lines = lines.slice(lines.length - MAX_ENTRIES);
-    }
-
-    fs.writeFileSync(logPath, lines.join('\n') + '\n', 'utf8');
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n', 'utf8');
   } catch (_e) {
     // Best-effort logging — never fail the hook
   }

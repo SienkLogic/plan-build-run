@@ -313,6 +313,8 @@ Full report: .planning/audits/{filename}
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Agent fails to analyze a session
 If an audit agent fails:
 ```
@@ -333,9 +335,11 @@ Note: Session {id} is {size}MB. Sampling key sections (first 200 lines, last 200
 
 ---
 
-## Anti-Patterns
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the audit report file.
 
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
+---
+
+## Anti-Patterns
 
 Additionally for this skill:
 

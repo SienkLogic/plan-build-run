@@ -16,7 +16,7 @@ const {
   reconstructFrontmatter,
   spliceFrontmatter,
   parseMustHavesBlock,
-  FRONTMATTER_SCHEMAS,
+  FRONTMATTER_SCHEMAS: _FRONTMATTER_SCHEMAS,
 } = require('../plan-build-run/bin/lib/frontmatter.cjs');
 
 // ─── extractFrontmatter ─────────────────────────────────────────────────────

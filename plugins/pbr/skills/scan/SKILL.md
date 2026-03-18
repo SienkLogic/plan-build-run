@@ -273,6 +273,8 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 
 ---
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ## Edge Cases
 
 ### Monorepo with multiple projects
@@ -310,8 +312,6 @@ If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-n
 ---
 
 ## Anti-Patterns
-
-Reference: `skills/shared/universal-anti-patterns.md` for rules that apply to ALL skills.
 
 Additionally for this skill:
 

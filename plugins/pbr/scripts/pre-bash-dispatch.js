@@ -135,6 +135,7 @@ function main() {
     } catch (e) {
       // Don't block on errors — but emit valid output so Claude Code
       // doesn't report "hook error" for silent exit
+      logHook('pre-bash-dispatch', 'PreToolUse', 'error', { error: e.message, stack: (e.stack || '').split('\n').slice(0, 3).join(' | ') });
       process.stderr.write(`[pbr] pre-bash-dispatch error: ${e.message}\n`);
       process.stdout.write(JSON.stringify({ decision: 'allow' }));
       process.exit(0);

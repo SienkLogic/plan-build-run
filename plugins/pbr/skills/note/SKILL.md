@@ -184,6 +184,8 @@ Promoted from quick note captured on {original date}.
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Write failure
 If the Write tool fails (permissions, disk full, etc.), display:
 ```
@@ -209,6 +211,8 @@ Note {N} not found. Valid range: 1-{max}.
 ```
 
 ---
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the note file.
 
 ## Anti-Patterns
 

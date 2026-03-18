@@ -268,7 +268,20 @@ If user types something else (freeform): interpret as a direct setting command a
 
 ### 4. Apply Changes
 
-Update config.json with new values. Show what changed with a branded completion:
+Update config.json with new values.
+
+#### 4b. Commit Config Changes
+
+Reference: `skills/shared/commit-planning-docs.md` for the commit pattern.
+
+Read `.planning/config.json` and check `planning.commit_docs` (or `git.commit_docs`).
+If true, commit the modified config.json:
+
+```text
+docs(config): update config — {changed_fields}
+```
+
+Show what changed with a branded completion:
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PLAN-BUILD-RUN ► CONFIG UPDATED ✓                           ║
