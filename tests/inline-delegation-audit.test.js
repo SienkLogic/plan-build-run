@@ -13,6 +13,10 @@ describe('logInlineDecision', () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-audit-test-'));
   });
 
+  afterEach(() => {
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
   test('creates logs directory and writes JSONL entry', () => {
     const decision = {
       inline: true,

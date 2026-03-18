@@ -9,8 +9,15 @@ const { shouldInlineExecution, parsePlanFrontmatter } = require('../plugins/pbr/
 /**
  * Helper: create a temp plan file with given task XML snippets and optional frontmatter fields.
  */
+const _tmpDirs = [];
+afterAll(() => {
+  for (const d of _tmpDirs) {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
 function createTempPlan(tasks, frontmatterExtra = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-inline-v2-'));
+  _tmpDirs.push(tmpDir);
   const planPath = path.join(tmpDir, 'PLAN-01.md');
 
   const fmFields = {

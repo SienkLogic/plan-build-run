@@ -5,12 +5,20 @@ const os = require('os');
 const path = require('path');
 
 // Helper to create temp .planning dir
+const _tmpDirs = [];
 function makeTempPlanning() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'health-p06-'));
+  _tmpDirs.push(tmp);
   const planning = path.join(tmp, '.planning');
   fs.mkdirSync(planning, { recursive: true });
   return { tmp, planning };
 }
+
+afterAll(() => {
+  for (const d of _tmpDirs) {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
 
 let healthModule;
 

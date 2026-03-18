@@ -17,6 +17,13 @@ const PLUGIN_ROOT = path.join(__dirname, '..', 'plan-build-run');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+const _tmpDirs = [];
+afterAll(() => {
+  for (const d of _tmpDirs) {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
 /**
  * Build a minimal temp .planning/ dir with the given phase structure.
  *
@@ -27,6 +34,7 @@ const PLUGIN_ROOT = path.join(__dirname, '..', 'plan-build-run');
  */
 function makeTestPlanningDir(phaseSlug, plans) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-preview-test-'));
+  _tmpDirs.push(tmpDir);
   const phasesDir = path.join(tmpDir, 'phases');
   const phaseDir = path.join(phasesDir, phaseSlug);
   fs.mkdirSync(phaseDir, { recursive: true });

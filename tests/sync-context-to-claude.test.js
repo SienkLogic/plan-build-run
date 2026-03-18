@@ -15,8 +15,16 @@ try {
 const { syncContextToClaude, extractLockedDecisions, buildSection } = syncModule || {};
 
 // Helper to create a temp working dir
+const _tmpDirs = [];
+afterAll(() => {
+  for (const d of _tmpDirs) {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
 function makeTempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-sync-test-'));
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-sync-test-'));
+  _tmpDirs.push(d);
+  return d;
 }
 
 function writePlanningContext(cwd, content) {

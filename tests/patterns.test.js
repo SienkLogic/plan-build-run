@@ -14,8 +14,17 @@ const {
 
 // --- Helpers ---
 
+const _tmpDirs = [];
+afterAll(() => {
+  for (const d of _tmpDirs) {
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+});
+
 function makeTempDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'patterns-test-'));
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'patterns-test-'));
+  _tmpDirs.push(d);
+  return d;
 }
 
 function makePattern(overrides = {}) {
