@@ -13,6 +13,12 @@
  *   IH-04: Stale file detection (.active-skill, .auto-next, .context-tracker)
  *   IH-05: Plugin cache freshness (cached vs local version)
  *   IH-06: Config schema validation (config.json vs config-schema.json)
+ *
+ * Config dependencies:
+ *   - config.hook_server.enabled / config.hook_server.port (IH-01)
+ *   - config.dashboard.auto_launch / config.dashboard.port (IH-02)
+ *   - config.audit.thresholds.stale_file_age_hours (IH-04, default 24h)
+ *   - config-schema.json for validation (IH-06, strips _guide_* keys)
  */
 
 const fs = require('fs');
