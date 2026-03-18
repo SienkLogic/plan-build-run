@@ -7,7 +7,7 @@ const os = require('os');
 const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS } = require('../hooks/check-subagent-output');
+const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS, checkTriggeredSeeds } = require('../hooks/check-subagent-output');
 
 const _run = createRunner(SCRIPT);
 
@@ -1207,6 +1207,79 @@ describe('checkDeviationsRequiringReview', () => {
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '# Summary\nNo frontmatter');
     const warnings = [];
     checkDeviationsRequiringReview(planningDir, ['phases/01-test/SUMMARY-01.md'], warnings);
+    expect(warnings).toHaveLength(0);
+  });
+});
+
+describe('checkTriggeredSeeds', () => {
+  test('surfaces warning when seed trigger matches current phase slug', () => {
+    // Write STATE.md with phase_slug
+    fs.writeFileSync(
+      path.join(planningDir, 'STATE.md'),
+      '---\nphase_slug: "03-auth"\n---\n# State\nPhase: 3 of 8 (Auth)\nStatus: built\n'
+    );
+    // Create seeds directory with a matching seed
+    const seedsDir = path.join(planningDir, 'seeds');
+    fs.mkdirSync(seedsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(seedsDir, 'SEED-001-perf-testing.md'),
+      '---\ntrigger: "auth"\nstatus: dormant\n---\n# Performance Testing\nRun perf tests after auth is built.\n'
+    );
+
+    const warnings = [];
+    checkTriggeredSeeds(planningDir, warnings);
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings.some(w => /seed/i.test(w) || /SEED-001/i.test(w))).toBe(true);
+  });
+
+  test('does not surface warning when seed trigger does not match', () => {
+    fs.writeFileSync(
+      path.join(planningDir, 'STATE.md'),
+      '---\nphase_slug: "03-auth"\n---\n# State\nPhase: 3 of 8 (Auth)\nStatus: built\n'
+    );
+    const seedsDir = path.join(planningDir, 'seeds');
+    fs.mkdirSync(seedsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(seedsDir, 'SEED-002-deploy.md'),
+      '---\ntrigger: "deploy"\nstatus: dormant\n---\n# Deploy\nOnly after deploy phase.\n'
+    );
+
+    const warnings = [];
+    checkTriggeredSeeds(planningDir, warnings);
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('does not error when no seeds directory exists', () => {
+    fs.writeFileSync(
+      path.join(planningDir, 'STATE.md'),
+      '---\nphase_slug: "01-setup"\n---\n# State\nPhase: 1 of 3\nStatus: built\n'
+    );
+
+    const warnings = [];
+    expect(() => checkTriggeredSeeds(planningDir, warnings)).not.toThrow();
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('does not error when STATE.md is missing', () => {
+    const warnings = [];
+    expect(() => checkTriggeredSeeds(planningDir, warnings)).not.toThrow();
+    expect(warnings).toHaveLength(0);
+  });
+
+  test('does not error when STATE.md has no phase_slug', () => {
+    fs.writeFileSync(
+      path.join(planningDir, 'STATE.md'),
+      '# State\nPhase: 1 of 3\nStatus: built\n'
+    );
+    const seedsDir = path.join(planningDir, 'seeds');
+    fs.mkdirSync(seedsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(seedsDir, 'SEED-001.md'),
+      '---\ntrigger: "auth"\n---\nContent\n'
+    );
+
+    const warnings = [];
+    expect(() => checkTriggeredSeeds(planningDir, warnings)).not.toThrow();
     expect(warnings).toHaveLength(0);
   });
 });
