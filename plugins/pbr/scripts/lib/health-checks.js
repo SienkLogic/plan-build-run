@@ -136,7 +136,8 @@ function checkHookCoverage(planningDir) {
 
     const configuredArr = Array.from(configuredHooks).sort();
 
-    // Read the most recent hooks-*.jsonl file from planningDir/logs/
+    // Read the 3 most recent hooks-*.jsonl files (covers session-boundary hooks
+    // like progress-tracker that may only fire at SessionStart in earlier logs)
     const logsDir = path.join(planningDir, 'logs');
     const evidencedHooks = new Set();
 
@@ -144,11 +145,12 @@ function checkHookCoverage(planningDir) {
       const logFiles = fs.readdirSync(logsDir)
         .filter(f => /^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
         .sort()
-        .reverse();
+        .reverse()
+        .slice(0, 3);
 
-      if (logFiles.length > 0) {
-        const latestLog = path.join(logsDir, logFiles[0]);
-        const content = fs.readFileSync(latestLog, 'utf8');
+      for (const logFile of logFiles) {
+        const logPath = path.join(logsDir, logFile);
+        const content = fs.readFileSync(logPath, 'utf8');
         for (const line of content.split('\n')) {
           if (!line.trim()) continue;
           try {
@@ -160,18 +162,36 @@ function checkHookCoverage(planningDir) {
     }
 
     const evidencedArr = Array.from(evidencedHooks).sort();
-    const missingHooks = configuredArr.filter(h => !evidencedHooks.has(h));
+    const allMissing = configuredArr.filter(h => !evidencedHooks.has(h));
+
+    // Hooks that only fire on rare/specific events — not concerning if absent
+    const rareEventHooks = new Set([
+      'intercept-plan-mode',  // only fires when user enters native plan mode
+      'progress-tracker',     // only fires at SessionStart (may log to different day)
+      'context-bridge'        // only fires at SessionStart
+    ]);
+
+    const missingHooks = allMissing.filter(h => !rareEventHooks.has(h));
+    const untestedHooks = allMissing.filter(h => rareEventHooks.has(h));
+
+    let status = 'healthy';
+    let detail = `All ${configuredArr.length} configured hooks accounted for`;
+    if (missingHooks.length > 0) {
+      status = 'degraded';
+      detail = `${missingHooks.length} hooks with no evidence: ${missingHooks.join(', ')}`;
+    } else if (untestedHooks.length > 0) {
+      detail += ` (${untestedHooks.length} rare-event hooks untested: ${untestedHooks.join(', ')})`;
+    }
 
     return {
       name: 'hook_coverage',
       enabled: true,
-      status: (missingHooks.length === 0) ? 'healthy' : 'degraded',
-      detail: missingHooks.length === 0
-        ? `All ${configuredArr.length} configured hooks have evidence of firing`
-        : `${missingHooks.length} hooks with no evidence: ${missingHooks.join(', ')}`,
+      status,
+      detail,
       configured: configuredArr.length,
       evidenced: evidencedArr.length,
-      missing: missingHooks
+      missing: missingHooks,
+      untested: untestedHooks
     };
   } catch (e) {
     return { name: 'hook_coverage', enabled: false, status: 'error', detail: e.message };
