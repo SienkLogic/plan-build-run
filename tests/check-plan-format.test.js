@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, syncStateBody, checkStateWrite } = require('../hooks/check-plan-format');
+const { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateContext, syncStateBody, checkStateWrite } = require('../hooks/check-plan-format');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-plan-format.js');
 
@@ -1322,6 +1322,180 @@ All checks passed.`);
       const result = syncStateBody(content, filePath);
       expect(result).not.toBeNull();
       expect(result.content).toContain('Phase: 12 of 10 (Testing)');
+    });
+  });
+
+  describe('validateContext', () => {
+    test('valid CONTEXT.md with all 4 XML sections returns no errors or warnings', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '# Phase Context',
+        '',
+        '<domain>',
+        'Auth domain context',
+        '</domain>',
+        '',
+        '<decisions>',
+        'Use JWT tokens',
+        '</decisions>',
+        '',
+        '<canonical_refs>',
+        '.planning/research/auth.md',
+        '</canonical_refs>',
+        '',
+        '<deferred>',
+        'OAuth2 support deferred to v2',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('missing canonical_refs section produces 1 warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '<domain>',
+        'Auth domain',
+        '</domain>',
+        '',
+        '<decisions>',
+        'Use JWT',
+        '</decisions>',
+        '',
+        '<deferred>',
+        'OAuth2 deferred',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('canonical_refs');
+    });
+
+    test('missing decisions section produces 1 warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '<domain>',
+        'Auth domain',
+        '</domain>',
+        '',
+        '<canonical_refs>',
+        'refs here',
+        '</canonical_refs>',
+        '',
+        '<deferred>',
+        'deferred items',
+        '</deferred>',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('decisions');
+    });
+
+    test('legacy markdown-header format (## Decisions, ## Deferred Ideas) produces no errors', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        '---',
+        '',
+        '## Domain',
+        'Auth domain context',
+        '',
+        '## Decisions',
+        'Use JWT tokens',
+        '',
+        '## Canonical References',
+        'refs here',
+        '',
+        '## Deferred Ideas',
+        'OAuth2 deferred',
+      ].join('\n');
+      const result = validateContext(content, '/fake/CONTEXT.md');
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    test('completely empty content produces 1 error', () => {
+      const result = validateContext('', '/fake/CONTEXT.md');
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('validateSummary metrics warnings', () => {
+    test('SUMMARY with duration and requirements-completed has no metrics warnings', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'duration: 12.5',
+        'requirements-completed: ["REQ-F-001"]',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      expect(result.errors).toHaveLength(0);
+      const metricsWarnings = result.warnings.filter(w => w.includes('duration') || w.includes('requirements-completed'));
+      expect(metricsWarnings).toHaveLength(0);
+    });
+
+    test('SUMMARY without duration field produces warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'requirements-completed: ["REQ-F-001"]',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      const durationWarnings = result.warnings.filter(w => w.includes('duration'));
+      expect(durationWarnings).toHaveLength(1);
+    });
+
+    test('SUMMARY without requirements-completed field produces warning', () => {
+      const content = [
+        '---',
+        'phase: "03-auth"',
+        'plan: "03-01"',
+        'status: complete',
+        'provides: ["auth module"]',
+        'requires: []',
+        'key_files:',
+        '  - "src/auth.ts"',
+        'deferred: []',
+        'duration: 12.5',
+        '---',
+        '',
+        '## Task Results',
+      ].join('\n');
+      const result = validateSummary(content, '/fake/SUMMARY.md');
+      const reqWarnings = result.warnings.filter(w => w.includes('requirements-completed'));
+      expect(reqWarnings).toHaveLength(1);
     });
   });
 
