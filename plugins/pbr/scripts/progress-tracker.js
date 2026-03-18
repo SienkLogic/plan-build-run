@@ -349,14 +349,28 @@ function buildContext(planningDir, stateFile) {
       if (phaseMatch) {
         const currentPhase = parseInt(phaseMatch[1], 10);
         // Check if ROADMAP shows this phase as already verified/complete
-        const progressTable = roadmap.match(/## Progress[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
+        // Strip <details>/<summary> HTML tags so progress table inside collapsed milestones is found
+        const strippedRoadmap = roadmap
+          .replace(/<\/?details>/gi, '')
+          .replace(/<\/?summary>/gi, '');
+        const progressTable = strippedRoadmap.match(/## Progress[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
         if (progressTable) {
           const rows = progressTable[0].split('\n').filter(r => r.includes('|'));
+          // Dynamic column detection from header row
+          let statusColIdx = -1;
+          let phaseColIdx = 0; // default: first column
+          const headerRow = rows.find(r => /Plans?\s*Complete/i.test(r) || /Status/i.test(r));
+          if (headerRow) {
+            const headers = headerRow.split('|').map(h => h.trim().toLowerCase()).filter(Boolean);
+            const pIdx = headers.findIndex(h => /phase/i.test(h));
+            if (pIdx !== -1) phaseColIdx = pIdx;
+            statusColIdx = headers.findIndex(h => /status/i.test(h));
+          }
           for (const row of rows) {
             const cols = row.split('|').map(c => c.trim()).filter(Boolean);
-            if (cols.length >= 4) {
-              const phaseNum = parseInt(cols[0], 10);
-              const status = cols[3] ? cols[3].toLowerCase() : '';
+            if (cols.length >= 2 && statusColIdx !== -1 && statusColIdx < cols.length) {
+              const phaseNum = parseInt(cols[phaseColIdx], 10);
+              const status = cols[statusColIdx] ? cols[statusColIdx].toLowerCase() : '';
               if (phaseNum === currentPhase && (status === 'verified' || status === 'complete')) {
                 parts.push(`\nWarning: STATE.md may be outdated — ROADMAP.md shows phase ${currentPhase} as ${status}.`);
               }
