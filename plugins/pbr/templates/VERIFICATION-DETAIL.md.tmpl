@@ -14,6 +14,11 @@ gaps:
     level: "{existence | substantive | wired}"
     evidence: "{what you found}"
     recommendation: "{specific action to fix}"
+fix_plans:
+  - gap: "{gap description}"
+    effort: "small"       # small | medium | large
+    tasks:
+      - "{specific fix action with file path}"
 anti_patterns:
   todos: {count}
   stubs: {count}
@@ -63,16 +68,44 @@ unsatisfied:
 
 {Only present if status is gaps_found}
 
-### Gap 1: {Short description}
+### Critical Gaps
+
+{Gaps that block requirements or core functionality}
+
+#### Gap 1: {Short description}
 
 - **Must-Have**: {which must-have this gap blocks}
+- **Severity**: Critical
 - **Level Failed**: {existence / substantive / wired}
 - **Evidence**: {specific evidence — file paths, line numbers, command output}
 - **Impact**: {what doesn't work because of this gap}
 - **Recommendation**: {specific action to close this gap}
 
-### Gap 2: {Short description}
-...
+### Non-Critical Gaps
+
+{Gaps related to quality, polish, or non-blocking improvements}
+
+#### Gap N: {Short description}
+
+- **Must-Have**: {which must-have this relates to}
+- **Severity**: Non-Critical
+- **Level Failed**: {existence / substantive / wired}
+- **Evidence**: {evidence}
+- **Impact**: {impact}
+- **Recommendation**: {action}
+
+## Recommended Fix Plans
+
+{Auto-generated from gaps. Each gap that can be fixed gets a fix plan.}
+
+### Fix Plan 1: {Gap title}
+**Gap**: {reference to gap}
+**Estimated effort**: {small/medium/large}
+**Tasks**:
+1. {specific fix action with file path}
+2. {verification step}
+
+### Fix Plan 2: ...
 
 ## Human Verification Items
 
