@@ -1,58 +1,31 @@
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
+const { createRunner, createTmpPlanning, cleanupTmp, getHooksLogPath, getEventsLogPath } = require('./helpers');
 const { handleHttp, summarizeInput } = require('../hooks/log-tool-failure');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'log-tool-failure.js');
-
-function runScript(stdinData) {
-  const input = JSON.stringify(stdinData);
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const runScript = createRunner(SCRIPT);
 
 // Run in a temp dir with .planning/ so loggers can write
 function runScriptWithPlanning(stdinData) {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
+  const { tmpDir, planningDir } = createTmpPlanning('plan-build-run-test-');
 
-  const input = JSON.stringify(stdinData);
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
+  const result = runScript(stdinData, { cwd: tmpDir });
 
-    // Read log files
-    const hooksLog = fs.existsSync(path.join(logsDir, 'hooks.jsonl'))
-      ? fs.readFileSync(path.join(logsDir, 'hooks.jsonl'), 'utf8').trim()
-      : '';
-    const eventsLog = fs.existsSync(path.join(logsDir, 'events.jsonl'))
-      ? fs.readFileSync(path.join(logsDir, 'events.jsonl'), 'utf8').trim()
-      : '';
+  // Read log files
+  const hooksLogPath = getHooksLogPath(planningDir);
+  const eventsLogPath = getEventsLogPath(planningDir);
+  const hooksLog = fs.existsSync(hooksLogPath)
+    ? fs.readFileSync(hooksLogPath, 'utf8').trim()
+    : '';
+  const eventsLog = fs.existsSync(eventsLogPath)
+    ? fs.readFileSync(eventsLogPath, 'utf8').trim()
+    : '';
 
-    // Cleanup
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+  // Cleanup
+  cleanupTmp(tmpDir);
 
-    return { exitCode: 0, output: result, hooksLog, eventsLog };
-  } catch (e) {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-    return { exitCode: e.status, output: e.stdout || '', hooksLog: '', eventsLog: '' };
-  }
+  return { ...result, hooksLog, eventsLog };
 }
 
 describe('log-tool-failure.js', () => {
@@ -109,7 +82,7 @@ describe('log-tool-failure.js', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test('logs to hooks.jsonl and events.jsonl', () => {
+  test('logs to daily hooks log and events log', () => {
     const result = runScriptWithPlanning({
       tool_name: 'Bash',
       error: 'Command failed with exit code 127',

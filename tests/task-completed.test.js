@@ -2,38 +2,12 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { createRunner, getHooksLogPath, getEventsLogPath } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'task-completed.js');
-
-function runScript(inputData) {
-  const input = inputData !== undefined ? JSON.stringify(inputData) : '';
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
-
-function runScriptInProject(inputData, projectDir) {
-  const input = inputData !== undefined ? JSON.stringify(inputData) : '';
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: projectDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (inputData) => _run(inputData);
+const runScriptInProject = (inputData, projectDir) => _run(inputData, { cwd: projectDir });
 
 describe('task-completed.js', () => {
   describe('always exits 0 (non-blocking)', () => {
@@ -309,28 +283,28 @@ describe('task-completed.js', () => {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    test('writes to hooks.jsonl when .planning exists', () => {
+    test('writes to daily hooks log when .planning exists', () => {
       runScriptInProject({
         agent_type: 'pbr:executor',
         agent_id: 'test-001',
         duration_ms: 3000
       }, tmpDir);
 
-      const hookLog = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+      const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       expect(fs.existsSync(hookLog)).toBe(true);
       const content = fs.readFileSync(hookLog, 'utf8');
       expect(content).toContain('task-completed');
       expect(content).toContain('TaskCompleted');
     });
 
-    test('writes to events.jsonl when .planning exists', () => {
+    test('writes to daily events log when .planning exists', () => {
       runScriptInProject({
         agent_type: 'pbr:verifier',
         agent_id: 'test-002',
         duration_ms: 7500
       }, tmpDir);
 
-      const eventLog = path.join(tmpDir, '.planning', 'logs', 'events.jsonl');
+      const eventLog = getEventsLogPath(path.join(tmpDir, '.planning'));
       expect(fs.existsSync(eventLog)).toBe(true);
       const content = fs.readFileSync(eventLog, 'utf8');
       expect(content).toContain('task-completed');
@@ -344,7 +318,7 @@ describe('task-completed.js', () => {
         duration_ms: 1000
       }, tmpDir);
 
-      const hookLog = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+      const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
       const entry = JSON.parse(lines[lines.length - 1]);
@@ -359,7 +333,7 @@ describe('task-completed.js', () => {
         agent_id: 'test-004'
       }, tmpDir);
 
-      const hookLog = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+      const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
       const entry = JSON.parse(lines[lines.length - 1]);
@@ -369,7 +343,7 @@ describe('task-completed.js', () => {
     test('log entries have null fields when data is missing', () => {
       runScriptInProject({}, tmpDir);
 
-      const hookLog = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+      const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
       const entry = JSON.parse(lines[lines.length - 1]);

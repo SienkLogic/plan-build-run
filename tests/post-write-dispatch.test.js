@@ -2,34 +2,18 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'post-write-dispatch.js');
+const _run = createRunner(SCRIPT);
+const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 
 function makeTmpDir() {
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-powd-'));
-  const planningDir = path.join(tmpDir, '.planning');
-  const logsDir = path.join(planningDir, 'logs');
-  fs.mkdirSync(logsDir, { recursive: true });
-  return { tmpDir, planningDir };
+  return createTmpPlanning('plan-build-run-powd-');
 }
 
 function cleanup(tmpDir) {
-  fs.rmSync(tmpDir, { recursive: true, force: true });
-}
-
-function runScript(tmpDir, toolInput) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
+  cleanupTmp(tmpDir);
 }
 
 describe('post-write-dispatch.js', () => {
