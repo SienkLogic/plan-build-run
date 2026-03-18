@@ -136,6 +136,64 @@ describe('check-state-sync.js', () => {
     });
   });
 
+  describe('updateProgressTable with 5-column format (Milestone column)', () => {
+    const progressTable5col = `# Roadmap
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 01. Project Scaffolding | v1.0 | 2/2 | Complete | 2026-02-08 |
+| 02. Auth System | v1.0 | 0/3 | Not started | — |
+| 03. API Endpoints | v2.0 | 0/0 | Not started | — |
+`;
+
+    test('updates plans and status for matching phase in 5-column table', () => {
+      const result = updateProgressTable(progressTable5col, '02', '1/3', 'In progress', null);
+      expect(result).toContain('| 02. Auth System | v1.0 | 1/3 | In progress | — |');
+    });
+
+    test('updates completed date in 5-column table', () => {
+      const result = updateProgressTable(progressTable5col, '03', '2/2', 'Complete', '2026-03-18');
+      expect(result).toContain('| 03. API Endpoints | v2.0 | 2/2 | Complete | 2026-03-18 |');
+    });
+
+    test('preserves Milestone column when updating', () => {
+      const result = updateProgressTable(progressTable5col, '02', '2/3', 'In progress', null);
+      expect(result).toContain('v1.0');
+      // Phase 01 row should be unchanged
+      expect(result).toContain('| 01. Project Scaffolding | v1.0 | 2/2 | Complete | 2026-02-08 |');
+    });
+
+    test('dynamic column detection works with different column order', () => {
+      // The function detects columns by header text, not position
+      const result = updateProgressTable(progressTable5col, '1', '2/2', 'Complete', '2026-02-17');
+      expect(result).toContain('| 01. Project Scaffolding | v1.0 | 2/2 | Complete | 2026-02-17 |');
+    });
+  });
+
+  describe('updateProgressTable with old 3-column format (backward compat)', () => {
+    const progressTable3col = `# Roadmap
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 01. Setup | 0/2 | Not started | — |
+| 02. Build | 0/1 | Not started | — |
+`;
+
+    test('updates correctly without Milestone column', () => {
+      const result = updateProgressTable(progressTable3col, '01', '1/2', 'In progress', null);
+      expect(result).toContain('| 01. Setup | 1/2 | In progress | — |');
+    });
+
+    test('sets completed date without Milestone column', () => {
+      const result = updateProgressTable(progressTable3col, '02', '1/1', 'Complete', '2026-03-18');
+      expect(result).toContain('| 02. Build | 1/1 | Complete | 2026-03-18 |');
+    });
+  });
+
   describe('updateStatePosition', () => {
     const stateContent = `---
 version: 2

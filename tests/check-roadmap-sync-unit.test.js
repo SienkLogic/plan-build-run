@@ -497,6 +497,52 @@ describe('isHighRisk', () => {
   });
 });
 
+describe('getRoadmapPhaseStatus with <details> wrapped milestones', () => {
+  test('finds phase status inside <details> block', () => {
+    const content = `# Roadmap
+
+<details>
+<summary>
+
+## Milestone v1.0 -- COMPLETED
+
+</summary>
+
+| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Verified |
+| 02 | Auth | Verified |
+
+</details>
+`;
+    expect(getRoadmapPhaseStatus(content, '1')).toBe('Verified');
+    expect(getRoadmapPhaseStatus(content, '2')).toBe('Verified');
+  });
+
+  test('parseRoadmapPhases finds phases inside <details> blocks', () => {
+    const content = `# Roadmap
+
+<details>
+<summary>
+
+## Milestone v1.0
+
+</summary>
+
+| 01-setup | Setup | Verified |
+| 02-auth | Auth | Verified |
+
+</details>
+
+| 03-api | API | building |
+`;
+    const phases = parseRoadmapPhases(content);
+    expect(phases).toContain('01-setup');
+    expect(phases).toContain('02-auth');
+    expect(phases).toContain('03-api');
+  });
+});
+
 describe('validatePostMilestone', () => {
   test('passes when all phases in milestone are verified', () => {
     const roadmap = `| Phase | Name | Status |
