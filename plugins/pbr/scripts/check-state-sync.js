@@ -99,25 +99,6 @@ function recordWriteMtime(filePath) {
 }
 
 /**
- * Write content to a file atomically using write-then-rename.
- * Writes to a PID-stamped temp file, then renames over the original.
- * If the rename fails, cleans up the temp file and re-throws.
- *
- * @param {string} filePath - Target file path
- * @param {string} content - Content to write
- */
-function atomicWriteFile(filePath, content) {
-  const tmpPath = filePath + '.tmp.' + process.pid;
-  try {
-    fs.writeFileSync(tmpPath, content, 'utf8');
-    fs.renameSync(tmpPath, filePath);
-  } catch (e) {
-    try { fs.unlinkSync(tmpPath); } catch (_) { /* best effort cleanup */ }
-    throw e;
-  }
-}
-
-/**
  * Extract phase number from a phase directory name.
  * E.g., "35-agent-output-budgets" → "35", "02-auth" → "02"
  *
@@ -321,23 +302,23 @@ function checkStateSync(data) {
     const newStatus = allComplete ? 'Complete' : 'In progress';
     const completedDate = allComplete ? today : null;
 
-    // Update ROADMAP.md Progress table
+    // Update ROADMAP.md Progress table via lockedFileUpdate
     if (fs.existsSync(roadmapPath)) {
       try {
-        const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
-        if (!hasProgressTable) {
-          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        if (isDirty(roadmapPath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
         } else {
-          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, newStatus, completedDate);
-          if (updatedRoadmap !== roadmapContent) {
-            if (isDirty(roadmapPath)) {
-              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
-            } else {
-              atomicWriteFile(roadmapPath, updatedRoadmap);
-              recordWriteMtime(roadmapPath);
-              messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
-            }
+          const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+          const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+          if (!hasProgressTable) {
+            messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+          } else {
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+              return updateProgressTable(content, phaseNum, plansComplete, newStatus, completedDate);
+            });
+            recordWriteMtime(roadmapPath);
+            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${plansComplete} plans, ${newStatus}`);
           }
         }
       } catch (e) {
@@ -410,23 +391,23 @@ function checkStateSync(data) {
     const completedDate = isPassed ? today : null;
     const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
 
-    // Update ROADMAP.md Progress table
+    // Update ROADMAP.md Progress table via lockedFileUpdate
     if (fs.existsSync(roadmapPath)) {
       try {
-        const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
-        const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
-        if (!hasProgressTable) {
-          messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+        if (isDirty(roadmapPath)) {
+          logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
         } else {
-          const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, roadmapStatus, completedDate);
-          if (updatedRoadmap !== roadmapContent) {
-            if (isDirty(roadmapPath)) {
-              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
-            } else {
-              atomicWriteFile(roadmapPath, updatedRoadmap);
-              recordWriteMtime(roadmapPath);
-              messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
-            }
+          const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+          const hasProgressTable = /Plans\s*Complete/i.test(roadmapContent);
+          if (!hasProgressTable) {
+            messages.push(`ROADMAP.md: No Progress table found. Add a table with columns: | Phase | Plans Complete | Status | Completed | for the current milestone phases.`);
+          } else {
+            const coreLib = getCoreLib();
+            coreLib.lockedFileUpdate(roadmapPath, (content) => {
+              return updateProgressTable(content, phaseNum, plansComplete, roadmapStatus, completedDate);
+            });
+            recordWriteMtime(roadmapPath);
+            messages.push(`ROADMAP.md: Phase ${phaseNum} → ${roadmapStatus}`);
           }
         }
       } catch (e) {
@@ -511,15 +492,15 @@ function checkStateSync(data) {
           const planningOrder = statusOrder['planning'];
           if (currentOrder < planningOrder) {
             const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
-            const updatedRoadmap = updateProgressTable(roadmapContent, phaseNum, plansComplete, 'Planning', null);
-            if (updatedRoadmap !== roadmapContent) {
-              if (isDirty(roadmapPath)) {
-                logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
-              } else {
-                atomicWriteFile(roadmapPath, updatedRoadmap);
-                recordWriteMtime(roadmapPath);
-                messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
-              }
+            if (isDirty(roadmapPath)) {
+              logHook('check-state-sync', 'PostToolUse', 'skip-dirty', { file: path.basename(roadmapPath), reason: 'external edit detected' });
+            } else {
+              const coreLib = getCoreLib();
+              coreLib.lockedFileUpdate(roadmapPath, (content) => {
+                return updateProgressTable(content, phaseNum, plansComplete, 'Planning', null);
+              });
+              recordWriteMtime(roadmapPath);
+              messages.push(`ROADMAP.md: Phase ${phaseNum} → Planning`);
             }
           }
         }
@@ -622,7 +603,6 @@ function updateStatePosition(content, updates) {
 }
 
 module.exports = {
-  atomicWriteFile,
   extractPhaseNum,
   countPhaseArtifacts,
   updateProgressTable,
