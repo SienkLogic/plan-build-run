@@ -154,6 +154,8 @@ Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verif
    - Read it and check the status
    - If `status: passed` and no `--auto-fix` flag: skip to Step 4 (conversational UAT)
    - If `status: gaps_found`: present gaps and proceed to Step 4
+     - Check for `fix_plans:` in frontmatter. If present, summarize each fix plan (gap, effort, tasks) before presenting gaps.
+     - Classify gaps by severity: Critical (blocks functionality) vs Non-Critical (cosmetic, optional). Display severity counts: "Critical: {N}, Non-Critical: {N}"
    - If `status: human_needed`: proceed to Step 4
 
 3. If it does NOT exist: proceed to Step 3 (automated verification)
@@ -597,8 +599,11 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 If gaps were found and `--auto-fix` was NOT specified:
 
-1. List all gaps clearly
-2. **Default to auto-fix** — offer it as the recommended action, not a hidden flag
+1. List all gaps clearly, grouped by severity (Critical first, then Non-Critical)
+2. If VERIFICATION.md frontmatter contains `fix_plans:`, present existing fix plans:
+   - For each fix plan: show gap, estimated effort, and planned tasks
+   - Offer to create these as follow-up plans directly
+3. **Default to auto-fix** — offer it as the recommended action, not a hidden flag
 
 ```
 Phase {N}: {name} — Gaps Found
