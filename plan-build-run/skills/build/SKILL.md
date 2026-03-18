@@ -20,6 +20,7 @@ Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when
 
 Reference: `skills/shared/agent-context-enrichment.md` for enriching executor spawn prompts with project context.
 Reference: `references/deviation-rules.md` for the deviation taxonomy (Rules 1-4) used by executors to classify and handle unexpected issues.
+Reference: `references/node-repair.md` for the node repair taxonomy (RETRY, DECOMPOSE, PRUNE, ESCALATE) used by executors to handle failed tasks.
 
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
@@ -687,6 +688,12 @@ After all executors in the wave complete, read all SUMMARY frontmatter and:
   - Rule 2 (Missing dep, auto-installed): informational only
   - Rule 3 (Blocking, asked user): highlight for review
   - Rule 4 (Architectural, asked user): highlight for review — these may need re-planning
+- Check for ESCALATE entries from node repair (SUMMARY frontmatter `node_repair` field with strategy "ESCALATE"): these indicate the executor exhausted RETRY/DECOMPOSE/PRUNE and needs user intervention. Surface immediately:
+  ```
+  Executor escalated {N} task(s):
+  - Task {id}: {description} — {error details}
+  How to proceed? (retry with different approach / skip / abort)
+  ```
 - Present a brief wave summary to the user:
   "Wave {W} complete. {N} plans done. {D} deferred ideas logged. {A} architectural issues."
 

@@ -1549,5 +1549,118 @@ describe('stateRederive', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// stateSignalWaiting / stateSignalResume / stateCheckWaiting
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('stateSignalWaiting', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('creates WAITING.json with correct fields', () => {
+    const { stateSignalWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateSignalWaiting('Waiting for API key', 'hours', path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.ok(result.path, 'should return path');
+
+    const waitingFile = path.join(tmpDir, '.planning', 'WAITING.json');
+    assert.ok(fs.existsSync(waitingFile), 'WAITING.json should exist');
+
+    const data = JSON.parse(fs.readFileSync(waitingFile, 'utf8'));
+    assert.strictEqual(data.status, 'waiting', 'status should be waiting');
+    assert.strictEqual(data.reason, 'Waiting for API key', 'reason should match');
+    assert.strictEqual(data.expected_duration, 'hours', 'expected_duration should match');
+    assert.ok(data.created_at, 'created_at should be set');
+    assert.strictEqual(data.signal, 'waiting', 'signal should be waiting');
+  });
+
+  test('defaults expected_duration to unknown', () => {
+    const { stateSignalWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    stateSignalWaiting('Some reason', undefined, path.join(tmpDir, '.planning'));
+
+    const data = JSON.parse(fs.readFileSync(path.join(tmpDir, '.planning', 'WAITING.json'), 'utf8'));
+    assert.strictEqual(data.expected_duration, 'unknown', 'should default to unknown');
+  });
+});
+
+describe('stateSignalResume', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('deletes WAITING.json when it exists', () => {
+    const { stateSignalWaiting, stateSignalResume } = require('../plan-build-run/bin/lib/state.cjs');
+    stateSignalWaiting('test reason', 'minutes', path.join(tmpDir, '.planning'));
+
+    const waitingFile = path.join(tmpDir, '.planning', 'WAITING.json');
+    assert.ok(fs.existsSync(waitingFile), 'WAITING.json should exist before resume');
+
+    const result = stateSignalResume(path.join(tmpDir, '.planning'));
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.was_waiting, true, 'should report was_waiting');
+    assert.ok(!fs.existsSync(waitingFile), 'WAITING.json should be deleted after resume');
+  });
+
+  test('returns was_waiting=false when no WAITING.json', () => {
+    const { stateSignalResume } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateSignalResume(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.was_waiting, false, 'should report not waiting');
+  });
+});
+
+describe('stateCheckWaiting', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('returns null when no WAITING.json exists', () => {
+    const { stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result, null, 'should return null when not waiting');
+  });
+
+  test('returns parsed JSON when WAITING.json exists', () => {
+    const { stateSignalWaiting, stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    stateSignalWaiting('Waiting for deploy', 'minutes', path.join(tmpDir, '.planning'));
+
+    const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
+    assert.ok(result, 'should return non-null');
+    assert.strictEqual(result.status, 'waiting', 'status should be waiting');
+    assert.strictEqual(result.reason, 'Waiting for deploy', 'reason should match');
+    assert.strictEqual(result.expected_duration, 'minutes', 'expected_duration should match');
+  });
+
+  test('returns null for corrupted WAITING.json', () => {
+    const { stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'WAITING.json'), 'not valid json');
+
+    const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
+    assert.strictEqual(result, null, 'should return null for corrupted file');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // summary-extract command
 // ─────────────────────────────────────────────────────────────────────────────
