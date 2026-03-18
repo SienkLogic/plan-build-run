@@ -256,7 +256,7 @@ describe('checkPlanWrite — ROADMAP.md path', () => {
 
   test('returns null for valid ROADMAP.md', async () => {
     const filePath = path.join(tmpDir, 'ROADMAP.md');
-    fs.writeFileSync(filePath, '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n- [ ] Phase 1: Setup\n**Requirement coverage:** 5/5\n');
+    fs.writeFileSync(filePath, '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n**Requirements:** REQ-1\n**Success Criteria:** Tests pass\n- [ ] Phase 1: Setup\n**Requirement coverage:** 5/5\n');
     const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).toBeNull();
   });
@@ -300,7 +300,7 @@ describe('validateRoadmap branch coverage', () => {
   });
 
   test('valid progress table passes', () => {
-    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n- [ ] Phase 1: Setup\n**Requirement coverage:** 5/5\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 1 | yes |\n';
+    const content = '# Roadmap\n## Milestone: v1\n**Phases:**\n### Phase 1: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** none\n**Requirements:** REQ-1\n**Success Criteria:** Tests pass\n- [ ] Phase 1: Setup\n**Requirement coverage:** 5/5\n## Progress\n| Phase | Plans Complete |\n|---|---|\n| 1 | yes |\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.warnings.length).toBe(0);
   });
@@ -1644,11 +1644,15 @@ describe('validateRoadmap (comprehensive)', () => {
 **Goal:** Set up project scaffolding
 **Provides:** base project structure
 **Depends on:** nothing
+**Requirements:** REQ-001, REQ-002
+**Success Criteria:** Project builds and tests pass
 
 ### Phase 02: Auth System
 **Goal:** Implement authentication
 **Provides:** auth middleware
 **Depends on:** Phase 01
+**Requirements:** REQ-003
+**Success Criteria:** Auth flow works end-to-end
 
 ## Progress
 
@@ -1748,11 +1752,15 @@ describe('validateRoadmap (comprehensive)', () => {
 **Goal:** scaffold
 **Provides:** base
 **Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Scaffold complete
 
 ### Phase 02: Build
 **Goal:** implement
 **Provides:** features
 **Depends on:** Phase 01
+**Requirements:** REQ-2
+**Success Criteria:** Core implemented
 `;
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.errors).toHaveLength(0);
@@ -1810,6 +1818,278 @@ describe('validateRoadmap (comprehensive)', () => {
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.warnings.some(w => w.includes('Phase Checklist'))).toBe(false);
     expect(result.warnings.some(w => w.includes('Requirement coverage'))).toBe(false);
+  });
+});
+
+describe('validateRoadmap GSD-aligned format', () => {
+  test('# Roadmap: My Project heading passes validation (new format)', () => {
+    const content = `# Roadmap: My Project
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Tests pass
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('# Roadmap heading still passes (backward compat)', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Tests pass
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+  });
+
+  test('<details> wrapped milestone passes as completed', () => {
+    const content = `# Roadmap
+
+<details>
+<summary>
+
+## Milestone: v1.0 -- COMPLETED
+
+</summary>
+
+**Phases:** 1 - 1
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+
+</details>
+
+## Milestone: v2.0
+
+**Phases:** 2 - 2
+**Requirement coverage:** 1/1
+
+- [ ] Phase 02: Build
+
+### Phase 02: Build
+**Goal:** implement
+**Provides:** features
+**Depends on:** Phase 01
+**Requirements:** REQ-2
+**Success Criteria:** Build succeeds
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+    // The completed milestone should not trigger checklist/coverage warnings
+    expect(result.warnings.filter(w => w.includes('Milestone 1'))).toHaveLength(0);
+  });
+
+  test('phase with Requirements field passes without Requirements warning', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-F-001
+**Success Criteria:** Tests pass
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('Requirements'))).toBe(false);
+  });
+
+  test('phase missing Requirements triggers warning (not error)', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Success Criteria:** Tests pass
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors.some(e => e.includes('Requirements'))).toBe(false);
+    expect(result.warnings.some(w => w.includes('Requirements'))).toBe(true);
+  });
+
+  test('phase with Success Criteria field passes without Success Criteria warning', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** All tests green
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.warnings.some(w => w.includes('Success Criteria'))).toBe(false);
+  });
+
+  test('phase missing Success Criteria triggers warning (not error)', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors.some(e => e.includes('Success Criteria'))).toBe(false);
+    expect(result.warnings.some(w => w.includes('Success Criteria'))).toBe(true);
+  });
+
+  test('Progress table with Milestone column passes', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Tests pass
+
+## Progress
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 01. Setup | v1.0 | 1/1 | Complete | 2026-03-01 |
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test('Progress table without Milestone column still passes (backward compat)', () => {
+    const content = `# Roadmap
+
+## Milestone: v1.0
+
+**Phases:** 1 - 1
+**Requirement coverage:** 1/1
+
+- [ ] Phase 01: Setup
+
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Tests pass
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 01. Setup | 1/1 | Complete | 2026-03-01 |
+`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+});
+
+describe('validateContext GSD-aligned format', () => {
+  test('CONTEXT.md with specifics and code_context passes with no warnings', () => {
+    const content = [
+      '<domain>',
+      'Auth domain',
+      '</domain>',
+      '<decisions>',
+      'Use JWT',
+      '</decisions>',
+      '<canonical_refs>',
+      'refs',
+      '</canonical_refs>',
+      '<deferred>',
+      'deferred items',
+      '</deferred>',
+      '<specifics>',
+      'JWT v5 library',
+      '</specifics>',
+      '<code_context>',
+      'middleware pattern',
+      '</code_context>',
+    ].join('\n');
+    const result = validateContext(content, '/fake/CONTEXT.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  test('CONTEXT.md without specifics and code_context produces warnings (backward compat)', () => {
+    const content = [
+      '<domain>',
+      'Auth domain',
+      '</domain>',
+      '<decisions>',
+      'Use JWT',
+      '</decisions>',
+      '<canonical_refs>',
+      'refs',
+      '</canonical_refs>',
+      '<deferred>',
+      'deferred items',
+      '</deferred>',
+    ].join('\n');
+    const result = validateContext(content, '/fake/CONTEXT.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => w.includes('specifics'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('code_context'))).toBe(true);
   });
 });
 
@@ -1898,7 +2178,7 @@ describe('syncStateBody (comprehensive)', () => {
 });
 
 describe('validateContext', () => {
-  test('valid CONTEXT.md with all 4 XML sections returns no errors or warnings', () => {
+  test('valid CONTEXT.md with all 6 XML sections returns no errors or warnings', () => {
     const content = [
       '---',
       'phase: "03-auth"',
@@ -1921,13 +2201,21 @@ describe('validateContext', () => {
       '<deferred>',
       'OAuth2 support deferred to v2',
       '</deferred>',
+      '',
+      '<specifics>',
+      'JWT library: jose v5',
+      '</specifics>',
+      '',
+      '<code_context>',
+      'Auth middleware pattern in src/middleware/',
+      '</code_context>',
     ].join('\n');
     const result = validateContext(content, '/fake/CONTEXT.md');
     expect(result.errors).toHaveLength(0);
     expect(result.warnings).toHaveLength(0);
   });
 
-  test('missing canonical_refs section produces 1 warning', () => {
+  test('missing canonical_refs section produces warning', () => {
     const content = [
       '---',
       'phase: "03-auth"',
@@ -1944,6 +2232,14 @@ describe('validateContext', () => {
       '<deferred>',
       'OAuth2 deferred',
       '</deferred>',
+      '',
+      '<specifics>',
+      'JWT library',
+      '</specifics>',
+      '',
+      '<code_context>',
+      'middleware pattern',
+      '</code_context>',
     ].join('\n');
     const result = validateContext(content, '/fake/CONTEXT.md');
     expect(result.errors).toHaveLength(0);
@@ -1951,7 +2247,7 @@ describe('validateContext', () => {
     expect(result.warnings[0]).toContain('canonical_refs');
   });
 
-  test('missing decisions section produces 1 warning', () => {
+  test('missing decisions section produces warning', () => {
     const content = [
       '---',
       'phase: "03-auth"',
@@ -1968,6 +2264,14 @@ describe('validateContext', () => {
       '<deferred>',
       'deferred items',
       '</deferred>',
+      '',
+      '<specifics>',
+      'details',
+      '</specifics>',
+      '',
+      '<code_context>',
+      'patterns',
+      '</code_context>',
     ].join('\n');
     const result = validateContext(content, '/fake/CONTEXT.md');
     expect(result.errors).toHaveLength(0);
@@ -1992,6 +2296,12 @@ describe('validateContext', () => {
       '',
       '## Deferred Ideas',
       'OAuth2 deferred',
+      '',
+      '## Specific References',
+      'JWT library details',
+      '',
+      '## Code Patterns',
+      'middleware pattern',
     ].join('\n');
     const result = validateContext(content, '/fake/CONTEXT.md');
     expect(result.errors).toHaveLength(0);
