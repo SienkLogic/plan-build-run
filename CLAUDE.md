@@ -88,6 +88,8 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 
 **Hook exit codes**: 0 = success, 2 = block (PreToolUse hooks that reject a tool call).
 
+**Hook ordering**: When multiple PostToolUse hooks fire on the same event (e.g., Write|Edit), execution order is not guaranteed. See `references/hook-ordering.md` for ordering expectations, design rules, and known safe pairs.
+
 **`${CLAUDE_PLUGIN_ROOT}`**: Used in hooks.json to reference script paths. Claude Code expands this internally — works on all platforms without shell expansion.
 
 ### Supporting Directories
