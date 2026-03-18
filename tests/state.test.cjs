@@ -1439,5 +1439,115 @@ describe('statePhaseComplete', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// stateRederive
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('stateRederive', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('detects drift and corrects STATE.md', () => {
+    // STATE.md says 0 complete, but filesystem has 1 completed summary
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 1',
+      'phase_slug: "test-phase"',
+      'status: "executing"',
+      'plans_complete: 0',
+      'plans_total: 0',
+      'progress_percent: 0',
+      'last_activity: "2026-03-10"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 1 of 1 (Test Phase)',
+      'Status: Executing',
+      'Plan: 0 of 0',
+      'Progress: [░░░░░░░░░░░░░░░░░░░░] 0%',
+      'Last activity: 2026-03-10',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    // Create a phase with 1 plan and 1 completed summary
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
+
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.ok(result.corrected.length > 0, 'should have corrected fields');
+    assert.strictEqual(result.derived.plans_complete, 1, 'derived plans_complete should be 1');
+    assert.strictEqual(result.derived.plans_total, 1, 'derived plans_total should be 1');
+
+    // Verify STATE.md was updated
+    const updated = fs.readFileSync(path.join(tmpDir, '.planning', 'STATE.md'), 'utf8');
+    assert.ok(/plans_complete:\s*1/.test(updated), 'plans_complete should be corrected to 1');
+    assert.ok(/plans_total:\s*1/.test(updated), 'plans_total should be corrected to 1');
+  });
+
+  test('returns corrected=[] when STATE.md matches filesystem', () => {
+    const stateMd = [
+      '---',
+      'version: 2',
+      'current_phase: 1',
+      'phase_slug: "test-phase"',
+      'status: "executing"',
+      'plans_complete: 1',
+      'plans_total: 1',
+      'progress_percent: 100',
+      'last_activity: "2026-03-10"',
+      'last_command: "build"',
+      'blockers: []',
+      '---',
+      '',
+      '# Project State',
+      '',
+      'Phase: 1 of 1 (Test Phase)',
+      'Status: Executing',
+      'Plan: 1 of 1',
+      'Progress: [████████████████████] 100%',
+      'Last activity: 2026-03-10',
+    ].join('\n');
+    fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
+
+    // Filesystem matches: 1 plan, 1 completed
+    const phaseDir = path.join(tmpDir, '.planning', 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
+
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, true, 'should succeed');
+    assert.strictEqual(result.corrected.length, 0, 'should have no corrections');
+    assert.strictEqual(result.derived.plans_complete, 1);
+    assert.strictEqual(result.derived.plans_total, 1);
+  });
+
+  test('handles missing STATE.md gracefully', () => {
+    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const result = stateRederive(path.join(tmpDir, '.planning'));
+
+    assert.strictEqual(result.success, false, 'should fail');
+    assert.ok(result.error, 'should have error message');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // summary-extract command
 // ─────────────────────────────────────────────────────────────────────────────
