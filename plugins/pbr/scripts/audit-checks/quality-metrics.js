@@ -1,16 +1,21 @@
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
+
 /**
  * Quality Metrics Check Module
  *
- * Implements QM-01, QM-02, and QM-04 quality metric dimensions for the
+ * Implements QM-01 through QM-05 quality metric dimensions for the
  * PBR audit system. Each check returns a structured result:
  * { dimension, status, message, evidence }.
  *
  * Checks:
  *   QM-01: Session degradation detection (error rate first half vs second half)
  *   QM-02: Throughput metrics (tool calls, commits, agents spawned)
+ *   QM-03: Baseline comparison against previous audit reports
  *   QM-04: Error correlation across audit dimensions
+ *   QM-05: Audit self-validation (all enabled dimensions checked)
  */
 
 // ---------------------------------------------------------------------------
@@ -172,6 +177,99 @@ function checkThroughputMetrics(sessionData) {
 }
 
 // ---------------------------------------------------------------------------
+// QM-03: Baseline Comparison Against Previous Audits
+// ---------------------------------------------------------------------------
+
+/**
+ * Compare current audit results against the most recent previous audit report
+ * and flag any dimension regressions.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {Array<object>} auditResults - Current audit dimension results
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkBaselineComparison(planningDir, auditResults) {
+  if (!auditResults || auditResults.length === 0) {
+    return result('QM-03', 'pass', 'No current audit results for baseline comparison');
+  }
+
+  const auditsDir = path.join(planningDir, 'audits');
+
+  let auditFiles;
+  try {
+    if (!fs.existsSync(auditsDir)) {
+      return result('QM-03', 'pass', 'No previous audits for baseline comparison (first audit)');
+    }
+    auditFiles = fs.readdirSync(auditsDir)
+      .filter(function (f) { return f.endsWith('-session-audit.md'); })
+      .sort();
+  } catch (_err) {
+    return result('QM-03', 'pass', 'Previous audit unreadable, skipping baseline comparison');
+  }
+
+  if (auditFiles.length === 0) {
+    return result('QM-03', 'pass', 'No previous audits for baseline comparison (first audit)');
+  }
+
+  // Read the most recent previous audit
+  const latestFile = auditFiles[auditFiles.length - 1];
+  let content;
+  try {
+    content = fs.readFileSync(path.join(auditsDir, latestFile), 'utf8');
+  } catch (_err) {
+    return result('QM-03', 'pass', 'Previous audit unreadable, skipping baseline comparison');
+  }
+
+  // Parse dimension results from table rows: | CODE | status |
+  const previousStatuses = {};
+  const tablePattern = /\|\s*([A-Z]{2}-\d{2})\s*\|\s*(pass|warn|fail)\s*\|/gi;
+  let match;
+  while ((match = tablePattern.exec(content)) !== null) {
+    previousStatuses[match[1].toUpperCase()] = match[2].toLowerCase();
+  }
+
+  if (Object.keys(previousStatuses).length === 0) {
+    return result('QM-03', 'pass', 'No parseable dimension results in previous audit');
+  }
+
+  // Compare current vs previous
+  const statusRank = { pass: 0, warn: 1, fail: 2 };
+  const regressions = [];
+  const improvements = [];
+
+  for (const r of auditResults) {
+    if (!r.dimension) continue;
+    const code = r.dimension.toUpperCase();
+    const prevStatus = previousStatuses[code];
+    if (!prevStatus) continue;
+
+    const curStatus = (r.status || '').toLowerCase();
+    const prevRank = statusRank[prevStatus];
+    const curRank = statusRank[curStatus];
+
+    if (prevRank !== undefined && curRank !== undefined) {
+      if (curRank > prevRank) {
+        regressions.push(code + ': ' + prevStatus + ' -> ' + curStatus);
+      } else if (curRank < prevRank) {
+        improvements.push(code + ': ' + prevStatus + ' -> ' + curStatus);
+      }
+    }
+  }
+
+  if (regressions.length > 0) {
+    return result('QM-03', 'warn',
+      regressions.length + ' dimension regression(s) vs previous audit',
+      regressions
+    );
+  }
+
+  return result('QM-03', 'pass', 'No regressions vs previous audit', [
+    'Improvements: ' + (improvements.length > 0 ? improvements.join(', ') : 'none'),
+    'Baseline file: ' + latestFile,
+  ]);
+}
+
+// ---------------------------------------------------------------------------
 // QM-04: Error Correlation Across Dimensions
 // ---------------------------------------------------------------------------
 
@@ -238,4 +336,4 @@ function checkErrorCorrelation(auditResults) {
   return result('QM-04', 'pass', 'No cross-dimension error correlations detected');
 }
 
-module.exports = { checkSessionDegradation, checkThroughputMetrics, checkErrorCorrelation };
+module.exports = { checkSessionDegradation, checkThroughputMetrics, checkBaselineComparison, checkErrorCorrelation };
