@@ -6,7 +6,8 @@ const {
   updateProgressTable,
   updateStatePosition,
   buildProgressBar,
-  checkStateSync
+  checkStateSync,
+  clearMtimeCache
 } = require('../hooks/check-state-sync');
 
 describe('check-state-sync.js', () => {
@@ -628,6 +629,119 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         // The important thing is it doesn't crash and the path guard doesn't reject it
         expect(result === null || result.output.additionalContext).toBeTruthy();
       });
+    });
+  });
+
+  describe('dirty flag detection (mtime-based)', () => {
+    let tmpDir;
+    let planningDir;
+    let phasesDir;
+    let phaseDir;
+    let origCwd;
+
+    beforeEach(() => {
+      clearMtimeCache();
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'dirty-flag-'));
+      planningDir = path.join(tmpDir, '.planning');
+      phasesDir = path.join(planningDir, 'phases');
+      phaseDir = path.join(phasesDir, '03-api-endpoints');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+
+      origCwd = process.cwd();
+      process.chdir(tmpDir);
+
+      // Set up phase with 1 plan and 1 complete summary
+      fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\nplan: 01\n---');
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      clearMtimeCache();
+    });
+
+    test('first sync proceeds when no prior mtime recorded', () => {
+      const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      const result = checkStateSync(data);
+
+      expect(result).not.toBeNull();
+      const updated = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+      expect(updated).toContain('1/1');
+    });
+
+    test('skips overwrite when external edit detected on ROADMAP.md', () => {
+      const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      // First sync — establishes mtime baseline
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      checkStateSync(data);
+
+      // Simulate external edit by touching the file with a new mtime
+      const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+      const content = fs.readFileSync(roadmapPath, 'utf8');
+      // Write different content to ensure mtime changes
+      fs.writeFileSync(roadmapPath, content + '\n<!-- user edit -->');
+
+      // Second sync — should detect dirty file and skip
+      const result2 = checkStateSync(data);
+
+      // The ROADMAP should still have the user edit intact
+      const final = fs.readFileSync(roadmapPath, 'utf8');
+      expect(final).toContain('<!-- user edit -->');
+    });
+
+    test('proceeds with second sync when no external edit', () => {
+      const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      // Add a second plan to make the second sync produce different content
+      fs.writeFileSync(path.join(phaseDir, '02-PLAN.md'), '---\nphase: 03\nplan: 02\n---');
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+
+      // First sync
+      checkStateSync(data);
+      const afterFirst = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+      expect(afterFirst).toContain('1/2');
+
+      // Add second summary to change what the second sync would write
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-02.md'), '---\nstatus: complete\n---');
+
+      // Second sync — no external edit, should proceed
+      checkStateSync({ tool_input: { file_path: path.join(phaseDir, 'SUMMARY-02.md') } });
+
+      const afterSecond = fs.readFileSync(path.join(planningDir, 'ROADMAP.md'), 'utf8');
+      expect(afterSecond).toContain('2/2');
+    });
+
+    test('clearMtimeCache resets dirty flag state', () => {
+      const roadmap = `# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|-----------||\n| 03. API Endpoints | 0/0 | Not started | — |\n`;
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+
+      // First sync — establishes baseline
+      checkStateSync(data);
+
+      // Simulate external edit
+      const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+      fs.writeFileSync(roadmapPath, fs.readFileSync(roadmapPath, 'utf8') + '\n<!-- edit -->');
+
+      // Clear cache — next sync should treat as first run (no prior mtime)
+      clearMtimeCache();
+
+      // Should proceed since cache was cleared
+      checkStateSync(data);
+
+      const final = fs.readFileSync(roadmapPath, 'utf8');
+      // The sync should have overwritten (or updated) because cache was cleared
+      expect(final).toContain('1/1');
     });
   });
 });
