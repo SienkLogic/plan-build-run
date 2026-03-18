@@ -377,6 +377,253 @@ function checkSessionDurationCost(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// SQ-04: Skill Routing Accuracy
+// ---------------------------------------------------------------------------
+
+/**
+ * Evaluate whether /pbr:do routing events matched user intent.
+ * Scans hook logs for check-skill-workflow entries (blocks = misroutes)
+ * and event logs for skill-workflow-block events.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkSkillRoutingAccuracy(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookLogs = readHookLogs(logsDir);
+  const eventLogs = readEventLogs(logsDir);
+
+  // Find skill-workflow hook entries (routing enforcement events)
+  const skillWorkflowHooks = hookLogs.filter(
+    e => e.hook === 'check-skill-workflow'
+  );
+
+  // Find skill-workflow-block events in event logs
+  const routingBlocks = eventLogs.filter(
+    e => e.cat === 'workflow' && e.event === 'skill-workflow-block'
+  );
+
+  // Find /pbr:do usage — event log entries mentioning "do" skill or routing
+  const doSkillEvents = eventLogs.filter(
+    e => (e.skill === 'do' || e.event === 'natural-language-routing' ||
+          (e.detail && typeof e.detail === 'string' && e.detail.includes('pbr:do')))
+  );
+
+  const evidence = [];
+
+  // Count routing events
+  let blocked = 0;
+  let successful = 0;
+
+  for (const entry of skillWorkflowHooks) {
+    if (entry.decision === 'block') {
+      blocked++;
+      const detail = entry.file || entry.skill || 'unknown';
+      evidence.push(`Routing block: skill=${entry.skill || 'unknown'}, file=${detail}`);
+    } else {
+      successful++;
+    }
+  }
+
+  // Count event-log blocks
+  for (const entry of routingBlocks) {
+    blocked++;
+    evidence.push(`Workflow block event: ${entry.detail || entry.reason || 'no detail'}`);
+  }
+
+  // Count /pbr:do events as successful routes (unless already counted as blocks)
+  for (const entry of doSkillEvents) {
+    successful++;
+    evidence.push(`/pbr:do routing: ${entry.detail || entry.event || 'routed'}`);
+  }
+
+  const total = successful + blocked;
+
+  if (total === 0) {
+    return result('SQ-04', 'info', 'No skill routing events found in logs', [
+      'No routing events detected in hook or event logs',
+    ]);
+  }
+
+  evidence.unshift(`Skill routing: ${successful}/${total} successful, ${blocked} blocked`);
+
+  let status;
+  if (blocked === 0 || (successful / total) > 0.9) {
+    status = 'pass';
+  } else {
+    status = 'warn';
+  }
+
+  const message = `Skill routing: ${successful}/${total} successful, ${blocked} blocked`;
+  return result('SQ-04', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
+// SQ-05: Memory Update Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect auto-memory save events (writes to MEMORY.md, agent-memory/, notes/).
+ * Scans event logs and hook logs for write events targeting memory-related paths.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkMemoryUpdateTracking(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookLogs = readHookLogs(logsDir);
+  const eventLogs = readEventLogs(logsDir);
+
+  const evidence = [];
+  const memoryPaths = [];
+
+  // Scan hook logs for writes to memory-related paths
+  const memoryPatterns = ['MEMORY.md', 'agent-memory', '.claude/memory', '.claude/notes'];
+  for (const entry of hookLogs) {
+    const filePath = entry.file || entry.path || '';
+    if (memoryPatterns.some(p => filePath.includes(p))) {
+      memoryPaths.push(filePath);
+      evidence.push(`Hook log: memory write to ${path.basename(filePath)}`);
+    }
+  }
+
+  // Scan event logs for memory-related writes
+  for (const entry of eventLogs) {
+    const filePath = entry.file || entry.path || entry.detail || '';
+    if (typeof filePath === 'string' && memoryPatterns.some(p => filePath.includes(p))) {
+      memoryPaths.push(filePath);
+      evidence.push(`Event log: memory activity at ${path.basename(filePath)}`);
+    }
+  }
+
+  // Check for recent notes in .planning/notes/
+  const notesDir = path.join(planningDir, 'notes');
+  if (fs.existsSync(notesDir)) {
+    try {
+      const noteFiles = fs.readdirSync(notesDir).filter(f => f.endsWith('.md'));
+      const now = Date.now();
+      const recentThreshold = 24 * 60 * 60 * 1000; // 24 hours
+      for (const noteFile of noteFiles) {
+        try {
+          const stat = fs.statSync(path.join(notesDir, noteFile));
+          if (now - stat.mtime.getTime() < recentThreshold) {
+            memoryPaths.push(noteFile);
+            evidence.push(`Recent note: ${noteFile}`);
+          }
+        } catch (_e) {
+          // Skip unreadable note files
+        }
+      }
+    } catch (_e) {
+      // Skip unreadable notes directory
+    }
+  }
+
+  const count = memoryPaths.length;
+  evidence.unshift(`Memory updates: ${count} saves detected`);
+
+  let status;
+  let message;
+  if (count > 0) {
+    status = 'pass';
+    message = `${count} memory update(s) detected during session`;
+  } else {
+    status = 'info';
+    message = 'No memory updates detected (session may not have had new learnings)';
+  }
+
+  return result('SQ-05', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
+// SQ-06: Convention Detection Monitoring
+// ---------------------------------------------------------------------------
+
+/**
+ * Check whether the convention_memory feature is active and capturing conventions.
+ * Examines config, conventions storage, and log entries for convention-detector activity.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Audit config (uses config.features.convention_memory)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkConventionDetectionMonitoring(planningDir, config) {
+  const features = (config && config.features) || {};
+  const conventionMemoryEnabled = features.convention_memory === true;
+
+  if (!conventionMemoryEnabled) {
+    return result('SQ-06', 'info', 'convention_memory feature disabled', [
+      'config.features.convention_memory is not enabled',
+    ]);
+  }
+
+  const evidence = [];
+
+  // Check if conventions storage exists
+  const conventionsJson = path.join(planningDir, 'conventions.json');
+  const conventionsDir = path.join(planningDir, 'conventions');
+  let conventionsCount = 0;
+
+  if (fs.existsSync(conventionsJson)) {
+    try {
+      const content = fs.readFileSync(conventionsJson, 'utf8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        conventionsCount = parsed.length;
+      } else if (typeof parsed === 'object' && parsed !== null) {
+        conventionsCount = Object.keys(parsed).length;
+      }
+      evidence.push(`conventions.json: ${conventionsCount} entries`);
+    } catch (_e) {
+      evidence.push('conventions.json: exists but could not be parsed');
+    }
+  } else if (fs.existsSync(conventionsDir)) {
+    try {
+      const files = fs.readdirSync(conventionsDir);
+      conventionsCount = files.length;
+      evidence.push(`conventions/: ${conventionsCount} files`);
+    } catch (_e) {
+      evidence.push('conventions/: exists but could not be read');
+    }
+  } else {
+    evidence.push('No conventions.json or conventions/ directory found');
+  }
+
+  // Check logs for convention-detector activity
+  const logsDir = getLogsDir(planningDir);
+  const hookLogs = readHookLogs(logsDir);
+  const eventLogs = readEventLogs(logsDir);
+
+  const conventionHookEntries = hookLogs.filter(
+    e => e.hook === 'convention-detector' || (e.detail && typeof e.detail === 'string' && e.detail.includes('convention'))
+  );
+  const conventionEventEntries = eventLogs.filter(
+    e => (e.event && typeof e.event === 'string' && e.event.includes('convention')) ||
+         (e.detail && typeof e.detail === 'string' && e.detail.includes('convention'))
+  );
+
+  const logActivity = conventionHookEntries.length + conventionEventEntries.length;
+  evidence.push(`Convention detector activity: ${logActivity} log entries`);
+
+  let status;
+  let message;
+  if (conventionsCount > 0) {
+    status = 'pass';
+    message = `Convention detection active: ${conventionsCount} conventions captured`;
+  } else if (logActivity > 0) {
+    status = 'pass';
+    message = `Convention detector ran (${logActivity} log entries) but no conventions captured yet`;
+  } else {
+    status = 'warn';
+    message = 'convention_memory enabled but no conventions captured and no detector activity';
+  }
+
+  return result('SQ-06', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -384,6 +631,9 @@ module.exports = {
   checkSessionStartQuality,
   checkBriefingFreshness,
   checkSessionDurationCost,
+  checkSkillRoutingAccuracy,
+  checkMemoryUpdateTracking,
+  checkConventionDetectionMonitoring,
   // Shared helpers exported for reuse by other SQ checks and tests
   readJsonlFiles,
   readHookLogs,
