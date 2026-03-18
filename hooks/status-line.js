@@ -362,37 +362,24 @@ function getCoverage(planningDir) {
       if (data.coverage != null) return Math.round(data.coverage);
     } catch (_e) { /* fall through */ }
   }
-  // Fallback: read coverage-summary.json directly
+  // Fallback: read coverage-final.json (always fresh after jest --coverage).
+  // coverage-summary.json is stale — Jest doesn't regenerate without json-summary reporter.
   try {
-    const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
+    const covFile = path.join(process.cwd(), 'coverage', 'coverage-final.json');
     const data = JSON.parse(fs.readFileSync(covFile, 'utf8'));
-    // Prefer bin/lib aggregate (the enforced threshold slice)
-    const binLibCov = aggregateCoverage(data, /bin.lib/);
-    if (binLibCov != null) return binLibCov;
-    // Fallback to global
-    return data.total && data.total.lines ? Math.round(data.total.lines.pct) : null;
+    let totalStmts = 0;
+    let coveredStmts = 0;
+    for (const file of Object.keys(data)) {
+      const stmtMap = data[file].s;
+      for (const key of Object.keys(stmtMap)) {
+        totalStmts++;
+        if (stmtMap[key] > 0) coveredStmts++;
+      }
+    }
+    return totalStmts > 0 ? Math.round((coveredStmts / totalStmts) * 100) : null;
   } catch (_e) {
     return null;
   }
-}
-
-/**
- * Aggregate line coverage for files matching a pattern in coverage-summary.json.
- * @param {object} covData - Parsed coverage-summary.json
- * @param {RegExp} pattern - File path pattern to match
- * @returns {number|null} - Rounded percentage, or null if no matches
- */
-function aggregateCoverage(covData, pattern) {
-  let totalLines = 0;
-  let coveredLines = 0;
-  for (const [file, data] of Object.entries(covData)) {
-    if (file === 'total') continue;
-    if (pattern.test(file) && data.lines) {
-      totalLines += data.lines.total;
-      coveredLines += data.lines.covered;
-    }
-  }
-  return totalLines > 0 ? Math.round((coveredLines / totalLines) * 100) : null;
 }
 
 /**
@@ -803,4 +790,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, aggregateCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
