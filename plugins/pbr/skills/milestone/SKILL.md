@@ -365,10 +365,20 @@ Read `git.branching` from config.
    - Verify each source phase directory exists before attempting to move it
    - If any source phase directory is missing, warn but continue with the phases that do exist
 
+   **CRITICAL (no hook): Back up ROADMAP.md BEFORE any destructive operations. Do NOT skip this step.**
+
+   Copy `.planning/ROADMAP.md` into the milestone archive directory as a safety backup. This preserves the full roadmap state at the time of milestone completion, before any phase directories are moved or ROADMAP.md sections are collapsed:
+
+   ```bash
+   mkdir -p .planning/milestones/{version}
+   cp .planning/ROADMAP.md .planning/milestones/{version}/ROADMAP.md
+   ```
+
+   This backup MUST happen before any of the following: creating archive subdirectories, moving phase directories, collapsing ROADMAP.md sections, or updating STATE.md.
+
    **CRITICAL (no hook): Create the archive directory .planning/milestones/{version}/ NOW. Do NOT skip this step.**
 
-   Create a versioned archive directory and move phase directories into it:
-   - `.planning/milestones/{version}/ROADMAP.md` — snapshot of ROADMAP.md at completion
+   Create a versioned archive directory and move phase directories into it (ROADMAP.md is already copied by the backup step above):
    - `.planning/milestones/{version}/REQUIREMENTS.md` — **CRITICAL (no hook): Copy REQUIREMENTS.md to archive NOW. Do NOT skip this step.** Snapshot of REQUIREMENTS.md
    - `.planning/milestones/{version}/STATS.md` — milestone statistics
    - `.planning/milestones/{version}/phases/{NN}-{slug}/` — move each milestone phase directory from `.planning/phases/` into the archive
