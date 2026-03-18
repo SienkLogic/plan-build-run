@@ -683,12 +683,12 @@ next_top_level: something`;
       }
     });
 
-    test('pending can transition to planned and skipped', () => {
-      expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'skipped']);
+    test('pending (legacy alias) can transition to planned, discussed, skipped, not_started', () => {
+      expect(VALID_STATUS_TRANSITIONS.pending).toEqual(['planned', 'discussed', 'skipped', 'not_started']);
     });
 
-    test('planned can transition to building', () => {
-      expect(VALID_STATUS_TRANSITIONS.planned).toEqual(['building']);
+    test('planned can transition to ready_to_execute or building', () => {
+      expect(VALID_STATUS_TRANSITIONS.planned).toEqual(['ready_to_execute', 'building']);
     });
 
     test('building can transition to built, partial, or needs_fixes', () => {
@@ -699,16 +699,16 @@ next_top_level: something`;
       expect(VALID_STATUS_TRANSITIONS.built).toEqual(['verified', 'needs_fixes']);
     });
 
-    test('verified can transition to building (re-execution)', () => {
-      expect(VALID_STATUS_TRANSITIONS.verified).toEqual(['building']);
+    test('verified can transition to complete or building (re-execution)', () => {
+      expect(VALID_STATUS_TRANSITIONS.verified).toEqual(['complete', 'building']);
     });
 
-    test('needs_fixes can transition to planned or building', () => {
-      expect(VALID_STATUS_TRANSITIONS.needs_fixes).toEqual(['planned', 'building']);
+    test('needs_fixes can transition to planned, building, or ready_to_plan', () => {
+      expect(VALID_STATUS_TRANSITIONS.needs_fixes).toEqual(['planned', 'building', 'ready_to_plan']);
     });
 
-    test('skipped can transition to pending (unskip)', () => {
-      expect(VALID_STATUS_TRANSITIONS.skipped).toEqual(['pending']);
+    test('skipped can transition to not_started or pending (unskip)', () => {
+      expect(VALID_STATUS_TRANSITIONS.skipped).toEqual(['not_started', 'pending']);
     });
   });
 
@@ -729,7 +729,7 @@ next_top_level: something`;
       expect(result.warning).toContain('Suspicious status transition');
       expect(result.warning).toContain('"pending"');
       expect(result.warning).toContain('"verified"');
-      expect(result.warning).toContain('planned, skipped');
+      expect(result.warning).toContain('planned, discussed, skipped, not_started');
     });
 
     test('pending -> built is invalid', () => {
