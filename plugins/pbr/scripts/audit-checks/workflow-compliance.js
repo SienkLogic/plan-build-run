@@ -3,19 +3,24 @@
 /**
  * Workflow Compliance Check Module
  *
- * Implements WC-02, WC-03, WC-04, WC-08 workflow compliance dimensions
- * for the PBR audit system. Each check returns a structured result:
- * { dimension, status, message, evidence }.
+ * Implements WC-02, WC-03, WC-04, WC-05, WC-06, WC-08, WC-09, WC-12
+ * workflow compliance dimensions for the PBR audit system. Each check
+ * returns a structured result: { dimension, status, message, evidence }.
  *
  * Checks:
  *   WC-02: State file integrity (STATE.md matches disk)
  *   WC-03: STATE.md frontmatter integrity (valid YAML, required fields)
  *   WC-04: ROADMAP sync validation (ROADMAP.md matches phase directories)
+ *   WC-05: Planning artifact completeness (SUMMARY + VERIFICATION)
+ *   WC-06: Artifact format validation (required fields, task blocks)
  *   WC-08: Naming convention compliance (PLAN-{NN}.md format)
+ *   WC-09: Commit pattern validation (heredoc, --no-verify detection)
+ *   WC-12: Test health baseline comparison
  */
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // ---------------------------------------------------------------------------
 // Result helper
@@ -610,6 +615,228 @@ function checkArtifactFormatValidation(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// WC-09: Commit Pattern Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect git commit commands using heredoc, missing -m flag, or --no-verify.
+ * Scans session JSONL logs for the current project. Falls back to git log
+ * format validation if session logs are unavailable.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkCommitPatternValidation(planningDir, _config) {
+  const evidence = [];
+
+  // Try to find session JSONL logs
+  const projectRoot = path.resolve(planningDir, '..');
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  const encodedPath = projectRoot.replace(/[/\\:]/g, '-').replace(/^-+/, '');
+
+  // Try multiple possible encoded path formats
+  const claudeProjectsDir = path.join(homeDir, '.claude', 'projects');
+  let sessionLogs = [];
+
+  try {
+    const projectDirs = fs.readdirSync(claudeProjectsDir);
+    // Find directory matching our project
+    for (const dir of projectDirs) {
+      if (encodedPath.includes(dir) || dir.includes('plan-build-run')) {
+        const fullDir = path.join(claudeProjectsDir, dir);
+        try {
+          const stat = fs.statSync(fullDir);
+          if (!stat.isDirectory()) continue;
+          const files = fs.readdirSync(fullDir);
+          const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
+          // Take the most recent logs (last 5)
+          sessionLogs = jsonlFiles
+            .sort()
+            .slice(-5)
+            .map(f => path.join(fullDir, f));
+        } catch (_e) {
+          // skip
+        }
+      }
+    }
+  } catch (_e) {
+    // No session logs directory
+  }
+
+  if (sessionLogs.length > 0) {
+    for (const logFile of sessionLogs) {
+      try {
+        const content = fs.readFileSync(logFile, 'utf8');
+        const lines = content.split('\n').filter(l => l.trim());
+
+        for (const line of lines) {
+          let entry;
+          try {
+            entry = JSON.parse(line);
+          } catch (_e) {
+            continue;
+          }
+
+          // Look for Bash tool_use with git commit commands
+          if (entry.type !== 'tool_use' && entry.type !== 'assistant') continue;
+
+          const command = entry.command ||
+            (entry.content && typeof entry.content === 'string' ? entry.content : '') ||
+            (entry.input && entry.input.command ? entry.input.command : '');
+
+          if (!command || !command.includes('git commit')) continue;
+
+          // Flag heredoc usage
+          if (command.includes('<<')) {
+            const snippet = command.substring(0, 120);
+            evidence.push(`Heredoc in commit: "${snippet}..."`);
+          }
+
+          // Flag missing -m flag (but not --amend which may not need -m)
+          if (!command.includes('-m') && !command.includes('--amend')) {
+            const snippet = command.substring(0, 120);
+            evidence.push(`Missing -m flag: "${snippet}..."`);
+          }
+
+          // Flag --no-verify
+          if (command.includes('--no-verify')) {
+            const snippet = command.substring(0, 120);
+            evidence.push(`Uses --no-verify: "${snippet}..."`);
+          }
+        }
+      } catch (_e) {
+        // Could not read log file
+      }
+    }
+
+    if (evidence.length === 0) {
+      return result('WC-09', 'pass', 'No commit pattern violations in session logs');
+    }
+
+    return result('WC-09', 'warn',
+      `${evidence.length} commit pattern violation(s) found`,
+      evidence
+    );
+  }
+
+  // Fallback: validate recent git log commit messages match convention
+  const conventionPattern = /^[a-z]+\([^)]+\):\s.+$/;
+  try {
+    const log = execSync('git log --oneline -20', {
+      cwd: projectRoot,
+      timeout: 10000,
+      encoding: 'utf8',
+    });
+
+    const commits = log.trim().split('\n');
+    for (const commit of commits) {
+      // Strip SHA prefix
+      const msg = commit.replace(/^[a-f0-9]+\s+/, '');
+      // Skip merge commits
+      if (msg.startsWith('Merge')) continue;
+      if (!conventionPattern.test(msg)) {
+        evidence.push(`Non-conventional commit: "${msg.substring(0, 120)}"`);
+      }
+    }
+  } catch (_e) {
+    return result('WC-09', 'pass', 'No session logs available for analysis');
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-09', 'pass', 'All recent commits follow convention format');
+  }
+
+  return result('WC-09', 'warn',
+    `${evidence.length} non-conventional commit(s) in recent history`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WC-12: Test Health Baseline
+// ---------------------------------------------------------------------------
+
+/**
+ * Compare current test failures against a known baseline.
+ * Detects new test failures that were not previously known.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkTestHealthBaseline(planningDir, _config) {
+  const projectRoot = path.resolve(planningDir, '..');
+
+  // Run tests and detect pass/fail
+  let testOutput = '';
+  let hasFailures = false;
+
+  try {
+    testOutput = execSync('npm test -- --ci --silent 2>&1', {
+      cwd: projectRoot,
+      timeout: 60000,
+      encoding: 'utf8',
+    });
+    hasFailures = testOutput.includes('FAIL');
+  } catch (_e) {
+    // Non-zero exit = test failures
+    hasFailures = true;
+    if (_e.stdout) testOutput = _e.stdout.toString();
+  }
+
+  const currentStatus = hasFailures ? 'HAS_FAILURES' : 'ALL_PASS';
+
+  // Read baseline file
+  const baselinePath = path.join(planningDir, 'test-baseline.json');
+  let baseline = null;
+
+  try {
+    const raw = fs.readFileSync(baselinePath, 'utf8');
+    baseline = JSON.parse(raw);
+  } catch (_e) {
+    // No baseline file
+  }
+
+  if (!baseline) {
+    return result('WC-12', 'info',
+      'No test baseline established yet',
+      [`Current test status: ${currentStatus}`]
+    );
+  }
+
+  // Compare against baseline
+  const evidence = [];
+  const knownFailures = baseline.known_failures || [];
+
+  if (hasFailures && knownFailures.length === 0) {
+    evidence.push('Tests have failures but baseline shows no known failures — new regressions detected');
+  }
+
+  // Extract failing test names if possible
+  const failLines = testOutput.split('\n').filter(l => /FAIL\s/.test(l));
+  for (const fl of failLines) {
+    const trimmed = fl.trim().substring(0, 120);
+    const isKnown = knownFailures.some(kf => trimmed.includes(kf));
+    if (!isKnown) {
+      evidence.push(`New failure: ${trimmed}`);
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-12', 'pass',
+      `Test health matches baseline (${currentStatus})`,
+      [`Known failures: ${knownFailures.length}`]
+    );
+  }
+
+  return result('WC-12', 'warn',
+    `${evidence.length} new test issue(s) beyond baseline`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -620,4 +847,6 @@ module.exports = {
   checkNamingConventionCompliance,
   checkPlanningArtifactCompleteness,
   checkArtifactFormatValidation,
+  checkCommitPatternValidation,
+  checkTestHealthBaseline,
 };
