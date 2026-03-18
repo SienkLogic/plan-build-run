@@ -384,6 +384,107 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\nNotes: ${noteParts.join(', ')}. \`/pbr:note list\` to review.`);
   }
 
+  // --- Awareness sweep: seeds, deferred, tech debt, research questions, KNOWLEDGE.md ---
+
+  // 1. Seeds awareness
+  try {
+    const seedsDir = path.join(planningDir, 'seeds');
+    if (fs.existsSync(seedsDir)) {
+      const seeds = fs.readdirSync(seedsDir).filter(f => f.endsWith('.md'));
+      if (seeds.length > 0) {
+        parts.push(`\nSeeds: ${seeds.length} dormant. \`/pbr:explore\` to review triggers.`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 2. Deferred items across phase summaries
+  try {
+    let deferredCount = 0;
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const phaseDirs = fs.readdirSync(phasesDir, { withFileTypes: true });
+      for (const dir of phaseDirs) {
+        if (!dir.isDirectory()) continue;
+        try {
+          const phaseFiles = fs.readdirSync(path.join(phasesDir, dir.name));
+          for (const file of phaseFiles) {
+            if (/^SUMMARY.*\.md$/i.test(file)) {
+              const content = fs.readFileSync(path.join(phasesDir, dir.name, file), 'utf8');
+              const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+              if (fmMatch) {
+                const deferredItems = fmMatch[1].match(/^\s+-\s+/gm);
+                const hasDeferred = /^deferred:/m.test(fmMatch[1]);
+                if (hasDeferred && deferredItems) {
+                  // Count list items after deferred: field
+                  const lines = fmMatch[1].split(/\r?\n/);
+                  let inDeferred = false;
+                  for (const line of lines) {
+                    if (/^deferred:/i.test(line)) { inDeferred = true; continue; }
+                    if (inDeferred && /^\s+-\s+/.test(line)) { deferredCount++; }
+                    if (inDeferred && /^\w/.test(line)) { inDeferred = false; }
+                  }
+                }
+              }
+            }
+          }
+        } catch (_e) { /* skip individual phase dirs */ }
+      }
+    }
+    if (deferredCount > 0) {
+      parts.push(`\nDeferred: ${deferredCount} items across phase summaries.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 3. Tech debt from milestone audit
+  try {
+    const auditFiles = fs.readdirSync(planningDir).filter(f => f.endsWith('-MILESTONE-AUDIT.md'));
+    if (auditFiles.length > 0) {
+      // Use most recent audit file (alphabetically last)
+      const latestAudit = auditFiles.sort().pop();
+      const content = fs.readFileSync(path.join(planningDir, latestAudit), 'utf8');
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        let techDebtCount = 0;
+        const lines = fmMatch[1].split(/\r?\n/);
+        let inTechDebt = false;
+        for (const line of lines) {
+          if (/^tech_debt:/i.test(line)) { inTechDebt = true; continue; }
+          if (inTechDebt && /^\s+-\s+/.test(line)) { techDebtCount++; }
+          if (inTechDebt && /^\w/.test(line)) { inTechDebt = false; }
+        }
+        if (techDebtCount > 0) {
+          parts.push(`\nTech debt: ${techDebtCount} items from milestone audit.`);
+        }
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 4. Research questions
+  try {
+    const questionsPath = path.join(planningDir, 'research', 'questions.md');
+    if (fs.existsSync(questionsPath)) {
+      const content = fs.readFileSync(questionsPath, 'utf-8');
+      const openQuestions = (content.match(/- \[ \]/g) || []).length;
+      if (openQuestions > 0) {
+        parts.push(`\nResearch: ${openQuestions} open question(s) in .planning/research/questions.md`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 5. KNOWLEDGE.md stats
+  try {
+    const knowledgePath = path.join(planningDir, 'KNOWLEDGE.md');
+    if (fs.existsSync(knowledgePath)) {
+      const content = fs.readFileSync(knowledgePath, 'utf-8');
+      const rules = (content.match(/^\| K\d+/gm) || []).length;
+      const patterns = (content.match(/^\| P\d+/gm) || []).length;
+      const lessons = (content.match(/^\| L\d+/gm) || []).length;
+      if (rules + patterns + lessons > 0) {
+        parts.push(`\nKnowledge: ${rules} rules, ${patterns} patterns, ${lessons} lessons.`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
   // Check ROADMAP/STATE sync (S>M-2)
   const roadmapFile = path.join(planningDir, 'ROADMAP.md');
   if (fs.existsSync(stateFile) && fs.existsSync(roadmapFile)) {
