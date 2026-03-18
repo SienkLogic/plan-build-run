@@ -19,6 +19,7 @@ Reference: `skills/shared/context-budget.md` for the universal orchestrator rule
 Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when spawning Task() subagents.
 
 Reference: `skills/shared/agent-context-enrichment.md` for enriching executor spawn prompts with project context.
+Reference: `references/deviation-rules.md` for the deviation taxonomy (Rules 1-4) used by executors to classify and handle unexpected issues.
 
 Additionally for this skill:
 - **Minimize** reading executor output — read only SUMMARY.md frontmatter, not full content. Exception: if `context_window_tokens` in `.planning/config.json` is >= 500000, reading full SUMMARY.md bodies is permitted when semantic content is needed for inline decisions.
@@ -681,6 +682,11 @@ Use AskUserQuestion with the three options. Route:
 After all executors in the wave complete, read all SUMMARY frontmatter and:
 - Collect `deferred` items into a running list (append to `.checkpoint-manifest.json` deferred array)
 - Flag any deviation-rule-4 (architectural) stops — these require user attention
+- If SUMMARY frontmatter contains `deviations:` with entries, summarize by rule:
+  - Rule 1 (Bug, auto-fixed): informational only
+  - Rule 2 (Missing dep, auto-installed): informational only
+  - Rule 3 (Blocking, asked user): highlight for review
+  - Rule 4 (Architectural, asked user): highlight for review — these may need re-planning
 - Present a brief wave summary to the user:
   "Wave {W} complete. {N} plans done. {D} deferred ideas logged. {A} architectural issues."
 

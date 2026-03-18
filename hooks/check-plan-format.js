@@ -562,15 +562,7 @@ function validateState(content, _filePath) {
         }
       }
 
-      // Advisory: velocity metrics fields (new feature — warning only)
-      if (!frontmatter.includes('velocity_plans_per_session:') && !frontmatter.includes('velocity:')) {
-        warnings.push('Frontmatter missing velocity metrics (velocity_plans_per_session) — optional for tracking');
-      }
-
-      // Advisory: session continuity fields (new feature — warning only)
-      if (!frontmatter.includes('session_last:') && !frontmatter.includes('session_stopped_at:')) {
-        warnings.push('Frontmatter missing session continuity fields (session_last, session_stopped_at) — optional for resume');
-      }
+      // Velocity and session fields are opt-in — only validate structure when present, don't warn on absence
     }
   }
 
