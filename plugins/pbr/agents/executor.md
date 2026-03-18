@@ -114,10 +114,12 @@ If you hit an auth error (missing API key, expired token): **STOP immediately**.
 
 **Do NOT modify `.planning/STATE.md` directly.** Use CLI commands:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status executing
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"executing","last_activity":"now"}'
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"building","last_activity":"now"}'
 ```
+
+**Status values:** Set `building` at the start of execution. Set `built` upon successful completion of all tasks. These are two of the 13 valid statuses: not_started, discussed, ready_to_plan, planning, planned, ready_to_execute, building, built, partial, verified, needs_fixes, complete, skipped.
 
 Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sole writer of STATE.md via CLI.
 </step>
@@ -246,8 +248,10 @@ Body sections (include only sections with content):
 
 #### Post-Completion State Update
 
-After writing SUMMARY.md (Step 6) and passing self-check (Step 9), run these CLI commands in order:
+After writing SUMMARY.md (Step 6) and passing self-check (Step 9), update status to `built` and run these CLI commands in order:
 
+0. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status built`
+   — Set phase status to `built` indicating all tasks completed successfully.
 1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan`
    — **CRITICAL: Capture and parse the JSON output.** The response contains `current_plan` and `total_plans` fields needed to detect final plan completion.
 2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress`

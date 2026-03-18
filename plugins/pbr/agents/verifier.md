@@ -299,10 +299,15 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 Run the `post_verification_state` CLI sequence:
 
 1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {result}`
-   — where {result} is `verified` if status is `passed`, or `needs_fixes` if status is `gaps_found`.
+   — where {result} is one of the 13 valid statuses:
+   - `verified` if status is `passed`
+   - `needs_fixes` if status is `gaps_found`
+   - `complete` if status is `passed` AND there are no deferred items AND all requirements are satisfied — recommend this status when the phase is fully done with no outstanding work
 2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Phase {phase_num} verified: {status}"`
 3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase_num} {roadmap_status}`
-   — where {roadmap_status} is `verified` if passed, `needs_fixes` if gaps_found.
+   — where {roadmap_status} is `verified` if passed, `needs_fixes` if gaps_found, `complete` if fully done.
+
+**Valid status values:** not_started, discussed, ready_to_plan, planning, planned, ready_to_execute, building, built, partial, verified, needs_fixes, complete, skipped.
 
 **Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
 
