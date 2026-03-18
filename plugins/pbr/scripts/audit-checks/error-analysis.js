@@ -173,9 +173,119 @@ function checkToolFailureRate(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// EF-02: Agent Failure/Timeout Detection
+// ---------------------------------------------------------------------------
+
+/** Known completion markers that agents should output. */
+const COMPLETION_MARKERS = [
+  '## EXECUTION COMPLETE',
+  '## PLANNING COMPLETE',
+  '## VERIFICATION COMPLETE',
+  '## PLAN COMPLETE',
+  '## PLAN FAILED',
+  '## CHECKPOINT:',
+];
+
+/**
+ * Detect agents that failed, timed out, or are missing completion markers.
+ *
+ * Examines event logs for agent spawn/complete lifecycle events, and hook logs
+ * for check-subagent-output warnings about missing artifacts.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} config - Config object (may have audit.thresholds.agent_timeout_ms)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkAgentFailureTimeout(planningDir, config) {
+  const logsDir = getLogsDir(planningDir);
+  const timeoutMs = config?.audit?.thresholds?.agent_timeout_ms ?? 600000;
+
+  const eventEntries = readJsonlFiles(logsDir, 'events');
+  const hookEntries = readJsonlFiles(logsDir, 'hooks');
+
+  // Collect agent spawn and complete events from event logs
+  const spawns = eventEntries.filter(e => e.cat === 'agent' && e.event === 'spawn');
+  const completions = eventEntries.filter(e => e.cat === 'agent' && e.event === 'complete');
+
+  // Also collect from hook logs (log-subagent entries)
+  const hookSpawns = hookEntries.filter(e => e.hook === 'log-subagent' && e.action === 'spawned');
+  const hookCompletions = hookEntries.filter(e => e.hook === 'log-subagent' && e.action === 'completed');
+
+  // Build a map of agent_id -> spawn info
+  const agentMap = new Map();
+  for (const s of [...spawns, ...hookSpawns]) {
+    const id = s.agent_id || s.details?.agent_id || null;
+    if (!id) continue;
+    if (agentMap.has(id)) continue; // first seen wins
+    agentMap.set(id, {
+      type: s.agent_type || s.details?.agent_type || 'unknown',
+      ts: s.ts || null,
+      completed: false,
+      duration_ms: null,
+    });
+  }
+
+  // Mark completions
+  for (const c of [...completions, ...hookCompletions]) {
+    const id = c.agent_id || c.details?.agent_id || null;
+    if (!id || !agentMap.has(id)) continue;
+    const agent = agentMap.get(id);
+    agent.completed = true;
+    agent.duration_ms = c.duration_ms || c.details?.duration_ms || null;
+  }
+
+  // Check for check-subagent-output warnings (agents that completed without expected artifacts)
+  const subagentWarnings = hookEntries.filter(
+    e => e.hook === 'check-subagent-output' && e.action === 'warned'
+  );
+
+  const evidence = [];
+  let failCount = 0;
+  let warnCount = 0;
+
+  // Check each agent for failure conditions
+  for (const [id, agent] of agentMap) {
+    const label = `${agent.type} agent (${id})`;
+    const timeStr = agent.ts ? ` (started ${agent.ts.substring(11, 16)})` : '';
+
+    if (!agent.completed) {
+      evidence.push(`${label}: no completion event found${timeStr}`);
+      failCount++;
+    } else if (agent.duration_ms === null || agent.duration_ms === undefined) {
+      evidence.push(`${label}: completed with null duration${timeStr}`);
+      warnCount++;
+    } else if (agent.duration_ms > timeoutMs) {
+      const mins = (agent.duration_ms / 60000).toFixed(1);
+      evidence.push(`${label}: duration ${mins}min exceeds ${(timeoutMs / 60000).toFixed(0)}min timeout${timeStr}`);
+      failCount++;
+    }
+  }
+
+  // Add warnings from check-subagent-output
+  for (const w of subagentWarnings) {
+    const desc = w.details?.description || w.details?.message || 'missing expected artifact';
+    const agentType = w.details?.agent_type || 'unknown';
+    evidence.push(`${agentType} agent: ${desc}`);
+    warnCount++;
+  }
+
+  if (failCount === 0 && warnCount === 0) {
+    return result('EF-02', 'pass', 'All agents completed successfully', []);
+  }
+
+  const status = failCount > 0 ? 'fail' : 'warn';
+  const message = failCount > 0
+    ? `${failCount} agent(s) failed or timed out`
+    : `${warnCount} agent warning(s) detected but all completed`;
+
+  return result('EF-02', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkToolFailureRate,
+  checkAgentFailureTimeout,
 };
