@@ -956,6 +956,232 @@ function checkArtifactCreationOrder(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-07: CRITICAL Marker Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * Known CRITICAL steps keyed by skill name.
+ * Each entry maps a skill to the file patterns that MUST be written after invocation.
+ */
+const CRITICAL_STEPS = {
+  build: [
+    { description: 'SUMMARY.md written after build', pattern: /SUMMARY.*\.md/i },
+  ],
+  quick: [
+    { description: 'quick task directory created', pattern: /\.planning\/quick\/\d{3}-[^/]+\//i },
+  ],
+  begin: [
+    { description: '.planning/ directory and STATE.md created', pattern: /STATE\.md/i },
+  ],
+};
+
+/**
+ * Check if an entry represents a skill invocation.
+ * @param {Object} entry - JSONL entry
+ * @returns {string|null} skill name or null
+ */
+function extractSkillInvocation(entry) {
+  // Direct skill event
+  if (entry.cat === 'skill' && entry.event) return entry.event;
+
+  // pbr: prefix events
+  if (entry.event && entry.event.startsWith('pbr:')) {
+    return entry.event.replace('pbr:', '').split('-')[0];
+  }
+
+  // Skill field in details
+  if (entry.details && entry.details.skill) return entry.details.skill;
+
+  return null;
+}
+
+/**
+ * BC-07: Check that CRITICAL/STOP markers in skills were followed by the LLM.
+ * Detects when expected artifact writes are missing after skill invocations.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkCriticalMarkerCompliance(planningDir, _config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-07: No session data available — cannot assess CRITICAL marker compliance'
+    };
+  }
+
+  const evidence = [];
+
+  // Collect skill invocations and all write targets
+  const skillInvocations = []; // { skill, ts, index }
+  const writeTargets = [];     // { target: string, index }
+
+  let idx = 0;
+  for (const entry of allEntries) {
+    idx++;
+    const skill = extractSkillInvocation(entry);
+    if (skill && CRITICAL_STEPS[skill]) {
+      skillInvocations.push({ skill, ts: entry.ts || entry.timestamp || '', index: idx });
+    }
+
+    // Collect all write events
+    const isWrite = entry.tool === 'Write' || entry.tool === 'Edit' ||
+      (entry.details && (entry.details.tool === 'Write' || entry.details.tool === 'Edit'));
+
+    if (isWrite) {
+      const filePath = (entry.tool_input && (entry.tool_input.file_path || entry.tool_input.filePath)) ||
+        (entry.details && (entry.details.file_path || entry.details.file)) ||
+        entry.file || entry.path || '';
+      if (filePath) writeTargets.push({ target: filePath, index: idx });
+    }
+
+    // Also check entry details for file references
+    if (entryTargetsFile(entry, /\.(md|json)$/i)) {
+      const filePath = (entry.tool_input && (entry.tool_input.file_path || entry.tool_input.filePath)) ||
+        (entry.details && (entry.details.file_path || entry.details.file)) ||
+        entry.file || entry.path || '';
+      if (filePath) writeTargets.push({ target: filePath, index: idx });
+    }
+  }
+
+  // For each skill invocation, check if CRITICAL writes occurred afterward
+  for (const invocation of skillInvocations) {
+    const steps = CRITICAL_STEPS[invocation.skill];
+    for (const step of steps) {
+      const hasWrite = writeTargets.some(
+        w => w.index > invocation.index && step.pattern.test(w.target)
+      );
+      if (!hasWrite) {
+        const time = invocation.ts ? ` at ${invocation.ts}` : '';
+        evidence.push(
+          `${invocation.skill} skill invoked${time} but ${step.description} — CRITICAL step may have been skipped`
+        );
+      }
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-07: Found ${evidence.length} potentially skipped CRITICAL step(s)`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: 'BC-07: All CRITICAL marker steps appear to have been followed'
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BC-08: Gate Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-08: Check that gate behavior matches config settings.
+ * In autonomous mode with gates disabled, AskUserQuestion should not be used for gate prompts.
+ * In interactive mode with gates enabled, AskUserQuestion should be present.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Config object with mode and gates settings
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkGateCompliance(planningDir, config) {
+  const events = readSessionEvents(planningDir);
+  const hookLogs = readHookLogs(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-08: No session data available — cannot assess gate compliance'
+    };
+  }
+
+  // Determine mode and gate settings
+  const mode = (config && config.mode) || 'interactive';
+  const gates = (config && config.gates) || {};
+  const isAutonomous = mode === 'autonomous';
+  const allGatesFalse = Object.keys(gates).length > 0 &&
+    Object.keys(gates).filter(k => k.startsWith('confirm_')).every(k => !gates[k]);
+
+  const evidence = [];
+
+  // Find AskUserQuestion events that look gate-like
+  const gatePatterns = /\b(confirm|proceed|approve|accept|continue\s+with|go\s+ahead)\b/i;
+  const gateAskEvents = [];
+
+  for (const entry of allEntries) {
+    const isAsk = entry.tool === 'AskUserQuestion' ||
+      (entry.details && entry.details.tool === 'AskUserQuestion');
+    if (!isAsk) continue;
+
+    // Extract the question content
+    const question = (entry.tool_input && (entry.tool_input.question || entry.tool_input.message)) ||
+      (entry.details && (entry.details.question || entry.details.message)) || '';
+    const questionStr = typeof question === 'string' ? question : JSON.stringify(question);
+
+    if (gatePatterns.test(questionStr)) {
+      gateAskEvents.push({
+        question: questionStr.substring(0, 100),
+        ts: entry.ts || entry.timestamp || ''
+      });
+    }
+  }
+
+  if (isAutonomous && allGatesFalse && gateAskEvents.length > 0) {
+    for (const ask of gateAskEvents) {
+      const time = ask.ts ? ` at ${ask.ts}` : '';
+      evidence.push(
+        `Autonomous mode with gates disabled but AskUserQuestion asked "${ask.question}"${time}`
+      );
+    }
+  }
+
+  if (!isAutonomous && Object.keys(gates).some(k => k.startsWith('confirm_') && gates[k])) {
+    // Interactive mode with some gates enabled — check if gates were actually used
+    const enabledGates = Object.keys(gates).filter(k => k.startsWith('confirm_') && gates[k]);
+    if (gateAskEvents.length === 0 && enabledGates.length > 0) {
+      evidence.push(
+        `Interactive mode with ${enabledGates.length} gate(s) enabled (${enabledGates.join(', ')}) ` +
+        `but no gate-like AskUserQuestion events detected — gates may have been skipped`
+      );
+    }
+  }
+
+  if (evidence.length > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-08: Gate behavior does not match config (${evidence.length} concern(s))`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence: [],
+    message: `BC-08: Gate behavior aligned with config (mode=${mode}, gates=${isAutonomous && allGatesFalse ? 'all disabled' : 'active'})`
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -977,4 +1203,8 @@ module.exports = {
   checkOrchestratorBudgetDiscipline,
   // BC-06
   checkArtifactCreationOrder,
+  // BC-07
+  checkCriticalMarkerCompliance,
+  // BC-08
+  checkGateCompliance,
 };
