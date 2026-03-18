@@ -31,7 +31,13 @@ const { logEvent } = require('./event-logger');
  * Path to PBR lib modules for lazy-requiring state/core functions.
  * Lazy-loaded to avoid circular dependency issues at module load time.
  */
-const pbrToolsPath = path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib');
+const pbrToolsPath = (() => {
+  // Works from both hooks/ (root) and plugins/pbr/scripts/ locations
+  const fromRoot = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib');
+  const fromPlugin = path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib');
+  try { if (fs.existsSync(path.join(fromRoot, 'state.cjs'))) return fromRoot; } catch (_e) { /* fallthrough */ }
+  return fromPlugin;
+})();
 
 /** @returns {typeof import('../../../plan-build-run/bin/lib/state.cjs')} */
 function getStateLib() {
