@@ -224,6 +224,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/phases/{NN}-{slug}/PLAN-*.md — must-haves to verify against
 2. .planning/phases/{NN}-{slug}/SUMMARY-*.md — executor build summaries
 3. .planning/phases/{NN}-{slug}/VERIFICATION.md — prior verification results (if exists)
+4. .planning/phases/{NN}-{slug}/CONTEXT.md — locked decisions and phase constraints (if exists)
 </files_to_read>
 ```
 
