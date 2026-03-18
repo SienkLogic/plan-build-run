@@ -14,7 +14,7 @@ const os = require('os');
 const {
   loadConfig,
   resolveModelInternal,
-  MODEL_PROFILES,
+  MODEL_PROFILES: _MODEL_PROFILES,
   escapeRegex,
   generateSlugInternal,
   normalizePhaseName,

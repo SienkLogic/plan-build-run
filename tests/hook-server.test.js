@@ -523,9 +523,9 @@ describe('hook-server.js exports', () => {
         hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
       }, res => {
-        let data = '';
+        let _data = '';
         res.setEncoding('utf8');
-        res.on('data', c => { data += c; });
+        res.on('data', c => { _data += c; });
         res.on('end', () => {
           expect(res.statusCode).toBe(200);
           // Verify the log file was written with the file entry
@@ -560,9 +560,9 @@ describe('hook-server.js exports', () => {
         hostname: '127.0.0.1', port, path: '/hook', method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
       }, res => {
-        let data = '';
+        let _data = '';
         res.setEncoding('utf8');
-        res.on('data', c => { data += c; });
+        res.on('data', c => { _data += c; });
         res.on('end', () => {
           expect(res.statusCode).toBe(200);
           server.close(() => {

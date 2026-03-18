@@ -407,7 +407,7 @@ describe('ensureIntelDir', () => {
   });
 
   test('no error when directory already exists', () => {
-    const { planningDir, intelDir, cleanup } = createTempProject();
+    const { planningDir, intelDir: _intelDir, cleanup } = createTempProject();
 
     try {
       // Should not throw

@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 
 const {
-  configLoad,
+  configLoad: _configLoad,
   configClearCache,
   configValidate,
   DEPTH_PROFILE_DEFAULTS,

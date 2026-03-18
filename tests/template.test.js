@@ -117,7 +117,7 @@ describe('cmdTemplateFill', () => {
   });
 
   test('does not overwrite existing file', () => {
-    const phasesDir = setupPhase();
+    const _phasesDir = setupPhase();
     // Create file first
     try { cmdTemplateFill(tmpDir, 'summary', { phase: '1', plan: '01' }, true); } catch (_e) { /* exit mock */ }
     mockStdout.mockClear();

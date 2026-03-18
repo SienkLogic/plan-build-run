@@ -4,7 +4,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag, SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
+const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag: _loadFeatureFlag, SKILL_CHECKS: _SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
 
 let tmpDir;
 let originalCwd;

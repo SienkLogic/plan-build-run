@@ -152,7 +152,7 @@ describe('event-handler.js', () => {
 
   describe('verifier trust tracking', () => {
     test('when pbr:verifier completes and trust_tracking enabled, logs trust-update event', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir: _tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ depth: 'standard', features: { trust_tracking: true, goal_verification: true } }));
       fs.writeFileSync(path.join(planningDir, 'STATE.md'),
@@ -167,7 +167,7 @@ describe('event-handler.js', () => {
     });
 
     test('when pbr:verifier completes and trust_tracking disabled, no trust-update event', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir: _tmpDir, planningDir } = makeTmpDir();
       fs.writeFileSync(path.join(planningDir, 'config.json'),
         JSON.stringify({ depth: 'standard', features: { trust_tracking: false, goal_verification: true } }));
 

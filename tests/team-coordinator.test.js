@@ -2,9 +2,9 @@
  * tests/team-coordinator.test.js — Tests for multi-agent config toggles and TeamCoordinator.
  */
 
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const _path = require('path');
+const _fs = require('fs');
+const _os = require('os');
 
 describe('Multi-agent config toggles', () => {
   test('config defaults all 3 multi-agent toggles to false', () => {
@@ -12,7 +12,7 @@ describe('Multi-agent config toggles', () => {
     const { DEPTH_PROFILE_DEFAULTS } = require('../plan-build-run/bin/lib/config.cjs');
 
     // All profiles should have the 3 toggles set to false
-    for (const [profileName, profile] of Object.entries(DEPTH_PROFILE_DEFAULTS)) {
+    for (const [_profileName, profile] of Object.entries(DEPTH_PROFILE_DEFAULTS)) {
       expect(profile['features.agent_teams']).toBe(false);
       expect(profile['features.competing_hypotheses']).toBe(false);
       expect(profile['features.dynamic_teams']).toBe(false);

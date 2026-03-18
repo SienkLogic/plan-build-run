@@ -7,7 +7,7 @@ const { execSync } = require('child_process');
 // Windows CI runners are especially slow (cold Node.js startup, antivirus).
 // Tests use a generous threshold to avoid flaky CI failures.
 const PERFORMANCE_BUDGET_MS = process.platform === 'win32' ? 1500 : 800;
-const PRODUCTION_TARGET_MS = 500;
+const _PRODUCTION_TARGET_MS = 500;
 
 const HOOKS_DIR = path.join(__dirname, '..', 'hooks');
 

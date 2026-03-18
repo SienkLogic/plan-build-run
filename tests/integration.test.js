@@ -18,7 +18,7 @@ const { execSync } = require('child_process');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'fake-project');
 const FIXTURE_PLANNING = path.join(FIXTURE_DIR, '.planning');
 const PBR_TOOLS = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
-const HOOKS_DIR = path.join(__dirname, '..', 'hooks');
+const _HOOKS_DIR = path.join(__dirname, '..', 'hooks');
 
 let originalCwd;
 

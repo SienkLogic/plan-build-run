@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { detectConventions, writeConventions, loadConventions } = require('../plugins/pbr/scripts/lib/convention-detector');
+const { detectConventions, writeConventions, loadConventions: _loadConventions } = require('../plugins/pbr/scripts/lib/convention-detector');
 
 describe('convention extraction hook integration', () => {
   let tmpDir;

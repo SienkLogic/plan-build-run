@@ -341,7 +341,7 @@ Old continuity data here
     });
 
     test('exits 0 with no output when STATE.md missing', () => {
-      const { tmpDir, planningDir } = makeTmpDir();
+      const { tmpDir, planningDir: _planningDir } = makeTmpDir();
       // planningDir exists but no STATE.md
 
       const result = execSync(`node "${SCRIPT_PATH}"`, { cwd: tmpDir, stdio: 'pipe' });

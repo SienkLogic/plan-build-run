@@ -97,7 +97,7 @@ describe('Multi-agent health check', () => {
 
   test('health check reports degraded when toggle is true but module fails to load', () => {
     // Use a patched version that can't load the module
-    const healthModule = require('../plan-build-run/bin/lib/health.cjs');
+    const _healthModule = require('../plan-build-run/bin/lib/health.cjs');
 
     // We test via the function's resilience — pass a config that enables a feature
     // but mock the module resolver by testing the function with an unreachable module path

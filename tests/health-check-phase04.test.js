@@ -10,7 +10,7 @@ const os = require('os');
 // Dynamically resolve verify.cjs path
 const verifyPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'verify.cjs');
 
-function makeTmpDir(configOverrides, options = {}) {
+function makeTmpDir(configOverrides, _options = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-hc4-'));
   const planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(planningDir, { recursive: true });

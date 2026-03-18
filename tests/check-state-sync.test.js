@@ -692,7 +692,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
       fs.writeFileSync(roadmapPath, content + '\n<!-- user edit -->');
 
       // Second sync — should detect dirty file and skip
-      const result2 = checkStateSync(data);
+      const _result2 = checkStateSync(data);
 
       // The ROADMAP should still have the user edit intact
       const final = fs.readFileSync(roadmapPath, 'utf8');
