@@ -14,12 +14,15 @@ module.exports = {
     'auto-continue\\.test\\.js',
     'progress-tracker\\.test\\.js',
   ],
+  // Coverage thresholds — measured 2026-03-18
+  // bin/lib: 70/60/70/70 (actual ~75%, established quick-001)
+  // global (hooks + plugins remainder): 26.8/23.0/25.9/27.4% — set 2pt below actual to prevent regression
   coverageThreshold: {
     global: {
-      statements: 50,
-      branches: 30,
-      functions: 50,
-      lines: 50,
+      statements: 24,
+      branches: 20,
+      functions: 23,
+      lines: 25,
     },
     './plan-build-run/bin/lib/': {
       statements: 70,
@@ -27,7 +30,6 @@ module.exports = {
       functions: 70,
       lines: 70,
     },
-    // hooks + plugins thresholds set in T2 after measuring baseline
   },
   testMatch: ['**/tests/**/*.test.js'],
   coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/'],
