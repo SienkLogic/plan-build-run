@@ -7,6 +7,8 @@ const http = require('http');
 const { spawn } = require('child_process');
 
 const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
+const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -16,10 +18,11 @@ const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
  * Spawn the hook-server process and wait for the ready signal on stdout.
  * Returns { proc, port, planningDir }.
  */
-function startServer(planningDir, port) {
+function startServer(planningDir) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(process.execPath, [HOOK_SERVER, '--port', String(port), '--dir', planningDir], {
-      stdio: ['ignore', 'pipe', 'pipe']
+    const proc = spawn(process.execPath, [HOOK_SERVER, '--port', '0', '--dir', planningDir], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: path.dirname(planningDir)
     });
 
     let stdout = '';
@@ -34,7 +37,8 @@ function startServer(planningDir, port) {
       // The server writes {"status":"ready",...} on startup
       if (stdout.includes('"ready"')) {
         clearTimeout(timer);
-        resolve({ proc, port, planningDir });
+        const info = JSON.parse(stdout.match(/\{.*"ready".*\}/)[0]);
+        resolve({ proc, port: info.port, planningDir });
       }
     });
 
@@ -100,9 +104,6 @@ describe('hook-server.js integration', () => {
   let tmpDir;
   let planningDir;
 
-  // Use a port in the 19850-19899 range
-  const TEST_PORT = 19871;
-
   beforeAll(async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-hook-server-test-'));
     planningDir = path.join(tmpDir, '.planning');
@@ -114,7 +115,7 @@ describe('hook-server.js integration', () => {
       JSON.stringify({ depth: 'standard', mode: 'autonomous' })
     );
 
-    server = await startServer(planningDir, TEST_PORT);
+    server = await startServer(planningDir);
   }, 10000);
 
   afterAll(done => {
@@ -133,7 +134,7 @@ describe('hook-server.js integration', () => {
   });
 
   test('GET /health returns 200 with status ok and pid', async () => {
-    const { status, body } = await get(TEST_PORT, '/health');
+    const { status, body } = await get(server.port, '/health');
     expect(status).toBe(200);
     const parsed = JSON.parse(body);
     expect(parsed.status).toBe('ok');
@@ -142,7 +143,7 @@ describe('hook-server.js integration', () => {
   });
 
   test('POST /hook with unknown event returns 200 and empty object', async () => {
-    const { status, body } = await post(TEST_PORT, '/hook', {
+    const { status, body } = await post(server.port, '/hook', {
       event: 'UnknownEvent',
       tool: 'UnknownTool',
       data: {}
@@ -153,19 +154,19 @@ describe('hook-server.js integration', () => {
   });
 
   test('POST /hook with malformed JSON body returns 400', async () => {
-    const { status, body } = await post(TEST_PORT, '/hook', 'this is not json');
+    const { status, body } = await post(server.port, '/hook', 'this is not json');
     expect(status).toBe(400);
     const parsed = JSON.parse(body);
     expect(parsed.error).toBeDefined();
   });
 
-  test('POST /hook appends event to logs/hooks.jsonl', async () => {
-    const logPath = path.join(planningDir, 'logs/hooks.jsonl');
+  test('POST /hook appends event to daily hooks log', async () => {
+    const logPath = path.join(planningDir, 'logs', getHooksFilename());
 
     // Remove the log if it exists so we have a clean baseline
     try { fs.unlinkSync(logPath); } catch (_e) { /* ok */ }
 
-    await post(TEST_PORT, '/hook', {
+    await post(server.port, '/hook', {
       event: 'PostToolUse',
       tool: 'Read',
       data: { tool_input: { file_path: '/some/file.md' } }
@@ -180,7 +181,7 @@ describe('hook-server.js integration', () => {
 
     // Send a second event and verify the file grew
     const sizeBefore = content.length;
-    await post(TEST_PORT, '/hook', {
+    await post(server.port, '/hook', {
       event: 'PostToolUse',
       tool: 'Write',
       data: {}
@@ -193,7 +194,7 @@ describe('hook-server.js integration', () => {
   });
 
   test('GET /unknown returns 404', async () => {
-    const { status } = await get(TEST_PORT, '/unknown');
+    const { status } = await get(server.port, '/unknown');
     expect(status).toBe(404);
   });
 });
@@ -209,19 +210,24 @@ describe('hook-server.js exports', () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('appendEvent writes JSONL line to logs/hooks.jsonl', () => {
+  test('appendEvent writes JSONL line to daily hooks log', () => {
+    const savedCwd = process.cwd();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-append-test-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
+    clearRootCache();
+    process.chdir(tmpDir);
 
     appendEvent(planningDir, { ts: '2026-01-01T00:00:00Z', event: 'test' });
 
-    const logPath = path.join(planningDir, 'logs/hooks.jsonl');
+    const logPath = path.join(planningDir, 'logs', getHooksFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const line = fs.readFileSync(logPath, 'utf8').trim();
     const parsed = JSON.parse(line);
     expect(parsed.event).toBe('test');
 
+    process.chdir(savedCwd);
+    clearRootCache();
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
@@ -409,13 +415,16 @@ describe('hook-server.js exports', () => {
   });
 
   test('createServer /context endpoint returns structured response', (done) => {
+    const savedCwd = process.cwd();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
+    clearRootCache();
+    process.chdir(tmpDir);
     // Write a log file with a few events
     const logsDir = path.join(planningDir, 'logs');
     fs.mkdirSync(logsDir);
-    const logPath = path.join(logsDir, 'hooks.jsonl');
+    const logPath = path.join(logsDir, getHooksFilename());
     fs.writeFileSync(logPath, '{"event":"test","activeSkill":"plan"}\n{"event":"server_start"}\n', 'utf8');
     const server = createServer(planningDir);
     server.listen(0, '127.0.0.1', () => {
@@ -429,6 +438,8 @@ describe('hook-server.js exports', () => {
           expect(Array.isArray(parsed.recentEvents)).toBe(true);
           expect(typeof parsed.generatedAt).toBe('number');
           server.close(() => {
+            process.chdir(savedCwd);
+            clearRootCache();
             fs.rmSync(tmpDir, { recursive: true, force: true });
             done();
           });
@@ -509,9 +520,12 @@ describe('hook-server.js exports', () => {
   });
 
   test('createServer POST /hook logs event with file_path when data.tool_input is present', (done) => {
+    const savedCwd = process.cwd();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
+    clearRootCache();
+    process.chdir(tmpDir);
     const server = createServer(planningDir);
     server.listen(0, '127.0.0.1', () => {
       const { port } = server.address();
@@ -530,12 +544,14 @@ describe('hook-server.js exports', () => {
           expect(res.statusCode).toBe(200);
           // Verify the log file was written with the file entry
           setTimeout(() => {
-            const logPath = path.join(planningDir, 'logs/hooks.jsonl');
+            const logPath = path.join(planningDir, 'logs', getHooksFilename());
             if (fs.existsSync(logPath)) {
               const logContent = fs.readFileSync(logPath, 'utf8');
               expect(logContent).toContain('important.md');
             }
             server.close(() => {
+              process.chdir(savedCwd);
+              clearRootCache();
               fs.rmSync(tmpDir, { recursive: true, force: true });
               done();
             });
