@@ -111,6 +111,34 @@ This gives the user instant context before the full resume analysis runs.
 **If STATE.md doesn't exist:**
 - Go to **Recovery Flow** (Step 4)
 
+### Step 1b: Check for HANDOFF.json and WAITING.json
+
+**Before searching for .continue-here.md**, check for structured state files:
+
+#### HANDOFF.json (Machine-Readable Pause State)
+
+Check if `.planning/HANDOFF.json` exists:
+- If found, parse it and extract structured resume context:
+  - Display: phase, plan, current task, next action, blockers, human actions pending
+  - Use this data to populate the resume display (it's more reliable than .continue-here.md)
+  - After successful resume, **delete HANDOFF.json** (one-shot consumption)
+  - Continue to Step 3a (Normal Resume) using the HANDOFF.json data alongside .continue-here.md
+- If not found, proceed normally to Step 2
+
+#### WAITING.json (External Wait State)
+
+Check if `.planning/WAITING.json` exists:
+- If found, parse it and display the waiting state:
+  ```
+  Project is in WAITING state
+  Reason: {reason}
+  Waiting since: {created_at}
+  Expected duration: {expected_duration}
+  ```
+- Offer to resume: "The project was waiting on an external action. If the action is complete, run `/pbr:resume-work` to clear the waiting state and continue."
+- If the user confirms the wait is resolved, delete WAITING.json and proceed with normal resume
+- If not found, proceed normally to Step 2
+
 ### Step 2: Search for .continue-here.md Files
 
 Search for `.continue-here.md` files across all phase directories:
