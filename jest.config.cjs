@@ -1,4 +1,4 @@
-module.exports = {
+const sharedConfig = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/dashboard/',
@@ -14,6 +14,10 @@ module.exports = {
     'auto-continue\\.test\\.js',
     'progress-tracker\\.test\\.js',
   ],
+};
+
+module.exports = {
+  maxWorkers: '50%',
   // Coverage thresholds — measured 2026-03-18
   // bin/lib: 70/60/70/70 (actual ~75%, established quick-001)
   // global (hooks + plugins remainder): 26.8/23.0/25.9/27.4% — set 2pt below actual to prevent regression
@@ -31,11 +35,26 @@ module.exports = {
       lines: 70,
     },
   },
-  testMatch: ['**/tests/**/*.test.js'],
   coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/'],
   collectCoverageFrom: [
     'plan-build-run/bin/lib/**/*.cjs',
     'hooks/**/*.js',
     'plugins/pbr/scripts/**/*.js',
+  ],
+  projects: [
+    {
+      displayName: 'unit',
+      ...sharedConfig,
+      testMatch: ['**/tests/**/*-unit.test.js'],
+    },
+    {
+      displayName: 'integration',
+      ...sharedConfig,
+      testPathIgnorePatterns: [
+        ...sharedConfig.testPathIgnorePatterns,
+        '-unit\\.test\\.js$',
+      ],
+      testMatch: ['**/tests/**/*.test.js'],
+    },
   ],
 };
