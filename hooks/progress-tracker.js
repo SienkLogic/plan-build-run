@@ -13,12 +13,12 @@ const http = require('http');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { logHook, getLogPath: getHooksLogPath } = require('./hook-logger');
+const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
 const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
-const { intelStatus } = require('../plan-build-run/bin/lib/intel.cjs');
+const { intelStatus } = require('../../../plan-build-run/bin/lib/intel.cjs');
 const { loadLatestSnapshot, formatSnapshotBriefing } = require('./lib/snapshot-manager');
 const { loadConventions, formatConventionBriefing } = require('./lib/convention-detector');
 
@@ -269,31 +269,78 @@ function buildContext(planningDir, stateFile) {
       if (continuity) {
         parts.push(`\nLast Session:\n${continuity}`);
       }
+
+      // Read session continuity fields from frontmatter (new 13-state lifecycle format)
+      const fmMatch = state.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const fm = fmMatch[1];
+        const sessionLast = fm.match(/^session_last:\s*["']?([^"'\r\n]+)["']?/m);
+        const sessionStoppedAt = fm.match(/^session_stopped_at:\s*["']?([^"'\r\n]+)["']?/m);
+        const sessionResume = fm.match(/^session_resume:\s*["']?([^"'\r\n]+)["']?/m);
+
+        if (sessionLast || sessionStoppedAt || sessionResume) {
+          const continuityParts = [];
+          if (sessionLast) continuityParts.push(`Last session: ${sessionLast[1].trim()}`);
+          if (sessionStoppedAt) continuityParts.push(`Stopped at: ${sessionStoppedAt[1].trim()}`);
+          if (sessionResume) continuityParts.push(`Resume: ${sessionResume[1].trim()}`);
+          parts.push(`\nSession continuity:\n${continuityParts.join('\n')}`);
+        }
+      }
     }
 
     // Detect stale "Building" status — likely a crashed executor
-    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
-    if (statusMatch && statusMatch[1].toLowerCase() === 'building') {
+    // Also detect stale "ready_to_execute" which could indicate an interrupted workflow
+    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?([a-z_]+)["']?/i);
+    if (statusMatch && (statusMatch[1].toLowerCase() === 'building' || statusMatch[1].toLowerCase() === 'ready_to_execute')) {
       try {
         const stateStat = fs.statSync(stateFile);
         const ageMs = Date.now() - stateStat.mtimeMs;
         const ageMinutes = Math.round(ageMs / 60000);
         if (ageMinutes > 30) {
-          // Auto-repair: reset stale "Building" status back to "Planned"
+          // Auto-repair: reset stale status back to "planned"
+          const staleStatus = statusMatch[1].toLowerCase();
           try {
             const { stateUpdate } = require('./pbr-tools');
             stateUpdate(planningDir, { status: 'planned' });
-            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
+            parts.push(`\nAuto-repaired: STATE.md was stuck in "${staleStatus}" for ${ageMinutes} minutes (likely crashed executor). Reset to "planned". Run /pbr:build to retry.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-status-repaired', { ageMinutes, staleStatus });
           } catch (_repairErr) {
-            parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+            parts.push(`\nWarning: STATE.md shows status "${staleStatus}" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-status', { ageMinutes, staleStatus });
           }
         }
       } catch (_e) { /* best-effort */ }
     }
   } else {
     parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
+  }
+
+  // Check for WAITING.json (external wait state)
+  const waitingPath = path.join(planningDir, 'WAITING.json');
+  if (fs.existsSync(waitingPath)) {
+    try {
+      const waiting = JSON.parse(fs.readFileSync(waitingPath, 'utf8'));
+      parts.push(`\nProject is in WAITING state: ${waiting.reason || 'unknown reason'}`);
+      if (waiting.created_at) {
+        parts.push(`Waiting since: ${waiting.created_at}`);
+      }
+      parts.push('Run /pbr:resume to clear waiting state and continue.');
+    } catch (_e) {
+      parts.push('\nWAITING.json exists but could not be parsed.');
+    }
+  }
+
+  // Check for HANDOFF.json (machine-readable pause state)
+  const handoffPath = path.join(planningDir, 'HANDOFF.json');
+  if (fs.existsSync(handoffPath)) {
+    try {
+      const handoff = JSON.parse(fs.readFileSync(handoffPath, 'utf8'));
+      const nextAction = handoff.next_action || 'unknown';
+      parts.push(`\nPrevious session left a handoff: ${nextAction}`);
+      parts.push('Run /pbr:resume to restore context.');
+    } catch (_e) {
+      parts.push('\nHANDOFF.json exists but could not be parsed.');
+    }
   }
 
   // Check for .continue-here.md files
@@ -337,6 +384,107 @@ function buildContext(planningDir, stateFile) {
     parts.push(`\nNotes: ${noteParts.join(', ')}. \`/pbr:note list\` to review.`);
   }
 
+  // --- Awareness sweep: seeds, deferred, tech debt, research questions, KNOWLEDGE.md ---
+
+  // 1. Seeds awareness
+  try {
+    const seedsDir = path.join(planningDir, 'seeds');
+    if (fs.existsSync(seedsDir)) {
+      const seeds = fs.readdirSync(seedsDir).filter(f => f.endsWith('.md'));
+      if (seeds.length > 0) {
+        parts.push(`\nSeeds: ${seeds.length} dormant. \`/pbr:explore\` to review triggers.`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 2. Deferred items across phase summaries
+  try {
+    let deferredCount = 0;
+    const phasesDir = path.join(planningDir, 'phases');
+    if (fs.existsSync(phasesDir)) {
+      const phaseDirs = fs.readdirSync(phasesDir, { withFileTypes: true });
+      for (const dir of phaseDirs) {
+        if (!dir.isDirectory()) continue;
+        try {
+          const phaseFiles = fs.readdirSync(path.join(phasesDir, dir.name));
+          for (const file of phaseFiles) {
+            if (/^SUMMARY.*\.md$/i.test(file)) {
+              const content = fs.readFileSync(path.join(phasesDir, dir.name, file), 'utf8');
+              const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+              if (fmMatch) {
+                const deferredItems = fmMatch[1].match(/^\s+-\s+/gm);
+                const hasDeferred = /^deferred:/m.test(fmMatch[1]);
+                if (hasDeferred && deferredItems) {
+                  // Count list items after deferred: field
+                  const lines = fmMatch[1].split(/\r?\n/);
+                  let inDeferred = false;
+                  for (const line of lines) {
+                    if (/^deferred:/i.test(line)) { inDeferred = true; continue; }
+                    if (inDeferred && /^\s+-\s+/.test(line)) { deferredCount++; }
+                    if (inDeferred && /^\w/.test(line)) { inDeferred = false; }
+                  }
+                }
+              }
+            }
+          }
+        } catch (_e) { /* skip individual phase dirs */ }
+      }
+    }
+    if (deferredCount > 0) {
+      parts.push(`\nDeferred: ${deferredCount} items across phase summaries.`);
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 3. Tech debt from milestone audit
+  try {
+    const auditFiles = fs.readdirSync(planningDir).filter(f => f.endsWith('-MILESTONE-AUDIT.md'));
+    if (auditFiles.length > 0) {
+      // Use most recent audit file (alphabetically last)
+      const latestAudit = auditFiles.sort().pop();
+      const content = fs.readFileSync(path.join(planningDir, latestAudit), 'utf8');
+      const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        let techDebtCount = 0;
+        const lines = fmMatch[1].split(/\r?\n/);
+        let inTechDebt = false;
+        for (const line of lines) {
+          if (/^tech_debt:/i.test(line)) { inTechDebt = true; continue; }
+          if (inTechDebt && /^\s+-\s+/.test(line)) { techDebtCount++; }
+          if (inTechDebt && /^\w/.test(line)) { inTechDebt = false; }
+        }
+        if (techDebtCount > 0) {
+          parts.push(`\nTech debt: ${techDebtCount} items from milestone audit.`);
+        }
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 4. Research questions
+  try {
+    const questionsPath = path.join(planningDir, 'research', 'questions.md');
+    if (fs.existsSync(questionsPath)) {
+      const content = fs.readFileSync(questionsPath, 'utf-8');
+      const openQuestions = (content.match(/- \[ \]/g) || []).length;
+      if (openQuestions > 0) {
+        parts.push(`\nResearch: ${openQuestions} open question(s) in .planning/research/questions.md`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
+  // 5. KNOWLEDGE.md stats
+  try {
+    const knowledgePath = path.join(planningDir, 'KNOWLEDGE.md');
+    if (fs.existsSync(knowledgePath)) {
+      const content = fs.readFileSync(knowledgePath, 'utf-8');
+      const rules = (content.match(/^\| K\d+/gm) || []).length;
+      const patterns = (content.match(/^\| P\d+/gm) || []).length;
+      const lessons = (content.match(/^\| L\d+/gm) || []).length;
+      if (rules + patterns + lessons > 0) {
+        parts.push(`\nKnowledge: ${rules} rules, ${patterns} patterns, ${lessons} lessons.`);
+      }
+    }
+  } catch (_e) { /* non-fatal */ }
+
   // Check ROADMAP/STATE sync (S>M-2)
   const roadmapFile = path.join(planningDir, 'ROADMAP.md');
   if (fs.existsSync(stateFile) && fs.existsSync(roadmapFile)) {
@@ -349,14 +497,28 @@ function buildContext(planningDir, stateFile) {
       if (phaseMatch) {
         const currentPhase = parseInt(phaseMatch[1], 10);
         // Check if ROADMAP shows this phase as already verified/complete
-        const progressTable = roadmap.match(/## Progress[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
+        // Strip <details>/<summary> HTML tags so progress table inside collapsed milestones is found
+        const strippedRoadmap = roadmap
+          .replace(/<\/?details>/gi, '')
+          .replace(/<\/?summary>/gi, '');
+        const progressTable = strippedRoadmap.match(/## Progress[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
         if (progressTable) {
           const rows = progressTable[0].split('\n').filter(r => r.includes('|'));
+          // Dynamic column detection from header row
+          let statusColIdx = -1;
+          let phaseColIdx = 0; // default: first column
+          const headerRow = rows.find(r => /Plans?\s*Complete/i.test(r) || /Status/i.test(r));
+          if (headerRow) {
+            const headers = headerRow.split('|').map(h => h.trim().toLowerCase()).filter(Boolean);
+            const pIdx = headers.findIndex(h => /phase/i.test(h));
+            if (pIdx !== -1) phaseColIdx = pIdx;
+            statusColIdx = headers.findIndex(h => /status/i.test(h));
+          }
           for (const row of rows) {
             const cols = row.split('|').map(c => c.trim()).filter(Boolean);
-            if (cols.length >= 4) {
-              const phaseNum = parseInt(cols[0], 10);
-              const status = cols[3] ? cols[3].toLowerCase() : '';
+            if (cols.length >= 2 && statusColIdx !== -1 && statusColIdx < cols.length) {
+              const phaseNum = parseInt(cols[phaseColIdx], 10);
+              const status = cols[statusColIdx] ? cols[statusColIdx].toLowerCase() : '';
               if (phaseNum === currentPhase && (status === 'verified' || status === 'complete')) {
                 parts.push(`\nWarning: STATE.md may be outdated — ROADMAP.md shows phase ${currentPhase} as ${status}.`);
               }
@@ -531,8 +693,8 @@ function countNotes(notesDir) {
 const FAILURE_DECISIONS = /^(block|error|warn|warning|block-coauthor|block-sensitive|unlink-failed)$/;
 const HOOK_HEALTH_MAX_ENTRIES = 50;
 
-function getHookHealthSummary(_planningDir) {
-  const logPath = getHooksLogPath();
+function getHookHealthSummary(planningDir) {
+  const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
   try {
     if (!fs.existsSync(logPath)) return null;
     const content = fs.readFileSync(logPath, 'utf8').trim();

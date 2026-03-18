@@ -545,10 +545,10 @@ Body`;
   });
 });
 
-describe('validateLearnings', () => {
+describe('validateLearnings (deprecated — warnings only)', () => {
   const { validateLearnings } = require('../hooks/check-plan-format');
 
-  test('returns no warnings for valid LEARNINGS.md', () => {
+  test('always returns deprecation warning for any LEARNINGS.md', () => {
     const content = `---
 phase: "cross-phase-knowledge"
 key_insights:
@@ -560,16 +560,33 @@ patterns:
 - Insight 1`;
     const result = validateLearnings(content, 'LEARNINGS.md');
     expect(result.errors).toHaveLength(0);
-    expect(result.warnings).toHaveLength(0);
+    expect(result.warnings.some(w => /deprecated/i.test(w))).toBe(true);
+    expect(result.warnings.some(w => /KNOWLEDGE\.md/i.test(w))).toBe(true);
   });
 
-  test('errors when frontmatter is missing', () => {
+  test('returns warnings (not errors) for valid LEARNINGS.md with all fields', () => {
+    const content = `---
+phase: "cross-phase-knowledge"
+key_insights:
+  - "Insight 1"
+patterns:
+  - "Pattern 1"
+---
+## Key Insights
+- Insight 1`;
+    const result = validateLearnings(content, 'LEARNINGS.md');
+    expect(result.errors).toHaveLength(0);
+    // Only the deprecation warning for a fully valid file
+    expect(result.warnings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  test('warns (not errors) when frontmatter is missing', () => {
     const result = validateLearnings('# No frontmatter', 'LEARNINGS.md');
-    expect(result.errors.length).toBeGreaterThan(0);
-    expect(result.errors.some(e => /frontmatter/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /frontmatter/i.test(w))).toBe(true);
   });
 
-  test('errors when phase field is missing', () => {
+  test('warns when phase field is missing', () => {
     const content = `---
 key_insights:
   - "Insight 1"
@@ -578,10 +595,11 @@ patterns:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors.some(e => /phase/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /phase/i.test(w))).toBe(true);
   });
 
-  test('errors when key_insights field is missing', () => {
+  test('warns when key_insights field is missing', () => {
     const content = `---
 phase: "test"
 patterns:
@@ -589,10 +607,11 @@ patterns:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors.some(e => /key_insights/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /key_insights/i.test(w))).toBe(true);
   });
 
-  test('errors when patterns field is missing', () => {
+  test('warns when patterns field is missing', () => {
     const content = `---
 phase: "test"
 key_insights:
@@ -600,17 +619,20 @@ key_insights:
 ---
 Body`;
     const result = validateLearnings(content, 'LEARNINGS.md');
-    expect(result.errors.some(e => /patterns/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /patterns/i.test(w))).toBe(true);
   });
 
-  test('missing fields are errors not warnings', () => {
+  test('missing fields are warnings not errors (deprecation)', () => {
     const result = validateLearnings('no frontmatter at all', 'LEARNINGS.md');
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.length).toBeGreaterThan(0);
   });
 
-  test('unclosed frontmatter is an error', () => {
+  test('unclosed frontmatter is a warning', () => {
     const result = validateLearnings('---\nphase: 1\nno closing', 'LEARNINGS.md');
-    expect(result.errors.some(e => /unclosed/i.test(e))).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings.some(w => /unclosed/i.test(w))).toBe(true);
   });
 
   test('warns on invalid cross_project value', () => {
