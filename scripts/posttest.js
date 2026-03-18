@@ -1,0 +1,83 @@
+#!/usr/bin/env node
+
+/**
+ * posttest.js — Cache test results for the PBR status line.
+ *
+ * Runs after `npm test`. Re-runs Jest with --json --outputFile to capture
+ * structured results (Jest caches test transforms so re-run is fast).
+ * Writes .planning/.last-test.json with pass/fail counts and coverage.
+ *
+ * Usage: Called automatically via package.json "posttest" script.
+ *        Can also be run manually: node scripts/posttest.js
+ */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const cp = require('child_process');
+
+const planningDir = path.join(process.cwd(), '.planning');
+const jestResultsFile = path.join(planningDir, '.jest-results.json');
+const lastTestFile = path.join(planningDir, '.last-test.json');
+
+function main() {
+  if (!fs.existsSync(planningDir)) {
+    fs.mkdirSync(planningDir, { recursive: true });
+  }
+
+  // Run jest with --json --outputFile to get structured results.
+  // stdio: 'ignore' suppresses all output (hook noise + test output).
+  // Jest exits non-zero on failures but still writes the output file.
+  try {
+    cp.execSync(`npx jest --json --forceExit --outputFile="${jestResultsFile}"`, {
+      timeout: 300000,
+      stdio: 'ignore'
+    });
+  } catch (_e) {
+    // Non-zero exit is expected when tests fail — output file still written
+  }
+
+  // Parse the Jest JSON results
+  let jestResult;
+  try {
+    jestResult = JSON.parse(fs.readFileSync(jestResultsFile, 'utf8'));
+  } catch (_e) {
+    console.error('posttest: could not read jest results');
+    return;
+  } finally {
+    // Clean up the large results file (~1MB)
+    try { fs.unlinkSync(jestResultsFile); } catch (_e) { /* best effort */ }
+  }
+
+  // Read coverage from coverage-summary.json if available
+  let coverage = null;
+  try {
+    const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
+    const covData = JSON.parse(fs.readFileSync(covFile, 'utf8'));
+    if (covData.total && covData.total.lines) {
+      coverage = Math.round(covData.total.lines.pct);
+    }
+  } catch (_e) {
+    // No coverage data — only available after `npm run test:coverage`
+  }
+
+  const result = {
+    passed: jestResult.numPassedTests || 0,
+    failed: jestResult.numFailedTests || 0,
+    total: jestResult.numTotalTests || 0,
+    suites: jestResult.numTotalTestSuites || 0,
+    success: jestResult.success || false,
+    coverage,
+    timestamp: new Date().toISOString()
+  };
+
+  // Write compact summary for the status line
+  fs.writeFileSync(lastTestFile, JSON.stringify(result, null, 2), 'utf8');
+
+  const icon = result.failed > 0 ? '\u2717' : '\u2713';
+  const covStr = coverage != null ? ` | ${coverage}% cov` : '';
+  console.log(`posttest: ${icon} ${result.passed}/${result.total} passed${covStr}`);
+}
+
+main();

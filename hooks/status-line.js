@@ -348,10 +348,21 @@ function countHookEntries() {
 
 /**
  * Read test coverage percentage from coverage/coverage-summary.json.
- * Returns the global lines.pct, or null if no coverage data.
+ * Prefers .last-test.json coverage if available (fresher).
+ * Falls back to coverage-summary.json global lines.pct.
+ * @param {string} [planningDir] - Path to .planning/ for .last-test.json
  * @returns {number|null}
  */
-function getCoverage() {
+function getCoverage(planningDir) {
+  // Prefer .last-test.json — written by posttest hook with fresh data
+  if (planningDir) {
+    try {
+      const testFile = path.join(planningDir, '.last-test.json');
+      const data = JSON.parse(fs.readFileSync(testFile, 'utf8'));
+      if (data.coverage != null) return Math.round(data.coverage);
+    } catch (_e) { /* fall through */ }
+  }
+  // Fallback: coverage-summary.json from last `npm test --coverage`
   try {
     const covFile = path.join(process.cwd(), 'coverage', 'coverage-summary.json');
     const data = JSON.parse(fs.readFileSync(covFile, 'utf8'));
@@ -363,9 +374,10 @@ function getCoverage() {
 
 /**
  * Read last test result from .planning/.last-test.json.
- * Expected format: { passed: number, failed: number, total: number, timestamp: string }
+ * Written by scripts/posttest.js after each npm test run.
+ * Format: { passed, failed, total, coverage, suites, timestamp }
  * @param {string} planningDir
- * @returns {{ passed: number, failed: number, total: number }|null}
+ * @returns {{ passed: number, failed: number, total: number, coverage?: number }|null}
  */
 function getLastTestResult(planningDir) {
   try {
@@ -714,8 +726,8 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
       devParts.push(`${c.dim}${hookCount} hooks${c.reset}`);
     }
 
-    // Test coverage from coverage/coverage-summary.json
-    const cov = getCoverage();
+    // Test coverage — prefers .last-test.json, falls back to coverage-summary.json
+    const cov = getCoverage(planningDir);
     if (cov != null) {
       const covColor = cov >= 70 ? c.green : cov >= 50 ? c.yellow : c.red;
       devParts.push(`${covColor}${cov}% cov${c.reset}`);
