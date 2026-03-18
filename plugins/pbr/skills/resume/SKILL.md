@@ -87,12 +87,26 @@ On every resume, reconcile STATE.md claims against filesystem reality. This catc
 
 Read `.planning/STATE.md` for the last known position.
 
-**Extract:**
+**Extract from frontmatter:**
 - Current phase and plan
+- `session_last` — when the last session ended (ISO timestamp)
+- `session_stopped_at` — brief description of where work stopped
+- `session_resume` — path to .continue-here.md file
+
+**If `session_last` exists in frontmatter**, display it immediately before any other output:
+```
+Last session: {session_last}
+Stopped at: {session_stopped_at}
+```
+This gives the user instant context before the full resume analysis runs.
+
+**Also extract from body:**
 - Session Continuity section (if exists):
   - Last paused date
   - Continue file location
   - Suggested next action
+
+**After successful resume**, clear `session_stopped_at` from STATE.md frontmatter (set to empty string or remove) to indicate the session has been resumed. Keep `session_last` and `session_resume` intact for reference.
 
 **If STATE.md doesn't exist:**
 - Go to **Recovery Flow** (Step 4)

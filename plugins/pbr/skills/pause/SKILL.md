@@ -145,6 +145,9 @@ Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file 
 First, update the STATE.md YAML frontmatter:
 - Set `last_command: "/pbr:pause-work"`
 - Set `last_activity: {ISO datetime}`
+- Set `session_last: {ISO datetime}` — when this session ended
+- Set `session_stopped_at: "{brief description of current work}"` — e.g. "Phase 2, Plan 3 — building executor agent updates"
+- Set `session_resume: ".planning/phases/{NN}-{phase-name}/.continue-here.md"` — pointer to the detailed handoff file
 
 Then update the Session Continuity section of STATE.md:
 
