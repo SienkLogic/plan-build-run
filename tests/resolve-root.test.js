@@ -6,7 +6,8 @@ describe('resolve-root.js', () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-'));
+    // Use realpathSync to resolve symlinks (macOS: /var -> /private/var)
+    tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-test-')));
     jest.resetModules();
   });
 
