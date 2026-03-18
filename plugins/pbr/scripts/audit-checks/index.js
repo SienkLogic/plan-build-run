@@ -3,12 +3,15 @@
 /**
  * Audit checks index module.
  *
- * Aggregates all 15 self-integrity (SI) check functions from the three
- * check modules and exports them as a unified SI_CHECKS map keyed by
- * dimension code (SI-01 through SI-15).
+ * Aggregates all check functions from all category modules and exports them
+ * as unified maps keyed by dimension code:
+ *   - SI_CHECKS (SI-01 through SI-15): Self-integrity checks
+ *   - IH_CHECKS (IH-01 through IH-10): Infrastructure health checks
+ *   - FV_CHECKS (FV-01 through FV-13): Feature verification checks
+ *   - QM_CHECKS (QM-01 through QM-05): Quality metrics checks
  *
- * Also exports runAllSIChecks() for batch execution and all individual
- * check functions for direct access.
+ * Also exports runAllChecks() for unified dispatch across all categories,
+ * plus per-category runners and individual check functions for direct access.
  */
 
 'use strict';
@@ -17,6 +20,8 @@ const skillChecks = require('./si-skill-checks');
 const agentHookConfigChecks = require('./si-agent-hook-config-checks');
 const crossCuttingChecks = require('./si-cross-cutting-checks');
 const fvChecks = require('./feature-verification');
+const infraChecks = require('./infrastructure');
+const qmChecks = require('./quality-metrics');
 
 /**
  * Map of dimension code to check function.
@@ -44,6 +49,69 @@ const SI_CHECKS = {
   'SI-14': crossCuttingChecks.checkCriticalMarkerCoverage,
   'SI-15': crossCuttingChecks.checkCrossPlatformPathSafety,
 };
+
+/**
+ * Map of dimension code to IH check function.
+ * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
+ */
+const IH_CHECKS = {
+  'IH-01': infraChecks.checkHookServerHealth,
+  'IH-02': infraChecks.checkDashboardHealth,
+  'IH-04': infraChecks.checkStaleFileDetection,
+  'IH-05': infraChecks.checkPluginCacheFreshness,
+  'IH-06': infraChecks.checkConfigSchemaValidation,
+};
+
+// Add optional IH checks (IH-03, IH-07 through IH-10) if they exist on the module
+const optionalIH = {
+  'IH-03': infraChecks.checkHookExecPerformance,
+  'IH-07': infraChecks.checkLogRotationHealth,
+  'IH-08': infraChecks.checkDiskUsageTracking,
+  'IH-09': infraChecks.checkDispatchChainCoverage,
+  'IH-10': infraChecks.checkLogSourceSeparation,
+};
+for (const [code, fn] of Object.entries(optionalIH)) {
+  if (typeof fn === 'function') {
+    IH_CHECKS[code] = fn;
+  }
+}
+
+/**
+ * Map of dimension code to FV check function.
+ * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
+ */
+const FV_CHECKS = {
+  'FV-01': fvChecks.checkArchitectureGuardActivity,
+  'FV-02': fvChecks.checkDependencyBreakDetection,
+  'FV-03': fvChecks.checkSecurityScanningActivity,
+  'FV-04': fvChecks.checkTrustTrackingActivity,
+  'FV-05': fvChecks.checkLearningsSystemActivity,
+  'FV-06': fvChecks.checkIntelSystemActivity,
+  'FV-07': fvChecks.checkAutoContinueChain,
+  'FV-08': fvChecks.checkNegativeKnowledgeTracking,
+  'FV-09': fvChecks.checkDecisionJournalTracking,
+  'FV-10': fvChecks.checkPhaseBoundaryEnforcement,
+  'FV-11': fvChecks.checkDestructiveOpConfirmation,
+  'FV-12': fvChecks.checkContextBudgetAccuracy,
+  'FV-13': fvChecks.checkConfigFeatureCoverage,
+};
+
+/**
+ * Map of dimension code to QM check function.
+ * Each function takes varying args depending on the check.
+ */
+const QM_CHECKS = {
+  'QM-01': qmChecks.checkSessionDegradation,
+  'QM-02': qmChecks.checkThroughputMetrics,
+  'QM-03': qmChecks.checkBaselineComparison,
+  'QM-04': qmChecks.checkErrorCorrelation,
+  'QM-05': qmChecks.checkAuditSelfValidation,
+};
+
+/**
+ * Merged map of ALL check functions across all categories.
+ */
+const ALL_CHECKS = Object.assign({}, SI_CHECKS, IH_CHECKS, FV_CHECKS, QM_CHECKS);
 
 /**
  * Run all SI checks and return aggregated results.
@@ -80,26 +148,6 @@ function runAllSIChecks(pluginRoot) {
 
   return results;
 }
-
-/**
- * Map of dimension code to FV check function.
- * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
- */
-const FV_CHECKS = {
-  'FV-01': fvChecks.checkArchitectureGuardActivity,
-  'FV-02': fvChecks.checkDependencyBreakDetection,
-  'FV-03': fvChecks.checkSecurityScanningActivity,
-  'FV-04': fvChecks.checkTrustTrackingActivity,
-  'FV-05': fvChecks.checkLearningsSystemActivity,
-  'FV-06': fvChecks.checkIntelSystemActivity,
-  'FV-07': fvChecks.checkAutoContinueChain,
-  'FV-08': fvChecks.checkNegativeKnowledgeTracking,
-  'FV-09': fvChecks.checkDecisionJournalTracking,
-  'FV-10': fvChecks.checkPhaseBoundaryEnforcement,
-  'FV-11': fvChecks.checkDestructiveOpConfirmation,
-  'FV-12': fvChecks.checkContextBudgetAccuracy,
-  'FV-13': fvChecks.checkConfigFeatureCoverage,
-};
 
 /**
  * Run all FV checks and return aggregated results.
@@ -166,14 +214,124 @@ function runAllFVChecks(planningDir, config) {
   return results;
 }
 
+/**
+ * Run ALL checks across all categories with a unified interface.
+ *
+ * Dispatches each check with the appropriate arguments based on its category prefix.
+ * Filters to only active dimensions when activeDimensions is provided.
+ *
+ * @param {string} pluginRoot - Path to plugin root (e.g., './plugins/pbr')
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @param {Array<object>} sessionData - Parsed JSONL session entries
+ * @param {Array<object>} auditResults - Prior audit results (for QM-03, QM-04, QM-05)
+ * @param {Array<object>} [activeDimensions] - Active dimensions with .code property; if falsy, run all
+ * @returns {Array<{ code: string, status: string, evidence: string[], message: string }>}
+ */
+function runAllChecks(pluginRoot, planningDir, config, sessionData, auditResults, activeDimensions) {
+  // Build active code set from activeDimensions
+  let activeCodes = null;
+  if (activeDimensions && Array.isArray(activeDimensions)) {
+    activeCodes = new Set(activeDimensions.map(function (d) { return d.code; }));
+  }
+
+  // Filter ALL_CHECKS to only active codes
+  const checksToRun = {};
+  for (const [code, fn] of Object.entries(ALL_CHECKS)) {
+    if (!activeCodes || activeCodes.has(code)) {
+      checksToRun[code] = fn;
+    }
+  }
+
+  const results = [];
+  let passCount = 0;
+  let warnCount = 0;
+  let failCount = 0;
+
+  // Collect FV prior results for FV-13
+  const fvPriorResults = [];
+
+  for (const [code, checkFn] of Object.entries(checksToRun)) {
+    // Skip FV-13 in the main loop -- it needs prior FV results
+    if (code === 'FV-13') continue;
+
+    try {
+      let r;
+      const prefix = code.substring(0, 2);
+
+      if (prefix === 'SI') {
+        r = checkFn(pluginRoot);
+      } else if (prefix === 'IH') {
+        r = checkFn(planningDir, config);
+      } else if (prefix === 'FV') {
+        r = checkFn(planningDir, config);
+        fvPriorResults.push(r);
+      } else if (code === 'QM-01' || code === 'QM-02') {
+        r = checkFn(sessionData);
+      } else if (code === 'QM-03') {
+        r = checkFn(planningDir, auditResults);
+      } else if (code === 'QM-04') {
+        r = checkFn(auditResults);
+      } else if (code === 'QM-05') {
+        r = checkFn(activeDimensions, auditResults);
+      } else {
+        // Unknown prefix -- try with no args
+        r = checkFn();
+      }
+
+      results.push({ code, ...r });
+      if (r.status === 'pass') passCount++;
+      else if (r.status === 'warn') warnCount++;
+      else failCount++;
+    } catch (err) {
+      results.push({
+        code,
+        status: 'fail',
+        evidence: ['Error: ' + err.message],
+        message: 'Check threw: ' + err.message,
+      });
+      failCount++;
+    }
+  }
+
+  // Run FV-13 if active, with collected prior results
+  if (checksToRun['FV-13']) {
+    try {
+      const fv13 = checksToRun['FV-13'](planningDir, config, fvPriorResults);
+      results.push({ code: 'FV-13', ...fv13 });
+      if (fv13.status === 'pass') passCount++;
+      else if (fv13.status === 'warn') warnCount++;
+      else failCount++;
+    } catch (err) {
+      results.push({
+        code: 'FV-13',
+        status: 'fail',
+        evidence: ['Error: ' + err.message],
+        message: 'Check threw: ' + err.message,
+      });
+      failCount++;
+    }
+  }
+
+  console.log('All checks: ' + passCount + ' pass, ' + warnCount + ' warn, ' + failCount + ' fail');
+
+  return results;
+}
+
 module.exports = {
   SI_CHECKS,
   runAllSIChecks,
+  IH_CHECKS,
   FV_CHECKS,
   runAllFVChecks,
+  QM_CHECKS,
+  ALL_CHECKS,
+  runAllChecks,
   // Re-export individual check functions for direct access
   ...skillChecks,
   ...agentHookConfigChecks,
   ...crossCuttingChecks,
   ...fvChecks,
+  ...infraChecks,
+  ...qmChecks,
 };
