@@ -606,6 +606,155 @@ describe('requirements mark-complete command', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// RETROSPECTIVE.md generation
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('RETROSPECTIVE.md generation', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      '# Roadmap v1.0\n\n### Phase 1: Core\n**Goal:** Build core\n'
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'STATE.md'),
+      '# State\n\n**Status:** In progress\n**Last Activity:** 2025-01-01\n**Last Activity Description:** Working\n'
+    );
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('creates RETROSPECTIVE.md on first milestone complete', () => {
+    const p1 = path.join(tmpDir, '.planning', 'phases', '01-core');
+    fs.mkdirSync(p1, { recursive: true });
+    fs.writeFileSync(
+      path.join(p1, '01-01-SUMMARY.md'),
+      '---\none-liner: Built core framework\n---\n# Summary\n'
+    );
+
+    const result = runPbrTools('milestone complete v1.0 --name MVP', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const output = JSON.parse(result.output);
+    assert.strictEqual(output.retrospective_updated, true, 'retrospective_updated should be true');
+
+    const retroPath = path.join(tmpDir, '.planning', 'RETROSPECTIVE.md');
+    assert.ok(fs.existsSync(retroPath), 'RETROSPECTIVE.md should be created');
+
+    const content = fs.readFileSync(retroPath, 'utf-8');
+    assert.ok(content.includes('# Retrospective'), 'should have header');
+    assert.ok(content.includes('v1.0 MVP'), 'should contain version and name');
+    assert.ok(content.includes('### What Was Built'), 'should have What Was Built section');
+    assert.ok(content.includes('Built core framework'), 'should include accomplishments');
+    assert.ok(content.includes('### What Worked'), 'should have What Worked section');
+    assert.ok(content.includes('### Key Lessons'), 'should have Key Lessons section');
+  });
+
+  test('appends to existing RETROSPECTIVE.md (reverse chronological)', () => {
+    // Pre-existing retrospective
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'RETROSPECTIVE.md'),
+      '# Retrospective\n\n> Living document updated after each milestone.\n\n## v0.9 Alpha (Shipped: 2025-01-01)\n\n### What Was Built\n- Alpha features\n\n---\n\n'
+    );
+
+    const result = runPbrTools('milestone complete v1.0 --name Beta', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'RETROSPECTIVE.md'), 'utf-8');
+    assert.ok(content.includes('v0.9 Alpha'), 'existing entry should be preserved');
+    assert.ok(content.includes('v1.0 Beta'), 'new entry should be present');
+
+    // New entry should appear BEFORE old entry
+    const newIdx = content.indexOf('v1.0 Beta');
+    const oldIdx = content.indexOf('v0.9 Alpha');
+    assert.ok(newIdx < oldIdx, 'new entry should appear before old entry (reverse chronological)');
+  });
+
+  test('RETROSPECTIVE.md without accomplishments uses fallback text', () => {
+    // No phase summaries with one-liner
+    const result = runPbrTools('milestone complete v1.0 --name Empty', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'RETROSPECTIVE.md'), 'utf-8');
+    assert.ok(content.includes('(see MILESTONES.md)'), 'should use fallback when no accomplishments');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROADMAP.md details collapse and milestone index
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('ROADMAP.md details collapse and milestone index', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'STATE.md'),
+      '# State\n\n**Status:** In progress\n**Last Activity:** 2025-01-01\n**Last Activity Description:** Working\n'
+    );
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('collapses milestone section in ROADMAP.md with details tags', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      '# Roadmap\n\n## Milestone: MVP\n\n### Phase 1: Core\n**Goal:** Build core\n\n### Phase 2: Polish\n**Goal:** Ship it\n'
+    );
+
+    const result = runPbrTools('milestone complete v1.0 --name MVP', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), 'utf-8');
+    assert.ok(content.includes('<details>'), 'should have <details> tag');
+    assert.ok(content.includes('<summary>'), 'should have <summary> tag');
+    assert.ok(content.includes('SHIPPED'), 'should include SHIPPED in summary');
+    assert.ok(content.includes('</details>'), 'should have closing </details> tag');
+  });
+
+  test('creates milestone index section in ROADMAP.md', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      '# Roadmap\n\n### Phase 1: Core\n**Goal:** Build core\n'
+    );
+
+    const result = runPbrTools('milestone complete v1.0 --name MVP', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), 'utf-8');
+    assert.ok(content.includes('## Milestones'), 'should have Milestones index section');
+    assert.ok(content.includes('| Version | Name | Status | Date |'), 'should have index table header');
+    assert.ok(content.includes('| v1.0 | MVP | SHIPPED |'), 'should have index row');
+  });
+
+  test('appends to existing milestone index', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, '.planning', 'ROADMAP.md'),
+      `# Roadmap\n\n## Milestones\n\n| Version | Name | Status | Date |\n|---------|------|--------|------|\n| v0.9 | Alpha | SHIPPED | 2025-01-01 |\n\n### Phase 2: Beta\n**Goal:** Build beta\n`
+    );
+
+    const result = runPbrTools('milestone complete v1.0 --name Beta', tmpDir);
+    assert.ok(result.success, `Command failed: ${result.error}`);
+
+    const content = fs.readFileSync(path.join(tmpDir, '.planning', 'ROADMAP.md'), 'utf-8');
+    assert.ok(content.includes('v0.9 | Alpha | SHIPPED'), 'existing row should be preserved');
+    assert.ok(content.includes('v1.0 | Beta | SHIPPED'), 'new row should be added');
+
+    // New row should appear before old row (newest first)
+    const newIdx = content.indexOf('v1.0 | Beta');
+    const oldIdx = content.indexOf('v0.9 | Alpha');
+    assert.ok(newIdx < oldIdx, 'new row should appear before old row');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // validate consistency command
 // ─────────────────────────────────────────────────────────────────────────────
 
