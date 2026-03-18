@@ -269,6 +269,190 @@ function checkPreToolUseStdoutCompliance(pluginRoot) {
 }
 
 // ---------------------------------------------------------------------------
+// SI-10: Command-Skill Mapping Validity
+// ---------------------------------------------------------------------------
+
+function checkCommandSkillMapping(pluginRoot) {
+  // Commands are at repo root: commands/pbr/*.md
+  // pluginRoot is plugins/pbr/, so repo root is ../../
+  const repoRoot = path.resolve(pluginRoot, '..', '..');
+  const commandsDir = path.join(repoRoot, 'commands', 'pbr');
+  const skillsDir = path.join(pluginRoot, 'skills');
+  const evidence = [];
+
+  if (!fs.existsSync(commandsDir)) {
+    return { status: 'warn', evidence: ['commands/pbr/ directory not found'], message: 'Cannot locate commands directory' };
+  }
+
+  const commandFiles = fs.readdirSync(commandsDir).filter(f => f.endsWith('.md'));
+
+  for (const cmdFile of commandFiles) {
+    const filePath = path.join(commandsDir, cmdFile);
+    const content = fs.readFileSync(filePath, 'utf8');
+
+    // Extract skill reference from text like `pbr:{skill-name}`
+    // Some commands are inline (no skill delegation) — skip those
+    const skillMatch = content.match(/`pbr:([\w-]+)`/);
+    if (!skillMatch) continue;
+
+    const skillName = skillMatch[1];
+    const skillDir = path.join(skillsDir, skillName);
+
+    if (!fs.existsSync(skillDir)) {
+      evidence.push(`${cmdFile}: references skill "${skillName}" but ${path.join('skills', skillName)} does not exist`);
+    }
+  }
+
+  return {
+    status: evidence.length > 0 ? 'fail' : 'pass',
+    evidence,
+    message: evidence.length > 0
+      ? `${evidence.length} command-skill mapping issues found`
+      : `All ${commandFiles.length} commands map to existing skills`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// SI-11: Config Schema-Code Consistency
+// ---------------------------------------------------------------------------
+
+/**
+ * Recursively extract all property paths from a JSON Schema.
+ * Returns flat array of dot-separated paths (e.g., "features.tdd_mode").
+ */
+function extractSchemaPropertyPaths(schema, prefix) {
+  const paths = [];
+  const props = schema.properties || {};
+
+  for (const [key, def] of Object.entries(props)) {
+    const fullPath = prefix ? `${prefix}.${key}` : key;
+    paths.push(fullPath);
+
+    // Recurse into nested objects
+    if (def.type === 'object' && def.properties) {
+      paths.push(...extractSchemaPropertyPaths(def, fullPath));
+    }
+  }
+
+  return paths;
+}
+
+function checkConfigSchemaCodeConsistency(pluginRoot) {
+  const schemaPath = path.join(pluginRoot, 'scripts', 'config-schema.json');
+  if (!fs.existsSync(schemaPath)) {
+    return { status: 'warn', evidence: ['config-schema.json not found'], message: 'Cannot locate schema file' };
+  }
+
+  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+  const schemaPaths = new Set(extractSchemaPropertyPaths(schema, ''));
+  const evidence = [];
+
+  // Scan key config-consuming files
+  const configFiles = [
+    path.join(pluginRoot, 'scripts', 'lib', 'config.js'),
+    path.join(pluginRoot, '..', '..', 'plan-build-run', 'bin', 'lib', 'config.cjs'),
+  ];
+
+  const codeKeys = new Set();
+
+  for (const configFile of configFiles) {
+    if (!fs.existsSync(configFile)) continue;
+
+    const source = fs.readFileSync(configFile, 'utf8');
+
+    // Match config.{key} or config.{key}.{subkey} patterns
+    // Exclude file extensions (config.js, config.json, config.cjs) and method calls
+    const dotAccessRegex = /\bconfig\.(\w+(?:\.\w+)*)/g;
+    let match;
+    while ((match = dotAccessRegex.exec(source)) !== null) {
+      const key = match[1];
+      // Skip file extensions and common non-property patterns
+      if (/^(js|json|cjs|mjs|ts|yaml|yml|md|txt)$/.test(key)) continue;
+      if (/^(js|json|cjs|mjs|ts|yaml|yml|md|txt)\./.test(key)) continue;
+      codeKeys.add(key);
+    }
+
+    // Match config['{key}'] patterns
+    const bracketAccessRegex = /config\[['"](\w+(?:\.\w+)*)['"]\]/g;
+    while ((match = bracketAccessRegex.exec(source)) !== null) {
+      codeKeys.add(match[1]);
+    }
+  }
+
+  // Check for keys in code but not in schema (ignore common false positives)
+  const ignoredCodeKeys = new Set(['audit', 'version', 'schema_version']);
+  for (const key of codeKeys) {
+    // Only check top-level key portion
+    const topLevel = key.split('.')[0];
+    if (ignoredCodeKeys.has(topLevel)) continue;
+    if (!schemaPaths.has(key) && !schemaPaths.has(topLevel)) {
+      evidence.push(`Code references config.${key} but not found in schema`);
+    }
+  }
+
+  return {
+    status: evidence.length > 0 ? 'warn' : 'pass',
+    evidence,
+    message: evidence.length > 0
+      ? `${evidence.length} config key consistency issues (advisory)`
+      : 'Config schema and code are consistent',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// SI-12: Plugin Manifest Version Sync
+// ---------------------------------------------------------------------------
+
+function checkPluginManifestVersionSync(pluginRoot) {
+  const repoRoot = path.resolve(pluginRoot, '..', '..');
+  const evidence = [];
+
+  // Read package.json version
+  const packageJsonPath = path.join(repoRoot, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    return { status: 'fail', evidence: ['package.json not found at repo root'], message: 'Cannot locate package.json' };
+  }
+
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const expectedVersion = packageJson.version;
+
+  // Check PBR plugin.json
+  const pbrPluginJson = path.join(pluginRoot, '.claude-plugin', 'plugin.json');
+  if (fs.existsSync(pbrPluginJson)) {
+    const pbrManifest = JSON.parse(fs.readFileSync(pbrPluginJson, 'utf8'));
+    if (pbrManifest.version && pbrManifest.version !== expectedVersion) {
+      evidence.push(`plugins/pbr/.claude-plugin/plugin.json: version "${pbrManifest.version}" != package.json "${expectedVersion}"`);
+    }
+  }
+
+  // Check cursor-pbr plugin.json (optional)
+  const cursorPluginJson = path.join(repoRoot, 'plugins', 'cursor-pbr', '.cursor-plugin', 'plugin.json');
+  if (fs.existsSync(cursorPluginJson)) {
+    const cursorManifest = JSON.parse(fs.readFileSync(cursorPluginJson, 'utf8'));
+    if (cursorManifest.version && cursorManifest.version !== expectedVersion) {
+      evidence.push(`plugins/cursor-pbr/.cursor-plugin/plugin.json: version "${cursorManifest.version}" != package.json "${expectedVersion}"`);
+    }
+  }
+
+  // Check copilot-pbr plugin.json (optional)
+  const copilotPluginJson = path.join(repoRoot, 'plugins', 'copilot-pbr', 'plugin.json');
+  if (fs.existsSync(copilotPluginJson)) {
+    const copilotManifest = JSON.parse(fs.readFileSync(copilotPluginJson, 'utf8'));
+    if (copilotManifest.version && copilotManifest.version !== expectedVersion) {
+      evidence.push(`plugins/copilot-pbr/plugin.json: version "${copilotManifest.version}" != package.json "${expectedVersion}"`);
+    }
+  }
+
+  return {
+    status: evidence.length > 0 ? 'fail' : 'pass',
+    evidence,
+    message: evidence.length > 0
+      ? `${evidence.length} version mismatches found`
+      : `All plugin manifests match package.json version ${expectedVersion}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -277,4 +461,7 @@ module.exports = {
   checkAgentToolListAccuracy,
   checkHookScriptExistence,
   checkPreToolUseStdoutCompliance,
+  checkCommandSkillMapping,
+  checkConfigSchemaCodeConsistency,
+  checkPluginManifestVersionSync,
 };
