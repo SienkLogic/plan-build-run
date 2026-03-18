@@ -2,6 +2,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'validate-task.js');
 
@@ -13,20 +14,8 @@ afterAll(() => {
   fs.rmSync(CLEAN_CWD, { recursive: true, force: true });
 });
 
-function runScript(toolInput) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: CLEAN_CWD,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (toolInput) => _run({ tool_input: toolInput }, { cwd: CLEAN_CWD });
 
 describe('validate-task.js', () => {
   describe('valid Task calls', () => {

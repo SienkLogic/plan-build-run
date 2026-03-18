@@ -1,55 +1,10 @@
-const { execSync } = require('child_process');
 const path = require('path');
-const os = require('os');
+const { createRunner } = require('./helpers');
 const { checkCommit } = require('../hooks/validate-commit');
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'validate-commit.js');
-
-function runValidator(toolInput) { // eslint-disable-line no-unused-vars
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`echo '${input.replace(/'/g, "\\'")}' | node "${SCRIPT}"`, {
-      encoding: 'utf8',
-      timeout: 5000,
-      shell: true,
-      cwd: os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
-
-// On Windows, use a different approach for piping
-function runValidatorCrossPlatform(toolInput) { // eslint-disable-line no-unused-vars
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node -e "process.stdin.resume(); let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{const s=require('child_process').execSync('node ${SCRIPT.replace(/\\/g, '/')}',{input:d,encoding:'utf8',timeout:5000}); process.stdout.write(s);})" `, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 10000,
-      cwd: os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
-
-function runScript(toolInput) {
-  const input = JSON.stringify({ tool_input: toolInput });
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input: input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: os.tmpdir(),
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const _run = createRunner(SCRIPT);
+const runScript = (toolInput) => _run({ tool_input: toolInput });
 
 describe('validate-commit.js', () => {
   describe('valid commit messages', () => {

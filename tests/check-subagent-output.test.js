@@ -1,10 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execSync } = require('child_process');
+const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
 const { AGENT_OUTPUTS, getCurrentPhase, checkRoadmapStaleness, loadFeatureFlag: _loadFeatureFlag, SKILL_CHECKS: _SKILL_CHECKS } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js'));
+
+const _run = createRunner(SCRIPT);
 
 let tmpDir;
 let originalCwd;
@@ -29,20 +31,7 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-function runScript(data) {
-  const input = JSON.stringify(data);
-  try {
-    const result = execSync(`node "${SCRIPT}"`, {
-      input,
-      encoding: 'utf8',
-      timeout: 5000,
-      cwd: tmpDir,
-    });
-    return { exitCode: 0, output: result };
-  } catch (e) {
-    return { exitCode: e.status, output: e.stdout || '' };
-  }
-}
+const runScript = (data) => _run(data, { cwd: tmpDir });
 
 describe('check-subagent-output.js', () => {
   describe('agent type coverage', () => {
