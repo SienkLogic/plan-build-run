@@ -1015,6 +1015,182 @@ function checkTestHealthBaseline(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// WC-10: Model Selection Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * Cross-reference agent spawns in session logs against config.models settings.
+ * Detects agents using models that differ from configured preferences.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkModelSelectionCompliance(planningDir, config) {
+  const models = (config && config.models) || {};
+  const logFiles = findSessionLogs(planningDir);
+
+  if (logFiles.length === 0) {
+    return result('WC-10', 'pass', 'No session logs available for model verification');
+  }
+
+  const entries = parseSessionEntries(logFiles);
+  const evidence = [];
+  let totalSpawns = 0;
+  let compliant = 0;
+
+  for (const entry of entries) {
+    // Look for Task tool_use entries with subagent_type or model fields
+    if (entry.type !== 'tool_use' && entry.type !== 'assistant') continue;
+
+    const input = entry.input || {};
+    const subagentType = input.subagent_type || input.agent_type || '';
+    const usedModel = input.model || '';
+
+    // Only care about pbr agent spawns
+    if (!subagentType.startsWith('pbr:')) continue;
+
+    totalSpawns++;
+    const agentName = subagentType.replace('pbr:', '');
+
+    // Check if config has a model preference for this agent type
+    const configuredModel = models[agentName];
+    if (!configuredModel || configuredModel === 'inherit') {
+      // No specific model configured or set to inherit — always compliant
+      compliant++;
+      continue;
+    }
+
+    if (usedModel && usedModel !== configuredModel) {
+      evidence.push(
+        `Agent "${agentName}" used model "${usedModel}" but config specifies "${configuredModel}"`
+      );
+    } else {
+      compliant++;
+    }
+  }
+
+  if (totalSpawns === 0) {
+    return result('WC-10', 'pass', 'No agent spawns detected for model verification');
+  }
+
+  const pct = Math.round((compliant / totalSpawns) * 100);
+
+  if (evidence.length === 0) {
+    return result('WC-10', 'pass',
+      `${totalSpawns} agent spawn(s), ${pct}% model-compliant`);
+  }
+
+  return result('WC-10', 'info',
+    `${evidence.length} model mismatch(es) across ${totalSpawns} spawns (${pct}% compliant)`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WC-11: Git Branching Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify phase branches exist when git.branching is set to "phase".
+ * Reads config.json git settings and checks git branch list.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkGitBranchingCompliance(planningDir, config) {
+  const gitConfig = (config && config.git) || {};
+  const branching = gitConfig.branching || 'none';
+
+  if (branching === 'none' || branching === 'disabled') {
+    return result('WC-11', 'pass', 'Git branching not configured');
+  }
+
+  if (branching !== 'phase') {
+    return result('WC-11', 'pass',
+      `Git branching mode "${branching}" — phase branch check not applicable`);
+  }
+
+  const projectRoot = path.resolve(planningDir, '..');
+  const template = gitConfig.phase_branch_template ||
+    'plan-build-run/phase-{phase}-{slug}';
+
+  // Get list of git branches
+  let branches;
+  try {
+    const branchOutput = execSync('git branch --list --all', {
+      cwd: projectRoot,
+      timeout: 10000,
+      encoding: 'utf8',
+    });
+    branches = branchOutput
+      .split('\n')
+      .map(b => b.replace(/^\*?\s+/, '').trim())
+      .filter(b => b.length > 0);
+  } catch (_e) {
+    return result('WC-11', 'pass', 'Git not available');
+  }
+
+  // Get active phase directories
+  const phasesDir = path.join(planningDir, 'phases');
+  let phaseDirs;
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    phaseDirs = entries
+      .filter(e => e.isDirectory() && /^\d{2}-/.test(e.name))
+      .map(e => e.name)
+      .sort();
+  } catch (_e) {
+    return result('WC-11', 'pass', 'No phases/ directory');
+  }
+
+  const evidence = [];
+
+  for (const dir of phaseDirs) {
+    // Check if this phase has PLAN files (indicates active work)
+    const dirPath = path.join(phasesDir, dir);
+    let hasPlan = false;
+    try {
+      const files = fs.readdirSync(dirPath);
+      hasPlan = files.some(f => /^PLAN.*\.md$/i.test(f));
+    } catch (_e) {
+      continue;
+    }
+
+    if (!hasPlan) continue;
+
+    // Build expected branch name from template
+    const phaseNum = dir.substring(0, 2);
+    const slug = dir.substring(3); // everything after "NN-"
+    const expectedBranch = template
+      .replace('{phase}', phaseNum)
+      .replace('{slug}', slug);
+
+    // Check if any branch matches (local or remote)
+    const hasBranch = branches.some(b =>
+      b === expectedBranch ||
+      b.endsWith('/' + expectedBranch) ||
+      b.includes(expectedBranch)
+    );
+
+    if (!hasBranch) {
+      evidence.push(`Phase "${dir}" missing expected branch "${expectedBranch}"`);
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-11', 'pass',
+      `All active phases have corresponding git branches`);
+  }
+
+  return result('WC-11', 'info',
+    `${evidence.length} phase(s) missing expected git branches`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1028,5 +1204,7 @@ module.exports = {
   checkCompactionQuality,
   checkNamingConventionCompliance,
   checkCommitPatternValidation,
+  checkModelSelectionCompliance,
+  checkGitBranchingCompliance,
   checkTestHealthBaseline,
 };
