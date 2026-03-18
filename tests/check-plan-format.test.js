@@ -413,6 +413,121 @@ must_haves:
       expect(result.errors.find(e => /must_haves/.test(e))).toBeUndefined();
       expect(result.errors.find(e => /implements/.test(e))).toBeUndefined();
     });
+
+    // Phase 04: must_haves sub-field validation tests
+    test('must_haves without truths produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  artifacts:
+    - path: "src/a.ts"
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const truthsWarning = result.warnings.find(w => w.includes('must_haves missing "truths"'));
+      expect(truthsWarning).toBeDefined();
+    });
+
+    test('must_haves without artifacts produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: ["Something works"]
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const artifactsWarning = result.warnings.find(w => w.includes('must_haves missing "artifacts"'));
+      expect(artifactsWarning).toBeDefined();
+    });
+
+    test('must_haves without key_links produces warning', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: ["Something works"]
+  artifacts:
+    - path: "src/a.ts"
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const keyLinksWarning = result.warnings.find(w => w.includes('must_haves missing "key_links"'));
+      expect(keyLinksWarning).toBeDefined();
+    });
+
+    test('must_haves with all 3 sub-fields and valid content passes', () => {
+      const content = buildValidPlan({ frontmatterExtra: 'type: feature\ndepends_on: []\nfiles_modified: ["src/a.ts"]\nautonomous: true\n' });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const mustHaveWarnings = result.warnings.filter(w => w.includes('must_haves missing'));
+      expect(mustHaveWarnings).toHaveLength(0);
+    });
+
+    test('must_haves with empty truths: [] passes (empty is valid, missing is not)', () => {
+      const content = `---
+phase: 03-auth
+plan: 01
+wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/a.ts"]
+autonomous: true
+implements: []
+must_haves:
+  truths: []
+  artifacts: []
+  key_links: []
+---
+<task type="auto">
+  <name>Task 1</name>
+  <files>src/a.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const result = validatePlan(content, 'test-PLAN.md');
+      const mustHaveWarnings = result.warnings.filter(w => w.includes('must_haves missing'));
+      expect(mustHaveWarnings).toHaveLength(0);
+    });
   });
 
   describe('validateSummary', () => {
