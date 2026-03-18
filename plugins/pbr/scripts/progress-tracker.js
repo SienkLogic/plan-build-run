@@ -269,25 +269,44 @@ function buildContext(planningDir, stateFile) {
       if (continuity) {
         parts.push(`\nLast Session:\n${continuity}`);
       }
+
+      // Read session continuity fields from frontmatter (new 13-state lifecycle format)
+      const fmMatch = state.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (fmMatch) {
+        const fm = fmMatch[1];
+        const sessionLast = fm.match(/^session_last:\s*["']?([^"'\r\n]+)["']?/m);
+        const sessionStoppedAt = fm.match(/^session_stopped_at:\s*["']?([^"'\r\n]+)["']?/m);
+        const sessionResume = fm.match(/^session_resume:\s*["']?([^"'\r\n]+)["']?/m);
+
+        if (sessionLast || sessionStoppedAt || sessionResume) {
+          const continuityParts = [];
+          if (sessionLast) continuityParts.push(`Last session: ${sessionLast[1].trim()}`);
+          if (sessionStoppedAt) continuityParts.push(`Stopped at: ${sessionStoppedAt[1].trim()}`);
+          if (sessionResume) continuityParts.push(`Resume: ${sessionResume[1].trim()}`);
+          parts.push(`\nSession continuity:\n${continuityParts.join('\n')}`);
+        }
+      }
     }
 
     // Detect stale "Building" status — likely a crashed executor
-    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i);
-    if (statusMatch && statusMatch[1].toLowerCase() === 'building') {
+    // Also detect stale "ready_to_execute" which could indicate an interrupted workflow
+    const statusMatch = state.match(/\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?([a-z_]+)["']?/i);
+    if (statusMatch && (statusMatch[1].toLowerCase() === 'building' || statusMatch[1].toLowerCase() === 'ready_to_execute')) {
       try {
         const stateStat = fs.statSync(stateFile);
         const ageMs = Date.now() - stateStat.mtimeMs;
         const ageMinutes = Math.round(ageMs / 60000);
         if (ageMinutes > 30) {
-          // Auto-repair: reset stale "Building" status back to "Planned"
+          // Auto-repair: reset stale status back to "planned"
+          const staleStatus = statusMatch[1].toLowerCase();
           try {
             const { stateUpdate } = require('./pbr-tools');
             stateUpdate(planningDir, { status: 'planned' });
-            parts.push(`\nAuto-repaired: STATE.md was stuck in "Building" for ${ageMinutes} minutes (likely crashed executor). Reset to "Planned". Run /pbr:execute-phase to retry.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building-repaired', { ageMinutes });
+            parts.push(`\nAuto-repaired: STATE.md was stuck in "${staleStatus}" for ${ageMinutes} minutes (likely crashed executor). Reset to "planned". Run /pbr:build to retry.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-status-repaired', { ageMinutes, staleStatus });
           } catch (_repairErr) {
-            parts.push(`\nWarning: STATE.md shows status "Building" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
-            logHook('progress-tracker', 'SessionStart', 'stale-building', { ageMinutes });
+            parts.push(`\nWarning: STATE.md shows status "${staleStatus}" but was last modified ${ageMinutes} minutes ago. This may indicate a crashed executor. Run /pbr:health to diagnose.`);
+            logHook('progress-tracker', 'SessionStart', 'stale-status', { ageMinutes, staleStatus });
           }
         }
       } catch (_e) { /* best-effort */ }
