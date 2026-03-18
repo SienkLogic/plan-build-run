@@ -1,3 +1,4 @@
+// Consolidated from event-handler.test.js + event-handler-unit.test.js
 'use strict';
 
 const fs = require('fs');
@@ -6,7 +7,7 @@ const os = require('os');
 
 // Import the writeAutoVerifySignal indirectly via module — it's not exported.
 // We test it through the main flow by testing shouldAutoVerify + getPhaseFromState combinations.
-const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, handleHttp } = require('../hooks/event-handler');
+const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, isVerifierAgent, handleHttp } = require('../hooks/event-handler');
 
 let tmpDir;
 let planningDir;
@@ -72,7 +73,31 @@ describe('getPhaseFromState edge cases', () => {
   });
 });
 
-describe('isExecutorAgent edge cases', () => {
+describe('isExecutorAgent', () => {
+  test('returns true for agent_type pbr:executor', () => {
+    expect(isExecutorAgent({ agent_type: 'pbr:executor' })).toBe(true);
+  });
+
+  test('returns true for subagent_type pbr:executor', () => {
+    expect(isExecutorAgent({ subagent_type: 'pbr:executor' })).toBe(true);
+  });
+
+  test('returns false for pbr:verifier', () => {
+    expect(isExecutorAgent({ agent_type: 'pbr:verifier' })).toBe(false);
+  });
+
+  test('returns false for pbr:researcher', () => {
+    expect(isExecutorAgent({ agent_type: 'pbr:researcher' })).toBe(false);
+  });
+
+  test('returns false for empty data', () => {
+    expect(isExecutorAgent({})).toBe(false);
+  });
+
+  test('returns false for null agent_type', () => {
+    expect(isExecutorAgent({ agent_type: null })).toBe(false);
+  });
+
   test('returns false for undefined agent_type', () => {
     expect(isExecutorAgent({ agent_type: undefined })).toBe(false);
   });
@@ -83,10 +108,6 @@ describe('isExecutorAgent edge cases', () => {
 
   test('prefers agent_type over subagent_type', () => {
     expect(isExecutorAgent({ agent_type: 'pbr:executor', subagent_type: 'pbr:planner' })).toBe(true);
-  });
-
-  test('returns true for subagent_type when no agent_type', () => {
-    expect(isExecutorAgent({ subagent_type: 'pbr:executor' })).toBe(true);
   });
 
   test('returns false for non-executor agent', () => {
@@ -114,6 +135,24 @@ describe('shouldAutoVerify additional branches', () => {
   test('returns true for comprehensive depth', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'),
       JSON.stringify({ depth: 'comprehensive' }));
+    expect(shouldAutoVerify(planningDir)).toBe(true);
+  });
+
+  test('returns false when depth is quick', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'quick', features: { goal_verification: true } }));
+    expect(shouldAutoVerify(planningDir)).toBe(false);
+  });
+
+  test('returns true when features.goal_verification is undefined (defaults to true)', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard', features: {} }));
+    expect(shouldAutoVerify(planningDir)).toBe(true);
+  });
+
+  test('returns true when depth is undefined (defaults to standard)', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ features: { goal_verification: true } }));
     expect(shouldAutoVerify(planningDir)).toBe(true);
   });
 });
@@ -199,5 +238,49 @@ describe('getPhaseFromState additional branches', () => {
   test('returns null when no Phase line in STATE.md', () => {
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'No phase here');
     expect(getPhaseFromState(planningDir)).toBeNull();
+  });
+
+  test('returns correct status from bold markdown format', () => {
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      'Phase: 5 of 12\n**Status**: "built"');
+    const result = getPhaseFromState(planningDir);
+    expect(result).toEqual({ phase: 5, total: 12, status: 'built' });
+  });
+});
+
+describe('isVerifierAgent', () => {
+  test('returns true for agent_type pbr:verifier', () => {
+    expect(isVerifierAgent({ agent_type: 'pbr:verifier' })).toBe(true);
+  });
+
+  test('returns true for subagent_type pbr:verifier', () => {
+    expect(isVerifierAgent({ subagent_type: 'pbr:verifier' })).toBe(true);
+  });
+
+  test('returns false for pbr:executor', () => {
+    expect(isVerifierAgent({ agent_type: 'pbr:executor' })).toBe(false);
+  });
+
+  test('returns false for empty data', () => {
+    expect(isVerifierAgent({})).toBe(false);
+  });
+});
+
+describe('verifier trust tracking', () => {
+  test('when pbr:verifier completes and trust_tracking enabled, config reflects it', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard', features: { trust_tracking: true, goal_verification: true } }));
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      'Phase: 3 of 8\nStatus: building');
+    expect(isVerifierAgent({ agent_type: 'pbr:verifier' })).toBe(true);
+    const config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(config.features.trust_tracking).toBe(true);
+  });
+
+  test('when pbr:verifier completes and trust_tracking disabled, config reflects it', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'),
+      JSON.stringify({ depth: 'standard', features: { trust_tracking: false, goal_verification: true } }));
+    const config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
+    expect(config.features.trust_tracking).toBe(false);
   });
 });

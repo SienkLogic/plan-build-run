@@ -1,3 +1,4 @@
+// Consolidated from log-subagent.test.js + log-subagent-unit.test.js
 'use strict';
 
 const fs = require('fs');
@@ -104,7 +105,57 @@ describe('buildAgentContext phase without status', () => {
   });
 });
 
-describe('resolveAgentType edge cases', () => {
+describe('resolveAgentType', () => {
+  test('returns agent_type when present', () => {
+    expect(resolveAgentType({ agent_type: 'pbr:executor' })).toBe('pbr:executor');
+  });
+
+  test('returns subagent_type when agent_type is absent', () => {
+    expect(resolveAgentType({ subagent_type: 'pbr:planner' })).toBe('pbr:planner');
+  });
+
+  test('returns non-PBR agent_type as-is', () => {
+    expect(resolveAgentType({ agent_type: 'Explore' })).toBe('Explore');
+  });
+
+  test('returns non-PBR subagent_type as-is', () => {
+    expect(resolveAgentType({ subagent_type: 'general-purpose' })).toBe('general-purpose');
+  });
+
+  test('returns tool_input.subagent_type when top-level fields are absent', () => {
+    expect(resolveAgentType({ tool_input: { subagent_type: 'pbr:researcher' } })).toBe('pbr:researcher');
+  });
+
+  test('returns tool_input.agent_type when other fields are absent', () => {
+    expect(resolveAgentType({ tool_input: { agent_type: 'Bash' } })).toBe('Bash');
+  });
+
+  test('prefers top-level agent_type over tool_input', () => {
+    expect(resolveAgentType({
+      agent_type: 'pbr:executor',
+      tool_input: { subagent_type: 'pbr:planner' }
+    })).toBe('pbr:executor');
+  });
+
+  test('prefers top-level subagent_type over tool_input', () => {
+    expect(resolveAgentType({
+      subagent_type: 'custom-agent',
+      tool_input: { subagent_type: 'pbr:planner' }
+    })).toBe('custom-agent');
+  });
+
+  test('returns null when no type info is available', () => {
+    expect(resolveAgentType({})).toBeNull();
+  });
+
+  test('returns null when data has unrelated fields only', () => {
+    expect(resolveAgentType({ agent_id: 'abc', description: 'do stuff' })).toBeNull();
+  });
+
+  test('handles tool_input without type fields', () => {
+    expect(resolveAgentType({ tool_input: { prompt: 'do something' } })).toBeNull();
+  });
+
   test('handles null tool_input', () => {
     expect(resolveAgentType({ tool_input: null })).toBeNull();
   });
