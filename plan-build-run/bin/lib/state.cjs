@@ -658,6 +658,66 @@ function statePhaseComplete(phaseNum, planningDir) {
   return { success: true, phase: Number(phaseNum), status: 'complete' };
 }
 
+/**
+ * Re-derive state from filesystem and correct any drift in STATE.md.
+ * Compares plans_complete, plans_total, and progress_percent between
+ * the current STATE.md and the filesystem-derived values from stateCheckProgress.
+ * Corrects any differences atomically via lockedFileUpdate.
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success, corrected: [...fieldNames], derived: { plans_complete, plans_total, progress_percent } }
+ */
+function stateRederive(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const statePath = path.join(dir, 'STATE.md');
+  if (!fs.existsSync(statePath)) {
+    return { success: false, error: 'STATE.md not found' };
+  }
+
+  // Derive current state from filesystem
+  const progress = stateCheckProgress(dir);
+  const derived = {
+    plans_complete: progress.completed_plans,
+    plans_total: progress.total_plans,
+    progress_percent: progress.percentage
+  };
+
+  // Read current STATE.md values
+  const content = fs.readFileSync(statePath, 'utf8');
+  const current = parseStateMd(content);
+
+  // Compare and find drifted fields
+  const corrected = [];
+  if (Number(current.plans_complete || 0) !== derived.plans_complete) {
+    corrected.push('plans_complete');
+  }
+  if (Number(current.plans_total || 0) !== derived.plans_total) {
+    corrected.push('plans_total');
+  }
+  if (Number(current.progress || 0) !== derived.progress_percent) {
+    corrected.push('progress_percent');
+  }
+
+  // If drift detected, correct atomically
+  if (corrected.length > 0) {
+    const result = lockedFileUpdate(statePath, (fileContent) => {
+      let updated = fileContent;
+      for (const field of corrected) {
+        const value = derived[field];
+        updated = updateFrontmatterField(updated, field, value);
+        updated = syncBodyLine(updated, field, value);
+      }
+      return updated;
+    });
+
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+  }
+
+  return { success: true, corrected, derived };
+}
+
 module.exports = {
   parseStateMd,
   updateLegacyStateField,
@@ -674,5 +734,6 @@ module.exports = {
   stateUpdateProgress,
   stateGetStatus,
   stateSnapshot,
-  statePhaseComplete
+  statePhaseComplete,
+  stateRederive
 };
