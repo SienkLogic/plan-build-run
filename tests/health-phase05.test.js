@@ -40,7 +40,9 @@ afterEach(() => {
 
 const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
 const { handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/event-handler');
-const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
+const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache: clearPluginRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
+const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
 
 function parseOutput() {
   const raw = mockStdout.mock.calls.map(c => c[0]).join('');
@@ -177,6 +179,7 @@ describe('Phase 05 audit evidence', () => {
     process.cwd = () => tmpDir;
     // Clear cached project root so resolveProjectRoot() re-discovers from tmpDir
     clearRootCache();
+    clearPluginRootCache();
   });
 
   afterEach(() => {
@@ -191,7 +194,7 @@ describe('Phase 05 audit evidence', () => {
     const agentOutput = 'DECISION: Use fs.readFileSync instead of async because simplicity matters.';
     handleDecisionExtraction(path.join(tmpDir, '.planning'), agentOutput, 'executor');
 
-    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    const logPath = path.join(tmpDir, '.planning', 'logs', getHooksFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
     const entries = lines.map(l => JSON.parse(l));
@@ -214,7 +217,7 @@ describe('Phase 05 audit evidence', () => {
     extractNegativeKnowledge(path.join(tmpDir, '.planning'), phaseDir,
       { features: { negative_knowledge: true } });
 
-    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    const logPath = path.join(tmpDir, '.planning', 'logs', getHooksFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
     const entries = lines.map(l => JSON.parse(l));
@@ -234,7 +237,7 @@ describe('Phase 05 audit evidence', () => {
     const agentOutput = 'Locked Decision: Chose CJS over ESM because compatibility matters.';
     handleDecisionExtraction(path.join(tmpDir, '.planning'), agentOutput, 'planner');
 
-    const logPath = path.join(tmpDir, '.planning', 'logs', 'hooks.jsonl');
+    const logPath = path.join(tmpDir, '.planning', 'logs', getHooksFilename());
     const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
     const entries = lines.map(l => JSON.parse(l));
     const entry = entries.find(e => e.decision === 'decisions-extracted');
