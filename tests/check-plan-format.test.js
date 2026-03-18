@@ -502,6 +502,83 @@ must_haves:
       expect(mustHaveWarnings).toHaveLength(0);
     });
 
+    // Phase 05: read_first and acceptance_criteria validation tests
+    test('validatePlan: plan with read_first and acceptance_criteria passes validation', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const rfError = result.errors.find(e => /read_first/i.test(e));
+      expect(rfError).toBeUndefined();
+      const acError = result.errors.find(e => /acceptance_criteria/i.test(e));
+      expect(acError).toBeUndefined();
+    });
+
+    test('validatePlan: plan missing read_first produces error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const rfError = result.errors.find(e => /read_first/i.test(e));
+      expect(rfError).toBeDefined();
+    });
+
+    test('validatePlan: plan missing acceptance_criteria produces error', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/auth/types.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const acError = result.errors.find(e => /acceptance_criteria/i.test(e));
+      expect(acError).toBeDefined();
+    });
+
+    test('validatePlan: plan with glob in read_first produces warning', () => {
+      const taskContent = `<task type="auto">
+  <name>Task 1</name>
+  <read_first>
+    src/**/*.ts
+  </read_first>
+  <files>src/file.ts</files>
+  <action>Do something</action>
+  <acceptance_criteria>
+    grep -q "doSomething" src/file.ts
+  </acceptance_criteria>
+  <verify>npm test</verify>
+  <done>Done</done>
+</task>`;
+      const content = buildValidPlan({ taskContent });
+      const result = validatePlan(content, 'test-PLAN.md');
+      const globWarning = result.warnings.find(w => /read_first.*glob/i.test(w) || /read_first.*specific/i.test(w));
+      expect(globWarning).toBeDefined();
+    });
+
     test('must_haves with empty truths: [] passes (empty is valid, missing is not)', () => {
       const content = `---
 phase: 03-auth
