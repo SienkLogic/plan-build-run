@@ -535,6 +535,21 @@ options:
 - If "Skip for now": display reminder: "Tag v{version} is local only. Push when ready: `git push origin main --follow-tags`"
 - If "Other": follow user instructions (e.g., create a PR, push to a different branch, etc.)
 
+9c. **Offer npm release:**
+
+Use AskUserQuestion to offer publishing this milestone as an npm release:
+
+```
+question: "Publish v{version} to npm? This runs `npm run release` which bumps version, generates changelog, and creates a GitHub Release."
+header: "Release"
+options:
+  - label: "Yes, release"    description: "Run npm run release --minor to publish v{version}"
+  - label: "Skip release"    description: "Don't publish to npm right now"
+```
+
+- If "Yes, release": run `npm run release --minor` via Bash. Display the output. If it fails, show the error but don't block — the milestone is already archived.
+- If "Skip release" or "Other": display reminder: "Run `npm run release` when ready to publish."
+
 ### Post-Completion Smoke Test
 
 If `config.deployment.smoke_test_command` is set and non-empty:
