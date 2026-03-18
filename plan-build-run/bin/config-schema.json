@@ -1031,6 +1031,13 @@
           "default": false,
           "description": "When true, orchestrator spawns planner for phase N+1 while executor runs phase N (independent phases only)."
         },
+        "speculative_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 2,
+          "description": "How many phases ahead to speculatively plan during autonomous execution. Only active when speculative_planning is true. Default: 2."
+        },
         "phase_replay": {
           "type": "boolean",
           "default": false,

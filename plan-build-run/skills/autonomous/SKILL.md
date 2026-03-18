@@ -2,7 +2,7 @@
 name: autonomous
 description: "Run multiple phases hands-free. Chains discuss, plan, build, and verify automatically."
 allowed-tools: Read, Write, Bash, Glob, Grep, Skill, AskUserQuestion
-argument-hint: "[--from <N>] [--through <N>] [--dry-run]"
+argument-hint: "[--from <N>] [--through <N>] [--speculative-depth <N>] [--dry-run]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 0 immediately.**
@@ -43,12 +43,19 @@ Stop immediately. Do NOT proceed.
 |----------|---------|---------|
 | `--from N` | Start from phase N | Current phase from STATE.md |
 | `--through N` | Stop after phase N | Last phase in current milestone |
+| `--speculative-depth N` | How many phases ahead to plan speculatively | From config `workflow.speculative_depth` (default 2) |
 | `--dry-run` | Show which phases would execute without doing anything | Off |
 
-3. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
-4. Read `.planning/ROADMAP.md` to build phase list for current milestone.
-5. Filter to phases from `--from` through `--through` that are not yet complete.
-6. If no phases to execute, display: "All phases in range are complete." and stop.
+3. Determine speculative planning settings:
+   - Read `workflow.speculative_planning` from config — if false, speculative depth = 0
+   - Read `workflow.speculative_depth` from config (default: 2)
+   - If `--speculative-depth N` provided, override config value
+   - Store as `speculativeDepth` for use in Step 3
+
+4. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
+5. Read `.planning/ROADMAP.md` to build phase list for current milestone.
+6. Filter to phases from `--from` through `--through` that are not yet complete.
+7. If no phases to execute, display: "All phases in range are complete." and stop.
 
 **If `--dry-run`:** Display the phase list with planned actions per phase, then stop without executing.
 
@@ -56,8 +63,12 @@ Stop immediately. Do NOT proceed.
 DRY RUN — Would execute:
   Phase 3 (data-layer): discuss -> plan -> build -> verify
   Phase 4 (api-endpoints): plan -> build -> verify  (CONTEXT.md exists, skip discuss)
+    [speculative: plan Phase 5 during Phase 4 build]
   Phase 5 (frontend): discuss -> plan -> build -> verify
+Speculative depth: 2
 ```
+
+When `speculativeDepth > 0`, append the speculative depth value and annotate phases where speculative planning would occur. When `speculativeDepth == 0` (speculative_planning is false), omit the speculation lines.
 
 ---
 
@@ -92,7 +103,8 @@ For each remaining phase N:
 - Check if `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist
 - If NOT exists:
   - Invoke: `Skill({ skill: "pbr:plan", args: "{N} --auto" })`
-- If plans exist: skip planning (plans already created)
+- If plans exist (from speculative planning or prior run): skip planning.
+  - Log: `Phase {N}: plans already exist (speculative or prior) -- skipping plan step.`
 - If Skill returns failure: stop autonomous loop, display error, suggest: `/pbr:plan {N}`
 
 ### 3c. Build Phase
@@ -104,6 +116,72 @@ For each remaining phase N:
 - **STOP on human-action checkpoint:** If Skill returns a checkpoint with type `human-action`: STOP the autonomous loop immediately.
   Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
 - If Skill returns failure: attempt single retry. If retry fails: stop loop, display error.
+
+### 3c-speculative. Speculative Planning (during build)
+
+**Gate:** Only execute this sub-step if ALL conditions are met:
+- `speculativeDepth > 0` (from Step 1.3 -- speculative_planning is true AND depth > 0)
+- Phase N build was just invoked (not skipped because SUMMARYs exist)
+
+**Procedure:**
+
+1. Determine candidate phases for speculative planning:
+   - Start from N+1, up to N+speculativeDepth
+   - For each candidate phase C:
+     a. Skip if C is beyond `--through` limit
+     b. Skip if C already has PLAN-*.md files
+     c. Skip if C already has CONTEXT.md AND the CONTEXT.md was NOT auto-generated
+     d. Read ROADMAP.md `### Phase C:` section, extract `**Depends on:**` line
+     e. Parse dependency phase numbers (same regex as build-dependency.js: `/Phase\s+(\d+)/gi`)
+     f. For each dependency D: check if D is completed (has VERIFICATION.md) OR is currently building (D == N)
+     g. If ALL dependencies are satisfied or in-flight: C is a candidate
+     h. If ANY dependency is neither completed nor in-flight: skip C AND all phases after C
+
+2. For each candidate phase C (in order):
+   - Check agent budget: if current concurrent agents >= `parallelization.max_concurrent_agents`, skip remaining candidates
+   - Log: `Speculative planning: Phase {C} (while Phase {N} builds)`
+   - Invoke planner as background task:
+     ```
+     Task({
+       subagent_type: "pbr:planner",
+       model: "sonnet",
+       run_in_background: true,
+       prompt: "Plan Phase {C}. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building."
+     })
+     ```
+   - Plans are written directly to the normal phase directory (NOT .speculative/) per locked decision #2
+
+3. After Phase N build completes (the Skill() call returns), proceed to staleness check in 3c-stale below.
+
+Important constraints:
+- Plan-only: Do NOT invoke discuss for speculative phases (locked decision #2). The planner only needs ROADMAP + CONTEXT.md.
+- Exception: if a phase-level CONTEXT.md already exists from a prior manual `/pbr:discuss-phase`, that is fine -- the planner will use it.
+- Do NOT speculate on phases that already have plans.
+- Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
+
+### 3c-stale. Staleness Check (after build completes)
+
+**Gate:** Only execute if speculative planners were dispatched in 3c-speculative for this phase N.
+
+**Procedure:**
+
+1. Wait for any outstanding speculative planner tasks to complete (they run in background).
+2. Read Phase N's SUMMARY.md files. For each SUMMARY.md, extract `deviations` from YAML frontmatter.
+3. Compute total deviation count across all SUMMARY files for Phase N.
+4. If total deviations == 0: speculative plans are fresh -- no action needed. Log:
+   `Phase {N} build: 0 deviations -- speculative plans for Phase(s) {list} are valid.`
+5. If total deviations > 0: check each speculatively-planned phase C:
+   a. Read ROADMAP.md dependencies for Phase C
+   b. If Phase C depends on Phase N (directly):
+      - Delete the speculative PLAN-*.md files for Phase C
+      - Log: `Phase {N} had {count} deviation(s) -- re-planning Phase {C}`
+      - Re-invoke planner synchronously:
+        ```
+        Skill({ skill: "pbr:plan", args: "{C} --auto" })
+        ```
+   c. If Phase C does NOT depend on Phase N: plans are still valid, no action needed.
+
+Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
 
 ### 3d. Verify Phase (Lightweight-First)
 
@@ -172,6 +250,7 @@ PLAN-BUILD-RUN > AUTONOMOUS COMPLETE
 
 Phases completed: {list}
 Phases remaining: {list}
+Speculative plans used: {count} (re-planned: {count})
 Total time: {elapsed}
 Errors encountered: {count}
 ```
@@ -206,6 +285,7 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
 {
   "current_phase": 4,
   "completed_phases": [2, 3],
+  "speculative_plans": {"5": "pending", "6": "pending"},
   "failed_phase": null,
   "error": null,
   "started_at": "2026-01-15T10:00:00Z",
