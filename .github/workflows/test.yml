@@ -91,6 +91,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Available test tiers: npm run test:unit (fast), npm run test:integration (slow)
+      # To split CI: replace `npm run test:coverage` with `npm run test:unit -- --coverage`
+      # and add a separate job for `npm run test:integration -- --coverage`
       - name: Run tests with coverage
         if: matrix.node-version != 18
         shell: bash
