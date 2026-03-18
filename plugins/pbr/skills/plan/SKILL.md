@@ -208,7 +208,7 @@ If `--preview` is present in `$ARGUMENTS`:
 Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
-1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, requirements
+1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, **Requirements:** (REQ-IDs), and **Success Criteria:**
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
 3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.

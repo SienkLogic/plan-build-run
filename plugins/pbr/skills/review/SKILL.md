@@ -471,7 +471,7 @@ If all automated checks and UAT items passed:
 Use the branded output from `references/ui-brand.md`:
 - If more phases remain: use the "Phase Complete" banner template
 - If this was the last phase in the current milestone: use the "Milestone Complete" banner template
-- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Check its `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
+- **Milestone boundary detection:** Read ROADMAP.md and find the `## Milestone:` section containing the current phase. Active milestones use `## Milestone:` headings directly; completed milestones are wrapped in `<details><summary>## Milestone:` blocks or use the legacy `-- COMPLETED` suffix. Check the active milestone's `**Phases:** start - end` range. If the current phase equals `end`, this is the last phase in the milestone.
 - Always include the "Next Up" routing block
 
 4. If `gates.confirm_transition` is true in config AND `features.auto_advance` is NOT true:
