@@ -40,6 +40,7 @@ afterEach(() => {
 
 const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
 const { handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/event-handler');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 function parseOutput() {
   const raw = mockStdout.mock.calls.map(c => c[0]).join('');
@@ -174,6 +175,8 @@ describe('Phase 05 audit evidence', () => {
     origCwd = process.cwd;
     // Mock cwd so hook-logger writes to our tmp .planning/logs/
     process.cwd = () => tmpDir;
+    // Clear cached project root so resolveProjectRoot() re-discovers from tmpDir
+    clearRootCache();
   });
 
   afterEach(() => {

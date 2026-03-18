@@ -219,6 +219,10 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
 
 ---
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit modified .planning/ files.
+
+---
+
 ## Anti-Patterns
 
 1. **DO NOT** skip the config gate — `workflow.autonomous` must be true

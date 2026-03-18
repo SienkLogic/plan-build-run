@@ -73,6 +73,10 @@ describe('post-write-dispatch.js', () => {
 phase: 01-init
 plan: 01
 wave: 1
+type: feature
+depends_on: []
+files_modified: ["src/server.ts"]
+autonomous: true
 implements: [1]
 must_haves:
   truths: ["Server starts"]
@@ -82,8 +86,10 @@ must_haves:
 
 <task type="auto">
   <name>Task 1: Create server</name>
+  <read_first>package.json</read_first>
   <files>src/server.ts</files>
   <action>Create Express server</action>
+  <acceptance_criteria>Server starts on port 3000</acceptance_criteria>
   <verify>npm test</verify>
   <done>Server starts on port 3000</done>
 </task>

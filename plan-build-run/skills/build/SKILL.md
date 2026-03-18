@@ -607,7 +607,14 @@ Task({
 
 NOTE: The pbr:executor subagent type auto-loads the agent definition.
 
-After executor completes, check for completion markers: `## PLAN COMPLETE`, `## PLAN FAILED`, or `## CHECKPOINT: {TYPE}`. Route accordingly — PLAN COMPLETE proceeds to next plan, PLAN FAILED triggers failure handling, CHECKPOINT triggers checkpoint flow. Do NOT inline it.
+After executor completes, check its output for completion markers:
+
+- `## PLAN COMPLETE` -- proceed to next plan or verification
+- `## PLAN FAILED` -- log failure, check if retry is appropriate based on workflow.node_repair_budget
+- `## CHECKPOINT: {TYPE}` -- surface checkpoint to user, pause workflow
+- No marker found -- treat as partial completion, log warning "Executor returned without completion marker"
+
+Route accordingly. Do NOT inline executor output into orchestrator context.
 
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
@@ -929,18 +936,52 @@ If any executor returned `checkpoint`:
    Log: `"Auto-resolved {type} checkpoint for Plan {id}, Task {N}: {resolution}"`
    Resume executor with resolution context.
 
-6. If NOT auto-resolved:
-   Present the checkpoint to the user:
+6. If NOT auto-resolved, present based on type:
 
-```
-Checkpoint in Plan {id}, Task {N}: {checkpoint type}
+   **For `human-verify`:**
 
-{checkpoint details — what was built, what is needed}
+   ```text
+   CHECKPOINT: Verify Output
 
-{For decision type: present options}
-{For human-action type: present steps}
-{For human-verify type: present what to verify}
-```
+   Plan {id}, Task {N}: {description}
+
+   What was built:
+   {what_built from checkpoint data}
+
+   How to verify:
+   {verify_steps from checkpoint data}
+   ```
+
+   Use AskUserQuestion with options: "Looks good", "Has issues" (+ text field for details)
+
+   **For `decision`:**
+
+   ```text
+   CHECKPOINT: Decision Required
+
+   Plan {id}, Task {N}: {description}
+
+   Options:
+   {options from checkpoint data}
+   ```
+
+   Use AskUserQuestion with the options from the checkpoint as selectable choices
+
+   **For `human-action`:**
+
+   ```text
+   CHECKPOINT: Action Required
+
+   Plan {id}, Task {N}: {description}
+
+   You need to:
+   {required_action from checkpoint data}
+
+   Reply when complete.
+   ```
+
+   Use AskUserQuestion with options: "Done", "Can't do this right now"
+   If user selects "Can't do this right now": suggest "Run `/pbr:pause` to save state and resume later."
 
 7. Wait for user response
 8. Spawn a FRESH continuation executor:
@@ -1000,6 +1041,15 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete {N}
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 ```
+
+**CLI exit code verification with retry**: After running each pbr-tools CLI command above, check the exit code:
+
+- If the command succeeds (exit 0): proceed to next command
+- If the command fails (non-zero exit):
+  1. Log the error: "CLI command failed: {command} (exit {code})"
+  2. Wait 1 second
+  3. Retry the command once
+  4. If retry also fails: log warning "CLI command failed after retry: {command}" and continue. Do NOT block the workflow -- state can be reconciled later via `/pbr:status`
 
 - Current plan progress: "{completed}/{total} in current phase"
 - Last activity timestamp
@@ -1188,6 +1238,8 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} {f
 ```
 These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`. Falls back to manual editing if unavailable.
 
+**CLI exit code verification with retry**: Same pattern as Step 6f -- if any CLI command fails, retry once after 1 second. If retry also fails, fall back to manual ROADMAP.md editing. Log a warning but do not block the build.
+
 1. Open `.planning/ROADMAP.md`
 2. Find the `## Progress` table
 3. Locate the row matching this phase number
@@ -1209,6 +1261,42 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 
 To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8b '["STATE.md updated","ROADMAP.md updated","commit made"]'`
 If any item fails, investigate before marking phase complete.
+
+**8b-ii. Calculate and write velocity metrics to STATE.md (informational only):**
+
+After updating STATE.md status, calculate velocity metrics from this phase's build data:
+
+1. Read all SUMMARY.md files in the current phase directory. Extract `metrics.duration_minutes` from each frontmatter (if present). If duration is not in frontmatter, estimate from git log: time between first and last commit for that plan using `git log --format=%aI`.
+
+2. Calculate:
+   - `plans_executed`: count of SUMMARY.md files in this phase
+   - `avg_duration_minutes`: mean of all plan durations (round to nearest integer)
+   - `phase_duration_minutes`: total time from first plan start to last plan completion
+   - `trend`: compare this phase's avg\_duration to the previous phase's avg\_duration (read prior phase SUMMARY.md files if they exist):
+     - If >20% faster: "improving"
+     - If >20% slower: "degrading"
+     - Otherwise: "stable"
+     - If no previous phase data: "baseline"
+
+3. Count total plans across all phases from ROADMAP.md progress table for the `total_plans` metric.
+
+4. Write a `## Metrics` section to STATE.md. If a `## Metrics` section already exists, replace it. Otherwise insert it before `## History` (or append at end if no History section):
+
+```
+## Metrics
+
+| Metric | Value |
+|--------|-------|
+| Plans executed (this phase) | {plans_executed} |
+| Avg plan duration | {avg_duration_minutes} min |
+| Phase duration | {phase_duration_minutes} min |
+| Trend | {trend} |
+| Total plans (all phases) | {total_plans} |
+```
+
+5. Keep the metrics section concise (under 10 lines) to respect the 100-line STATE.md cap from RH-56. The metrics section replaces itself on each phase completion — it does NOT accumulate.
+
+6. Metrics are **informational only** — they do NOT gate any workflow decisions.
 
 **8c. Commit planning docs (if configured):**
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
