@@ -66,7 +66,11 @@ function isHighRisk(stateContent, roadmapContent) {
  * @returns {number[]}
  */
 function getAllRoadmapPhaseNumbers(content) {
-  const lines = content.split('\n');
+  // Strip <details>/<summary> HTML tags so phases inside collapsed milestone blocks are found
+  const stripped = content
+    .replace(/<\/?details>/gi, '')
+    .replace(/<\/?summary>/gi, '');
+  const lines = stripped.split('\n');
   const numbers = [];
   let inTable = false;
   let phaseColIndex = -1;
@@ -225,7 +229,11 @@ function parseState(content) {
  *   | 01    | ...  | ...  | ...   | ...  | pending |
  */
 function getRoadmapPhaseStatus(content, phaseNum) {
-  const lines = content.split('\n');
+  // Strip <details>/<summary> HTML tags so phases inside collapsed milestone blocks are found
+  const stripped = content
+    .replace(/<\/?details>/gi, '')
+    .replace(/<\/?summary>/gi, '');
+  const lines = stripped.split('\n');
 
   let statusColIndex = -1;
   let phaseColIndex = -1;
@@ -368,7 +376,11 @@ function checkSync(data) {
  */
 function parseRoadmapPhases(content) {
   const phases = new Set();
-  const lines = content.split('\n');
+  // Strip <details>/<summary> HTML tags so phases inside collapsed milestone blocks are found
+  const stripped = content
+    .replace(/<\/?details>/gi, '')
+    .replace(/<\/?summary>/gi, '');
+  const lines = stripped.split('\n');
 
   for (const line of lines) {
     // Match NN-slug patterns (at least two-digit prefix with hyphen and slug)
