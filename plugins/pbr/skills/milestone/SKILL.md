@@ -411,18 +411,34 @@ Read `git.branching` from config.
 **CRITICAL (no hook): Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
 
 7. **Collapse completed phases in ROADMAP.md:**
-   Replace detailed phase entries with collapsed summaries:
+   Replace detailed phase entries with a `<details>` collapsed summary (backward compat: also recognized by `-- COMPLETED` text):
 
    ```markdown
-   ## Milestone: {name} ({version}) -- COMPLETED
-
-   Phases {start}-{end} completed on {date}. See `.planning/milestones/{version}/ROADMAP.md` for details.
+   <details>
+   <summary>## Milestone: {name} ({version}) — SHIPPED {date}</summary>
 
    | Phase | Status |
    |-------|--------|
    | {N}. {name} | Completed |
    | {N+1}. {name} | Completed |
+
+   Completed: {date} | Archive: `.planning/milestones/{version}/`
+
+   </details>
    ```
+
+7a. **Update milestone index:**
+   After collapsing the milestone, update or create a `## Milestones` index section near the top of ROADMAP.md (after the title, before the first active milestone). Each entry is one line:
+
+   ```markdown
+   ## Milestones
+
+   | Version | Name | Status | Date |
+   |---------|------|--------|------|
+   | {version} | {name} | SHIPPED | {date} |
+   ```
+
+   If the section already exists, append a row. If it does not exist, create it.
 
 **CRITICAL (no hook): Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
