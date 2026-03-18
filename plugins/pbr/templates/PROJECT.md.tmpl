@@ -24,11 +24,15 @@
 
 ## Requirements Summary
 
-<!-- Guidelines: Bulleted features grouped by area. Each In Scope item must trace to a REQ-ID in REQUIREMENTS.md. -->
+<!-- Guidelines: Bulleted features grouped by area. Each Active Requirement must trace to a REQ-ID in REQUIREMENTS.md. -->
 
-### In Scope (v1)
+### Active Requirements (Current Milestone)
 
 - {Feature area}: {brief description}
+
+### Validated Requirements (Completed in Prior Milestones)
+
+- {Feature}: {validated in milestone vX.Y}
 
 ### Out of Scope
 
@@ -47,9 +51,9 @@
 
 <!-- Guidelines: Technology and architecture decisions locked at project start. Each needs rationale.
      These are LOCKED after creation -- changes require explicit scope-change discussion via /pbr:discuss-phase. -->
-| Decision | Rationale | Decided By |
-|----------|-----------|------------|
-| {decision} | {rationale} | {user/claude} |
+| Decision | Rationale | Decided By | Outcome |
+|----------|-----------|------------|---------|
+| {decision} | {rationale} | {user/claude} | {Good/Revisit/Pending} |
 
 ## Success Criteria
 
@@ -95,16 +99,27 @@ This document evolves through the project lifecycle:
 - **Updated by:** `/pbr:discuss-phase` when scope or constraints change
 - **Frozen after:** Roadmap creation -- subsequent changes require explicit scope-change discussion via `/pbr:discuss-phase`
 
+## Evolution Protocol
+
+At each milestone boundary, review and update:
+1. Move completed Active Requirements to Validated Requirements
+2. Review Out of Scope -- any items now in scope?
+3. Annotate Key Decisions with outcomes (Good/Revisit/Pending)
+4. Update Constraints if any changed
+5. Refresh Core Value if project direction shifted
+
 ## Quality Criteria
 
 A good PROJECT.md satisfies:
 - [ ] Core value is one sentence, under 20 words
 - [ ] What This Is answers: what, who, why in 2-3 sentences
-- [ ] Every In Scope item maps to at least one REQ-ID in REQUIREMENTS.md
+- [ ] Every Active Requirement maps to at least one REQ-ID in REQUIREMENTS.md
+- [ ] Validated Requirements reference the milestone where completed
 - [ ] Every Out of Scope item has a rationale
 - [ ] Success criteria are observable and testable
-- [ ] Key Decisions table has at least one entry
+- [ ] Key Decisions table has at least one entry with Outcome column
 - [ ] Constraints section is populated (even if "none identified")
+- [ ] Evolution Protocol section is present
 {{#brownfield}}
 - [ ] Validated Requirements cite evidence from existing code
 - [ ] Existing Architecture references codebase scan files
