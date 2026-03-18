@@ -16,7 +16,7 @@ Every skill that spawns agents or reads significant content must follow these ru
    - At < 500000 tokens (default 200k): read only frontmatter, status fields, or summaries. Never read full SUMMARY.md, VERIFICATION.md, or RESEARCH.md bodies.
    - At >= 500000 tokens (1M model): MAY read full subagent output bodies when the content is needed for inline presentation or decision-making. Still avoid unnecessary reads.
 4. **Delegate** heavy work to subagents — the orchestrator routes, it doesn't execute
-5. **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause-work` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
+5. **Before spawning agents**: If you've already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## Read Depth by Context Window
 

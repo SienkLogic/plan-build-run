@@ -1,6 +1,6 @@
 # Reading Verification Reports
 
-A user-friendly guide to understanding verification results. For agent-facing patterns, see `verification-patterns.md`.
+A user-friendly guide to understanding verification results.
 
 ---
 

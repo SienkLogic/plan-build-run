@@ -14,7 +14,7 @@ These rules prevent context rot -- quality degradation as the context window fil
 2. **Never** inline large files into Task() prompts -- tell agents to read files from disk instead. Agents have their own 200k token context windows.
 3. **Read depth scales with context window** — check `context_window_tokens` in `.planning/config.json`. At < 500000: read only frontmatter, status fields, or summaries from subagent output. At >= 500000 (1M model): full body reads are permitted when content is needed for inline decisions. See `skills/shared/context-budget.md` § "Read Depth by Context Window" for the complete table.
 4. **Delegate** heavy work to Task() subagents -- the orchestrator routes, it does not build, analyze, research, investigate, or verify.
-5. **Proactive pause warning**: If you have already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause-work` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
+5. **Proactive pause warning**: If you have already consumed significant context (large file reads, multiple subagent results), warn the user: "Context budget is getting heavy. Consider running `/pbr:pause` to checkpoint progress." Suggest pause proactively rather than waiting for compaction.
 
 ## File Reading Rules (apply to every skill)
 

@@ -26,7 +26,7 @@ Continue execution after showing a warning.
 
 ### Phase not found
 Message: "Phase {N} not found in ROADMAP.md."
-Fix: "Run `/pbr:progress` to see available phases."
+Fix: "Run `/pbr:status` to see available phases."
 
 ### Missing prerequisites (no REQUIREMENTS.md or ROADMAP.md)
 Message: "Project not initialized. Missing REQUIREMENTS.md or ROADMAP.md."
@@ -42,7 +42,7 @@ Fix: "Build Phase {M} first with `/pbr:execute-phase {M}`."
 
 ### Planner agent failure
 Message: "Planner agent failed for Phase {N}."
-Fix: "Try again with `/pbr:plan-phase {N} --skip-research`. Check `.planning/CONTEXT.md` for conflicting constraints."
+Fix: "Try again with `/pbr:plan-phase {N} --skip-research`. Check `.planning/PROJECT.md` for conflicting constraints."
 
 ### Checker loops (3+ iterations without pass)
 Message: "Plan checker failed to pass after 3 revision iterations for Phase {N}."
