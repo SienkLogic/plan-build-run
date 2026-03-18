@@ -187,11 +187,93 @@ function checkSessionStartQuality(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// SQ-02: Briefing Freshness
+// ---------------------------------------------------------------------------
+
+/**
+ * Measure STATE.md staleness and size relative to the most recent session start.
+ * Fresh = STATE.md modified within 1 hour of session start. Bloated = over 5000 chars.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkBriefingFreshness(planningDir, _config) {
+  const stateFile = path.join(planningDir, 'STATE.md');
+
+  // Check STATE.md existence
+  if (!fs.existsSync(stateFile)) {
+    return result('SQ-02', 'info', 'No STATE.md found', ['STATE.md does not exist']);
+  }
+
+  let stateMtime;
+  let stateContent;
+  try {
+    const stat = fs.statSync(stateFile);
+    stateMtime = stat.mtime;
+    stateContent = fs.readFileSync(stateFile, 'utf8');
+  } catch (_e) {
+    return result('SQ-02', 'warn', 'Could not read STATE.md', ['Error reading STATE.md']);
+  }
+
+  const stateSize = stateContent.length;
+  const evidence = [];
+
+  // Find most recent session-start from event logs
+  const logsDir = getLogsDir(planningDir);
+  const eventLogs = readEventLogs(logsDir);
+  const sessionStarts = eventLogs
+    .filter(e => e.cat === 'workflow' && e.event === 'session-start' && e.ts)
+    .sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+
+  if (sessionStarts.length === 0) {
+    // No session data — report size only
+    const sizeAssessment = stateSize > 5000 ? 'bloated' : 'reasonable';
+    evidence.push(`STATE.md: ${stateSize} chars (${sizeAssessment}), no session data to compare staleness`);
+    if (stateSize > 5000) {
+      return result('SQ-02', 'warn', `STATE.md is bloated (${stateSize} chars) — no session timing data`, evidence);
+    }
+    return result('SQ-02', 'info', 'No session data to measure staleness', evidence);
+  }
+
+  // Compare most recent session start to STATE.md mtime
+  const latestStart = new Date(sessionStarts[0].ts);
+  const stalenessMs = latestStart.getTime() - stateMtime.getTime();
+  const stalenessMin = Math.round(stalenessMs / 60000);
+  const isStale = stalenessMs > 3600000; // >1 hour
+  const isBloated = stateSize > 5000;
+
+  const ageStr = stalenessMs >= 0
+    ? `${stalenessMin}min before session start`
+    : `${Math.abs(stalenessMin)}min after session start`;
+
+  evidence.push(`STATE.md: ${stateSize} chars, last modified ${ageStr}`);
+  evidence.push(`Size assessment: ${isBloated ? 'bloated (>5000 chars)' : 'reasonable'}`);
+  evidence.push(`Freshness: ${isStale ? 'stale (>1h)' : 'fresh'}`);
+
+  let status;
+  let message;
+  if (!isStale && !isBloated) {
+    status = 'pass';
+    message = `STATE.md is fresh and ${stateSize} chars`;
+  } else {
+    status = 'warn';
+    const issues = [];
+    if (isStale) issues.push(`stale (${ageStr})`);
+    if (isBloated) issues.push(`bloated (${stateSize} chars)`);
+    message = `STATE.md: ${issues.join(', ')}`;
+  }
+
+  return result('SQ-02', status, message, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkSessionStartQuality,
+  checkBriefingFreshness,
   // Shared helpers exported for reuse by other SQ checks and tests
   readJsonlFiles,
   readHookLogs,
