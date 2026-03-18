@@ -86,10 +86,24 @@ class PlanningReader {
     }
 
     // Build response with progress as nested object (parsed by frontmatter lib)
-    // and history from body
+    // and history from body (backward compat for old STATE.md files)
     const result = { ...frontmatter };
     if (history) {
       result.history = history;
+    }
+
+    // Extract velocity metrics from frontmatter (new format)
+    if (frontmatter.velocity && typeof frontmatter.velocity === 'object') {
+      result.velocity = frontmatter.velocity;
+    }
+
+    // Extract session continuity from frontmatter (new format)
+    if (frontmatter.session_last) {
+      result.session = {
+        last: frontmatter.session_last,
+        stopped_at: frontmatter.session_stopped_at || null,
+        resume: frontmatter.session_resume || null,
+      };
     }
 
     return result;
@@ -203,10 +217,11 @@ class PlanningReader {
       const numPlans = plans.length;
       const numSummaries = summaries.length;
 
-      let status = 'todo';
-      if (hasVerification) status = 'done';
-      else if (numSummaries > 0) status = 'in-progress';
-      else if (numPlans > 0) status = 'in-progress';
+      let status = 'not_started';
+      if (hasVerification) status = 'verified';
+      else if (numSummaries >= numPlans && numPlans > 0) status = 'built';
+      else if (numSummaries > 0) status = 'building';
+      else if (numPlans > 0) status = 'planned';
 
       phases.push({
         id: phaseNum ? String(phaseNum[1]) : slug,
@@ -221,7 +236,7 @@ class PlanningReader {
         taskList: plans.map((p, i) => ({
           id: `${slug}-t${i}`,
           title: p.replace(/\.md$/i, ''),
-          status: i < numSummaries ? 'done' : (i === numSummaries && numSummaries > 0 ? 'in-progress' : 'todo'),
+          status: i < numSummaries ? 'complete' : (i === numSummaries && numSummaries > 0 ? 'building' : 'not_started'),
         })),
       });
     }
