@@ -274,6 +274,8 @@ async function processEvent(data, planningDir) {
     }
   }
 
+  try { logHook('post-write-dispatch', 'PostToolUse', 'complete', { checks: results.length, hasWarnings: results.length > 0 }); } catch(_) {}
+
   // Merge all results into a single response
   if (results.length > 0) {
     return { additionalContext: results.join('\n') };
@@ -308,6 +310,7 @@ function main() {
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
   process.stdin.on('end', async () => {
+    try { logHook('post-write-dispatch', 'PostToolUse', 'entry', {}); } catch(_) {}
     try {
       const data = JSON.parse(input);
       const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();

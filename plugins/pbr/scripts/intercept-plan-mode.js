@@ -19,11 +19,14 @@ function main() {
   process.stdin.on('data', () => {});
   process.stdin.on('end', () => {
     try {
+      try { logHook('intercept-plan-mode', 'PreToolUse', 'entry', {}); } catch(_) {}
+
       const cwd = process.cwd();
       const planningDir = path.join(cwd, '.planning');
 
       // Only relevant for Plan-Build-Run projects
       if (!fs.existsSync(planningDir)) {
+        try { logHook('intercept-plan-mode', 'PreToolUse', 'skip', { reason: 'no .planning dir' }); } catch(_) {}
         process.exit(0);
       }
 

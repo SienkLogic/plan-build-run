@@ -29,7 +29,10 @@ function main() {
     const toolInput = hookInput.tool_input || {};
     const filePath = toolInput.file_path || '';
 
+    try { logHook('block-skill-self-read', 'PreToolUse', 'entry', { file: filePath || '(none)' }); } catch(_) {}
+
     if (!filePath) {
+      try { logHook('block-skill-self-read', 'PreToolUse', 'skip', { reason: 'no file path' }); } catch(_) {}
       process.exit(0);
     }
 
@@ -44,10 +47,12 @@ function main() {
       skillName = fs.readFileSync(activeSkillPath, 'utf8').trim();
     } catch (_readErr) {
       // No .active-skill file — nothing to block
+      try { logHook('block-skill-self-read', 'PreToolUse', 'skip', { reason: 'no active skill' }); } catch(_) {}
       process.exit(0);
     }
 
     if (!skillName) {
+      try { logHook('block-skill-self-read', 'PreToolUse', 'skip', { reason: 'no active skill' }); } catch(_) {}
       process.exit(0);
     }
 
