@@ -295,6 +295,12 @@ To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-de
 
 Display to the user: `◆ Spawning researcher...`
 
+**Parallel research optimization (1M context):** If `context_window_tokens` in `.planning/config.json` is >= 500000, spawn the researcher Task() AND the pre-planner briefing Task() (Step 4.5) in parallel using `run_in_background: true` for both. Both are independent -- the researcher analyzes technologies while the briefing scans seeds and deferred items. Wait for both to complete before proceeding to the planner.
+
+Display: `◆ Spawning researcher + pre-planner briefing in parallel (1M context)...`
+
+If `context_window_tokens` < 500000, maintain the existing sequential flow: researcher first, then pre-planner briefing.
+
 Spawn a researcher Task():
 
 ```
@@ -339,6 +345,8 @@ After the researcher completes, check the Task() output for a completion marker:
 ### Step 4.5: Pre-Planner Briefing (delegated)
 
 **CRITICAL (no hook): Run pre-planner briefing before spawning the planner. Do NOT skip this step.**
+
+**Note:** If `context_window_tokens` >= 500000, this step was already spawned in parallel with the researcher in Step 4. Skip spawning it again -- just read the results.
 
 Consolidate seed scanning and deferred idea surfacing into a single lightweight Task():
 

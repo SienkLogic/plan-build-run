@@ -589,6 +589,7 @@ Use the filled template as the Task() prompt.
 **Spawn strategy based on config:**
 
 - If `parallelization.enabled: true` AND multiple plans in this wave:
+  - **Extended context override:** If `features.extended_context` is `true` in `.planning/config.json`, use `max_concurrent_agents = 5` regardless of the configured value (unless the configured value is already higher). The 1M context window gives the orchestrator enough headroom to track 5 concurrent executor results. Log: "Extended context: raising max_concurrent_agents to 5"
   - Spawn up to `max_concurrent_agents` Task() calls in parallel
   - Each Task() call is independent
   - Use `run_in_background: true` for each executor

@@ -168,7 +168,9 @@ Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verif
 
 #### Team Review Mode
 
-If `--teams` flag is present OR `config.parallelization.use_teams` is true:
+If `--teams` flag is present OR `config.parallelization.use_teams` is true OR `features.extended_context` is `true` in `.planning/config.json`:
+
+When triggered by `extended_context`, log: "Extended context: auto-enabling team review (3 parallel verifiers)"
 
 1. Create team output directory: `.planning/phases/{NN}-{slug}/team/` (if not exists)
 2. Display to the user: `◆ Spawning 3 verifiers in parallel (functional, security, performance)...`
