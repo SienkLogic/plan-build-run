@@ -129,11 +129,38 @@ class PlanningReader {
     if (!content) return [];
 
     const milestones = [];
-    const regex = /## Milestone:\s*(.+)/g;
-    let match;
     let idx = 0;
-    while ((match = regex.exec(content)) !== null) {
+
+    // New format: <details><summary>## Milestone: Name (vX.Y) — SHIPPED date</summary>
+    const detailsRegex = /<summary>## Milestone:\s*(.+?)<\/summary>/g;
+    let match;
+    while ((match = detailsRegex.exec(content)) !== null) {
       const raw = match[1];
+      const shippedMatch = raw.match(/\u2014\s*SHIPPED\s+(.+)$/);
+      const nameClean = raw.replace(/\s*\u2014\s*SHIPPED.*$/i, '').trim();
+      const versionMatch = nameClean.match(/\(v([\d.]+)\)/);
+      const name = nameClean.replace(/\s*\(v[\d.]+\)/, '').trim();
+      const version = versionMatch ? versionMatch[1] : null;
+      milestones.push({
+        id: `ms-${idx++}`,
+        name,
+        title: version ? `${name} (v${version})` : name,
+        version,
+        status: 'completed',
+        archived: true,
+        progress: 100,
+        description: shippedMatch ? `Shipped ${shippedMatch[1].trim()}` : null,
+      });
+    }
+
+    // Old format + active milestones: ## Milestone: Name (optionally -- COMPLETED)
+    const directRegex = /^## Milestone:\s*(.+)/gm;
+    while ((match = directRegex.exec(content)) !== null) {
+      const raw = match[1];
+      // Skip if this heading is inside a <summary> (already captured above)
+      const preceding = content.slice(Math.max(0, match.index - 20), match.index);
+      if (preceding.includes('<summary>')) continue;
+
       const completed = /--\s*COMPLETED/i.test(raw);
       const nameClean = raw.replace(/\s*--\s*COMPLETED.*$/i, '').trim();
       const versionMatch = nameClean.match(/\(v([\d.]+)\)/);
@@ -150,6 +177,7 @@ class PlanningReader {
         description: null,
       });
     }
+
     return milestones;
   }
 
@@ -525,6 +553,23 @@ class PlanningReader {
         provides = providesMatch[1].trim().split(/\r?\n/).map(l => l.replace(/^- /, '').trim()).filter(Boolean);
       }
 
+      // Extract Requirements (REQ-IDs)
+      const reqMatch = body.match(/\*\*Requirements:\*\*\s*(.+)/);
+      const requirements = reqMatch
+        ? reqMatch[1].trim().split(/[,\s]+/).filter(s => /^REQ-/.test(s))
+        : [];
+
+      // Extract Success Criteria
+      let successCriteria = [];
+      const scMatch = body.match(/\*\*Success Criteria:\*\*\s*\r?\n((?:- .+\r?\n?)*)/);
+      if (scMatch) {
+        successCriteria = scMatch[1].trim().split(/\r?\n/).map(l => l.replace(/^- /, '').trim()).filter(Boolean);
+      } else {
+        // Single-line format
+        const scSingle = body.match(/\*\*Success Criteria:\*\*\s*(.+)/);
+        if (scSingle) successCriteria = [scSingle[1].trim()];
+      }
+
       // Extract Implements
       const implMatch = body.match(/\*\*Implements:\*\*\s*(.+)/);
       const implements_ = implMatch ? implMatch[1].trim() : null;
@@ -544,6 +589,8 @@ class PlanningReader {
         dependsOn,
         provides,
         implements: implements_,
+        requirements,
+        successCriteria,
       });
     }
 
