@@ -372,12 +372,12 @@ function resolveDimensions(config, cliFlags) {
 
   // Step 7 early: --only overrides everything
   if (flags.only && flags.only.length > 0) {
-    const result = [];
+    const onlyMap = new Map();
     for (const id of flags.only) {
-      const dim = resolveDimension(id);
-      if (dim) result.push(dim);
+      const d = resolveDimension(id);
+      if (d) onlyMap.set(d.code, d);
     }
-    return result.sort((a, b) => a.code.localeCompare(b.code));
+    return Array.from(onlyMap.values()).sort((a, b) => a.code.localeCompare(b.code));
   }
 
   // Step 1: Determine preset
