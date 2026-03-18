@@ -173,6 +173,26 @@ Check the resumption priority hierarchy (same as /pbr:resume-work):
 7. **Last phase in current milestone complete**: Verification passed on the last phase of the current milestone's phase range → Stop. Display: "Milestone complete! Run `/pbr:audit-milestone` to verify cross-phase integration, then `/pbr:complete-milestone` to archive."
 8. **Between milestones**: Current milestone is marked complete in STATE.md, but more milestones exist or user needs to create the next one → Stop. Display: "Current milestone is complete. Run `/pbr:new-milestone` to start the next milestone, or `/pbr:audit-milestone` if not yet audited."
 
+#### Status-Based Routing (13 valid statuses)
+
+When the priority hierarchy above doesn't match, route based on the current phase status from STATE.md:
+
+| Status | Next Action |
+|--------|-------------|
+| `not_started` | Suggest `/pbr:discuss-phase {N}` or `/pbr:plan-phase {N}` |
+| `discussed` | Suggest `/pbr:plan-phase {N}` |
+| `ready_to_plan` | Suggest `/pbr:plan-phase {N}` |
+| `planning` | Wait for planner to complete, or re-run `/pbr:plan-phase {N}` |
+| `planned` | Suggest `/pbr:build {N}` |
+| `ready_to_execute` | Suggest `/pbr:build {N}` |
+| `building` | Resume build with `/pbr:build {N}` |
+| `built` | Suggest `/pbr:review {N}` |
+| `partial` | Resume build with `/pbr:build {N}` |
+| `verified` | Suggest `/pbr:plan-phase {N+1}` or milestone completion |
+| `needs_fixes` | Suggest `/pbr:plan-phase {N} --gaps` |
+| `complete` | Advance to next phase or milestone completion |
+| `skipped` | Advance to next phase |
+
 ### Step 3: Execute
 
 Based on the determined action, display the delegation indicator to the user:
