@@ -16,7 +16,9 @@ References: @references/questioning.md, @references/ui-brand.md
 **Before ANY tool calls**, display this banner:
 
 ```
-PLAN-BUILD-RUN > AUTONOMOUS MODE
+╔══════════════════════════════════════════════════════════════╗
+║  PLAN-BUILD-RUN ► AUTONOMOUS MODE                           ║
+╚══════════════════════════════════════════════════════════════╝
 ```
 
 Then proceed to Step 1.
