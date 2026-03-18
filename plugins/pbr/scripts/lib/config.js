@@ -10,6 +10,222 @@ const path = require('path');
 const { validateObject } = require('./core');
 const { CURRENT_SCHEMA_VERSION } = require('./migrate');
 
+// --- Config defaults (all sections with schema defaults) ---
+
+const CONFIG_DEFAULTS = {
+  version: 2,
+  schema_version: 3,
+  context_strategy: 'aggressive',
+  mode: 'interactive',
+  depth: 'standard',
+  session_phase_limit: 3,
+  session_cycling: 'compact',
+  context_window_tokens: 200000,
+  agent_checkpoint_pct: 50,
+  ceremony_level: 'auto',
+  orchestrator_budget_pct: 25,
+  skip_rag_max_lines: 50000,
+  features: {
+    structured_planning: true,
+    goal_verification: true,
+    integration_verification: true,
+    context_isolation: true,
+    atomic_commits: true,
+    session_persistence: true,
+    research_phase: true,
+    plan_checking: true,
+    tdd_mode: false,
+    status_line: true,
+    auto_continue: false,
+    auto_advance: false,
+    team_discussions: false,
+    inline_verify: false,
+    enhanced_session_start: true,
+    context_quality_scoring: true,
+    skip_rag: false,
+    zero_friction_quick: true,
+    post_hoc_artifacts: true,
+    inline_simple_tasks: true,
+    rich_agent_prompts: true,
+    multi_phase_awareness: true,
+    decision_journal: true,
+    negative_knowledge: true,
+    living_requirements: true,
+    trust_tracking: true,
+    confidence_calibration: true,
+    natural_language_routing: true,
+    adaptive_ceremony: true,
+    graduated_verification: true,
+    self_verification: true,
+    agent_feedback_loop: true,
+    session_metrics: true,
+    convention_memory: true,
+    mental_model_snapshots: true,
+    smart_next_task: true,
+    dependency_break_detection: true,
+    pre_research: true,
+    pattern_routing: true,
+    tech_debt_surfacing: true,
+    agent_teams: false,
+    competing_hypotheses: false,
+    dynamic_teams: false,
+    machine_executable_plans: false,
+    spec_diffing: true,
+    reverse_spec: false,
+    predictive_impact: true,
+    progress_visualization: true,
+    contextual_help: true,
+    team_onboarding: false,
+    multi_layer_validation: false,
+    regression_prevention: true,
+    security_scanning: true,
+    architecture_graph: true,
+    architecture_guard: true
+  },
+  validation_passes: ['correctness', 'security'],
+  autonomy: { level: 'supervised' },
+  models: {
+    researcher: 'sonnet',
+    planner: 'sonnet',
+    executor: 'sonnet',
+    verifier: 'sonnet',
+    integration_checker: 'sonnet',
+    debugger: 'inherit',
+    mapper: 'sonnet',
+    synthesizer: 'haiku',
+    complexity_map: { simple: 'haiku', medium: 'sonnet', complex: 'inherit' }
+  },
+  model_profiles: {},
+  parallelization: {
+    enabled: false,
+    plan_level: false,
+    task_level: false,
+    max_concurrent_agents: 3,
+    min_plans_for_parallel: 2,
+    use_teams: false
+  },
+  teams: {
+    planning_roles: ['architect', 'security-reviewer', 'test-designer'],
+    review_roles: ['functional-reviewer', 'security-auditor', 'performance-analyst'],
+    synthesis_model: 'sonnet',
+    coordination: 'file-based'
+  },
+  planning: {
+    commit_docs: false,
+    max_tasks_per_plan: 3,
+    search_gitignored: false,
+    multi_phase: false
+  },
+  git: {
+    branching: 'none',
+    commit_format: '{type}({phase}-{plan}): {description}',
+    phase_branch_template: 'pbr/phase-{phase}-{slug}',
+    milestone_branch_template: 'pbr/{milestone}-{slug}',
+    mode: 'enabled',
+    auto_pr: false
+  },
+  ci: { gate_enabled: false, wait_timeout_seconds: 120 },
+  gates: {
+    confirm_project: true,
+    confirm_roadmap: true,
+    confirm_plan: true,
+    confirm_execute: false,
+    confirm_transition: true,
+    issues_review: false,
+    confirm_research: false,
+    confirm_seeds: false,
+    confirm_deferred: false,
+    confirm_commit_docs: false,
+    auto_checkpoints: false,
+    checkpoint_auto_resolve: 'none'
+  },
+  safety: {
+    always_confirm_destructive: true,
+    always_confirm_external_services: true,
+    enforce_phase_boundaries: true
+  },
+  timeouts: {
+    task_default_ms: 300000,
+    build_max_ms: 600000,
+    verify_max_ms: 300000
+  },
+  hooks: {
+    autoFormat: false,
+    typeCheck: false,
+    detectConsoleLogs: true,
+    blockDocSprawl: true,
+    compactThreshold: 50
+  },
+  prd: { auto_extract: false },
+  depth_profiles: {},
+  debug: { max_hypothesis_rounds: 5 },
+  developer_profile: { enabled: false, inject_prompts: false },
+  spinner_tips: { tips: [], exclude_defaults: false },
+  dashboard: { auto_launch: false, port: 3141 },
+  status_line: {
+    sections: ['phase', 'plan', 'status', 'context'],
+    brand_text: 'PBR',
+    max_status_length: 80,
+    context_bar: {
+      width: 20,
+      thresholds: { green: 50, yellow: 75 },
+      chars: { filled: '\u2588', empty: '\u2591' }
+    }
+  },
+  workflow: {
+    enforce_pbr_skills: 'advisory',
+    inline_execution: false,
+    inline_max_tasks: 2,
+    inline_context_cap_pct: 40,
+    phase_boundary_clear: 'off',
+    autonomous: false,
+    speculative_planning: false,
+    phase_replay: false,
+    inline_max_files: 5,
+    inline_max_lines: 50,
+    max_phases_in_context: 3
+  },
+  hook_server: { enabled: false, port: 19836, event_log: true },
+  local_llm: { enabled: false },
+  intel: { enabled: false, auto_update: false, inject_on_start: false },
+  context_ledger: { enabled: false, stale_after_minutes: 60 },
+  learnings: { enabled: false, read_depth: 3, cross_project_knowledge: false },
+  verification: { confidence_gate: false, confidence_threshold: 1 },
+  context_budget: { threshold_curve: 'linear' },
+  ui: { enabled: false },
+  worktree: { sparse_paths: [] }
+};
+
+/**
+ * Deep-merge defaults into a config object. User values take precedence.
+ * For nested objects, merges recursively. Scalars from config take precedence over defaults.
+ * Arrays from config take precedence (no merging of array elements).
+ *
+ * @param {object} config - The user's config (values override defaults)
+ * @param {object} defaults - Default values to fill in
+ * @returns {object} Config with all missing fields populated from defaults
+ */
+function configEnsureComplete(config, defaults) {
+  if (!defaults) defaults = CONFIG_DEFAULTS;
+  const result = { ...config };
+  for (const [key, defaultValue] of Object.entries(defaults)) {
+    if (result[key] === undefined) {
+      // Key not in config — use default (deep clone objects/arrays)
+      result[key] = (typeof defaultValue === 'object' && defaultValue !== null)
+        ? JSON.parse(JSON.stringify(defaultValue))
+        : defaultValue;
+    } else if (
+      typeof defaultValue === 'object' && defaultValue !== null && !Array.isArray(defaultValue) &&
+      typeof result[key] === 'object' && result[key] !== null && !Array.isArray(result[key])
+    ) {
+      // Both are objects — merge recursively (config values take precedence)
+      result[key] = configEnsureComplete(result[key], defaultValue);
+    }
+    // Scalar or array in config already set — config wins
+  }
+  return result;
+}
+
 // --- Cached config loader ---
 
 let _configCache = null;
@@ -34,7 +250,7 @@ function configLoad(dir) {
     if (_configCache && mtime === _configMtime && configPath === _configPath) {
       return _configCache;
     }
-    _configCache = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    _configCache = configEnsureComplete(JSON.parse(fs.readFileSync(configPath, 'utf8')));
     _configMtime = mtime;
     _configPath = configPath;
     return _configCache;
@@ -301,6 +517,8 @@ module.exports = {
   configLoad,
   configClearCache,
   configValidate,
+  configEnsureComplete,
+  CONFIG_DEFAULTS,
   resolveConfig,
   resolveDepthProfile,
   DEPTH_PROFILE_DEFAULTS,
