@@ -103,7 +103,8 @@ For each remaining phase N:
 - Check if `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist
 - If NOT exists:
   - Invoke: `Skill({ skill: "pbr:plan", args: "{N} --auto" })`
-- If plans exist: skip planning (plans already created)
+- If plans exist (from speculative planning or prior run): skip planning.
+  - Log: `Phase {N}: plans already exist (speculative or prior) -- skipping plan step.`
 - If Skill returns failure: stop autonomous loop, display error, suggest: `/pbr:plan {N}`
 
 ### 3c. Build Phase
@@ -249,6 +250,7 @@ PLAN-BUILD-RUN > AUTONOMOUS COMPLETE
 
 Phases completed: {list}
 Phases remaining: {list}
+Speculative plans used: {count} (re-planned: {count})
 Total time: {elapsed}
 Errors encountered: {count}
 ```
@@ -283,6 +285,7 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
 {
   "current_phase": 4,
   "completed_phases": [2, 3],
+  "speculative_plans": {"5": "pending", "6": "pending"},
   "failed_phase": null,
   "error": null,
   "started_at": "2026-01-15T10:00:00Z",
