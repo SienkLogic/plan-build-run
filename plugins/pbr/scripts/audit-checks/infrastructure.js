@@ -387,13 +387,401 @@ function checkConfigSchemaValidation(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// IH-03: Hook Execution Performance
+// ---------------------------------------------------------------------------
+
+/**
+ * Analyze hook execution durations from log files and flag slow hooks.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkHookExecPerformance(planningDir, config) {
+  const thresholds = (config && config.audit && config.audit.thresholds) || {};
+  const maxMs = thresholds.hook_performance_ms || 500;
+  const logsDir = path.join(planningDir, 'logs');
+
+  let logFiles;
+  try {
+    logFiles = fs.readdirSync(logsDir)
+      .filter(f => /^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
+      .sort()
+      .reverse();
+  } catch (_e) {
+    return result('IH-03', 'pass', 'No hook logs found to analyze');
+  }
+
+  if (logFiles.length === 0) {
+    return result('IH-03', 'pass', 'No hook logs found to analyze');
+  }
+
+  const slowHooks = [];
+  let totalAnalyzed = 0;
+  let maxDuration = 0;
+
+  // Analyze up to the 3 most recent log files
+  for (const file of logFiles.slice(0, 3)) {
+    let content;
+    try {
+      content = fs.readFileSync(path.join(logsDir, file), 'utf8');
+    } catch (_e) {
+      continue;
+    }
+
+    const lines = content.split('\n').filter(Boolean);
+    for (const line of lines) {
+      let entry;
+      try {
+        entry = JSON.parse(line);
+      } catch (_e) {
+        continue;
+      }
+
+      if (typeof entry.duration_ms === 'number') {
+        totalAnalyzed++;
+        if (entry.duration_ms > maxDuration) {
+          maxDuration = entry.duration_ms;
+        }
+        if (entry.duration_ms > maxMs) {
+          slowHooks.push(
+            `${entry.hook || 'unknown'}: ${entry.duration_ms}ms in ${file}`
+          );
+        }
+      }
+    }
+  }
+
+  if (slowHooks.length > 0) {
+    return result('IH-03', 'warn',
+      `${slowHooks.length} hook execution(s) exceeded ${maxMs}ms threshold`,
+      slowHooks.slice(0, 10)
+    );
+  }
+
+  return result('IH-03', 'pass',
+    `All hooks under ${maxMs}ms threshold`,
+    [`Analyzed ${totalAnalyzed} entries, max duration: ${maxDuration}ms`]
+  );
+}
+
+// ---------------------------------------------------------------------------
+// IH-07: Log Rotation Health
+// ---------------------------------------------------------------------------
+
+/**
+ * Check for log files older than the rotation threshold.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkLogRotationHealth(planningDir, config) {
+  const thresholds = (config && config.audit && config.audit.thresholds) || {};
+  const maxDays = thresholds.log_rotation_max_days || 30;
+  const logsDir = path.join(planningDir, 'logs');
+
+  let files;
+  try {
+    files = fs.readdirSync(logsDir);
+  } catch (_e) {
+    return result('IH-07', 'pass', 'No logs directory found');
+  }
+
+  const logPattern = /^(?:hooks|events)-(\d{4}-\d{2}-\d{2})\.jsonl$/;
+  const now = Date.now();
+  const maxAgeMs = maxDays * 24 * 60 * 60 * 1000;
+  const oldFiles = [];
+
+  for (const file of files) {
+    const match = logPattern.exec(file);
+    if (!match) continue;
+
+    const fileDate = new Date(match[1] + 'T00:00:00');
+    if (isNaN(fileDate.getTime())) continue;
+
+    const ageMs = now - fileDate.getTime();
+    if (ageMs > maxAgeMs) {
+      const ageDays = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+      oldFiles.push(`${file}: ${ageDays} days old (threshold: ${maxDays})`);
+    }
+  }
+
+  if (oldFiles.length > 0) {
+    return result('IH-07', 'warn',
+      `${oldFiles.length} log file(s) older than ${maxDays} days`,
+      oldFiles
+    );
+  }
+
+  return result('IH-07', 'pass', 'Log rotation healthy');
+}
+
+// ---------------------------------------------------------------------------
+// IH-08: Disk Usage Tracking
+// ---------------------------------------------------------------------------
+
+/**
+ * Calculate .planning/ directory size and check against threshold.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkDiskUsageTracking(planningDir, config) {
+  const thresholds = (config && config.audit && config.audit.thresholds) || {};
+  const warnMb = thresholds.disk_usage_warn_mb || 50;
+
+  /**
+   * Recursively calculate directory size in bytes.
+   * @param {string} dir
+   * @returns {number}
+   */
+  function dirSize(dir) {
+    let total = 0;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (_e) {
+      return 0;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      try {
+        if (entry.isSymbolicLink()) continue;
+        if (entry.isDirectory()) {
+          total += dirSize(full);
+        } else if (entry.isFile()) {
+          total += fs.statSync(full).size;
+        }
+      } catch (_e) {
+        // EPERM / ENOENT — skip
+      }
+    }
+    return total;
+  }
+
+  const totalBytes = dirSize(planningDir);
+  const totalMb = (totalBytes / (1024 * 1024)).toFixed(2);
+
+  const milestonesDir = path.join(planningDir, 'milestones');
+  const milestonesBytes = dirSize(milestonesDir);
+  const milestonesMb = (milestonesBytes / (1024 * 1024)).toFixed(2);
+
+  const otherMb = ((totalBytes - milestonesBytes) / (1024 * 1024)).toFixed(2);
+
+  const evidence = [
+    `Total: ${totalMb} MB`,
+    `Milestones: ${milestonesMb} MB`,
+    `Other: ${otherMb} MB`,
+  ];
+
+  if (parseFloat(totalMb) > warnMb) {
+    return result('IH-08', 'warn',
+      `.planning/ directory exceeds ${warnMb} MB`,
+      evidence
+    );
+  }
+
+  return result('IH-08', 'pass',
+    `.planning/ directory size within limits`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// IH-09: Dispatch Chain Coverage
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify that all dispatch sub-hooks have evidence of execution in logs.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkDispatchChainCoverage(planningDir, _config) {
+  const expectedSubHooks = [
+    // post-write-dispatch
+    'checkPlanWrite', 'checkStateWrite', 'checkSync',
+    'checkStateSync', 'checkQuality', 'syncContextToClaude', 'queueIntelUpdate',
+    // pre-bash-dispatch
+    'checkDangerous', 'checkCommit', 'checkUnmanagedCommit',
+    // pre-write-dispatch
+    'checkAgentStateWrite', 'checkWorkflow', 'checkSummaryGate',
+    'checkBoundary', 'checkDocSprawl', 'checkUnmanagedSourceWrite',
+  ];
+
+  const logsDir = path.join(planningDir, 'logs');
+  let logFiles;
+  try {
+    logFiles = fs.readdirSync(logsDir)
+      .filter(f => /^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
+      .sort()
+      .reverse();
+  } catch (_e) {
+    return result('IH-09', 'warn', 'No hook logs to analyze dispatch chain');
+  }
+
+  if (logFiles.length === 0) {
+    return result('IH-09', 'warn', 'No hook logs to analyze dispatch chain');
+  }
+
+  // Read the most recent log file
+  let content;
+  try {
+    content = fs.readFileSync(path.join(logsDir, logFiles[0]), 'utf8');
+  } catch (_e) {
+    return result('IH-09', 'warn', 'Could not read most recent hook log');
+  }
+
+  // Build a set of sub-hook names found in logs
+  const foundHooks = new Set();
+  const lines = content.split('\n').filter(Boolean);
+  for (const line of lines) {
+    for (const hookName of expectedSubHooks) {
+      if (line.includes(hookName)) {
+        foundHooks.add(hookName);
+      }
+    }
+  }
+
+  const missing = expectedSubHooks.filter(h => !foundHooks.has(h));
+
+  if (missing.length === 0) {
+    return result('IH-09', 'pass',
+      'All dispatch sub-hooks have log evidence',
+      [`${expectedSubHooks.length} sub-hooks verified in ${logFiles[0]}`]
+    );
+  }
+
+  return result('IH-09', 'warn',
+    `${missing.length} dispatch sub-hook(s) have no log evidence`,
+    missing.map(h => `No log evidence for: ${h}`)
+  );
+}
+
+// ---------------------------------------------------------------------------
+// IH-10: Log Source Separation Quality
+// ---------------------------------------------------------------------------
+
+/**
+ * Check events log for proper source tagging on all entries.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkLogSourceSeparation(planningDir, _config) {
+  const logsDir = path.join(planningDir, 'logs');
+  let logFiles;
+  try {
+    logFiles = fs.readdirSync(logsDir)
+      .filter(f => /^events-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
+      .sort()
+      .reverse();
+  } catch (_e) {
+    return result('IH-10', 'pass', 'No event logs to analyze');
+  }
+
+  if (logFiles.length === 0) {
+    return result('IH-10', 'pass', 'No event logs to analyze');
+  }
+
+  // Read the most recent event log
+  let content;
+  try {
+    content = fs.readFileSync(path.join(logsDir, logFiles[0]), 'utf8');
+  } catch (_e) {
+    return result('IH-10', 'pass', 'Could not read event log');
+  }
+
+  const lines = content.split('\n').filter(Boolean);
+  let total = 0;
+  let untagged = 0;
+  let testSources = 0;
+
+  for (const line of lines) {
+    let entry;
+    try {
+      entry = JSON.parse(line);
+    } catch (_e) {
+      continue;
+    }
+    total++;
+    if (!entry.source && !entry.category) {
+      untagged++;
+    }
+    if (entry.source === 'test' || (entry.pid && String(entry.pid).includes('test'))) {
+      testSources++;
+    }
+  }
+
+  if (total === 0) {
+    return result('IH-10', 'pass', 'No event entries to analyze');
+  }
+
+  const evidence = [`Total: ${total}, Untagged: ${untagged}, Test-sourced: ${testSources}`];
+
+  if (untagged > 0) {
+    return result('IH-10', 'warn',
+      `${untagged} of ${total} event entries lack source tags`,
+      evidence
+    );
+  }
+
+  return result('IH-10', 'pass', 'All events have source tags', evidence);
+}
+
+// ---------------------------------------------------------------------------
+// Aggregate Runner
+// ---------------------------------------------------------------------------
+
+/**
+ * Run all 10 infrastructure health checks and return results array.
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} config - Parsed config.json
+ * @returns {Array<{ dimension: string, status: string, message: string, evidence: string[] }>}
+ */
+function runAllInfraChecks(planningDir, config) {
+  const checks = [
+    { dim: 'IH-01', fn: checkHookServerHealth },
+    { dim: 'IH-02', fn: checkDashboardHealth },
+    { dim: 'IH-03', fn: checkHookExecPerformance },
+    { dim: 'IH-04', fn: checkStaleFileDetection },
+    { dim: 'IH-05', fn: checkPluginCacheFreshness },
+    { dim: 'IH-06', fn: checkConfigSchemaValidation },
+    { dim: 'IH-07', fn: checkLogRotationHealth },
+    { dim: 'IH-08', fn: checkDiskUsageTracking },
+    { dim: 'IH-09', fn: checkDispatchChainCoverage },
+    { dim: 'IH-10', fn: checkLogSourceSeparation },
+  ];
+
+  const results = [];
+  for (const check of checks) {
+    try {
+      results.push(check.fn(planningDir, config));
+    } catch (e) {
+      results.push(result(check.dim, 'fail', `Check threw error: ${e.message}`));
+    }
+  }
+
+  return results.sort((a, b) => {
+    const numA = parseInt(a.dimension.split('-')[1], 10);
+    const numB = parseInt(b.dimension.split('-')[1], 10);
+    return numA - numB;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
 module.exports = {
   checkHookServerHealth,
   checkDashboardHealth,
+  checkHookExecPerformance,
   checkStaleFileDetection,
   checkPluginCacheFreshness,
   checkConfigSchemaValidation,
+  checkLogRotationHealth,
+  checkDiskUsageTracking,
+  checkDispatchChainCoverage,
+  checkLogSourceSeparation,
+  runAllInfraChecks,
 };
