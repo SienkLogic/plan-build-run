@@ -469,3 +469,214 @@ deferred: []
     }
   });
 });
+
+// --- Unit tests for aggregateToKnowledge ---
+
+describe('aggregateToKnowledge', () => {
+  let mod;
+  let tmpDir;
+
+  beforeAll(() => {
+    mod = require(SCRIPT);
+  });
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ms-knowledge-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('creates KNOWLEDGE.md if it does not exist', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    const entries = [{
+      source_project: 'test-app',
+      type: 'tech-pattern',
+      tags: ['pattern'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'Pattern: Repository pattern for data access',
+      detail: 'Repository pattern for data access'
+    }];
+
+    const result = mod.aggregateToKnowledge(entries, knowledgePath);
+    expect(fs.existsSync(knowledgePath)).toBe(true);
+    expect(result.added).toBe(1);
+    expect(result.skipped).toBe(0);
+
+    const content = fs.readFileSync(knowledgePath, 'utf8');
+    expect(content).toContain('Repository pattern for data access');
+    expect(content).toContain('P001');
+  });
+
+  test('appends to existing KNOWLEDGE.md', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    // Write initial KNOWLEDGE.md with one existing pattern
+    fs.writeFileSync(knowledgePath, mod.KNOWLEDGE_TEMPLATE, 'utf8');
+
+    // First aggregation
+    const entries1 = [{
+      source_project: 'app1',
+      type: 'tech-pattern',
+      tags: ['pattern'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'Pattern: Factory pattern',
+      detail: 'Factory pattern'
+    }];
+    mod.aggregateToKnowledge(entries1, knowledgePath);
+
+    // Second aggregation adds new entry
+    const entries2 = [{
+      source_project: 'app2',
+      type: 'tech-pattern',
+      tags: ['pattern'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'Pattern: Builder pattern',
+      detail: 'Builder pattern'
+    }];
+    const result = mod.aggregateToKnowledge(entries2, knowledgePath);
+    expect(result.added).toBe(1);
+
+    const content = fs.readFileSync(knowledgePath, 'utf8');
+    expect(content).toContain('Factory pattern');
+    expect(content).toContain('Builder pattern');
+    expect(content).toContain('P001');
+    expect(content).toContain('P002');
+  });
+
+  test('deduplicates entries — same pattern not added twice', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    const entries = [{
+      source_project: 'test-app',
+      type: 'tech-pattern',
+      tags: ['pattern'],
+      confidence: 'low',
+      occurrences: 1,
+      summary: 'Pattern: Singleton pattern',
+      detail: 'Singleton pattern'
+    }];
+
+    // First call adds it
+    const result1 = mod.aggregateToKnowledge(entries, knowledgePath);
+    expect(result1.added).toBe(1);
+    expect(result1.skipped).toBe(0);
+
+    // Second call with same entry skips it
+    const result2 = mod.aggregateToKnowledge(entries, knowledgePath);
+    expect(result2.added).toBe(0);
+    expect(result2.skipped).toBe(1);
+
+    // Verify only one occurrence in the file
+    const content = fs.readFileSync(knowledgePath, 'utf8');
+    const matches = content.match(/Singleton pattern/g);
+    expect(matches.length).toBe(1);
+  });
+
+  test('auto-increments IDs correctly', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    const entries = [
+      {
+        source_project: 'app',
+        type: 'process-win',
+        tags: ['decision'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Decision: Use PostgreSQL',
+        detail: 'Use PostgreSQL'
+      },
+      {
+        source_project: 'app',
+        type: 'process-win',
+        tags: ['decision'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Decision: Use Redis',
+        detail: 'Use Redis'
+      },
+      {
+        source_project: 'app',
+        type: 'tech-pattern',
+        tags: ['pattern'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Pattern: CQRS',
+        detail: 'CQRS'
+      },
+      {
+        source_project: 'app',
+        type: 'deferred-item',
+        tags: ['deferred'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Deferred: Caching layer',
+        detail: 'Caching layer'
+      }
+    ];
+
+    const result = mod.aggregateToKnowledge(entries, knowledgePath);
+    expect(result.added).toBe(4);
+
+    const content = fs.readFileSync(knowledgePath, 'utf8');
+    // Key Rules table: K001, K002
+    expect(content).toContain('K001');
+    expect(content).toContain('K002');
+    // Patterns table: P001
+    expect(content).toContain('P001');
+    // Lessons Learned table: L001
+    expect(content).toContain('L001');
+  });
+
+  test('routes different entry types to correct tables', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    const entries = [
+      {
+        source_project: 'app',
+        type: 'process-win',
+        tags: ['decision'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Decision: Chose Vite',
+        detail: 'Chose Vite'
+      },
+      {
+        source_project: 'app',
+        type: 'tech-pattern',
+        tags: ['pattern'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Pattern: Module Federation',
+        detail: 'Module Federation'
+      },
+      {
+        source_project: 'app',
+        type: 'deferred-item',
+        tags: ['deferred'],
+        confidence: 'low',
+        occurrences: 1,
+        summary: 'Deferred: SSR support',
+        detail: 'SSR support'
+      }
+    ];
+
+    mod.aggregateToKnowledge(entries, knowledgePath);
+    const content = fs.readFileSync(knowledgePath, 'utf8');
+
+    // Decision -> Key Rules (K prefix)
+    expect(content).toMatch(/\| K001 \|.*Chose Vite/);
+    // Pattern -> Patterns (P prefix)
+    expect(content).toMatch(/\| P001 \|.*Module Federation/);
+    // Deferred -> Lessons Learned (L prefix)
+    expect(content).toMatch(/\| L001 \|.*SSR support/);
+  });
+
+  test('handles empty entries array gracefully', () => {
+    const knowledgePath = path.join(tmpDir, 'KNOWLEDGE.md');
+    const result = mod.aggregateToKnowledge([], knowledgePath);
+    expect(result.added).toBe(0);
+    expect(result.skipped).toBe(0);
+    expect(fs.existsSync(knowledgePath)).toBe(true);
+  });
+});
