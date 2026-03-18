@@ -316,6 +316,23 @@ Only append to the LAST commit of the plan — intermediate commits (RED/GREEN i
 
 ## Deviation Rules
 
+**Reference**: Read `${CLAUDE_PLUGIN_ROOT}/references/deviation-rules.md` for full rule definitions and the taxonomy format used in SUMMARY.md deviations.
+
+When documenting deviations, use the structured format from the reference:
+```yaml
+deviations:
+  - rule: 1          # 1=Bug, 2=Missing Dependency, 3=Critical Gap, 4=Architectural, 5=Scope Creep
+    description: "What happened"
+    action: "auto"   # auto | ask
+    justification: "Why this action was taken"
+```
+
+Also populate `requirements_completed` in SUMMARY.md frontmatter by mapping each REQ-ID from the plan's `implements` array to what was built:
+```yaml
+requirements_completed:
+  - "REQ-ID: brief description of how it was satisfied"
+```
+
 | Rule | Trigger | Action | Approval |
 |------|---------|--------|----------|
 | 1 — Bug | Code bug (typo, wrong import, syntax) | Auto-fix in same commit. 3 attempts max. | No |

@@ -184,6 +184,13 @@ Output files: `.planning/research/STACK.md`, `.planning/research/FEATURES.md`, `
 ### Phase Research
 Use the domain-specific templates above, scoped to the phase goal. Output to `.planning/phases/{NN}-{slug}/RESEARCH.md`.
 
+### Discovery (Lightweight Decision)
+For shallow library/option decisions that don't warrant full research, use `${CLAUDE_PLUGIN_ROOT}/templates/DISCOVERY.md.tmpl`. Output to `.planning/phases/{NN}-{slug}/DISCOVERY.md` or `.planning/research/DISCOVERY-{topic}.md`.
+
+**When to use DISCOVERY vs RESEARCH**: Use DISCOVERY when evaluating 2-4 concrete options for a known problem (e.g., "which test runner?"). Use RESEARCH when exploring an unknown domain or investigating deep technical questions.
+
+**Don't Hand-Roll**: Every DISCOVERY.md output MUST include a "Don't Hand-Roll" section listing problems that look simple but have existing solutions. This prevents agents from reimplementing solved problems. Research existing libraries/patterns before recommending a custom implementation.
+
 ### Write Policy
 
 **IMPORTANT**: The researcher WRITES research files but does NOT COMMIT them. The synthesizer handles commits after combining all research outputs into SUMMARY.md.

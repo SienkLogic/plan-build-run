@@ -280,6 +280,19 @@ List items that cannot be verified programmatically (visual/UI, UX flows, third-
 
 <step name="determine-status">
 
+### Step 9b: Generate Fix Plans (Full Verification Only)
+
+For each gap found in Steps 4-9, generate a recommended fix plan:
+
+1. Classify each gap as **Critical** (blocks requirements or core functionality) or **Non-Critical** (quality, polish, non-blocking improvements)
+2. For each fixable gap, create a fix plan entry with estimated effort (small/medium/large) and specific tasks
+3. Write fix plans to both frontmatter (`fix_plans` array) and body (`## Recommended Fix Plans` section)
+4. Reference the VERIFICATION-DETAIL.md.tmpl template for the exact format
+
+**Gap severity classification**:
+- **Critical**: Gap blocks a must-have requirement, causes runtime errors, or breaks core functionality
+- **Non-Critical**: Gap relates to polish, performance, code quality, or non-essential features
+
 ### Step 10: Determine Overall Status (Always)
 
 | Status | Condition |
