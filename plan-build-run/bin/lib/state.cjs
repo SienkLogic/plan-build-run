@@ -830,6 +830,60 @@ function stateRederive(planningDir) {
   return { success: true, corrected, derived };
 }
 
+/**
+ * Signal that the project is waiting on an external action.
+ * Creates a WAITING.json file in the .planning directory.
+ *
+ * @param {string} reason - Why the project is waiting
+ * @param {string} [expectedDuration] - Expected wait duration (e.g., 'minutes', 'hours', 'unknown')
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success, path }
+ */
+function stateSignalWaiting(reason, expectedDuration, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const waitingPath = path.join(dir, 'WAITING.json');
+  const data = {
+    status: 'waiting',
+    reason,
+    expected_duration: expectedDuration || 'unknown',
+    created_at: new Date().toISOString(),
+    signal: 'waiting'
+  };
+  fs.writeFileSync(waitingPath, JSON.stringify(data, null, 2), 'utf-8');
+  return { success: true, path: waitingPath };
+}
+
+/**
+ * Clear the waiting signal by removing WAITING.json.
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { success, was_waiting }
+ */
+function stateSignalResume(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const waitingPath = path.join(dir, 'WAITING.json');
+  if (fs.existsSync(waitingPath)) {
+    fs.unlinkSync(waitingPath);
+    return { success: true, was_waiting: true };
+  }
+  return { success: true, was_waiting: false };
+}
+
+/**
+ * Check if the project is currently in a waiting state.
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object|null} Parsed WAITING.json contents, or null if not waiting
+ */
+function stateCheckWaiting(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const waitingPath = path.join(dir, 'WAITING.json');
+  if (!fs.existsSync(waitingPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(waitingPath, 'utf-8'));
+  } catch (_) { return null; }
+}
+
 module.exports = {
   parseStateMd,
   updateLegacyStateField,
@@ -849,5 +903,8 @@ module.exports = {
   statePhaseComplete,
   stateRederive,
   stateRecordVelocity,
-  stateRecordSession
+  stateRecordSession,
+  stateSignalWaiting,
+  stateSignalResume,
+  stateCheckWaiting
 };
