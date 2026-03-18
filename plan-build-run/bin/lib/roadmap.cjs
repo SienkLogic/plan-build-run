@@ -28,11 +28,13 @@ function parseRoadmapMd(content) {
     .replace(/<\/?summary>/gi, '');
   const result = { phases: [], has_progress_table: false };
 
-  // Parse Progress table (replaces stale "## Phase Overview" approach)
+  // Parse Progress table (primary) or Phase Overview table (legacy fallback)
   const progressMatch = stripped.match(/## Progress[\s\S]*?(?=\n##(?!\s*Progress)|\s*$)/);
-  if (progressMatch) {
+  // Only use Progress table if it actually contains a markdown table with pipe rows
+  const progressRows = progressMatch ? progressMatch[0].split('\n').filter(r => r.includes('|')) : [];
+  if (progressMatch && progressRows.length >= 2) {
     result.has_progress_table = true;
-    const rows = progressMatch[0].split('\n').filter(r => r.includes('|'));
+    const rows = progressRows;
     if (rows.length >= 2) {
       // Dynamic column detection from header row
       const headers = rows[0].split('|').map(h => h.trim().toLowerCase()).filter(Boolean);
@@ -79,7 +81,8 @@ function parseRoadmapMd(content) {
         }
       }
     }
-    result.has_progress_table = false;
+    // Even without a parseable Progress table, note if the heading exists
+    result.has_progress_table = !!progressMatch;
   }
 
   // Parse phase heading blocks for requirements and success criteria
