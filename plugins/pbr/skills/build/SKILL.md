@@ -936,18 +936,52 @@ If any executor returned `checkpoint`:
    Log: `"Auto-resolved {type} checkpoint for Plan {id}, Task {N}: {resolution}"`
    Resume executor with resolution context.
 
-6. If NOT auto-resolved:
-   Present the checkpoint to the user:
+6. If NOT auto-resolved, present based on type:
 
-```
-Checkpoint in Plan {id}, Task {N}: {checkpoint type}
+   **For `human-verify`:**
 
-{checkpoint details — what was built, what is needed}
+   ```text
+   CHECKPOINT: Verify Output
 
-{For decision type: present options}
-{For human-action type: present steps}
-{For human-verify type: present what to verify}
-```
+   Plan {id}, Task {N}: {description}
+
+   What was built:
+   {what_built from checkpoint data}
+
+   How to verify:
+   {verify_steps from checkpoint data}
+   ```
+
+   Use AskUserQuestion with options: "Looks good", "Has issues" (+ text field for details)
+
+   **For `decision`:**
+
+   ```text
+   CHECKPOINT: Decision Required
+
+   Plan {id}, Task {N}: {description}
+
+   Options:
+   {options from checkpoint data}
+   ```
+
+   Use AskUserQuestion with the options from the checkpoint as selectable choices
+
+   **For `human-action`:**
+
+   ```text
+   CHECKPOINT: Action Required
+
+   Plan {id}, Task {N}: {description}
+
+   You need to:
+   {required_action from checkpoint data}
+
+   Reply when complete.
+   ```
+
+   Use AskUserQuestion with options: "Done", "Can't do this right now"
+   If user selects "Can't do this right now": suggest "Run `/pbr:pause` to save state and resume later."
 
 7. Wait for user response
 8. Spawn a FRESH continuation executor:
