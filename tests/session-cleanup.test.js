@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
+const { getHooksLogPath, getEventsLogPath } = require('./helpers');
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'session-cleanup.js');
 const { tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, writeSessionHistory, handleHttp } = require('../hooks/session-cleanup');
 
@@ -83,7 +84,7 @@ describe('session-cleanup.js', () => {
 
     run();
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
@@ -98,7 +99,7 @@ describe('session-cleanup.js', () => {
   test('logs nothing decision when no files to remove', () => {
     run();
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
@@ -110,7 +111,7 @@ describe('session-cleanup.js', () => {
     const stdinData = JSON.stringify({ reason: 'user_quit' });
     run(stdinData);
 
-    const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const logPath = getHooksLogPath(planningDir);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
     expect(entry.reason).toBe('user_quit');
@@ -210,14 +211,14 @@ describe('session-cleanup exports', () => {
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('rotateHooksLog rotates log when over 200KB', () => {
+  test('rotateHooksLog always returns false (rotation deprecated — daily files used instead)', () => {
     const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
-    // Write >200KB
+    // Even with a large file, rotation no longer occurs
     fs.writeFileSync(hooksLog, 'x'.repeat(201 * 1024));
     const result = rotateHooksLog(planningDir);
-    expect(result).toBe(true);
-    expect(fs.existsSync(hooksLog)).toBe(false);
-    expect(fs.existsSync(hooksLog + '.1')).toBe(true);
+    expect(result).toBe(false);
+    // File should still exist (not rotated)
+    expect(fs.existsSync(hooksLog)).toBe(true);
   });
 
   // findOrphanedProgressFiles
@@ -279,8 +280,8 @@ describe('session-cleanup exports', () => {
     expect(lines.length).toBeLessThanOrEqual(100);
   });
 
-  test('writeSessionHistory reads existing hooks.jsonl for session stats', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+  test('writeSessionHistory reads existing hooks log for session stats', () => {
+    const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: '2026-01-01T00:00:00Z', event: 'SubagentStart', decision: 'spawned' });
     fs.writeFileSync(hooksLog, entry + '\n');
     writeSessionHistory(planningDir, {});
@@ -289,8 +290,8 @@ describe('session-cleanup exports', () => {
     expect(session.agents_spawned).toBe(1);
   });
 
-  test('writeSessionHistory reads events.jsonl for commit count', () => {
-    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+  test('writeSessionHistory reads events log for commit count', () => {
+    const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: '2026-01-01T00:01:00Z', cat: 'workflow', event: 'commit-validated', status: 'allow' });
     fs.writeFileSync(eventsLog, entry + '\n');
     writeSessionHistory(planningDir, {});

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+const { getHooksLogPath, getEventsLogPath } = require('./helpers');
 const {
   writeSessionHistory,
   tryRemove,
@@ -78,12 +79,12 @@ describe('rotateHooksLog', () => {
     expect(rotateHooksLog(planningDir)).toBe(false);
   });
 
-  test('rotates when hooks.jsonl exceeds 200KB', () => {
+  test('always returns false (rotation deprecated — daily files used instead)', () => {
     const logPath = path.join(planningDir, 'logs', 'hooks.jsonl');
     fs.writeFileSync(logPath, 'x'.repeat(201 * 1024));
-    expect(rotateHooksLog(planningDir)).toBe(true);
-    expect(fs.existsSync(logPath)).toBe(false);
-    expect(fs.existsSync(logPath + '.1')).toBe(true);
+    expect(rotateHooksLog(planningDir)).toBe(false);
+    // File is NOT rotated — daily files handle retention instead
+    expect(fs.existsSync(logPath)).toBe(true);
   });
 });
 
@@ -128,8 +129,8 @@ describe('writeSessionHistory', () => {
     expect(lines.length).toBe(2);
   });
 
-  test('counts agents from hooks.jsonl', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+  test('counts agents from today\'s hooks log', () => {
+    const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), event: 'SubagentStart', decision: 'spawned', hook: 'test' });
     fs.writeFileSync(hooksLog, entry + '\n');
     writeSessionHistory(planningDir, {});
@@ -139,8 +140,8 @@ describe('writeSessionHistory', () => {
     expect(session.agents_spawned).toBe(1);
   });
 
-  test('counts commits from events.jsonl', () => {
-    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+  test('counts commits from today\'s events log', () => {
+    const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'workflow', event: 'commit-validated', status: 'allow' });
     fs.writeFileSync(eventsLog, entry + '\n');
     writeSessionHistory(planningDir, {});
@@ -165,7 +166,7 @@ describe('extractSessionLearnings', () => {
   });
 
   test('writes when blocks are found in hooks log', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), hook: 'validate-commit', event: 'PreToolUse', decision: 'block', reason: 'bad format' });
     fs.writeFileSync(hooksLog, entry + '\n');
     extractSessionLearnings(planningDir, 'test-session');
@@ -177,7 +178,7 @@ describe('extractSessionLearnings', () => {
   });
 
   test('extracts agent failures from subagent output warnings', () => {
-    const hooksLog = path.join(planningDir, 'logs', 'hooks.jsonl');
+    const hooksLog = getHooksLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), hook: 'check-subagent-output', event: 'PostToolUse', decision: 'warning', agent_type: 'pbr:executor', expected: 'SUMMARY.md' });
     fs.writeFileSync(hooksLog, entry + '\n');
     extractSessionLearnings(planningDir, 'test-session');
@@ -188,7 +189,7 @@ describe('extractSessionLearnings', () => {
   });
 
   test('counts phase completions from events', () => {
-    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+    const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'workflow', event: 'phase-complete' });
     fs.writeFileSync(eventsLog, entry + '\n');
     extractSessionLearnings(planningDir, 'test-session');
@@ -199,7 +200,7 @@ describe('extractSessionLearnings', () => {
   });
 
   test('counts compaction events', () => {
-    const eventsLog = path.join(planningDir, 'logs', 'events.jsonl');
+    const eventsLog = getEventsLogPath(planningDir);
     const entry = JSON.stringify({ ts: new Date().toISOString(), cat: 'system', event: 'compaction' });
     fs.writeFileSync(eventsLog, entry + '\n');
     extractSessionLearnings(planningDir, 'test-session');
