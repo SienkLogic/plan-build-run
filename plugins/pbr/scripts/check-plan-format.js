@@ -12,6 +12,7 @@
  * - STATE.md: frontmatter fields (warnings only, auto-synced)
  * - config.json: valid JSON, required fields
  * - RESEARCH.md: frontmatter with confidence, sources_checked
+ * - CONTEXT.md: XML-style sections (domain, decisions, canonical_refs, deferred) or legacy markdown headers
  *
  * Returns decision: "block" for structural errors (forces Claude to fix and retry).
  * Returns message for non-blocking warnings.
@@ -63,8 +64,9 @@ async function main() {
       const isLearnings = basename === 'LEARNINGS.md';
       const isConfig = basename === 'config.json' && filePath.includes('.planning');
       const isResearch = basename === 'RESEARCH.md';
+      const isContext = basename === 'CONTEXT.md' && filePath.includes('.planning');
 
-      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) {
+      if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch && !isContext) {
         process.exit(0);
       }
 
@@ -85,7 +87,9 @@ async function main() {
                 ? validateConfig(content, filePath)
                 : isResearch
                   ? validateResearch(content, filePath)
-                  : validateSummary(content, filePath);
+                  : isContext
+                    ? validateContext(content, filePath)
+                    : validateSummary(content, filePath);
 
       // LLM advisory enrichment — advisory only, never blocks
       if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -103,7 +107,7 @@ async function main() {
         }
       }
 
-      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
+      const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
       if (result.errors.length > 0) {
         // Structural errors — block and force correction
@@ -336,6 +340,14 @@ function validateSummary(content, _filePath) {
         warnings.push('Frontmatter missing "deferred" field (forces executor to consciously record scope creep)');
       }
 
+      // Metrics fields — warnings only (executors may not always have timing data)
+      if (!frontmatter.includes('duration:')) {
+        warnings.push('Frontmatter missing "duration" field (minutes as number — dashboard depends on this)');
+      }
+      if (!frontmatter.includes('requirements-completed:')) {
+        warnings.push('Frontmatter missing "requirements-completed" field (array of REQ-IDs — status skill depends on this)');
+      }
+
       // Validate key_files paths exist on disk — warning only (files may not exist yet during planning)
       const keyFilesMatch = frontmatter.match(/key_files:\s*\n((?:\s+-\s+.*\n?)*)/);
       if (keyFilesMatch) {
@@ -372,8 +384,9 @@ async function checkPlanWrite(data) {
   const isLearnings = basename === 'LEARNINGS.md';
   const isConfig = basename === 'config.json' && filePath.includes('.planning');
   const isResearch = basename === 'RESEARCH.md';
+  const isContext = basename === 'CONTEXT.md' && filePath.includes('.planning');
 
-  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch) return null;
+  if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch && !isContext) return null;
   if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
@@ -389,7 +402,9 @@ async function checkPlanWrite(data) {
             ? validateConfig(content, filePath)
             : isResearch
               ? validateResearch(content, filePath)
-              : validateSummary(content, filePath);
+              : isContext
+                ? validateContext(content, filePath)
+                : validateSummary(content, filePath);
 
   // LLM advisory enrichment — advisory only, never blocks
   if ((isPlan || isSummary) && result.errors.length === 0) {
@@ -407,7 +422,7 @@ async function checkPlanWrite(data) {
     }
   }
 
-  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : 'summary-validated';
+  const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
@@ -869,5 +884,47 @@ function validateResearch(content, _filePath) {
   return { errors, warnings };
 }
 
-module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, checkPlanWrite, checkStateWrite, syncStateBody };
+/**
+ * Validate CONTEXT.md structure. Accepts both XML-style sections (<domain>, <decisions>,
+ * <canonical_refs>, <deferred>) and legacy markdown-header format (## Domain, ## Decisions, etc.).
+ * Missing sections produce WARNINGS, not errors — CONTEXT.md is written by discuss,
+ * and not all phases run discuss.
+ *
+ * @param {string} content - Full CONTEXT.md content
+ * @param {string} _filePath - File path (unused)
+ * @returns {{ errors: string[], warnings: string[] }}
+ */
+function validateContext(content, _filePath) {
+  const errors = [];
+  const warnings = [];
+
+  if (!content || content.trim().length === 0) {
+    errors.push('CONTEXT.md is empty — expected frontmatter and section content');
+    return { errors, warnings };
+  }
+
+  // Check for domain section (XML or markdown)
+  if (!/<domain>/i.test(content) && !/^##\s+Domain/mi.test(content)) {
+    warnings.push('Missing <domain> section (or ## Domain heading) — recommended for phase context');
+  }
+
+  // Check for decisions section (XML or markdown)
+  if (!/<decisions>/i.test(content) && !/^##\s+(Locked\s+)?Decisions/mi.test(content)) {
+    warnings.push('Missing <decisions> section (or ## Decisions heading) — recommended for locked decisions');
+  }
+
+  // Check for canonical_refs section (XML or markdown)
+  if (!/<canonical_refs>/i.test(content) && !/^##\s+Canonical\s+Ref/mi.test(content)) {
+    warnings.push('Missing <canonical_refs> section (or ## Canonical References heading) — recommended for reference docs');
+  }
+
+  // Check for deferred section (XML or markdown)
+  if (!/<deferred>/i.test(content) && !/^##\s+Deferred/mi.test(content)) {
+    warnings.push('Missing <deferred> section (or ## Deferred heading) — recommended for excluded scope');
+  }
+
+  return { errors, warnings };
+}
+
+module.exports = { validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateLearnings, validateConfig, validateResearch, validateContext, checkPlanWrite, checkStateWrite, syncStateBody };
 if (require.main === module || process.argv[1] === __filename) { main(); }
