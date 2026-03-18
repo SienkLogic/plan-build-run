@@ -441,6 +441,175 @@ function checkNamingConventionCompliance(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// WC-05: Planning Artifact Completeness
+// ---------------------------------------------------------------------------
+
+/**
+ * Check that built phases have both SUMMARY and VERIFICATION artifacts.
+ * Detects phases marked as built/complete that are missing required artifacts.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkPlanningArtifactCompleteness(planningDir, _config) {
+  const phasesDir = path.join(planningDir, 'phases');
+  let phaseDirs;
+
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    phaseDirs = entries
+      .filter(e => e.isDirectory() && /^\d{2}-/.test(e.name))
+      .map(e => e.name)
+      .sort();
+  } catch (_e) {
+    return result('WC-05', 'warn', 'Could not read phases/ directory');
+  }
+
+  // Read ROADMAP.md to detect phases marked as complete/verified
+  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+  let roadmapContent = '';
+  try {
+    roadmapContent = fs.readFileSync(roadmapPath, 'utf8').replace(/\r\n/g, '\n');
+  } catch (_e) {
+    // No roadmap — can only check by artifact presence
+  }
+
+  const evidence = [];
+
+  for (const dir of phaseDirs) {
+    const dirPath = path.join(phasesDir, dir);
+    let files;
+    try {
+      files = fs.readdirSync(dirPath);
+    } catch (_e) {
+      continue;
+    }
+
+    const summaryFiles = files.filter(f => /^SUMMARY.*\.md$/i.test(f));
+    const verificationFiles = files.filter(f => /^VERIFICATION.*\.md$/i.test(f));
+    const planFiles = files.filter(f => /^PLAN.*\.md$/i.test(f));
+
+    // If SUMMARY exists (indicates phase was built) but no VERIFICATION
+    if (summaryFiles.length > 0 && verificationFiles.length === 0) {
+      evidence.push(
+        `Phase "${dir}" built (has SUMMARY) but missing VERIFICATION.md`
+      );
+    }
+
+    // Check ROADMAP for phases marked complete/verified but missing artifacts
+    if (roadmapContent) {
+      const phaseNum = parseInt(dir.substring(0, 2), 10);
+      // Look for phase in roadmap marked as Complete or Verified
+      const completePat = new RegExp(
+        `\\|\\s*${phaseNum}\\.\\s+[^|]*\\|[^|]*(?:Complete|Verified|Built)`,
+        'i'
+      );
+      if (completePat.test(roadmapContent)) {
+        if (planFiles.length > 0 && summaryFiles.length === 0) {
+          evidence.push(
+            `Phase "${dir}" marked complete in ROADMAP but has no SUMMARY files`
+          );
+        }
+      }
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-05', 'pass', 'All built phases have required artifacts');
+  }
+
+  return result('WC-05', 'warn',
+    `${evidence.length} artifact completeness gap(s) found`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WC-06: Artifact Format Validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate SUMMARY.md required fields and PLAN.md task block structure.
+ * Checks SUMMARY frontmatter for requires, key_files, deferred fields
+ * and PLAN files for at least one <task XML block.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} _config - Parsed config.json (unused)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkArtifactFormatValidation(planningDir, _config) {
+  const phasesDir = path.join(planningDir, 'phases');
+  let phaseDirs;
+
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    phaseDirs = entries
+      .filter(e => e.isDirectory() && /^\d{2}-/.test(e.name))
+      .map(e => e.name)
+      .sort();
+  } catch (_e) {
+    return result('WC-06', 'warn', 'Could not read phases/ directory');
+  }
+
+  const evidence = [];
+
+  for (const dir of phaseDirs) {
+    const dirPath = path.join(phasesDir, dir);
+    let files;
+    try {
+      files = fs.readdirSync(dirPath);
+    } catch (_e) {
+      continue;
+    }
+
+    // Validate SUMMARY files
+    const summaryFiles = files.filter(f => /^SUMMARY.*\.md$/i.test(f));
+    for (const sf of summaryFiles) {
+      try {
+        const content = fs.readFileSync(path.join(dirPath, sf), 'utf8');
+        const fm = parseFrontmatter(content);
+        const missingFields = [];
+
+        if (fm.requires === undefined) missingFields.push('requires');
+        if (fm.key_files === undefined) missingFields.push('key_files');
+        if (fm.deferred === undefined) missingFields.push('deferred');
+
+        if (missingFields.length > 0) {
+          evidence.push(
+            `${dir}/${sf}: missing required fields: ${missingFields.join(', ')}`
+          );
+        }
+      } catch (_e) {
+        evidence.push(`${dir}/${sf}: could not read file`);
+      }
+    }
+
+    // Validate PLAN files have at least one <task block
+    const planFiles = files.filter(f => /^PLAN.*\.md$/i.test(f));
+    for (const pf of planFiles) {
+      try {
+        const content = fs.readFileSync(path.join(dirPath, pf), 'utf8');
+        if (!/<task\s/.test(content)) {
+          evidence.push(`${dir}/${pf}: no <task XML block found`);
+        }
+      } catch (_e) {
+        evidence.push(`${dir}/${pf}: could not read file`);
+      }
+    }
+  }
+
+  if (evidence.length === 0) {
+    return result('WC-06', 'pass', 'All artifacts conform to format requirements');
+  }
+
+  return result('WC-06', 'warn',
+    `${evidence.length} format violation(s) found`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -449,4 +618,6 @@ module.exports = {
   checkStateFrontmatterIntegrity,
   checkRoadmapSyncValidation,
   checkNamingConventionCompliance,
+  checkPlanningArtifactCompleteness,
+  checkArtifactFormatValidation,
 };
