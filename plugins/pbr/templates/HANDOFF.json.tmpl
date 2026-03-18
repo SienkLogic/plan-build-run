@@ -1,0 +1,30 @@
+{
+  "_description": "Structured pause state for session recovery. Written by /pbr:pause, read by /pbr:resume.",
+  "status": "{paused | interrupted | waiting}",
+  "created_at": "{ISO timestamp}",
+  "phase": {
+    "number": "{N}",
+    "slug": "{slug}",
+    "name": "{name}"
+  },
+  "plan": {
+    "number": "{N}",
+    "wave": "{N}",
+    "task_current": "{N}",
+    "tasks_total": "{N}"
+  },
+  "next_action": "{description of what to do next}",
+  "blockers": [
+    "{description of what's blocking progress}"
+  ],
+  "human_actions_pending": [
+    "{action the user needs to take before resuming}"
+  ],
+  "completed_tasks": [
+    "{task descriptions already done in current plan}"
+  ],
+  "uncommitted_files": [
+    "{file paths with uncommitted changes}"
+  ],
+  "context_notes": "{mental context -- what was being thought about, key decisions in-flight}"
+}
