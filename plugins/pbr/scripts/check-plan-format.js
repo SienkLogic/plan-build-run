@@ -668,25 +668,34 @@ function validateRoadmap(content, _filePath) {
   const errors = [];
   const warnings = [];
 
-  // Check for # Roadmap heading — required structure
-  if (!/^#\s+(Roadmap|ROADMAP)/m.test(content)) {
+  // Check for # Roadmap heading — accepts "# Roadmap", "# ROADMAP", "# Project Roadmap",
+  // and optional project name suffix like "# Roadmap: My Project"
+  if (!/^#\s+(Roadmap|ROADMAP|Project Roadmap)(:\s*.+)?$/m.test(content)) {
     errors.push('Missing "# Roadmap" heading');
   }
 
+  // Strip <details>/<summary> HTML tags so milestone headings inside collapsed blocks
+  // are visible to the splitting logic. Keep all other content intact.
+  const strippedContent = content
+    .replace(/<\/?details>/gi, '')
+    .replace(/<\/?summary>/gi, '');
+
   // Check for at least one ## Milestone: section — required structure
-  const milestoneMatches = content.match(/^##\s+Milestone:/gm);
+  const milestoneMatches = strippedContent.match(/^##\s+Milestone:/gm);
   if (!milestoneMatches || milestoneMatches.length === 0) {
     errors.push('No "## Milestone:" sections found');
   } else {
     // Check each milestone has **Phases:** line
     // Split content by milestone sections
-    const milestoneBlocks = content.split(/^##\s+Milestone:/m).slice(1);
+    const milestoneBlocks = strippedContent.split(/^##\s+Milestone:/m).slice(1);
     milestoneBlocks.forEach((block, idx) => {
       if (!/\*\*Phases:\*\*/.test(block)) {
         errors.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
       }
 
       // Skip checklist/coverage checks for COMPLETED milestones
+      // A milestone is completed if its heading says "-- COMPLETED" OR if the
+      // original content had it wrapped in <details> (collapsed = completed)
       const headingLine = block.split('\n')[0] || '';
       if (/--\s*COMPLETED/i.test(headingLine)) return;
 
@@ -702,11 +711,11 @@ function validateRoadmap(content, _filePath) {
     });
   }
 
-  // Check each ### Phase NN: has Goal, Provides, Depends on
+  // Check each ### Phase NN: has Goal, Provides, Depends on, Requirements, Success Criteria
   const phaseRegex = /^###\s+Phase\s+\d+:/gm;
-  const phaseMatches = content.match(phaseRegex);
+  const phaseMatches = strippedContent.match(phaseRegex);
   if (phaseMatches) {
-    const phaseBlocks = content.split(/^###\s+Phase\s+\d+:/m).slice(1);
+    const phaseBlocks = strippedContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
     phaseBlocks.forEach((block, idx) => {
       // Only check up to the next ### or ## heading
       const nextHeading = block.search(/^#{2,3}\s+/m);
@@ -721,18 +730,25 @@ function validateRoadmap(content, _filePath) {
       if (!/\*\*Depends on:\*\*/.test(section)) {
         warnings.push(`Phase ${idx + 1}: missing "**Depends on:**"`);
       }
+      // New GSD fields — warnings only for backward compatibility
+      if (!/\*\*Requirements:\*\*/.test(section)) {
+        warnings.push(`Phase ${idx + 1}: missing "**Requirements:**" (recommended for GSD alignment)`);
+      }
+      if (!/\*\*Success Criteria:\*\*/.test(section)) {
+        warnings.push(`Phase ${idx + 1}: missing "**Success Criteria:**" (recommended for GSD alignment)`);
+      }
     });
   }
 
-  // Check Progress table syntax if present
-  const progressMatch = content.match(/^##\s+Progress/m);
+  // Check Progress table syntax if present — accepts both old 3-column and new 5-column formats
+  const progressMatch = strippedContent.match(/^##\s+Progress/m);
   if (progressMatch) {
-    const afterProgress = content.substring(progressMatch.index);
-    const headerLine = afterProgress.split('\n').find(l => l.includes('|') && /Plans\s*Complete/i.test(l));
+    const afterProgress = strippedContent.substring(progressMatch.index);
+    const headerLine = afterProgress.split('\n').find(l => l.includes('|') && /Plans?\s*Complete/i.test(l));
     if (headerLine) {
       // Check for separator row after header
       const lines = afterProgress.split('\n');
-      const headerIdx = lines.findIndex(l => l.includes('|') && /Plans\s*Complete/i.test(l));
+      const headerIdx = lines.findIndex(l => l.includes('|') && /Plans?\s*Complete/i.test(l));
       if (headerIdx >= 0 && headerIdx + 1 < lines.length) {
         const sepLine = lines[headerIdx + 1];
         if (!/^\s*\|[\s-:|]+\|\s*$/.test(sepLine)) {
@@ -921,6 +937,16 @@ function validateContext(content, _filePath) {
   // Check for deferred section (XML or markdown)
   if (!/<deferred>/i.test(content) && !/^##\s+Deferred/mi.test(content)) {
     warnings.push('Missing <deferred> section (or ## Deferred heading) — recommended for excluded scope');
+  }
+
+  // Check for specifics section (XML or markdown) — GSD alignment
+  if (!/<specifics>/i.test(content) && !/^##\s+Specific\s+Ref/mi.test(content)) {
+    warnings.push('Missing <specifics> section (or ## Specific References heading) — recommended for GSD alignment');
+  }
+
+  // Check for code_context section (XML or markdown) — GSD alignment
+  if (!/<code_context>/i.test(content) && !/^##\s+Code\s+(Patterns?|Context)/mi.test(content)) {
+    warnings.push('Missing <code_context> section (or ## Code Patterns heading) — recommended for GSD alignment');
   }
 
   return { errors, warnings };
