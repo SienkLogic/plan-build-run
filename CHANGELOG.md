@@ -61,6 +61,98 @@ All notable changes to Plan-Build-Run will be documented in this file.
 * Add null config guards to FV-05 and FV-06 feature verification checks ([8ac294b3](https://github.com/SienkLogic/plan-build-run/commit/8ac294b3))
 * Separate enforcement blocks from tool failures in EF-01 counting ([9c5cdda5](https://github.com/SienkLogic/plan-build-run/commit/9c5cdda5))
 
+## [2.11.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.10.0...plan-build-run-v2.11.0) — 2026-03-19
+
+### Agents
+
+* Add count-accuracy note to intel-updater for Glob-derived component counts ([497afa70](https://github.com/SienkLogic/plan-build-run/commit/497afa70))
+
+### CLI Tools
+
+* Fix release script Windows compatibility (head -1, /dev/null) ([bbded916](https://github.com/SienkLogic/plan-build-run/commit/bbded916))
+* Wire incidents subcommand into pbr-tools.cjs dispatcher ([c12f3719](https://github.com/SienkLogic/plan-build-run/commit/c12f3719))
+* Create incidents.cjs library with record/list/query/summary operations ([2c63e7d6](https://github.com/SienkLogic/plan-build-run/commit/2c63e7d6))
+* Harden roadmap.cjs for v9+ 3-column progress table format ([2bb9aa31](https://github.com/SienkLogic/plan-build-run/commit/2bb9aa31))
+* Add state reconcile command to re-derive phase counts from ROADMAP.md ([ba0187ed](https://github.com/SienkLogic/plan-build-run/commit/ba0187ed))
+
+### Hooks
+
+* Fix module paths and hook names after Phase 14 refactoring ([d71b5126](https://github.com/SienkLogic/plan-build-run/commit/d71b5126))
+* Sync check-subagent-output.js from plugins/pbr/scripts/ copy ([39bcf1b5](https://github.com/SienkLogic/plan-build-run/commit/39bcf1b5))
+* Add source field to logHook entries for audit traceability ([ad4e243a](https://github.com/SienkLogic/plan-build-run/commit/ad4e243a))
+* Update skill count assertion to 37 for new validate skill ([a170b001](https://github.com/SienkLogic/plan-build-run/commit/a170b001))
+* Replace nyquist-auditor no-op stub with VALIDATION.md check ([7f4a7822](https://github.com/SienkLogic/plan-build-run/commit/7f4a7822))
+* Close v11.0 audit gaps — incident_journal config default, test-cache relocation, checkpoint_auto_resolve wiring, notification throttling ([1f97bfff](https://github.com/SienkLogic/plan-build-run/commit/1f97bfff))
+* Wire incident recording into pre-bash-dispatch, post-write-dispatch, and log-tool-failure ([3c15879d](https://github.com/SienkLogic/plan-build-run/commit/3c15879d))
+* Add record-incident.js shared hook helper for incident journal ([6b51bda6](https://github.com/SienkLogic/plan-build-run/commit/6b51bda6))
+* Add test result cache module with 60s TTL ([4058838d](https://github.com/SienkLogic/plan-build-run/commit/4058838d))
+* Add autonomous.max_retries and autonomous.error_strategy to CONFIG_DEFAULTS ([e0a85ee2](https://github.com/SienkLogic/plan-build-run/commit/e0a85ee2))
+* Update build-dependency gate to skip speculative dependency phases ([01c3a7f0](https://github.com/SienkLogic/plan-build-run/commit/01c3a7f0))
+* Add isPlanSpeculative helper and update build-executor gate for speculative/empty dirs ([ea587513](https://github.com/SienkLogic/plan-build-run/commit/ea587513))
+* Wire checkDirectStateWrite into post-write-dispatch.js ([31b19276](https://github.com/SienkLogic/plan-build-run/commit/31b19276))
+* Add checkDirectStateWrite advisory hook for STATE.md and ROADMAP.md bypass detection ([704b92cc](https://github.com/SienkLogic/plan-build-run/commit/704b92cc))
+* Wire session_id into log-subagent.js logHook and logEvent calls ([f3261cdf](https://github.com/SienkLogic/plan-build-run/commit/f3261cdf))
+* Add .context-tracker and .active-agent cleanup to session-cleanup.js ([2b72a80e](https://github.com/SienkLogic/plan-build-run/commit/2b72a80e))
+* Update .active-agent readers for session-scoped path with global fallback ([bfa38392](https://github.com/SienkLogic/plan-build-run/commit/bfa38392))
+* Add session_id support to logHook() and logEvent() for multi-session debugging ([a947b868](https://github.com/SienkLogic/plan-build-run/commit/a947b868))
+* Session-scope .active-agent writes in log-subagent.js ([3e569968](https://github.com/SienkLogic/plan-build-run/commit/3e569968))
+* Make stateAdvancePlan() atomic with single lockedFileUpdate call ([545f7aad](https://github.com/SienkLogic/plan-build-run/commit/545f7aad))
+* Wrap configWrite() with lockedFileUpdate for crash-safe concurrent writes ([4611cbaf](https://github.com/SienkLogic/plan-build-run/commit/4611cbaf))
+* IH-09 dispatch chain uses kebab-case script names from hook logs ([226c3935](https://github.com/SienkLogic/plan-build-run/commit/226c3935))
+
+### Plugin
+
+* Add validate-phase command registration ([d8dedd35](https://github.com/SienkLogic/plan-build-run/commit/d8dedd35))
+
+### Skills
+
+* Add MILESTONE.md auto-generation to milestone new and autonomous skills ([99e0c4e4](https://github.com/SienkLogic/plan-build-run/commit/99e0c4e4))
+* Sync plan-build-run/ copies after Phase 29 CRITICAL marker pass ([33af4964](https://github.com/SienkLogic/plan-build-run/commit/33af4964))
+* Consolidate pre-build dependency checking in build Step 1 ([a34aba4a](https://github.com/SienkLogic/plan-build-run/commit/a34aba4a))
+* Add NEXT UP routing block to ship skill ([638ee6ac](https://github.com/SienkLogic/plan-build-run/commit/638ee6ac))
+* Add /pbr:intel to scan and begin NEXT UP routing blocks ([0feb2739](https://github.com/SienkLogic/plan-build-run/commit/0feb2739))
+* Add /pbr:autonomous suggestion to status routing when 2+ phases pending ([0d469d2b](https://github.com/SienkLogic/plan-build-run/commit/0d469d2b))
+* Add /pbr:release suggestion to milestone complete NEXT UP block ([fe52ebfd](https://github.com/SienkLogic/plan-build-run/commit/fe52ebfd))
+* Add /pbr:test advisory suggestion to continue built-status routing ([9075fe10](https://github.com/SienkLogic/plan-build-run/commit/9075fe10))
+* Add /pbr:ship and /pbr:ui-review conditional suggestions to build NEXT UP ([672b65b1](https://github.com/SienkLogic/plan-build-run/commit/672b65b1))
+* Wire roadmapper agent into begin skill Step 8 ([27f186ec](https://github.com/SienkLogic/plan-build-run/commit/27f186ec))
+* Sync plan-build-run/ copies after Phase 26 quality gate wiring ([0b7fc4df](https://github.com/SienkLogic/plan-build-run/commit/0b7fc4df))
+* Add validate-phase routing to build skill NEXT UP block ([db90ce36](https://github.com/SienkLogic/plan-build-run/commit/db90ce36))
+* Add validate-phase NL routing and static fallback to do skill ([349f33e5](https://github.com/SienkLogic/plan-build-run/commit/349f33e5))
+* Route built status to validate-phase in status skill ([66f22428](https://github.com/SienkLogic/plan-build-run/commit/66f22428))
+* Insert validate-phase step 3d-pre into autonomous skill ([2a8ffa05](https://github.com/SienkLogic/plan-build-run/commit/2a8ffa05))
+* Add validate-phase suggestion to test NEXT UP and config toggle ([c57749b6](https://github.com/SienkLogic/plan-build-run/commit/c57749b6))
+* Route built status to validate-phase in continue skill ([83da9172](https://github.com/SienkLogic/plan-build-run/commit/83da9172))
+* Fix validate-phase skill directory naming and sync, update test counts ([817b62a5](https://github.com/SienkLogic/plan-build-run/commit/817b62a5))
+* Create /pbr:validate-phase skill with nyquist-auditor integration ([886a5fbe](https://github.com/SienkLogic/plan-build-run/commit/886a5fbe))
+* Wire test result caching into autonomous Step 3d verification ([04690e88](https://github.com/SienkLogic/plan-build-run/commit/04690e88))
+* Add autonomous state detection to resume skill ([33505ee8](https://github.com/SienkLogic/plan-build-run/commit/33505ee8))
+* Add git branch creation to autonomous Step 3e and expand .autonomous-state.json schema ([bc7f9b0c](https://github.com/SienkLogic/plan-build-run/commit/bc7f9b0c))
+* Add discuss auto-skip and error metrics to autonomous state schema ([83e1bfc5](https://github.com/SienkLogic/plan-build-run/commit/83e1bfc5))
+* Add error classification and graduated retry loop to autonomous Step 3c ([14a12c7c](https://github.com/SienkLogic/plan-build-run/commit/14a12c7c))
+* Pass --speculative flag in autonomous skill speculative Task() prompt ([1502ebd5](https://github.com/SienkLogic/plan-build-run/commit/1502ebd5))
+* Add checkpoint manifest re-init after speculative plan swap in autonomous mode ([b08ee23e](https://github.com/SienkLogic/plan-build-run/commit/b08ee23e))
+* Add --speculative flag guards to plan skill .active-skill and STATE.md writes ([9c40acb2](https://github.com/SienkLogic/plan-build-run/commit/9c40acb2))
+* Sync plan-build-run/ copies of modified SKILL.md files ([94b6e35c](https://github.com/SienkLogic/plan-build-run/commit/94b6e35c))
+* Add state reconcile step to milestone post-archival cleanup ([09b13ca9](https://github.com/SienkLogic/plan-build-run/commit/09b13ca9))
+* Update help with 9 missing skills and fix AGENT_TO_SKILL wiring ([b38ad2f3](https://github.com/SienkLogic/plan-build-run/commit/b38ad2f3))
+* Correct MILESTONE-AUDIT template path in milestone skill ([63eebda7](https://github.com/SienkLogic/plan-build-run/commit/63eebda7))
+
+### Testing
+
+* Mock child_process.spawn in dashboard-launch test to prevent orphaned processes in CI ([78817954](https://github.com/SienkLogic/plan-build-run/commit/78817954))
+* Mock net.createConnection in dashboard-launch test for CI compatibility ([09ed381a](https://github.com/SienkLogic/plan-build-run/commit/09ed381a))
+* Avoid network call in dashboard-launch test for CI compatibility ([15bc04f8](https://github.com/SienkLogic/plan-build-run/commit/15bc04f8))
+* Fix lint errors in new test files (duplicate keys, empty blocks) ([13506354](https://github.com/SienkLogic/plan-build-run/commit/13506354))
+* Update gate tests for speculative planning (empty dirs now allowed) ([930a82c8](https://github.com/SienkLogic/plan-build-run/commit/930a82c8))
+* IH-10 excludes test-sourced entries from source tag analysis ([747cf848](https://github.com/SienkLogic/plan-build-run/commit/747cf848))
+* EF-01 single-source counting with rate cap, EF-05 test entry filter ([56a66e08](https://github.com/SienkLogic/plan-build-run/commit/56a66e08))
+
+### Other
+
+* Add null config guards to FV-05 and FV-06 feature verification checks ([8ac294b3](https://github.com/SienkLogic/plan-build-run/commit/8ac294b3))
+* Separate enforcement blocks from tool failures in EF-01 counting ([9c5cdda5](https://github.com/SienkLogic/plan-build-run/commit/9c5cdda5))
+
 ## [2.10.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.9.0...plan-build-run-v2.10.0) — 2026-03-18
 
 ### Agents
