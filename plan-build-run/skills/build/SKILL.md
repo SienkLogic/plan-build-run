@@ -492,6 +492,7 @@ Before spawning a Task() executor, check if this plan qualifies for inline execu
 
 4. If `result.inline` is `true`:
    a. Display: `◆ Executing plan {plan_id} inline (trivial plan, {taskCount} simple task(s))`
+   **CRITICAL — DO NOT SKIP: Write .inline-active signal file NOW before executing inline tasks.**
    b. Write signal file: Write the current phase number to `.planning/.inline-active` using the Write tool
    c. Read the full PLAN.md file
    d. For each task in the plan (parsed from XML `<task>` blocks):
@@ -499,6 +500,7 @@ Before spawning a Task() executor, check if this plan qualifies for inline execu
       - Follow the same rules as a normal executor: create/modify files, run commands
       - After each task, run the `<verify>` command
       - If verify fails, fall back to normal Task() spawn for this plan
+   **CRITICAL — DO NOT SKIP: Write SUMMARY.md for the inline plan NOW. Required for crash recovery and build completion tracking.**
    e. After all tasks complete, write SUMMARY.md directly:
       - Use the same frontmatter format as executor-produced SUMMARYs
       - Include: `status: completed`, `key_files`, `requires: []`, `deferred: []`
@@ -1129,6 +1131,7 @@ Before spawning the verifier, check if the build passes the confidence gate:
 5. If ALL three pass:
    - Display: `Confidence gate passed (completion: {pct}%, SHAs: verified, tests: passed) — skipping verifier`
    - Set verification status to `passed` (auto-verified)
+   **CRITICAL — DO NOT SKIP: Write VERIFICATION.md NOW. Without this file, the autonomous loop cannot confirm phase completion.**
    - Write a minimal VERIFICATION.md:
 
 <!-- markdownlint-disable MD046 -->

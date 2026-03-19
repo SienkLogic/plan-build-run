@@ -221,7 +221,7 @@ Use AskUserQuestion:
     }
   }
   ```
-- Write `.planning/.active-skill` with text "begin"
+**CRITICAL — DO NOT SKIP: Write .active-skill NOW.** Write `.planning/.active-skill` with text "begin"
 - Write CLAUDE.md integration block (see Step 3d-claude below) using the project name gathered in Step 2
 - Skip to Step 4 (Research Decision)
 - Tell the user: "Quick start selected. Using all defaults — you can adjust later with `/pbr:settings`."
