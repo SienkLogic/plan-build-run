@@ -146,13 +146,15 @@ function cleanDescription(desc) {
   return cleaned;
 }
 
+const SEMVER_TAG = /^plan-build-run-v\d+\.\d+\.\d+$/;
+
 function getVersionTags() {
   try {
     const tags = execSync('git tag -l "plan-build-run-v*" --sort=-version:refname', {
       encoding: 'utf8',
       cwd: process.cwd(),
     }).trim().split('\n').filter(Boolean);
-    return tags;
+    return tags.filter(t => SEMVER_TAG.test(t));
   } catch (_e) {
     return [];
   }
@@ -358,5 +360,5 @@ function main() {
   }
 }
 
-module.exports = { cleanChangelog, generateChangelog, detectComponent, cleanDescription };
+module.exports = { cleanChangelog, generateChangelog, detectComponent, cleanDescription, getVersionTags, SEMVER_TAG };
 if (require.main === module) main();

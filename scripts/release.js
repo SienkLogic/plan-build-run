@@ -79,6 +79,24 @@ function getNextVersion(forceLevel) {
   return `${major}.${minor}.${patch + 1}`;
 }
 
+function validateTags() {
+  try {
+    const allTags = run('git tag -l "plan-build-run-v*"').split('\n').filter(Boolean);
+    const SEMVER_TAG = /^plan-build-run-v\d+\.\d+\.\d+$/;
+    const staleTags = allTags.filter(t => !SEMVER_TAG.test(t));
+    if (staleTags.length > 0) {
+      console.log(`\n  WARNING: Found ${staleTags.length} non-semver tag(s) matching release pattern:`);
+      for (const tag of staleTags) {
+        console.log(`    - ${tag} (may pollute changelog)`);
+      }
+      console.log('  Fix: git tag -d <tag> && git push origin :refs/tags/<tag>\n');
+    }
+    return staleTags;
+  } catch (_e) {
+    return [];
+  }
+}
+
 function updateVersion(newVersion) {
   // Update package.json
   const pkgPath = path.join(ROOT, 'package.json');
@@ -177,6 +195,8 @@ function main() {
 
   console.log('Updating versions...');
   updateVersion(nextVersion);
+
+  validateTags();
 
   console.log('\nGenerating changelog...');
   generateChangelog();
