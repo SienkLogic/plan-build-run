@@ -187,7 +187,8 @@ const DIRECT_FALLBACK_SCRIPTS = {
   'worktree-create': 'worktree-create',
   'worktree-remove': 'worktree-remove',
   'log-subagent-start': 'log-subagent',
-  'log-subagent': 'log-subagent'
+  'log-subagent': 'log-subagent',
+  'session-cleanup': 'session-cleanup'
 };
 
 /**
