@@ -282,6 +282,7 @@ If gate passes:
         - Log: `Tests: ran fresh, result cached`
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
   5. **If ALL three signals pass** (completion >= 90%, SHAs verified, tests pass):
+     **CRITICAL — DO NOT SKIP: Write VERIFICATION.md to the phase directory NOW.**
      - Write a minimal VERIFICATION.md to the phase directory:
 
 <!-- markdownlint-disable MD046 -->
@@ -329,6 +330,7 @@ If gate passes:
   4. If that fails with "already exists": run `git checkout {branch_name}` instead
   5. Log: `Branch: {branch_name}`
   6. Write branch name to `.autonomous-state.json` under `branch_state["{N}"]`
+**CRITICAL — DO NOT SKIP: Update STATE.md current_phase via CLI NOW. Do not skip.**
 - Update STATE.md current_phase to next phase via CLI:
   ```bash
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update current_phase {N+1}
