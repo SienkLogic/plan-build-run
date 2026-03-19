@@ -139,13 +139,13 @@ function main() {
   logHook('task-completed', 'TaskCompleted', 'completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   logEvent('agent', 'task-completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   try {
@@ -154,14 +154,14 @@ function main() {
     if (halt) {
       logHook('task-completed', 'TaskCompleted', 'halting', halt);
       process.stdout.write(JSON.stringify(halt));
-      logHook('task-completed', 'TaskCompleted', 'timing', { ms: Math.round(performance.now() - t0) });
+      logHook('task-completed', 'TaskCompleted', 'hook_ms', { ms: Math.round(performance.now() - t0) });
       process.exit(0);
     }
   } catch (_e) {
     // planningDir does not exist — no halt checks needed
   }
 
-  logHook('task-completed', 'TaskCompleted', 'timing', { ms: Math.round(performance.now() - t0) });
+  logHook('task-completed', 'TaskCompleted', 'hook_ms', { ms: Math.round(performance.now() - t0) });
   process.exit(0);
 }
 
@@ -180,25 +180,25 @@ function handleHttp(reqBody) {
   logHook('task-completed', 'TaskCompleted', 'completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   logEvent('agent', 'task-completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   if (planningDir && fs.existsSync(planningDir)) {
     const halt = checkHaltConditions(data, planningDir);
     if (halt) {
       logHook('task-completed', 'TaskCompleted', 'halting', halt);
-      logHook('task-completed', 'TaskCompleted', 'timing', { ms: Math.round(performance.now() - t0) });
+      logHook('task-completed', 'TaskCompleted', 'hook_ms', { ms: Math.round(performance.now() - t0) });
       return halt;
     }
   }
 
-  logHook('task-completed', 'TaskCompleted', 'timing', { ms: Math.round(performance.now() - t0) });
+  logHook('task-completed', 'TaskCompleted', 'hook_ms', { ms: Math.round(performance.now() - t0) });
   return null;
 }
 

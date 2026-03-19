@@ -108,13 +108,13 @@ function main() {
   logHook('task-completed', 'TaskCompleted', 'completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   logEvent('agent', 'task-completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   if (fs.existsSync(planningDir)) {
@@ -143,13 +143,13 @@ function handleHttp(reqBody) {
   logHook('task-completed', 'TaskCompleted', 'completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   logEvent('agent', 'task-completed', {
     agent_type: data.agent_type || data.subagent_type || null,
     agent_id: data.agent_id || null,
-    duration_ms: data.duration_ms || null
+    agent_duration_ms: data.duration_ms || null
   });
 
   if (planningDir && fs.existsSync(planningDir)) {

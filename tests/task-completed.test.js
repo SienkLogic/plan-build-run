@@ -324,7 +324,7 @@ describe('task-completed.js', () => {
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'completed');
       expect(entry.agent_type).toBe('pbr:planner');
       expect(entry.agent_id).toBe('test-003');
-      expect(entry.duration_ms).toBe(1000);
+      expect(entry.agent_duration_ms).toBe(1000);
     });
 
     test('log entries use subagent_type when agent_type is missing', () => {
@@ -349,7 +349,7 @@ describe('task-completed.js', () => {
       const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'completed');
       expect(entry.agent_type).toBeNull();
       expect(entry.agent_id).toBeNull();
-      expect(entry.duration_ms).toBeNull();
+      expect(entry.agent_duration_ms).toBeNull();
     });
   });
 });
