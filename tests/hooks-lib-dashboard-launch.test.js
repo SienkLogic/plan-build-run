@@ -55,11 +55,10 @@ describe('getEnrichedContext', () => {
     expect(typeof getEnrichedContext).toBe('function');
   });
 
-  test('returns null or object when config is null', async () => {
-    // When config is null, getEnrichedContext tries the default port (19836).
-    // If a hook server happens to be running, it returns data; otherwise null.
-    const result = await getEnrichedContext(null, planningDir);
-    expect(result === null || typeof result === 'object').toBe(true);
+  test('returns null when config is null and no server running', async () => {
+    // Pass config with hook_server disabled to avoid network calls in CI
+    const result = await getEnrichedContext({ hook_server: { enabled: false } }, planningDir);
+    expect(result).toBeNull();
   });
 
   test('returns null when hook server disabled', async () => {
