@@ -1432,7 +1432,8 @@ Chain to the next skill directly within this session. This eliminates manual pha
 | Build Result | Next Action | How |
 |-------------|-------------|-----|
 | Verification passed, more phases | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
-| Verification skipped | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Verification skipped, `workflow.validate_phase: true` | Run validate-phase | `Skill({ skill: "pbr:validate-phase", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Verification skipped, `workflow.validate_phase: false` | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
 | Verification gaps found | **HARD STOP** — present gaps to user | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:verify-work {N}` before stopping. Do NOT auto-advance past failures. |
 | Last phase in current milestone | **HARD STOP** — milestone boundary | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:complete-milestone` before stopping. Suggest `/pbr:audit-milestone`. Explain: "auto_advance pauses at milestone boundaries — your sign-off is required." |
 | Build errors occurred | **HARD STOP** — errors need human review | If `auto_continue` also true: write `.planning/.auto-next` with `/pbr:execute-phase {N}` before stopping. Do NOT auto-advance past errors. |
@@ -1529,6 +1530,22 @@ Then present the appropriate branded banner from Read `references/ui-brand.md` �
 - **If `gaps_found`:** Use the "Gaps Found" template. Fill in phase number, name, score, and gap summaries from VERIFICATION.md.
 
 Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block of the completion template.
+
+**NEXT UP routing (when verification was skipped):**
+
+If verification was skipped and `workflow.validate_phase` is `true` (default), present:
+
+```
+**Run quality gate** to check test coverage gaps
+
+`/pbr:validate-phase {N}`
+
+**Also available:**
+- `/pbr:review {N}` — skip validation, go straight to review
+- `/pbr:continue` — auto-route to next logical step
+```
+
+If `workflow.validate_phase` is `false`, present the existing `/pbr:review {N}` suggestion instead.
 
 **8g. Display USER-SETUP.md (conditional):**
 
