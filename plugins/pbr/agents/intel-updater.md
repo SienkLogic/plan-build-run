@@ -76,6 +76,10 @@ EXCLUDE from counts and analysis:
 - `plugins/codex-pbr/` (suspended derivative)
 - `plan-build-run/skills/` (duplicate of plugins/pbr/skills/)
 
+**Count accuracy:** When reporting component counts in stack.json or arch.md, always derive
+counts by running Glob on canonical locations above, not from memory or CLAUDE.md.
+Example: `Glob("plugins/pbr/skills/*/SKILL.md")` for skill count.
+
 ## Forbidden Files
 
 When exploring, NEVER read or include in your output:
