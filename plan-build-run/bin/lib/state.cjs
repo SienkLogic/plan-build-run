@@ -440,12 +440,30 @@ function statePatch(jsonStr, planningDir) {
   let fields;
   try { fields = JSON.parse(jsonStr); } catch (_e) { return { success: false, error: "Invalid JSON" }; }
   const validFields = ["current_phase", "status", "plans_complete", "plans_total", "last_activity", "progress_percent", "phase_slug", "last_command", "blockers", "velocity", "session_last", "session_stopped_at", "session_resume"];
-  const updates = [], errors = [];
-  for (const [field, value] of Object.entries(fields)) {
-    if (!validFields.includes(field)) { errors.push("Unknown field: " + field); continue; }
-    try { stateUpdate(field, String(value), dir); updates.push(field); } catch (e) { errors.push(field + ": " + e.message); }
-  }
-  return { success: errors.length === 0, updated: updates, errors: errors.length > 0 ? errors : undefined };
+  const invalidFields = Object.keys(fields).filter(f => !validFields.includes(f));
+  if (invalidFields.length > 0) return { success: false, error: "Unknown fields: " + invalidFields.join(", ") };
+
+  const result = lockedFileUpdate(statePath, (content) => {
+    let updated = content;
+    const fm = parseYamlFrontmatter(updated);
+    const isFrontmatter = fm.version === 2 || fm.current_phase !== undefined;
+    for (const [field, value] of Object.entries(fields)) {
+      let val = String(value);
+      if (field === 'last_activity' && val === 'now') {
+        val = new Date().toISOString().slice(0, 19).replace('T', ' ');
+      }
+      if (isFrontmatter) {
+        updated = updateFrontmatterField(updated, field, val);
+        updated = syncBodyLine(updated, field, val);
+      } else {
+        updated = updateLegacyStateField(updated, field, val);
+      }
+    }
+    return updated;
+  });
+
+  if (!result.success) return { success: false, error: result.error };
+  return { success: true, updated: Object.keys(fields) };
 }
 
 /**
@@ -457,15 +475,36 @@ function stateAdvancePlan(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
-  const stateContent = fs.readFileSync(statePath, "utf8");
-  const planMatch = stateContent.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
-  if (!planMatch) return { success: false, error: "Could not find Plan: N of M in STATE.md" };
-  const current = parseInt(planMatch[1], 10), total = parseInt(planMatch[2], 10);
-  const next = Math.min(current + 1, total);
-  stateUpdate("plans_complete", String(next), dir);
-  const progressPct = total > 0 ? Math.round((next / total) * 100) : 0;
-  stateUpdate("progress_percent", String(progressPct), dir);
-  return { success: true, previous_plan: current, current_plan: next, total_plans: total, progress_percent: progressPct };
+
+  let resultData = {};
+  const result = lockedFileUpdate(statePath, (content) => {
+    const planMatch = content.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
+    if (!planMatch) {
+      resultData = { error: "Could not find Plan: N of M in STATE.md" };
+      return content;
+    }
+    const current = parseInt(planMatch[1], 10);
+    const total = parseInt(planMatch[2], 10);
+    const next = Math.min(current + 1, total);
+    const progressPct = total > 0 ? Math.round((next / total) * 100) : 0;
+    resultData = { previous_plan: current, current_plan: next, total_plans: total, progress_percent: progressPct };
+
+    let updated = content;
+    const fm = parseYamlFrontmatter(content);
+    if (fm.version === 2 || fm.current_phase !== undefined) {
+      updated = updateFrontmatterField(updated, 'plans_complete', String(next));
+      updated = syncBodyLine(updated, 'plans_complete', String(next));
+      updated = updateFrontmatterField(updated, 'progress_percent', String(progressPct));
+      updated = syncBodyLine(updated, 'progress_percent', String(progressPct));
+    } else {
+      updated = updateLegacyStateField(updated, 'plans_complete', String(next));
+    }
+    return updated;
+  });
+
+  if (resultData.error) return { success: false, error: resultData.error };
+  if (!result.success) return { success: false, error: result.error };
+  return { success: true, ...resultData };
 }
 
 /**

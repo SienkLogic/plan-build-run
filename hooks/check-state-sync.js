@@ -49,6 +49,11 @@ function getCoreLib() {
   return require(path.join(pbrToolsPath, 'core.cjs'));
 }
 
+/** @returns {typeof import('../../../plan-build-run/bin/lib/state-queue.cjs')} */
+function getQueueLib() {
+  return require(path.join(pbrToolsPath, 'state-queue.cjs'));
+}
+
 /**
  * Module-level mtime cache for dirty flag detection.
  * Keyed by absolute file path, value is the mtimeMs after our last write.
@@ -348,6 +353,17 @@ function checkStateSync(data) {
       }
     }
 
+    // Drain any queued state updates before our own write
+    try {
+      const { stateDrain } = getQueueLib();
+      const drainResult = stateDrain(planningDir);
+      if (drainResult.success && drainResult.processed > 0) {
+        logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
+      }
+    } catch (_drainErr) {
+      // Queue drain is best-effort; don't block the sync
+    }
+
     // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)
     if (fs.existsSync(statePath)) {
       try {
@@ -435,6 +451,17 @@ function checkStateSync(data) {
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });
       }
+    }
+
+    // Drain any queued state updates before our own write
+    try {
+      const { stateDrain } = getQueueLib();
+      const drainResult = stateDrain(planningDir);
+      if (drainResult.success && drainResult.processed > 0) {
+        logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
+      }
+    } catch (_drainErr) {
+      // Queue drain is best-effort; don't block the sync
     }
 
     // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)

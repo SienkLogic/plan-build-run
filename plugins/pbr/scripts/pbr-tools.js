@@ -999,6 +999,15 @@ async function main() {
       output(stateReconcile());
     } else if (command === 'state' && subcommand === 'backup') {
       output(stateBackup());
+    } else if (command === 'state' && subcommand === 'enqueue') {
+      const field = args[2];
+      const value = args[3];
+      if (!field || value === undefined) { error('Usage: state enqueue <field> <value>'); }
+      const { stateEnqueue } = require('../../../plan-build-run/bin/lib/state-queue.cjs');
+      output(stateEnqueue(field, value, planningDir));
+    } else if (command === 'state' && subcommand === 'drain') {
+      const { stateDrain } = require('../../../plan-build-run/bin/lib/state-queue.cjs');
+      output(stateDrain(planningDir));
     } else if (command === 'phase' && subcommand === 'add') {
       const slug = args[2];
       if (!slug) { error('Usage: phase add <slug> [--after N] [--goal "..."] [--depends-on N]'); }

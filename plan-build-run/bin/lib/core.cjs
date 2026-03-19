@@ -850,9 +850,9 @@ function atomicWrite(filePath, content) {
  * @returns {object} { success, content?, error? }
  */
 function lockedFileUpdate(filePath, updateFn, opts = {}) {
-  const retries = opts.retries || 3;
-  const retryDelayMs = opts.retryDelayMs || 100;
-  const timeoutMs = opts.timeoutMs || 5000;
+  const retries = opts.retries || 10;
+  const retryDelayMs = opts.retryDelayMs || 50;
+  const timeoutMs = opts.timeoutMs || 10000;
   const lockPath = filePath + '.lock';
 
   let lockFd = null;
@@ -877,7 +877,9 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
           }
 
           if (attempt < retries - 1) {
-            const waitMs = retryDelayMs * (attempt + 1);
+            const baseWait = retryDelayMs * Math.pow(2, attempt);
+            const jitter = Math.floor(Math.random() * retryDelayMs);
+            const waitMs = Math.min(baseWait + jitter, 2000);
             try {
               Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
             } catch (_atomicsErr) {
@@ -886,6 +888,7 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
             }
             continue;
           }
+          process.stderr.write(`[pbr] WARN: lock contention on ${path.basename(filePath)} after ${retries} attempts\n`);
           return { success: false, error: `Could not acquire lock for ${path.basename(filePath)} after ${retries} attempts` };
         }
         throw e;

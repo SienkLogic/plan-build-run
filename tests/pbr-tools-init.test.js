@@ -340,8 +340,8 @@ describe('pbr-tools compound init commands', () => {
     test('returns error for unknown field', () => {
       var result = statePatch(JSON.stringify({ nonexistent_field: 'value' }));
       expect(result.success).toBe(false);
-      expect(result.errors).toBeDefined();
-      expect(result.errors[0]).toMatch(/Unknown field/);
+      expect(result.error).toBeDefined();
+      expect(result.error).toMatch(/Unknown field/);
     });
 
     test('returns error for invalid JSON', () => {
