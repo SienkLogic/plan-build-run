@@ -163,6 +163,10 @@ Important constraints:
 
 **Gate:** Only execute if speculative planners were dispatched in 3c-speculative for this phase N.
 
+Note: When speculative plans are replaced (re-planned), the checkpoint manifest from a prior
+speculative run (if any) becomes stale. Re-initialize it immediately after re-planning so
+that the build skill does not try to skip plans that no longer exist.
+
 **Procedure:**
 
 1. Wait for any outstanding speculative planner tasks to complete (they run in background).
@@ -179,6 +183,13 @@ Important constraints:
         ```
         Skill({ skill: "pbr:plan", args: "{C} --auto" })
         ```
+      - Re-initialize checkpoint manifest for Phase C with the new plan IDs:
+        ```bash
+        # Collect new PLAN-*.md filenames from .planning/phases/{CC}-{slug}/
+        # Extract plan IDs from frontmatter (plan: field) of each new PLAN file
+        node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {CC}-{slug} --plans "{comma-separated plan IDs}"
+        ```
+        This ensures the build skill starts with accurate plan tracking when Phase C is built.
    c. If Phase C does NOT depend on Phase N: plans are still valid, no action needed.
 
 Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
