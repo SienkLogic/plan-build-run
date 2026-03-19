@@ -34,6 +34,7 @@ const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
 const { checkDirectStateWrite } = require('./check-direct-state-write');
 const { queueIntelUpdate } = require('./intel-queue');
+const { recordIncident } = require('./record-incident');
 
 let checkDependencyBreaks;
 try { checkDependencyBreaks = require('./lib/dependency-break').checkDependencyBreaks; } catch (_e) { checkDependencyBreaks = null; }
@@ -285,6 +286,19 @@ async function processEvent(data, planningDir) {
   }
 
   try { logHook('post-write-dispatch', 'PostToolUse', 'complete', { checks: results.length, hasWarnings: results.length > 0 }); } catch(_) {}
+
+  // Record warnings as incidents (fire-and-forget)
+  const incidentFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  for (const msg of results) {
+    if (!msg) continue;
+    recordIncident({
+      source: 'hook',
+      type: 'warn',
+      severity: 'warning',
+      issue: typeof msg === 'string' ? msg.slice(0, 300) : JSON.stringify(msg).slice(0, 300),
+      context: { file: incidentFilePath }
+    });
+  }
 
   // Merge all results into a single response
   if (results.length > 0) {

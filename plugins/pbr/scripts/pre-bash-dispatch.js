@@ -52,6 +52,7 @@ const { checkCommit, enrichCommitLlm } = require('./validate-commit');
 const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
 // Cross-plugin sync disabled — derivative plugins updated separately
 // const { checkCrossPluginSync } = require('./check-cross-plugin-sync');
+const { recordIncident } = require('./record-incident');
 
 function main() {
   let input = '';
@@ -66,6 +67,14 @@ function main() {
       const dangerousResult = checkDangerous(data);
       if (dangerousResult) {
         logHook('pre-bash-dispatch', 'PreToolUse', 'dispatched', { handler: 'check-dangerous-commands' });
+        // Record incident (fire-and-forget — does not affect exit code)
+        recordIncident({
+          source: 'hook',
+          type: 'block',
+          severity: 'warning',
+          issue: dangerousResult.output.reason || 'PreToolUse block: dangerous command',
+          context: { tool: data.tool_name, command: (data.tool_input && data.tool_input.command || '').slice(0, 200) }
+        });
         process.stdout.write(JSON.stringify(dangerousResult.output));
         process.exit(dangerousResult.exitCode);
       }
@@ -74,6 +83,14 @@ function main() {
       const commitResult = checkCommit(data);
       if (commitResult) {
         logHook('pre-bash-dispatch', 'PreToolUse', 'dispatched', { handler: 'validate-commit' });
+        // Record incident (fire-and-forget — does not affect exit code)
+        recordIncident({
+          source: 'hook',
+          type: 'block',
+          severity: 'warning',
+          issue: commitResult.output.reason || 'PreToolUse block: invalid commit format',
+          context: { tool: data.tool_name, command: (data.tool_input && data.tool_input.command || '').slice(0, 200) }
+        });
         process.stdout.write(JSON.stringify(commitResult.output));
         process.exit(commitResult.exitCode);
       }

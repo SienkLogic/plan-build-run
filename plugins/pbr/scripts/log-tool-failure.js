@@ -13,6 +13,7 @@
 
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { recordIncident } = require('./record-incident');
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -50,6 +51,15 @@ async function main() {
     error: typeof error === 'string' ? error.substring(0, 500) : JSON.stringify(error).substring(0, 500),
     interrupt: isInterrupt,
     input_summary: summarizeInput(toolName, toolInput)
+  });
+
+  // Record tool failure as incident (fire-and-forget)
+  recordIncident({
+    source: 'hook',
+    type: 'error',
+    severity: 'error',
+    issue: `Tool failure: ${toolName} — ${typeof error === 'string' ? error.slice(0, 200) : JSON.stringify(error).slice(0, 200)}`,
+    context: { tool: toolName, interrupt: isInterrupt }
   });
 
   // Provide recovery hints for Bash failures (most common actionable failure)
@@ -109,6 +119,15 @@ function handleHttp(reqBody) {
     error: typeof error === 'string' ? error.substring(0, 500) : JSON.stringify(error).substring(0, 500),
     interrupt: isInterrupt,
     input_summary: summarizeInput(toolName, toolInput)
+  });
+
+  // Record tool failure as incident (fire-and-forget)
+  recordIncident({
+    source: 'hook',
+    type: 'error',
+    severity: 'error',
+    issue: `Tool failure: ${toolName} — ${typeof error === 'string' ? error.slice(0, 200) : JSON.stringify(error).slice(0, 200)}`,
+    context: { tool: toolName, interrupt: isInterrupt }
   });
 
   if (toolName === 'Bash' && !isInterrupt) {
