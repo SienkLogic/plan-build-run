@@ -81,7 +81,8 @@ const CONFIG_DEFAULTS = {
     regression_prevention: true,
     security_scanning: true,
     architecture_graph: true,
-    architecture_guard: true
+    architecture_guard: true,
+    incident_journal: true
   },
   validation_passes: ['correctness', 'security'],
   autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },

@@ -52,10 +52,16 @@ Stop immediately. Do NOT proceed.
    - If `--speculative-depth N` provided, override config value
    - Store as `speculativeDepth` for use in Step 3
 
-4. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
-5. Read `.planning/ROADMAP.md` to build phase list for current milestone.
-6. Filter to phases from `--from` through `--through` that are not yet complete.
-7. If no phases to execute, display: "All phases in range are complete." and stop.
+4. Read `gates.checkpoint_auto_resolve` from config (default: `"none"`). Values:
+   - `"none"`: STOP on all checkpoints (user must resolve)
+   - `"verify-only"`: Auto-resolve `checkpoint:human-verify` (proceed after confidence-gate passes), STOP on `checkpoint:human-action`
+   - `"verify-and-decision"`: Auto-resolve verify + decision checkpoints, STOP on `checkpoint:human-action`
+   - `"all"`: Auto-resolve all checkpoints (dangerous — only for fully automated pipelines)
+   Store as `checkpointResolveLevel` for use in Step 3c.
+5. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
+6. Read `.planning/ROADMAP.md` to build phase list for current milestone.
+7. Filter to phases from `--from` through `--through` that are not yet complete.
+8. If no phases to execute, display: "All phases in range are complete." and stop.
 
 **If `--dry-run`:** Display the phase list with planned actions per phase, then stop without executing.
 
@@ -118,8 +124,11 @@ For each remaining phase N:
 - If incomplete:
   - Invoke: `Skill({ skill: "pbr:build", args: "{N} --auto" })`
 - If all SUMMARYs exist: skip build
-- **STOP on human-action checkpoint:** If Skill returns a checkpoint with type `human-action`: STOP the autonomous loop immediately.
-  Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
+- **Checkpoint handling** (uses `checkpointResolveLevel` from Step 1):
+  - `checkpoint:human-action`: ALWAYS stop (regardless of config). Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
+  - `checkpoint:human-verify`: If `checkpointResolveLevel` is `"verify-only"`, `"verify-and-decision"`, or `"all"`: auto-resolve by running confidence gate. Otherwise STOP.
+  - `checkpoint:human-decision`: If `checkpointResolveLevel` is `"verify-and-decision"` or `"all"`: auto-resolve with default option. Otherwise STOP.
+  - Any other checkpoint type: If `checkpointResolveLevel` is `"all"`: auto-resolve. Otherwise STOP.
 
 #### Error Classification
 
@@ -330,6 +339,20 @@ Important: The staleness check uses deviation count from SUMMARY.md frontmatter 
 
 - Check milestone boundary: if this was the last phase in milestone, stop loop.
   Display: "Milestone complete! Run `/pbr:milestone` to archive."
+
+---
+
+## Notification Throttling
+
+During autonomous execution, suppress routine status output to reduce noise:
+- **Suppress**: Hook `additionalContext` messages that repeat the same content within 60 seconds (e.g., repeated "context budget" warnings)
+- **Suppress**: Per-task progress updates during build — only show per-plan completion
+- **Keep**: Phase-level status changes (discussing → planned → building → verified)
+- **Keep**: Error/warning messages (always display)
+- **Keep**: Speculative planning status (first mention only)
+- **Batch**: When multiple speculative planners complete between phases, report them in a single line: "Speculative plans ready: Phase {list}"
+
+Target: <100 status lines per 7-phase autonomous session (excluding agent output).
 
 ---
 
