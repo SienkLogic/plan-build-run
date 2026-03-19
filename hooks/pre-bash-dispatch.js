@@ -50,6 +50,7 @@ const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
 const { checkCommit, enrichCommitLlm } = require('./validate-commit');
 const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
+const { checkRequirePaths, checkMirrorSync, checkLintErrors } = require('./lib/pre-commit-checks');
 // Cross-plugin sync disabled — derivative plugins updated separately
 // const { checkCrossPluginSync } = require('./check-cross-plugin-sync');
 
@@ -98,6 +99,18 @@ function main() {
         if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
           warnings.push('destructive database operation (DROP/TRUNCATE/DELETE/ALTER) — verify correct database is targeted and a backup exists');
         }
+      }
+
+      // Pre-commit quality checks — advisory only, on git commit commands
+      if (/\bgit\s+commit\b/.test(command)) {
+        const pathResult = checkRequirePaths(data);
+        if (pathResult) warnings.push(...pathResult.warnings);
+
+        const mirrorResult = checkMirrorSync(data);
+        if (mirrorResult) warnings.push(...mirrorResult.warnings);
+
+        const lintResult = checkLintErrors(data);
+        if (lintResult) warnings.push(...lintResult.warnings);
       }
 
       // Unmanaged commit advisory — warn when git commit runs without PBR skill
