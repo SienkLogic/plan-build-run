@@ -32,7 +32,7 @@ Additionally for this skill:
 
 Where `{N}` is the phase number from `$ARGUMENTS`.
 
-**Set active skill:** Write `.planning/.active-skill` with content `test`.
+**CRITICAL — DO NOT SKIP: Set active skill.** Write `.planning/.active-skill` with content `test`.
 
 Then proceed to Step 1.
 

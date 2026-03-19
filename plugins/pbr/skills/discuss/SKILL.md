@@ -304,6 +304,7 @@ If "Keep exploring" -- ask what they want to add or identify gaps and probe natu
 
 ### Step 7: Write CONTEXT.md
 
+**CRITICAL — DO NOT SKIP: Write CONTEXT.md NOW. This file is the sole output of the discuss skill. Skipping it means all decisions are lost.**
 Write the CONTEXT.md file to the phase directory:
 
 **Path:** `.planning/phases/{NN}-{phase-name}/CONTEXT.md`
@@ -335,6 +336,7 @@ Ensure all locked decisions are written clearly enough for mechanical consumptio
 
 ### Step 7.5: Update STATE.md Pointer
 
+**CRITICAL — DO NOT SKIP: Update STATE.md pointer to new CONTEXT.md NOW.**
 Update `.planning/STATE.md`'s `## Accumulated Context` section to add a reference to the new CONTEXT.md:
 
 Add under the `### Decisions` subsection:
