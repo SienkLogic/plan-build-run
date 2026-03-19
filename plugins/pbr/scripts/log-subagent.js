@@ -53,12 +53,12 @@ function main() {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       description: data.description || null
-    });
+    }, undefined, undefined, sessionId);
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       description: data.description || null
-    });
+    }, sessionId);
 
     // Write .active-agent signal so other hooks know a subagent is running
     writeActiveAgent(agentType || 'unknown', sessionId);
@@ -81,12 +81,12 @@ function main() {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       duration_ms: data.duration_ms || null
-    });
+    }, undefined, undefined, sessionId);
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       duration_ms: data.duration_ms || null
-    });
+    }, sessionId);
     // Emit stdout so Claude Code captures SubagentStop in session JSONL for audit visibility
     process.stdout.write(JSON.stringify({ decision: 'allow' }));
   }
@@ -189,21 +189,22 @@ function handleHttp(reqBody) {
   const data = reqBody.data || {};
   const agentType = resolveAgentType(data);
 
+  const httpSessionId = data.session_id || null;
+
   if (event === 'SubagentStart') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       description: data.description || null
-    });
+    }, undefined, undefined, httpSessionId);
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       description: data.description || null
-    });
+    }, httpSessionId);
 
     // Write .active-agent signal — use planningDir from reqBody if available
     const planningDir = reqBody.planningDir;
-    const httpSessionId = data.session_id || null;
     if (planningDir) {
       try {
         if (fs.existsSync(planningDir)) {
@@ -251,12 +252,12 @@ function handleHttp(reqBody) {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       duration_ms: data.duration_ms || null
-    });
+    }, undefined, undefined, httpSessionId);
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
       duration_ms: data.duration_ms || null
-    });
+    }, httpSessionId);
     return null;
   }
   return null;
