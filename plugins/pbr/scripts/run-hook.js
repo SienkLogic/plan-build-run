@@ -119,7 +119,7 @@ function runScript(name, args) {
   // doesn't — skip loading the module entirely. This avoids the full
   // require() chain (~10-20ms) for every hook invocation in non-PBR projects.
   if (!ALWAYS_RUN.has(name)) {
-    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+    const cwd = fixMsysPath(process.env.PBR_PROJECT_ROOT) || process.cwd();
     try {
       fs.statSync(path.join(cwd, '.planning'));
     } catch (_e) {

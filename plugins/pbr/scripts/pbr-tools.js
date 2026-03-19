@@ -250,6 +250,10 @@ const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
 // --- Module-level state (for backwards compatibility) ---
 
 let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+// MSYS path bridging: Git Bash on Windows can produce /d/Repos/... paths
+// that Node.js cannot resolve. Convert to D:\Repos\... form.
+const _msysCwdMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
+if (_msysCwdMatch) cwd = _msysCwdMatch[1] + ':' + path.sep + _msysCwdMatch[2].replace(/\//g, path.sep);
 let planningDir = path.join(cwd, '.planning');
 
 // --- Wrapper functions that pass planningDir to lib modules ---
@@ -263,6 +267,8 @@ function configLoad(dir) {
 function configClearCache() {
   _configClearCache();
   cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const _msysResetMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
+  if (_msysResetMatch) cwd = _msysResetMatch[1] + ':' + path.sep + _msysResetMatch[2].replace(/\//g, path.sep);
   planningDir = path.join(cwd, '.planning');
 }
 
@@ -1254,7 +1260,7 @@ async function main() {
         process.exit(1);
         return;
       }
-      const svPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+      const svPlanningDir = planningDir;
       const svContext = {
         planningDir: svPlanningDir,
         phaseSlug: process.env.PBR_PHASE_SLUG || '',
@@ -1269,7 +1275,7 @@ async function main() {
         error('Usage: pbr-tools.js build-preview <phase-slug>');
         return;
       }
-      const previewPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+      const previewPlanningDir = planningDir;
       const previewPluginRoot = path.resolve(__dirname, '..');
       const result = _buildPreview(phaseSlug, {}, previewPlanningDir, previewPluginRoot);
       if (result && result.error) {
@@ -1279,7 +1285,7 @@ async function main() {
       output(result);
     } else if (command === 'suggest-alternatives') {
       const errorType = args[1];
-      const altPlanningDir = path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+      const altPlanningDir = planningDir;
       if (errorType === 'phase-not-found') {
         output(_phaseAlternatives(args[2] || '', altPlanningDir));
       } else if (errorType === 'missing-prereq') {
