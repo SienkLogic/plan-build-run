@@ -660,19 +660,19 @@ Read the template from `${CLAUDE_SKILL_DIR}/templates/REQUIREMENTS.md.tmpl` and 
 
 ### Step 8: Roadmap Generation (delegated to subagent)
 
-Display to the user: `◆ Spawning planner (roadmap)...`
+Display to the user: `◆ Spawning roadmapper...`
 
-Spawn the planner in roadmap mode:
+Spawn the roadmapper agent:
 
 ```
 Task({
-  subagent_type: "pbr:planner",
-  // After planner: check for ## PLANNING COMPLETE or ## PLANNING FAILED
+  subagent_type: "pbr:roadmapper",
+  // After roadmapper: check for ## ROADMAP CREATED or ## ROADMAP BLOCKED
   prompt: <roadmap prompt>
 })
 ```
 
-**NOTE**: The `pbr:planner` subagent type auto-loads the agent definition. Do NOT inline it. The planner agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
+**NOTE**: The `pbr:roadmapper` subagent type auto-loads the agent definition. Do NOT inline it. The roadmapper agent will read REQUIREMENTS.md and SUMMARY.md from disk — you only need to tell it what to do and where files are.
 
 **Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it.
 
@@ -694,8 +694,8 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - `{description}` — project description from Step 2
 - `{quick|standard|comprehensive}` — depth setting from Step 3
 
-**After the planner completes:**
-- **Spot-check:** Verify `.planning/ROADMAP.md` exists on disk using Glob before attempting to read it. If missing, the planner may have failed silently — warn: `⚠ ROADMAP.md not found after planner completed. Re-spawning planner...` and retry once.
+**After the roadmapper completes:**
+- **Spot-check:** Verify `.planning/ROADMAP.md` exists on disk using Glob before attempting to read it. If missing, the roadmapper may have failed silently — warn: `⚠ ROADMAP.md not found after roadmapper completed. Re-spawning roadmapper...` and retry once.
 - Read `.planning/ROADMAP.md`
 - Count the phases from the roadmap content
 - Verify the roadmap contains a `## Milestone:` section wrapping the phases (the planner should generate this). If not, the initial set of phases constitutes the first milestone — add the section header yourself.

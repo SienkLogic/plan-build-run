@@ -32,7 +32,7 @@ const { detectConventions, writeConventions } = require('./lib/convention-detect
 const AGENT_TO_SKILL = {
   'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
   'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:audit': 'audit',
-  'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin',
+  'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:roadmapper': 'begin',
   'pbr:nyquist-auditor': 'validate', 'pbr:intel-updater': 'intel',
   'pbr:ui-checker': 'ui-review', 'pbr:ui-researcher': 'ui-phase'
 };

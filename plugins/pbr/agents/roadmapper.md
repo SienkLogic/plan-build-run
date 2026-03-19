@@ -274,7 +274,7 @@ Use 5 columns (not 3):
 
 ### STATE.md Structure
 
-Use template from `${CLAUDE_PLUGIN_ROOT}/templates/state.md`.
+Use template from `${CLAUDE_PLUGIN_ROOT}/skills/begin/templates/STATE.md.tmpl`.
 
 Key sections: Project Reference, Current Position, Performance Metrics, Accumulated Context, Session Continuity.
 
