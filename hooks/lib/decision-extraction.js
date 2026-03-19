@@ -124,7 +124,7 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
     if (!fs.existsSync(configPath)) return;
     config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   } catch (e) {
-    logHook('decision-extraction', 'SubagentStop', 'config-read-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'config-read-error', { error: e.message });
     return;
   }
 
@@ -139,7 +139,7 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
     const decisionsModule = require(path.join(__dirname, '..', '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'decisions.cjs'));
     recordDecision = decisionsModule.recordDecision;
   } catch (e) {
-    logHook('decision-extraction', 'SubagentStop', 'decisions-module-load-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'decisions-module-load-error', { error: e.message });
     return;
   }
 
@@ -161,7 +161,7 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
     } catch (_e) {
       // Non-fatal — log and continue
       try {
-        logHook('decision-extraction', 'SubagentStop', 'decision-record-error', { error: _e.message });
+        logHook('event-handler', 'SubagentStop', 'decision-record-error', { error: _e.message });
       } catch (_logErr) {
         // Intentional: logHook itself failed, nothing more we can do
       }
@@ -169,14 +169,14 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
   }
 
   try {
-    logHook('decision-extraction', 'SubagentStop', 'decisions-extracted', {
+    logHook('event-handler', 'SubagentStop', 'decisions-extracted', {
       feature: 'decision_journal',
       action: 'extract',
       count: decisions.length,
       agent: agentType
     });
   } catch (e) {
-    logHook('decision-extraction', 'SubagentStop', 'log-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'log-error', { error: e.message });
   }
 }
 
@@ -241,7 +241,7 @@ function extractNegativeKnowledge(planningDir, phaseDir, config) {
     const nkModule = require(path.join(__dirname, '..', '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'negative-knowledge.cjs'));
     recordFailure = nkModule.recordFailure;
   } catch (e) {
-    logHook('decision-extraction', 'SubagentStop', 'negative-knowledge-module-load-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'negative-knowledge-module-load-error', { error: e.message });
     return;
   }
 
@@ -253,14 +253,14 @@ function extractNegativeKnowledge(planningDir, phaseDir, config) {
     try {
       recordFailure(planningDir, { title: gap.title, category: 'verification-gap', filesInvolved: gap.files, whatTried: gap.title, whyFailed: gap.evidence || gap.title, phase });
     } catch (e) {
-      logHook('decision-extraction', 'SubagentStop', 'negative-knowledge-record-error', { error: e.message });
+      logHook('event-handler', 'SubagentStop', 'negative-knowledge-record-error', { error: e.message });
     }
   }
 
   try {
-    logHook('decision-extraction', 'SubagentStop', 'negative-knowledge-extracted', { feature: 'negative_knowledge', action: 'extract', count: gaps.length, phase });
+    logHook('event-handler', 'SubagentStop', 'negative-knowledge-extracted', { feature: 'negative_knowledge', action: 'extract', count: gaps.length, phase });
   } catch (e) {
-    logHook('decision-extraction', 'SubagentStop', 'log-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'log-error', { error: e.message });
   }
 }
 

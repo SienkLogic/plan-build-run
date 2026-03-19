@@ -25,7 +25,7 @@ function shouldAutoVerify(planningDir) {
     if (!fs.existsSync(configPath)) return false;
     config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
   } catch (e) {
-    logHook('auto-verify', 'SubagentStop', 'config-read-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'config-read-error', { error: e.message });
     return false;
   }
   if (config === null) return false;
@@ -64,7 +64,7 @@ function getPhaseFromState(planningDir) {
       status: status
     };
   } catch (e) {
-    logHook('auto-verify', 'SubagentStop', 'state-read-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'state-read-error', { error: e.message });
     return null;
   }
 }
@@ -95,7 +95,7 @@ function isTrustTrackingEnabled(planningDir) {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     return config.features?.trust_tracking !== false;
   } catch (e) {
-    logHook('auto-verify', 'SubagentStop', 'trust-config-read-error', { error: e.message });
+    logHook('event-handler', 'SubagentStop', 'trust-config-read-error', { error: e.message });
     return true;
   }
 }

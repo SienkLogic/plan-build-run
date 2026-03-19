@@ -11,7 +11,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('../hook-logger');
 const { configLoad } = require('../pbr-tools');
-const { intelStatus } = require('../../plan-build-run/bin/lib/intel.cjs');
+const { intelStatus } = require('../../../../plan-build-run/bin/lib/intel.cjs');
 const { loadLatestSnapshot, formatSnapshotBriefing } = require('./snapshot-manager');
 const { loadConventions, formatConventionBriefing } = require('./convention-detector');
 

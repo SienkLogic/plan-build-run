@@ -321,7 +321,7 @@ describe('task-completed.js', () => {
       const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
-      const entry = JSON.parse(lines[lines.length - 1]);
+      const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'completed');
       expect(entry.agent_type).toBe('pbr:planner');
       expect(entry.agent_id).toBe('test-003');
       expect(entry.duration_ms).toBe(1000);
@@ -336,7 +336,7 @@ describe('task-completed.js', () => {
       const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
-      const entry = JSON.parse(lines[lines.length - 1]);
+      const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'completed');
       expect(entry.agent_type).toBe('pbr:debugger');
     });
 
@@ -346,7 +346,7 @@ describe('task-completed.js', () => {
       const hookLog = getHooksLogPath(path.join(tmpDir, '.planning'));
       const content = fs.readFileSync(hookLog, 'utf8');
       const lines = content.trim().split('\n');
-      const entry = JSON.parse(lines[lines.length - 1]);
+      const entry = lines.map(l => JSON.parse(l)).find(e => e.decision === 'completed');
       expect(entry.agent_type).toBeNull();
       expect(entry.agent_id).toBeNull();
       expect(entry.duration_ms).toBeNull();
