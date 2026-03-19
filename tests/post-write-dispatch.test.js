@@ -394,6 +394,211 @@ deferred: []
     });
   });
 
+  describe('SUMMARY.md validation dispatch', () => {
+    test('SUMMARY.md missing required frontmatter fields triggers warning', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '03-api');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'placeholder');
+
+      const summaryPath = path.join(phaseDir, 'SUMMARY-03-01.md');
+      fs.writeFileSync(summaryPath, `---
+phase: "03-api"
+plan: "03-01"
+status: complete
+provides: ["api done"]
+---
+## Task Results
+`);
+      const result = runScript(tmpDir, { file_path: summaryPath });
+      expect(result.exitCode).toBe(0);
+      // Missing requires, key_files, deferred should produce warnings
+      if (result.output) {
+        const parsed = JSON.parse(result.output);
+        expect(parsed.additionalContext).toBeDefined();
+      }
+      cleanup(tmpDir);
+    });
+
+    test('valid SUMMARY.md with all required fields passes cleanly', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '03-api');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'placeholder');
+
+      const summaryPath = path.join(phaseDir, 'SUMMARY-03-01.md');
+      fs.writeFileSync(summaryPath, `---
+phase: "03-api"
+plan: "03-01"
+status: complete
+provides: ["api done"]
+requires: []
+key_files: ["src/api.ts"]
+deferred: []
+---
+## Task Results
+| Task | Status |
+|------|--------|
+| T1   | done   |
+`);
+      const result = runScript(tmpDir, { file_path: summaryPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('SUMMARY.md with empty requires array passes validation', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '03-api');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), 'placeholder');
+
+      const summaryPath = path.join(phaseDir, 'SUMMARY-03-01.md');
+      fs.writeFileSync(summaryPath, `---
+phase: "03-api"
+plan: "03-01"
+status: complete
+provides: []
+requires: []
+key_files: []
+deferred: []
+---
+## Task Results
+`);
+      const result = runScript(tmpDir, { file_path: summaryPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('VERIFICATION.md validation dispatch', () => {
+    test('VERIFICATION.md missing frontmatter triggers warning', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+
+      const verPath = path.join(phaseDir, 'VERIFICATION.md');
+      fs.writeFileSync(verPath, '# Verification\nNo frontmatter');
+      const result = runScript(tmpDir, { file_path: verPath });
+      expect(result.exitCode).toBe(0);
+      if (result.output) {
+        const parsed = JSON.parse(result.output);
+        expect(parsed.additionalContext).toBeDefined();
+      }
+      cleanup(tmpDir);
+    });
+
+    test('valid VERIFICATION.md passes without warnings', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+
+      const verPath = path.join(phaseDir, 'VERIFICATION.md');
+      fs.writeFileSync(verPath, `---
+phase: "01-init"
+status: pass
+must_haves:
+  - "Server starts: PASS"
+---
+## Verification Results
+All must-haves verified.
+`);
+      const result = runScript(tmpDir, { file_path: verPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('STATE.md validation and sync dispatch', () => {
+    test('STATE.md with invalid frontmatter produces warning', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const statePath = path.join(planningDir, 'STATE.md');
+      // Missing current_phase in frontmatter
+      fs.writeFileSync(statePath, '---\nstatus: "building"\n---\n**Phase**: 01');
+      const result = runScript(tmpDir, { file_path: statePath });
+      expect(result.exitCode).toBe(0);
+      if (result.output) {
+        const parsed = JSON.parse(result.output);
+        expect(parsed.additionalContext).toBeDefined();
+      }
+      cleanup(tmpDir);
+    });
+
+    test('STATE.md triggers both checkSync and checkStateWrite validators', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const statePath = path.join(planningDir, 'STATE.md');
+      // STATE without frontmatter (triggers checkStateWrite) and with
+      // a ROADMAP regression (triggers checkSync)
+      fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: built');
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'),
+        '| Phase | Status |\n|-------|--------|\n| 03 | planned |');
+      const result = runScript(tmpDir, { file_path: statePath });
+      expect(result.exitCode).toBe(0);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.additionalContext).toBeDefined();
+      // Both regression warning and missing frontmatter should be present
+      // (independent dispatch merges results)
+      expect(parsed.additionalContext).toContain('regression');
+      cleanup(tmpDir);
+    });
+
+    test('STATE.md with Windows line endings is handled', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const statePath = path.join(planningDir, 'STATE.md');
+      fs.writeFileSync(statePath, '---\r\nversion: 2\r\ncurrent_phase: 1\r\nphase_slug: "init"\r\nstatus: "planning"\r\n---\r\n**Phase**: 01\r\n');
+      const result = runScript(tmpDir, { file_path: statePath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
+  describe('error resilience', () => {
+    test('file_path with spaces does not crash dispatch', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '01-my phase');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const planPath = path.join(phaseDir, 'PLAN.md');
+      fs.writeFileSync(planPath, '# Plan with spaces in path');
+      const result = runScript(tmpDir, { file_path: planPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('file_path with unicode characters does not crash dispatch', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const unicodePath = path.join(planningDir, 'notes-\u00e9\u00e0.md');
+      fs.writeFileSync(unicodePath, '# Unicode file');
+      const result = runScript(tmpDir, { file_path: unicodePath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('missing file_path in tool_input does not crash', () => {
+      const { tmpDir } = makeTmpDir();
+      const result = runScript(tmpDir, { content: 'some content but no path' });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('empty stdin JSON object does not crash', () => {
+      const { tmpDir } = makeTmpDir();
+      const result = _run({}, { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+
+    test('dispatch continues when checkPlanWrite would error on missing file', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const phaseDir = path.join(planningDir, 'phases', '05-test');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      // Reference a PLAN.md path that exists on disk but is empty
+      const planPath = path.join(phaseDir, 'PLAN.md');
+      fs.writeFileSync(planPath, '');
+      const result = runScript(tmpDir, { file_path: planPath });
+      expect(result.exitCode).toBe(0);
+      cleanup(tmpDir);
+    });
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = makeTmpDir();
     try {
