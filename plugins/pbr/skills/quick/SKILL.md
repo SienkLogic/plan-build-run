@@ -240,6 +240,7 @@ If `--full` is NOT set, skip this step entirely -- the zero-friction path procee
 
 After the executor completes:
 
+**CRITICAL — DO NOT SKIP: Create task directory .planning/quick/{NNN}-{slug}/ NOW. Executor output cannot be stored without this directory.**
 1. **Create task directory**: `.planning/quick/{NNN}-{slug}/`
 
 2. **Generate post-hoc SUMMARY.md** (if `features.post_hoc_artifacts` is not `false`):
@@ -276,7 +277,7 @@ Go to **Step 8** (Report Results).
 
 #### Step 5a: Set Active Skill
 
-Write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook -- it will block source code writes until PLAN.md exists.
+**CRITICAL — DO NOT SKIP: Write .active-skill NOW.** Write `.planning/.active-skill` with the content `quick` (single word, no newline). This registers you with the workflow enforcement hook -- it will block source code writes until PLAN.md exists.
 
 #### Step 5b: Check ROADMAP Context
 

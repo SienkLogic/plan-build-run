@@ -177,6 +177,7 @@ If `prd_mode` is `true`:
    - **Constraints** / **Technical Constraints**
    - **Decisions** / **Architecture Decisions** / **Design Decisions**
    - **Goals** / **Objectives**
+**CRITICAL — DO NOT SKIP: Write CONTEXT.md from the PRD NOW. The planner agent requires this file for locked decisions.**
 3. Generate `.planning/phases/{NN}-{slug}/CONTEXT.md` from the PRD:
    ```markdown
    ---
