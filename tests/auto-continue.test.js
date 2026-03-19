@@ -547,6 +547,186 @@ describe('auto-continue.js', () => {
     });
   });
 
+  describe('signal file creation', () => {
+    function writeTracker(data) {
+      fs.writeFileSync(path.join(planningDir, '.session-tracker'), JSON.stringify(data));
+    }
+
+    test('.auto-next file is written with correct command when phase limit triggers', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
+      writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      run();
+
+      const signalPath = path.join(planningDir, '.auto-next');
+      expect(fs.existsSync(signalPath)).toBe(true);
+      expect(fs.readFileSync(signalPath, 'utf8')).toBe('/pbr:pause-work');
+    });
+
+    test('.auto-next file is NOT written when stop_hook_active is set', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 2 });
+      writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      run(JSON.stringify({ stop_hook_active: true }));
+
+      const signalPath = path.join(planningDir, '.auto-next');
+      expect(fs.existsSync(signalPath)).toBe(false);
+    });
+
+    test('.auto-next file is NOT written when auto_continue is disabled', () => {
+      writeConfig({ features: { auto_continue: false }, session_phase_limit: 2 });
+      writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      run();
+
+      const signalPath = path.join(planningDir, '.auto-next');
+      expect(fs.existsSync(signalPath)).toBe(false);
+    });
+  });
+
+  describe('session cycling edge cases', () => {
+    function writeTracker(data) {
+      fs.writeFileSync(path.join(planningDir, '.session-tracker'), JSON.stringify(data));
+    }
+
+    function runWithEnv(stdinData = '', envOverrides = {}) {
+      return execSync(`node "${SCRIPT}"`, {
+        cwd: tmpDir,
+        encoding: 'utf8',
+        timeout: 5000,
+        input: stdinData,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, ...envOverrides },
+      });
+    }
+
+    test('compact-first cycling suggests /compact before session end', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 2, session_cycling: 'compact-first' });
+      writeTracker({ phases_completed: 2, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      const env = { ...process.env, TMUX: '' };
+      delete env.TMUX;
+      const output = runWithEnv('', env);
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('COMPACT-FIRST');
+      expect(parsed.reason).toContain('/compact');
+      expect(parsed.reason).toContain('/pbr:pause-work');
+    });
+
+    test('session_phase_limit = 0 does not trigger cycling', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 0 });
+      writeTracker({ phases_completed: 100, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      const output = run();
+      // Should exit silently — no cycling, no signal file
+      expect(output).toBe('');
+    });
+
+    test('session_phase_limit = 1 triggers cycling after first phase', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 1 });
+      writeTracker({ phases_completed: 1, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:pause-work');
+    });
+
+    test('default phase limit scales with context_window_tokens (1M = 8)', () => {
+      writeConfig({ features: { auto_continue: true }, context_window_tokens: 1000000 });
+      // phases_completed = 7 (under 8 limit for 1M)
+      writeTracker({ phases_completed: 7, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      const output = run();
+      // Should NOT trigger cycling — under limit
+      expect(output).toBe('');
+    });
+
+    test('default phase limit at 500k is 6', () => {
+      writeConfig({ features: { auto_continue: true }, context_window_tokens: 500000 });
+      writeTracker({ phases_completed: 6, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() });
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.decision).toBe('block');
+      expect(parsed.reason).toContain('/pbr:pause-work');
+    });
+  });
+
+  describe('config fallback paths', () => {
+    test('exits silently when config.json is missing (no features)', () => {
+      // No config.json at all
+      const output = run();
+      expect(output).toBe('');
+    });
+
+    test('exits silently when config.json has invalid JSON', () => {
+      fs.writeFileSync(path.join(planningDir, 'config.json'), '{{not valid json}}');
+      const output = run();
+      expect(output).toBe('');
+    });
+
+    test('exits silently when features.auto_continue is explicitly false', () => {
+      writeConfig({ features: { auto_continue: false } });
+      writeSignal('/pbr:execute-phase 3');
+
+      const output = run();
+      expect(output).toBe('');
+      // Signal file should NOT be consumed
+      expect(fs.existsSync(path.join(planningDir, '.auto-next'))).toBe(true);
+    });
+
+    test('exits silently when features object is empty', () => {
+      writeConfig({ features: {} });
+      writeSignal('/pbr:execute-phase 3');
+
+      const output = run();
+      expect(output).toBe('');
+    });
+  });
+
+  describe('output format', () => {
+    test('Stop hook output uses { decision: "block", reason: string } format', () => {
+      writeConfig();
+      writeSignal('/pbr:execute-phase 3');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('decision', 'block');
+      expect(parsed).toHaveProperty('reason');
+      expect(typeof parsed.reason).toBe('string');
+    });
+
+    test('reason string contains the next command to execute', () => {
+      writeConfig();
+      writeSignal('/pbr:verify-work 5');
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed.reason).toContain('/pbr:verify-work 5');
+    });
+
+    test('output is empty when no auto-continue action needed', () => {
+      writeConfig();
+      // No signal file, no config flag
+      const output = run();
+      expect(output).toBe('');
+    });
+
+    test('phase-limit cycling output uses { decision: "block", reason: string } format', () => {
+      writeConfig({ features: { auto_continue: true }, session_phase_limit: 1 });
+      fs.writeFileSync(path.join(planningDir, '.session-tracker'),
+        JSON.stringify({ phases_completed: 1, session_start: new Date().toISOString(), last_phase_completed: new Date().toISOString() }));
+
+      const output = run();
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('decision', 'block');
+      expect(parsed).toHaveProperty('reason');
+      expect(typeof parsed.reason).toBe('string');
+    });
+  });
+
   describe('session-cleanup config flag clearing', () => {
     test('session-cleanup clears stale _auto_chain_active flag', () => {
       const config = {
