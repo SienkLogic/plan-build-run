@@ -1529,6 +1529,30 @@ Then present the appropriate branded banner from Read `references/ui-brand.md` �
 - **If `passed` + last phase:** Use the "Milestone Complete" template. Fill in phase count.
 - **If `gaps_found`:** Use the "Gaps Found" template. Fill in phase number, name, score, and gap summaries from VERIFICATION.md.
 
+**Conditional routing additions for Next Up block:**
+
+After the primary next-action command in the NEXT UP block, append the following conditional suggestions (in this order):
+
+**A. Ship suggestion (gated: git.branching=phase AND auto_pr=true):**
+Read `config.git.branching` and `config.git.auto_pr` from `.planning/config.json`.
+If `branching === "phase"` AND `auto_pr === true`:
+```
+**Also available:** Create a PR for this phase's branch
+`/pbr:ship`
+```
+
+**B. UI review suggestion (gated: UI files in SUMMARY key_files):**
+Collect all `key_files` values from every SUMMARY.md frontmatter in this phase.
+Check if any entry has extension `.tsx`, `.jsx`, `.css`, `.scss`, `.vue`, `.svelte`, or `.html` (case-insensitive).
+If YES:
+```
+**UI components detected:** Review visual output before continuing
+`/pbr:ui-review {N}`
+```
+If NO: skip silently — do not display an empty block.
+
+Both A and B are appended AFTER the primary next-action command. They never replace the primary routing.
+
 Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block of the completion template.
 
 **NEXT UP routing (when verification was skipped):**
