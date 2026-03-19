@@ -1,5 +1,4 @@
 ---
-title: PreToolUse JSONL Behavior
 description: Documents why PreToolUse hook decisions appear in PBR hook logs but not Claude Code session JSONL
 ---
 
