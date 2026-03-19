@@ -156,6 +156,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      b. Set `prd_mode = true`
      c. Log: "PRD express path — will generate CONTEXT.md from PRD, skip discussion"
 2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
+   **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. Validate:
@@ -683,6 +684,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 - **Dependency fingerprinting**: For each dependency phase (phases that this phase depends on, per ROADMAP.md):
   1. Find all SUMMARY.md files in the dependency phase directory
   2. Compute a fingerprint string for each: `"len:{bytes}-mod:{mtime}"` and add as a `dependency_fingerprints` map in each plan's YAML frontmatter — this allows the build skill to detect stale plans if dependencies were rebuilt.
+- **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP all `state update` CLI calls in this section. Do NOT update STATE.md `status`, `current_phase`, or `plans_total` — the autonomous orchestrator manages state exclusively during speculative runs. Also SKIP the ROADMAP.md progress table update below.
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
   > Note: Use CLI for atomic writes — direct Write bypasses file locking.
@@ -706,6 +708,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 ### Subcommand: `add`
 
+**Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
 **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
 1. Read `.planning/ROADMAP.md`
@@ -717,12 +720,14 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 7. Create phase directory: `.planning/phases/{NN}-{slug}/`
 8. Update STATE.md if needed
 9. Suggest: `/pbr:plan-phase {N}` to plan the new phase
-10. Delete `.planning/.active-skill` if it exists.
+10. **Speculative mode guard:** If `--speculative` is present, skip the delete below (nothing was written).
+    Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `insert <N>`
 
 Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rules.
 
+**Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
 **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 
 1. Read `.planning/ROADMAP.md`
@@ -735,7 +740,8 @@ Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rul
 5. Create phase directory: `.planning/phases/{NN.M}-{slug}/`
 6. Update dependencies of subsequent phases if affected
 7. Suggest: `/pbr:plan-phase {N.M}` to plan the new phase
-8. Delete `.planning/.active-skill` if it exists.
+8. **Speculative mode guard:** If `--speculative` is present, skip the delete below (nothing was written).
+   Delete `.planning/.active-skill` if it exists.
 
 ### Subcommand: `remove <N>`
 
@@ -744,7 +750,8 @@ Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rul
    - Phase must exist
    - Phase must be in `pending` or `not started` status (cannot remove completed/in-progress phases)
    - No other phases depend on this phase (or user confirms breaking dependencies)
-3. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
+3. **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
+   **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 4. Confirm with user: "Remove Phase {N}: {name}? This will delete the phase directory and renumber subsequent phases."
 5. If confirmed:
    - Delete `.planning/phases/{NN}-{slug}/` directory
@@ -752,7 +759,8 @@ Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rul
    - Renumber subsequent phases (N+1 becomes N, etc.)
    - Update all `depends_on` references in ROADMAP.md
    - Update STATE.md if needed
-6. Delete `.planning/.active-skill` if it exists.
+6. **Speculative mode guard:** If `--speculative` is present, skip the delete below (nothing was written).
+   Delete `.planning/.active-skill` if it exists.
 
 ---
 
@@ -832,6 +840,7 @@ Present remaining issues and ask user to decide: proceed or intervene.
 
 ## Cleanup
 
+**Speculative mode guard:** If `--speculative` is present, skip the delete below (nothing was written).
 Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
 
 ## Completion
