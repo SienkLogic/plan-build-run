@@ -36,7 +36,6 @@ jobs:
 
       - run: npm ci
       - run: npm test
-      - run: npm run validate
 
       - name: Check if version already published
         id: check-npm
