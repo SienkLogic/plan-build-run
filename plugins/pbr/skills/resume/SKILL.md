@@ -139,6 +139,50 @@ Check if `.planning/WAITING.json` exists:
 - If the user confirms the wait is resolved, delete WAITING.json and proceed with normal resume
 - If not found, proceed normally to Step 2
 
+#### Autonomous State (.autonomous-state.json)
+
+Check if `.planning/.autonomous-state.json` exists:
+
+- If found, parse it and extract:
+  - `current_phase` -- the phase the autonomous run was on when interrupted
+  - `completed_phases` -- list of phases already completed
+  - `branch_state` -- map of phase -> branch name (may be empty `{}`)
+  - `started_at` -- when the run began
+  - `failed_phase` / `error` -- whether the run failed vs. was interrupted
+- Display a summary block:
+
+```text
+Autonomous Run Detected
+Started: {started_at}
+Completed phases: {completed_phases list, or "none"}
+Current phase: {current_phase}
+{If branch_state non-empty:}
+Active branch: {branch for current_phase, if present}
+{If failed_phase non-null:}
+Failed at phase: {failed_phase} — {error}
+```
+
+- Use AskUserQuestion to offer resumption:
+
+```text
+Use AskUserQuestion:
+  question: "An autonomous run was interrupted at Phase {current_phase}. Continue it?"
+  header: "Autonomous Resume"
+  options:
+    - label: "Continue autonomous run from Phase {current_phase}"
+      description: "Run /pbr:autonomous --from {current_phase}"
+    - label: "Resume manually (normal resume flow)"
+      description: "Continue with the standard resume process"
+    - label: "Discard autonomous state"
+      description: "Delete .autonomous-state.json and start fresh"
+  multiSelect: false
+```
+
+- If user selects **Continue autonomous run**: display `Run: /pbr:autonomous --from {current_phase}` and stop (do not proceed with normal resume flow)
+- If user selects **Resume manually**: proceed with normal resume flow (Step 2 onward), keep .autonomous-state.json intact
+- If user selects **Discard autonomous state**: delete `.planning/.autonomous-state.json`, then proceed with normal resume flow
+- If `.autonomous-state.json` does NOT exist: skip this block entirely, proceed with Step 2
+
 ### Step 2: Search for .continue-here.md Files
 
 Search for `.continue-here.md` files across all phase directories:
@@ -360,6 +404,7 @@ After displaying context, route to the appropriate action:
 
 | Situation | Suggested Action |
 |-----------|-----------------|
+| Autonomous run interrupted | `/pbr:autonomous --from {N}` |
 | Mid-phase, plans remaining | `/pbr:execute-phase {N}` (executor will skip completed plans) |
 | Phase complete, not reviewed | `/pbr:verify-work {N}` |
 | Phase reviewed, has gaps | `/pbr:plan-phase {N} --gaps` |
