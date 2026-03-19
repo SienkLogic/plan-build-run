@@ -74,3 +74,16 @@ When registering a new hook on an existing event:
    also writes.
 3. If you must share a file, use append-only writes (`fs.open` with `'a'` flag).
 4. Add your hook to the "Known Safe Pairs" table above.
+
+## PreToolUse and Session JSONL Logging
+
+**[Todo 016] Investigation result: by design.**
+
+Claude Code's session JSONL (at `~/.claude/projects/*/`) records tool calls, not hook decisions.
+
+- When a PreToolUse hook **allows** (exit 0): the tool runs and a `tool_use` + `tool_result` pair appears in session JSONL. The hook decision itself is NOT separately logged in session JSONL — visible only in `.planning/logs/hooks-*.jsonl`.
+- When a PreToolUse hook **blocks** (exit 2): the tool never runs, so no `tool_use` entry appears in session JSONL. The block IS recorded in `.planning/logs/hooks-*.jsonl`.
+
+**Implication for audit analysis:** The `/pbr:audit` behavioral compliance dimensions that rely on session JSONL will not see PreToolUse hook decisions. Use `.planning/logs/hooks-*.jsonl` directly for hook enforcement evidence. The BC-04 dimension (block-skill-self-read enforcement) should be verified from the hooks log, not session JSONL.
+
+**No code change required.** This is consistent with Claude Code's architecture.
