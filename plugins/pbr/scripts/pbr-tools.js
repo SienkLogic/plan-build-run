@@ -33,6 +33,8 @@
  *   todo add <title> [--priority P] [--theme T] — Add a new todo
  *   todo done <NNN>                      — Mark a todo as complete
  *   auto-cleanup --phase N | --milestone vN — Auto-close todos and archive notes matching phase/milestone deliverables
+ *   state reconcile          — Detect and repair STATE.md/ROADMAP.md desync
+ *   state backup             — Create timestamped backup of STATE.md and ROADMAP.md
  *   llm metrics [--session <ISO>]        — Lifetime or session-scoped LLM usage metrics
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
@@ -128,6 +130,11 @@ const {
   stateRecordActivity: _stateRecordActivity,
   stateUpdateProgress: _stateUpdateProgress
 } = require('./lib/state');
+
+const {
+  stateReconcile: _stateReconcile,
+  stateBackup: _stateBackup
+} = require('../../../plan-build-run/bin/lib/state.cjs');
 
 const {
   parseRoadmapMd,
@@ -323,6 +330,14 @@ function stateRecordActivity(description) {
 
 function stateUpdateProgress() {
   return _stateUpdateProgress(planningDir);
+}
+
+function stateReconcile() {
+  return _stateReconcile(planningDir);
+}
+
+function stateBackup() {
+  return _stateBackup(planningDir);
 }
 
 function roadmapAnalyze() {
@@ -1047,6 +1062,10 @@ async function main() {
       output(stateRecordActivity(description));
     } else if (command === "state" && subcommand === "update-progress") {
       output(stateUpdateProgress());
+    } else if (command === 'state' && subcommand === 'reconcile') {
+      output(stateReconcile());
+    } else if (command === 'state' && subcommand === 'backup') {
+      output(stateBackup());
     } else if (command === 'phase' && subcommand === 'add') {
       const slug = args[2];
       if (!slug) { error('Usage: phase add <slug> [--after N] [--goal "..."] [--depends-on N]'); }

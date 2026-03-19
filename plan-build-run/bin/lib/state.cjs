@@ -1023,6 +1023,38 @@ function stateReconcile(planningDir) {
   return { corrected: changes.length > 0, changes, phantoms };
 }
 
+/**
+ * Create a timestamped backup of STATE.md and ROADMAP.md.
+ * Writes a JSON file to .planning/.state-backup-{timestamp}.json
+ * containing the raw content of both files plus metadata.
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {{ backed_up: boolean, path: string|null, files: string[] }}
+ */
+function stateBackup(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const statePath = path.join(dir, 'STATE.md');
+  const roadmapPath = path.join(dir, 'ROADMAP.md');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(dir, `.state-backup-${timestamp}.json`);
+
+  const backup = { timestamp: new Date().toISOString(), files: {} };
+  let fileCount = 0;
+
+  for (const [name, filePath] of [['STATE.md', statePath], ['ROADMAP.md', roadmapPath]]) {
+    if (fs.existsSync(filePath)) {
+      backup.files[name] = fs.readFileSync(filePath, 'utf8');
+      fileCount++;
+    }
+  }
+
+  if (fileCount === 0) {
+    return { backed_up: false, path: null, files: [] };
+  }
+
+  fs.writeFileSync(backupPath, JSON.stringify(backup, null, 2));
+  return { backed_up: true, path: backupPath, files: Object.keys(backup.files) };
+}
+
 module.exports = {
   parseStateMd,
   updateLegacyStateField,
@@ -1046,5 +1078,6 @@ module.exports = {
   stateSignalWaiting,
   stateSignalResume,
   stateCheckWaiting,
-  stateReconcile
+  stateReconcile,
+  stateBackup
 };

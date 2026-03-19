@@ -148,11 +148,31 @@ function main() {
     process.exit(0);
   }
 
-  // Check for clean working tree
+  // Check for clean working tree (excluding .planning/ which is local-only)
   const status = run('git status --porcelain');
-  if (status) {
+  const nonPlanningChanges = status.split('\n')
+    .filter(line => line.trim() && !line.trim().match(/^..\s*\.planning\//))
+    .join('\n');
+  if (nonPlanningChanges) {
     console.error('Working tree is not clean. Commit or stash changes first.');
+    console.error('(Note: .planning/ changes are ignored by the release script)');
     process.exit(1);
+  }
+  const planningChanges = status.split('\n')
+    .filter(line => line.trim() && line.trim().match(/^..\s*\.planning\//));
+  if (planningChanges.length > 0) {
+    console.log(`  Ignoring ${planningChanges.length} .planning/ change(s) (local-only files)`);
+  }
+
+  // Back up .planning/ state before git operations
+  try {
+    const { stateBackup } = require('../plan-build-run/bin/lib/state.cjs');
+    const backupResult = stateBackup();
+    if (backupResult.backed_up) {
+      console.log(`  State backup: ${path.basename(backupResult.path)} (${backupResult.files.join(', ')})`);
+    }
+  } catch (_e) {
+    console.log('  Warning: Could not back up .planning/ state');
   }
 
   console.log('Updating versions...');

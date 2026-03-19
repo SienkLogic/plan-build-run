@@ -86,6 +86,50 @@ describe('checkDangerous (direct calls)', () => {
   test('returns null for missing tool_input', () => {
     expect(checkDangerous({ tool_input: {} })).toBeNull();
   });
+
+  test('warns on git stash', () => {
+    const result = checkDangerous({ tool_input: { command: 'git stash' } });
+    expect(result).not.toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.output.additionalContext).toContain('Warning');
+    expect(result.output.additionalContext).toContain('.planning/');
+  });
+
+  test('warns on git stash pop', () => {
+    const result = checkDangerous({ tool_input: { command: 'git stash pop' } });
+    expect(result).not.toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.output.additionalContext).toContain('reconcile');
+  });
+
+  test('does NOT warn on git stash list', () => {
+    const result = checkDangerous({ tool_input: { command: 'git stash list' } });
+    expect(result).toBeNull();
+  });
+
+  test('does NOT warn on git stash show', () => {
+    const result = checkDangerous({ tool_input: { command: 'git stash show' } });
+    expect(result).toBeNull();
+  });
+
+  test('warns on git checkout main', () => {
+    const result = checkDangerous({ tool_input: { command: 'git checkout main' } });
+    expect(result).not.toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.output.additionalContext).toContain('.planning/');
+  });
+
+  test('warns on git checkout abc123', () => {
+    const result = checkDangerous({ tool_input: { command: 'git checkout abc123' } });
+    expect(result).not.toBeNull();
+    expect(result.exitCode).toBe(0);
+    expect(result.output.additionalContext).toContain('reconcile');
+  });
+
+  test('does NOT warn on git checkout -b new-branch', () => {
+    const result = checkDangerous({ tool_input: { command: 'git checkout -b new-branch' } });
+    expect(result).toBeNull();
+  });
 });
 
 describe('skill-specific bash checks', () => {
