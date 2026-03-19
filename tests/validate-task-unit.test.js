@@ -736,6 +736,95 @@ describe('checkDebuggerAdvisory', () => {
   });
 });
 
+describe('main() error paths', () => {
+  test('handles empty stdin data gracefully (empty tool_input)', () => {
+    const w = checkTask({ tool_input: {} });
+    // Should warn about missing description, not crash
+    expect(w.some(s => s.includes('without a description'))).toBe(true);
+  });
+
+  test('handles tool_name not matching any gate (unknown tool)', () => {
+    // Simulate data with a non-matching subagent_type that is not pbr:
+    const w = checkTask({ tool_input: { description: 'Test', subagent_type: 'other:unknown' } });
+    // Should not crash and should return no warnings (non-pbr agents are not validated for agent name)
+    expect(w).toEqual([]);
+  });
+
+  test('checkBuildExecutorGate handles STATE.md with no frontmatter (plain text)', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Just some plain text, no Phase line');
+    const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    // No phase match found, should return null (fail-open)
+    expect(result).toBeNull();
+  });
+
+  test('checkBuildExecutorGate handles empty STATE.md', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '');
+    const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result).toBeNull();
+  });
+
+  test('checkActiveSkillIntegrity returns null for exempt agents (researcher, synthesizer)', () => {
+    // These agents are exempt from active-skill checks
+    expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:researcher' } })).toBeNull();
+    expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:synthesizer' } })).toBeNull();
+    expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:audit' } })).toBeNull();
+    expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:dev-sync' } })).toBeNull();
+    expect(checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:general' } })).toBeNull();
+  });
+
+  test('checkActiveSkillIntegrity warns on stale .active-skill (>2 hours old)', () => {
+    const skillPath = path.join(planningDir, '.active-skill');
+    fs.writeFileSync(skillPath, 'build');
+    // Backdate the file to 3 hours ago
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+    fs.utimesSync(skillPath, threeHoursAgo, threeHoursAgo);
+    const result = checkActiveSkillIntegrity({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result).not.toBeNull();
+    expect(result).toContain('stale lock');
+    expect(result).toContain('3h old');
+  });
+
+  test('checkQuickExecutorGate blocks when quick dir exists but no task subdirs', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'quick');
+    fs.mkdirSync(path.join(planningDir, 'quick'), { recursive: true });
+    const result = checkQuickExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(result).not.toBeNull();
+    expect(result.block).toBe(true);
+  });
+
+  test('checkDocExistence blocks when active skill is plan and docs missing', () => {
+    const { checkDocExistence: checkDocs } = require('../hooks/validate-task');
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'state');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), 'roadmap');
+    // Do NOT create PROJECT.md or REQUIREMENTS.md
+    const result = checkDocs({ tool_input: { subagent_type: 'pbr:planner' } });
+    expect(result).not.toBeNull();
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('PROJECT.md');
+  });
+
+  test('checkDocExistence returns null when active skill is not plan/build', () => {
+    const { checkDocExistence: checkDocs } = require('../hooks/validate-task');
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
+    const result = checkDocs({ tool_input: { subagent_type: 'pbr:verifier' } });
+    expect(result).toBeNull();
+  });
+
+  test('checkTask handles non-string description gracefully', () => {
+    const w = checkTask({ tool_input: { description: 42 } });
+    // Non-string, non-empty description — should not crash
+    expect(Array.isArray(w)).toBe(true);
+  });
+
+  test('checkTask handles null tool_input', () => {
+    const w = checkTask({ tool_input: null });
+    expect(w.some(s => s.includes('without a description'))).toBe(true);
+  });
+});
+
 describe('module loading', () => {
   test('validate-task module loads without throwing', () => {
     expect(() => require('../hooks/validate-task.js')).not.toThrow();
