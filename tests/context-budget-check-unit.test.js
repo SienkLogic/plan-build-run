@@ -343,6 +343,132 @@ describe('readBlockers', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// New error path and edge case tests
+// ---------------------------------------------------------------------------
+
+describe('missing file handling', () => {
+  test('readRoadmapSummary with no ROADMAP returns empty', () => {
+    // planningDir exists but no ROADMAP.md
+    expect(readRoadmapSummary(planningDir)).toBe('');
+  });
+
+  test('readCurrentPlan with empty phases dir returns empty', () => {
+    const phasesDir = path.join(planningDir, 'phases');
+    fs.mkdirSync(phasesDir, { recursive: true });
+    const result = readCurrentPlan(planningDir, 'Phase: 1 of 3');
+    expect(result).toBe('');
+  });
+
+  test('readConfigHighlights with corrupt JSON returns empty', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), '{broken json!!');
+    expect(readConfigHighlights(planningDir)).toBe('');
+  });
+
+  test('readConfigHighlights with empty object returns empty', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), '{}');
+    expect(readConfigHighlights(planningDir)).toBe('');
+  });
+
+  test('handleHttp with nonexistent planningDir returns null', () => {
+    const result = handleHttp({ planningDir: path.join(tmpDir, 'nonexistent') });
+    expect(result).toBeNull();
+  });
+});
+
+describe('empty data sources', () => {
+  test('buildRecoveryContext when all reads return empty is still valid structure', () => {
+    const result = buildRecoveryContext('', '', '', '', [], [], '', '', []);
+    // Should return PBR workflow directive even with no project data
+    expect(typeof result).toBe('string');
+    expect(result).toContain('PBR WORKFLOW REQUIRED');
+  });
+
+  test('buildRecoveryContext with only activeSkill includes skill', () => {
+    const result = buildRecoveryContext('', '', '', '', [], [], 'build', '', []);
+    expect(result).toContain('/pbr:build');
+  });
+
+  test('buildRecoveryContext with blockers includes them', () => {
+    const result = buildRecoveryContext('', '', '', '', [], [], '', '- API key missing', []);
+    expect(result).toContain('API key missing');
+  });
+
+  test('buildRecoveryContext with pendingTodos includes them', () => {
+    const result = buildRecoveryContext('', '', '', '', [], [], '', '', ['Fix auth timeout', 'Update docs']);
+    expect(result).toContain('Fix auth timeout');
+    expect(result).toContain('Update docs');
+  });
+});
+
+describe('readRecentErrors edge cases', () => {
+  test('empty events.jsonl returns empty array', () => {
+    const logPath = getEventsLogPath(planningDir);
+    fs.writeFileSync(logPath, '');
+    expect(readRecentErrors(planningDir, 3)).toEqual([]);
+  });
+
+  test('events.jsonl with non-JSON lines skips them gracefully', () => {
+    const logPath = getEventsLogPath(planningDir);
+    const entries = [
+      'this is not json',
+      JSON.stringify({ cat: 'error', event: 'real-error', error: 'actual error' }),
+      'another bad line'
+    ];
+    fs.writeFileSync(logPath, entries.join('\n') + '\n');
+    const result = readRecentErrors(planningDir, 3);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toContain('real-error');
+  });
+
+  test('events.jsonl with only non-error entries returns empty', () => {
+    const logPath = getEventsLogPath(planningDir);
+    const entries = [
+      JSON.stringify({ cat: 'workflow', event: 'state-sync', status: 'in-sync' }),
+      JSON.stringify({ cat: 'agent', event: 'spawn', agent_type: 'pbr:executor' })
+    ];
+    fs.writeFileSync(logPath, entries.join('\n') + '\n');
+    expect(readRecentErrors(planningDir, 3)).toEqual([]);
+  });
+});
+
+describe('readPendingTodos edge cases', () => {
+  test('missing todos dir returns empty array', () => {
+    expect(readPendingTodos(planningDir, 5)).toEqual([]);
+  });
+
+  test('empty todos dir returns empty array', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+    expect(readPendingTodos(planningDir, 5)).toEqual([]);
+  });
+
+  test('todo files without heading use filename as fallback', () => {
+    const todosDir = path.join(planningDir, 'todos', 'pending');
+    fs.mkdirSync(todosDir, { recursive: true });
+    fs.writeFileSync(path.join(todosDir, 'my-task.md'), 'Just plain text without any heading');
+    const result = readPendingTodos(planningDir, 5);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBe('my-task');
+  });
+});
+
+describe('handleHttp error resilience', () => {
+  test('returns null when .planning dir does not exist', () => {
+    const result = handleHttp({ planningDir: path.join(tmpDir, 'no-planning') });
+    expect(result).toBeNull();
+  });
+
+  test('returns null when planningDir is undefined', () => {
+    expect(handleHttp({})).toBeNull();
+  });
+
+  test('returns null when planningDir is null', () => {
+    expect(handleHttp({ planningDir: null })).toBeNull();
+    expect(handleHttp(null)).toBeNull();
+  });
+});
+
 describe('readPendingTodos', () => {
   test('returns empty array when todos/pending/ does not exist', () => {
     expect(readPendingTodos(planningDir, 5)).toEqual([]);

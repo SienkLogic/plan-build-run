@@ -186,6 +186,200 @@ describe('prompt-routing.js', () => {
     });
   });
 
+  describe('ambiguous prompt handling', () => {
+    test('prompt matching multiple patterns returns first match (priority order)', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // "broken" matches bug/error (first), "create" matches generic task (last)
+      const result = analyzePrompt('the build is broken so create a workaround fix', planningDir);
+      expect(result).not.toBeNull();
+      expect(result.command).toBe('/pbr:debug');
+      cleanupTmp(tmpDir);
+    });
+
+    test('very short prompts (1-2 words) return null', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      expect(analyzePrompt('hi', planningDir)).toBeNull();
+      expect(analyzePrompt('ok', planningDir)).toBeNull();
+      expect(analyzePrompt('yes please', planningDir)).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+
+    test('prompts with only whitespace return null', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      expect(analyzePrompt('   ', planningDir)).toBeNull();
+      expect(analyzePrompt('\n\t  \n', planningDir)).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+
+    test('prompt exactly 14 chars (below threshold) returns null', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      expect(analyzePrompt('fix the errors', planningDir)).toBeNull(); // 14 chars
+      cleanupTmp(tmpDir);
+    });
+
+    test('prompt exactly 15 chars (at threshold) is analyzed', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      // "fix the error!!" is 15 chars and matches generic task "fix"
+      const result = analyzePrompt('fix this error!', planningDir);
+      expect(result).not.toBeNull();
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('intent pattern coverage', () => {
+    test('bug patterns match: bug, error, crash, exception, stack trace, failing, broken, does not work', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const bugPrompts = [
+        'there is a bug in the user registration flow',
+        'the server throws an error on every request',
+        'app crash happens during the login process',
+        'got an exception when calling the payment API',
+        'seeing a stack trace in the production logs here',
+        'the test suite is failing in CI pipeline now',
+        'the deployment is broken after the update today',
+        "the search feature doesn't work at all anymore",
+        'the API is not working for authenticated users now'
+      ];
+      for (const prompt of bugPrompts) {
+        const result = analyzePrompt(prompt, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.command).toBe('/pbr:debug');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('status patterns match: status, progress, where are we, what is next', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const statusPrompts = [
+        'what is the current status of the project now',
+        'can you show me the progress on this milestone',
+        'where are we with the authentication feature',
+        "what's next after completing this current phase"
+      ];
+      for (const prompt of statusPrompts) {
+        const result = analyzePrompt(prompt, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.command).toBe('/pbr:progress');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('explore patterns match: explore, research, how does, what if, trade-offs', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const explorePrompts = [
+        'I want to explore different caching strategies here',
+        'can you research the best authentication library options',
+        'how does the event system work in this codebase',
+        'what if we switch to a microservices architecture now',
+        'what are the trade-offs of using GraphQL vs REST'
+      ];
+      for (const prompt of explorePrompts) {
+        const result = analyzePrompt(prompt, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.command).toBe('/pbr:explore');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('refactor patterns match: refactor, migrate, redesign, restructure', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const refactorPrompts = [
+        'we need to refactor the entire database access layer',
+        'time to migrate from Express to Fastify framework',
+        'should redesign the notification system from scratch',
+        'we should restructure the codebase for modularity now'
+      ];
+      for (const prompt of refactorPrompts) {
+        const result = analyzePrompt(prompt, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.command).toBe('/pbr:plan-phase add');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('generic task patterns match: add, create, implement, build, update', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const taskPrompts = [
+        'add a new endpoint for user preferences please',
+        'create a dashboard component for analytics data',
+        'implement the password reset flow for users',
+        'build a caching layer for the API responses',
+        'update the user profile page with new fields'
+      ];
+      for (const prompt of taskPrompts) {
+        const result = analyzePrompt(prompt, planningDir);
+        expect(result).not.toBeNull();
+        expect(result.command).toBe('/pbr:do');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('non-matching prompts return null', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const noMatchPrompts = [
+        'the weather is nice today in Seattle',
+        'I had a great lunch at the new restaurant'
+      ];
+      for (const prompt of noMatchPrompts) {
+        expect(analyzePrompt(prompt, planningDir)).toBeNull();
+      }
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('handleHttp error paths', () => {
+    test('malformed request body returns null', () => {
+      expect(handleHttp({})).toBeNull();
+      expect(handleHttp({ data: null })).toBeNull();
+    });
+
+    test('missing prompt field returns null', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const result = handleHttp({ data: {}, planningDir });
+      expect(result).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+
+    test('uses content field as fallback', () => {
+      const { tmpDir, planningDir } = makeTmpDir();
+      const result = handleHttp({
+        data: { content: 'there is a major bug in the auth system' },
+        planningDir
+      });
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('/pbr:debug');
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('main() execution edge cases', () => {
+    test('empty user_prompt does not crash', () => {
+      const { tmpDir } = makeTmpDir();
+      const result = runScript(tmpDir, { user_prompt: '' });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('very long prompt (>1k chars) does not crash', () => {
+      const { tmpDir } = makeTmpDir();
+      const longPrompt = 'there is a bug ' + 'x'.repeat(1000) + ' in the system';
+      const result = runScript(tmpDir, { prompt: longPrompt });
+      expect(result.exitCode).toBe(0);
+      if (result.output) {
+        const parsed = JSON.parse(result.output);
+        expect(parsed.additionalContext).toContain('/pbr:debug');
+      }
+      cleanupTmp(tmpDir);
+    });
+
+    test('unicode prompt does not crash', () => {
+      const { tmpDir } = makeTmpDir();
+      const result = runScript(tmpDir, { prompt: 'there is a bug in the authentication module' });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+  });
+
   describe('hook execution', () => {
     test('exits 0 with matching prompt', () => {
       const { tmpDir } = makeTmpDir();
