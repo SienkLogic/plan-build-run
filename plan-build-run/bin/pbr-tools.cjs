@@ -47,6 +47,7 @@
  *   state record-activity <description> Record activity in STATE.md
  *   state phase-complete <N>            Mark phase complete in STATE.md
  *   state rederive                      Re-derive state from filesystem, fix drift
+ *   state reconcile                     Reconcile STATE.md with ROADMAP.md phase counts
  *   state-bundle <phase>                Full state bundle for a phase
  *   state-snapshot                      Structured parse of STATE.md
  *
@@ -738,6 +739,20 @@ async function main() {
       output(getState().statePhaseComplete(Number(p), planningDir));
     } else if (command === 'state' && subcommand === 'rederive') {
       output(getState().stateRederive(planningDir));
+    } else if (command === 'state' && subcommand === 'reconcile') {
+      const result = getState().stateReconcile(planningDir);
+      if (result.changes.length > 0) {
+        console.log('Reconciled STATE.md:');
+        result.changes.forEach(c => console.log('  ' + c));
+      } else {
+        console.log('STATE.md is consistent with ROADMAP.md — no changes needed.');
+      }
+      if (result.phantoms.length > 0) {
+        console.log('Phantom ROADMAP phases (no directory on disk):');
+        result.phantoms.forEach(p => console.log('  ' + p));
+        console.log('Review and remove manually if no longer needed.');
+      }
+      if (raw) output(result);
     } else if (command === 'state' && subcommand === 'add-decision') {
       // GSD pattern: --summary "text" --phase N
       const phaseIdx = args.indexOf('--phase');

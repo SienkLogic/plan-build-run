@@ -884,6 +884,107 @@ function stateCheckWaiting(planningDir) {
   } catch (_) { return null; }
 }
 
+/**
+ * Reconcile STATE.md with ROADMAP.md by re-deriving phases_total and
+ * current_phase from the active milestone, and detecting phantom phase
+ * rows (ROADMAP.md progress rows with no directory on disk).
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { corrected: boolean, changes: string[], phantoms: string[] }
+ */
+function stateReconcile(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const statePath = path.join(dir, 'STATE.md');
+  const roadmapPath = path.join(dir, 'ROADMAP.md');
+  const phasesDir = path.join(dir, 'phases');
+
+  const changes = [];
+  const phantoms = [];
+
+  if (!fs.existsSync(statePath)) {
+    return { corrected: false, changes: [], phantoms: [], error: 'STATE.md not found' };
+  }
+  if (!fs.existsSync(roadmapPath)) {
+    return { corrected: false, changes: [], phantoms: [], error: 'ROADMAP.md not found' };
+  }
+
+  // Parse ROADMAP.md to get phase list
+  const { parseRoadmapMd } = require('./roadmap.cjs');
+  const roadmapContent = fs.readFileSync(roadmapPath, 'utf8');
+  const roadmap = parseRoadmapMd(roadmapContent);
+
+  // Get actual phase directories on disk
+  const dirsOnDisk = new Set();
+  if (fs.existsSync(phasesDir)) {
+    for (const entry of fs.readdirSync(phasesDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && /^\d{2}-/.test(entry.name)) {
+        const numMatch = entry.name.match(/^(\d+)/);
+        if (numMatch) dirsOnDisk.add(parseInt(numMatch[1], 10));
+      }
+    }
+  }
+
+  // Filter roadmap phases to active milestone (non-complete/shipped phases,
+  // or all phases if no milestone distinction is available)
+  const completeStatuses = new Set(['complete', 'completed', 'verified', 'shipped']);
+  const activePhases = [];
+
+  for (const phase of roadmap.phases) {
+    const numMatch = String(phase.number).match(/^(\d+)/);
+    if (!numMatch) continue;
+    const phaseNum = parseInt(numMatch[1], 10);
+    const status = (phase.status || '').toLowerCase().trim();
+
+    activePhases.push({ num: phaseNum, status });
+  }
+
+  // Derive correct phases_total: count of phases with directories on disk
+  // (active milestone phases that actually exist)
+  const phasesTotal = activePhases.filter(p => dirsOnDisk.has(p.num)).length;
+
+  // Derive correct current_phase: lowest phase that is NOT complete/verified/shipped
+  const nonCompletePhasesOnDisk = activePhases
+    .filter(p => dirsOnDisk.has(p.num) && !completeStatuses.has(p.status))
+    .sort((a, b) => a.num - b.num);
+  const currentPhase = nonCompletePhasesOnDisk.length > 0 ? nonCompletePhasesOnDisk[0].num : null;
+
+  // Detect phantom phases: roadmap rows with no corresponding directory
+  for (const phase of activePhases) {
+    if (!dirsOnDisk.has(phase.num)) {
+      const label = `Phase ${String(phase.num).padStart(2, '0')} (status: ${phase.status || 'unknown'})`;
+      phantoms.push(label);
+    }
+  }
+
+  // Read current STATE.md and compute corrections
+  const stateContent = fs.readFileSync(statePath, 'utf8');
+  const parsed = parseStateMd(stateContent);
+
+  const fieldsToUpdate = {};
+  if (phasesTotal !== Number(parsed.plans_total || 0)) {
+    fieldsToUpdate.plans_total = phasesTotal;
+    changes.push(`plans_total: ${parsed.plans_total || 0} -> ${phasesTotal}`);
+  }
+  if (currentPhase !== null && currentPhase !== Number(parsed.current_phase || 0)) {
+    fieldsToUpdate.current_phase = currentPhase;
+    changes.push(`current_phase: ${parsed.current_phase || 0} -> ${currentPhase}`);
+  }
+
+  // Apply corrections atomically
+  if (Object.keys(fieldsToUpdate).length > 0) {
+    lockedFileUpdate(statePath, (content) => {
+      let updated = content;
+      for (const [field, value] of Object.entries(fieldsToUpdate)) {
+        updated = updateFrontmatterField(updated, field, value);
+        updated = syncBodyLine(updated, field, value);
+      }
+      return updated;
+    });
+  }
+
+  return { corrected: changes.length > 0, changes, phantoms };
+}
+
 module.exports = {
   parseStateMd,
   updateLegacyStateField,
@@ -906,5 +1007,6 @@ module.exports = {
   stateRecordSession,
   stateSignalWaiting,
   stateSignalResume,
-  stateCheckWaiting
+  stateCheckWaiting,
+  stateReconcile
 };
