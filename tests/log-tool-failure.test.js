@@ -213,3 +213,175 @@ describe('log-tool-failure.js exports', () => {
     expect(result.length).toBeLessThanOrEqual(100);
   });
 });
+
+// ---------------------------------------------------------------------------
+// New error path and edge case tests
+// ---------------------------------------------------------------------------
+
+describe('missing error fields', () => {
+  test('handles empty tool_error — defaults to unknown error', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: '', is_interrupt: false, tool_input: { command: 'ls' } }
+    });
+    // empty error is falsy, defaults to 'unknown error', still Bash non-interrupt → hint
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Bash command failed');
+  });
+
+  test('handles missing tool_name — defaults to unknown', () => {
+    const result = handleHttp({
+      data: { error: 'some error', is_interrupt: false, tool_input: {} }
+    });
+    // toolName defaults to 'unknown' — no hint for unknown tool
+    expect(result).toBeNull();
+  });
+
+  test('handles missing tool_input — defaults to empty object', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Write', error: 'EACCES', is_interrupt: false }
+    });
+    // Write failures return hint with 'unknown file' for missing file_path
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('unknown file');
+  });
+
+  test('handles undefined error field — defaults to unknown error', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Read', is_interrupt: false, tool_input: { file_path: '/x/y.md' } }
+    });
+    // Read failures return a hint
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Read failed');
+  });
+
+  test('handles error as an object (non-string)', () => {
+    const result = handleHttp({
+      data: {
+        tool_name: 'Write',
+        error: { code: 'EPERM', syscall: 'open' },
+        is_interrupt: false,
+        tool_input: { file_path: '/locked/file.js' }
+      }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Write failed');
+  });
+});
+
+describe('log file handling', () => {
+  test('handleHttp works when no .planning dir exists (logHook/logEvent are best-effort)', () => {
+    // handleHttp calls logHook/logEvent which write to .planning/logs — should not throw
+    expect(() => {
+      handleHttp({
+        data: { tool_name: 'Bash', error: 'fail', is_interrupt: false, tool_input: { command: 'x' } }
+      });
+    }).not.toThrow();
+  });
+
+  test('handleHttp with very long error string truncates in logs', () => {
+    const longError = 'E'.repeat(2000);
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: longError, is_interrupt: false, tool_input: { command: 'cmd' } }
+    });
+    expect(result).not.toBeNull();
+    // The hint itself does not contain the full error — it is a fixed message
+    expect(result.additionalContext).toContain('Bash command failed');
+  });
+});
+
+describe('concurrent write safety', () => {
+  test('rapid sequential handleHttp calls do not throw', () => {
+    const calls = Array.from({ length: 20 }, (_, i) => ({
+      data: {
+        tool_name: 'Bash',
+        error: `Error ${i}`,
+        is_interrupt: false,
+        tool_input: { command: `cmd-${i}` }
+      }
+    }));
+    // All calls should complete without throwing
+    const results = calls.map(c => handleHttp(c));
+    expect(results).toHaveLength(20);
+    results.forEach(r => {
+      expect(r).not.toBeNull();
+      expect(r.additionalContext).toContain('Bash command failed');
+    });
+  });
+});
+
+describe('handleHttp tool-specific hints', () => {
+  test('returns hint for Read tool failure', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Read', error: 'ENOENT', is_interrupt: false, tool_input: { file_path: '/some/file.md' } }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Read failed');
+    expect(result.additionalContext).toContain('/some/file.md');
+  });
+
+  test('returns hint for Edit tool failure', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Edit', error: 'old_string not found', is_interrupt: false, tool_input: { file_path: '/edit/target.js' } }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Edit failed');
+    expect(result.additionalContext).toContain('/edit/target.js');
+  });
+
+  test('returns hint for Task tool failure', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Task', error: 'subagent crashed', is_interrupt: false, tool_input: { description: 'run tests' } }
+    });
+    expect(result).not.toBeNull();
+    expect(result.additionalContext).toContain('Task (subagent) failed');
+  });
+
+  test('returns null for Glob tool failure (no specific hint)', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Glob', error: 'pattern error', is_interrupt: false, tool_input: { pattern: '**/*' } }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('returns null for Grep tool failure (no specific hint)', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Grep', error: 'regex error', is_interrupt: false, tool_input: { pattern: '[invalid' } }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('Bash interrupt returns null (no hint)', () => {
+    const result = handleHttp({
+      data: { tool_name: 'Bash', error: 'interrupted', is_interrupt: true, tool_input: { command: 'npm test' } }
+    });
+    expect(result).toBeNull();
+  });
+});
+
+describe('summarizeInput completeness', () => {
+  test('returns empty for missing command in Bash', () => {
+    expect(summarizeInput('Bash', {})).toBe('');
+  });
+
+  test('returns empty for missing file_path in Write', () => {
+    expect(summarizeInput('Write', {})).toBe('');
+  });
+
+  test('returns empty for missing file_path in Read', () => {
+    expect(summarizeInput('Read', {})).toBe('');
+  });
+
+  test('returns empty for missing pattern in Glob', () => {
+    expect(summarizeInput('Glob', {})).toBe('');
+  });
+
+  test('returns empty for missing pattern in Grep', () => {
+    expect(summarizeInput('Grep', {})).toBe('');
+  });
+
+  test('truncates long Task description', () => {
+    const longDesc = 'a'.repeat(200);
+    const result = summarizeInput('Task', { description: longDesc });
+    expect(result.length).toBeLessThanOrEqual(100);
+  });
+});

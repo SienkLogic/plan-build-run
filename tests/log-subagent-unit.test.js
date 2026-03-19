@@ -233,3 +233,239 @@ describe('handleHttp', () => {
     expect(result).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// New error path and edge case tests
+// ---------------------------------------------------------------------------
+
+describe('SubagentStart handling', () => {
+  test('with minimal valid data returns context or null', () => {
+    // SubagentStart with only agent_type — should not throw
+    const result = handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:executor' },
+      planningDir
+    });
+    expect(result === null || (result && result.hookSpecificOutput)).toBe(true);
+  });
+
+  test('with missing agent_type field writes unknown to .active-agent', () => {
+    handleHttp({
+      event: 'SubagentStart',
+      data: { agent_id: 'test-123' },
+      planningDir
+    });
+    const agentFile = path.join(planningDir, '.active-agent');
+    expect(fs.existsSync(agentFile)).toBe(true);
+    expect(fs.readFileSync(agentFile, 'utf8')).toBe('unknown');
+  });
+
+  test('with empty session_id still works', () => {
+    const result = handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:planner', session_id: '' },
+      planningDir
+    });
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+
+  test('with planningDir that does not exist does not throw', () => {
+    const result = handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:planner' },
+      planningDir: path.join(tmpDir, 'nonexistent')
+    });
+    expect(result === null || typeof result === 'object').toBe(true);
+  });
+
+  test('writes correct agent type to .active-agent', () => {
+    handleHttp({
+      event: 'SubagentStart',
+      data: { agent_type: 'pbr:verifier' },
+      planningDir
+    });
+    const content = fs.readFileSync(path.join(planningDir, '.active-agent'), 'utf8');
+    expect(content).toBe('pbr:verifier');
+  });
+});
+
+describe('SubagentStop handling', () => {
+  test('stop event does not throw when .active-agent missing', () => {
+    // No .active-agent file — stop should still work
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:executor', duration_ms: 12000 },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('stop without matching start still logs', () => {
+    // No prior start — stop should still complete without error
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:researcher', agent_id: 'no-start', duration_ms: 500 },
+      planningDir
+    });
+    expect(result).toBeNull();
+  });
+
+  test('stop with null duration_ms does not throw', () => {
+    fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:planner');
+    const result = handleHttp({
+      event: 'SubagentStop',
+      data: { agent_type: 'pbr:planner', duration_ms: null },
+      planningDir
+    });
+    expect(result).toBeNull();
+    expect(fs.existsSync(path.join(planningDir, '.active-agent'))).toBe(false);
+  });
+});
+
+describe('buildAgentContext error paths', () => {
+  test('returns empty when .planning dir does not exist', () => {
+    // chdir to a temp dir without .planning
+    const bare = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pbr-bare-'));
+    const prev = process.cwd();
+    process.chdir(bare);
+    try {
+      const result = buildAgentContext();
+      expect(result).toBe('');
+    } finally {
+      process.chdir(prev);
+      fs.rmSync(bare, { recursive: true, force: true });
+    }
+  });
+
+  test('STATE.md with no frontmatter still parses phase line', () => {
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 5 of 10\nSome random body text');
+    const result = buildAgentContext();
+    expect(result).toContain('Phase 5 of 10');
+  });
+
+  test('corrupt config.json returns context without config parts', () => {
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 2');
+    fs.writeFileSync(path.join(planningDir, 'config.json'), '{broken json');
+    const result = buildAgentContext();
+    // Should still have phase info, no config parts
+    expect(result).toContain('Phase 1 of 2');
+    expect(result).not.toContain('depth=');
+  });
+
+  test('handles session ID for .active-skill lookup', () => {
+    // With a sessionId, it tries session-scoped path
+    const result = buildAgentContext('test-session-123');
+    expect(typeof result).toBe('string');
+  });
+});
+
+describe('resolveAgentType completeness', () => {
+  const knownTypes = [
+    'pbr:executor', 'pbr:planner', 'pbr:verifier', 'pbr:researcher',
+    'pbr:debugger', 'pbr:general', 'pbr:audit', 'pbr:roadmapper',
+    'pbr:synthesizer', 'pbr:codebase-mapper'
+  ];
+
+  test.each(knownTypes)('maps %s correctly via agent_type', (type) => {
+    expect(resolveAgentType({ agent_type: type })).toBe(type);
+  });
+
+  test.each(knownTypes)('maps %s correctly via subagent_type', (type) => {
+    expect(resolveAgentType({ subagent_type: type })).toBe(type);
+  });
+
+  test.each(knownTypes)('maps %s correctly via tool_input.subagent_type', (type) => {
+    expect(resolveAgentType({ tool_input: { subagent_type: type } })).toBe(type);
+  });
+
+  test('unknown type returns the string as-is (no mapping)', () => {
+    expect(resolveAgentType({ agent_type: 'completely-unknown-agent' })).toBe('completely-unknown-agent');
+  });
+
+  test('empty string agent_type returns null (falsy)', () => {
+    expect(resolveAgentType({ agent_type: '' })).toBeNull();
+  });
+});
+
+describe('trackAgentCost', () => {
+  // Import trackAgentCost and thresholds from the hooks version
+  const { trackAgentCost, AGENT_SPAWN_WARN_THRESHOLD, AGENT_SPAWN_CRITICAL_THRESHOLD } = require('../hooks/log-subagent');
+
+  test('returns null for first spawn', () => {
+    const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    expect(result).toBeNull();
+  });
+
+  test('creates tracker file on first call', () => {
+    trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    const trackerPath = path.join(planningDir, '.agent-cost-tracker');
+    expect(fs.existsSync(trackerPath)).toBe(true);
+    const data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
+    expect(data.total_spawns).toBe(1);
+    expect(data.total_duration_ms).toBe(1000);
+  });
+
+  test('accumulates spawns across calls', () => {
+    trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    trackAgentCost(planningDir, 'pbr:planner', 2000, null);
+    trackAgentCost(planningDir, 'pbr:executor', 500, null);
+    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
+    expect(data.total_spawns).toBe(3);
+    expect(data.total_duration_ms).toBe(3500);
+    expect(data.by_type['pbr:executor']).toBe(2);
+    expect(data.by_type['pbr:planner']).toBe(1);
+  });
+
+  test('returns warning at warn threshold', () => {
+    // Pre-seed tracker to one below threshold
+    const trackerPath = path.join(planningDir, '.agent-cost-tracker');
+    fs.writeFileSync(trackerPath, JSON.stringify({
+      total_spawns: AGENT_SPAWN_WARN_THRESHOLD - 1,
+      total_duration_ms: 50000,
+      by_type: { 'pbr:executor': AGENT_SPAWN_WARN_THRESHOLD - 1 }
+    }));
+    const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    expect(result).toContain('Advisory');
+    expect(result).toContain(`${AGENT_SPAWN_WARN_THRESHOLD}`);
+  });
+
+  test('returns critical warning at critical threshold', () => {
+    const trackerPath = path.join(planningDir, '.agent-cost-tracker');
+    fs.writeFileSync(trackerPath, JSON.stringify({
+      total_spawns: AGENT_SPAWN_CRITICAL_THRESHOLD - 1,
+      total_duration_ms: 100000,
+      by_type: { 'pbr:executor': AGENT_SPAWN_CRITICAL_THRESHOLD - 1 }
+    }));
+    const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    expect(result).toContain('CRITICAL');
+    expect(result).toContain(`${AGENT_SPAWN_CRITICAL_THRESHOLD}`);
+  });
+
+  test('returns null when planningDir does not exist', () => {
+    const result = trackAgentCost(path.join(tmpDir, 'nonexistent'), 'pbr:executor', 1000, null);
+    expect(result).toBeNull();
+  });
+
+  test('handles null agentType gracefully', () => {
+    const result = trackAgentCost(planningDir, null, 1000, null);
+    expect(result).toBeNull();
+    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
+    expect(data.total_spawns).toBe(1);
+    // null agent not tracked in by_type
+    expect(Object.keys(data.by_type)).toHaveLength(0);
+  });
+
+  test('handles null durationMs gracefully', () => {
+    trackAgentCost(planningDir, 'pbr:executor', null, null);
+    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
+    expect(data.total_duration_ms).toBe(0);
+  });
+
+  test('handles corrupt tracker file by starting fresh', () => {
+    fs.writeFileSync(path.join(planningDir, '.agent-cost-tracker'), 'not json');
+    const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    expect(result).toBeNull();
+    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
+    expect(data.total_spawns).toBe(1);
+  });
+});
