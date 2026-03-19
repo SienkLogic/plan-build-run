@@ -15,6 +15,7 @@ const path = require('path');
 const cp = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./pbr-tools');
+const { resolveSessionPath } = require('./lib/core');
 const llmMetricsModule = require('./local-llm/metrics');
 
 // ANSI color codes
@@ -589,16 +590,27 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   }
 
   // Agent section — active subagent name from .active-agent signal file
+  // Try session-scoped path first, fall back to global
   if (sections.includes('agent') && planningDir) {
     try {
-      const agentFile = path.join(planningDir, '.active-agent');
-      if (fs.existsSync(agentFile)) {
-        let agentName = fs.readFileSync(agentFile, 'utf8').trim();
-        if (agentName) {
-          // Strip pbr- prefix for brevity
-          agentName = agentName.replace(/^pbr-/, '');
-          line1.push(`${c.magenta}\u25C6 ${agentName}${c.reset}`);
+      const agentSessionId = sd.session_id || null;
+      let agentName = null;
+      if (agentSessionId) {
+        const sessionAgentFile = resolveSessionPath(planningDir, '.active-agent', agentSessionId);
+        if (fs.existsSync(sessionAgentFile)) {
+          agentName = fs.readFileSync(sessionAgentFile, 'utf8').trim();
         }
+      }
+      if (!agentName) {
+        const globalAgentFile = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(globalAgentFile)) {
+          agentName = fs.readFileSync(globalAgentFile, 'utf8').trim();
+        }
+      }
+      if (agentName) {
+        // Strip pbr- prefix for brevity
+        agentName = agentName.replace(/^pbr-/, '');
+        line1.push(`${c.magenta}\u25C6 ${agentName}${c.reset}`);
       }
     } catch (_e) {
       // Graceful fallback — skip if unreadable
