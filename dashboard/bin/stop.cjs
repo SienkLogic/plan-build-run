@@ -48,32 +48,20 @@ function stopDashboard(port) {
 
 /**
  * Synchronously check if the dashboard is reachable on the given port.
- * Uses a raw TCP approach with a short timeout.
+ * Spawns a short-lived node subprocess to make an HTTP request.
  */
 function isDashboardRunning(port) {
   try {
-    const net = require('net');
-    const socket = new net.Socket();
-    let connected = false;
-
-    socket.setTimeout(1000);
-    try {
-      // Use execSync with a curl/http check approach
-      if (process.platform === 'win32') {
-        execSync(
-          `node -e "const h=require('http');const r=h.get('http://localhost:${port}/api/health',{timeout:2000},res=>{process.exit(res.statusCode===200?0:1)});r.on('error',()=>process.exit(1));r.on('timeout',()=>{r.destroy();process.exit(1)})"`,
-          { timeout: 5000, stdio: 'ignore' }
-        );
-      } else {
-        execSync(
-          `node -e "const h=require('http');const r=h.get('http://localhost:${port}/api/health',{timeout:2000},res=>{process.exit(res.statusCode===200?0:1)});r.on('error',()=>process.exit(1));r.on('timeout',()=>{r.destroy();process.exit(1)})"`,
-          { timeout: 5000, stdio: 'ignore' }
-        );
-      }
-      return true;
-    } catch (_e) {
-      return false;
-    }
+    const script = [
+      "const h=require('http');",
+      `const r=h.get('http://localhost:${port}/api/health',{timeout:2000},res=>{`,
+      '  process.exit(res.statusCode===200?0:1)',
+      '});',
+      "r.on('error',()=>process.exit(1));",
+      "r.on('timeout',()=>{r.destroy();process.exit(1)})",
+    ].join('');
+    execSync(`node -e "${script}"`, { timeout: 5000, stdio: 'ignore' });
+    return true;
   } catch (_e) {
     return false;
   }
