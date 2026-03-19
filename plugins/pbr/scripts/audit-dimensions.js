@@ -164,6 +164,8 @@ const DIMENSIONS = [
     'Cross-session interference detection — multiple sessions, .active-skill conflicts', 4, null),
   dim('EF-07', 'session-cleanup-verification', 'error_analysis', 'EF', 'warning',
     'Session cleanup verification — session-cleanup.js fires and cleans up properly', 4, null),
+  dim('EF-08', 'incident-pattern-analysis', 'error_analysis', 'EF', 'warning',
+    'Analyzes incident journal for recurring patterns, high-severity clusters, and auto-fix effectiveness', 46, null),
 
   // =========================================================================
   // WC — Workflow Compliance (Phase 5) — 12 dimensions

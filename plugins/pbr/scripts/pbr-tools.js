@@ -49,6 +49,9 @@
  *   learnings check-thresholds   — Check deferral trigger conditions
  *   learnings copy-global <path> <proj> — Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P] — Query global knowledge files
+ *   incidents list [--limit N]       — List recent incidents as JSON array
+ *   incidents summary               — Aggregate incident stats by type/severity/source
+ *   incidents query [--type T] [--severity S] [--source S] [--last Nd|Nh] — Filter incidents
  *   nk record --title "..." --category "..." --files "f1,f2" --tried "..." --failed "..." — Record negative knowledge entry
  *   nk list [--category X] [--phase X] [--status X] — List negative knowledge entries
  *   nk resolve <slug>               — Mark a negative knowledge entry as resolved
@@ -279,6 +282,12 @@ const { summarizeContext } = require('./local-llm/operations/summarize-context')
 const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
 const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
 
+const {
+  list: _incidentsList,
+  query: _incidentsQuery,
+  summary: _incidentsSummary
+} = require('../../../plan-build-run/bin/lib/incidents.cjs');
+
 // --- Module-level state (for backwards compatibility) ---
 
 let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
@@ -462,6 +471,16 @@ function autoCloseTodos(context) {
 
 function autoArchiveNotes(context) {
   return _autoArchiveNotes(planningDir, context);
+}
+
+function incidentsList(opts) {
+  return _incidentsList({ ...opts, planningDir });
+}
+function incidentsQuery(filter, opts) {
+  return _incidentsQuery(filter, { ...opts, planningDir });
+}
+function incidentsSummary(opts) {
+  return _incidentsSummary({ ...opts, planningDir });
 }
 
 function migrate(options) {
@@ -1557,6 +1576,28 @@ async function main() {
       const maxIterations = maxIterIdx !== -1 ? parseInt(args[maxIterIdx + 1], 10) : 3;
       output(ciFix({ dryRun, maxIterations }));
 
+    // ─── Incidents ───────────────────────────────────────────────────────────
+    } else if (command === 'incidents') {
+      const sub = args[1];
+      if (sub === 'list') {
+        const limitIdx = args.indexOf('--limit');
+        const limit = limitIdx !== -1 ? parseInt(args[limitIdx + 1], 10) : 50;
+        output(incidentsList({ limit }));
+      } else if (sub === 'summary') {
+        output(incidentsSummary());
+      } else if (sub === 'query') {
+        const filter = {};
+        for (let i = 2; i < args.length; i++) {
+          if (args[i] === '--type' && args[i + 1]) { filter.type = args[++i]; }
+          else if (args[i] === '--severity' && args[i + 1]) { filter.severity = args[++i]; }
+          else if (args[i] === '--source' && args[i + 1]) { filter.source = args[++i]; }
+          else if (args[i] === '--last' && args[i + 1]) { filter.last = args[++i]; }
+        }
+        output(incidentsQuery(filter));
+      } else {
+        error('Usage: incidents <list|summary|query> [--type T] [--severity S] [--source S] [--last Nd|Nh] [--limit N]');
+      }
+
     } else if (command === 'nk') {
       // Lazy require to avoid loading for unrelated commands
       const nkLib = require(path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'negative-knowledge.cjs'));
@@ -1613,7 +1654,7 @@ async function main() {
       }
 
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, nk record|list|resolve, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
     }
   } catch (e) {
     error(e.message);
@@ -1621,6 +1662,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, ciFix, parseJestOutput: _parseJestOutput, parseLintOutput: _parseLintOutput, autoFixLint: _autoFixLint, runCiFixLoop: _runCiFixLoop, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus, autoCloseTodos, autoArchiveNotes, buildCleanupContext };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, ciFix, parseJestOutput: _parseJestOutput, parseLintOutput: _parseLintOutput, autoFixLint: _autoFixLint, runCiFixLoop: _runCiFixLoop, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus, autoCloseTodos, autoArchiveNotes, buildCleanupContext, incidentsList, incidentsQuery, incidentsSummary };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.

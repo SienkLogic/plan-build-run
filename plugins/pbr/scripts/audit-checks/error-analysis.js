@@ -881,6 +881,89 @@ function checkSessionCleanupVerification(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// EF-08: Incident Pattern Analysis
+// ---------------------------------------------------------------------------
+
+/**
+ * Analyze incident journal for recurring patterns, high-severity clusters,
+ * and auto-fix effectiveness.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Config object (unused, kept for signature consistency)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkIncidentPatterns(planningDir, _config) {
+  let _incidents;
+  try {
+    _incidents = require('../../../../plan-build-run/bin/lib/incidents.cjs');
+  } catch (_e) {
+    return result('EF-08', 'pass', 'Incident journal module not available — skipping', []);
+  }
+
+  let summaryData;
+  try {
+    summaryData = _incidents.summary({ planningDir });
+  } catch (_e) {
+    return result('EF-08', 'pass', 'Could not read incident summary — skipping', []);
+  }
+
+  const evidence = [];
+
+  // Total count
+  evidence.push(`Total incidents: ${summaryData.total}`);
+
+  // Top 3 types by frequency
+  const typeEntries = Object.entries(summaryData.by_type || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  if (typeEntries.length > 0) {
+    evidence.push(`Top types: ${typeEntries.map(([t, c]) => `${t}(${c})`).join(', ')}`);
+  }
+
+  // Auto-fix rate
+  let autoFixCount = 0;
+  try {
+    const all = _incidents.list({ planningDir, limit: Infinity, reverse: false });
+    autoFixCount = all.filter(e => e.auto_fixed).length;
+    const rate = summaryData.total > 0
+      ? ((autoFixCount / summaryData.total) * 100).toFixed(1)
+      : '0.0';
+    evidence.push(`Auto-fix rate: ${autoFixCount}/${summaryData.total} (${rate}%)`);
+  } catch (_e) {
+    // best-effort
+  }
+
+  // Query error-severity incidents
+  let errorIncidents = [];
+  try {
+    errorIncidents = _incidents.query({ severity: 'error' }, { planningDir, limit: Infinity });
+  } catch (_e) {
+    // best-effort
+  }
+
+  const errorCount = errorIncidents.length;
+
+  // Determine status
+  if (summaryData.total < 50 && errorCount === 0) {
+    return result('EF-08', 'pass',
+      `Incident journal healthy: ${summaryData.total} total, 0 errors`, evidence);
+  }
+
+  if (errorCount >= 10) {
+    evidence.push(`Error-severity incidents: ${errorCount} (threshold: 10)`);
+    return result('EF-08', 'fail',
+      `High error-severity incident count: ${errorCount}`, evidence);
+  }
+
+  // warn: total > 50 or error incidents exist but < 10
+  if (errorCount > 0) {
+    evidence.push(`Error-severity incidents: ${errorCount}`);
+  }
+  return result('EF-08', 'warn',
+    `Incident journal needs attention: ${summaryData.total} total, ${errorCount} errors`, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -892,4 +975,5 @@ module.exports = {
   checkHookFalseNegative,
   checkCrossSessionInterference,
   checkSessionCleanupVerification,
+  checkIncidentPatterns,
 };

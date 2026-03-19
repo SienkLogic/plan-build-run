@@ -7,6 +7,14 @@
 
 const fs = require('fs');
 const path = require('path');
+
+let _incidents;
+try {
+  _incidents = require('../../../../plan-build-run/bin/lib/incidents.cjs');
+} catch (_e) {
+  _incidents = null;
+}
+
 const {
   parseYamlFrontmatter,
   findFiles,
@@ -498,6 +506,23 @@ function milestoneStats(version, planningDir) {
     }
   }
 
+  let incidentStats = null;
+  if (_incidents) {
+    try {
+      const incSummary = _incidents.summary({ planningDir: dir });
+      incidentStats = {
+        total: incSummary.total,
+        by_type: incSummary.by_type,
+        by_severity: incSummary.by_severity,
+        auto_fixed_count: 0
+      };
+      const all = _incidents.list({ planningDir: dir, limit: Infinity });
+      incidentStats.auto_fixed_count = all.filter(e => e.auto_fixed).length;
+    } catch (_e) {
+      // incidents unavailable — leave null
+    }
+  }
+
   return {
     version,
     phase_count: phases.length,
@@ -508,7 +533,8 @@ function milestoneStats(version, planningDir) {
       all_key_decisions: allKeyDecisions,
       all_patterns: [...patternsSet],
       all_deferred: allDeferred,
-      total_metrics: totalMetrics
+      total_metrics: totalMetrics,
+      incident_stats: incidentStats
     }
   };
 }
