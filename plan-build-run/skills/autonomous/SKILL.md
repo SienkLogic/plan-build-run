@@ -146,7 +146,7 @@ For each remaining phase N:
        subagent_type: "pbr:planner",
        model: "sonnet",
        run_in_background: true,
-       prompt: "Plan Phase {C}. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building."
+       prompt: "Plan Phase {C} --speculative. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building. Do NOT write .active-skill. Do NOT update STATE.md."
      })
      ```
    - Plans are written directly to the normal phase directory (NOT .speculative/) per locked decision #2
@@ -158,10 +158,15 @@ Important constraints:
 - Exception: if a phase-level CONTEXT.md already exists from a prior manual `/pbr:discuss-phase`, that is fine -- the planner will use it.
 - Do NOT speculate on phases that already have plans.
 - Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
+- After dispatching speculative Task()s, do NOT write .active-skill — the orchestrator already owns it for the active Phase {N} build. The speculative planner receives --speculative and will skip signal file writes.
 
 ### 3c-stale. Staleness Check (after build completes)
 
 **Gate:** Only execute if speculative planners were dispatched in 3c-speculative for this phase N.
+
+Note: When speculative plans are replaced (re-planned), the checkpoint manifest from a prior
+speculative run (if any) becomes stale. Re-initialize it immediately after re-planning so
+that the build skill does not try to skip plans that no longer exist.
 
 **Procedure:**
 
@@ -179,6 +184,13 @@ Important constraints:
         ```
         Skill({ skill: "pbr:plan", args: "{C} --auto" })
         ```
+      - Re-initialize checkpoint manifest for Phase C with the new plan IDs:
+        ```bash
+        # Collect new PLAN-*.md filenames from .planning/phases/{CC}-{slug}/
+        # Extract plan IDs from frontmatter (plan: field) of each new PLAN file
+        node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {CC}-{slug} --plans "{comma-separated plan IDs}"
+        ```
+        This ensures the build skill starts with accurate plan tracking when Phase C is built.
    c. If Phase C does NOT depend on Phase N: plans are still valid, no action needed.
 
 Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
