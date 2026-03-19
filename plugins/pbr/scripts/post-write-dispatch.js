@@ -32,6 +32,7 @@ const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
+const { checkDirectStateWrite } = require('./check-direct-state-write');
 const { queueIntelUpdate } = require('./intel-queue');
 
 let checkDependencyBreaks;
@@ -141,6 +142,15 @@ async function processEvent(data, planningDir) {
     if (ctx) results.push(ctx);
   } catch (e) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkRoadmapWrite', error: e.message });
+  }
+
+  // Direct Write bypass warning for STATE.md and ROADMAP.md
+  try {
+    const directWriteResult = checkDirectStateWrite(data);
+    const ctx = extractContext(directWriteResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkDirectStateWrite', error: e.message });
   }
 
   // Roadmap sync check (STATE.md)
