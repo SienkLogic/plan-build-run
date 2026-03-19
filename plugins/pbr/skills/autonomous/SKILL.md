@@ -354,6 +354,7 @@ If gate passes:
 
   Where `{phase_errors}` and `{phase_retries}` are the accumulated error description and retry count tracked during Step 3c for phase N. If phase N had no errors, omit the errors entry.
 
+- **Update root MILESTONE.md** — If `MILESTONE.md` exists at project root, overwrite it with updated phase statuses from ROADMAP.md progress table for the current milestone. If it doesn't exist, skip silently.
 - Check milestone boundary: if this was the last phase in milestone, stop loop.
   Display: "Milestone complete! Run `/pbr:milestone` to archive."
 
