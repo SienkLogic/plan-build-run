@@ -133,6 +133,8 @@ function findRoadmapRow(lines, phaseNum) {
     const parts = lines[i].split('|');
     if (parts.length < 3) continue;
     // Search ALL columns for a phase number match (handles both old and new column layouts)
+    // Handles v9+ format: "| 21. Phase Name | X/Y | Status |" (number+name merged in 3-col table)
+    // as well as legacy formats: "| 21 | Phase Name | ... |" (separate columns)
     for (let c = 1; c < parts.length - 1; c++) {
       const col = (parts[c] || '').trim();
       // Match "01", "1", "01.", "01. Name", etc.
@@ -220,9 +222,12 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
       parts[statusColIdx] = ` ${newStatus} `;
       lines[rowIdx] = parts.join('|');
     } else {
-      // Fallback: use updateTableRow with last-resort column index
-      oldStatus = parts[6] ? parts[6].trim() : (parts[4] ? parts[4].trim() : 'unknown');
-      lines[rowIdx] = updateTableRow(lines[rowIdx], 5, newStatus);
+      // Fallback: detect column count to pick correct index
+      // 3-col table (v9+ format): Status at raw index 3; legacy 6-col: index 5
+      const colCount = parts.filter(p => p.trim()).length;
+      const fallbackIdx = colCount <= 3 ? 3 : 5;
+      oldStatus = parts[fallbackIdx] ? parts[fallbackIdx].trim() : (parts[4] ? parts[4].trim() : 'unknown');
+      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx - 1, newStatus);
     }
     return lines.join(lineEnding);
   });
@@ -280,9 +285,12 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
       parts[plansColIdx] = ` ${newPlans} `;
       lines[rowIdx] = parts.join('|');
     } else {
-      // Fallback: use updateTableRow with legacy column index
-      oldPlans = parts[4] ? parts[4].trim() : (parts[2] ? parts[2].trim() : 'unknown');
-      lines[rowIdx] = updateTableRow(lines[rowIdx], 3, newPlans);
+      // Fallback: detect column count to pick correct index
+      // 3-col table (v9+ format): Plans Complete at raw index 2; legacy 6-col: index 3
+      const colCount = parts.filter(p => p.trim()).length;
+      const fallbackIdx = colCount <= 3 ? 2 : 3;
+      oldPlans = parts[fallbackIdx + 1] ? parts[fallbackIdx + 1].trim() : (parts[2] ? parts[2].trim() : 'unknown');
+      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx, newPlans);
     }
     return lines.join(lineEnding);
   });
