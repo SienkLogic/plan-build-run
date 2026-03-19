@@ -18,7 +18,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionLoad } = require('./pbr-tools');
-const { resolveSessionPath } = require('./lib/core');
+const { resolveSessionPath, ensureSessionDir } = require('./lib/core');
 
 function readStdin() {
   try {
@@ -61,7 +61,7 @@ function main() {
     });
 
     // Write .active-agent signal so other hooks know a subagent is running
-    writeActiveAgent(agentType || 'unknown');
+    writeActiveAgent(agentType || 'unknown', sessionId);
 
     // Inject project context into subagent
     const context = buildAgentContext(sessionId);
@@ -76,7 +76,7 @@ function main() {
     }
   } else if (action === 'stop') {
     // Remove .active-agent signal
-    removeActiveAgent();
+    removeActiveAgent(sessionId);
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
@@ -94,11 +94,18 @@ function main() {
   process.exit(0);
 }
 
-function writeActiveAgent(agentType) {
+function writeActiveAgent(agentType, sessionId) {
   try {
     const cwd = process.cwd();
-    const filePath = path.join(cwd, '.planning', '.active-agent');
-    if (fs.existsSync(path.join(cwd, '.planning'))) {
+    const planningDir = path.join(cwd, '.planning');
+    if (!fs.existsSync(planningDir)) return;
+
+    if (sessionId) {
+      ensureSessionDir(planningDir, sessionId);
+      const filePath = resolveSessionPath(planningDir, '.active-agent', sessionId);
+      fs.writeFileSync(filePath, agentType, 'utf8');
+    } else {
+      const filePath = path.join(planningDir, '.active-agent');
       fs.writeFileSync(filePath, agentType, 'utf8');
     }
   } catch (_e) {
@@ -106,12 +113,17 @@ function writeActiveAgent(agentType) {
   }
 }
 
-function removeActiveAgent() {
+function removeActiveAgent(sessionId) {
   try {
     const cwd = process.cwd();
-    const filePath = path.join(cwd, '.planning', '.active-agent');
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const planningDir = path.join(cwd, '.planning');
+
+    if (sessionId) {
+      const filePath = resolveSessionPath(planningDir, '.active-agent', sessionId);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } else {
+      const filePath = path.join(planningDir, '.active-agent');
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
   } catch (_e) {
     // Best-effort
@@ -191,18 +203,23 @@ function handleHttp(reqBody) {
 
     // Write .active-agent signal — use planningDir from reqBody if available
     const planningDir = reqBody.planningDir;
+    const httpSessionId = data.session_id || null;
     if (planningDir) {
       try {
-        const filePath = path.join(planningDir, '.active-agent');
         if (fs.existsSync(planningDir)) {
-          fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
+          if (httpSessionId) {
+            ensureSessionDir(planningDir, httpSessionId);
+            const filePath = resolveSessionPath(planningDir, '.active-agent', httpSessionId);
+            fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
+          } else {
+            const filePath = path.join(planningDir, '.active-agent');
+            fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
+          }
         }
       } catch (_e) { /* best-effort */ }
     } else {
-      writeActiveAgent(agentType || 'unknown');
+      writeActiveAgent(agentType || 'unknown', httpSessionId);
     }
-
-    const httpSessionId = data.session_id || null;
     const context = buildAgentContext(httpSessionId);
     if (context) {
       return {
@@ -216,13 +233,19 @@ function handleHttp(reqBody) {
   } else if (event === 'SubagentStop') {
     // Remove .active-agent signal
     const planningDir = reqBody.planningDir;
+    const stopSessionId = data.session_id || null;
     if (planningDir) {
       try {
-        const filePath = path.join(planningDir, '.active-agent');
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        if (stopSessionId) {
+          const filePath = resolveSessionPath(planningDir, '.active-agent', stopSessionId);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        } else {
+          const filePath = path.join(planningDir, '.active-agent');
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
       } catch (_e) { /* best-effort */ }
     } else {
-      removeActiveAgent();
+      removeActiveAgent(stopSessionId);
     }
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
