@@ -533,7 +533,12 @@ Write to `.planning/phases/{phase_dir}/VERIFICATION.md`.
 
 ### Template
 
-Read the template from `templates/VERIFICATION-DETAIL.md.tmpl` (relative to `plugins/pbr/`). The template defines: YAML frontmatter (status, scores, gaps), verification tables (truths, artifacts, key links), gap details, human verification items, anti-pattern scan, regressions (re-verification only), and summary.
+**CRITICAL -- TEMPLATE READ REQUIRED: Before writing VERIFICATION.md, you MUST read the template file using the Read tool:**
+`${CLAUDE_PLUGIN_ROOT}/templates/VERIFICATION-DETAIL.md.tmpl`
+
+**Your VERIFICATION.md MUST include these body sections from the template: a must-have verification table (Observable Truths / Artifact Verification / Key Link Verification), and "## Summary". If gaps are found, include "## Gaps Found" or "## Critical Gaps". The hook validator will warn on missing sections.**
+
+**Do NOT write VERIFICATION.md from memory. Read the template first.**
 
 ### Fallback Format (if template unreadable)
 

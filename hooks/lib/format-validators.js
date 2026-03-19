@@ -234,6 +234,23 @@ function validateSummary(content, _filePath) {
     }
   }
 
+  // Body section validation — check that required template sections exist
+  // Advisory only (warnings) since executors may use minimal template
+  const secondDash = content.indexOf('---', 3);
+  if (secondDash !== -1) {
+    const body = content.substring(secondDash + 3);
+    const hasWhatWasBuilt = /^##\s+What Was Built/m.test(body);
+    const hasTaskResults = /^##\s+Task Results/m.test(body);
+    const hasSelfCheck = /^##\s+Self-Check/m.test(body);
+
+    if (!hasWhatWasBuilt && !hasTaskResults) {
+      warnings.push('Body missing required section: "## What Was Built" or "## Task Results" (see SUMMARY.md template)');
+    }
+    if (!hasSelfCheck) {
+      warnings.push('Body missing required section: "## Self-Check" (required per all template tiers)');
+    }
+  }
+
   return { errors, warnings };
 }
 
@@ -505,6 +522,37 @@ function validateVerification(content, _filePath) {
       if (gapsFoundMatch && parseInt(gapsFoundMatch[1], 10) > 0) {
         if (!frontmatter.includes('severity:') && !frontmatter.includes('gap_severity:')) {
           warnings.push('Gaps found but no severity classification — add severity (critical|non-critical) to gap entries');
+        }
+      }
+    }
+  }
+
+  // Body section validation — check that required template sections exist
+  // Advisory only (warnings) since verifier output may vary
+  const secondDash = content.indexOf('---', 3);
+  if (secondDash !== -1) {
+    const body = content.substring(secondDash + 3);
+    const hasObservableTruths = /^##\s+Observable Truths/m.test(body);
+    const hasMustHaveVerification = /^##\s+Must-Have Verification/m.test(body);
+    const hasArtifactVerification = /^##\s+Artifact Verification/m.test(body);
+    const hasSummary = /^##\s+Summary/m.test(body);
+
+    if (!hasObservableTruths && !hasMustHaveVerification && !hasArtifactVerification) {
+      warnings.push('Body missing required section: "## Observable Truths", "## Must-Have Verification", or "## Artifact Verification" (see VERIFICATION template)');
+    }
+    if (!hasSummary) {
+      warnings.push('Body missing required section: "## Summary" (see VERIFICATION template)');
+    }
+
+    // If status is gaps_found, check for a Gaps section
+    const fmEnd = content.indexOf('---', 3);
+    if (fmEnd !== -1) {
+      const fm = content.substring(3, fmEnd);
+      const statusMatch = fm.match(/^status:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (statusMatch && statusMatch[1].trim() === 'gaps_found') {
+        const hasGapsSection = /^##\s+(Gaps|Critical Gaps|Gap \d)/m.test(body);
+        if (!hasGapsSection) {
+          warnings.push('Status is "gaps_found" but body missing "## Gaps", "## Critical Gaps", or "## Gap N" section');
         }
       }
     }

@@ -192,6 +192,13 @@ Before writing SUMMARY.md, verify your own output against the plan's must-haves:
 
 ** CRITICAL -- DO NOT SKIP THIS STEP. The SUMMARY.md artifact is REQUIRED for phase verification. Returning without it causes downstream failures. **
 
+**CRITICAL -- TEMPLATE READ REQUIRED: Before writing SUMMARY.md, you MUST read the appropriate template file using the Read tool:**
+- **Simple plans** (tasks <= 2, files <= 3): Read `${CLAUDE_PLUGIN_ROOT}/templates/SUMMARY-minimal.md.tmpl`
+- **Complex plans** (decisions made, files > 6, deviations): Read `${CLAUDE_PLUGIN_ROOT}/templates/SUMMARY-complex.md.tmpl`
+- **Standard plans** (all others): Read `${CLAUDE_PLUGIN_ROOT}/templates/SUMMARY.md.tmpl`
+
+**Your SUMMARY.md MUST include these body sections from the template: "## What Was Built", "## Task Results", "## Self-Check". The hook validator will warn on missing sections.**
+
 Before writing the completion marker, output any memory_suggestion blocks if you discovered reusable knowledge (see memory_suggestions section).
 
 ```
@@ -548,6 +555,8 @@ After all tasks (or at checkpoint), create `.planning/phases/{phase_dir}/SUMMARY
 | tasks <= 2 AND files <= 3, no decisions | `templates/SUMMARY-minimal.md.tmpl` | Avoids over-documenting simple work |
 | decisions made OR files > 6 OR deviations occurred | `templates/SUMMARY-complex.md.tmpl` | Captures architectural context |
 | Otherwise | `templates/SUMMARY.md.tmpl` | Standard level of detail |
+
+**CRITICAL: Read the selected template file with the Read tool BEFORE writing SUMMARY.md. Do NOT write from memory — templates define required sections and field names.**
 
 Status values: `complete`, `partial`, `checkpoint`.
 

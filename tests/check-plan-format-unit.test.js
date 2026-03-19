@@ -157,6 +157,13 @@ must_haves_failed: 0
 satisfied: []
 unsatisfied: []
 ---
+## Observable Truths
+All truths verified.
+
+## Must-Have Verification
+All must-haves passed.
+
+## Summary
 All good`);
     const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
     expect(result).toBeNull();
@@ -1509,7 +1516,16 @@ satisfied:
   - "REQ-F-001"
 unsatisfied: []
 ---
-## Results
+## Observable Truths
+All observable truths verified.
+
+## Must-Have Verification
+All must-haves passed.
+
+## Artifact Verification
+All artifacts present.
+
+## Summary
 All checks passed.`;
     const result = validateVerification(content, 'VERIFICATION.md');
     expect(result.errors).toEqual([]);
@@ -1670,6 +1686,13 @@ must_haves_failed: 0
 satisfied: []
 unsatisfied: []
 ---
+## Observable Truths
+All truths verified.
+
+## Must-Have Verification
+All must-haves passed.
+
+## Summary
 All checks passed.`);
     const input = JSON.stringify({ tool_input: { file_path: verPath } });
     const result = runScript(input, tmpDir);

@@ -193,7 +193,15 @@ must_haves_failed: 0
 satisfied: []
 unsatisfied: []
 ---
-Body`;
+
+## Observable Truths
+
+| # | Truth | Status |
+|---|-------|--------|
+
+## Summary
+
+All good.`;
     const result = validateVerification(content, 'VERIFICATION.md');
     expect(result.errors).toEqual([]);
     expect(result.warnings).toEqual([]);
@@ -554,6 +562,69 @@ describe('checkStateWrite', () => {
     const result = checkStateWrite({ tool_input: { file_path: filePath } });
     expect(result).not.toBeNull();
     expect(result.output.additionalContext).toContain('100-line cap');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateSummary body section checks
+// ---------------------------------------------------------------------------
+describe('validateSummary body section checks', () => {
+  const validFM = '---\nphase: 01\nplan: 01\nstatus: complete\nprovides: []\nrequires: []\nkey_files: []\ndeferred: []\n---\n';
+
+  test('SUMMARY with no body sections produces warnings about missing What Was Built/Task Results and Self-Check', () => {
+    const content = validFM + '# Plan Summary\n\nJust some text.\n';
+    const result = validateSummary(content, 'SUMMARY.md');
+    expect(result.warnings.some(w => w.includes('What Was Built') && w.includes('Task Results'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('Self-Check'))).toBe(true);
+  });
+
+  test('SUMMARY with "## What Was Built" and "## Self-Check" produces no body-section warnings', () => {
+    const content = validFM + '## What Was Built\n\nStuff.\n\n## Self-Check\n\n- [x] All good\n';
+    const result = validateSummary(content, 'SUMMARY.md');
+    const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
+    expect(bodySectionWarnings).toHaveLength(0);
+  });
+
+  test('SUMMARY with "## Task Results" and "## Self-Check" (minimal template) produces no body-section warnings', () => {
+    const content = validFM + '## Task Results\n\n| Task | Status |\n\n## Self-Check\n\n- [x] Done\n';
+    const result = validateSummary(content, 'SUMMARY.md');
+    const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
+    expect(bodySectionWarnings).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateVerification body section checks
+// ---------------------------------------------------------------------------
+describe('validateVerification body section checks', () => {
+  const validFM = '---\nstatus: passed\nphase: 01\nchecked_at: 2026-01-01\nmust_haves_checked: 3\nmust_haves_passed: 3\nmust_haves_failed: 0\nsatisfied: []\nunsatisfied: []\n---\n';
+
+  test('VERIFICATION with no verification tables produces warnings about missing sections and Summary', () => {
+    const content = validFM + '# Phase Verification\n\nJust text.\n';
+    const result = validateVerification(content, 'VERIFICATION.md');
+    expect(result.warnings.some(w => w.includes('Observable Truths') || w.includes('Must-Have Verification') || w.includes('Artifact Verification'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('"## Summary"'))).toBe(true);
+  });
+
+  test('VERIFICATION with "## Observable Truths" and "## Summary" produces no body-section warnings', () => {
+    const content = validFM + '## Observable Truths\n\n| # | Truth |\n\n## Summary\n\nAll good.\n';
+    const result = validateVerification(content, 'VERIFICATION.md');
+    const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
+    expect(bodySectionWarnings).toHaveLength(0);
+  });
+
+  test('VERIFICATION with "## Artifact Verification" and "## Summary" produces no body-section warnings', () => {
+    const content = validFM + '## Artifact Verification\n\n| # | Artifact |\n\n## Summary\n\nDone.\n';
+    const result = validateVerification(content, 'VERIFICATION.md');
+    const bodySectionWarnings = result.warnings.filter(w => w.includes('Body missing'));
+    expect(bodySectionWarnings).toHaveLength(0);
+  });
+
+  test('VERIFICATION with status gaps_found but no Gaps section produces warning', () => {
+    const gapsFM = '---\nstatus: gaps_found\nphase: 01\nchecked_at: 2026-01-01\nmust_haves_checked: 3\nmust_haves_passed: 2\nmust_haves_failed: 1\nsatisfied: []\nunsatisfied: []\n---\n';
+    const content = gapsFM + '## Observable Truths\n\n| # | Truth |\n\n## Summary\n\nGaps exist.\n';
+    const result = validateVerification(content, 'VERIFICATION.md');
+    expect(result.warnings.some(w => w.includes('gaps_found') && w.includes('Gaps'))).toBe(true);
   });
 });
 
