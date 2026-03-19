@@ -7,6 +7,10 @@
  * as unified maps keyed by dimension code:
  *   - SI_CHECKS (SI-01 through SI-15): Self-integrity checks
  *   - IH_CHECKS (IH-01 through IH-10): Infrastructure health checks
+ *   - EF_CHECKS (EF-01 through EF-07): Error & failure analysis checks
+ *   - WC_CHECKS (WC-01 through WC-12): Workflow compliance checks
+ *   - BC_CHECKS (BC-01 through BC-12): Behavioral compliance checks
+ *   - SQ_CHECKS (SQ-01 through SQ-06): Session quality checks
  *   - FV_CHECKS (FV-01 through FV-13): Feature verification checks
  *   - QM_CHECKS (QM-01 through QM-05): Quality metrics checks
  *
@@ -22,6 +26,10 @@ const crossCuttingChecks = require('./si-cross-cutting-checks');
 const fvChecks = require('./feature-verification');
 const infraChecks = require('./infrastructure');
 const qmChecks = require('./quality-metrics');
+const errorAnalysis = require('./error-analysis');
+const workflowCompliance = require('./workflow-compliance');
+const behavioralCompliance = require('./behavioral-compliance');
+const sessionQuality = require('./session-quality');
 
 /**
  * Map of dimension code to check function.
@@ -109,9 +117,74 @@ const QM_CHECKS = {
 };
 
 /**
+ * Map of dimension code to EF check function.
+ * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
+ */
+const EF_CHECKS = {
+  'EF-01': errorAnalysis.checkToolFailureRate,
+  'EF-02': errorAnalysis.checkAgentFailureTimeout,
+  'EF-03': errorAnalysis.checkHookFalsePositive,
+  'EF-04': errorAnalysis.checkHookFalseNegative,
+  'EF-05': errorAnalysis.checkRetryRepetitionPattern,
+  'EF-06': errorAnalysis.checkCrossSessionInterference,
+  'EF-07': errorAnalysis.checkSessionCleanupVerification,
+};
+
+/**
+ * Map of dimension code to WC check function.
+ * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
+ */
+const WC_CHECKS = {
+  'WC-01': workflowCompliance.checkCiVerifyAfterPush,
+  'WC-02': workflowCompliance.checkStateFileIntegrity,
+  'WC-03': workflowCompliance.checkStateFrontmatterIntegrity,
+  'WC-04': workflowCompliance.checkRoadmapSyncValidation,
+  'WC-05': workflowCompliance.checkPlanningArtifactCompleteness,
+  'WC-06': workflowCompliance.checkArtifactFormatValidation,
+  'WC-07': workflowCompliance.checkCompactionQuality,
+  'WC-08': workflowCompliance.checkNamingConventionCompliance,
+  'WC-09': workflowCompliance.checkCommitPatternValidation,
+  'WC-10': workflowCompliance.checkModelSelectionCompliance,
+  'WC-11': workflowCompliance.checkGitBranchingCompliance,
+  'WC-12': workflowCompliance.checkTestHealthBaseline,
+};
+
+/**
+ * Map of dimension code to BC check function.
+ * Each function takes (planningDir, config) and returns { status, message, evidence }.
+ */
+const BC_CHECKS = {
+  'BC-01': behavioralCompliance.checkSkillSequenceCompliance,
+  'BC-02': behavioralCompliance.checkStateMachineTransitions,
+  'BC-03': behavioralCompliance.checkPreConditionVerification,
+  'BC-04': behavioralCompliance.checkPostConditionVerification,
+  'BC-05': behavioralCompliance.checkOrchestratorBudgetDiscipline,
+  'BC-06': behavioralCompliance.checkArtifactCreationOrder,
+  'BC-07': behavioralCompliance.checkCriticalMarkerCompliance,
+  'BC-08': behavioralCompliance.checkGateCompliance,
+  'BC-09': behavioralCompliance.checkEnforceWorkflowAdvisory,
+  'BC-10': behavioralCompliance.checkUnmanagedCommitDetection,
+  'BC-11': behavioralCompliance.checkContextDelegationThreshold,
+  'BC-12': behavioralCompliance.checkSkillSelfReadPrevention,
+};
+
+/**
+ * Map of dimension code to SQ check function.
+ * Each function takes (planningDir, config) and returns { dimension, status, message, evidence }.
+ */
+const SQ_CHECKS = {
+  'SQ-01': sessionQuality.checkSessionStartQuality,
+  'SQ-02': sessionQuality.checkBriefingFreshness,
+  'SQ-03': sessionQuality.checkSessionDurationCost,
+  'SQ-04': sessionQuality.checkSkillRoutingAccuracy,
+  'SQ-05': sessionQuality.checkMemoryUpdateTracking,
+  'SQ-06': sessionQuality.checkConventionDetectionMonitoring,
+};
+
+/**
  * Merged map of ALL check functions across all categories.
  */
-const ALL_CHECKS = Object.assign({}, SI_CHECKS, IH_CHECKS, FV_CHECKS, QM_CHECKS);
+const ALL_CHECKS = Object.assign({}, SI_CHECKS, IH_CHECKS, EF_CHECKS, WC_CHECKS, BC_CHECKS, SQ_CHECKS, FV_CHECKS, QM_CHECKS);
 
 /**
  * Run all SI checks and return aggregated results.
@@ -263,6 +336,14 @@ function runAllChecks(pluginRoot, planningDir, config, sessionData, auditResults
         r = checkFn(pluginRoot);
       } else if (prefix === 'IH') {
         r = checkFn(planningDir, config);
+      } else if (prefix === 'EF') {
+        r = checkFn(planningDir, config);
+      } else if (prefix === 'WC') {
+        r = checkFn(planningDir, config);
+      } else if (prefix === 'BC') {
+        r = checkFn(planningDir, config);
+      } else if (prefix === 'SQ') {
+        r = checkFn(planningDir, config);
       } else if (prefix === 'FV') {
         r = checkFn(planningDir, config);
         fvPriorResults.push(r);
@@ -322,6 +403,10 @@ module.exports = {
   SI_CHECKS,
   runAllSIChecks,
   IH_CHECKS,
+  EF_CHECKS,
+  WC_CHECKS,
+  BC_CHECKS,
+  SQ_CHECKS,
   FV_CHECKS,
   runAllFVChecks,
   QM_CHECKS,
@@ -334,4 +419,8 @@ module.exports = {
   ...fvChecks,
   ...infraChecks,
   ...qmChecks,
+  ...errorAnalysis,
+  ...workflowCompliance,
+  ...behavioralCompliance,
+  ...sessionQuality,
 };
