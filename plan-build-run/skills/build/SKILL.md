@@ -1132,14 +1132,16 @@ Before spawning the verifier, check if the build passes the confidence gate:
    c. Check commit SHAs: for each SUMMARY.md that lists `commits`, verify they exist via `git log --oneline {sha} -1` (quick existence check, not full log).
    d. Detect test suite: check for `package.json` (scripts.test), `pytest.ini`/`pyproject.toml` ([tool.pytest]), `Makefile` (test target), or `Cargo.toml`. Use the first match.
    e. Run test suite: execute the detected test command (e.g., `npm test`, `pytest`, `make test`). Capture exit code.
+   f. Wiring check: for each file in SUMMARY.md key_files (excluding test files and .md files), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If any key file has zero external references, it is orphaned.
 
 4. Evaluate confidence gate:
    - `completion_met`: aggregate completion >= `confidence_threshold`
    - `shas_verified`: all listed commit SHAs exist in git log
    - `tests_passed`: test suite exit code is 0 (or no test suite detected — treat as pass with warning)
+   - `key_files_imported`: all key_files (excluding tests, docs, config) have at least one import/require reference elsewhere in the project
 
-5. If ALL three pass:
-   - Display: `Confidence gate passed (completion: {pct}%, SHAs: verified, tests: passed) — skipping verifier`
+5. If ALL FOUR pass:
+   - Display: `Confidence gate passed (completion: {pct}%, SHAs: verified, tests: passed, wiring: OK) — skipping verifier`
    - Set verification status to `passed` (auto-verified)
    **CRITICAL — DO NOT SKIP: Write VERIFICATION.md NOW. Without this file, the autonomous loop cannot confirm phase completion.**
    - Write a minimal VERIFICATION.md:
@@ -1153,6 +1155,7 @@ Before spawning the verifier, check if the build passes the confidence gate:
      completion: {pct}
      shas_verified: true
      tests_passed: true
+     key_files_imported: true
      must_haves_checked: 0
      must_haves_passed: 0
      ---
@@ -1167,6 +1170,7 @@ Before spawning the verifier, check if the build passes the confidence gate:
 
 6. If ANY signal fails:
    - Display: `Confidence gate not met ({failed_signals}) — spawning verifier`
+   - If wiring check failed specifically: `Display: Confidence gate not met (orphaned files: {list}) — spawning verifier`
    - Proceed with normal verification flow below (unchanged behavior).
 
 **If verification is enabled:**

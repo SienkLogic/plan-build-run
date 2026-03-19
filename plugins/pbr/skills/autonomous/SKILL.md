@@ -281,7 +281,8 @@ If gate passes:
         - On completion: write result to `.planning/.test-cache.json` with the phase directory as key
         - Log: `Tests: ran fresh, result cached`
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
-  5. **If ALL three signals pass** (completion >= 90%, SHAs verified, tests pass):
+  4.5. **Wiring check:** For each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate and fall through to full verification.
+  5. **If ALL FOUR signals pass** (completion >= 90%, SHAs verified, tests pass, key_files imported):
      **CRITICAL — DO NOT SKIP: Write VERIFICATION.md to the phase directory NOW.**
      - Write a minimal VERIFICATION.md to the phase directory:
 
@@ -294,6 +295,7 @@ If gate passes:
      completion: {pct}
      shas_verified: true
      tests_passed: true
+     key_files_imported: true
      must_haves_checked: 0
      must_haves_passed: 0
      ---
@@ -305,7 +307,7 @@ If gate passes:
 
 <!-- markdownlint-disable MD046 -->
 
-   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK)`
+   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK, wiring: OK)`
    - Continue to next phase — do NOT spawn verifier agent.
 
 <!-- markdownlint-enable MD046 -->
