@@ -59,6 +59,7 @@ Score `$ARGUMENTS` against these route keyword groups:
 | plan-phase | plan, architect, design, migrate, refactor across, redesign, system, new | 0.9 |
 | quick | add, create, update, change, rename, remove, write test, implement, feature, refactor | 0.85 |
 | note | remember, note, todo, idea, later, don't forget, remind | 1.0 |
+| validate-phase | validate, coverage gaps, test gaps, missing tests, untested, requirement coverage | 1.0 |
 | verify-work | review, check, verify, quality, looks right | 0.9 |
 
 **Scoring algorithm:**
@@ -92,6 +93,7 @@ Fall back to the original static table -- apply the **first matching** rule:
 | A bug, error, crash, failure, or something broken | `/pbr:debug` |
 | Exploration, research, comparison, or "how does X work" | `/pbr:explore` |
 | A complex task: refactoring, migration, multi-file architecture, system redesign | `/pbr:plan-phase add` |
+| Validation, coverage gaps, missing tests, or untested requirements | `/pbr:validate-phase` |
 | A review or quality concern about existing work | `/pbr:verify-work` |
 | A note, idea, or "remember to..." | `/pbr:note` |
 | A specific, actionable task (add feature, fix typo, update config, write test) | `/pbr:quick` |

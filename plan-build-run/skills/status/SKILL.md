@@ -115,9 +115,13 @@ Parse the JSON response. Capture:
 
 Store these for use in Step 4 display and Step 5 routing.
 
-6. **`.planning/STATE.md` ## History section** (if exists)
-   - Note: milestone completions, phase completion records (consolidated from legacy HISTORY.md)
-   - **Backwards compat:** If STATE.md has no ## History section but `.planning/HISTORY.md` exists, read from the legacy file
+6. **`.planning/STATE.md` `velocity` frontmatter field** (if exists)
+   - Note: velocity metrics object with plans_executed, avg_duration_minutes, trend
+   - Display in status dashboard if present
+
+6b. **`.planning/STATE.md` session continuity fields** (if exists)
+   - Extract: `session_last`, `session_stopped_at`, `session_resume` from frontmatter
+   - Display last session info if present
 
 7. **`.planning/PROJECT.md` ## Context section** (if exists)
    - Note: locked decisions, user constraints, deferred ideas (consolidated from legacy CONTEXT.md)
@@ -143,15 +147,21 @@ For each phase listed in ROADMAP.md:
 
 3. Calculate phase status:
 
-| Condition | Status |
-|-----------|--------|
-| No directory | Not started |
-| Directory exists, no plans | Discussed only |
-| Plans exist, no summaries | Planned (ready to build) |
-| Some summaries, not all | Building (in progress) |
-| All summaries exist | Built (ready to review) |
-| VERIFICATION.md exists, status=passed | Verified (complete) |
-| VERIFICATION.md exists, status=gaps_found | Needs fixes |
+| Condition | Status | Status Value |
+|-----------|--------|-------------|
+| No directory | Not started | `not_started` |
+| Directory exists, CONTEXT.md only | Discussed | `discussed` |
+| Directory exists, no plans, ready for planning | Ready to plan | `ready_to_plan` |
+| Planning in progress (planner running) | Planning | `planning` |
+| Plans exist, no summaries | Planned | `planned` |
+| Plans exist, ready to execute | Ready to execute | `ready_to_execute` |
+| Some summaries, not all | Building (in progress) | `building` |
+| All summaries exist | Built (ready to review) | `built` |
+| Some plans completed with issues | Partial | `partial` |
+| VERIFICATION.md exists, status=passed | Verified | `verified` |
+| VERIFICATION.md exists, status=gaps_found | Needs fixes | `needs_fixes` |
+| Phase fully done | Complete | `complete` |
+| Phase explicitly skipped | Skipped | `skipped` |
 
 4. Calculate progress percentage:
    - Count total plans across all phases
@@ -244,6 +254,15 @@ Phase Status:
 |------|--------|
 | PROJECT.md | {exists / not found -- run /pbr:new-project} (includes ## Context section) |
 | REQUIREMENTS.md | {exists / not found -- run /pbr:new-project} |
+
+{If STATE.md frontmatter contains a `velocity` field (JSON object), display velocity metrics in a single compact line:}
+Velocity:  {velocity.plans_executed} plans | avg {velocity.avg_duration_minutes} min/plan | trend: {velocity.trend}
+Total:     {total_plans} plans across all phases
+{If no `velocity` field exists in STATE.md frontmatter, skip this block entirely — do not show "No metrics".}
+
+{If STATE.md frontmatter contains `session_last`, display session continuity:}
+Last session: {session_last}{if session_stopped_at:} — stopped at: {session_stopped_at}{/if}
+{If no `session_last` field exists, skip this block entirely.}
 
 {If context tier is DEGRADING, POOR, or CRITICAL:}
 ⚠ Context: {percentage}% used ({tier}) — {recommendation_text}
@@ -340,7 +359,9 @@ Based on the project state, suggest the single most logical next action:
    YES → "Build the current phase: `/pbr:execute-phase {N}`"
 
 4. Is the current phase built but not reviewed?
-   YES → "Review what was built: `/pbr:verify-work {N}`"
+   YES → Read `workflow.validate_phase` from config.json (default: `true`).
+     IF true  → "Validate coverage gaps: `/pbr:validate-phase {N}`"
+     IF false → "Review what was built: `/pbr:verify-work {N}`"
 
 5. Is the current phase verified (complete)?
    YES → Is there a next phase?
@@ -413,6 +434,8 @@ Build options dynamically from the decision tree results. Always include "Someth
 - This skill remains read-only — display the command, do not execute it
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

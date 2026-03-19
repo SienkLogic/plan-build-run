@@ -30,12 +30,17 @@ Additionally for this skill:
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-Where `{N}` is the phase number from `$ARGUMENTS`. Then proceed to Step 1.
+Where `{N}` is the phase number from `$ARGUMENTS`.
+
+**Set active skill:** Write `.planning/.active-skill` with content `test`.
+
+Then proceed to Step 1.
 
 ## Prerequisites
 
 - `.planning/config.json` exists
 - Phase has been built: SUMMARY.md files exist in `.planning/phases/{NN}-{slug}/`
+- If no SUMMARY.md files exist in the phase directory, display error and exit. Do not proceed without build output.
 - Phase should NOT already have TDD coverage (check if `features.tdd_mode` is false in config — if TDD mode is enabled, warn user that tests should already exist and ask to proceed anyway)
 
 ---
@@ -60,6 +65,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" init execute-phase {phase_numb
 ```
 
 This returns STATE.md snapshot, phase plans, ROADMAP excerpt, and config — all in one call.
+
+The init command returns `files_to_read` context. Ensure SUMMARY.md files are read before spawning test agents.
 
 ## Step 2 — Detect Test Framework
 
@@ -187,6 +194,10 @@ Files tested:
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
+**Run quality gate** to check for requirement-to-test gaps
+
+`/pbr:validate-phase {N}`
+
 **Run coverage check** to see how much is covered
 
 `npm test -- --coverage`
@@ -202,6 +213,28 @@ Files tested:
 
 ```
 
+**Clear active skill:** Delete `.planning/.active-skill`.
+
+---
+
+## Step 7 — Update State
+
+Reference: `skills/shared/state-update.md` for state update patterns.
+
+Update STATE.md `last_activity`: "Tests generated for phase {N} ({X} files, {Y} tests)"
+
+---
+
+## Step 8 — Commit
+
+Reference: `skills/shared/commit-planning-docs.md` for the commit pattern.
+
+If `planning.commit_docs` is true in config.json, commit test files:
+
+```text
+test({N}-tests): add tests for phase {N} ({X} test files)
+```
+
 ---
 
 ## Anti-Patterns
@@ -211,3 +244,11 @@ Files tested:
 3. **DO NOT** skip running the tests — always verify they pass before reporting success
 4. **DO NOT** generate trivial tests (testing getters/setters, testing constants) — focus on behavior
 5. **DO NOT** read full source files in the orchestrator — let the executor agents read them
+
+---
+
+## Error Handling
+
+Reference: `skills/shared/error-reporting.md` for error output patterns.
+
+If test framework detection fails or no `key_files` found, display branded error and clear `.planning/.active-skill`.
