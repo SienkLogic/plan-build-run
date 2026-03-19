@@ -59,7 +59,7 @@ function getLogPath(date) {
   return path.join(logsDir, getLogFilename(date));
 }
 
-function logEvent(category, event, details = {}) {
+function logEvent(category, event, details = {}, sessionId) {
   const logPath = getLogPath();
   if (!logPath) return;
 
@@ -69,6 +69,8 @@ function logEvent(category, event, details = {}) {
     event,
     ...details
   };
+
+  if (sessionId) entry.sid = sessionId;
 
   try {
     fs.appendFileSync(logPath, JSON.stringify(entry) + '\n', 'utf8');

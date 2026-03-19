@@ -92,7 +92,7 @@ function cleanOldHookLogs(logsDir) {
   }
 }
 
-function logHook(hookName, eventType, decision, details = {}, startTime, source) {
+function logHook(hookName, eventType, decision, details = {}, startTime, source, sessionId) {
   const logPath = getLogPath();
   if (!logPath) return;
 
@@ -105,6 +105,7 @@ function logHook(hookName, eventType, decision, details = {}, startTime, source)
   };
 
   if (source) entry.source = source;
+  if (sessionId) entry.sid = sessionId;
 
   if (typeof startTime === 'number' && startTime > 0) {
     entry.duration_ms = Date.now() - startTime;
