@@ -74,6 +74,8 @@ On every resume, reconcile STATE.md claims against filesystem reality. This catc
 - **Obvious corruption** (duplicate headers, impossible percentages, phase directory missing): flag as corruption
 - **Stale data** (plan count wrong, status outdated): flag as drift
 
+**CRITICAL (no hook) -- DO NOT SKIP: Repair STATE.md when discrepancies are found.**
+
 **Step 3: Repair** —
 - For **corruption**: Present repair and ask for confirmation: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
 - For **drift**: Auto-repair silently and note: "Updated STATE.md to match filesystem (plan count {old}→{new}, status {old}→{new})."
@@ -87,15 +89,101 @@ On every resume, reconcile STATE.md claims against filesystem reality. This catc
 
 Read `.planning/STATE.md` for the last known position.
 
-**Extract:**
+**Extract from frontmatter:**
 - Current phase and plan
+- `session_last` — when the last session ended (ISO timestamp)
+- `session_stopped_at` — brief description of where work stopped
+- `session_resume` — path to .continue-here.md file
+
+**If `session_last` exists in frontmatter**, display it immediately before any other output:
+```
+Last session: {session_last}
+Stopped at: {session_stopped_at}
+```
+This gives the user instant context before the full resume analysis runs.
+
+**Also extract from body:**
 - Session Continuity section (if exists):
   - Last paused date
   - Continue file location
   - Suggested next action
 
+**CRITICAL -- DO NOT SKIP: After successful resume**, clear `session_stopped_at` from STATE.md frontmatter (set to empty string or remove) to indicate the session has been resumed. Keep `session_last` and `session_resume` intact for reference.
+
 **If STATE.md doesn't exist:**
 - Go to **Recovery Flow** (Step 4)
+
+### Step 1b: Check for HANDOFF.json and WAITING.json
+
+**Before searching for .continue-here.md**, check for structured state files:
+
+#### HANDOFF.json (Machine-Readable Pause State)
+
+Check if `.planning/HANDOFF.json` exists:
+- If found, parse it and extract structured resume context:
+  - Display: phase, plan, current task, next action, blockers, human actions pending
+  - Use this data to populate the resume display (it's more reliable than .continue-here.md)
+  - After successful resume, **delete HANDOFF.json** (one-shot consumption)
+  - Continue to Step 3a (Normal Resume) using the HANDOFF.json data alongside .continue-here.md
+- If not found, proceed normally to Step 2
+
+#### WAITING.json (External Wait State)
+
+Check if `.planning/WAITING.json` exists:
+- If found, parse it and display the waiting state:
+  ```
+  Project is in WAITING state
+  Reason: {reason}
+  Waiting since: {created_at}
+  Expected duration: {expected_duration}
+  ```
+- Offer to resume: "The project was waiting on an external action. If the action is complete, run `/pbr:resume-work` to clear the waiting state and continue."
+- If the user confirms the wait is resolved, delete WAITING.json and proceed with normal resume
+- If not found, proceed normally to Step 2
+
+#### Autonomous State (.autonomous-state.json)
+
+Check if `.planning/.autonomous-state.json` exists:
+
+- If found, parse it and extract:
+  - `current_phase` -- the phase the autonomous run was on when interrupted
+  - `completed_phases` -- list of phases already completed
+  - `branch_state` -- map of phase -> branch name (may be empty `{}`)
+  - `started_at` -- when the run began
+  - `failed_phase` / `error` -- whether the run failed vs. was interrupted
+- Display a summary block:
+
+```text
+Autonomous Run Detected
+Started: {started_at}
+Completed phases: {completed_phases list, or "none"}
+Current phase: {current_phase}
+{If branch_state non-empty:}
+Active branch: {branch for current_phase, if present}
+{If failed_phase non-null:}
+Failed at phase: {failed_phase} — {error}
+```
+
+- Use AskUserQuestion to offer resumption:
+
+```text
+Use AskUserQuestion:
+  question: "An autonomous run was interrupted at Phase {current_phase}. Continue it?"
+  header: "Autonomous Resume"
+  options:
+    - label: "Continue autonomous run from Phase {current_phase}"
+      description: "Run /pbr:autonomous --from {current_phase}"
+    - label: "Resume manually (normal resume flow)"
+      description: "Continue with the standard resume process"
+    - label: "Discard autonomous state"
+      description: "Delete .autonomous-state.json and start fresh"
+  multiSelect: false
+```
+
+- If user selects **Continue autonomous run**: display `Run: /pbr:autonomous --from {current_phase}` and stop (do not proceed with normal resume flow)
+- If user selects **Resume manually**: proceed with normal resume flow (Step 2 onward), keep .autonomous-state.json intact
+- If user selects **Discard autonomous state**: delete `.planning/.autonomous-state.json`, then proceed with normal resume flow
+- If `.autonomous-state.json` does NOT exist: skip this block entirely, proceed with Step 2
 
 ### Step 2: Search for .continue-here.md Files
 
@@ -136,13 +224,13 @@ Use the selected pause point for the rest of the resume flow.
 ### Step 3a: Normal Resume (from .continue-here.md)
 
 1. Read the `.continue-here.md` file completely
-2. Parse all sections:
-   - Position (phase, plan, status)
-   - Completed work
-   - Remaining work
-   - Decisions
-   - Blockers
-   - Next steps
+2. Parse sections. If the file contains `<current_state>`, parse XML sections. Otherwise, fall back to parsing markdown headers (`## Position`, `## Completed This Session`, etc.) for backward compatibility with old-format files.
+   - `<current_state>` -- phase, plan, status, branch, working files
+   - `<completed_work>` -- what was done last session
+   - `<remaining_work>` -- what's left in this phase
+   - `<decisions_made>` -- key decisions that affect future work
+   - `<context>` -- approach, reasoning, things to watch out for
+   - `<next_action>` -- the single most important next step with exact command
 
 3. Display the resume context using the branded banner:
 
@@ -167,6 +255,10 @@ Remaining in this phase:
 Key decisions:
 {bulleted list of decisions}
 
+{If context section has content:}
+Session context:
+{approach and reasoning from <context> section}
+
 {If blockers exist:}
 Blockers:
 {bulleted list of blockers}
@@ -178,7 +270,7 @@ Blockers:
    - Check git log to verify commits mentioned in completed work
    - If anything is inconsistent, warn: "Some state has changed since the pause. {details}"
 
-5. Present the next action from the continue-here file.
+5. Present the next action from the continue-here file. When a `<next_action>` section exists with a `Command:` field, prefer that over inferring the next action from state -- the pause skill captured the exact command to run.
 
 **If only one clear next action exists**, present it with branded routing:
 ```
@@ -314,6 +406,7 @@ After displaying context, route to the appropriate action:
 
 | Situation | Suggested Action |
 |-----------|-----------------|
+| Autonomous run interrupted | `/pbr:autonomous --from {N}` |
 | Mid-phase, plans remaining | `/pbr:execute-phase {N}` (executor will skip completed plans) |
 | Phase complete, not reviewed | `/pbr:verify-work {N}` |
 | Phase reviewed, has gaps | `/pbr:plan-phase {N} --gaps` |
@@ -353,6 +446,8 @@ If .continue-here.md is more than 7 days old:
 - Suggest: "Run `/pbr:progress` to verify the current state before continuing."
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

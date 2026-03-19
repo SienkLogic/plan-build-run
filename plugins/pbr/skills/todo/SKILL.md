@@ -61,7 +61,7 @@ theme: {inferred-theme}
 - [ ] {primary acceptance criterion derived from description}
 ```
 
-7. Update STATE.md Pending Todos section
+7. **CRITICAL -- DO NOT SKIP:** Update STATE.md Pending Todos section
 
    If the Write fails, display:
    ```

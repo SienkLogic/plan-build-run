@@ -43,7 +43,10 @@ Reference: `skills/shared/agent-type-resolution.md` for agent type fallback when
 
 Additionally for this skill:
 - **Minimize** file reads — this is a thinking skill, not a code analysis skill
-- **Delegate** deep research to a researcher subagent if investigation exceeds 3-4 file reads
+- **Delegate** deep research to a researcher subagent if investigation exceeds the read threshold:
+  - At context_window_tokens < 500000 (200k model): delegate after 3-4 file reads
+  - At context_window_tokens >= 500000 (1M model): delegate after 12 file reads
+  Check `context_window_tokens` in `.planning/config.json` to determine which limit applies.
 
 ---
 
@@ -271,6 +274,8 @@ Do NOT create any artifacts until the user selects "Approve all" on the final se
 
 ### Step 4: Create Artifacts
 
+**CRITICAL (no hook) -- DO NOT SKIP: Create target directories and write artifact files.**
+
 **Directory creation:** Before writing any artifact, ensure the target directory exists. Create `.planning/notes/`, `.planning/seeds/`, `.planning/research/`, or `.planning/todos/pending/` as needed if they don't already exist.
 
 Create only the approved artifacts. A single explore session can produce multiple outputs across different types.
@@ -408,6 +413,8 @@ Stage only the files created during this session. Do not stage unrelated changes
 ---
 
 ## Error Handling
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ### Researcher agent fails
 If a mid-conversation researcher Task() fails, display:

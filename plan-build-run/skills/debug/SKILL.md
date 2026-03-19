@@ -56,6 +56,8 @@ Additionally for this skill:
 
 ### Step 1: Ensure Debug Directory Exists
 
+**CRITICAL (no hook) -- DO NOT SKIP: Create debug directory before any file writes.**
+
 Before any file operations, ensure both directories exist by running:
 
 ```bash
@@ -100,6 +102,31 @@ Handle responses:
 **If no active sessions found:**
 - Go to **New Session Flow** (Step 3a)
 
+### Step 2b: UAT Gap Intake (conditional)
+
+**Trigger:** If `$ARGUMENTS` contains `--from-uat`, OR if no arguments provided and UAT.md gaps exist for the current phase.
+
+When triggered:
+
+1. Read the current phase's VERIFICATION.md (or UAT.md if it exists):
+   - Look for `status: gaps_found` in frontmatter
+   - Parse the gaps section for individual gap entries
+2. For each gap entry, extract:
+   - Gap description (symptom)
+   - Expected vs. actual behavior
+   - Affected files/components
+3. Pre-fill the debug session with UAT context:
+   - **Issue title**: derived from the first/primary gap description
+   - **Symptoms**: populated from gap details (expected, actual, scope)
+   - **Category**: set to the gap's category if available (e.g., "test", "integration")
+   - **Context**: include the phase context and related plan information
+4. Skip the symptom-gathering questions in Step 3a (symptoms are already populated from UAT gaps)
+5. Proceed directly to **Generate Session ID** and **Create Debug File** with the pre-filled data
+
+**If `--from-uat` is specified but no gaps exist:**
+- Display: "No UAT/verification gaps found for the current phase. Starting a standard debug session."
+- Fall through to normal Step 3a flow
+
 ### Step 3a: New Session Flow
 
 #### Gather Symptoms
@@ -132,6 +159,8 @@ If `$ARGUMENTS` is empty or minimal:
 4. Generate slug from issue title (same rules as quick task slugs)
 
 #### Create Debug File
+
+**CRITICAL (no hook) -- DO NOT SKIP: Write debug session file to disk.**
 
 Create `.planning/debug/{NNN}-{slug}.md`:
 
@@ -231,6 +260,8 @@ When the debugger agent completes, first check for completion markers in the Tas
 | No marker found | INCONCLUSIVE path |
 
 **Spot-check:** Before routing, verify `.planning/debug/{NNN}-{slug}.md` exists and was recently updated (modified timestamp is newer than the Task() spawn time). If the debug file was not updated, warn: `⚠ Debug file not updated by agent — results may be incomplete.`
+
+**Memory capture:** Reference `skills/shared/memory-capture.md` — check debugger output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during debugging.
 
 Display: `✓ Debug session complete — {N} hypotheses tested` (read the hypothesis count from the debug file's Hypotheses table).
 
@@ -481,6 +512,8 @@ If `planning.commit_docs: true` in config.json:
 - Fix commits use standard format: `fix({scope}): {description}`
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

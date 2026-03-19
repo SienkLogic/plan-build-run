@@ -268,6 +268,8 @@ If user types something else (freeform): interpret as a direct setting command a
 
 ### 4. Apply Changes
 
+**CRITICAL (no hook) -- DO NOT SKIP: Write updated config.json to disk.**
+
 Update config.json with new values.
 
 #### 4b. Commit Config Changes

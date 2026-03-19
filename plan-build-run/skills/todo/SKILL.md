@@ -25,24 +25,6 @@ Then proceed to Step 1.
 
 Native Claude Code Tasks are session-scoped — they vanish when the conversation ends. Plan-Build-Run todos are individual `.md` files in `.planning/todos/` that persist across sessions, context resets, and compactions.
 
-## STATE.md Validation
-
-Before any operation that requires project state (any operation except `--global`), check:
-
-If `.planning/STATE.md` does not exist and the operation requires it, display:
-
-```
-╔══════════════════════════════════════════════════════════════╗
-║  ERROR                                                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-No project state found.
-
-**To fix:** Run `/pbr:new-project` first, or use `--global` for project-independent todos.
-```
-
-Stop execution.
-
 ## Subcommands
 
 Parse `$ARGUMENTS` to determine the subcommand:
@@ -79,7 +61,7 @@ theme: {inferred-theme}
 - [ ] {primary acceptance criterion derived from description}
 ```
 
-7. Update STATE.md Pending Todos section
+7. **CRITICAL -- DO NOT SKIP:** Update STATE.md Pending Todos section
 
    If the Write fails, display:
    ```
@@ -291,6 +273,8 @@ Show a brief summary: count of pending todos, grouped by theme, plus usage hint.
 ## State Integration
 
 After any todo operation, update the "Pending Todos" section of STATE.md with the current count and list.
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Git Integration
 

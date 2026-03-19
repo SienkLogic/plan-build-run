@@ -189,6 +189,8 @@ Use AskUserQuestion:
 
 ### Step E: Check for Existing Files and Write PROJECT.md, REQUIREMENTS.md
 
+**CRITICAL (no hook) -- DO NOT SKIP: Write PROJECT.md and REQUIREMENTS.md to disk.**
+
 For each of the two files (`PROJECT.md`, `REQUIREMENTS.md` in `.planning/`):
 
 1. Check if the file already exists (Glob `.planning/PROJECT.md`, etc.).
@@ -248,6 +250,8 @@ After the Task() completes:
 
 ### Step G: State Updates, Commit, and Summary
 
+**CRITICAL (no hook) -- DO NOT SKIP: Initialize and update STATE.md.**
+
 **G1. Initialize STATE.md** (if it does not already exist):
 
 - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state load`
@@ -275,7 +279,7 @@ docs(planning): init project docs from PRD import
 
 Stage: `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md`, `.planning/CONTEXT.md`, `.planning/ROADMAP.md` (if generated), `.planning/STATE.md`.
 
-**G4. Delete `.planning/.active-skill`.**
+**CRITICAL -- DO NOT SKIP:** **G4. Delete `.planning/.active-skill`.**
 
 **G5. Display completion banner:**
 
@@ -596,6 +600,8 @@ Follow the revision loop with:
 
 ### Step 7: Write PLAN.md Files (inline)
 
+**CRITICAL (no hook) -- DO NOT SKIP: Write plan files to disk.**
+
 Write each plan to `.planning/phases/{NN}-{slug}/PLAN-{plan_num}.md`.
 
 If existing plans are being replaced (user confirmed in Step 1):
@@ -616,6 +622,8 @@ After writing plan files, verify they landed on disk:
 ### Step 8: Update All State (inline)
 
 Perform all state updates in this order:
+
+**CRITICAL (no hook) -- DO NOT SKIP: Update ROADMAP.md progress table.**
 
 **8a. Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 1. Open `.planning/ROADMAP.md`
@@ -668,7 +676,7 @@ docs({phase}): import plans for phase {N} ({count} plans, {wave_count} waves)
 
 ### Step 10: Cleanup
 
-Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
+**CRITICAL -- DO NOT SKIP:** Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before reporting results.
 
 ### Step 11: Confirm (inline)
 

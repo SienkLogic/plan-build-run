@@ -89,7 +89,7 @@ Before spawning agents, do a quick scan to identify what we're working with. Thi
 2. **Detect project scale** — count source files (exclude node_modules, venv, .git, build, dist). Categories: Small (<50), Medium (50-200), Large (200-1000), Very Large (1000+)
 3. **Detect key directories** — identify src, test, docs, config, scripts, public, migrations directories
 4. **Read existing docs** — README.md, architecture docs, .env.example
-5. **Write `.planning/codebase/RECON.md`** with project type, scale, key directories, entry points, and quick stats
+5. **CRITICAL (no hook) -- DO NOT SKIP:** Write `.planning/codebase/RECON.md` with project type, scale, key directories, entry points, and quick stats
 
 Refer to the "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` for the full detection checklists.
 

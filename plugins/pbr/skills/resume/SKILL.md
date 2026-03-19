@@ -74,6 +74,8 @@ On every resume, reconcile STATE.md claims against filesystem reality. This catc
 - **Obvious corruption** (duplicate headers, impossible percentages, phase directory missing): flag as corruption
 - **Stale data** (plan count wrong, status outdated): flag as drift
 
+**CRITICAL (no hook) -- DO NOT SKIP: Repair STATE.md when discrepancies are found.**
+
 **Step 3: Repair** —
 - For **corruption**: Present repair and ask for confirmation: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
 - For **drift**: Auto-repair silently and note: "Updated STATE.md to match filesystem (plan count {old}→{new}, status {old}→{new})."
@@ -106,7 +108,7 @@ This gives the user instant context before the full resume analysis runs.
   - Continue file location
   - Suggested next action
 
-**After successful resume**, clear `session_stopped_at` from STATE.md frontmatter (set to empty string or remove) to indicate the session has been resumed. Keep `session_last` and `session_resume` intact for reference.
+**CRITICAL -- DO NOT SKIP: After successful resume**, clear `session_stopped_at` from STATE.md frontmatter (set to empty string or remove) to indicate the session has been resumed. Keep `session_last` and `session_resume` intact for reference.
 
 **If STATE.md doesn't exist:**
 - Go to **Recovery Flow** (Step 4)

@@ -274,6 +274,8 @@ Do NOT create any artifacts until the user selects "Approve all" on the final se
 
 ### Step 4: Create Artifacts
 
+**CRITICAL (no hook) -- DO NOT SKIP: Create target directories and write artifact files.**
+
 **Directory creation:** Before writing any artifact, ensure the target directory exists. Create `.planning/notes/`, `.planning/seeds/`, `.planning/research/`, or `.planning/todos/pending/` as needed if they don't already exist.
 
 Create only the approved artifacts. A single explore session can produce multiple outputs across different types.

@@ -56,6 +56,8 @@ Additionally for this skill:
 
 ### Step 1: Ensure Debug Directory Exists
 
+**CRITICAL (no hook) -- DO NOT SKIP: Create debug directory before any file writes.**
+
 Before any file operations, ensure both directories exist by running:
 
 ```bash
@@ -157,6 +159,8 @@ If `$ARGUMENTS` is empty or minimal:
 4. Generate slug from issue title (same rules as quick task slugs)
 
 #### Create Debug File
+
+**CRITICAL (no hook) -- DO NOT SKIP: Write debug session file to disk.**
 
 Create `.planning/debug/{NNN}-{slug}.md`:
 
