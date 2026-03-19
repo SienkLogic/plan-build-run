@@ -32,6 +32,7 @@
  *   todo get <NNN>                       — Get a specific todo by number
  *   todo add <title> [--priority P] [--theme T] — Add a new todo
  *   todo done <NNN>                      — Mark a todo as complete
+ *   auto-cleanup --phase N | --milestone vN — Auto-close todos and archive notes matching phase/milestone deliverables
  *   llm metrics [--session <ISO>]        — Lifetime or session-scoped LLM usage metrics
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
@@ -175,6 +176,11 @@ const {
   todoAdd: _todoAdd,
   todoDone: _todoDone
 } = require('./lib/todo');
+
+const {
+  autoCloseTodos: _autoCloseTodos,
+  autoArchiveNotes: _autoArchiveNotes
+} = require('./lib/auto-cleanup');
 
 const {
   applyMigrations: _applyMigrations
@@ -416,6 +422,14 @@ function todoDone(num) {
   return _todoDone(planningDir, num);
 }
 
+function autoCloseTodos(context) {
+  return _autoCloseTodos(planningDir, context);
+}
+
+function autoArchiveNotes(context) {
+  return _autoArchiveNotes(planningDir, context);
+}
+
 function migrate(options) {
   return _applyMigrations(planningDir, options);
 }
@@ -476,6 +490,53 @@ function ciPoll(runId, timeoutSecs) { return _ciPoll(runId, timeoutSecs, plannin
 function rollbackPlan(manifestPath) { return _rollback(manifestPath, planningDir); }
 
 function quickStatus() { return _quickStatus(planningDir); }
+
+/**
+ * Build cleanup context from phase SUMMARY files and git log.
+ * @param {string} phaseNum - Phase number (e.g. "38")
+ * @returns {{ phaseName: string, phaseNum: string, keyFiles: string[], commitMessages: string[], summaryDescriptions: string[] }}
+ */
+function buildCleanupContext(phaseNum) {
+  const padded = String(phaseNum).padStart(2, '0');
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) throw new Error('No phases directory found');
+
+  const phaseDir = fs.readdirSync(phasesDir).find(d => d.startsWith(padded + '-'));
+  if (!phaseDir) throw new Error(`Phase ${phaseNum} directory not found`);
+
+  const phaseName = phaseDir.replace(/^\d+-/, '').replace(/-/g, ' ');
+  const phaseDirPath = path.join(phasesDir, phaseDir);
+
+  // Collect key_files and descriptions from all SUMMARY files
+  const keyFiles = [];
+  const summaryDescriptions = [];
+  const summaryFiles = fs.readdirSync(phaseDirPath).filter(f => /^SUMMARY/i.test(f) && f.endsWith('.md'));
+  for (const sf of summaryFiles) {
+    try {
+      const content = fs.readFileSync(path.join(phaseDirPath, sf), 'utf8');
+      const fm = parseYamlFrontmatter(content);
+      if (fm.key_files && Array.isArray(fm.key_files)) {
+        keyFiles.push(...fm.key_files.map(kf => typeof kf === 'string' ? kf.split(':')[0].trim() : ''));
+      }
+      if (fm.provides && Array.isArray(fm.provides)) {
+        summaryDescriptions.push(...fm.provides);
+      }
+    } catch (_e) { /* skip unreadable summaries */ }
+  }
+
+  // Get recent commit messages
+  let commitMessages = [];
+  try {
+    const { execSync } = require('child_process');
+    const log = execSync('git log --oneline -20', { encoding: 'utf8', cwd: path.join(planningDir, '..') });
+    commitMessages = log.split('\n').filter(l => l.trim()).map(l => {
+      const parts = l.match(/^[0-9a-f]+\s+(.*)/);
+      return parts ? parts[1] : '';
+    }).filter(Boolean);
+  } catch (_e) { /* git not available */ }
+
+  return { phaseName, phaseNum: String(phaseNum), keyFiles, commitMessages, summaryDescriptions };
+}
 
 // --- Phase commit query functions ---
 
@@ -1049,6 +1110,38 @@ async function main() {
       const num = args[2];
       if (!num) error('Usage: pbr-tools.js todo done <NNN>');
       output(todoDone(num));
+    } else if (command === 'auto-cleanup') {
+      const phaseFlag = args.indexOf('--phase');
+      const milestoneFlag = args.indexOf('--milestone');
+      if (phaseFlag !== -1 && args[phaseFlag + 1]) {
+        const phaseNum = args[phaseFlag + 1];
+        const context = buildCleanupContext(phaseNum);
+        const todoResult = autoCloseTodos(context);
+        const noteResult = autoArchiveNotes(context);
+        output({ phase: phaseNum, todos: todoResult, notes: noteResult });
+      } else if (milestoneFlag !== -1 && args[milestoneFlag + 1]) {
+        const version = args[milestoneFlag + 1];
+        // Parse ROADMAP.md to find phases in this milestone
+        const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+        if (!fs.existsSync(roadmapPath)) { error('ROADMAP.md not found'); }
+        const roadmap = fs.readFileSync(roadmapPath, 'utf8');
+        const milestoneMatch = roadmap.match(new RegExp('Milestone.*' + version.replace(/\./g, '\\.') + '[\\s\\S]*?Phases:\\s*(\\d+)\\s*-\\s*(\\d+)'));
+        if (!milestoneMatch) { error('Milestone ' + version + ' not found in ROADMAP.md'); }
+        const startPhase = parseInt(milestoneMatch[1]);
+        const endPhase = parseInt(milestoneMatch[2]);
+        const allResults = { milestone: version, phases: [] };
+        for (let p = startPhase; p <= endPhase; p++) {
+          try {
+            const ctx = buildCleanupContext(String(p));
+            const todoRes = autoCloseTodos(ctx);
+            const noteRes = autoArchiveNotes(ctx);
+            allResults.phases.push({ phase: p, todos: todoRes, notes: noteRes });
+          } catch (_e) { /* skip phases without SUMMARY */ }
+        }
+        output(allResults);
+      } else {
+        error('Usage: auto-cleanup --phase N | --milestone vN');
+      }
     } else if (command === 'migrate') {
       const dryRun = args.includes('--dry-run');
       const force = args.includes('--force');
@@ -1405,7 +1498,7 @@ async function main() {
       process.stdout.write(result.text + '\n');
 
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
     }
   } catch (e) {
     error(e.message);
@@ -1413,6 +1506,6 @@ async function main() {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(err => { process.stderr.write(err.message + '\n'); process.exit(1); }); }
-module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus };
+module.exports = { KNOWN_AGENTS, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress, initStateBundle: stateBundle, stateBundle, statePatch, stateAdvancePlan, stateRecordMetric, stateRecordActivity, stateUpdateProgress, parseStateMd, parseRoadmapMd, parseYamlFrontmatter, parseMustHaves, countMustHaves, stateLoad, stateCheckProgress, configLoad, configClearCache, configValidate, lockedFileUpdate, planIndex, determinePhaseStatus, findFiles, atomicWrite, tailLines, frontmatter, mustHavesCollect, phaseInfo, stateUpdate, roadmapUpdateStatus, roadmapUpdatePlans, roadmapAnalyze, updateLegacyStateField, updateFrontmatterField, updateTableRow, findRoadmapRow, resolveDepthProfile, DEPTH_PROFILE_DEFAULTS, historyAppend, historyLoad, VALID_STATUS_TRANSITIONS, validateStatusTransition, writeActiveSkill, validateProject, phaseAdd, phaseRemove, phaseList, loadUserDefaults, saveUserDefaults, mergeUserDefaults, USER_DEFAULTS_PATH, todoList, todoGet, todoAdd, todoDone, migrate, spotCheck, referenceGet, milestoneStats, contextTriage, stalenessCheck, summaryGate, checkpointInit, checkpointUpdate, seedsMatch, ciPoll, rollbackPlan, sessionLoad, sessionSave, SESSION_ALLOWED_KEYS, claimAcquire, claimRelease, claimList, skillSectionGet, listSkillHeadings, stepVerify: _stepVerify, phaseAlternatives: _phaseAlternatives, prerequisiteAlternatives: _prereqAlternatives, configAlternatives: _configAlternatives, phaseComplete, phaseInsert, quickStatus, autoCloseTodos, autoArchiveNotes, buildCleanupContext };
 // NOTE: validateProject, phaseAdd, phaseRemove, phaseList were previously CLI-only (not exported).
 // They are now exported for testability. This is additive and backwards-compatible.
