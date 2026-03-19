@@ -358,7 +358,7 @@ function main() {
     try {
       const releasedClaims = releaseSessionClaims(planningDir, sessionId);
       if (releasedClaims.released.length > 0) {
-        logHook('session-cleanup', `Released ${releasedClaims.released.length} phase claim(s): ${releasedClaims.released.join(', ')}`);
+        logHook('session-cleanup', 'SessionEnd', 'claims-released', { released: releasedClaims.released });
         cleaned.push(...releasedClaims.released.map(p => `phases/${p}/.claim`));
       }
     } catch (_e) { /* best-effort */ }

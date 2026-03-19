@@ -94,8 +94,8 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
     hook: hookName,
     event: eventType,
     decision,
-    source: hookName,
-    ...details
+    ...details,
+    source: hookName
   };
 
   if (typeof startTime === 'number' && startTime > 0) {
