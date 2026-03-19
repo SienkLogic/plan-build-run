@@ -231,9 +231,36 @@ describe('handleHttp', () => {
     expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
   });
 
+  test('removes .context-tracker file', () => {
+    fs.writeFileSync(path.join(planningDir, '.context-tracker'), '{"chars":1000}');
+    const result = handleHttp({ planningDir, data: { reason: 'test' } });
+    expect(result).toBeNull();
+    expect(fs.existsSync(path.join(planningDir, '.context-tracker'))).toBe(false);
+  });
+
+  test('removes all session signal files including .context-tracker', () => {
+    fs.writeFileSync(path.join(planningDir, '.context-tracker'), '{}');
+    fs.writeFileSync(path.join(planningDir, '.session.json'), '{}');
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+    fs.writeFileSync(path.join(planningDir, '.active-plan'), '01-01');
+    const result = handleHttp({ planningDir, data: {} });
+    expect(result).toBeNull();
+    expect(fs.existsSync(path.join(planningDir, '.context-tracker'))).toBe(false);
+    expect(fs.existsSync(path.join(planningDir, '.session.json'))).toBe(false);
+    expect(fs.existsSync(path.join(planningDir, '.active-skill'))).toBe(false);
+    expect(fs.existsSync(path.join(planningDir, '.active-plan'))).toBe(false);
+  });
+
   test('writes session history', () => {
     handleHttp({ planningDir, data: { reason: 'http cleanup' } });
     const sessionsFile = path.join(planningDir, 'logs', 'sessions.jsonl');
     expect(fs.existsSync(sessionsFile)).toBe(true);
+  });
+});
+
+describe('DIRECT_FALLBACK_SCRIPTS includes session-cleanup', () => {
+  test('hook-server-client.js contains session-cleanup in DIRECT_FALLBACK_SCRIPTS', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'hooks', 'hook-server-client.js'), 'utf8');
+    expect(source).toContain("'session-cleanup': 'session-cleanup'");
   });
 });

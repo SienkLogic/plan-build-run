@@ -66,6 +66,15 @@ describe('session-cleanup.js', () => {
     expect(fs.existsSync(filePath)).toBe(false);
   });
 
+  test('removes .context-tracker file', () => {
+    const filePath = path.join(planningDir, '.context-tracker');
+    fs.writeFileSync(filePath, '{"chars":500}');
+
+    run();
+
+    expect(fs.existsSync(filePath)).toBe(false);
+  });
+
   test('removes operation and skill files but preserves .auto-next', () => {
     fs.writeFileSync(path.join(planningDir, '.auto-next'), 'cmd');
     fs.writeFileSync(path.join(planningDir, '.active-operation'), 'op');
