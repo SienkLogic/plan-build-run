@@ -18,15 +18,15 @@ const sharedConfig = {
 
 module.exports = {
   maxWorkers: '50%',
-  // Coverage thresholds — raised 2026-03-19 after local-llm test coverage added
-  // Global: actual ~32/27/33/32 — set 5pt below to allow headroom
+  // Coverage thresholds — raised 2026-03-19 after excluding plugin copies from collection
+  // Global: actual ~73/65/78/74 — set 5pt below to allow headroom
   // bin/lib: actual ~71/59/77/72 — set 5pt below to allow headroom
   coverageThreshold: {
     global: {
-      statements: 27,
-      branches: 22,
-      functions: 28,
-      lines: 27,
+      statements: 68,
+      branches: 60,
+      functions: 73,
+      lines: 69,
     },
     './plan-build-run/bin/lib/': {
       statements: 66,
@@ -36,11 +36,11 @@ module.exports = {
     },
   },
   coverageReporters: ['text', 'text-summary', 'json-summary'],
-  coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/', '/hooks/dist/'],
   collectCoverageFrom: [
     'plan-build-run/bin/lib/**/*.cjs',
     'hooks/**/*.js',
-    'plugins/pbr/scripts/**/*.js',
+    '!hooks/dist/**',
   ],
   projects: [
     {
