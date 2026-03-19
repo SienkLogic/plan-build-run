@@ -186,7 +186,7 @@ When the priority hierarchy above doesn't match, route based on the current phas
 | `planned` | Suggest `/pbr:build {N}` |
 | `ready_to_execute` | Suggest `/pbr:build {N}` |
 | `building` | Resume build with `/pbr:build {N}` |
-| `built` | Suggest `/pbr:review {N}` |
+| `built` | Read `workflow.validate_phase` from config.json (default: `true`). If true: suggest `/pbr:validate-phase {N}`. If false: suggest `/pbr:review {N}` |
 | `partial` | Resume build with `/pbr:build {N}` |
 | `verified` | Suggest `/pbr:plan-phase {N+1}` or milestone completion |
 | `needs_fixes` | Suggest `/pbr:plan-phase {N} --gaps` |
@@ -206,7 +206,8 @@ Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md file
 |-----------|--------|-----|
 | Gaps need closure | Plan gap closure | `Skill({ skill: "pbr:plan", args: "{N} --gaps" })` (append `--auto` if `auto_mode`) |
 | Build incomplete | Continue build | `Skill({ skill: "pbr:build", args: "{N}" })` (append `--auto` if `auto_mode`) |
-| Review needed | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Validate needed (`built` + `workflow.validate_phase: true`) | Run validate-phase | `Skill({ skill: "pbr:validate-phase", args: "{N}" })` (append `--auto` if `auto_mode`) |
+| Review needed (validate_phase disabled or already validated) | Run review | `Skill({ skill: "pbr:review", args: "{N}" })` (append `--auto` if `auto_mode`) |
 | Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
 | Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` (append `--auto` if `auto_mode`) |
 
