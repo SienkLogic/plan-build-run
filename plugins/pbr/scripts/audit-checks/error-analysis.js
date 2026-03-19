@@ -101,12 +101,30 @@ function readJsonlFiles(logsDir, prefix) {
 }
 
 // ---------------------------------------------------------------------------
+// Shared: test-source entry filter
+// ---------------------------------------------------------------------------
+
+/**
+ * Return true if the entry appears to originate from a test run.
+ * Test entries have a "cat" field that is a temp directory path
+ * (e.g. C:\Users\...\Temp\... or /tmp/...).
+ * @param {object} entry - Parsed JSON log entry
+ * @returns {boolean}
+ */
+function isTestSourced(entry) {
+  const cat = entry.cat || '';
+  if (typeof cat !== 'string') return false;
+  return /[/\\]temp[/\\]|[/\\]tmp[/\\]/i.test(cat);
+}
+
+// ---------------------------------------------------------------------------
 // EF-01: Tool Failure Rate Analysis
 // ---------------------------------------------------------------------------
 
 /**
- * Analyze tool failure rates from hook and event logs.
- * Groups failures by tool type, calculates rates where possible.
+ * Analyze tool failure rates from event logs only (single source of truth).
+ * Groups failures by tool type, calculates rates, caps at 100%.
+ * Filters out test-sourced entries before analysis.
  *
  * @param {string} planningDir - Path to .planning directory
  * @param {object} config - Config object (may have audit.thresholds.tool_failure_rate_warn)
@@ -116,31 +134,24 @@ function checkToolFailureRate(planningDir, config) {
   const logsDir = getLogsDir(planningDir);
   const threshold = config?.audit?.thresholds?.tool_failure_rate_warn ?? 0.10;
 
-  // Collect failures from hook logs
-  const hookEntries = readJsonlFiles(logsDir, 'hooks');
-  const hookFailures = hookEntries.filter(
-    e => e.hook === 'log-tool-failure' || e.event === 'PostToolUseFailure'
-  );
+  // Use ONLY event logs as the single source of truth (no hook log merging)
+  const eventEntries = readJsonlFiles(logsDir, 'events')
+    .filter(e => !isTestSourced(e));
 
-  // Collect failures and total tool calls from event logs
-  const eventEntries = readJsonlFiles(logsDir, 'events');
+  // Failures and totals from event logs only
   const eventFailures = eventEntries.filter(
     e => e.cat === 'tool' && e.event === 'failure'
   );
   const totalToolEvents = eventEntries.filter(e => e.cat === 'tool');
 
-  // Merge failure sources — extract tool name from various field locations
+  // Count failures per tool
   const failuresByTool = {};
-  for (const entry of hookFailures) {
-    const tool = entry.details?.tool || entry.data?.tool || entry.tool || 'unknown';
-    failuresByTool[tool] = (failuresByTool[tool] || 0) + 1;
-  }
   for (const entry of eventFailures) {
     const tool = entry.tool || entry.data?.tool || 'unknown';
     failuresByTool[tool] = (failuresByTool[tool] || 0) + 1;
   }
 
-  // Count total calls per tool from event logs
+  // Count total calls per tool
   const totalByTool = {};
   for (const entry of totalToolEvents) {
     const tool = entry.tool || entry.data?.tool || 'unknown';
@@ -156,15 +167,17 @@ function checkToolFailureRate(planningDir, config) {
   const evidence = [];
   let anyAboveThreshold = false;
 
-  for (const [tool, count] of Object.entries(failuresByTool)) {
+  for (const [tool, rawCount] of Object.entries(failuresByTool)) {
     const total = totalByTool[tool];
     if (total && total > 0) {
+      // Cap failure count at total to prevent >100% rates
+      const count = Math.min(rawCount, total);
       const rate = count / total;
       const pct = (rate * 100).toFixed(1);
       evidence.push(`${tool}: ${count} failures (${pct}% rate of ${total} calls)`);
       if (rate > threshold) anyAboveThreshold = true;
     } else {
-      evidence.push(`${tool}: ${count} failures (total calls unknown)`);
+      evidence.push(`${tool}: ${rawCount} failures (total calls unknown)`);
     }
   }
 
@@ -304,7 +317,8 @@ function checkRetryRepetitionPattern(planningDir, config) {
   const logsDir = getLogsDir(planningDir);
   const minCount = config?.audit?.thresholds?.retry_pattern_min_count ?? 3;
 
-  const eventEntries = readJsonlFiles(logsDir, 'events');
+  const eventEntries = readJsonlFiles(logsDir, 'events')
+    .filter(e => !isTestSourced(e));
 
   // Filter for tool-use events and sort by timestamp
   const toolEvents = eventEntries
