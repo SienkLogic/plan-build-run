@@ -96,7 +96,7 @@ Parse the JSON output as static check results. This covers:
 - **SI** (Self-Integrity): SI-01 through SI-15 — skill refs, agent refs, hook scripts, config sync
 - **IH** (Infrastructure Health): IH-01 through IH-10 — hook server, dashboard, performance, stale files
 - **FV** (Feature Verification): FV-01 through FV-13 — architecture guard, dependency breaks, security scans
-- **QM** (Quality Metrics): QM-01 through QM-05 — degradation, throughput, baselines (note: QM checks needing sessionData will get null and handle gracefully)
+- **QM** (Quality Metrics): QM-01 through QM-06 — degradation, throughput, baselines, insights coverage (note: QM checks needing sessionData will get null and handle gracefully)
 
 For each result, record: `{ dimension: "{code}", status: "pass"|"warn"|"fail", message: "...", evidence: [...] }`
 </step>
@@ -138,6 +138,23 @@ For each dimension in the active set that requires session data, analyze JSONL e
 - Evidence of enabled features running (architecture guard warnings, trust score updates, learnings writes, intel updates)
 
 For each analyzed dimension produce: `{ dimension: "{code}", status: "pass"|"warn"|"fail", message: "...", evidence: ["line {N}: ...", ...] }`
+</step>
+
+<step name="insights-check">
+### Step 3b: Insights Report Check
+
+If the spawn prompt includes an insights report path (not 'none'):
+
+1. Read the HTML file. Extract the text content focusing on:
+   - Friction patterns and workflow inefficiencies
+   - Repeated issues or user frustrations
+   - Suggestions for improvement
+2. For **QM-06 insights-coverage**: Mark "pass" if the report exists and is less than 30 days old. Mark "warn" if older than 30 days. Mark "info" with message "No insights report found" if 'none'.
+3. Cross-reference insights findings with session JSONL findings from Step 3:
+   - If insights mentions friction patterns that also appear in SQ/BC dimensions, add the insights evidence to those dimension results as corroborating data
+   - Do NOT create new dimension results from insights alone — only enrich existing dimensions
+
+If no insights report: record QM-06 as "info" with message "No /insights report found. Run /insights to generate workflow analysis."
 </step>
 
 <step name="write-report">

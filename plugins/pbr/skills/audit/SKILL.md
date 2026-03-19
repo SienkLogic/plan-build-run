@@ -169,6 +169,18 @@ This data feeds into the final report synthesis.
 
 **CRITICAL**: Spawn one `pbr:audit` agent per session, ALL in parallel. Do NOT analyze sessions sequentially.
 
+### 4a. Discover Insights Report
+
+Before spawning agents, check for a recent insights report:
+
+```bash
+ls -t ~/.claude/insights/*.html 2>/dev/null | head -1
+```
+
+If a file exists and was modified within the last 30 days, store its absolute path as `insights_report_path`. Otherwise set to `'none'`.
+
+### 4b. Compute Spawn Parameters
+
 Compute paths for the spawn prompt:
 - **Plugin root**: absolute path to `plugins/pbr` (e.g., `D:/Repos/plan-build-run/plugins/pbr`)
 - **Planning dir**: absolute path to `.planning` (e.g., `D:/Repos/plan-build-run/.planning`)
@@ -204,6 +216,8 @@ Task({
     Analyze this session for PBR workflow compliance and/or UX quality
     per your audit checklists. Return your full findings as structured
     markdown in your response.
+
+    Insights report: {insights_report_path}
   </audit_assignment>"
 })
 ```

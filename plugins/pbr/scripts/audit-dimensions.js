@@ -284,7 +284,7 @@ const DIMENSIONS = [
     'Config feature coverage — % of enabled features with evidence of running', 8, null),
 
   // =========================================================================
-  // QM — Quality Metrics & Trends (Phase 9) — 5 dimensions
+  // QM — Quality Metrics & Trends (Phase 9) — 6 dimensions
   // =========================================================================
   dim('QM-01', 'session-degradation', 'quality_metrics', 'QM', 'warning',
     'Session degradation tracking — error rate first half vs second half', 9, null),
@@ -296,6 +296,8 @@ const DIMENSIONS = [
     'Error correlation analysis — errors in one dimension predict errors in another', 9, null),
   dim('QM-05', 'audit-self-validation', 'quality_metrics', 'QM', 'warning',
     'Audit self-validation — audit agent checked all enabled dimensions', 9, null),
+  dim('QM-06', 'insights-coverage', 'quality_metrics', 'QM', 'info',
+    'Insights report freshness — /insights HTML report exists and is recent (within 30 days)', 49, null),
 ];
 
 // ---------------------------------------------------------------------------

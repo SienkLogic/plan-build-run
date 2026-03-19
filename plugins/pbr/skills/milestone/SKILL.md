@@ -538,6 +538,27 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
 
    The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_PLUGIN_ROOT}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
 
+9aa. **Insights integration:**
+
+   Check for a recent /insights HTML report:
+
+   ```bash
+   find ~/.claude/insights/ -name "*.html" -mtime -7 2>/dev/null | head -1
+   ```
+
+   **If a recent report exists (modified within 7 days):**
+   1. Read the HTML file and extract key workflow findings (friction patterns, efficiency suggestions, recurring issues)
+   2. Append a "## Workflow Insights" section to `.planning/RETROSPECTIVE.md` with 3-5 bullet points summarizing the most relevant insights for this milestone's work
+   3. Add the RETROSPECTIVE.md to the git staging area
+
+   **If no recent report exists:**
+   Display this suggestion after the RETROSPECTIVE.md is generated:
+
+   ```
+   Tip: Run /insights to capture workflow patterns from this milestone's sessions.
+        Insights feed into future audits and help the planner avoid repeated friction.
+   ```
+
 9a. **Commit:**
    ```bash
    git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/RETROSPECTIVE.md
