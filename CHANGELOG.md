@@ -2,65 +2,6 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
-## [11.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v9.0...plan-build-run-v11.0) — 2026-03-19
-
-### CLI Tools
-
-* Wire incidents subcommand into pbr-tools.cjs dispatcher ([c12f3719](https://github.com/SienkLogic/plan-build-run/commit/c12f3719))
-* Create incidents.cjs library with record/list/query/summary operations ([2c63e7d6](https://github.com/SienkLogic/plan-build-run/commit/2c63e7d6))
-* Harden roadmap.cjs for v9+ 3-column progress table format ([2bb9aa31](https://github.com/SienkLogic/plan-build-run/commit/2bb9aa31))
-* Add state reconcile command to re-derive phase counts from ROADMAP.md ([ba0187ed](https://github.com/SienkLogic/plan-build-run/commit/ba0187ed))
-
-### Configuration
-
-* Restore .planning/ to gitignore ([40d0ba66](https://github.com/SienkLogic/plan-build-run/commit/40d0ba66))
-
-### Hooks
-
-* Close v11.0 audit gaps — incident_journal config default, test-cache relocation, checkpoint_auto_resolve wiring, notification throttling ([1f97bfff](https://github.com/SienkLogic/plan-build-run/commit/1f97bfff))
-* Wire incident recording into pre-bash-dispatch, post-write-dispatch, and log-tool-failure ([3c15879d](https://github.com/SienkLogic/plan-build-run/commit/3c15879d))
-* Add record-incident.js shared hook helper for incident journal ([6b51bda6](https://github.com/SienkLogic/plan-build-run/commit/6b51bda6))
-* Add test result cache module with 60s TTL ([4058838d](https://github.com/SienkLogic/plan-build-run/commit/4058838d))
-* Add autonomous.max_retries and autonomous.error_strategy to CONFIG_DEFAULTS ([e0a85ee2](https://github.com/SienkLogic/plan-build-run/commit/e0a85ee2))
-* Update build-dependency gate to skip speculative dependency phases ([01c3a7f0](https://github.com/SienkLogic/plan-build-run/commit/01c3a7f0))
-* Add isPlanSpeculative helper and update build-executor gate for speculative/empty dirs ([ea587513](https://github.com/SienkLogic/plan-build-run/commit/ea587513))
-* Wire checkDirectStateWrite into post-write-dispatch.js ([31b19276](https://github.com/SienkLogic/plan-build-run/commit/31b19276))
-* Add checkDirectStateWrite advisory hook for STATE.md and ROADMAP.md bypass detection ([704b92cc](https://github.com/SienkLogic/plan-build-run/commit/704b92cc))
-* Wire session_id into log-subagent.js logHook and logEvent calls ([f3261cdf](https://github.com/SienkLogic/plan-build-run/commit/f3261cdf))
-* Add .context-tracker and .active-agent cleanup to session-cleanup.js ([2b72a80e](https://github.com/SienkLogic/plan-build-run/commit/2b72a80e))
-* Update .active-agent readers for session-scoped path with global fallback ([bfa38392](https://github.com/SienkLogic/plan-build-run/commit/bfa38392))
-* Add session_id support to logHook() and logEvent() for multi-session debugging ([a947b868](https://github.com/SienkLogic/plan-build-run/commit/a947b868))
-* Session-scope .active-agent writes in log-subagent.js ([3e569968](https://github.com/SienkLogic/plan-build-run/commit/3e569968))
-* Make stateAdvancePlan() atomic with single lockedFileUpdate call ([545f7aad](https://github.com/SienkLogic/plan-build-run/commit/545f7aad))
-* Wrap configWrite() with lockedFileUpdate for crash-safe concurrent writes ([4611cbaf](https://github.com/SienkLogic/plan-build-run/commit/4611cbaf))
-* IH-09 dispatch chain uses kebab-case script names from hook logs ([226c3935](https://github.com/SienkLogic/plan-build-run/commit/226c3935))
-
-### Skills
-
-* Wire test result caching into autonomous Step 3d verification ([04690e88](https://github.com/SienkLogic/plan-build-run/commit/04690e88))
-* Add autonomous state detection to resume skill ([33505ee8](https://github.com/SienkLogic/plan-build-run/commit/33505ee8))
-* Add git branch creation to autonomous Step 3e and expand .autonomous-state.json schema ([bc7f9b0c](https://github.com/SienkLogic/plan-build-run/commit/bc7f9b0c))
-* Add discuss auto-skip and error metrics to autonomous state schema ([83e1bfc5](https://github.com/SienkLogic/plan-build-run/commit/83e1bfc5))
-* Add error classification and graduated retry loop to autonomous Step 3c ([14a12c7c](https://github.com/SienkLogic/plan-build-run/commit/14a12c7c))
-* Pass --speculative flag in autonomous skill speculative Task() prompt ([1502ebd5](https://github.com/SienkLogic/plan-build-run/commit/1502ebd5))
-* Add checkpoint manifest re-init after speculative plan swap in autonomous mode ([b08ee23e](https://github.com/SienkLogic/plan-build-run/commit/b08ee23e))
-* Add --speculative flag guards to plan skill .active-skill and STATE.md writes ([9c40acb2](https://github.com/SienkLogic/plan-build-run/commit/9c40acb2))
-* Sync plan-build-run/ copies of modified SKILL.md files ([94b6e35c](https://github.com/SienkLogic/plan-build-run/commit/94b6e35c))
-* Add state reconcile step to milestone post-archival cleanup ([09b13ca9](https://github.com/SienkLogic/plan-build-run/commit/09b13ca9))
-* Update help with 9 missing skills and fix AGENT_TO_SKILL wiring ([b38ad2f3](https://github.com/SienkLogic/plan-build-run/commit/b38ad2f3))
-* Correct MILESTONE-AUDIT template path in milestone skill ([63eebda7](https://github.com/SienkLogic/plan-build-run/commit/63eebda7))
-
-### Testing
-
-* Update gate tests for speculative planning (empty dirs now allowed) ([930a82c8](https://github.com/SienkLogic/plan-build-run/commit/930a82c8))
-* IH-10 excludes test-sourced entries from source tag analysis ([747cf848](https://github.com/SienkLogic/plan-build-run/commit/747cf848))
-* EF-01 single-source counting with rate cap, EF-05 test entry filter ([56a66e08](https://github.com/SienkLogic/plan-build-run/commit/56a66e08))
-
-### Other
-
-* Add null config guards to FV-05 and FV-06 feature verification checks ([8ac294b3](https://github.com/SienkLogic/plan-build-run/commit/8ac294b3))
-* Separate enforcement blocks from tool failures in EF-01 counting ([9c5cdda5](https://github.com/SienkLogic/plan-build-run/commit/9c5cdda5))
-
 ## [2.12.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.11.0...plan-build-run-v2.12.0) — 2026-03-19
 
 ### CI/CD
