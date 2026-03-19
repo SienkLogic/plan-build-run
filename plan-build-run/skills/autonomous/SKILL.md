@@ -92,11 +92,16 @@ For each remaining phase N:
 
 ### 3a. Discuss Phase (conditional)
 
-- Check if `.planning/phases/{NN}-{slug}/CONTEXT.md` exists
-- If NOT exists AND phase has 2+ requirements:
+- Check if `.planning/phases/{NN}-{slug}/CONTEXT.md` exists -- if so, skip (decisions already captured)
+- Count requirements for this phase: parse the `### Phase {N}:` section in ROADMAP.md, count bullet lines under `**Requirements:**`
+- **Auto-skip discuss** (no Skill() call) when ANY of these are true:
+  - CONTEXT.md already exists
+  - Requirement count is 0 or 1 (well-specified, no gray areas worth discussing)
+  - `--auto` mode is active AND all requirements are simple factual statements (no `[NEEDS DECISION]` markers)
+  - Log: `Phase {N}: auto-skipping discuss ({count} requirement(s), well-specified)`
+- **Run discuss** only when: CONTEXT.md missing AND requirement count >= 2 AND at least one requirement contains ambiguous language or `[NEEDS DECISION]`
   - Invoke: `Skill({ skill: "pbr:discuss", args: "{N} --auto" })`
   - The `--auto` flag triggers smart discuss batching: collect ALL gray areas across the phase requirements and present them in a single batch for resolution, rather than asking one at a time.
-- If CONTEXT.md exists: skip discussion (decisions already captured)
 
 ### 3b. Plan Phase
 
@@ -115,7 +120,45 @@ For each remaining phase N:
 - If all SUMMARYs exist: skip build
 - **STOP on human-action checkpoint:** If Skill returns a checkpoint with type `human-action`: STOP the autonomous loop immediately.
   Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
-- If Skill returns failure: attempt single retry. If retry fails: stop loop, display error.
+
+#### Error Classification
+
+Before retrying any build failure, classify the error:
+
+**Transient errors** (auto-fixable -- clean up then retry):
+
+- Stale `.active-skill`: file exists but session that wrote it is gone (check via `ps` or absence of matching `.session-*.json`)
+- Stale `.active-agent`: same pattern
+- Git lock file: `.git/index.lock` or `.git/MERGE_HEAD` left by a killed process
+- `EBUSY`/`EACCES` file lock errors on Windows
+
+**Permanent errors** (do not retry):
+
+- Missing PLAN-*.md files
+- Syntax errors in plan YAML frontmatter
+- Executor returned checkpoint:human-action
+- Missing dependency phase SUMMARY.md (means prior phase incomplete)
+
+**Classification procedure (Step 3c on failure):**
+
+1. Read the Skill() return value / error message
+2. Check for known transient patterns (lock files, stale signal files)
+3. Read `autonomous.max_retries` from config (default: 2)
+4. Read `autonomous.error_strategy` from config (default: 'retry'): 'stop' | 'retry' | 'skip'
+
+- If Skill returns failure:
+  a. Classify error (see Error Classification above)
+  b. **If transient error:**
+     - Auto-fix: remove stale signal file OR remove `.git/index.lock` via Bash
+     - Increment retry counter for this phase (start at 0)
+     - If retry counter < `autonomous.max_retries`: retry `Skill({ skill: "pbr:build", args: "{N} --auto" })`
+     - If retry counter >= `autonomous.max_retries`: apply error_strategy (see below)
+  c. **If permanent error:** apply error_strategy immediately (no retries)
+  d. **error_strategy application:**
+     - `stop` (safe default): stop autonomous loop, display error, suggest `/pbr:build {N}`
+     - `retry`: already handled above (retry up to max_retries, then stop)
+     - `skip`: log warning "Skipping Phase {N} due to unrecoverable error", continue to Phase N+1
+  e. **On transient auto-fix:** log: `Auto-fixed transient error in Phase {N}: {description}. Retry {n}/{max}.`
 
 ### 3c-speculative. Speculative Planning (during build)
 
@@ -248,6 +291,25 @@ Important: The staleness check uses deviation count from SUMMARY.md frontmatter 
   ```bash
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update current_phase {N+1}
   ```
+- Update `.autonomous-state.json` with phase error metrics:
+
+  ```bash
+  # Read current state, merge phase N error/retry data, write back
+  node -e "
+    const fs=require('fs');
+    const f='.planning/.autonomous-state.json';
+    const s=fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf8')):{};
+    s.errors=s.errors||{}; s.retries=s.retries||{};
+    // phase_errors and phase_retries are substituted by orchestrator
+    if('{phase_errors}') s.errors['{N}']='{phase_errors}';
+    if('{phase_retries}'!='0') s.retries['{N}']=parseInt('{phase_retries}');
+    s.timestamp=new Date().toISOString();
+    fs.writeFileSync(f,JSON.stringify(s,null,2));
+  "
+  ```
+
+  Where `{phase_errors}` and `{phase_retries}` are the accumulated error description and retry count tracked during Step 3c for phase N. If phase N had no errors, omit the errors entry.
+
 - Check milestone boundary: if this was the last phase in milestone, stop loop.
   Display: "Milestone complete! Run `/pbr:milestone` to archive."
 
@@ -265,6 +327,7 @@ Phases remaining: {list}
 Speculative plans used: {count} (re-planned: {count})
 Total time: {elapsed}
 Errors encountered: {count}
+Errors auto-fixed: {count} | Phases skipped: {count}
 ```
 
 If all phases completed successfully:
@@ -282,7 +345,7 @@ The autonomous loop MUST stop immediately when any of these conditions occur:
 
 1. **human-action checkpoint** encountered — NEVER auto-resolve these
 2. **Gap closure fails** on retry — gaps persist after one attempt
-3. **Build fails** on retry — build error after single retry
+3. **Build fails** after exhausting retries — error_strategy is 'stop' or retries exhausted
 4. **Milestone boundary** reached — last phase in milestone verified
 5. **`--through` limit** reached — user-specified phase limit hit
 6. **Context budget > 70%** — suggest: `/pbr:pause` then resume in new session with `/pbr:autonomous --from {N}`
@@ -300,10 +363,17 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
   "speculative_plans": {"5": "pending", "6": "pending"},
   "failed_phase": null,
   "error": null,
+  "errors": {},
+  "retries": {},
   "started_at": "2026-01-15T10:00:00Z",
   "timestamp": "2026-01-15T10:30:00Z"
 }
 ```
+
+Where:
+
+- `"errors"`: object mapping phase number to error description, e.g. `{"4": "stale .active-skill"}`
+- `"retries"`: object mapping phase number to retry count, e.g. `{"4": 1}`
 
 - On `--from N`: check `.autonomous-state.json` for prior run context
 - Display prior run info if available: "Resuming from prior autonomous run. Last completed: Phase {N}."
