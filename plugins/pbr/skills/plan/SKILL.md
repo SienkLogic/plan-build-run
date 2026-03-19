@@ -463,7 +463,7 @@ If `through_phases` is set (from Step 1 --through parsing):
 **Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process,workflow" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
@@ -471,7 +471,7 @@ If non-empty JSON array returned:
 - Write to temp file and note as `{learnings_temp_path}`:
 
   ```bash
-  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process,workflow" > /tmp/pbr-learnings-$$.md
   ```
 
 - Add as an additional `files_to_read` item in the planner prompt below

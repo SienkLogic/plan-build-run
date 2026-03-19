@@ -49,6 +49,7 @@
  *   learnings check-thresholds   — Check deferral trigger conditions
  *   learnings copy-global <path> <proj> — Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P] — Query global knowledge files
+ *   insights import <html-path> [--project <name>] — Parse insights HTML report into learnings
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
  *   summary-gate <phase-slug> <plan-id>  — Verify SUMMARY.md exists, non-empty, valid frontmatter
@@ -207,6 +208,10 @@ const {
 } = require('./lib/learnings');
 
 const {
+  insightsImport: _insightsImport
+} = require('./lib/insights-parser');
+
+const {
   referenceGet: _referenceGet
 } = require('./lib/reference');
 
@@ -298,6 +303,10 @@ function configClearCache() {
 
 function configValidate(preloadedConfig) {
   return _configValidate(preloadedConfig, planningDir);
+}
+
+function insightsImport(htmlPath, projectName) {
+  return _insightsImport(htmlPath, projectName, planningDir);
 }
 
 function stateLoad() {
@@ -1219,6 +1228,21 @@ async function main() {
 
       } else {
         error('Usage: learnings <ingest|query|check-thresholds|copy-global|query-global>');
+        process.exit(1);
+      }
+    } else if (command === 'insights') {
+      const subCmd = args[1];
+      if (subCmd === 'import') {
+        const htmlPath = args[2];
+        if (!htmlPath) { error('Usage: insights import <html-file-path> [--project <name>]'); process.exit(1); }
+        let projectName;
+        for (let i = 3; i < args.length; i++) {
+          if (args[i] === '--project' && args[i + 1]) { projectName = args[++i]; }
+        }
+        const result = insightsImport(htmlPath, projectName);
+        output(result);
+      } else {
+        error('Usage: insights <import>');
         process.exit(1);
       }
     } else if (command === 'verify' && subcommand === 'spot-check') {
