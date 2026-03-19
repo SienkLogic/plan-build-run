@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const child_process = require('child_process');
 
 const {
   tryLaunchDashboard,
@@ -12,14 +13,27 @@ const {
 
 let tmpDir;
 let planningDir;
+let spawnSpy;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-dl-'));
   planningDir = path.join(tmpDir, '.planning');
   fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  // Mock spawn to prevent actual background processes in CI
+  const EventEmitter = require('events');
+  spawnSpy = jest.spyOn(child_process, 'spawn').mockImplementation(() => {
+    const fake = new EventEmitter();
+    fake.unref = () => {};
+    fake.pid = 99999;
+    fake.stdio = [null, null, null];
+    fake.stdout = new EventEmitter();
+    fake.stderr = new EventEmitter();
+    return fake;
+  });
 });
 
 afterEach(() => {
+  spawnSpy.mockRestore();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
@@ -29,8 +43,6 @@ describe('tryLaunchDashboard', () => {
   });
 
   test('does not crash when called', () => {
-    // Uses a port that is very unlikely to be in use
-    // The function is async via event callbacks so it returns immediately
     expect(() => tryLaunchDashboard(19999, planningDir, tmpDir)).not.toThrow();
   });
 });
@@ -41,8 +53,9 @@ describe('tryLaunchHookServer', () => {
   });
 
   test('skips when hook_server.enabled is false', () => {
-    // Should return immediately without error
     expect(() => tryLaunchHookServer({ hook_server: { enabled: false } }, planningDir)).not.toThrow();
+    // Should not spawn when disabled
+    expect(spawnSpy).not.toHaveBeenCalled();
   });
 
   test('does not crash when config has no hook_server', () => {
@@ -56,7 +69,6 @@ describe('getEnrichedContext', () => {
   });
 
   test('returns null when config is null and no server running', async () => {
-    // Pass config with hook_server disabled to avoid network calls in CI
     const result = await getEnrichedContext({ hook_server: { enabled: false } }, planningDir);
     expect(result).toBeNull();
   });
@@ -67,10 +79,9 @@ describe('getEnrichedContext', () => {
   });
 
   test('returns null when hook server not running', async () => {
-    // Mock net.createConnection to simulate unreachable server without actual network call
     const net = require('net');
     const origCreateConnection = net.createConnection;
-    net.createConnection = (opts) => {
+    net.createConnection = () => {
       const EventEmitter = require('events');
       const fake = new EventEmitter();
       fake.setTimeout = () => {};
