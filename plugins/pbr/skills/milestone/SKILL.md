@@ -607,6 +607,28 @@ If `config.deployment.smoke_test_command` is set and non-empty:
 
 10. **Confirm** with branded output — read `${CLAUDE_SKILL_DIR}/templates/complete-output.md.tmpl` and fill in `{version}`, `{count}` (phases, plans, commits), `{lines}`, `{duration}`.
 
+**NEXT UP block after milestone complete:**
+
+After displaying the branded complete-output banner, always display a NEXT UP routing block:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**Start the next milestone** — continue development with new phases
+
+`/pbr:milestone new`
+
+**Also available:**
+- `/pbr:release` — tag and publish this milestone as a GitHub Release
+- `/pbr:status` — review project state before continuing
+
+<sub>`/clear` first → fresh context window</sub>
+```
+
+This ensures the milestone complete subcommand never ends in a routing dead end.
+
 ---
 
 ## Subcommand: `audit`
