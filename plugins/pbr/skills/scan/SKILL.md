@@ -230,6 +230,26 @@ Top concerns:
 3. {third concern}
 ```
 
+### Step 6b: Intel Bridge
+
+If `.planning/intel/` directory exists AND `.planning/config.json` has `intel.enabled` not explicitly `false`:
+
+Display:
+```
+Scan results can seed the intel system for faster agent planning.
+```
+
+Use AskUserQuestion (pattern: yes-no):
+  question: "Populate intel from scan results?"
+  options:
+    - label: "Yes" description: "Run /pbr:intel refresh to build intel from scan data"
+    - label: "No" description: "Skip — you can run /pbr:intel later"
+
+- If "Yes": Display `Run /pbr:intel refresh` as the suggested next command. Do NOT spawn the intel agent inline — the user should run it in a fresh context window.
+- If "No": Continue to Step 7.
+
+If `.planning/intel/` does NOT exist or intel is disabled: skip this substep silently.
+
 Then use the "Next Up" routing block:
 ```
 

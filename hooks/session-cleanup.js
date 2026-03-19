@@ -26,6 +26,7 @@ const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
 const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./local-llm/metrics');
 const { writeSnapshot } = require('./lib/snapshot-manager');
+const { readQueue, clearQueue } = require('./intel-queue');
 
 function readStdin() {
   try {
@@ -398,6 +399,19 @@ function main() {
 
   // Detect orphaned .PROGRESS-* files (executor crash artifacts)
   const orphans = findOrphanedProgressFiles(planningDir);
+
+  // Drain intel queue — log queued files for potential future partial refresh
+  try {
+    const intelQueue = readQueue(planningDir);
+    if (intelQueue.length > 0) {
+      logHook('session-cleanup', 'SessionEnd', 'intel-queue-drained', {
+        queued_files: intelQueue.length,
+        files: intelQueue.slice(0, 10) // Log first 10 for brevity
+      });
+      clearQueue(planningDir);
+      cleaned.push('.intel-queue.json');
+    }
+  } catch (_e) { /* best-effort */ }
 
   // Write session history log
   writeSessionHistory(planningDir, data);

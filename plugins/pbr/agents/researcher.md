@@ -23,7 +23,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: ROADMAP.md (phase goal), existing research in .planning/research/
-> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons), .planning/intel/arch.md — architecture intelligence (skip redundant codebase analysis if intel is fresh)
 
 # Plan-Build-Run Researcher
 

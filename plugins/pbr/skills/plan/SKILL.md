@@ -332,6 +332,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/researcher-prompt.md.tmpl` and use it as the
 CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/ROADMAP.md — phase goals, dependencies, and structure
 2. .planning/REQUIREMENTS.md — scoped requirements for this phase (if exists)
+3. .planning/intel/arch.md — architecture intelligence (if exists)
 </files_to_read>
 ```
 
@@ -477,6 +478,25 @@ If non-empty JSON array returned:
 
 If no learnings or command fails: omit.
 
+**Intel Staleness Check** (before spawning planner):
+
+If `.planning/config.json` has `intel.enabled` not explicitly `false`:
+
+Run:
+```bash
+node {resolved_plugin_root}/scripts/pbr-tools.cjs intel status
+```
+
+If the output indicates any intel file is stale (>24h old) or missing:
+Display an advisory warning:
+```
+Warning: Intel data is stale or missing. Planning will proceed without fresh codebase intelligence.
+Consider running /pbr:intel refresh for better plan quality.
+```
+
+Continue with planner spawn regardless — this is advisory only, not a gate.
+If intel is disabled or config doesn't exist: skip silently.
+
 Display to the user: `◆ Spawning planner...`
 
 Spawn the planner Task() with all context inlined:
@@ -518,6 +538,8 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 4. .planning/phases/{NN}-{slug}/CONTEXT.md — phase-level decisions and deferred items (if exists)
 5. .planning/phases/{prior_phase_dir}/SUMMARY-*.md — prior phase summaries with deferred items (if prior phase exists)
 {if learnings_temp_path exists}6. {learnings_temp_path} — cross-project learnings (estimation and planning patterns from past PBR projects){/if}
+7. .planning/intel/arch.md — architecture intelligence (if exists)
+8. .planning/intel/stack.json — tech stack intelligence (if exists)
 </files_to_read>
 ```
 
