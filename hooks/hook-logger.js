@@ -84,6 +84,7 @@ function cleanOldHookLogs(logsDir) {
   }
 }
 
+// entry fields: { ts, hook, event, decision, source, ...details, duration_ms? }
 function logHook(hookName, eventType, decision, details = {}, startTime) {
   const logPath = getLogPath();
   if (!logPath) return;
@@ -93,6 +94,7 @@ function logHook(hookName, eventType, decision, details = {}, startTime) {
     hook: hookName,
     event: eventType,
     decision,
+    source: hookName,
     ...details
   };
 
