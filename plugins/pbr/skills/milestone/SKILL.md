@@ -466,6 +466,14 @@ Read `git.branching` from config.
    - **Do NOT write to a ## History section in STATE.md** — History has been removed from STATE.md to keep it lean. Milestone completion records are preserved in the archive's STATS.md and ROADMAP.md snapshot.
    - If a ## History section exists in STATE.md (from a prior version), remove it during milestone completion to enforce the new format.
 
+**Run state reconcile after archival** to reset phases_total and current_phase to reflect the next milestone's phases:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state reconcile
+```
+
+This command re-derives phase counts from ROADMAP.md and reports any phantom phase rows (progress table rows with no corresponding directory on disk). Review and remove phantom rows manually if no longer needed.
+
 7d. **Aggregate learnings into KNOWLEDGE.md from milestone phases:**
 
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
