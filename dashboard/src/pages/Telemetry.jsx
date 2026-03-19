@@ -61,6 +61,9 @@ function TelemetryContent() {
   const contextBalance = d.contextBalance || [];
   const subagentBudgets = d.subagentBudgets || [];
 
+  const sessions = d.sessions || [];
+  const agg = d.sessionAggregates || {};
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Metric cards */}
@@ -75,6 +78,20 @@ function TelemetryContent() {
         <MetricCard label="Avg Time" value={String(avgTime)} color={tokens.warning} />
         <MetricCard label="Compression" value={String(compression)} color={tokens.success} />
         <MetricCard label="Cost" value={String(cost)} color={tokens.plan} />
+      </div>
+
+      {/* Session metric cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+          gap: 12,
+        }}
+      >
+        <MetricCard label="Total Sessions" value={String(agg.totalSessions || 0)} color={tokens.accent} />
+        <MetricCard label="Avg Duration" value={(agg.avgDuration || 0) + 'm'} color={tokens.warning} />
+        <MetricCard label="Avg Agents" value={String(agg.avgAgents || 0)} color={tokens.success} />
+        <MetricCard label="Avg Compliance" value={(agg.avgCompliance || 0) + '%'} color={tokens.plan} />
       </div>
 
       {/* Two-column chart row */}
@@ -99,6 +116,42 @@ function TelemetryContent() {
       <Card>
         <SectionTitle>Token Budget</SectionTitle>
         <BudgetBars data={subagentBudgets} />
+      </Card>
+
+      {/* Session History */}
+      <Card>
+        <SectionTitle>Session History</SectionTitle>
+        {sessions.length === 0 ? (
+          <div style={{ fontFamily: FONTS.mono, fontSize: 12, color: tokens.muted, padding: '12px 0' }}>
+            No session data yet
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FONTS.mono, fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${tokens.border}` }}>
+                  {['Date', 'Duration', 'Agents', 'Commits', 'Plans', 'Compliance'].map((h) => (
+                    <th key={h} style={{ textAlign: 'left', padding: '6px 8px', color: tokens.muted, fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((s, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${tokens.border}` }}>
+                    <td style={{ padding: '6px 8px' }}>{new Date(s.start).toLocaleDateString()}</td>
+                    <td style={{ padding: '6px 8px' }}>{s.duration_minutes + 'm'}</td>
+                    <td style={{ padding: '6px 8px' }}>{s.agents_spawned}</td>
+                    <td style={{ padding: '6px 8px' }}>{s.commits_created}</td>
+                    <td style={{ padding: '6px 8px' }}>{s.plans_executed}</td>
+                    <td style={{ padding: '6px 8px', color: s.compliance_pct >= 80 ? tokens.success : tokens.warning }}>
+                      {s.compliance_pct + '%'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </div>
   );

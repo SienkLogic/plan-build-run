@@ -10,6 +10,8 @@ Plan-Build-Run is a **Claude Code plugin** that provides a structured developmen
 
 - **NEVER add AI co-author lines** to git commits or PRs. No `Co-Authored-By: Claude` or similar. Only add co-author lines referencing actual human contributors.
 - **NEVER inline agent definitions** into skill prompts. Use `subagent_type: "pbr:{name}"` — Claude Code auto-loads agent definitions from `agents/`. Reading agent `.md` files wastes main context.
+- **Always use PBR workflow commands** (`/pbr:*` skills) for development work, not ad-hoc manual fixes. PBR skills enforce state tracking, verification, and artifact creation that manual edits skip. When hooks don't fire (e.g., direct file edits outside Claude Code), workflow integrity degrades silently.
+- **Post-work checklist** — before finishing any task or session, verify: (1) `npm test` passes, (2) no uncommitted changes (`git status` is clean), (3) file paths in artifacts are correct and files exist. This catches drift that accumulates during long sessions.
 
 ## Commands
 

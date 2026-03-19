@@ -151,6 +151,47 @@ function createTelemetryRouter({ planningDir }) {
         count,
       }));
 
+      // Session history -- read sessions.jsonl for session metrics
+      let sessions = [];
+      let sessionAggregates = { avgDuration: 0, avgAgents: 0, avgCompliance: 0, totalSessions: 0 };
+      try {
+        const sessionsPath = path.join(planningDir, 'logs', 'sessions.jsonl');
+        const sessionsRaw = await fs.promises.readFile(sessionsPath, 'utf-8');
+        const allSessions = sessionsRaw
+          .split('\n')
+          .filter(line => line.trim())
+          .map(line => {
+            try { return JSON.parse(line); } catch (_e) { return null; }
+          })
+          .filter(Boolean);
+
+        sessionAggregates.totalSessions = allSessions.length;
+
+        // Take last 20 entries (most recent)
+        sessions = allSessions.slice(-20).map(s => ({
+          start: s.start || null,
+          end: s.end || null,
+          duration_minutes: s.duration_minutes || 0,
+          agents_spawned: s.agents_spawned || 0,
+          commits_created: s.commits_created || 0,
+          plans_executed: s.plans_executed || 0,
+          compliance_pct: s.compliance_pct || 0,
+          feedback_loops_triggered: s.feedback_loops_triggered || 0,
+        }));
+
+        // Compute aggregates over all sessions
+        if (allSessions.length > 0) {
+          const sumDuration = allSessions.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+          const sumAgents = allSessions.reduce((sum, s) => sum + (s.agents_spawned || 0), 0);
+          const sumCompliance = allSessions.reduce((sum, s) => sum + (s.compliance_pct || 0), 0);
+          sessionAggregates.avgDuration = Math.round((sumDuration / allSessions.length) * 10) / 10;
+          sessionAggregates.avgAgents = Math.round((sumAgents / allSessions.length) * 10) / 10;
+          sessionAggregates.avgCompliance = Math.round((sumCompliance / allSessions.length) * 10) / 10;
+        }
+      } catch (_e) {
+        // Missing sessions.jsonl — return empty defaults
+      }
+
       res.json({
         metrics,
         tokenHistory,
@@ -159,6 +200,8 @@ function createTelemetryRouter({ planningDir }) {
         successData,
         subagentPerf,
         contextRadar: {},
+        sessions,
+        sessionAggregates,
       });
     } catch (err) {
       res.status(500).json({ error: err.message });

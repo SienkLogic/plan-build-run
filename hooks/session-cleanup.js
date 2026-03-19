@@ -129,6 +129,59 @@ function formatSessionMetrics(stats) {
 }
 
 const MAX_SESSION_ENTRIES = 100;
+const MAX_SESSION_METRIC_FILES = 50;
+
+/**
+ * Write a per-session metrics JSON file to logs/sessions/ directory.
+ * Each session gets its own file for easy browsing and archival.
+ * Directory is capped at MAX_SESSION_METRIC_FILES (oldest deleted first).
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} sessionData - Session summary object from writeSessionHistory
+ */
+function writeSessionMetricsFile(planningDir, sessionData) {
+  try {
+    const sessionsDir = path.join(planningDir, 'logs', 'sessions');
+    fs.mkdirSync(sessionsDir, { recursive: true });
+
+    // Generate Windows-safe filename from timestamp (replace colons with dashes)
+    const ts = (sessionData.end || new Date().toISOString()).replace(/:/g, '-');
+    const filename = `${ts}-metrics.json`;
+
+    const metricsData = {
+      session_id: sessionData.session_id || null,
+      start: sessionData.start || null,
+      end: sessionData.end || null,
+      duration_minutes: sessionData.duration_minutes || null,
+      agents_spawned: sessionData.agents_spawned || 0,
+      commits_created: sessionData.commits_created || 0,
+      commands_run: sessionData.commands_run || [],
+      plans_executed: sessionData.plans_executed || 0,
+      plans_verified: sessionData.plans_verified || 0,
+      compliance_pct: sessionData.compliance_pct || 0,
+      feedback_loops_triggered: sessionData.feedback_loops_triggered || 0
+    };
+
+    fs.writeFileSync(
+      path.join(sessionsDir, filename),
+      JSON.stringify(metricsData, null, 2) + '\n',
+      'utf8'
+    );
+
+    // Cap directory to MAX_SESSION_METRIC_FILES (delete oldest by name sort)
+    const files = fs.readdirSync(sessionsDir)
+      .filter(f => f.endsWith('-metrics.json'))
+      .sort();
+    if (files.length > MAX_SESSION_METRIC_FILES) {
+      const toRemove = files.slice(0, files.length - MAX_SESSION_METRIC_FILES);
+      for (const f of toRemove) {
+        try { fs.unlinkSync(path.join(sessionsDir, f)); } catch (_e) { /* best-effort */ }
+      }
+    }
+  } catch (_e) {
+    // Best-effort — don't fail the hook
+  }
+}
 
 function writeSessionHistory(planningDir, data) {
   try {
@@ -242,6 +295,9 @@ function writeSessionHistory(planningDir, data) {
       lines = lines.slice(lines.length - MAX_SESSION_ENTRIES);
     }
     fs.writeFileSync(sessionsFile, lines.join('\n') + '\n', 'utf8');
+
+    // Write per-session metrics JSON file
+    writeSessionMetricsFile(planningDir, summary);
   } catch (_e) {
     // Best-effort — don't fail the hook
   }
@@ -627,5 +683,5 @@ function extractSessionLearnings(planningDir, sessionId) {
   fs.appendFileSync(learningsFile, entry + '\n');
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
+module.exports = { writeSessionHistory, writeSessionMetricsFile, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
 if (require.main === module || process.argv[1] === __filename) { main(); }
