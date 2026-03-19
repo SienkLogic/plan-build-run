@@ -250,6 +250,21 @@ that the build skill does not try to skip plans that no longer exist.
 
 Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
 
+### 3d-pre. Validate Phase (conditional)
+
+**Gate:** Run only if ALL of these are true:
+- `workflow.validate_phase` is `true` in config (default: `true` — read via `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.validate_phase`)
+- No `VALIDATION.md` with `status: passed` already exists in the phase directory
+
+If gate passes:
+- Display: `◆ Running validate-phase for Phase {N}...`
+- Invoke: `Skill({ skill: "pbr:validate-phase", args: "{N} --auto" })`
+- If validate-phase returns gaps (`impl_bugs: true` in VALIDATION.md frontmatter):
+  - Attempt gap closure: `Skill({ skill: "pbr:build", args: "{N} --gaps-only --auto" })`
+  - Re-run validate: `Skill({ skill: "pbr:validate-phase", args: "{N} --auto" })`
+  - If gaps persist: stop loop, display gaps, suggest manual intervention (same hard stop as verification gaps).
+- If validate-phase passes or toggle is false: continue to step 3d.
+
 ### 3d. Verify Phase (Lightweight-First)
 
 - Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
