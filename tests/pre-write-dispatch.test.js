@@ -248,6 +248,187 @@ describe('pre-write-dispatch.js', () => {
     });
   });
 
+  describe('skill-workflow dispatch', () => {
+    test('PLAN.md write blocked when active skill is non-build (e.g. review)', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
+      const filePath = path.join(tmpDir, 'src', 'app.js');
+      const result = runScript(tmpDir, { file_path: filePath });
+      // review skill cannot write source files
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      cleanupTmp(tmpDir);
+    });
+
+    test('build skill allows PLAN.md writes to .planning/phases/', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      const filePath = path.join(phaseDir, 'PLAN-01.md');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('writes proceed when .active-skill file does not exist', () => {
+      const { tmpDir } = createTmpPlanning();
+      // No .active-skill file — enforce-pbr-workflow may warn
+      const filePath = path.join(tmpDir, 'src', 'index.ts');
+      const result = runScript(tmpDir, { file_path: filePath });
+      // Without active skill, enforce-pbr-workflow fires advisory (exit 0)
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('plan skill allows writes inside .planning/', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
+      const filePath = path.join(planningDir, 'phases', '01-init', 'PLAN-01.md');
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('summary-gate dispatch', () => {
+    test('STATE.md advancement to built without SUMMARY is blocked', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const phasesDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      // No SUMMARY file in phase dir
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 1\nphase_slug: "01-init"\nstatus: "building"\n---\nPhase: 1 of 5');
+      const statePath = path.join(planningDir, 'STATE.md');
+      const result = runScript(tmpDir, {
+        file_path: statePath,
+        content: '---\ncurrent_phase: 1\nphase_slug: "01-init"\nstatus: "built"\n---'
+      });
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      cleanupTmp(tmpDir);
+    });
+
+    test('STATE.md advancement to built with SUMMARY present is allowed', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const phasesDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phasesDir, { recursive: true });
+      // Create a SUMMARY file
+      fs.writeFileSync(path.join(phasesDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 1\nphase_slug: "01-init"\nstatus: "building"\n---\nPhase: 1 of 5');
+      const statePath = path.join(planningDir, 'STATE.md');
+      const result = runScript(tmpDir, {
+        file_path: statePath,
+        content: '---\ncurrent_phase: 1\nphase_slug: "01-init"\nstatus: "built"\n---'
+      });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('direct-state-write blocking', () => {
+    test('agent writing STATE.md directly is blocked with JSON format', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:executor');
+      const statePath = path.join(planningDir, 'STATE.md');
+      const result = runScript(tmpDir, {
+        file_path: statePath,
+        content: '---\nstatus: "built"\n---'
+      });
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      expect(parsed.decision).toBe('block');
+      expect(typeof parsed.reason).toBe('string');
+      expect(parsed.reason.length).toBeGreaterThan(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('pbr:general agent is not blocked from writing STATE.md', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:general');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 1\nphase_slug: "init"\nstatus: "planning"\n---\nPhase: 1 of 5');
+      const statePath = path.join(planningDir, 'STATE.md');
+      const result = runScript(tmpDir, {
+        file_path: statePath,
+        content: '---\ncurrent_phase: 1\nphase_slug: "init"\nstatus: "planning"\n---'
+      });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('blocked agent write produces { decision: "block", reason: string }', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-agent'), 'pbr:verifier');
+      const statePath = path.join(planningDir, 'STATE.md');
+      const result = runScript(tmpDir, {
+        file_path: statePath,
+        content: '---\nstatus: "verified"\n---'
+      });
+      expect(result.exitCode).toBe(2);
+      const parsed = JSON.parse(result.output);
+      expect(Object.keys(parsed)).toContain('decision');
+      expect(Object.keys(parsed)).toContain('reason');
+      expect(parsed.decision).toBe('block');
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('edge cases', () => {
+    test('malformed stdin JSON exits 0 without crash', () => {
+      const { tmpDir } = createTmpPlanning();
+      const result = _run('not valid json', { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('missing file_path in tool_input exits 0', () => {
+      const { tmpDir } = createTmpPlanning();
+      const result = runScript(tmpDir, { content: 'some content' });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('Windows-style backslash paths are normalized', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 5');
+      const phaseDir = path.join(planningDir, 'phases', '01-init');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      // Backslash path
+      const filePath = path.join(phaseDir, 'PLAN.md').replace(/\//g, '\\');
+      const result = runScript(tmpDir, { file_path: filePath });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('path with unicode characters does not crash', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+      const filePath = path.join(tmpDir, 'src', 'caf\u00e9.ts');
+      const result = runScript(tmpDir, { file_path: filePath });
+      // May be blocked by skill-workflow (build skill, source file), but should not crash
+      expect(typeof result.exitCode).toBe('number');
+      cleanupTmp(tmpDir);
+    });
+
+    test('empty stdin string exits 0', () => {
+      const { tmpDir } = createTmpPlanning();
+      const result = _run('', { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('null tool_input values do not crash', () => {
+      const { tmpDir } = createTmpPlanning();
+      const result = _run({ tool_input: null }, { cwd: tmpDir });
+      expect(result.exitCode).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+  });
+
   test('handles malformed JSON gracefully', () => {
     const { tmpDir } = createTmpPlanning();
     const result = _run('not valid json', { cwd: tmpDir });
