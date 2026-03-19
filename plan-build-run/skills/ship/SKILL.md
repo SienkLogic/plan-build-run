@@ -126,6 +126,26 @@ PR created: {url}
   Files:    {count}
 ```
 
+## Step 6: Next Steps
+
+After displaying the PR result, always present a NEXT UP routing block:
+
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ▶ NEXT UP                                                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+**PR created** — continue to the next phase or track progress
+
+`/pbr:continue`
+
+**Also available:**
+- `/pbr:status` — see overall project status
+- `/pbr:milestone` — if this was the last phase, complete the milestone
+
+<sub>`/clear` first → fresh context window</sub>
+```
+
 ## Error Handling
 
 - `gh` not installed: "Install GitHub CLI: https://cli.github.com/"
