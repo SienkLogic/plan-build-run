@@ -36,24 +36,7 @@ function makeConfig(overrides = {}) {
   return {
     enabled: true,
     model: 'test-model',
-    features: {
-      artifact_classification: true,
-      commit_classification: true,
-      file_intent_classification: true,
-      source_scoring: true,
-      context_summarization: true,
-      test_triage: true,
-      task_validation: true,
-      ...((overrides && overrides.features) || {})
-    },
-    advanced: {
-      disable_after_failures: 5,
-      max_input_tokens: 1024,
-      confidence_threshold: 0.9,
-      ...((overrides && overrides.advanced) || {})
-    },
     ...overrides,
-    // Re-apply nested to avoid override stomping
     features: {
       artifact_classification: true,
       commit_classification: true,

@@ -1324,7 +1324,7 @@ describe('status-line.js', () => {
       const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
       expect(result).toContain('dev');
       expect(result).toContain('Q:1');
-      try {} finally {
+      try { /* cleanup */ } finally {
         fsMod.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
@@ -1340,7 +1340,7 @@ describe('status-line.js', () => {
       expect(result).toContain('2 fail');
       // Red color for failures
       expect(raw).toContain('\x1b[31m');
-      try {} finally {
+      try { /* cleanup */ } finally {
         fsMod.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
@@ -1353,7 +1353,7 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
       expect(result).toContain('CI');
-      try {} finally {
+      try { /* cleanup */ } finally {
         fsMod.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
@@ -1367,7 +1367,7 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase', 'dev'] };
       const result = strip(buildStatusLine(content, null, cfg, {}, tmpDir));
       expect(result).toContain('1 todo');
-      try {} finally {
+      try { /* cleanup */ } finally {
         fsMod.rmSync(tmpDir, { recursive: true, force: true });
       }
     });
