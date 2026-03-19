@@ -14,7 +14,6 @@ docs/assets/demo-script.sh
 docs/assets/demo.tape
 dashboard/package-lock.json
 drafts/
-.planning/
 .hook-server-port
 *.PROGRESS-*
 # Suspended derivative plugins — restore with: git checkout <commit> -- plugins/codex-pbr plugins/cursor-pbr plugins/copilot-pbr
