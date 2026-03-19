@@ -637,7 +637,7 @@ Verify milestone completion with cross-phase integration checks.
 
    Create `.planning/{version}-MILESTONE-AUDIT.md` using the structured template:
 
-   Read `${CLAUDE_SKILL_DIR}/templates/MILESTONE-AUDIT.md.tmpl` for the audit report format with YAML frontmatter scores. Fill in all `{variable}` placeholders with actual data from the audit. The YAML frontmatter MUST include `scores` (requirements, phases, integration, flows), `gaps` array, and `tech_debt` array.
+   Read `${CLAUDE_PLUGIN_ROOT}/templates/MILESTONE-AUDIT.md.tmpl` for the audit report format with YAML frontmatter scores. Fill in all `{variable}` placeholders with actual data from the audit. The YAML frontmatter MUST include `scores` (requirements, phases, integration, flows), `gaps` array, and `tech_debt` array.
 
    **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
 
