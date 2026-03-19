@@ -28,6 +28,15 @@ const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
 const { detectConventions, writeConventions } = require('./lib/convention-detector');
 
+// Agent-type to skill mapping for .active-skill auto-creation
+const AGENT_TO_SKILL = {
+  'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
+  'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:audit': 'audit',
+  'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin',
+  'pbr:nyquist-auditor': 'validate', 'pbr:intel-updater': 'intel',
+  'pbr:ui-checker': 'ui-review', 'pbr:ui-researcher': 'ui-phase'
+};
+
 /**
  * Load a feature flag value from config.json.
  * @param {string} planningDir - Path to .planning directory
@@ -985,12 +994,7 @@ async function main() {
   // skip it under cognitive load. Instead of just warning, we now auto-create
   // the file by inferring the skill from the agent type.
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    // Infer skill from agent type: pbr:executor -> "build", pbr:planner -> "plan", etc.
-    const AGENT_TO_SKILL = {
-      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
-      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
-      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
-    };
+    // Infer skill from agent type using module-scope AGENT_TO_SKILL map
     const inferredSkill = AGENT_TO_SKILL[agentType];
     if (inferredSkill) {
       try {
@@ -1176,11 +1180,7 @@ async function handleHttp(reqBody) {
   const skillWarnings = [];
 
   if (!activeSkill && agentType !== 'pbr:general' && agentType !== 'pbr:plan-checker' && agentType !== 'pbr:integration-checker') {
-    const AGENT_TO_SKILL = {
-      'pbr:executor': 'build', 'pbr:planner': 'plan', 'pbr:verifier': 'review',
-      'pbr:researcher': 'plan', 'pbr:synthesizer': 'plan', 'pbr:roadmapper': 'begin',
-      'pbr:debugger': 'debug', 'pbr:codebase-mapper': 'begin', 'pbr:nyquist-auditor': 'test'
-    };
+    // Infer skill from agent type using module-scope AGENT_TO_SKILL map
     const inferredSkill = AGENT_TO_SKILL[agentType];
     if (inferredSkill) {
       try {

@@ -59,6 +59,7 @@ Display the following reference to the user:
 | `/pbr:plan-phase add` | Append a new phase to the roadmap. |
 | `/pbr:plan-phase insert <N>` | Insert a phase using decimal numbering. |
 | `/pbr:plan-phase remove <N>` | Remove a future phase and renumber. |
+| `/pbr:ui-phase <N>` | Generate UI-SPEC.md design contracts for frontend-heavy phases. |
 
 ### Execution
 
@@ -69,6 +70,7 @@ Display the following reference to the user:
 | `/pbr:execute-phase <N> --team` | Use Agent Teams for complex inter-agent coordination. |
 | `/pbr:quick` | Quick ad-hoc task with atomic commit. Low cost. |
 | `/pbr:continue` | Execute the next logical step automatically. No prompts. |
+| `/pbr:autonomous` | Run multiple phases hands-free. Chains discuss, plan, build, verify. |
 
 ### Verification & Debugging
 
@@ -78,6 +80,7 @@ Display the following reference to the user:
 | `/pbr:verify-work <N> --auto-fix` | Auto-diagnose and fix verification failures. |
 | `/pbr:test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
 | `/pbr:debug` | Systematic debugging with hypothesis testing. |
+| `/pbr:ui-review <N>` | Retroactive visual audit of UI implementation with scoring. |
 | `/pbr:map-codebase` | Analyze existing codebase (brownfield). |
 
 ### Session Management
@@ -89,6 +92,7 @@ Display the following reference to the user:
 | `/pbr:pause-work` | Save session state for later. |
 | `/pbr:pause-work --checkpoint` | Save with a named checkpoint for easier resumption. |
 | `/pbr:resume-work` | Pick up where you left off. |
+| `/pbr:undo` | Revert recent PBR-generated commits by phase/plan using git revert. |
 
 ### Project Management
 
@@ -121,6 +125,11 @@ Display the following reference to the user:
 | `/pbr:do <description>` | Route freeform text to the right PBR skill automatically. |
 | `/pbr:dashboard` | Launch the web dashboard for the current project. |
 | `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
+| `/pbr:intel` | Refresh or query codebase intelligence (file graph, APIs, architecture). |
+| `/pbr:release` | Generate or update changelog and release notes from project history. |
+| `/pbr:session-report` | Generate post-session summary with work performed and outcomes. |
+| `/pbr:ship` | Create a rich PR from planning artifacts (SUMMARYs, requirements, verification). |
+| `/pbr:profile-user` | Analyze session history to generate a developer behavioral profile. |
 | `/pbr:statusline` | Install or configure the PBR status line in Claude Code. |
 
 ## Choose Your Command
