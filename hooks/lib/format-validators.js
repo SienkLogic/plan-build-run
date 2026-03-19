@@ -328,11 +328,15 @@ async function checkPlanWrite(data) {
 
   if (!isPlan && !isSummary && !isVerification && !isRoadmap && !isLearnings && !isConfig && !isResearch && !isContext) return null;
 
-  // Todo 015: First-write awareness -- new files get warnings not blocks
-  // If the file didn't exist before the current write, this is a first write.
-  // Downgrade errors to warnings since the agent is likely still creating the file.
-  const isFirstWrite = !fs.existsSync(filePath);
-  if (isFirstWrite) return null;
+  // Todo 015: First-write awareness -- downgrade errors to warnings on Write
+  // PostToolUse runs AFTER the write, so fs.existsSync() always returns true.
+  // Instead, detect Write vs Edit via tool_name: Write = full file creation/overwrite
+  // (likely first attempt), Edit = modifying existing content (refinement).
+  // On Write, downgrade blocking errors to advisory warnings so agents aren't
+  // blocked on first attempt, reducing false positive block-and-retry cycles.
+  const isWriteTool = (data.tool_name || '').toLowerCase() === 'write';
+
+  if (!fs.existsSync(filePath)) return null;
 
   const content = fs.readFileSync(filePath, 'utf8');
   const result = isPlan
@@ -379,6 +383,16 @@ async function checkPlanWrite(data) {
   const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
+    // On Write tool (first creation), downgrade errors to warnings.
+    // The agent will see the advisory and can fix on next Edit without
+    // wasting a block-and-retry cycle.
+    if (isWriteTool) {
+      const allIssues = [...result.errors, ...result.warnings];
+      logHook('check-plan-format', 'PostToolUse', 'warn-downgraded', { file: basename, errors: result.errors, reason: 'Write tool (first creation)' });
+      logEvent('workflow', eventType, { file: basename, status: 'warn-downgraded', errorCount: result.errors.length });
+      return { output: { additionalContext: `${basename} advisory (fix on next edit):\n${allIssues.map(i => `  - ${i}`).join('\n')}` } };
+    }
+
     logHook('check-plan-format', 'PostToolUse', 'block', { file: basename, errors: result.errors });
     logEvent('workflow', eventType, { file: basename, status: 'block', errorCount: result.errors.length });
 

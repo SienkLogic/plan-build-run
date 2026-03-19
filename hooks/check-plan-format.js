@@ -129,28 +129,51 @@ async function main() {
 
       const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
+      // Detect Write vs Edit: Write = full creation/overwrite (likely first attempt)
+      const isWriteTool = (data.tool_name || '').toLowerCase() === 'write';
+
       if (result.errors.length > 0) {
-        // Structural errors -- block and force correction
-        logHook('check-plan-format', 'PostToolUse', 'block', {
-          file: basename,
-          errors: result.errors
-        });
-        logEvent('workflow', eventType, {
-          file: basename,
-          status: 'block',
-          errorCount: result.errors.length
-        });
+        // On Write tool, downgrade errors to warnings to avoid false positive blocks
+        if (isWriteTool) {
+          const allIssues = [...result.errors, ...result.warnings];
+          logHook('check-plan-format', 'PostToolUse', 'warn-downgraded', {
+            file: basename,
+            errors: result.errors,
+            reason: 'Write tool (first creation)'
+          });
+          logEvent('workflow', eventType, {
+            file: basename,
+            status: 'warn-downgraded',
+            errorCount: result.errors.length
+          });
 
-        const summary = `${basename} has structural errors that must be fixed.`;
-        const explanation = result.errors.map(i => `  - ${i}`).join('\n') +
-          (result.warnings.length > 0 ? '\n\nWarnings (non-blocking):\n' + result.warnings.map(i => `  - ${i}`).join('\n') : '');
-        const remediation = 'Fix the listed issues and re-save the file.';
+          const output = {
+            additionalContext: `${basename} advisory (fix on next edit):\n${allIssues.map(i => `  - ${i}`).join('\n')}`
+          };
+          process.stdout.write(JSON.stringify(output));
+        } else {
+          // Structural errors on Edit -- block and force correction
+          logHook('check-plan-format', 'PostToolUse', 'block', {
+            file: basename,
+            errors: result.errors
+          });
+          logEvent('workflow', eventType, {
+            file: basename,
+            status: 'block',
+            errorCount: result.errors.length
+          });
 
-        const output = {
-          decision: 'block',
-          reason: `${summary}\n\n${explanation}\n\n${remediation}`
-        };
-        process.stdout.write(JSON.stringify(output));
+          const summary = `${basename} has structural errors that must be fixed.`;
+          const explanation = result.errors.map(i => `  - ${i}`).join('\n') +
+            (result.warnings.length > 0 ? '\n\nWarnings (non-blocking):\n' + result.warnings.map(i => `  - ${i}`).join('\n') : '');
+          const remediation = 'Fix the listed issues and re-save the file.';
+
+          const output = {
+            decision: 'block',
+            reason: `${summary}\n\n${explanation}\n\n${remediation}`
+          };
+          process.stdout.write(JSON.stringify(output));
+        }
       } else if (result.warnings.length > 0) {
         // Warnings only -- non-blocking feedback
         logHook('check-plan-format', 'PostToolUse', 'warn', {
