@@ -138,9 +138,10 @@ function checkToolFailureRate(planningDir, config) {
   const eventEntries = readJsonlFiles(logsDir, 'events')
     .filter(e => !isTestSourced(e));
 
-  // Failures and totals from event logs only
+  // Only count PostToolUseFailure events as real tool failures —
+  // PreToolUse blocks are intentional enforcement, not tool execution failures
   const eventFailures = eventEntries.filter(
-    e => e.cat === 'tool' && e.event === 'failure'
+    e => e.cat === 'tool' && e.event === 'failure' && e.type !== 'PreToolUse'
   );
   const totalToolEvents = eventEntries.filter(e => e.cat === 'tool');
 
@@ -158,8 +159,21 @@ function checkToolFailureRate(planningDir, config) {
     totalByTool[tool] = (totalByTool[tool] || 0) + 1;
   }
 
+  // Separately tally PreToolUse enforcement blocks (informational only)
+  const hookEntries = readJsonlFiles(logsDir, 'hooks')
+    .filter(e => !isTestSourced(e));
+  const enforcementBlocks = hookEntries.filter(
+    e => (e.action === 'block' || e.decision === 'block')
+  );
+  const enforcementByTool = {};
+  for (const entry of enforcementBlocks) {
+    const tool = entry.details?.tool || entry.data?.tool || entry.tool || 'unknown';
+    enforcementByTool[tool] = (enforcementByTool[tool] || 0) + 1;
+  }
+  const totalEnforcement = Object.values(enforcementByTool).reduce((a, b) => a + b, 0);
+
   const totalFailures = Object.values(failuresByTool).reduce((a, b) => a + b, 0);
-  if (totalFailures === 0) {
+  if (totalFailures === 0 && totalEnforcement === 0) {
     return result('EF-01', 'pass', 'No tool failures detected in logs', []);
   }
 
@@ -179,6 +193,20 @@ function checkToolFailureRate(planningDir, config) {
     } else {
       evidence.push(`${tool}: ${rawCount} failures (total calls unknown)`);
     }
+  }
+
+  // Report enforcement blocks as informational (not counted toward failure rate)
+  if (totalEnforcement > 0) {
+    const blockDetails = Object.entries(enforcementByTool)
+      .map(([tool, count]) => `${tool}: ${count}`)
+      .join(', ');
+    evidence.push(`Enforcement blocks (informational, not failures): ${blockDetails}`);
+  }
+
+  if (totalFailures === 0) {
+    return result('EF-01', 'pass',
+      `No real tool failures (${totalEnforcement} enforcement block(s) excluded)`,
+      evidence);
   }
 
   const status = anyAboveThreshold ? 'fail' : 'warn';
