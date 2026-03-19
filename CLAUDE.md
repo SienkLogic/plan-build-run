@@ -71,8 +71,8 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 | PostToolUse (Write\|Edit) | suggest-compact.js | — (context budget warnings) |
 | PostToolUse (Read) | track-context-budget.js | — (tracks reads for budget) |
 | PostToolUseFailure | log-tool-failure.js | — (logs failures) |
-| PreToolUse (Bash) | pre-bash-dispatch.js | validate-commit.js, check-dangerous-commands.js, check-phase-boundary.js |
-| PreToolUse (Write\|Edit) | pre-write-dispatch.js | check-skill-workflow.js, check-summary-gate.js, check-phase-boundary.js, check-doc-sprawl.js |
+| PreToolUse (Bash) | pre-bash-dispatch.js | validate-commit.js, check-dangerous-commands.js |
+| PreToolUse (Write\|Edit) | pre-write-dispatch.js | check-skill-workflow.js, check-summary-gate.js, check-doc-sprawl.js |
 | PreCompact | context-budget-check.js | — (preserves STATE.md) |
 | Stop | auto-continue.js | — (chains next command) |
 | SubagentStart/Stop | log-subagent.js | — (tracks lifecycle) |

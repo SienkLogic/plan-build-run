@@ -14,4 +14,6 @@ All skills and agents MUST follow the anti-patterns defined in `skills/shared/un
 - **Behavioral Rules** (11-16): Respect locked decisions, confirm before creating artifacts, stay in scope, give clear priority, stage specific files, use CLI for STATE.md writes.
 - **Error Recovery Rules** (17-19): Git lock detection, config fallback awareness, partial state recovery.
 
+Note: Individual skills do not need to reference this fragment directly — it is loaded globally via this CLAUDE.md file which is injected into every plugin interaction.
+
 The canonical source is `skills/shared/universal-anti-patterns.md`. Refer to it for the full rule definitions and details.
