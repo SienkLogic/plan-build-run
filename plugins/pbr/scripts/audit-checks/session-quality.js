@@ -624,6 +624,340 @@ function checkConventionDetectionMonitoring(planningDir, config) {
 }
 
 // ---------------------------------------------------------------------------
+// SQ-07: User Frustration Signals
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan session JSONL for user messages containing frustration keywords.
+ * Counts frustration signals vs total user messages.
+ * Pass if <10% frustration rate, warn if 10-25%, fail if >25%.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkUserFrustrationSignals(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const eventLogs = readEventLogs(logsDir);
+  const hookLogs = readHookLogs(logsDir);
+  const allEntries = [...eventLogs, ...hookLogs];
+
+  // Find user messages from event logs
+  const userMessages = allEntries.filter(e =>
+    e.role === 'user' ||
+    e.cat === 'user' ||
+    e.event === 'user-message' ||
+    e.event === 'UserPromptSubmit' ||
+    (e.details && e.details.role === 'user')
+  );
+
+  if (userMessages.length === 0) {
+    return result('SQ-07', 'info', 'No user messages found in logs', [
+      'No user message events detected in session logs',
+    ]);
+  }
+
+  // Frustration keywords and patterns
+  const frustrationPatterns = [
+    /\bno\b(?:\s*,|\s*\.|\s*!|\s+that|n't)/i,
+    /\bstop\b/i,
+    /\bwrong\b/i,
+    /\bthat's not\b/i,
+    /\bundo\b/i,
+    /\brevert\b/i,
+    /\bdon't\b/i,
+    /\bshouldn't\b/i,
+    /\bwhy did you\b/i,
+    /\bthat broke\b/i,
+    /\btry again\b/i,
+    /\bnot what I\b/i,
+  ];
+
+  let frustrationCount = 0;
+  const evidence = [];
+
+  for (const entry of userMessages) {
+    const content = entry.content || entry.message || entry.text ||
+      (entry.details && (entry.details.content || entry.details.message)) || '';
+    const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+
+    if (contentStr.length < 2) continue;
+
+    const hasFrustration = frustrationPatterns.some(p => p.test(contentStr));
+    if (hasFrustration) {
+      frustrationCount++;
+      if (evidence.length < 3) {
+        const snippet = contentStr.substring(0, 80).replace(/\n/g, ' ');
+        evidence.push(`Frustration signal: "${snippet}..."`);
+      }
+    }
+  }
+
+  const total = userMessages.length;
+  const rate = total > 0 ? Math.round((frustrationCount / total) * 100) : 0;
+  evidence.unshift(`${frustrationCount}/${total} user messages contain frustration signals (${rate}%)`);
+
+  let status;
+  if (rate < 10) {
+    status = 'pass';
+  } else if (rate <= 25) {
+    status = 'warn';
+  } else {
+    status = 'fail';
+  }
+
+  return result('SQ-07', status, `Frustration rate: ${rate}% (${frustrationCount}/${total} messages)`, evidence);
+}
+
+// ---------------------------------------------------------------------------
+// SQ-08: Satisfaction Signals
+// ---------------------------------------------------------------------------
+
+/**
+ * Scan session JSONL for positive signals vs negative signals.
+ * Pass if positive/negative ratio >2:1, warn if 1:1-2:1, fail if <1:1.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkSatisfactionSignals(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const eventLogs = readEventLogs(logsDir);
+  const hookLogs = readHookLogs(logsDir);
+  const allEntries = [...eventLogs, ...hookLogs];
+
+  const userMessages = allEntries.filter(e =>
+    e.role === 'user' ||
+    e.cat === 'user' ||
+    e.event === 'user-message' ||
+    e.event === 'UserPromptSubmit' ||
+    (e.details && e.details.role === 'user')
+  );
+
+  if (userMessages.length === 0) {
+    return result('SQ-08', 'info', 'No user messages found in logs', [
+      'No user message events detected in session logs',
+    ]);
+  }
+
+  const positivePatterns = [
+    /\bperfect\b/i,
+    /\bgreat\b/i,
+    /\bexactly\b/i,
+    /\byes\b/i,
+    /\bthanks?\b/i,
+    /\bthank you\b/i,
+    /\bawesome\b/i,
+    /\blooks good\b/i,
+    /\bnice\b/i,
+    /\bcorrect\b/i,
+    /\bgood job\b/i,
+    /\bwell done\b/i,
+  ];
+
+  const negativePatterns = [
+    /\bno\b(?:\s*[,\.!]|\s+that)/i,
+    /\bwrong\b/i,
+    /\bstop\b/i,
+    /\bundo\b/i,
+    /\bbroke\b/i,
+    /\bfailed\b/i,
+    /\bnot right\b/i,
+    /\bnot what\b/i,
+    /\btry again\b/i,
+  ];
+
+  let positiveCount = 0;
+  let negativeCount = 0;
+
+  for (const entry of userMessages) {
+    const content = entry.content || entry.message || entry.text ||
+      (entry.details && (entry.details.content || entry.details.message)) || '';
+    const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+    if (contentStr.length < 2) continue;
+
+    if (positivePatterns.some(p => p.test(contentStr))) positiveCount++;
+    if (negativePatterns.some(p => p.test(contentStr))) negativeCount++;
+  }
+
+  const evidence = [
+    `Positive signals: ${positiveCount}, Negative signals: ${negativeCount}`,
+  ];
+
+  let status;
+  let ratioStr;
+  if (negativeCount === 0) {
+    status = 'pass';
+    ratioStr = positiveCount > 0 ? `${positiveCount}:0 (all positive)` : 'no signals detected';
+  } else {
+    const ratio = positiveCount / negativeCount;
+    ratioStr = `${positiveCount}:${negativeCount} (${ratio.toFixed(1)}:1)`;
+    if (ratio > 2) {
+      status = 'pass';
+    } else if (ratio >= 1) {
+      status = 'warn';
+    } else {
+      status = 'fail';
+    }
+  }
+
+  return result('SQ-08', status, `Satisfaction ratio: ${ratioStr}`, evidence);
+}
+
+// ---------------------------------------------------------------------------
+// SQ-09: Skill Escalation Patterns
+// ---------------------------------------------------------------------------
+
+/**
+ * Detect skill transitions that indicate task was harder than expected.
+ * E.g., quick -> debug, quick -> plan. Informational only (not pass/fail).
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkSkillEscalationPatterns(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const eventLogs = readEventLogs(logsDir);
+  const hookLogs = readHookLogs(logsDir);
+  const allEntries = [...eventLogs, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  // Escalation transitions: lightweight skill followed by heavier skill
+  const ESCALATION_PAIRS = {
+    'quick': ['debug', 'plan', 'build'],
+    'do': ['debug', 'plan', 'build'],
+    'scan': ['debug', 'plan'],
+    'test': ['debug'],
+  };
+
+  // Extract skill invocations in order
+  const skillInvocations = [];
+  for (const entry of allEntries) {
+    const skill = entry.skill ||
+      (entry.event && entry.event.startsWith('pbr:') ? entry.event.replace('pbr:', '').split('-')[0] : null) ||
+      (entry.cat === 'skill' ? entry.event : null) ||
+      (entry.details && entry.details.skill) || null;
+
+    if (skill) {
+      skillInvocations.push({
+        skill,
+        ts: entry.ts || entry.timestamp || '',
+      });
+    }
+  }
+
+  if (skillInvocations.length < 2) {
+    return result('SQ-09', 'info', 'Fewer than 2 skill invocations — no transitions to analyze', [
+      `Found ${skillInvocations.length} skill invocation(s)`,
+    ]);
+  }
+
+  const escalations = [];
+  for (let i = 0; i < skillInvocations.length - 1; i++) {
+    const from = skillInvocations[i].skill;
+    const to = skillInvocations[i + 1].skill;
+    if (ESCALATION_PAIRS[from] && ESCALATION_PAIRS[from].includes(to)) {
+      escalations.push(`${from} -> ${to}`);
+    }
+  }
+
+  const evidence = [
+    `${skillInvocations.length} skill invocations, ${escalations.length} escalation(s) detected`,
+  ];
+
+  if (escalations.length > 0) {
+    const unique = [...new Set(escalations)];
+    for (const esc of unique.slice(0, 5)) {
+      evidence.push(`Escalation: ${esc}`);
+    }
+  }
+
+  return result('SQ-09', 'info',
+    `${escalations.length} skill escalation(s) detected across ${skillInvocations.length} invocations`,
+    evidence
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SQ-10: Notification Quality
+// ---------------------------------------------------------------------------
+
+/**
+ * Check notification frequency from hook log entries.
+ * Pass if <10 per session, warn if 10-30, fail if >30.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {object} _config - Audit config (unused for this check)
+ * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
+ */
+function checkNotificationQuality(planningDir, _config) {
+  const logsDir = getLogsDir(planningDir);
+  const hookLogs = readHookLogs(logsDir);
+  const eventLogs = readEventLogs(logsDir);
+
+  // Find notification entries from hook logs and event logs
+  const notifications = [];
+
+  for (const entry of hookLogs) {
+    if (entry.event === 'Notification' ||
+        entry.hook === 'log-notification' ||
+        (entry.details && entry.details.type === 'notification')) {
+      notifications.push({
+        hook: entry.hook || 'unknown',
+        ts: entry.ts || entry.timestamp || '',
+        message: (entry.details && entry.details.message) || '',
+      });
+    }
+  }
+
+  for (const entry of eventLogs) {
+    if (entry.event === 'notification' ||
+        entry.cat === 'notification' ||
+        (entry.details && entry.details.type === 'notification')) {
+      notifications.push({
+        source: 'event',
+        ts: entry.ts || entry.timestamp || '',
+        message: entry.message || (entry.details && entry.details.message) || '',
+      });
+    }
+  }
+
+  const count = notifications.length;
+  const evidence = [`${count} notification(s) found in session logs`];
+
+  // Show a sample of notification sources if many
+  if (count > 0) {
+    const hookCounts = {};
+    for (const n of notifications) {
+      const src = n.hook || n.source || 'unknown';
+      hookCounts[src] = (hookCounts[src] || 0) + 1;
+    }
+    const breakdown = Object.entries(hookCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([src, cnt]) => `${src}: ${cnt}`)
+      .join(', ');
+    evidence.push(`Sources: ${breakdown}`);
+  }
+
+  let status;
+  if (count < 10) {
+    status = 'pass';
+  } else if (count <= 30) {
+    status = 'warn';
+  } else {
+    status = 'fail';
+  }
+
+  return result('SQ-10', status, `${count} notification(s) in session (threshold: <10 pass, 10-30 warn, >30 fail)`, evidence);
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -634,6 +968,10 @@ module.exports = {
   checkSkillRoutingAccuracy,
   checkMemoryUpdateTracking,
   checkConventionDetectionMonitoring,
+  checkUserFrustrationSignals,
+  checkSatisfactionSignals,
+  checkSkillEscalationPatterns,
+  checkNotificationQuality,
   // Shared helpers exported for reuse by other SQ checks and tests
   readJsonlFiles,
   readHookLogs,
