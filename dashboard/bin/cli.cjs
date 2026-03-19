@@ -26,9 +26,20 @@ Options:
   --dir <path>   Project directory (required)
   --port <num>   Port number (default: 3141, or set PBR_DASHBOARD_PORT env var)
   --open         Auto-open browser after start
+  --stop         Stop a running dashboard on the given port
   --help, -h     Show this help message
 `);
   process.exit(0);
+}
+
+// --- Stop handler (before --dir requirement) ---
+
+if (hasFlag('--stop')) {
+  const portArg = getArg('--port');
+  const port = Number(portArg) || Number(process.env.PBR_DASHBOARD_PORT) || 3141;
+  const { stopDashboard } = require('./stop.cjs');
+  const stopped = stopDashboard(port);
+  process.exit(stopped ? 0 : 1);
 }
 
 // --- Resolve arguments ---
