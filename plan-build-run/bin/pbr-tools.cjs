@@ -136,6 +136,12 @@
  *   negative-knowledge query --files "path1,path2"
  *   negative-knowledge list [--category X] [--phase Y] [--status Z]
  *
+ * INCIDENTS:
+ *   incidents record --source hook --type block --issue "..." [--severity warning] [--session-id S] [--context '{}'] [--auto-fixed] [--resolution "..."] [--duration-ms N]
+ *   incidents list [--limit N]
+ *   incidents query [--type T] [--severity S] [--source X] [--last Nd] [--session-id ID]
+ *   incidents summary
+ *
  * INTEL OPERATIONS:
  *   intel query <term>                    Search intel files for a term
  *   intel update                          Trigger intel refresh (prints agent instructions)
@@ -275,6 +281,7 @@ let _decisions;
 let _negativeKnowledge;
 let _patterns;
 let _templates;
+let _incidents;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -308,6 +315,7 @@ function getDecisions() { if (!_decisions) _decisions = require('./lib/decisions
 function getNegativeKnowledge() { if (!_negativeKnowledge) _negativeKnowledge = require('./lib/negative-knowledge.cjs'); return _negativeKnowledge; }
 function getPatterns() { if (!_patterns) _patterns = require('./lib/patterns.cjs'); return _patterns; }
 function getTemplates() { if (!_templates) _templates = require('./lib/templates.cjs'); return _templates; }
+function getIncidents() { if (!_incidents) _incidents = require('./lib/incidents.cjs'); return _incidents; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -475,6 +483,39 @@ function validateProject() {
  * @param {Function} outputFn - output function
  * @param {Function} errorFn - error function
  */
+
+// ─── Incident flag parsers ──────────────────────────────────────────────────
+
+function parseIncidentFlags(flagArgs) {
+  const entry = {};
+  for (let i = 0; i < flagArgs.length; i++) {
+    if (flagArgs[i] === '--source') entry.source = flagArgs[++i];
+    else if (flagArgs[i] === '--type') entry.type = flagArgs[++i];
+    else if (flagArgs[i] === '--severity') entry.severity = flagArgs[++i];
+    else if (flagArgs[i] === '--issue') entry.issue = flagArgs[++i];
+    else if (flagArgs[i] === '--session-id') entry.session_id = flagArgs[++i];
+    else if (flagArgs[i] === '--auto-fixed') entry.auto_fixed = true;
+    else if (flagArgs[i] === '--resolution') entry.resolution = flagArgs[++i];
+    else if (flagArgs[i] === '--duration-ms') entry.duration_ms = parseInt(flagArgs[++i], 10);
+    else if (flagArgs[i] === '--context') {
+      try { entry.context = JSON.parse(flagArgs[++i]); } catch (_e) { /* skip */ }
+    }
+  }
+  return entry;
+}
+
+function parseQueryFlags(flagArgs) {
+  const filter = {};
+  for (let i = 0; i < flagArgs.length; i++) {
+    if (flagArgs[i] === '--type') filter.type = flagArgs[++i];
+    else if (flagArgs[i] === '--severity') filter.severity = flagArgs[++i];
+    else if (flagArgs[i] === '--source') filter.source = flagArgs[++i];
+    else if (flagArgs[i] === '--session-id') filter.session_id = flagArgs[++i];
+    else if (flagArgs[i] === '--last') filter.last = flagArgs[++i];
+  }
+  return filter;
+}
+
 function handleSpec(args, pDir, projectRoot, outputFn, errorFn) {
   const subcommand = args[1];
 
@@ -1796,9 +1837,32 @@ async function main() {
     } else if (command === 'spec') {
       handleSpec(args, planningDir, cwd, output, error);
 
+    // ─── Incident Journal ────────────────────────────────────────────────────
+    } else if (command === 'incidents') {
+      const incidents = getIncidents();
+      const sub = subcommand;
+      const planningDirOpts = { planningDir, cwd };
+
+      if (sub === 'record') {
+        const entry = parseIncidentFlags(args.slice(2));
+        const written = incidents.record(entry, planningDirOpts);
+        output(written || { recorded: false }, raw);
+      } else if (sub === 'list') {
+        const limitIdx = args.indexOf('--limit');
+        const limit = limitIdx >= 0 ? parseInt(args[limitIdx + 1], 10) : 50;
+        output(incidents.list({ ...planningDirOpts, limit }), raw);
+      } else if (sub === 'query') {
+        const filter = parseQueryFlags(args.slice(2));
+        output(incidents.query(filter, planningDirOpts), raw);
+      } else if (sub === 'summary') {
+        output(incidents.summary(planningDirOpts), raw);
+      } else {
+        error('Unknown incidents subcommand. Use: record|list|query|summary');
+      }
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, incidents record|list|query|summary, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
