@@ -50,14 +50,18 @@ function getNextVersion(forceLevel) {
 
   // Use git-cliff to calculate next version from conventional commits
   try {
-    const bumped = run('npx git-cliff --bumped-version 2>/dev/null').replace(/^v/, '');
+    const bumped = run('npx git-cliff --bumped-version', { stdio: ['pipe', 'pipe', 'pipe'] }).replace(/^v/, '');
     if (bumped && bumped !== getCurrentVersion()) return bumped;
   } catch (_e) {
     // Fallback: check commit types since last tag
   }
 
   // Fallback: scan commits since last RELEASE tag (plan-build-run-v*, not milestone v* tags)
-  const lastTag = run('git tag --sort=-creatordate --list "plan-build-run-v*" | head -1 2>/dev/null || echo ""');
+  let lastTag = '';
+  try {
+    const tags = run('git tag --sort=-creatordate --list "plan-build-run-v*"');
+    lastTag = tags.split('\n')[0] || '';
+  } catch (_e) { /* no tags yet */ }
   const range = lastTag ? `${lastTag}..HEAD` : 'HEAD';
   const log = run(`git log --oneline --no-merges ${range}`);
 
@@ -85,7 +89,7 @@ function updateVersion(newVersion) {
 
   // Update package-lock.json
   try {
-    run('npm install --package-lock-only --ignore-scripts 2>/dev/null');
+    try { run('npm install --package-lock-only --ignore-scripts'); } catch (_e) { /* optional */ }
     console.log(`  package-lock.json → ${newVersion}`);
   } catch (_e) {
     // Non-fatal
