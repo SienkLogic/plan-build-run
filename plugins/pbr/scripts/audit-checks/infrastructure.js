@@ -724,6 +724,14 @@ function checkLogSourceSeparation(planningDir, _config) {
     } catch (_e) {
       continue;
     }
+
+    // Skip test-sourced entries: entries where "cat" is a temp directory path
+    const cat = entry.cat || '';
+    if (typeof cat === 'string' && /[/\\]temp[/\\]|[/\\]tmp[/\\]/i.test(cat)) {
+      testSources++;
+      continue;
+    }
+
     total++;
     if (!entry.source && !entry.category) {
       untagged++;
