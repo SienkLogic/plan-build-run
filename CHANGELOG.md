@@ -61,6 +61,46 @@ All notable changes to Plan-Build-Run will be documented in this file.
 * Add null config guards to FV-05 and FV-06 feature verification checks ([8ac294b3](https://github.com/SienkLogic/plan-build-run/commit/8ac294b3))
 * Separate enforcement blocks from tool failures in EF-01 counting ([9c5cdda5](https://github.com/SienkLogic/plan-build-run/commit/9c5cdda5))
 
+## [2.12.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.11.0...plan-build-run-v2.12.0) — 2026-03-19
+
+### CI/CD
+
+* Remove npm run validate from release workflow (script was removed in Phase 32) ([e0378d74](https://github.com/SienkLogic/plan-build-run/commit/e0378d74))
+* Fix MD025 lint error and skip git-dependent tests on Windows ([8e2773e8](https://github.com/SienkLogic/plan-build-run/commit/8e2773e8))
+
+### CLI Tools
+
+* Wire ci-fix command into pbr-tools.js dispatcher ([36b985cc](https://github.com/SienkLogic/plan-build-run/commit/36b985cc))
+* Add ci-fix-loop module with Jest/ESLint parsing and auto-fix loop ([91de02f8](https://github.com/SienkLogic/plan-build-run/commit/91de02f8))
+* Add auto-cleanup subcommand to pbr-tools.js dispatcher ([5b7ca819](https://github.com/SienkLogic/plan-build-run/commit/5b7ca819))
+* Add auto-cleanup library with matchScore, autoCloseTodos, autoArchiveNotes ([7a57d4bc](https://github.com/SienkLogic/plan-build-run/commit/7a57d4bc))
+* Wire quick-status subcommand into pbr-tools.js dispatcher ([9b3bcaf2](https://github.com/SienkLogic/plan-build-run/commit/9b3bcaf2))
+* Add quick-status.js lightweight status snapshot script ([96cc4772](https://github.com/SienkLogic/plan-build-run/commit/96cc4772))
+* Add idle-state reset to stateReconcile for post-milestone cleanup ([00a46ff8](https://github.com/SienkLogic/plan-build-run/commit/00a46ff8))
+
+### Dashboard
+
+* Wire --stop flag into CLI ([a94b5789](https://github.com/SienkLogic/plan-build-run/commit/a94b5789))
+* Add cross-platform stopDashboard module ([4a86464e](https://github.com/SienkLogic/plan-build-run/commit/4a86464e))
+
+### Hooks
+
+* Wire pre-commit quality checks into bash dispatch pipeline ([329d3c60](https://github.com/SienkLogic/plan-build-run/commit/329d3c60))
+* Add pre-commit quality gate check functions ([d0609851](https://github.com/SienkLogic/plan-build-run/commit/d0609851))
+* Add session-cleanup to DIRECT_FALLBACK_SCRIPTS in hook-server-client.js ([245aec35](https://github.com/SienkLogic/plan-build-run/commit/245aec35))
+* Add .context-tracker removal to session-cleanup.js ([286e4f2c](https://github.com/SienkLogic/plan-build-run/commit/286e4f2c))
+* Wire notification throttle into hook-server.js response path ([950ef737](https://github.com/SienkLogic/plan-build-run/commit/950ef737))
+* Wire notification throttle into log-notification.js ([3c2cd558](https://github.com/SienkLogic/plan-build-run/commit/3c2cd558))
+* Add notification throttle module with time-window deduplication ([a6641c80](https://github.com/SienkLogic/plan-build-run/commit/a6641c80))
+* Ensure logHook source field cannot be overridden by details spread ([7a50b8e9](https://github.com/SienkLogic/plan-build-run/commit/7a50b8e9))
+* Add MSYS path bridging for PBR_PROJECT_ROOT in pbr-tools.js and run-hook.js ([9019f0ae](https://github.com/SienkLogic/plan-build-run/commit/9019f0ae))
+* Rename ambiguous duration_ms to agent_duration_ms in task-completed logs ([386a119a](https://github.com/SienkLogic/plan-build-run/commit/386a119a))
+* Downgrade check-plan-format blocks to warnings for Write tool operations ([18912b3d](https://github.com/SienkLogic/plan-build-run/commit/18912b3d))
+
+### Plugin
+
+* Fix comma-separated allowed-tools and remove stale duplicate ([ec808e71](https://github.com/SienkLogic/plan-build-run/commit/ec808e71))
+
 ## [2.11.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.10.0...plan-build-run-v2.11.0) — 2026-03-19
 
 ### Agents
