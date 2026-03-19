@@ -247,6 +247,7 @@ Then use the "Next Up" routing block:
 
 
 **Also available:**
+- `/pbr:intel` — build persistent codebase intelligence from scan results
 - `/pbr:new-milestone` — create a milestone to address concerns
 - `/pbr:progress` — see project status
 

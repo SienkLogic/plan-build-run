@@ -799,6 +799,39 @@ For each phase in the roadmap, create the directory structure:
 
 Where `{slug}` is the phase name in kebab-case (e.g., `project-setup`, `authentication`).
 
+**9f. Create KNOWLEDGE.md:**
+Write `.planning/KNOWLEDGE.md` with empty knowledge base tables:
+
+```markdown
+---
+updated: "{today's date}"
+---
+# Project Knowledge Base
+
+Aggregated knowledge from milestone completions. Auto-maintained by milestone-learnings.js.
+
+## Key Rules
+
+Architectural rules and constraints discovered during development.
+
+| ID | Rule | Source | Date |
+|----|------|--------|------|
+
+## Patterns
+
+Reusable patterns and conventions established across phases.
+
+| ID | Pattern | Source | Date |
+|----|---------|--------|------|
+
+## Lessons Learned
+
+What worked, what didn't, and deferred items for future consideration.
+
+| ID | Lesson | Type | Source | Date |
+|----|--------|------|--------|------|
+```
+
 ---
 
 ### Step 10: Git Setup (inline)
@@ -842,7 +875,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 
 After all steps complete, present the final summary using the stage banner format from Read `references/ui-brand.md`:
 
-Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-brand.md) pointing to `/pbr:discuss-phase 1` with alternatives: `/pbr:explore`, `/pbr:plan-phase 1`, `/pbr:new-milestone`, `/pbr:settings`. Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
+Display the `PROJECT INITIALIZED ✓` banner with project name, core value, phase list, and requirement counts. Then display the "Next Up" block (see § "Next Up Block" in ui-brand.md) pointing to `/pbr:discuss-phase 1` with alternatives: `/pbr:explore`, `/pbr:plan-phase 1`, `/pbr:new-milestone`, `/pbr:settings`, `/pbr:intel` (if codebase scan results exist in `.planning/codebase/`). Include `<sub>/clear first → fresh context window</sub>` inside the Next Up routing block.
 
 **Auto-mode chaining to first phase discussion:** If `config.mode === 'autonomous'`, after displaying the completion banner, automatically chain to the first phase discussion:
 - Display: "PBR > Auto-mode: advancing to phase 1 discussion..."
@@ -889,4 +922,5 @@ Cannot create .planning/ directory.
 | `.planning/ROADMAP.md` | Phase roadmap | Step 8 |
 | `.planning/PROJECT.md` | Project overview + context (locked decisions, constraints, deferred ideas) | Step 9 |
 | `.planning/STATE.md` | Current state tracker + history log | Step 9 |
+| `.planning/KNOWLEDGE.md` | Project knowledge base (rules, patterns, lessons) | Step 9 |
 | `.planning/phases/NN-*/` | Phase directories | Step 9 |
