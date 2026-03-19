@@ -8,6 +8,7 @@ const { checkPlanExecutorGate } = require('../plugins/pbr/scripts/lib/gates/plan
 const { checkReviewPlannerGate } = require('../plugins/pbr/scripts/lib/gates/review-planner');
 const { checkReviewVerifierGate } = require('../plugins/pbr/scripts/lib/gates/review-verifier');
 const { checkBuildDependencyGate } = require('../plugins/pbr/scripts/lib/gates/build-dependency');
+const { checkBuildExecutorGate } = require('../plugins/pbr/scripts/lib/gates/build-executor');
 
 let tmpDir, planningDir, origRoot;
 
@@ -42,6 +43,13 @@ function mkPhaseDir(name) {
   const dir = path.join(planningDir, 'phases', name);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
+}
+
+function writePlan(phaseDir, filename, isSpeculative) {
+  const content = isSpeculative
+    ? '---\nspeculative: true\nwave: 1\n---\n# Speculative Plan\n'
+    : '---\nwave: 1\n---\n# Plan\n';
+  fs.writeFileSync(path.join(phaseDir, filename), content);
 }
 
 // --- checkPlanExecutorGate ---
@@ -214,7 +222,8 @@ describe('checkBuildDependencyGate', () => {
     writeRoadmap(
       '### Phase 2: Testing\n**Depends on:** Phase 1\n\n### Phase 1: Setup\n'
     );
-    mkPhaseDir('01-setup');
+    const depDir = mkPhaseDir('01-setup');
+    writePlan(depDir, 'PLAN-01.md', false); // non-speculative plan triggers VERIFICATION check
     const r = checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(r).not.toBeNull();
     expect(r.block).toBe(true);
@@ -258,11 +267,102 @@ describe('checkBuildDependencyGate', () => {
       '### Phase 3: Deploy\n**Depends on:** Phase 1, Phase 2\n\n### Phase 2: Build\n### Phase 1: Init\n'
     );
     const dep1 = mkPhaseDir('01-init');
-    mkPhaseDir('02-build');
+    const dep2 = mkPhaseDir('02-build');
     fs.writeFileSync(path.join(dep1, 'VERIFICATION.md'), '# V\n');
+    writePlan(dep1, 'PLAN-01.md', false);
+    writePlan(dep2, 'PLAN-01.md', false); // non-speculative plan triggers VERIFICATION check
     // dep2 has no VERIFICATION.md
     const r = checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(r).not.toBeNull();
     expect(r.block).toBe(true);
+  });
+
+  test('dep phase with only speculative plans skips VERIFICATION check', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 20\n---\nPhase: 20 of 24\n');
+    writeRoadmap('### Phase 20: Test\n**Depends on:** Phase 19\n');
+    const dep = mkPhaseDir('19-future');
+    writePlan(dep, 'PLAN-01.md', true); // speculative only — no VERIFICATION needed
+    // No VERIFICATION.md in dep phase
+    const r = checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull(); // should NOT block — dep is speculative
+  });
+
+  test('dep phase directory missing returns block', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 2\n---\nPhase: 2 of 5\n');
+    writeRoadmap('### Phase 2: Test\n**Depends on:** Phase 1\n');
+    fs.mkdirSync(path.join(planningDir, 'phases'), { recursive: true });
+    // No 01-* directory
+    const r = checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).not.toBeNull();
+    expect(r.block).toBe(true);
+  });
+});
+
+// --- checkBuildExecutorGate ---
+
+describe('checkBuildExecutorGate', () => {
+  test('non-executor subagent_type returns null', () => {
+    writeActiveSkill('build');
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:planner' } });
+    expect(r).toBeNull();
+  });
+
+  test('active skill not "build" returns null', () => {
+    writeActiveSkill('plan');
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull();
+  });
+
+  test('empty phase directory returns null (lazily created for future phase)', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 1\n---\nPhase: 1 of 5\n');
+    mkPhaseDir('01-test'); // empty dir, no PLAN files
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull();
+  });
+
+  test('phase dir with only speculative plans returns null', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 1\n---\nPhase: 1 of 5\n');
+    const phaseDir = mkPhaseDir('01-test');
+    writePlan(phaseDir, 'PLAN-01.md', true); // speculative: true
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull();
+  });
+
+  test('phase dir with non-speculative plan returns null (allow)', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 1\n---\nPhase: 1 of 5\n');
+    const phaseDir = mkPhaseDir('01-test');
+    writePlan(phaseDir, 'PLAN-01.md', false); // speculative: false
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull();
+  });
+
+  test('phase dir missing entirely returns block', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 1\n---\nPhase: 1 of 5\n');
+    fs.mkdirSync(path.join(planningDir, 'phases'), { recursive: true });
+    // No 01-* directory created
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).not.toBeNull();
+    expect(r.block).toBe(true);
+    expect(r.reason).toMatch(/no phase directory found/);
+  });
+
+  test('speculative plan in Phase N+2 does not block Phase N executor', () => {
+    writeActiveSkill('build');
+    writeState('---\ncurrent_phase: 18\n---\nPhase: 18 of 24\n');
+    const phase18Dir = mkPhaseDir('18-test');
+    writePlan(phase18Dir, 'PLAN-01.md', false);
+    // Create phase 20 dir with a speculative plan
+    const phase20Dir = path.join(planningDir, 'phases', '20-future');
+    fs.mkdirSync(phase20Dir, { recursive: true });
+    writePlan(phase20Dir, 'PLAN-01.md', true);
+    // Build executor gate for phase 18 should allow
+    const r = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
+    expect(r).toBeNull();
   });
 });
