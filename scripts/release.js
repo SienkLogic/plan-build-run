@@ -196,6 +196,18 @@ function main() {
   console.log('Updating versions...');
   updateVersion(nextVersion);
 
+  // Stamp version into hook entry point so SessionStart can detect stale caches
+  const runHookPath = path.join(ROOT, 'plugins', 'pbr', 'scripts', 'run-hook.js');
+  if (fs.existsSync(runHookPath)) {
+    let runHookSrc = fs.readFileSync(runHookPath, 'utf8');
+    runHookSrc = runHookSrc.replace(
+      /\/\/ pbr-hook-version: .*/,
+      `// pbr-hook-version: ${nextVersion}`
+    );
+    fs.writeFileSync(runHookPath, runHookSrc);
+    console.log(`  run-hook.js → pbr-hook-version: ${nextVersion}`);
+  }
+
   validateTags();
 
   console.log('\nGenerating changelog...');
@@ -203,6 +215,10 @@ function main() {
 
   console.log('\nCommitting and tagging...');
   run('git add package.json package-lock.json .release-please-manifest.json CHANGELOG.md');
+  // Stage version-stamped hook entry point
+  if (fs.existsSync(path.join(ROOT, 'plugins', 'pbr', 'scripts', 'run-hook.js'))) {
+    run('git add "plugins/pbr/scripts/run-hook.js"');
+  }
   for (const relPath of MANIFEST_FILES) {
     if (fs.existsSync(path.join(ROOT, relPath))) {
       run(`git add "${relPath}"`);

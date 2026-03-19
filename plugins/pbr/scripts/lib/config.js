@@ -806,10 +806,11 @@ function sortKeys(obj) {
  * @returns {string} Formatted JSON string
  */
 function configFormat(config) {
-  // 1. Strip guide/comment keys and ensure all defaults present
+  // 1. Strip guide/comment keys and numeric string keys (array serialization artifacts),
+  //    then ensure all defaults present
   const clean = {};
   for (const [k, v] of Object.entries(config)) {
-    if (!k.startsWith('_guide') && !k.startsWith('_comment')) {
+    if (!k.startsWith('_guide') && !k.startsWith('_comment') && !/^\d+$/.test(k)) {
       clean[k] = v;
     }
   }

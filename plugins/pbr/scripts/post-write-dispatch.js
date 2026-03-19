@@ -104,6 +104,10 @@ function checkContextWrite(data) {
  * @returns {Promise<Object|null>} Hook response object or null
  */
 async function processEvent(data, planningDir) {
+  // Load config once per invocation — sub-checks reuse this cached value
+  let config;
+  try { config = require('./pbr-tools').configLoad(planningDir); } catch (_e) { config = null; }
+
   const results = [];
 
   /**
@@ -189,14 +193,7 @@ async function processEvent(data, planningDir) {
       if (depNormalized.includes('.planning/phases/') && depNormalized.endsWith('SUMMARY.md')) {
         const phaseNumMatch = depNormalized.match(/(\d{2})-[^/\\]+[/\\]SUMMARY/);
         if (phaseNumMatch) {
-          let depConfig;
-          try {
-            const { configLoad } = require('./pbr-tools');
-            depConfig = configLoad(planningDir);
-          } catch (_e) {
-            depConfig = null;
-          }
-          if (!depConfig || !depConfig.features || depConfig.features.dependency_break_detection !== false) {
+          if (!config || !config.features || config.features.dependency_break_detection !== false) {
             const depBreaks = checkDependencyBreaks(planningDir, parseInt(phaseNumMatch[1], 10));
             if (depBreaks.length > 0) {
               results.push(`[Dependency Break] ${depBreaks.length} downstream plan(s) may be stale: ${depBreaks.map(b => b.plan).join(', ')}. Run /pbr:plan-phase to re-plan affected phases.`);
@@ -232,14 +229,7 @@ async function processEvent(data, planningDir) {
     if (_checkPatternRouting) {
       const patternFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
       if (patternFilePath) {
-        let patternConfig;
-        try {
-          const { configLoad } = require('./pbr-tools');
-          patternConfig = configLoad(planningDir);
-        } catch (_e) {
-          patternConfig = {};
-        }
-        const patternResult = _checkPatternRouting(patternFilePath, patternConfig || {});
+        const patternResult = _checkPatternRouting(patternFilePath, config || {});
         if (patternResult) {
           results.push('[Pattern] ' + patternResult.advisory);
         }

@@ -39,12 +39,15 @@ const BASE_CHARS = 800000; // 200k tokens × 4
  * UNIQUE_FILE_MILESTONE is unchanged (absolute file count, not char-based).
  *
  * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {{ charMilestone: number, largeFileThreshold: number }}
  */
-function getScaledMilestones(planningDir) {
+function getScaledMilestones(planningDir, config) {
   try {
-    const { configLoad } = require('./pbr-tools');
-    const config = configLoad(planningDir);
+    if (!config) {
+      const { configLoad } = require('./pbr-tools');
+      config = configLoad(planningDir);
+    }
     const tokens = (config && config.context_window_tokens) || 200000;
     const scale = (tokens * 4) / BASE_CHARS;
     return {
@@ -72,6 +75,13 @@ function processEvent(data, planningDir, opts, sessionId) {
   if (!filePath) {
     return null;
   }
+
+  // Load config once per processEvent call — sub-functions reuse this
+  let config;
+  try {
+    const { configLoad } = require('./pbr-tools');
+    config = configLoad(planningDir);
+  } catch (_e) { config = null; }
 
   // Skip plugin-internal files — these are loaded by the plugin system,
   // not by the orchestrator, so they shouldn't count against context budget
@@ -146,8 +156,6 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Write context ledger entry if enabled
   try {
-    const { configLoad } = require('./pbr-tools');
-    const config = configLoad(planningDir);
     if (config && config.context_ledger && config.context_ledger.enabled) {
       const estTokens = Math.round(actualChars / 4);
       let phase = null;
@@ -168,9 +176,7 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Fire-and-forget: update context quality score if feature is enabled
   try {
-    const { configLoad: _cLoad } = require('./pbr-tools');
-    const _cfg = _cLoad(planningDir);
-    if (_cfg && _cfg.features && _cfg.features.context_quality_scoring !== false) {
+    if (config && config.features && config.features.context_quality_scoring !== false) {
       const { getQualityReport, writeQualityReport } = require('./context-quality');
       const report = getQualityReport(planningDir);
       if (report) {
@@ -194,7 +200,7 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Check thresholds — only warn at milestone crossings, not every read
   const warnings = [];
-  const { charMilestone, largeFileThreshold } = getScaledMilestones(planningDir);
+  const { charMilestone, largeFileThreshold } = getScaledMilestones(planningDir, config);
 
   // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
   const curUniqueFiles = tracker.files.length;

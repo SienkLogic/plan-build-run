@@ -19,6 +19,7 @@
  *   "node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js <script-name> [args...]"
  */
 
+// pbr-hook-version: 0.0.0-dev
 'use strict';
 
 const fs = require('fs');
@@ -127,7 +128,21 @@ function runScript(name, args) {
     }
   }
 
-  // Phase 3: Load and execute the script.
+  // Phase 3: Stdin timeout guard — prevent indefinite hangs on Windows/Git Bash.
+  // PreToolUse hooks get shorter timeout (user-visible latency).
+  // PostToolUse/lifecycle hooks get longer timeout (advisory).
+  const PRE_TIMEOUT_MS = 5000;
+  const POST_TIMEOUT_MS = 10000;
+  const isPreHook = name.startsWith('pre-') || name === 'validate-task.js'
+    || name === 'validate-commit.js' || name === 'validate-skill-args.js'
+    || name === 'intercept-plan-mode.js' || name === 'block-skill-self-read.js';
+  const hookTimeout = isPreHook ? PRE_TIMEOUT_MS : POST_TIMEOUT_MS;
+  const _hookTimer = setTimeout(() => {
+    process.exit(0); // Exit cleanly, don't block session
+  }, hookTimeout);
+  _hookTimer.unref(); // Don't keep process alive just for timeout
+
+  // Phase 4: Load and execute the script.
   process.argv = [process.argv[0], resolvedPath, ...args];
   require(resolvedPath);
 }

@@ -78,12 +78,15 @@ function getAdaptiveThresholds(contextTokens) {
  * If "linear" (default), returns fixed base thresholds.
  *
  * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {{ degrading: number, poor: number, critical: number }}
  */
-function getEffectiveThresholds(planningDir) {
+function getEffectiveThresholds(planningDir, config) {
   try {
-    const { configLoad } = require('./pbr-tools');
-    const config = configLoad(planningDir);
+    if (!config) {
+      const { configLoad } = require('./pbr-tools');
+      config = configLoad(planningDir);
+    }
     const curve = (config && config.context_budget && config.context_budget.threshold_curve) || 'linear';
     const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
     if (curve === 'adaptive') {
@@ -148,12 +151,15 @@ function saveBridge(bridgePath, data) {
  * Reads context_window_tokens from config (default 200k) and multiplies by 4 chars/token.
  *
  * @param {string} planningDir - Path to .planning/
+ * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {number} Total char capacity (context_window_tokens × 4, default 800000)
  */
-function getCharDenominator(planningDir) {
+function getCharDenominator(planningDir, config) {
   try {
-    const { configLoad } = require('./pbr-tools');
-    const config = configLoad(planningDir);
+    if (!config) {
+      const { configLoad } = require('./pbr-tools');
+      config = configLoad(planningDir);
+    }
     const tokens = (config && config.context_window_tokens) || 200000;
     return tokens * 4;
   } catch (_e) {
