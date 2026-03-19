@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readActiveSkill } = require('./helpers.cjs');
+const { readActiveSkill, isPlanSpeculative } = require('./helpers.cjs');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being
@@ -82,7 +82,22 @@ function checkBuildDependencyGate(data) {
           reason: `Build dependency gate: dependent phase ${paddedPhase} lacks VERIFICATION.md.\n\nPhase ${currentPhase} depends on phase ${paddedPhase}, which must be verified before building can proceed.\n\nRun /pbr:verify-work ${paddedPhase} to verify the dependency phase first.`
         };
       }
-      const hasVerification = fs.existsSync(path.join(phasesDir, pDirs[0], 'VERIFICATION.md'));
+      const depPhaseDir = path.join(phasesDir, pDirs[0]);
+      const depFiles = fs.readdirSync(depPhaseDir);
+
+      // If dep phase has only speculative plans, it is a future phase being planned ahead.
+      // Skip VERIFICATION check — speculative deps haven't been built yet and that's expected.
+      const hasNonSpeculativePlan = depFiles.some(f => {
+        if (!/^PLAN.*\.md$/i.test(f)) return false;
+        const fullPath = path.join(depPhaseDir, f);
+        try {
+          if (fs.statSync(fullPath).size === 0) return false;
+          return !isPlanSpeculative(fullPath);
+        } catch (_e) { return false; }
+      });
+      if (!hasNonSpeculativePlan) continue;
+
+      const hasVerification = fs.existsSync(path.join(depPhaseDir, 'VERIFICATION.md'));
       if (!hasVerification) {
         return {
           block: true,
