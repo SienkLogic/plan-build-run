@@ -48,7 +48,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/output-format.md.tmpl` for the output format
 
 ## Checks
 
-Run all 10 checks in order. Collect results and present them together at the end.
+Run all 11 checks in order. Collect results and present them together at the end.
 
 ### Check 1: Structure
 
@@ -193,6 +193,21 @@ Also check for `.planning/.active-skill`:
 - If the file exists, check its age by comparing the file modification time to the current time:
   - If older than 1 hour: WARN with fix suggestion: "Stale .active-skill lock file detected (set {age} ago). No PBR skill appears to be running. Safe to delete with `rm .planning/.active-skill`."
   - If younger than 1 hour: INFO: "Active skill lock exists ({content}). A PBR skill may be running."
+
+### Check 11: Data Directory Freshness
+
+Check the freshness of planning data directories (research, intel, codebase maps).
+
+Run:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js data status
+```
+
+Parse the JSON output. For each directory reported:
+
+- PASS: Directory has files and none are stale (older than 7 days)
+- WARN (stale data): One or more directories have files older than 7 days — "Run `/pbr:explore` to refresh stale data, or `pbr-tools.js data prune --before <date>` to archive old files."
+- WARN (empty directory): A data directory has 0 files — "Directory may not have been populated yet. Run the relevant skill to generate data."
 
 ---
 

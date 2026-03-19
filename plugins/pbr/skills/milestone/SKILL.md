@@ -417,6 +417,20 @@ Read `git.branching` from config.
 
    Read `${CLAUDE_SKILL_DIR}/templates/stats-file.md.tmpl` for the stats file format. Fill in all `{variable}` placeholders with actual data gathered in Steps 3-4.
 
+5b. **Archive stale research data:**
+
+   After archiving phase directories, prune stale research/intel/codebase data that predates the milestone:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js data prune --before {milestone_start_date}
+   ```
+
+   Where `{milestone_start_date}` is the earliest phase start date from the milestone (derived from the first SUMMARY.md `start_time` or the milestone creation date).
+
+   - Log the count of archived files (e.g., "Archived 12 stale research files")
+   - If no files to archive, log "No stale research files to archive"
+   - Note: SUMMARY.md, STACK.md, and FEATURES.md are preserved (never pruned) since they are canonical references for active work
+
 6. **Update PROJECT.md:**
    - Move milestone from "Active" to "Completed"
    - Add completion date and version tag

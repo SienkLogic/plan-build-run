@@ -49,6 +49,8 @@
  *   learnings check-thresholds   — Check deferral trigger conditions
  *   learnings copy-global <path> <proj> — Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P] — Query global knowledge files
+ *   data status                      — Freshness report for research/, intel/, codebase/ directories
+ *   data prune --before <ISO-date> [--dry-run] — Archive stale research/codebase files
  *   incidents list [--limit N]       — List recent incidents as JSON array
  *   incidents summary               — Aggregate incident stats by type/severity/source
  *   incidents query [--type T] [--severity S] [--source S] [--last Nd|Nh] — Filter incidents
@@ -283,6 +285,11 @@ const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require
 const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
 
 const {
+  dataStatus: _dataStatus,
+  dataPrune: _dataPrune
+} = require('./lib/data-hygiene');
+
+const {
   list: _incidentsList,
   query: _incidentsQuery,
   summary: _incidentsSummary
@@ -481,6 +488,14 @@ function incidentsQuery(filter, opts) {
 }
 function incidentsSummary(opts) {
   return _incidentsSummary({ ...opts, planningDir });
+}
+
+function dataStatus() {
+  return _dataStatus(planningDir);
+}
+
+function dataPrune(options) {
+  return _dataPrune(planningDir, options);
 }
 
 function migrate(options) {
@@ -1653,8 +1668,24 @@ async function main() {
         error('Usage: pbr-tools.js nk <record|list|resolve>\n  nk record --title "..." --category "..." --files "f1,f2" --tried "..." --failed "..."\n  nk list [--category X] [--phase X] [--status X]\n  nk resolve <slug>');
       }
 
+    } else if (command === 'data') {
+      const sub = args[1];
+      if (sub === 'status') {
+        output(dataStatus());
+      } else if (sub === 'prune') {
+        const beforeIdx = args.indexOf('--before');
+        const before = beforeIdx !== -1 ? args[beforeIdx + 1] : null;
+        const dryRun = args.includes('--dry-run');
+        if (!before) {
+          error('Usage: pbr-tools.js data prune --before <ISO-date> [--dry-run]');
+        }
+        output(dataPrune({ before, dryRun }));
+      } else {
+        error('Usage: pbr-tools.js data <status|prune>\n  data status — freshness report for research/, intel/, codebase/\n  data prune --before <ISO-date> [--dry-run] — archive stale files');
+      }
+
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
     }
   } catch (e) {
     error(e.message);
