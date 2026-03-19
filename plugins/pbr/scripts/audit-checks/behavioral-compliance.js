@@ -1617,6 +1617,445 @@ function checkSkillSelfReadPrevention(planningDir, _config) {
 }
 
 // ---------------------------------------------------------------------------
+// BC-13: Hook Output Effectiveness
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-13: Check whether hook advisory outputs were actually followed by the LLM.
+ * Reads hook logs for additionalContext/warning outputs, then checks subsequent
+ * session events to see if the LLM's next action aligned with the advisory.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkHookOutputEffectiveness(planningDir, _config) {
+  const hookLogs = readHookLogs(planningDir);
+  const events = readSessionEvents(planningDir);
+  const allEntries = [...events, ...hookLogs].sort((a, b) => {
+    const ta = a.ts || a.timestamp || '';
+    const tb = b.ts || b.timestamp || '';
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
+
+  if (allEntries.length === 0) {
+    return {
+      status: 'pass',
+      evidence: [],
+      message: 'BC-13: No session data available — cannot assess hook output effectiveness'
+    };
+  }
+
+  // Find hook entries that produced advisory output (additionalContext, warnings)
+  const advisoryHookEntries = [];
+  for (let i = 0; i < allEntries.length; i++) {
+    const entry = allEntries[i];
+    if (!entry.hook) continue;
+
+    const hasAdvisory =
+      (entry.details && entry.details.additionalContext) ||
+      (entry.details && entry.details.warning) ||
+      (entry.details && entry.details.level === 'advisory') ||
+      (entry.output && typeof entry.output === 'string' && entry.output.includes('additionalContext'));
+
+    if (hasAdvisory) {
+      // Extract advisory content
+      const advisory = (entry.details && entry.details.additionalContext) ||
+        (entry.details && entry.details.warning) ||
+        (entry.details && entry.details.message) || '';
+      advisoryHookEntries.push({ index: i, hook: entry.hook, advisory, ts: entry.ts || entry.timestamp || '' });
+    }
+  }
+
+  if (advisoryHookEntries.length === 0) {
+    return {
+      status: 'info',
+      evidence: ['No hook advisory outputs found in logs'],
+      message: 'BC-13: No hook advisories detected — nothing to measure effectiveness against'
+    };
+  }
+
+  // For each advisory, check if the next LLM action appears to comply
+  // Heuristic: if the advisory mentions "block" or "stop" and the next tool call
+  // is in the same file/area, the advisory was ignored
+  let followed = 0;
+  let ignored = 0;
+  const evidence = [];
+
+  for (const adv of advisoryHookEntries) {
+    // Look at next 3 entries after the advisory
+    const lookAhead = allEntries.slice(adv.index + 1, adv.index + 4);
+
+    // Check if advisory suggested stopping/blocking and LLM continued same action
+    const advisoryStr = typeof adv.advisory === 'string' ? adv.advisory : JSON.stringify(adv.advisory);
+    const suggestsStop = /\b(stop|block|avoid|do not|don't|warning|caution)\b/i.test(advisoryStr);
+
+    if (suggestsStop) {
+      // If the LLM's next action is a Write/Edit to the same area, advisory was ignored
+      const nextWrite = lookAhead.find(e =>
+        e.tool === 'Write' || e.tool === 'Edit' ||
+        (e.details && (e.details.tool === 'Write' || e.details.tool === 'Edit'))
+      );
+      if (nextWrite) {
+        ignored++;
+        if (evidence.length < 3) {
+          const time = adv.ts ? ` at ${adv.ts.substring(11, 16)}` : '';
+          evidence.push(`${adv.hook} advisory${time} suggested caution but LLM proceeded with write`);
+        }
+      } else {
+        followed++;
+      }
+    } else {
+      // Non-blocking advisory — assume followed unless we see contradictory evidence
+      followed++;
+    }
+  }
+
+  const total = followed + ignored;
+  const complianceRate = total > 0 ? Math.round((followed / total) * 100) : 100;
+
+  evidence.unshift(`Hook advisories: ${total} total, ${followed} followed, ${ignored} ignored (${complianceRate}% compliance)`);
+
+  let status;
+  if (complianceRate >= 70) {
+    status = 'pass';
+  } else {
+    status = 'warn';
+  }
+
+  return {
+    status,
+    evidence,
+    message: `BC-13: Hook output effectiveness: ${complianceRate}% of advisories followed (${followed}/${total})`
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BC-14: Agent Scope Compliance
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-14: Check that agents only modified files listed in their PLAN.md files_modified.
+ * Compares SUMMARY.md key_files against PLAN.md files_modified for each phase.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkAgentScopeCompliance(planningDir, _config) {
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return {
+      status: 'info',
+      evidence: ['No phases directory found'],
+      message: 'BC-14: No phases directory — cannot assess agent scope compliance'
+    };
+  }
+
+  let phaseDirs;
+  try {
+    phaseDirs = fs.readdirSync(phasesDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+  } catch (_e) {
+    return {
+      status: 'info',
+      evidence: ['Could not read phases directory'],
+      message: 'BC-14: Could not read phases directory'
+    };
+  }
+
+  const evidence = [];
+  let totalPlans = 0;
+  let outOfScope = 0;
+
+  for (const phaseDir of phaseDirs) {
+    const phaseFullPath = path.join(phasesDir, phaseDir);
+
+    // Find PLAN files
+    let files;
+    try {
+      files = fs.readdirSync(phaseFullPath).filter(f => /^PLAN.*\.md$/i.test(f));
+    } catch (_e) {
+      continue;
+    }
+
+    for (const planFile of files) {
+      // Extract plan ID from filename (e.g., PLAN-01.md -> 01)
+      const planIdMatch = planFile.match(/PLAN-?(\d+)/i);
+      if (!planIdMatch) continue;
+      const planId = planIdMatch[1];
+
+      // Read PLAN file for files_modified
+      let planContent;
+      try {
+        planContent = fs.readFileSync(path.join(phaseFullPath, planFile), 'utf8');
+      } catch (_e) {
+        continue;
+      }
+
+      // Extract files_modified from YAML frontmatter
+      const fmMatch = planContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      if (!fmMatch) continue;
+      const fm = fmMatch[1];
+
+      const plannedFiles = [];
+      const fmLines = fm.split(/\r?\n/);
+      let inFilesModified = false;
+      for (const line of fmLines) {
+        if (/^\s*files_modified\s*:/.test(line)) {
+          inFilesModified = true;
+          continue;
+        }
+        if (inFilesModified) {
+          if (/^\s*-\s+"?(.+?)"?\s*$/.test(line)) {
+            const fileMatch = line.match(/^\s*-\s+"?(.+?)"?\s*$/);
+            if (fileMatch) plannedFiles.push(fileMatch[1].trim());
+          } else if (/^\s*\w/.test(line)) {
+            inFilesModified = false;
+          }
+        }
+      }
+
+      if (plannedFiles.length === 0) continue;
+
+      // Find matching SUMMARY file
+      const summaryPattern = new RegExp(`SUMMARY.*${planId}.*\\.md$`, 'i');
+      let summaryFiles;
+      try {
+        summaryFiles = fs.readdirSync(phaseFullPath).filter(f => summaryPattern.test(f));
+      } catch (_e) {
+        continue;
+      }
+
+      for (const summaryFile of summaryFiles) {
+        let summaryContent;
+        try {
+          summaryContent = fs.readFileSync(path.join(phaseFullPath, summaryFile), 'utf8');
+        } catch (_e) {
+          continue;
+        }
+
+        // Extract key_files from SUMMARY frontmatter
+        const sfmMatch = summaryContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        if (!sfmMatch) continue;
+        const sfm = sfmMatch[1];
+
+        const actualFiles = [];
+        const sfmLines = sfm.split(/\r?\n/);
+        let inKeyFiles = false;
+        for (const line of sfmLines) {
+          if (/^\s*key_files\s*:/.test(line)) {
+            inKeyFiles = true;
+            continue;
+          }
+          if (inKeyFiles) {
+            if (/^\s*-\s+"?(.+?)"?\s*$/.test(line)) {
+              const fileMatch = line.match(/^\s*-\s+"?(.+?)"?\s*$/);
+              if (fileMatch) {
+                // key_files may have ": description" suffix, strip it
+                const filePath = fileMatch[1].split(':')[0].trim();
+                actualFiles.push(filePath);
+              }
+            } else if (/^\s*\w/.test(line)) {
+              inKeyFiles = false;
+            }
+          }
+        }
+
+        totalPlans++;
+
+        // Compare: any actualFiles not in plannedFiles?
+        const outOfScopeFiles = actualFiles.filter(af =>
+          !plannedFiles.some(pf => af.includes(pf) || pf.includes(af))
+        );
+
+        if (outOfScopeFiles.length > 0) {
+          outOfScope++;
+          evidence.push(
+            `${phaseDir}/${planFile}: ${outOfScopeFiles.length} file(s) modified outside plan scope: ${outOfScopeFiles.slice(0, 3).join(', ')}`
+          );
+        }
+      }
+    }
+  }
+
+  if (totalPlans === 0) {
+    return {
+      status: 'info',
+      evidence: ['No PLAN/SUMMARY pairs found to compare'],
+      message: 'BC-14: No plan/summary pairs found — cannot assess scope compliance'
+    };
+  }
+
+  evidence.unshift(`Checked ${totalPlans} plan(s): ${outOfScope} had out-of-scope modifications`);
+
+  if (outOfScope > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-14: ${outOfScope}/${totalPlans} plan(s) had files modified outside declared scope`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence,
+    message: `BC-14: All ${totalPlans} plan(s) stayed within declared file scope`
+  };
+}
+
+// ---------------------------------------------------------------------------
+// BC-15: Agent Plan Adherence
+// ---------------------------------------------------------------------------
+
+/**
+ * BC-15: Check that executor task completion counts match planned task counts.
+ * Compares SUMMARY.md tasks_completed against PLAN.md <task> block count.
+ *
+ * @param {string} planningDir - Path to .planning/
+ * @param {Object} [_config] - Config object (unused, for API consistency)
+ * @returns {{ status: string, evidence: Array<string>, message: string }}
+ */
+function checkAgentPlanAdherence(planningDir, _config) {
+  const phasesDir = path.join(planningDir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return {
+      status: 'info',
+      evidence: ['No phases directory found'],
+      message: 'BC-15: No phases directory — cannot assess plan adherence'
+    };
+  }
+
+  let phaseDirs;
+  try {
+    phaseDirs = fs.readdirSync(phasesDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+  } catch (_e) {
+    return {
+      status: 'info',
+      evidence: ['Could not read phases directory'],
+      message: 'BC-15: Could not read phases directory'
+    };
+  }
+
+  const evidence = [];
+  let totalPlans = 0;
+  let mismatches = 0;
+
+  for (const phaseDir of phaseDirs) {
+    const phaseFullPath = path.join(phasesDir, phaseDir);
+
+    let files;
+    try {
+      files = fs.readdirSync(phaseFullPath).filter(f => /^PLAN.*\.md$/i.test(f));
+    } catch (_e) {
+      continue;
+    }
+
+    for (const planFile of files) {
+      const planIdMatch = planFile.match(/PLAN-?(\d+)/i);
+      if (!planIdMatch) continue;
+      const planId = planIdMatch[1];
+
+      // Count <task> blocks in PLAN
+      let planContent;
+      try {
+        planContent = fs.readFileSync(path.join(phaseFullPath, planFile), 'utf8');
+      } catch (_e) {
+        continue;
+      }
+
+      const taskMatches = planContent.match(/<task\s/g);
+      const plannedTasks = taskMatches ? taskMatches.length : 0;
+      if (plannedTasks === 0) continue;
+
+      // Find matching SUMMARY
+      const summaryPattern = new RegExp(`SUMMARY.*${planId}.*\\.md$`, 'i');
+      let summaryFiles;
+      try {
+        summaryFiles = fs.readdirSync(phaseFullPath).filter(f => summaryPattern.test(f));
+      } catch (_e) {
+        continue;
+      }
+
+      for (const summaryFile of summaryFiles) {
+        let summaryContent;
+        try {
+          summaryContent = fs.readFileSync(path.join(phaseFullPath, summaryFile), 'utf8');
+        } catch (_e) {
+          continue;
+        }
+
+        totalPlans++;
+
+        // Extract tasks_completed from SUMMARY frontmatter
+        const fmMatch = summaryContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        if (!fmMatch) {
+          mismatches++;
+          evidence.push(`${phaseDir}/${summaryFile}: no frontmatter — cannot determine tasks_completed`);
+          continue;
+        }
+
+        const fm = fmMatch[1];
+        const completedMatch = fm.match(/tasks_completed\s*:\s*(\d+)/);
+        const totalMatch = fm.match(/tasks_total\s*:\s*(\d+)/);
+
+        const completedTasks = completedMatch ? parseInt(completedMatch[1], 10) : null;
+        const reportedTotal = totalMatch ? parseInt(totalMatch[1], 10) : null;
+
+        if (completedTasks === null) {
+          // Check status field as fallback
+          const statusMatch = fm.match(/status\s*:\s*["']?(\w+)/);
+          const status = statusMatch ? statusMatch[1] : 'unknown';
+          if (status === 'complete') {
+            // Assume all tasks completed if status is complete
+            continue;
+          }
+          mismatches++;
+          evidence.push(`${phaseDir}/${summaryFile}: no tasks_completed field (status: ${status})`);
+          continue;
+        }
+
+        // Check: planned == completed?
+        if (completedTasks !== plannedTasks) {
+          mismatches++;
+          evidence.push(
+            `${phaseDir}/${planFile}: planned ${plannedTasks} tasks, completed ${completedTasks}` +
+            (reportedTotal ? ` (reported total: ${reportedTotal})` : '')
+          );
+        }
+      }
+    }
+  }
+
+  if (totalPlans === 0) {
+    return {
+      status: 'info',
+      evidence: ['No PLAN/SUMMARY pairs found to compare'],
+      message: 'BC-15: No plan/summary pairs found — cannot assess plan adherence'
+    };
+  }
+
+  evidence.unshift(`Checked ${totalPlans} plan(s): ${mismatches} had task count mismatches`);
+
+  if (mismatches > 0) {
+    return {
+      status: 'warn',
+      evidence,
+      message: `BC-15: ${mismatches}/${totalPlans} plan(s) had task completion mismatches`
+    };
+  }
+
+  return {
+    status: 'pass',
+    evidence,
+    message: `BC-15: All ${totalPlans} plan(s) completed their planned task counts`
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
@@ -1650,4 +2089,10 @@ module.exports = {
   checkContextDelegationThreshold,
   // BC-12
   checkSkillSelfReadPrevention,
+  // BC-13
+  checkHookOutputEffectiveness,
+  // BC-14
+  checkAgentScopeCompliance,
+  // BC-15
+  checkAgentPlanAdherence,
 };
