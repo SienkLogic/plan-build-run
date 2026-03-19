@@ -84,7 +84,7 @@ const CONFIG_DEFAULTS = {
     architecture_guard: true
   },
   validation_passes: ['correctness', 'security'],
-  autonomy: { level: 'supervised' },
+  autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },
   models: {
     researcher: 'sonnet',
     planner: 'sonnet',
