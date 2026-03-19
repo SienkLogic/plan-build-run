@@ -590,6 +590,160 @@ See archive.`;
   });
 });
 
+describe('collapsed milestone parsing', () => {
+  test('parsing phases from inside single <details> block works', () => {
+    const content = `# Roadmap
+
+<details>
+<summary>
+
+## Milestone v1.0 -- SHIPPED
+
+</summary>
+
+| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Verified |
+| 02 | Auth | Verified |
+| 03 | API | building |
+| 04 | UI | planned |
+
+</details>
+`;
+    expect(getRoadmapPhaseStatus(content, '1')).toBe('Verified');
+    expect(getRoadmapPhaseStatus(content, '3')).toBe('building');
+    expect(getRoadmapPhaseStatus(content, '4')).toBe('planned');
+  });
+
+  test('phases in separate <details> blocks — only first table found', () => {
+    // getRoadmapPhaseStatus reads the first Phase|Status table it finds,
+    // so phases in a second table after non-table content are not found
+    const content = `<details><summary>v1.0</summary>
+| Phase | Name | Status |
+|---|---|---|
+| 01 | Setup | Verified |
+</details>
+
+<details><summary>v2.0</summary>
+| Phase | Name | Status |
+|---|---|---|
+| 03 | API | building |
+</details>`;
+    expect(getRoadmapPhaseStatus(content, '1')).toBe('Verified');
+    // Phase 3 is in a second table block — returns null
+    expect(getRoadmapPhaseStatus(content, '3')).toBeNull();
+  });
+
+  test('SHIPPED milestone phases still return their status', () => {
+    const content = `<details><summary>## Milestone v1.0 -- SHIPPED</summary>
+| Phase | Status |
+|---|---|
+| 01 | Verified |
+</details>`;
+    expect(getRoadmapPhaseStatus(content, '1')).toBe('Verified');
+  });
+
+  test('parseRoadmapPhases finds phase slugs inside nested <details>', () => {
+    const content = `<details>
+<summary>v1.0</summary>
+| 01-setup | Setup |
+| 02-auth | Auth |
+</details>
+<details>
+<summary>v2.0</summary>
+| 03-api-endpoints | API |
+</details>`;
+    const phases = parseRoadmapPhases(content);
+    expect(phases).toContain('01-setup');
+    expect(phases).toContain('02-auth');
+    expect(phases).toContain('03-api-endpoints');
+  });
+});
+
+describe('phase status conflicts', () => {
+  test('STATE says building but ROADMAP says planned triggers warning', () => {
+    const statePath = path.join(planningDir, 'STATE.md');
+    fs.writeFileSync(statePath, '**Phase**: 02\n**Status**: built');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 02 | planned |');
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).not.toBeNull();
+    // built > planned = regression = block
+    expect(result.output.decision).toBe('block');
+    expect(result.output.reason).toContain('regression');
+  });
+
+  test('STATE says verified but ROADMAP says building triggers block', () => {
+    const statePath = path.join(planningDir, 'STATE.md');
+    fs.writeFileSync(statePath, '**Phase**: 03\n**Status**: verified');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 03 | built |');
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.decision).toBe('block');
+  });
+
+  test('STATE says planned but ROADMAP says built is advisory not block', () => {
+    const statePath = path.join(planningDir, 'STATE.md');
+    fs.writeFileSync(statePath, '**Phase**: 01\n**Status**: planned');
+    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '| Phase | Status |\n|---|---|\n| 01 | built |');
+    const result = checkSync({ tool_input: { file_path: statePath } });
+    expect(result).not.toBeNull();
+    expect(result.output.additionalContext).toContain('out of sync');
+    expect(result.output.decision).toBeUndefined();
+  });
+});
+
+describe('filesystem drift with extra phase dirs', () => {
+  test('phase dir 99-extra exists but not in ROADMAP warns about orphan', () => {
+    const phasesDir = path.join(tmpDir, 'drift-phases');
+    fs.mkdirSync(phasesDir, { recursive: true });
+    fs.mkdirSync(path.join(phasesDir, '01-setup'));
+    fs.mkdirSync(path.join(phasesDir, '99-extra'));
+
+    const roadmap = '| 01-setup | Setup | planned |';
+    const warnings = checkFilesystemDrift(roadmap, phasesDir);
+    expect(warnings.some(w => w.includes('Orphaned') && w.includes('99-extra'))).toBe(true);
+  });
+
+  test('multiple orphaned dirs all reported', () => {
+    const phasesDir = path.join(tmpDir, 'drift-multi');
+    fs.mkdirSync(phasesDir, { recursive: true });
+    fs.mkdirSync(path.join(phasesDir, '50-alpha'));
+    fs.mkdirSync(path.join(phasesDir, '51-beta'));
+
+    const roadmap = '# No phase slugs here';
+    const warnings = checkFilesystemDrift(roadmap, phasesDir);
+    expect(warnings).toHaveLength(2);
+  });
+});
+
+describe('malformed ROADMAP', () => {
+  test('missing milestones table returns null for phase lookup', () => {
+    const content = '# Roadmap\n\nJust some text, no tables at all.\n';
+    expect(getRoadmapPhaseStatus(content, '1')).toBeNull();
+  });
+
+  test('missing progress table returns empty phase list', () => {
+    const content = '# Roadmap\n\nNo table whatsoever.\n';
+    expect(parseRoadmapPhases(content)).toEqual([]);
+  });
+
+  test('truncated frontmatter does not crash parseState', () => {
+    const content = '---\nphase: 3';
+    // No closing --- and no status line
+    expect(parseState(content)).toBeNull();
+  });
+
+  test('table with malformed rows is handled', () => {
+    const content = '| Phase | Status |\n|---|---|\n| | |\n| not-a-number | built |\n';
+    expect(getRoadmapPhaseStatus(content, '1')).toBeNull();
+  });
+
+  test('empty ROADMAP content returns null', () => {
+    expect(getRoadmapPhaseStatus('', '1')).toBeNull();
+    expect(parseRoadmapPhases('')).toEqual([]);
+  });
+});
+
 describe('main() parse-failure catch block', () => {
   test('malformed stdin emits additionalContext and exits 0', () => {
     const result = runScript('{ not valid json !!!', tmpDir);

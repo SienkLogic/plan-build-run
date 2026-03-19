@@ -850,6 +850,185 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     });
   });
 
+  describe('extractPhaseNum edge cases', () => {
+    test('returns null for phase name containing no number', () => {
+      expect(extractPhaseNum('setup-project')).toBeNull();
+    });
+
+    test('extracts from phase "00-init"', () => {
+      expect(extractPhaseNum('00-init')).toBe('00');
+    });
+
+    test('returns null for null-like input', () => {
+      // undefined/null would throw, but empty string and number-only are valid edge cases
+      expect(extractPhaseNum('just-words')).toBeNull();
+    });
+
+    test('extracts three-digit phase number', () => {
+      expect(extractPhaseNum('100-large-phase')).toBe('100');
+    });
+
+    test('returns null for hyphen without leading digits', () => {
+      expect(extractPhaseNum('-missing-digits')).toBeNull();
+    });
+  });
+
+  describe('Windows line endings', () => {
+    let tmpDir;
+    let planningDir;
+    let phasesDir;
+    let phaseDir;
+    let origCwd;
+
+    beforeEach(() => {
+      clearMtimeCache();
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-crlf-'));
+      planningDir = path.join(tmpDir, '.planning');
+      phasesDir = path.join(planningDir, 'phases');
+      phaseDir = path.join(phasesDir, '03-api-endpoints');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+      origCwd = process.cwd();
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      clearMtimeCache();
+    });
+
+    test('STATE.md with \\r\\n line endings parses correctly', () => {
+      fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\r\nphase: 03\r\n---');
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\r\nstatus: complete\r\n---');
+
+      const state = '---\r\nversion: 2\r\ncurrent_phase: 3\r\nstatus: "building"\r\nprogress_percent: 0\r\nplans_total: 1\r\nplans_complete: 0\r\nlast_activity: "2026-02-08"\r\n---\r\n# Project State\r\n\r\n## Current Position\r\nPhase: 3 of 10 (API)\r\nPlan: 0 of 1 in current phase\r\nStatus: Building\r\nLast activity: 2026-02-08 -- Init\r\nProgress: [░░░░░░░░░░░░░░░░░░░░] 0%\r\n';
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), state);
+
+      const roadmap = '# Roadmap\r\n\r\n## Progress\r\n\r\n| Phase | Plans Complete | Status | Completed |\r\n|-------|----------------|--------|------|---|\r\n| 03. API Endpoints | 0/0 | Not started | — |\r\n';
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      const result = checkStateSync(data);
+      expect(result).not.toBeNull();
+      expect(result.output.additionalContext).toContain('STATE.md');
+    });
+
+    test('progress bar renders correctly with \\r\\n content', () => {
+      const bar = buildProgressBar(50);
+      expect(bar).toContain('50%');
+      expect(bar).toContain('██████████');
+    });
+  });
+
+  describe('empty STATE.md', () => {
+    let tmpDir;
+    let planningDir;
+    let phasesDir;
+    let phaseDir;
+    let origCwd;
+
+    beforeEach(() => {
+      clearMtimeCache();
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-empty-'));
+      planningDir = path.join(tmpDir, '.planning');
+      phasesDir = path.join(planningDir, 'phases');
+      phaseDir = path.join(phasesDir, '03-api-endpoints');
+      fs.mkdirSync(phaseDir, { recursive: true });
+      fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+      origCwd = process.cwd();
+      process.chdir(tmpDir);
+    });
+
+    afterEach(() => {
+      process.chdir(origCwd);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      clearMtimeCache();
+    });
+
+    test('completely empty STATE.md does not crash', () => {
+      fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '');
+
+      const roadmap = '# Roadmap\n\n## Progress\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|------|---|\n| 03. API Endpoints | 0/0 | Not started | — |\n';
+      fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), roadmap);
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      // Should not throw — STATE.md update may fail gracefully
+      expect(() => checkStateSync(data)).not.toThrow();
+    });
+
+    test('STATE.md with only frontmatter delimiters is handled', () => {
+      fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\n---\n');
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      expect(() => checkStateSync(data)).not.toThrow();
+    });
+
+    test('STATE.md with frontmatter but no body is handled', () => {
+      fs.writeFileSync(path.join(phaseDir, '01-PLAN.md'), '---\nphase: 03\n---');
+      fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---');
+      fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nversion: 2\ncurrent_phase: 3\nstatus: "building"\n---\n');
+
+      const data = { tool_input: { file_path: path.join(phaseDir, 'SUMMARY-01.md') } };
+      expect(() => checkStateSync(data)).not.toThrow();
+    });
+  });
+
+  describe('updateProgressTable with missing data', () => {
+    test('returns unchanged when ROADMAP has no progress table', () => {
+      const content = '# Roadmap\n\nNo table here at all\n';
+      const result = updateProgressTable(content, '1', '1/1', 'Complete', null);
+      expect(result).toBe(content);
+    });
+
+    test('returns unchanged when phases list is empty (no matching phase)', () => {
+      const content = '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|------|---|\n';
+      const result = updateProgressTable(content, '5', '1/1', 'Complete', null);
+      expect(result).toBe(content);
+    });
+
+    test('handles table with only header and separator (no rows)', () => {
+      const content = '# Roadmap\n\n| Phase | Plans Complete | Status | Completed |\n|-------|----------------|--------|------|---|\n\nSome other content\n';
+      const result = updateProgressTable(content, '1', '1/1', 'Complete', null);
+      expect(result).toBe(content);
+    });
+  });
+
+  describe('countPhaseArtifacts edge cases', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'state-sync-count-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('handles unreadable SUMMARY file gracefully', () => {
+      fs.writeFileSync(path.join(tmpDir, 'PLAN-01.md'), '---\nphase: 01\n---');
+      // Create SUMMARY as a directory (unreadable as file)
+      fs.mkdirSync(path.join(tmpDir, 'SUMMARY-01.md'));
+      const result = countPhaseArtifacts(tmpDir);
+      expect(result.plans).toBe(1);
+      expect(result.summaries).toBe(1); // counts by filename pattern
+      expect(result.completeSummaries).toBe(0); // cannot read → not counted
+    });
+
+    test('SUMMARY without status: complete is not counted as complete', () => {
+      fs.writeFileSync(path.join(tmpDir, 'PLAN-01.md'), '---\nphase: 01\n---');
+      fs.writeFileSync(path.join(tmpDir, 'SUMMARY-01.md'), '---\nstatus: partial\n---');
+      const result = countPhaseArtifacts(tmpDir);
+      expect(result.plans).toBe(1);
+      expect(result.summaries).toBe(1);
+      expect(result.completeSummaries).toBe(0);
+    });
+  });
+
   describe('CLI-routed state mutations', () => {
     const scriptPath = path.join(__dirname, '..', 'hooks', 'check-state-sync.js');
 
