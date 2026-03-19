@@ -155,9 +155,10 @@ function updateFrontmatterField(content, field, value) {
   const after = match[3];
   const rest = content.slice(match[0].length);
 
-  // Format value: integers stay bare, strings get quotes
-  const isNum = /^\d+$/.test(String(value));
-  const formatted = isNum ? value : `"${value}"`;
+  // Format value: null stays bare, integers stay bare, strings get quotes
+  const isNull = value === null || value === 'null';
+  const isNum = !isNull && /^\d+$/.test(String(value));
+  const formatted = isNull ? 'null' : isNum ? value : `"${value}"`;
 
   const fieldRegex = new RegExp(`^(${field})\\s*:.*$`, 'm');
   if (fieldRegex.test(yaml)) {
@@ -965,7 +966,44 @@ function stateReconcile(planningDir) {
     fieldsToUpdate.plans_total = phasesTotal;
     changes.push(`plans_total: ${parsed.plans_total || 0} -> ${phasesTotal}`);
   }
-  if (currentPhase !== null && currentPhase !== Number(parsed.current_phase || 0)) {
+
+  // When no active phases remain (e.g., after milestone complete archives all phases),
+  // reset STATE.md to idle state so downstream consumers don't read stale data.
+  // Read raw frontmatter for accurate field checks since parseStateMd remaps some fields.
+  const rawFm = parseYamlFrontmatter(stateContent);
+
+  if (currentPhase === null && phasesTotal === 0) {
+    const currentPhaseVal = parsed.current_phase;
+    if (currentPhaseVal !== null && currentPhaseVal !== undefined && String(currentPhaseVal) !== 'null') {
+      fieldsToUpdate.current_phase = 'null';
+      changes.push(`current_phase: ${currentPhaseVal} -> null`);
+    }
+    if (rawFm.phase_slug && String(rawFm.phase_slug) !== 'null') {
+      fieldsToUpdate.phase_slug = 'null';
+      changes.push(`phase_slug: ${rawFm.phase_slug} -> null`);
+    }
+    if (rawFm.phase_name && String(rawFm.phase_name) !== 'null') {
+      fieldsToUpdate.phase_name = 'null';
+      changes.push(`phase_name: ${rawFm.phase_name} -> null`);
+    }
+    const currentStatus = (parsed.status || '').toLowerCase();
+    if (currentStatus && currentStatus !== 'idle') {
+      fieldsToUpdate.status = 'idle';
+      changes.push(`status: ${parsed.status} -> idle`);
+    }
+    if (Number(rawFm.progress_percent || 0) !== 0) {
+      fieldsToUpdate.progress_percent = 0;
+      changes.push(`progress_percent: ${rawFm.progress_percent || 0} -> 0`);
+    }
+    if (Number(parsed.plans_complete || 0) !== 0) {
+      fieldsToUpdate.plans_complete = 0;
+      changes.push(`plans_complete: ${parsed.plans_complete || 0} -> 0`);
+    }
+    if (Number(rawFm.phases_total || 0) !== 0) {
+      fieldsToUpdate.phases_total = 0;
+      changes.push(`phases_total: ${rawFm.phases_total || 0} -> 0`);
+    }
+  } else if (currentPhase !== null && currentPhase !== Number(parsed.current_phase || 0)) {
     fieldsToUpdate.current_phase = currentPhase;
     changes.push(`current_phase: ${parsed.current_phase || 0} -> ${currentPhase}`);
   }

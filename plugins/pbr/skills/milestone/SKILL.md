@@ -478,10 +478,17 @@ Read `git.branching` from config.
 **CRITICAL (no hook): Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
 7b. **Update STATE.md:**
-   - Update `.planning/STATE.md` to mark the milestone as complete
-   - Clear the current milestone field or set status to "completed"
-   - Update last activity timestamp
-   - Record the milestone version in the history/completed section
+   - Update `.planning/STATE.md` frontmatter to reset to idle state:
+     - `current_phase: null`
+     - `phase_slug: null`
+     - `phase_name: null`
+     - `phases_total: 0`
+     - `status: "idle"`
+     - `progress_percent: 0`
+     - `plans_total: 0`
+     - `plans_complete: 0`
+     - `last_activity: "{date} Milestone {version} complete"`
+   - Update the body section to reflect idle state (no active phase)
 
 7c. **Record milestone completion in STATE.md frontmatter:**
    - Update STATE.md frontmatter with milestone completion data:
