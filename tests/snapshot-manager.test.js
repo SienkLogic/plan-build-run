@@ -76,6 +76,47 @@ describe('snapshot-manager', () => {
       const result = loadLatestSnapshot(planningDir);
       expect(result).toBeNull();
     });
+
+    test('returns null when snapshot exceeds maxAgeHours', () => {
+      const snapDir = path.join(planningDir, 'sessions', 'snapshots');
+      fs.mkdirSync(snapDir, { recursive: true });
+      const oldTimestamp = new Date(Date.now() - 72 * 3600000).toISOString();
+      const fileTs = oldTimestamp.replace(/:/g, '-').replace(/\.\d+Z$/, '');
+      fs.writeFileSync(
+        path.join(snapDir, `${fileTs}-snapshot.md`),
+        `---\ntimestamp: "${oldTimestamp}"\nsession_id: "old-session"\nfiles_count: 1\n---\n\n## Working Set\n- src/old.js\n`
+      );
+      const result = loadLatestSnapshot(planningDir, { maxAgeHours: 48 });
+      expect(result).toBeNull();
+    });
+
+    test('returns snapshot when within maxAgeHours', () => {
+      const snapDir = path.join(planningDir, 'sessions', 'snapshots');
+      fs.mkdirSync(snapDir, { recursive: true });
+      const recentTimestamp = new Date(Date.now() - 1 * 3600000).toISOString();
+      const fileTs = recentTimestamp.replace(/:/g, '-').replace(/\.\d+Z$/, '');
+      fs.writeFileSync(
+        path.join(snapDir, `${fileTs}-snapshot.md`),
+        `---\ntimestamp: "${recentTimestamp}"\nsession_id: "recent-session"\nfiles_count: 1\n---\n\n## Working Set\n- src/recent.js\n`
+      );
+      const result = loadLatestSnapshot(planningDir, { maxAgeHours: 48 });
+      expect(result).not.toBeNull();
+      expect(result.session_id).toBe('recent-session');
+    });
+
+    test('returns snapshot when maxAgeHours is not set (backward compat)', () => {
+      const snapDir = path.join(planningDir, 'sessions', 'snapshots');
+      fs.mkdirSync(snapDir, { recursive: true });
+      const oldTimestamp = new Date(Date.now() - 72 * 3600000).toISOString();
+      const fileTs = oldTimestamp.replace(/:/g, '-').replace(/\.\d+Z$/, '');
+      fs.writeFileSync(
+        path.join(snapDir, `${fileTs}-snapshot.md`),
+        `---\ntimestamp: "${oldTimestamp}"\nsession_id: "old-no-limit"\nfiles_count: 1\n---\n\n## Working Set\n- src/old.js\n`
+      );
+      const result = loadLatestSnapshot(planningDir);
+      expect(result).not.toBeNull();
+      expect(result.session_id).toBe('old-no-limit');
+    });
   });
 
   describe('formatSnapshotBriefing', () => {

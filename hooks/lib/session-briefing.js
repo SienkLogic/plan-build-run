@@ -826,7 +826,7 @@ function buildContext(planningDir, stateFile) {
   try {
     const snapshotsEnabled = config && config.features && config.features.mental_model_snapshots !== false;
     if (snapshotsEnabled) {
-      const snapshot = loadLatestSnapshot(planningDir);
+      const snapshot = loadLatestSnapshot(planningDir, { maxAgeHours: 48 });
       const snapshotBrief = formatSnapshotBriefing(snapshot);
       if (snapshotBrief) {
         parts.push('\n' + snapshotBrief);

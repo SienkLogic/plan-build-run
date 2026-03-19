@@ -185,6 +185,22 @@ Use AskUserQuestion:
 - If user selects **Discard autonomous state**: delete `.planning/.autonomous-state.json`, then proceed with normal resume flow
 - If `.autonomous-state.json` does NOT exist: skip this block entirely, proceed with Step 2
 
+### Step 1c: Read Latest Session Snapshot
+
+Check if `.planning/sessions/snapshots/` directory exists:
+- List files matching `*-snapshot.md`, sorted alphabetically (newest last).
+- If no snapshot files exist, skip this step.
+- Read the LAST file (most recent snapshot).
+- Parse the frontmatter `timestamp` field.
+- If the timestamp is older than 48 hours from now, skip (snapshot is stale).
+- Extract these sections from the snapshot body:
+  - **Working Set** -- files that were being edited
+  - **Current Approach** -- what the previous session was doing
+  - **Pending Decisions** -- unresolved decisions
+  - **Open Questions** -- open questions from prior session
+
+Store the extracted snapshot data for use in Step 3a/3b display. Do NOT display anything yet.
+
 ### Step 2: Search for .continue-here.md Files
 
 Search for `.continue-here.md` files across all phase directories:
@@ -247,6 +263,15 @@ Status: {status}
 
 Completed last session:
 {bulleted list of completed work}
+
+{If snapshot loaded and not stale:}
+Last session context:
+- Working on: {files from Working Set, max 5}
+- Approach: {Current Approach text, truncated to 150 chars}
+{If pending decisions exist:}
+- Pending decisions: {count} unresolved
+{If open questions exist:}
+- Open questions: {count} remaining
 
 Remaining in this phase:
 {bulleted list of remaining plans}
@@ -324,6 +349,15 @@ Resuming from STATE.md (no pause file found)
 
 Position: Phase {N} -- {name}
 Progress: {completed}/{total} plans complete
+
+{If snapshot loaded and not stale:}
+Last session context:
+- Working on: {files from Working Set, max 5}
+- Approach: {Current Approach text, truncated to 150 chars}
+{If pending decisions exist:}
+- Pending decisions: {count} unresolved
+{If open questions exist:}
+- Open questions: {count} remaining
 
 {Plans with summaries listed as complete}
 {Plans without summaries listed as remaining}

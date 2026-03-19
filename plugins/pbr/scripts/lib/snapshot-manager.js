@@ -137,7 +137,7 @@ function writeSnapshot(planningDir, context) {
  * @param {string} planningDir - Path to .planning directory
  * @returns {object|null} Snapshot data or null
  */
-function loadLatestSnapshot(planningDir) {
+function loadLatestSnapshot(planningDir, options = {}) {
   const snapDir = path.join(planningDir, 'sessions', 'snapshots');
   if (!fs.existsSync(snapDir)) return null;
 
@@ -155,6 +155,13 @@ function loadLatestSnapshot(planningDir) {
   const latestFile = files[files.length - 1];
   const content = fs.readFileSync(path.join(snapDir, latestFile), 'utf8');
   const { frontmatter, body } = parseSnapshotFile(content);
+
+  // Staleness check: return null if snapshot exceeds maxAgeHours
+  if (options.maxAgeHours != null && frontmatter.timestamp) {
+    const ageHours = (Date.now() - new Date(frontmatter.timestamp).getTime()) / 3600000;
+    if (ageHours > options.maxAgeHours) return null;
+  }
+
   const sections = parseSections(body);
 
   return {
