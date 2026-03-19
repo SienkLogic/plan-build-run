@@ -386,11 +386,25 @@ Based on the project state, suggest the single most logical next action:
 9. Nothing active?
    → "Start your project: `/pbr:new-project`"
 
+Autonomous mode suggestion (conditional):
+After the primary next-action is determined, check the number of pending phases:
+- Count all phases in ROADMAP.md whose status is `not_started`, `discussed`, `ready_to_plan`, or `planned`
+- If count >= 2 AND `config.mode` is NOT `autonomous`:
+  Display this advisory block below the primary next-action suggestion:
+
+  ─────────────────────────────────────────────
+  Multiple phases ready: {count} phases pending.
+  Run all phases hands-free with `/pbr:autonomous`
+  ─────────────────────────────────────────────
+
+- If count < 2 OR config.mode is already `autonomous`: skip — do not display.
+
 Other skills available for routing:
 - `/pbr:explore` — open-ended idea exploration
 - `/pbr:note` — zero-friction idea capture
 - `/pbr:debug` — systematic debugging
 - `/pbr:import` — import external plans
+- `/pbr:autonomous` — run multiple phases hands-free (when multiple phases are pending)
 ```
 
 **If only one reasonable next action exists**, present it with branded routing:
