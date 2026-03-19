@@ -146,7 +146,7 @@ For each remaining phase N:
        subagent_type: "pbr:planner",
        model: "sonnet",
        run_in_background: true,
-       prompt: "Plan Phase {C}. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building."
+       prompt: "Plan Phase {C} --speculative. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building. Do NOT write .active-skill. Do NOT update STATE.md."
      })
      ```
    - Plans are written directly to the normal phase directory (NOT .speculative/) per locked decision #2
@@ -158,6 +158,7 @@ Important constraints:
 - Exception: if a phase-level CONTEXT.md already exists from a prior manual `/pbr:discuss-phase`, that is fine -- the planner will use it.
 - Do NOT speculate on phases that already have plans.
 - Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
+- After dispatching speculative Task()s, do NOT write .active-skill — the orchestrator already owns it for the active Phase {N} build. The speculative planner receives --speculative and will skip signal file writes.
 
 ### 3c-stale. Staleness Check (after build completes)
 
