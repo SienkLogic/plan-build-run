@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * Tests for localhost-only validation of local_llm.endpoint in configValidate().
+ * Tests for local_llm deprecation in configValidate().
+ * Endpoint validation removed in phase 53 — local_llm feature deprecated.
  */
 
 const { configValidate } = require('../../plan-build-run/bin/lib/config.cjs');
@@ -15,36 +16,26 @@ function makeConfig(localLlm) {
   };
 }
 
-describe('configValidate — local_llm.endpoint localhost validation', () => {
-  test('accepts localhost endpoint', () => {
-    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://localhost:11434' }));
-    expect(result.errors.filter(e => e.includes('local_llm.endpoint'))).toHaveLength(0);
+describe('configValidate — local_llm deprecation', () => {
+  test('local_llm.enabled=true produces deprecation warning', () => {
+    const result = configValidate(makeConfig({ enabled: true }));
+    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
   });
 
-  test('accepts 127.0.0.1 endpoint', () => {
-    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://127.0.0.1:11434' }));
-    expect(result.errors.filter(e => e.includes('local_llm.endpoint'))).toHaveLength(0);
+  test('local_llm.enabled=false produces no deprecation warning', () => {
+    const result = configValidate(makeConfig({ enabled: false }));
+    expect(result.warnings.filter(w => w.includes('local_llm')).length).toBe(0);
   });
 
-  test('accepts ::1 IPv6 endpoint', () => {
-    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://[::1]:11434' }));
-    expect(result.errors.filter(e => e.includes('local_llm.endpoint'))).toHaveLength(0);
+  test('local_llm.enabled=true with endpoint still only produces deprecation', () => {
+    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://remote.example.com:11434' }));
+    // No endpoint errors — only deprecation warning
+    expect(result.errors.filter(e => e.includes('local_llm')).length).toBe(0);
+    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
   });
 
-  test('rejects remote hostname when enabled', () => {
-    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://192.168.1.100:11434' }));
-    expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('localhost') && e.includes('local_llm.endpoint'))).toBe(true);
-  });
-
-  test('rejects external domain when enabled', () => {
-    const result = configValidate(makeConfig({ enabled: true, endpoint: 'http://my-llm-server.example.com:11434' }));
-    expect(result.valid).toBe(false);
-    expect(result.errors.some(e => e.includes('local_llm.endpoint'))).toBe(true);
-  });
-
-  test('skips endpoint validation when local_llm.enabled is false', () => {
+  test('skips deprecation warning when local_llm.enabled is false', () => {
     const result = configValidate(makeConfig({ enabled: false, endpoint: 'http://remote.example.com:11434' }));
-    expect(result.errors.filter(e => e.includes('local_llm.endpoint'))).toHaveLength(0);
+    expect(result.warnings.filter(w => w.includes('local_llm')).length).toBe(0);
   });
 });

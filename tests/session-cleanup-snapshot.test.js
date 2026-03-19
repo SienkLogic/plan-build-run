@@ -21,12 +21,7 @@ jest.mock('../plugins/pbr/scripts/lib/core', () => ({
   releaseSessionClaims: jest.fn(() => ({ released: [] }))
 }));
 
-// Mock local-llm/metrics
-jest.mock('../plugins/pbr/scripts/local-llm/metrics', () => ({
-  readSessionMetrics: jest.fn(() => []),
-  summarizeMetrics: jest.fn(() => ({ total_calls: 0 })),
-  formatSessionSummary: jest.fn(() => '')
-}));
+// local-llm/metrics was removed in Phase 53 (dead feature cleanup)
 
 const { writeSnapshot, loadLatestSnapshot: _loadLatestSnapshot } = require('../plugins/pbr/scripts/lib/snapshot-manager');
 const { configLoad } = require('../plugins/pbr/scripts/pbr-tools');

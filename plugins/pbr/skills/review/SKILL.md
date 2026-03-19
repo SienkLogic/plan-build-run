@@ -281,20 +281,6 @@ If ANY spot-check fails, present the user with options: **Retry** / **Continue a
 
 ---
 
-### Step 3b: Local LLM Verification Quality Check (optional, advisory)
-
-After the verifier completes and writes VERIFICATION.md, if `config.local_llm.enabled` is `true`, run a quality classification:
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
-```
-
-- If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:verify-work {N}."`
-- If the command fails or returns null: skip silently (local LLM unavailable)
-- This is advisory only — never block on the result
-
----
-
 ### Step 4: Present Verification Results (inline)
 
 Read the VERIFICATION.md frontmatter. Check the `attempt` counter.

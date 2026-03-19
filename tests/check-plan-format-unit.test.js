@@ -6,10 +6,6 @@ const path = require('path');
 const os = require('os');
 const { createRunner } = require('./helpers');
 
-// Mock the LLM classify-artifact module so advisory enrichment doesn't fire in tests
-jest.mock('../hooks/local-llm/operations/classify-artifact', () => ({
-  classifyArtifact: jest.fn().mockResolvedValue(null)
-}));
 
 const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-plan-format.js');
 const _run = createRunner(SCRIPT);
@@ -313,108 +309,7 @@ describe('validateRoadmap branch coverage', () => {
   });
 });
 
-describe('checkPlanWrite — LLM enrichment branch', () => {
-  test('adds LLM classification warning when classifyArtifact returns result', async () => {
-    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
-    classifyArtifact.mockResolvedValueOnce({ classification: 'good', confidence: 0.95, reason: 'looks solid' });
-
-    const filePath = path.join(tmpDir, 'PLAN-llm1.md');
-    fs.writeFileSync(filePath, `---
-phase: 01-setup
-plan: 01
-wave: 1
-type: feature
-depends_on: []
-files_modified: ["src/file.ts"]
-autonomous: true
-implements: [42]
-must_haves:
-  truths: ["works"]
-  artifacts: ["file.ts"]
-  key_links: []
----
-<task type="auto">
-  <name>Task 1</name>
-  <read_first>src/file.ts</read_first>
-  <files>src/file.ts</files>
-  <action>Do it</action>
-  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
-  <verify>npm test</verify>
-  <done>Done</done>
-</task>`);
-    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
-    // With LLM result, should return a warning
-    expect(result).not.toBeNull();
-    expect(result.output.additionalContext).toContain('Local LLM');
-    expect(result.output.additionalContext).toContain('95%');
-  });
-
-  test('LLM classification without reason omits reason suffix', async () => {
-    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
-    classifyArtifact.mockResolvedValueOnce({ classification: 'ok', confidence: 0.8 });
-
-    const filePath = path.join(tmpDir, 'PLAN-llm2.md');
-    fs.writeFileSync(filePath, `---
-phase: 01-setup
-plan: 01
-wave: 1
-type: feature
-depends_on: []
-files_modified: ["src/file.ts"]
-autonomous: true
-implements: [42]
-must_haves:
-  truths: ["works"]
-  artifacts: ["file.ts"]
-  key_links: []
----
-<task type="auto">
-  <name>Task 1</name>
-  <read_first>src/file.ts</read_first>
-  <files>src/file.ts</files>
-  <action>Do it</action>
-  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
-  <verify>npm test</verify>
-  <done>Done</done>
-</task>`);
-    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
-    expect(result).not.toBeNull();
-    expect(result.output.additionalContext).not.toContain(' — ');
-  });
-
-  test('LLM error is silently ignored', async () => {
-    const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
-    classifyArtifact.mockRejectedValueOnce(new Error('LLM down'));
-
-    const filePath = path.join(tmpDir, 'PLAN-llm3.md');
-    fs.writeFileSync(filePath, `---
-phase: 01-setup
-plan: 01
-wave: 1
-type: feature
-depends_on: []
-files_modified: ["src/file.ts"]
-autonomous: true
-implements: [42]
-must_haves:
-  truths: ["works"]
-  artifacts: ["file.ts"]
-  key_links: []
----
-<task type="auto">
-  <name>Task 1</name>
-  <read_first>src/file.ts</read_first>
-  <files>src/file.ts</files>
-  <action>Do it</action>
-  <acceptance_criteria>test -f src/file.ts</acceptance_criteria>
-  <verify>npm test</verify>
-  <done>Done</done>
-</task>`);
-    const result = await checkPlanWrite({ tool_input: { file_path: filePath } });
-    // Should be null — no warnings since LLM error is swallowed
-    expect(result).toBeNull();
-  });
-});
+// LLM enrichment branch tests removed — local-llm feature deprecated in phase 53
 
 describe('checkStateWrite — syncStateBody branch', () => {
   const { syncStateBody } = require('../hooks/check-plan-format');

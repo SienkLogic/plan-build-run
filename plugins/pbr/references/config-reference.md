@@ -525,7 +525,9 @@ Run validation with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config val
 
 ---
 
-## local_llm
+## local_llm (DEPRECATED)
+
+> **DEPRECATED**: This feature has been removed as of v14.0. The config key is retained for backward compatibility. Setting `enabled: true` has no effect.
 
 Offloads selected PBR inference tasks to a locally running Ollama instance, reducing frontier model usage and latency for fast classification calls. The key `enabled` defaults to `false`, so users without Ollama see no change — all LLM calls continue routing to Claude as normal. When enabled, PBR uses a `local_first` routing strategy: fast tasks (artifact classification, task validation) go to the local model; complex tasks (planning, execution) stay on the frontier model.
 

@@ -77,14 +77,14 @@ const CONFIG_DEFAULTS = {
     progress_visualization: true,
     contextual_help: true,
     team_onboarding: false,
-    multi_layer_validation: false,
+    multi_layer_validation: false, // DEPRECATED: multi_layer_validation never integrated. Key retained for backward compat.
     regression_prevention: true,
     security_scanning: true,
     architecture_graph: true,
     architecture_guard: true,
     incident_journal: true
   },
-  validation_passes: ['correctness', 'security'],
+  validation_passes: ['correctness', 'security'], // DEPRECATED: used only with multi_layer_validation.
   autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },
   models: {
     researcher: 'sonnet',
@@ -188,7 +188,7 @@ const CONFIG_DEFAULTS = {
     max_phases_in_context: 3
   },
   hook_server: { enabled: false, port: 19836, event_log: true },
-  local_llm: { enabled: false },
+  local_llm: { enabled: false }, // DEPRECATED: local_llm infrastructure removed in v14.0. Key retained for backward compat.
   intel: { enabled: false, auto_update: false, inject_on_start: false },
   context_ledger: { enabled: false, stale_after_minutes: 60 },
   learnings: { enabled: false, read_depth: 3, cross_project_knowledge: false },
@@ -326,21 +326,9 @@ function configValidate(preloadedConfig, planningDir) {
     warnings.push(`config.json schema is outdated. Run: node pbr-tools.js migrate`);
   }
 
-  // Local LLM endpoint must be localhost-only for security
-  if (config.local_llm && config.local_llm.enabled === true && config.local_llm.endpoint) {
-    try {
-      const parsed = new URL(config.local_llm.endpoint);
-      const hostname = parsed.hostname.toLowerCase();
-      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]'];
-      if (!localhostNames.includes(hostname)) {
-        errors.push(
-          `local_llm.endpoint must be a localhost address (localhost, 127.0.0.1, or ::1). ` +
-          `Got: "${hostname}". Non-localhost endpoints are not supported for security reasons.`
-        );
-      }
-    } catch (_urlErr) {
-      errors.push(`local_llm.endpoint is not a valid URL: "${config.local_llm.endpoint}"`);
-    }
+  // DEPRECATED: local_llm infrastructure removed in v14.0
+  if (config.local_llm && config.local_llm.enabled === true) {
+    warnings.push('local_llm feature is deprecated and has no effect. Set enabled: false to suppress this warning.');
   }
 
   // Semantic conflict detection — logical contradictions that pass schema validation
@@ -624,7 +612,7 @@ const CONFIG_SECTIONS = [
       'graduated_verification: trust-based verification depth (light/standard/thorough)',
       'inline_verify: per-task verification after each commit (+10-20s per plan)',
       'integration_verification: cross-phase integration checks',
-      'multi_layer_validation: parallel BugBot-style review passes',
+      '(DEPRECATED) multi_layer_validation: parallel BugBot-style review passes — never integrated',
       'self_verification: executor self-checks before presenting output',
       'trust_tracking: trust scores per agent type and task category',
       '',
@@ -732,7 +720,7 @@ const CONFIG_SECTIONS = [
   {
     guide: '_guide_verification',
     lines: [
-      'validation_passes: which review passes run with multi_layer_validation',
+      '(DEPRECATED) validation_passes: which review passes run with multi_layer_validation — never integrated',
       '  options: correctness, security, performance, style, tests, accessibility, docs, deps',
       'verification.confidence_gate: skip verification if executor reports 100% completion + tests pass',
       'verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification'
@@ -781,7 +769,7 @@ const CONFIG_SECTIONS = [
       'debug.max_hypothesis_rounds: 1-20 — max hypothesis cycles for /pbr:debug',
       'depth_profiles: override built-in quick/standard/comprehensive defaults',
       'developer_profile: behavioral profiling from session history + prompt injection',
-      'local_llm: offload classification tasks to local Ollama instance',
+      '(DEPRECATED) local_llm: offload classification tasks to local Ollama instance — removed in v14.0',
       'prd.auto_extract: skip confirmation gate during PRD import',
       'spinner_tips: custom messages shown during agent execution',
       'status_line: status bar appearance (sections, branding, context bar)',

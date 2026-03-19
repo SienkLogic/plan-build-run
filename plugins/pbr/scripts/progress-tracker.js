@@ -18,8 +18,6 @@ const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
-const { resolveConfig, checkHealth, warmUp } = require('./local-llm/health');
-
 // Re-export from extracted modules for backward compatibility
 const {
   buildEnhancedBriefing,
@@ -134,7 +132,7 @@ async function main() {
     tryLaunchHookServer(config, planningDir);
   }
 
-  // Write session-start timestamp for local-llm metrics correlation
+  // Write session-start timestamp for session metrics
   // Primary: write to .session.json (unified session state)
   // Legacy: also write .session-start file for session-cleanup.js backward compat
   const sessionStart = new Date().toISOString();
@@ -144,24 +142,7 @@ async function main() {
     fs.writeFileSync(sessionStartFile, sessionStart, 'utf8');
   } catch (_e) { /* non-fatal */ }
 
-  // Local LLM health check (advisory only -- never blocks SessionStart)
-  let llmContext = '';
-  try {
-    const rawLlmConfig = config && config.local_llm;
-    const llmConfig = resolveConfig(rawLlmConfig);
-    if (llmConfig.enabled) {
-      const health = await checkHealth(llmConfig);
-      if (health.available) {
-        llmContext = `\nLocal LLM: ${llmConfig.model} (${health.warm ? 'warm' : 'cold start'})`;
-        if (!health.warm) {
-          // Fire warm-up without awaiting -- 23s cold start must not block hook
-          warmUp(llmConfig);
-        }
-      } else if (health.reason !== 'disabled') {
-        llmContext = `\nLocal LLM: unavailable -- ${health.detail || health.reason}`;
-      }
-    }
-  } catch (_e) { /* graceful degradation -- never surface to user */ }
+  // Local LLM health check removed (phase 53 — feature archived)
 
   // Enrich context with recent session activity from hook server (advisory, fail-open)
   let enrichedContext = '';
@@ -179,7 +160,7 @@ async function main() {
 
   if (context) {
     const output = {
-      additionalContext: context + sessionWarning + llmContext + enrichedContext
+      additionalContext: context + sessionWarning + enrichedContext
     };
     process.stdout.write(JSON.stringify(output));
     logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });

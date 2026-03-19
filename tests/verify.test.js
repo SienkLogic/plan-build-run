@@ -235,7 +235,9 @@ describe('cmdValidateHealth', () => {
 });
 
 describe('cmdValidateHealth - Phase 14 feature checks', () => {
-  test('health check reports multi_layer_validation enabled as healthy', () => {
+  // multi_layer_validation feature deprecated — see v14.0 dead feature cleanup
+  // Health check still reports status for backward compat until full removal
+  test('health check reports multi_layer_validation enabled status', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         depth: 'standard',
@@ -244,7 +246,7 @@ describe('cmdValidateHealth - Phase 14 feature checks', () => {
       }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
-    expect(out).toMatch(/multi_layer_validation.*healthy|healthy.*multi_layer_validation/i);
+    expect(out).toMatch(/multi_layer_validation.*(?:healthy|degraded|deprecated)/i);
   });
 
   test('health check reports multi_layer_validation disabled', () => {
@@ -280,9 +282,8 @@ describe('cmdValidateHealth - Phase 14 feature checks', () => {
     expect(out).toMatch(/security_scanning/i);
   });
 
-  test('health check reports degraded when validation module missing', () => {
-    // Use a temp path that doesn't have the validation module
-    // We simulate by checking the feature_status output contains 'healthy' or 'degraded'
+  // multi_layer_validation feature deprecated — health check retained for backward compat
+  test('health check reports multi_layer_validation status when enabled', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
         depth: 'standard',
@@ -291,7 +292,7 @@ describe('cmdValidateHealth - Phase 14 feature checks', () => {
       }));
     try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
     const out = getOutput();
-    // Either healthy (module exists) or degraded — both are valid outcomes
-    expect(out).toMatch(/multi_layer_validation.*(?:healthy|degraded)/i);
+    // Either healthy (module exists) or degraded — both valid for deprecated feature
+    expect(out).toMatch(/multi_layer_validation.*(?:healthy|degraded|deprecated)/i);
   });
 });

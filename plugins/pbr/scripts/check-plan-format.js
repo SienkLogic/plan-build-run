@@ -25,9 +25,6 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { resolveConfig } = require('./local-llm/health');
-const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
-
 // Import all validators from extracted module
 const {
   validateMustHaves,
@@ -48,20 +45,6 @@ const {
   validateResearch,
   validateContext
 } = require('./lib/format-validators');
-
-/**
- * Load and resolve the local_llm config block from .planning/config.json.
- * Returns a resolved config (always safe to use -- disabled by default on error).
- */
-function loadLocalLlmConfig() {
-  try {
-    const configPath = path.join(process.cwd(), '.planning', 'config.json');
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return resolveConfig(parsed.local_llm);
-  } catch (_e) {
-    return resolveConfig(undefined);
-  }
-}
 
 async function main() {
   let input = '';
@@ -110,22 +93,6 @@ async function main() {
                   : isContext
                     ? validateContext(content, filePath)
                     : validateSummary(content, filePath);
-
-      // LLM advisory enrichment -- advisory only, never blocks
-      if ((isPlan || isSummary) && result.errors.length === 0) {
-        try {
-          const llmConfig = loadLocalLlmConfig();
-          const planningDir = path.join(process.cwd(), '.planning');
-          const fileType = isPlan ? 'PLAN' : 'SUMMARY';
-          const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
-          if (llmResult && llmResult.classification) {
-            const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
-            result.warnings.push(llmNote);
-          }
-        } catch (_llmErr) {
-          // Never propagate LLM errors
-        }
-      }
 
       const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 

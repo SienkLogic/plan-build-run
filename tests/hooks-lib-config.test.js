@@ -330,42 +330,30 @@ describe('configValidate', () => {
     ]));
   });
 
-  it('local_llm.endpoint non-localhost produces error', () => {
+  // local_llm endpoint validation tests removed — feature deprecated in phase 53
+  // Endpoint validation no longer applies; only deprecation warning for enabled: true
+
+  it('local_llm.enabled=true produces deprecation warning', () => {
     const cfg = {
       schema_version: 1,
       version: 2,
-      local_llm: { enabled: true, endpoint: 'http://evil.com:11434' },
+      local_llm: { enabled: true },
     };
     const result = configValidate(cfg);
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('localhost'),
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.stringContaining('deprecated'),
     ]));
   });
 
-  it('local_llm.endpoint invalid URL produces error', () => {
+  it('local_llm.enabled=false produces no deprecation warning', () => {
     const cfg = {
       schema_version: 1,
       version: 2,
-      local_llm: { enabled: true, endpoint: 'not-a-url' },
+      local_llm: { enabled: false },
     };
     const result = configValidate(cfg);
-    expect(result.valid).toBe(false);
-    expect(result.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('not a valid URL'),
-    ]));
-  });
-
-  it('local_llm localhost endpoint is accepted', () => {
-    const cfg = {
-      schema_version: 1,
-      version: 2,
-      local_llm: { enabled: true, endpoint: 'http://localhost:11434' },
-    };
-    const result = configValidate(cfg);
-    // No local_llm errors expected
-    const llmErrors = result.errors.filter(e => e.includes('local_llm'));
-    expect(llmErrors).toEqual([]);
+    const llmWarnings = result.warnings.filter(w => w.includes('local_llm'));
+    expect(llmWarnings).toEqual([]);
   });
 
   it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', () => {

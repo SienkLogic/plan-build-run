@@ -116,21 +116,9 @@ function configValidate(configOrDir, planningDir) {
     warnings.push(`config.json schema_version (${config.schema_version}) is behind current (${CURRENT_SCHEMA_VERSION}) — run "pbr-tools migrate" to update`);
   }
 
-  // Local LLM endpoint must be localhost-only for security
-  if (config.local_llm && config.local_llm.enabled === true && config.local_llm.endpoint) {
-    try {
-      const parsed = new URL(config.local_llm.endpoint);
-      const hostname = parsed.hostname.toLowerCase();
-      const localhostNames = ['localhost', '127.0.0.1', '::1', '[::1]'];
-      if (!localhostNames.includes(hostname)) {
-        errors.push(
-          `local_llm.endpoint must be a localhost address (localhost, 127.0.0.1, or ::1). ` +
-          `Got: "${hostname}". Non-localhost endpoints are not supported for security reasons.`
-        );
-      }
-    } catch (_urlErr) {
-      errors.push(`local_llm.endpoint is not a valid URL: "${config.local_llm.endpoint}"`);
-    }
+  // DEPRECATED: local_llm infrastructure removed in v14.0
+  if (config.local_llm && config.local_llm.enabled === true) {
+    warnings.push('local_llm feature is deprecated and has no effect. Set enabled: false to suppress this warning.');
   }
 
   // Semantic conflict detection

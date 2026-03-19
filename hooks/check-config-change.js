@@ -64,17 +64,7 @@ function validateConfig(configPath) {
     }
   }
 
-  // Advisory: suggest local_llm defaults if the key is absent
-  if (!config.local_llm) {
-    warnings.push(
-      'local_llm config missing. To enable local LLM offload, add to config.json:\n' +
-      '"local_llm": {\n' +
-      '  "enabled": false,\n' +
-      '  "model": "qwen2.5-coder:7b",\n' +
-      '  "endpoint": "http://localhost:11434"\n' +
-      '} (set enabled: true after running: ollama pull qwen2.5-coder:7b)'
-    );
-  }
+  // local_llm is deprecated — no advisory for missing key
 
   // Check version
   if (config.version && config.version < 2) {
@@ -102,25 +92,9 @@ function validateConfig(configPath) {
     }
   }
 
-  // Validate local_llm block
-  if (config.local_llm !== undefined) {
-    const llm = config.local_llm;
-    if (llm.enabled !== undefined && typeof llm.enabled !== 'boolean') {
-      warnings.push('local_llm.enabled must be a boolean');
-    }
-    if (llm.provider !== undefined && llm.provider !== 'ollama') {
-      warnings.push(`local_llm.provider "${llm.provider}" is not supported — use "ollama"`);
-    }
-    if (llm.timeout_ms !== undefined && (typeof llm.timeout_ms !== 'number' || llm.timeout_ms < 500)) {
-      warnings.push('local_llm.timeout_ms must be a number >= 500');
-    }
-    if (llm.advanced && llm.advanced.num_ctx !== undefined && llm.advanced.num_ctx !== 4096) {
-      warnings.push(`local_llm.advanced.num_ctx is ${llm.advanced.num_ctx} — strongly recommend 4096 to avoid GPU memory issues on Windows`);
-    }
-    if (llm.advanced && llm.advanced.disable_after_failures !== undefined &&
-        (typeof llm.advanced.disable_after_failures !== 'number' || llm.advanced.disable_after_failures < 1)) {
-      warnings.push('local_llm.advanced.disable_after_failures must be a number >= 1');
-    }
+  // DEPRECATED: local_llm infrastructure removed in v14.0
+  if (config.local_llm && config.local_llm.enabled === true) {
+    warnings.push('local_llm feature is deprecated and has no effect. Set enabled: false to suppress this warning.');
   }
 
   return warnings;

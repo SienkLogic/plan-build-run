@@ -314,7 +314,8 @@
         "multi_layer_validation": {
           "type": "boolean",
           "default": false,
-          "description": "Enable parallel multi-layer review passes (BugBot-style). When true, build skill spawns one reviewer per pass in validation_passes. Default false (budget-friendly). Set to true in quality profile."
+          "deprecated": true,
+          "description": "DEPRECATED. Parallel multi-layer review passes were never integrated. Key retained for backward compatibility."
         },
         "regression_prevention": {
           "type": "boolean",
@@ -346,7 +347,8 @@
         "enum": ["correctness", "security", "performance", "style", "tests", "accessibility", "docs", "deps"]
       },
       "default": ["correctness", "security"],
-      "description": "List of validation pass names to run when features.multi_layer_validation is true. Available passes: correctness, security, performance, style, tests, accessibility, docs, deps."
+      "deprecated": true,
+      "description": "DEPRECATED. Used only with multi_layer_validation which was never integrated. Key retained for backward compatibility."
     },
     "autonomy": {
       "type": "object",
@@ -1093,6 +1095,8 @@
     },
     "local_llm": {
       "type": "object",
+      "deprecated": true,
+      "description": "DEPRECATED. Local LLM infrastructure removed in v14.0. Key retained for backward compatibility.",
       "properties": {
         "enabled": {
           "type": "boolean"

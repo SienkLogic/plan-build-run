@@ -35,7 +35,7 @@
  *   auto-cleanup --phase N | --milestone vN — Auto-close todos and archive notes matching phase/milestone deliverables
  *   state reconcile          — Detect and repair STATE.md/ROADMAP.md desync
  *   state backup             — Create timestamped backup of STATE.md and ROADMAP.md
- *   llm metrics [--session <ISO>]        — Lifetime or session-scoped LLM usage metrics
+ *   llm <subcommand>                     — DEPRECATED: local_llm removed (no-op)
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
  *   phase remove <N>             — Remove an empty phase directory (with renumbering)
@@ -275,14 +275,7 @@ const {
   quickStatus: _quickStatus
 } = require('./quick-status');
 
-// --- Local LLM imports (not extracted — separate module tree) ---
-const { resolveConfig, checkHealth } = require('./local-llm/health');
-const { classifyArtifact } = require('./local-llm/operations/classify-artifact');
-const { scoreSource } = require('./local-llm/operations/score-source');
-const { classifyError } = require('./local-llm/operations/classify-error');
-const { summarizeContext } = require('./local-llm/operations/summarize-context');
-const { readSessionMetrics, summarizeMetrics, computeLifetimeMetrics } = require('./local-llm/metrics');
-const { computeThresholdAdjustments } = require('./local-llm/threshold-tuner');
+// --- Local LLM imports removed (feature archived in phase 53) ---
 
 const {
   dataStatus: _dataStatus,
@@ -960,115 +953,9 @@ async function main() {
       const { logEvent } = require('./event-logger');
       logEvent(category, event, details);
       output({ logged: true, category, event });
-    } else if (command === 'llm' && subcommand === 'health') {
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const health = await checkHealth(llmConfig);
-      output(health);
-    } else if (command === 'llm' && subcommand === 'status') {
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      output({
-        enabled: llmConfig.enabled,
-        model: llmConfig.model,
-        endpoint: llmConfig.endpoint,
-        features: llmConfig.features,
-        metrics_file: path.join(planningDir, 'logs', 'local-llm-metrics.jsonl'),
-        timeout_ms: llmConfig.timeout_ms,
-        disable_after_failures: llmConfig.advanced.disable_after_failures
-      });
-    } else if (command === 'llm' && subcommand === 'classify') {
-      const fileType = args[2];
-      const filePath = args[3];
-      if (!fileType || !filePath) {
-        error('Usage: pbr-tools.js llm classify <PLAN|SUMMARY> <filepath>');
-      }
-      const upperType = fileType.toUpperCase();
-      if (upperType !== 'PLAN' && upperType !== 'SUMMARY') {
-        error('llm classify: fileType must be PLAN or SUMMARY');
-      }
-      let content = '';
-      try {
-        content = fs.readFileSync(filePath, 'utf8');
-      } catch (_e) {
-        error('llm classify: cannot read file: ' + filePath);
-      }
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const result = await classifyArtifact(llmConfig, planningDir, content, upperType, undefined);
-      output(result || { classification: null, reason: 'LLM disabled or unavailable' });
-    } else if (command === 'llm' && subcommand === 'score-source') {
-      const sourceUrl = args[2];
-      const filePath = args[3];
-      if (!sourceUrl || !filePath) {
-        error('Usage: pbr-tools.js llm score-source <url> <file-path>');
-      }
-      if (!fs.existsSync(filePath)) {
-        error('File not found: ' + filePath);
-      }
-      const content = fs.readFileSync(filePath, 'utf8');
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const result = await scoreSource(llmConfig, planningDir, content, sourceUrl, undefined);
-      output(result || { level: null, reason: 'LLM disabled or unavailable' });
-    } else if (command === 'llm' && subcommand === 'classify-error') {
-      const filePath = args[2];
-      const agentType = args[3] || 'unknown';
-      if (!filePath) {
-        error('Usage: pbr-tools.js llm classify-error <file-path> [agent-type]');
-      }
-      if (!fs.existsSync(filePath)) {
-        error('File not found: ' + filePath);
-      }
-      const errorText = fs.readFileSync(filePath, 'utf8');
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const result = await classifyError(llmConfig, planningDir, errorText, agentType, undefined);
-      output(result || { category: null, reason: 'LLM disabled or unavailable' });
-    } else if (command === 'llm' && subcommand === 'summarize') {
-      const filePath = args[2];
-      const maxWords = args[3] ? parseInt(args[3], 10) : undefined;
-      if (!filePath) {
-        error('Usage: pbr-tools.js llm summarize <file-path> [max-words]');
-      }
-      if (!fs.existsSync(filePath)) {
-        error('File not found: ' + filePath);
-      }
-      const contextText = fs.readFileSync(filePath, 'utf8');
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const result = await summarizeContext(llmConfig, planningDir, contextText, maxWords, undefined);
-      output(result || { summary: null, reason: 'LLM disabled or unavailable' });
-    } else if (command === 'llm' && subcommand === 'metrics') {
-      const sessionFlag = args[2]; // '--session'
-      const sessionStart = args[3]; // ISO timestamp
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* defaults */ }
-      const rate = rawConfig.local_llm && rawConfig.local_llm.metrics && rawConfig.local_llm.metrics.frontier_token_rate
-        ? rawConfig.local_llm.metrics.frontier_token_rate : 3.0;
-      if (sessionFlag === '--session' && sessionStart) {
-        const entries = readSessionMetrics(planningDir, sessionStart);
-        const summary = summarizeMetrics(entries, rate);
-        output({ scope: 'session', session_start: sessionStart, ...summary });
-      } else {
-        const lifetime = computeLifetimeMetrics(planningDir, rate);
-        output({ scope: 'lifetime', ...lifetime });
-      }
-    } else if (command === 'llm' && subcommand === 'adjust-thresholds') {
-      let rawConfig = {};
-      try { rawConfig = configLoad(planningDir) || {}; } catch (_e) { /* use defaults */ }
-      const llmConfig = resolveConfig(rawConfig.local_llm);
-      const currentThreshold = llmConfig.advanced.confidence_threshold;
-      const suggestions = computeThresholdAdjustments(planningDir, currentThreshold);
-      output(suggestions.length > 0
-        ? { suggestions }
-        : { suggestions: [], message: 'Not enough shadow samples yet (need >= 20 per operation)' });
+    } else if (command === 'llm') {
+      // local_llm feature has been removed (phase 53). All subcommands are no-ops.
+      output({ deprecated: true, message: 'local_llm feature has been removed. This subcommand is a no-op.' });
     // --- Compound init commands ---
     } else if (command === "init" && subcommand === "execute-phase") {
       const phase = args[2];

@@ -31,6 +31,7 @@ describe('config defaults - Phase 14 features', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  // Key retained as deprecated — see v14.0 dead feature cleanup
   test('config defaults include multi_layer_validation: false', () => {
     const configPath = path.join(tmpDir, '.planning', 'config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -49,6 +50,7 @@ describe('config defaults - Phase 14 features', () => {
     expect(config.features.security_scanning).toBe(true);
   });
 
+  // Key retained as deprecated — see v14.0 dead feature cleanup
   test('config defaults include validation_passes with correctness and security', () => {
     const configPath = path.join(tmpDir, '.planning', 'config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));

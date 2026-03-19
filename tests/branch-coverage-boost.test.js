@@ -240,11 +240,12 @@ describe('prompt-routing additional branches', () => {
 describe('config.cjs additional branches', () => {
   const { configValidate } = require('../plan-build-run/bin/lib/config.cjs');
 
-  test('validates config with local_llm IPv6 endpoint', () => {
+  // local_llm endpoint validation removed — feature deprecated in phase 53
+  test('validates config with local_llm enabled produces deprecation warning', () => {
     const result = configValidate({
-      local_llm: { enabled: true, endpoint: 'http://[::1]:11434/v1' }
+      local_llm: { enabled: true }
     });
-    expect(result.errors.filter(e => e.includes('localhost')).length).toBe(0);
+    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
   });
 
   test('validates config with no gates in autonomous mode', () => {

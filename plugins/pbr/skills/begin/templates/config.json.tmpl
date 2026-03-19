@@ -100,7 +100,7 @@
     "graduated_verification: trust-based verification depth (light/standard/thorough)",
     "inline_verify: per-task verification after each commit (+10-20s per plan)",
     "integration_verification: cross-phase integration checks",
-    "multi_layer_validation: parallel BugBot-style review passes",
+    "(DEPRECATED) multi_layer_validation: parallel BugBot-style review passes — never integrated",
     "self_verification: executor self-checks before presenting output",
     "trust_tracking: trust scores per agent type and task category",
     "",
@@ -316,7 +316,7 @@
     "search_gitignored": false
   },
   "_guide_verification": [
-    "validation_passes: which review passes run with multi_layer_validation",
+    "(DEPRECATED) validation_passes: which review passes run with multi_layer_validation — never integrated",
     "  options: correctness, security, performance, style, tests, accessibility, docs, deps",
     "verification.confidence_gate: skip verification if executor reports 100% completion + tests pass",
     "verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification"
@@ -386,7 +386,7 @@
     "debug.max_hypothesis_rounds: 1-20 — max hypothesis cycles for /pbr:debug",
     "depth_profiles: override built-in quick/standard/comprehensive defaults",
     "developer_profile: behavioral profiling from session history + prompt injection",
-    "local_llm: offload classification tasks to local Ollama instance",
+    "(DEPRECATED) local_llm: offload classification tasks to local Ollama instance — removed in v14.0",
     "prd.auto_extract: skip confirmation gate during PRD import",
     "spinner_tips: custom messages shown during agent execution",
     "status_line: status bar appearance (sections, branding, context bar)",

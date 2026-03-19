@@ -530,18 +530,6 @@ Before spawning each Task() executor, enrich its prompt with project context if 
 
 3. If neither feature is enabled, skip enrichment entirely (no performance cost).
 
-**Local LLM plan quality check (optional, advisory):**
-
-Before spawning executors for this wave, if `config.local_llm.enabled` is `true`, run a quick classification on each plan to catch stubs before wasting an executor spawn:
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
-```
-
-- If classification is `"stub"` or `"partial"` with confidence >= 0.7: warn the user before spawning: `"⚠ Plan {plan_id} classified as {classification} (confidence {conf}) — consider refining before building."`
-- If the command fails or returns null: skip silently (local LLM unavailable — not an error)
-- This is advisory only — never block on the result
-
 **Teams mode status check:**
 
 Before spawning executors, read the teams config:
@@ -752,36 +740,11 @@ For each plan that completed successfully in this wave:
 
 ---
 
-#### 6c-iii. Multi-Layer Validation (conditional)
-
-**Skip if** `features.multi_layer_validation` is not `true` in `.planning/config.json`.
-
-After each wave completes, run parallel validation passes over the files changed in that wave. This is a BugBot-style multi-perspective review (correctness, security, performance, etc.) that runs inline without spawning external agents.
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation get-passes
-```
-
-This returns the active validation pass names from `config.validation_passes` (or all 8 standard passes if unconfigured). Then:
-
-1. Get the list of changed files for this wave:
-   ```bash
-   git diff --name-only HEAD~{wave_commit_count}..HEAD
-   ```
-2. Build the validation prompt:
-   ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js validation build-prompt '{pass_name}' '{comma-separated changed files}'
-   ```
-   (`buildValidationPrompt()` in `plan-build-run/bin/lib/validation.cjs`)
-3. Run each pass as a lightweight inline review (no Task() spawn — use direct tool calls). Display results as:
-   - `✓ Validation [{pass}]: no issues`
-   - `⚠ Validation [{pass}]: {N} finding(s) — {brief description}`
-4. If any HIGH-severity finding is reported: surface it to the user before proceeding to the next wave. Use AskUserQuestion (pattern: acknowledge-finding) to let the user decide whether to fix now or defer.
-5. Findings do NOT block the build by default — they are advisory unless `config.validation_blocking` is `true`.
+> **Note:** Multi-layer validation (`multi_layer_validation`) has been deprecated and removed. Standard verification via the verifier agent is used instead.
 
 ---
 
-#### 6c-iv. Security Scan (conditional)
+#### 6c-iii. Security Scan (conditional)
 
 **Skip if** `features.security_scanning` is not `true` in `.planning/config.json`.
 
