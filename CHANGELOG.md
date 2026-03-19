@@ -2,6 +2,233 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [9.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.9.0...plan-build-run-v9.0) — 2026-03-18
+
+### Agents
+
+* Upgrade audit agent with dimension categories and per-dimension scoring ([5a886ac8](https://github.com/SienkLogic/plan-build-run/commit/5a886ac8))
+* Implement EF-02 agent failure/timeout detection ([56f51d27](https://github.com/SienkLogic/plan-build-run/commit/56f51d27))
+* Add SI-04 agent type refs and SI-05 completion marker contract checks with proximity heuristic ([e82eeef7](https://github.com/SienkLogic/plan-build-run/commit/e82eeef7))
+
+### CI/CD
+
+* Add BC-09 enforce-PBR-workflow advisory tracking check ([824bbc1a](https://github.com/SienkLogic/plan-build-run/commit/824bbc1a))
+* Add CI verification and compaction quality checks (WC-01, WC-07) ([4a904e9f](https://github.com/SienkLogic/plan-build-run/commit/4a904e9f))
+* Add ci section, git.auto_pr, and expand status_line.sections enum to 8 values ([6ba1b9e4](https://github.com/SienkLogic/plan-build-run/commit/6ba1b9e4))
+
+### CLI Tools
+
+* Add STATE.md integrity and frontmatter checks (WC-02, WC-03) ([8040edd0](https://github.com/SienkLogic/plan-build-run/commit/8040edd0))
+
+### Configuration
+
+* Sync config-schema.json copies and autonomous skill after speculative planner changes ([ed74d7c6](https://github.com/SienkLogic/plan-build-run/commit/ed74d7c6))
+* Add speculative_depth property to config schema and config.json ([12ca6a9a](https://github.com/SienkLogic/plan-build-run/commit/12ca6a9a))
+* Add audit section to config-schema.json and sync to bin copy ([648c7cb2](https://github.com/SienkLogic/plan-build-run/commit/648c7cb2))
+* Lower global coverage thresholds to match actual after status-line additions ([c6af4520](https://github.com/SienkLogic/plan-build-run/commit/c6af4520))
+
+### Context Management
+
+* Add BC-10 unmanaged commit detection and BC-11 context delegation threshold ([a0f319db](https://github.com/SienkLogic/plan-build-run/commit/a0f319db))
+
+### Hooks
+
+* Wire all 8 audit category modules into index.js dispatch ([adf7b4b8](https://github.com/SienkLogic/plan-build-run/commit/adf7b4b8))
+* Implement EF-03 hook false positive and EF-04 hook false negative analysis ([15b788b0](https://github.com/SienkLogic/plan-build-run/commit/15b788b0))
+* Add IH-09 dispatch chain, IH-10 log separation, runAllInfraChecks aggregate ([8138be15](https://github.com/SienkLogic/plan-build-run/commit/8138be15))
+* Add IH-03 hook perf, IH-07 log rotation, IH-08 disk usage checks ([8204fb65](https://github.com/SienkLogic/plan-build-run/commit/8204fb65))
+* Add infrastructure check module with hook server and dashboard health checks (IH-01, IH-02) ([d473836f](https://github.com/SienkLogic/plan-build-run/commit/d473836f))
+* Implement agent and hook checks SI-06 through SI-09 ([377d08a7](https://github.com/SienkLogic/plan-build-run/commit/377d08a7))
+* Read coverage from coverage-final.json (33%) instead of stale coverage-summary.json (13%) ([9153cb13](https://github.com/SienkLogic/plan-build-run/commit/9153cb13))
+* Coverage reader prefers bin/lib aggregate (75%) over global total (13%) ([777eeecb](https://github.com/SienkLogic/plan-build-run/commit/777eeecb))
+* Add test/CI writers and fix coverage reader for dev status line ([208bcb69](https://github.com/SienkLogic/plan-build-run/commit/208bcb69))
+* Add dev line to status bar with version, skills, hooks, coverage, tests, CI, todos, quick tasks ([e37a0f7f](https://github.com/SienkLogic/plan-build-run/commit/e37a0f7f))
+* Status line null phases, stale context tier, hook server indicator ([0b91df0b](https://github.com/SienkLogic/plan-build-run/commit/0b91df0b))
+
+### Plugin
+
+* Fix researcher Write tool, autonomous Task tool, and milestone template path ([fd930215](https://github.com/SienkLogic/plan-build-run/commit/fd930215))
+
+### Skills
+
+* Upgrade audit skill with programmatic checks, report v2, and verbosity control ([b3945e46](https://github.com/SienkLogic/plan-build-run/commit/b3945e46))
+* Add BC-12 skill self-read prevention detection ([a2b40276](https://github.com/SienkLogic/plan-build-run/commit/a2b40276))
+* Add behavioral-compliance module with JSONL helpers and BC-01 skill sequence check ([b1885ae6](https://github.com/SienkLogic/plan-build-run/commit/b1885ae6))
+* Sync autonomous SKILL.md to plan-build-run copy ([d25471e4](https://github.com/SienkLogic/plan-build-run/commit/d25471e4))
+* Add speculative plan skip logic and completion stats to autonomous mode ([aa22a720](https://github.com/SienkLogic/plan-build-run/commit/aa22a720))
+* Add staleness detection and re-planning for speculative plans ([9518ce08](https://github.com/SienkLogic/plan-build-run/commit/9518ce08))
+* Add speculative planner dispatch during build in autonomous mode ([e7f13bd8](https://github.com/SienkLogic/plan-build-run/commit/e7f13bd8))
+* Implement SI-01 through SI-03 skill reference validation checks ([9072a3f3](https://github.com/SienkLogic/plan-build-run/commit/9072a3f3))
+* Add --preset/--dimension/--skip/--only CLI flags and dimension resolution to audit SKILL.md ([33c0787c](https://github.com/SienkLogic/plan-build-run/commit/33c0787c))
+* Auto-run npm release on milestone complete, fix release tag detection ([a9d59314](https://github.com/SienkLogic/plan-build-run/commit/a9d59314))
+
+### Testing
+
+* Add WC-09 commit pattern validation and WC-12 test health baseline checks ([57194cd5](https://github.com/SienkLogic/plan-build-run/commit/57194cd5))
+
+### Other
+
+* Wire BC-13,14,15 and SQ-07,08,09,10 into index.js check maps ([d5dc1304](https://github.com/SienkLogic/plan-build-run/commit/d5dc1304))
+* Implement SQ-07, SQ-08, SQ-09, SQ-10 audit check functions ([08ef1eaa](https://github.com/SienkLogic/plan-build-run/commit/08ef1eaa))
+* Implement BC-13, BC-14, BC-15 audit check functions ([d9b12456](https://github.com/SienkLogic/plan-build-run/commit/d9b12456))
+* Upgrade index.js to aggregate SI, IH, FV, QM check modules with unified runAllChecks() ([c1fb077c](https://github.com/SienkLogic/plan-build-run/commit/c1fb077c))
+* Add QM-05 self-validation and runAllQualityMetricChecks aggregator ([f9afdc64](https://github.com/SienkLogic/plan-build-run/commit/f9afdc64))
+* Add baseline comparison check QM-03 ([e6f4b79f](https://github.com/SienkLogic/plan-build-run/commit/e6f4b79f))
+* Add error correlation check across audit dimensions (QM-04) ([acb2bc3f](https://github.com/SienkLogic/plan-build-run/commit/acb2bc3f))
+* Add quality-metrics module with session degradation and throughput checks (QM-01, QM-02) ([0ca3b75b](https://github.com/SienkLogic/plan-build-run/commit/0ca3b75b))
+* Add FV-13 meta-check and wire FV_CHECKS map into index.js ([28c230d2](https://github.com/SienkLogic/plan-build-run/commit/28c230d2))
+* Add FV-08 through FV-12 check functions ([88299b38](https://github.com/SienkLogic/plan-build-run/commit/88299b38))
+* Add feature-verification.js with helpers and FV-01 through FV-03 ([5e57912e](https://github.com/SienkLogic/plan-build-run/commit/5e57912e))
+* Add SQ-04 routing, SQ-05 memory tracking, SQ-06 convention monitoring ([043fa179](https://github.com/SienkLogic/plan-build-run/commit/043fa179))
+* Implement SQ-03 session duration and cost analysis ([8206bff5](https://github.com/SienkLogic/plan-build-run/commit/8206bff5))
+* Implement SQ-02 briefing freshness and size check ([ba281c14](https://github.com/SienkLogic/plan-build-run/commit/ba281c14))
+* Implement SQ-01 session start quality check with shared JSONL helpers ([d3db066a](https://github.com/SienkLogic/plan-build-run/commit/d3db066a))
+* Add BC-07 CRITICAL marker compliance and BC-08 gate compliance checks ([1c714792](https://github.com/SienkLogic/plan-build-run/commit/1c714792))
+* Add BC-06 artifact creation order check ([5872359a](https://github.com/SienkLogic/plan-build-run/commit/5872359a))
+* Add BC-04 post-condition verification and BC-05 orchestrator budget discipline ([48324dba](https://github.com/SienkLogic/plan-build-run/commit/48324dba))
+* Add BC-02 state machine transitions and BC-03 pre-condition verification ([5135cb38](https://github.com/SienkLogic/plan-build-run/commit/5135cb38))
+* Add model selection and git branching compliance checks (WC-10, WC-11) ([4575cb0f](https://github.com/SienkLogic/plan-build-run/commit/4575cb0f))
+* Add WC-05 artifact completeness and WC-06 format validation checks ([6d741f3d](https://github.com/SienkLogic/plan-build-run/commit/6d741f3d))
+* Add ROADMAP sync and naming convention checks (WC-04, WC-08) ([742674fa](https://github.com/SienkLogic/plan-build-run/commit/742674fa))
+* Implement EF-07 session cleanup verification with all 7 EF checks exported ([8a8ccee1](https://github.com/SienkLogic/plan-build-run/commit/8a8ccee1))
+* Implement EF-06 cross-session interference detection with stale file checks ([dd24a1a1](https://github.com/SienkLogic/plan-build-run/commit/dd24a1a1))
+* Implement EF-05 retry/repetition pattern detection ([f1090c70](https://github.com/SienkLogic/plan-build-run/commit/f1090c70))
+* Implement EF-01 tool failure rate analysis with shared JSONL helpers ([3442c193](https://github.com/SienkLogic/plan-build-run/commit/3442c193))
+* Add stale file, plugin cache, and config schema checks (IH-04, IH-05, IH-06) ([81ed02e6](https://github.com/SienkLogic/plan-build-run/commit/81ed02e6))
+* Implement command, config, and version checks SI-10 through SI-12 ([eb8a1933](https://github.com/SienkLogic/plan-build-run/commit/eb8a1933))
+* Create SI checks index module with all 15 dimensions ([814570ad](https://github.com/SienkLogic/plan-build-run/commit/814570ad))
+* Implement cross-cutting SI checks (SI-13, SI-14, SI-15) ([8747ed37](https://github.com/SienkLogic/plan-build-run/commit/8747ed37))
+* Deduplicate --only dimension resolution to handle code+slug aliases ([60c4d26b](https://github.com/SienkLogic/plan-build-run/commit/60c4d26b))
+* Implement resolveDimensions() and explainResolution() in audit-dimensions.js ([a114bc61](https://github.com/SienkLogic/plan-build-run/commit/a114bc61))
+* Create audit dimension registry with 88 dimensions across 9 categories ([ee179a65](https://github.com/SienkLogic/plan-build-run/commit/ee179a65))
+
+## [2.9.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.8.0...plan-build-run-v2.9.0) — 2026-03-18
+
+### Agents
+
+* Add Knowledge Capture write instructions to executor, verifier, debugger ([cea3e587](https://github.com/SienkLogic/plan-build-run/commit/cea3e587))
+* Add KNOWLEDGE.md to files_to_read for all 10 agents ([d3723794](https://github.com/SienkLogic/plan-build-run/commit/d3723794))
+* Integrate node-repair reference and repair loop into executor ([30bdfa07](https://github.com/SienkLogic/plan-build-run/commit/30bdfa07))
+* Add deviation taxonomy, fix plans, and DISCOVERY.md references to agents ([a21978eb](https://github.com/SienkLogic/plan-build-run/commit/a21978eb))
+* Update executor/verifier for 13-state model and building/built status ([a64e88a5](https://github.com/SienkLogic/plan-build-run/commit/a64e88a5))
+* Update planner Mode 4 fallback format with PBR-aligned ROADMAP fields ([0b9e5f09](https://github.com/SienkLogic/plan-build-run/commit/0b9e5f09))
+* Update roadmapper output format for PBR-aligned ROADMAP fields ([0b3efdea](https://github.com/SienkLogic/plan-build-run/commit/0b3efdea))
+
+### CI/CD
+
+* Replace release-please with component-grouped changelog system ([73457e14](https://github.com/SienkLogic/plan-build-run/commit/73457e14))
+* Regenerate from correct tag ranges, removing duplicate entries ([dd996cff](https://github.com/SienkLogic/plan-build-run/commit/dd996cff))
+
+### CLI Tools
+
+* Replace non-existent writeStateMd import in verify.cjs, sync config-schema.json ([94caea14](https://github.com/SienkLogic/plan-build-run/commit/94caea14))
+* Guard Progress table parser against sections without actual tables ([5c7e6bc7](https://github.com/SienkLogic/plan-build-run/commit/5c7e6bc7))
+* Add loadGlobalDefaults and saveGlobalDefaults for cross-project defaults ([991156d7](https://github.com/SienkLogic/plan-build-run/commit/991156d7))
+* Add WAITING.json signal functions to state.cjs ([65a56e9b](https://github.com/SienkLogic/plan-build-run/commit/65a56e9b))
+* Add RETROSPECTIVE.md generation, ROADMAP details-collapse, and milestone index to cmdMilestoneComplete ([97172728](https://github.com/SienkLogic/plan-build-run/commit/97172728))
+* Add velocity metrics and session continuity to state.cjs ([4cf6b330](https://github.com/SienkLogic/plan-build-run/commit/4cf6b330))
+* Merge PBR + PBR status values into unified 13-state lifecycle ([8c27154f](https://github.com/SienkLogic/plan-build-run/commit/8c27154f))
+* Update roadmap.cjs for PBR-aligned format with dynamic column detection and details-tag support ([1b820cbc](https://github.com/SienkLogic/plan-build-run/commit/1b820cbc))
+
+### Configuration
+
+* Add extended_context to config reference and model profiles docs ([8677fb03](https://github.com/SienkLogic/plan-build-run/commit/8677fb03))
+
+### Context Management
+
+* Bridge real context data from status-line to .context-budget.json ([886e2649](https://github.com/SienkLogic/plan-build-run/commit/886e2649))
+
+### Dashboard
+
+* Add velocity/session parsing, update status labels to 13-state model ([dc2d7d1f](https://github.com/SienkLogic/plan-build-run/commit/dc2d7d1f))
+* Update planning reader for <details> milestones and phase Requirements/Success Criteria ([af65b4bd](https://github.com/SienkLogic/plan-build-run/commit/af65b4bd))
+
+### Documentation
+
+* Add node-repair.md reference for task failure taxonomy ([c725c78f](https://github.com/SienkLogic/plan-build-run/commit/c725c78f))
+* Add deviation taxonomy reference format to deviation-rules.md ([4e9ce6e4](https://github.com/SienkLogic/plan-build-run/commit/4e9ce6e4))
+
+### Hooks
+
+* Refocus milestone-learnings.js to aggregate into project-scoped KNOWLEDGE.md ([7556560c](https://github.com/SienkLogic/plan-build-run/commit/7556560c))
+* Add seed trigger checking after executor phase completion ([9e7c4b46](https://github.com/SienkLogic/plan-build-run/commit/9e7c4b46))
+* Add SessionStart awareness sweep for seeds, deferred, tech debt, research, knowledge ([56c8c1a3](https://github.com/SienkLogic/plan-build-run/commit/56c8c1a3))
+* Detect WAITING.json and HANDOFF.json at SessionStart ([cfc2c450](https://github.com/SienkLogic/plan-build-run/commit/cfc2c450))
+* Read 3 days of logs and classify rare-event hooks in checkHookCoverage ([d097dfca](https://github.com/SienkLogic/plan-build-run/commit/d097dfca))
+* Add entry/skip/complete logging to 3 remaining hooks ([3e21eebd](https://github.com/SienkLogic/plan-build-run/commit/3e21eebd))
+* Add checkHookCoverage to health-checks cross-referencing hooks.json vs logs ([2f93ae55](https://github.com/SienkLogic/plan-build-run/commit/2f93ae55))
+* Add source field and PBR_LOG_DIR support to hook-logger ([8bb5d140](https://github.com/SienkLogic/plan-build-run/commit/8bb5d140))
+* Remove noisy velocity/session absence warnings, sync build SKILL.md ([1a10dc77](https://github.com/SienkLogic/plan-build-run/commit/1a10dc77))
+* Add deviation review check to check-subagent-output ([8b4d649e](https://github.com/SienkLogic/plan-build-run/commit/8b4d649e))
+* Add deviations and fix_plans validation to check-plan-format ([e5c4f46d](https://github.com/SienkLogic/plan-build-run/commit/e5c4f46d))
+* Add readCurrentStatus and VALID_PHASE_STATUSES to gate helpers ([c9f91734](https://github.com/SienkLogic/plan-build-run/commit/c9f91734))
+* Add session continuity frontmatter reading and expanded stale status detection ([c2ed2307](https://github.com/SienkLogic/plan-build-run/commit/c2ed2307))
+* Update smart-next-task status routing for 13-state lifecycle ([ae549f02](https://github.com/SienkLogic/plan-build-run/commit/ae549f02))
+* Use STATUS_LABELS for display and expand status ordering in check-state-sync.js ([e9e017be](https://github.com/SienkLogic/plan-build-run/commit/e9e017be))
+* Add 13-state lifecycle validation to validateState() in check-plan-format.js ([72785d54](https://github.com/SienkLogic/plan-build-run/commit/72785d54))
+* Add dynamic column detection and details-tag stripping to progress-tracker.js ([fd9234ac](https://github.com/SienkLogic/plan-build-run/commit/fd9234ac))
+* Strip HTML details/summary tags in check-roadmap-sync.js for collapsed milestones ([479b6db0](https://github.com/SienkLogic/plan-build-run/commit/479b6db0))
+* Add dynamic column detection to updateProgressTable in check-state-sync.js ([cefa54eb](https://github.com/SienkLogic/plan-build-run/commit/cefa54eb))
+* Update validateRoadmap and validateContext for PBR-aligned ROADMAP format ([045a3d01](https://github.com/SienkLogic/plan-build-run/commit/045a3d01))
+* Replace static port 19871 with dynamic allocation in hook-server.test.js ([4886f286](https://github.com/SienkLogic/plan-build-run/commit/4886f286))
+* Report actual bound port in hook-server ready signal ([c22390bf](https://github.com/SienkLogic/plan-build-run/commit/c22390bf))
+* Add CONFIG_DEFAULTS and configEnsureComplete for auto-population ([dda3f8bb](https://github.com/SienkLogic/plan-build-run/commit/dda3f8bb))
+* Surface hook errors via additionalContext instead of silent exit ([ae7330a0](https://github.com/SienkLogic/plan-build-run/commit/ae7330a0))
+* Fix clearRootCache import to use hooks path instead of plugins path ([364c92e9](https://github.com/SienkLogic/plan-build-run/commit/364c92e9))
+
+### Skills
+
+* Add KNOWLEDGE.md to begin init, milestone aggregation, and executor context ([2b8b5a2c](https://github.com/SienkLogic/plan-build-run/commit/2b8b5a2c))
+* Add KNOWLEDGE.md to context-loader-task.md briefing files ([950953a4](https://github.com/SienkLogic/plan-build-run/commit/950953a4))
+* Wire extended_context gates into build, review, scan, and plan skills ([122a2aa6](https://github.com/SienkLogic/plan-build-run/commit/122a2aa6))
+* Add --prd express path to plan skill for PRD-driven planning ([87a0df8a](https://github.com/SienkLogic/plan-build-run/commit/87a0df8a))
+* Add /pbr:session-report skill for post-session summaries ([dc90c6d2](https://github.com/SienkLogic/plan-build-run/commit/dc90c6d2))
+* Add /pbr:ship skill for PR creation from planning artifacts ([c3fc12a4](https://github.com/SienkLogic/plan-build-run/commit/c3fc12a4))
+* Add UAT gap intake path to debug skill ([0e67aa92](https://github.com/SienkLogic/plan-build-run/commit/0e67aa92))
+* Add node repair reference and ESCALATE handling to build skill ([b4740565](https://github.com/SienkLogic/plan-build-run/commit/b4740565))
+* Add HANDOFF.json and WAITING.json support to resume skill ([ba1a7b22](https://github.com/SienkLogic/plan-build-run/commit/ba1a7b22))
+* Add HANDOFF.json creation to pause skill ([146bd7f9](https://github.com/SienkLogic/plan-build-run/commit/146bd7f9))
+* Add deviation-rules reference to build, fix plan review to review ([7d0b7762](https://github.com/SienkLogic/plan-build-run/commit/7d0b7762))
+* Add PROJECT.md evolution review to milestone, update begin for new format ([20762452](https://github.com/SienkLogic/plan-build-run/commit/20762452))
+* Add session continuity fields to pause/resume skills ([ea8c27ac](https://github.com/SienkLogic/plan-build-run/commit/ea8c27ac))
+* Update status and continue skills for 13-state model and velocity display ([4fe1067a](https://github.com/SienkLogic/plan-build-run/commit/4fe1067a))
+* Update plan/build/review/discuss for new ROADMAP format and CONTEXT.md sections ([44d8e6fe](https://github.com/SienkLogic/plan-build-run/commit/44d8e6fe))
+* Update begin skill and roadmap prompt for Requirements/Success Criteria fields ([56366b30](https://github.com/SienkLogic/plan-build-run/commit/56366b30))
+* Update milestone complete to use <details> collapse and milestone index ([40598b26](https://github.com/SienkLogic/plan-build-run/commit/40598b26))
+* Add npm release prompt to milestone complete workflow ([3f8c2290](https://github.com/SienkLogic/plan-build-run/commit/3f8c2290))
+
+### Templates
+
+* Add KNOWLEDGE.md.tmpl for project knowledge capture ([e30ff512](https://github.com/SienkLogic/plan-build-run/commit/e30ff512))
+* Add extended_context to config schema, defaults, and template ([6b9c9361](https://github.com/SienkLogic/plan-build-run/commit/6b9c9361))
+* Add UAT.md.tmpl for user acceptance testing ([7fc0a09b](https://github.com/SienkLogic/plan-build-run/commit/7fc0a09b))
+* Add HANDOFF.json.tmpl for session pause/resume state ([f50eaf68](https://github.com/SienkLogic/plan-build-run/commit/f50eaf68))
+* Add MILESTONE-AUDIT.md.tmpl with structured YAML scores ([643437b3](https://github.com/SienkLogic/plan-build-run/commit/643437b3))
+* Add RETROSPECTIVE.md.tmpl for cross-milestone trends ([46fbcab8](https://github.com/SienkLogic/plan-build-run/commit/46fbcab8))
+* Create DISCOVERY.md template with Don't Hand-Roll section ([3340d9b1](https://github.com/SienkLogic/plan-build-run/commit/3340d9b1))
+* Add fix plan generation and gap severity to VERIFICATION template ([085cdaa6](https://github.com/SienkLogic/plan-build-run/commit/085cdaa6))
+* Add deviation taxonomy and requirements_completed to SUMMARY templates ([e9ca0ff8](https://github.com/SienkLogic/plan-build-run/commit/e9ca0ff8))
+* Add PBR evolution protocol and lifecycle sections to PROJECT.md ([d7fc03e9](https://github.com/SienkLogic/plan-build-run/commit/d7fc03e9))
+* Add Specific References and Code Patterns sections to project-CONTEXT.md.tmpl ([6962a0f7](https://github.com/SienkLogic/plan-build-run/commit/6962a0f7))
+* Add specifics and code_context sections to CONTEXT.md.tmpl ([8ca7dffd](https://github.com/SienkLogic/plan-build-run/commit/8ca7dffd))
+* Update ROADMAP.md.tmpl with PBR-aligned format ([b0710bc6](https://github.com/SienkLogic/plan-build-run/commit/b0710bc6))
+
+### Testing
+
+* Use hooks.jsonl path matching getHookHealthSummary implementation ([b4edd282](https://github.com/SienkLogic/plan-build-run/commit/b4edd282))
+* Add extended_context to schema test and sync mirror files ([51c6201c](https://github.com/SienkLogic/plan-build-run/commit/51c6201c))
+* Update health-checks count to accommodate new checkHookCoverage check ([fe278bd8](https://github.com/SienkLogic/plan-build-run/commit/fe278bd8))
+* Resolve macOS symlink in helpers.js and helpers.test.js (/var -> /private/var) ([03231a26](https://github.com/SienkLogic/plan-build-run/commit/03231a26))
+* Replace static ports 19872-19874 with dynamic allocation in state-enrichment.test.js ([d9ce2b3b](https://github.com/SienkLogic/plan-build-run/commit/d9ce2b3b))
+* Add temp directory cleanup to 7 test files that leaked mkdtempSync dirs ([c9e48a07](https://github.com/SienkLogic/plan-build-run/commit/c9e48a07))
+
+### Other
+
+* Wire extended_context into begin and setup profile presets ([abfd2a37](https://github.com/SienkLogic/plan-build-run/commit/abfd2a37))
+* Add entry-point and skip-reason logging to post-bash-triage.js ([3c295a89](https://github.com/SienkLogic/plan-build-run/commit/3c295a89))
+* Add entry-point and skip-reason logging to graph-update.js ([7ca8c9eb](https://github.com/SienkLogic/plan-build-run/commit/7ca8c9eb))
+* Commit daily log file refactor — dated filenames, append-only, 30-day retention ([61345577](https://github.com/SienkLogic/plan-build-run/commit/61345577))
+
 ## [2.8.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.7.0...plan-build-run-v2.8.0) — 2026-03-18
 
 ### Agents
