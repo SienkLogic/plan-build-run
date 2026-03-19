@@ -115,7 +115,45 @@ For each remaining phase N:
 - If all SUMMARYs exist: skip build
 - **STOP on human-action checkpoint:** If Skill returns a checkpoint with type `human-action`: STOP the autonomous loop immediately.
   Display: "Human action required in Phase {N}. Complete the action, then resume with: `/pbr:autonomous --from {N}`"
-- If Skill returns failure: attempt single retry. If retry fails: stop loop, display error.
+
+#### Error Classification
+
+Before retrying any build failure, classify the error:
+
+**Transient errors** (auto-fixable -- clean up then retry):
+
+- Stale `.active-skill`: file exists but session that wrote it is gone (check via `ps` or absence of matching `.session-*.json`)
+- Stale `.active-agent`: same pattern
+- Git lock file: `.git/index.lock` or `.git/MERGE_HEAD` left by a killed process
+- `EBUSY`/`EACCES` file lock errors on Windows
+
+**Permanent errors** (do not retry):
+
+- Missing PLAN-*.md files
+- Syntax errors in plan YAML frontmatter
+- Executor returned checkpoint:human-action
+- Missing dependency phase SUMMARY.md (means prior phase incomplete)
+
+**Classification procedure (Step 3c on failure):**
+
+1. Read the Skill() return value / error message
+2. Check for known transient patterns (lock files, stale signal files)
+3. Read `autonomous.max_retries` from config (default: 2)
+4. Read `autonomous.error_strategy` from config (default: 'retry'): 'stop' | 'retry' | 'skip'
+
+- If Skill returns failure:
+  a. Classify error (see Error Classification above)
+  b. **If transient error:**
+     - Auto-fix: remove stale signal file OR remove `.git/index.lock` via Bash
+     - Increment retry counter for this phase (start at 0)
+     - If retry counter < `autonomous.max_retries`: retry `Skill({ skill: "pbr:build", args: "{N} --auto" })`
+     - If retry counter >= `autonomous.max_retries`: apply error_strategy (see below)
+  c. **If permanent error:** apply error_strategy immediately (no retries)
+  d. **error_strategy application:**
+     - `stop` (safe default): stop autonomous loop, display error, suggest `/pbr:build {N}`
+     - `retry`: already handled above (retry up to max_retries, then stop)
+     - `skip`: log warning "Skipping Phase {N} due to unrecoverable error", continue to Phase N+1
+  e. **On transient auto-fix:** log: `Auto-fixed transient error in Phase {N}: {description}. Retry {n}/{max}.`
 
 ### 3c-speculative. Speculative Planning (during build)
 
