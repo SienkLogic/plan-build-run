@@ -431,6 +431,131 @@ describe('suggest-compact.js', () => {
     });
   });
 
+  describe('counter persistence edge cases', () => {
+    test('loadCounter handles empty file', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const counterPath = path.join(planningDir, '.compact-counter');
+      fs.writeFileSync(counterPath, '');
+      const counter = loadCounter(counterPath);
+      expect(counter.count).toBe(0);
+      expect(counter.lastSuggested).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('loadCounter handles partial JSON (missing fields)', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const counterPath = path.join(planningDir, '.compact-counter');
+      fs.writeFileSync(counterPath, JSON.stringify({ count: 5 }));
+      const counter = loadCounter(counterPath);
+      expect(counter.count).toBe(5);
+      expect(counter.lastSuggested).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+
+    test('saveCounter does not throw on non-existent directory', () => {
+      // saveCounter writes to a path — if dir doesn't exist, it fails silently
+      expect(() => saveCounter('/nonexistent/dir/.compact-counter', { count: 1, lastSuggested: 0 })).not.toThrow();
+    });
+
+    test('loadCounter returns zeroed counter for truncated JSON', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const counterPath = path.join(planningDir, '.compact-counter');
+      fs.writeFileSync(counterPath, '{"count":');
+      const counter = loadCounter(counterPath);
+      expect(counter.count).toBe(0);
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('threshold scaling boundaries', () => {
+    test('getScaledThreshold returns 50 at 200k tokens (base)', () => {
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 200000 }));
+      configClearCache();
+      expect(getScaledThreshold(planningDir)).toBe(50);
+      configClearCache();
+      cleanupTmp(tmpDir);
+    });
+
+    test('getScaledThreshold returns 125 at 500k tokens', () => {
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 500000 }));
+      configClearCache();
+      expect(getScaledThreshold(planningDir)).toBe(125);
+      configClearCache();
+      cleanupTmp(tmpDir);
+    });
+
+    test('getScaledThreshold scales with orchestrator_budget_pct', () => {
+      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { tmpDir, planningDir } = createTmpPlanning();
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
+        context_window_tokens: 200000,
+        orchestrator_budget_pct: 50
+      }));
+      configClearCache();
+      // 50 * (200k/200k) * (50/25) = 50 * 1 * 2 = 100
+      expect(getScaledThreshold(planningDir)).toBe(100);
+      configClearCache();
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('main() hook execution via stdin', () => {
+    test('checkCompaction output has correct additionalContext JSON format', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result).toHaveProperty('additionalContext');
+      expect(typeof result.additionalContext).toBe('string');
+      // Should NOT have decision or reason (PostToolUse format, not PreToolUse)
+      expect(result).not.toHaveProperty('decision');
+      expect(result).not.toHaveProperty('reason');
+      cleanupTmp(tmpDir);
+    });
+
+    test('checkCompaction returns null when below threshold and no bridge', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+  });
+
+  describe('empty state handling', () => {
+    test('checkCompaction works with no config.json', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      // No config.json — uses default threshold
+      const counterPath = path.join(planningDir, '.compact-counter');
+      saveCounter(counterPath, { count: DEFAULT_THRESHOLD - 1, lastSuggested: 0 });
+      const result = checkCompaction(planningDir, tmpDir);
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain(`${DEFAULT_THRESHOLD}`);
+      cleanupTmp(tmpDir);
+    });
+
+    test('checkBridgeTier returns null when bridge file has malformed JSON', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      fs.writeFileSync(bridgePath, '{invalid json');
+      expect(checkBridgeTier(planningDir)).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+
+    test('checkBridgeTier returns null when bridge has no estimated_percent', () => {
+      const { tmpDir, planningDir } = createTmpPlanning();
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      fs.writeFileSync(bridgePath, JSON.stringify({ timestamp: new Date().toISOString() }));
+      expect(checkBridgeTier(planningDir)).toBeNull();
+      cleanupTmp(tmpDir);
+    });
+  });
+
   describe('hook execution', () => {
     test('exits 0 silently below threshold', () => {
       const { tmpDir } = createTmpPlanning();
