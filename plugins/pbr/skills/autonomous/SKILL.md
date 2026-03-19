@@ -248,7 +248,15 @@ Important: The staleness check uses deviation count from SUMMARY.md frontmatter 
   1. Read ALL SUMMARY.md frontmatter from this phase. Extract `completion` percentage from each.
   2. Compute aggregate completion (average across all plans).
   3. Check git log for commit SHAs listed in SUMMARY files — verify they exist.
-  4. Detect and run test suite if present (`npm test`, `pytest`, `make test`, etc.).
+  4. **Test result caching:** Before running the test suite:
+     a. Compute cache key: the current phase directory path (e.g., `.planning/phases/23-slug`)
+     b. Check `.planning/.test-cache.json` for a fresh result (TTL: 60 seconds):
+        - If a fresh result exists (`passed: true`, timestamp within 60s): use it directly — do NOT re-run tests
+        - Log: `Tests: cached result used (age: {age}s)`
+     c. If no fresh cache: detect and run test suite (`npm test`, `pytest`, `make test`, etc.)
+        - On completion: write result to `.planning/.test-cache.json` with the phase directory as key
+        - Log: `Tests: ran fresh, result cached`
+     d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
   5. **If ALL three signals pass** (completion >= 90%, SHAs verified, tests pass):
      - Write a minimal VERIFICATION.md to the phase directory:
 
@@ -338,6 +346,7 @@ Speculative plans used: {count} (re-planned: {count})
 Total time: {elapsed}
 Errors encountered: {count}
 Errors auto-fixed: {count} | Phases skipped: {count}
+Test cache hits: {count}
 ```
 
 If all phases completed successfully:
