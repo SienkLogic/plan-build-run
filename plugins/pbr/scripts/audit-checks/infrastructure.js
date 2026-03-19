@@ -597,16 +597,31 @@ function checkDiskUsageTracking(planningDir, config) {
  * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
  */
 function checkDispatchChainCoverage(planningDir, _config) {
-  const expectedSubHooks = [
-    // post-write-dispatch
-    'checkPlanWrite', 'checkStateWrite', 'checkSync',
-    'checkStateSync', 'checkQuality', 'syncContextToClaude', 'queueIntelUpdate',
-    // pre-bash-dispatch
-    'checkDangerous', 'checkCommit', 'checkUnmanagedCommit',
-    // pre-write-dispatch
-    'checkAgentStateWrite', 'checkWorkflow', 'checkSummaryGate',
-    'checkBoundary', 'checkDocSprawl', 'checkUnmanagedSourceWrite',
-  ];
+  // Map dispatcher scripts to the delegated sub-hook script names that appear
+  // in the hook log's "hook" field.  These are kebab-case script names, NOT
+  // the camelCase JS function names used internally.
+  const dispatchChains = {
+    'post-write-dispatch': [
+      'check-plan-format',
+      'check-state-sync',
+      'check-roadmap-sync',
+    ],
+    'pre-bash-dispatch': [
+      'check-dangerous-commands',
+      'validate-commit',
+    ],
+    'pre-write-dispatch': [
+      'check-doc-sprawl',
+    ],
+  };
+
+  // Flatten to a unique set of expected sub-hook script names
+  const expectedSubHooks = [];
+  for (const subs of Object.values(dispatchChains)) {
+    for (const s of subs) {
+      if (!expectedSubHooks.includes(s)) expectedSubHooks.push(s);
+    }
+  }
 
   const logsDir = path.join(planningDir, 'logs');
   let logFiles;
@@ -623,21 +638,27 @@ function checkDispatchChainCoverage(planningDir, _config) {
     return result('IH-09', 'warn', 'No hook logs to analyze dispatch chain');
   }
 
-  // Read the most recent log file
-  let content;
-  try {
-    content = fs.readFileSync(path.join(logsDir, logFiles[0]), 'utf8');
-  } catch (_e) {
-    return result('IH-09', 'warn', 'Could not read most recent hook log');
-  }
-
-  // Build a set of sub-hook names found in logs
+  // Read up to the 3 most recent log files for broader coverage
   const foundHooks = new Set();
-  const lines = content.split('\n').filter(Boolean);
-  for (const line of lines) {
-    for (const hookName of expectedSubHooks) {
-      if (line.includes(hookName)) {
-        foundHooks.add(hookName);
+  for (const file of logFiles.slice(0, 3)) {
+    let content;
+    try {
+      content = fs.readFileSync(path.join(logsDir, file), 'utf8');
+    } catch (_e) {
+      continue;
+    }
+
+    const lines = content.split('\n').filter(Boolean);
+    for (const line of lines) {
+      let entry;
+      try {
+        entry = JSON.parse(line);
+      } catch (_e) {
+        continue;
+      }
+      // Match the "hook" field against expected sub-hook script names
+      if (entry.hook && expectedSubHooks.includes(entry.hook)) {
+        foundHooks.add(entry.hook);
       }
     }
   }
@@ -647,7 +668,7 @@ function checkDispatchChainCoverage(planningDir, _config) {
   if (missing.length === 0) {
     return result('IH-09', 'pass',
       'All dispatch sub-hooks have log evidence',
-      [`${expectedSubHooks.length} sub-hooks verified in ${logFiles[0]}`]
+      [`${expectedSubHooks.length} sub-hooks verified across recent log files`]
     );
   }
 
