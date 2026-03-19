@@ -166,6 +166,9 @@ const BC_CHECKS = {
   'BC-10': behavioralCompliance.checkUnmanagedCommitDetection,
   'BC-11': behavioralCompliance.checkContextDelegationThreshold,
   'BC-12': behavioralCompliance.checkSkillSelfReadPrevention,
+  'BC-13': behavioralCompliance.checkHookOutputEffectiveness,
+  'BC-14': behavioralCompliance.checkAgentScopeCompliance,
+  'BC-15': behavioralCompliance.checkAgentPlanAdherence,
 };
 
 /**
@@ -179,6 +182,10 @@ const SQ_CHECKS = {
   'SQ-04': sessionQuality.checkSkillRoutingAccuracy,
   'SQ-05': sessionQuality.checkMemoryUpdateTracking,
   'SQ-06': sessionQuality.checkConventionDetectionMonitoring,
+  'SQ-07': sessionQuality.checkUserFrustrationSignals,
+  'SQ-08': sessionQuality.checkSatisfactionSignals,
+  'SQ-09': sessionQuality.checkSkillEscalationPatterns,
+  'SQ-10': sessionQuality.checkNotificationQuality,
 };
 
 /**
