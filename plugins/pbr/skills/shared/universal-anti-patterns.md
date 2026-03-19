@@ -41,6 +41,7 @@ Reference: `references/questioning.md` for the full anti-pattern list.
 23. **Do not** write to `.planning/CONTEXT.md` -- context is now merged into PROJECT.md ## Context section. Write to PROJECT.md instead.
 24. **Do not** write to `.planning/HISTORY.md` -- history is now merged into STATE.md ## History section. Use `historyAppend()` which targets STATE.md.
 25. **Do not** check for `mode === 'auto'` -- the correct value is `mode === 'autonomous'`. The schema defines `"autonomous"`, not `"auto"`.
+26. **No direct Write/Edit to STATE.md or ROADMAP.md for mutations.** Always use `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update <field> <value>` or `roadmap update-status <phase> <status>` for mutations. Direct Write tool usage bypasses `lockedFileUpdate()` and is unsafe in multi-session environments. Exception: first-time creation of STATE.md from template (e.g., during `/pbr:begin`) is allowed.
 
 ## Behavioral Rules (apply to every skill)
 
