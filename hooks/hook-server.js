@@ -27,6 +27,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { getLogPath: getHooksLogPath } = require('./hook-logger');
+const { shouldThrottleDefault, isCriticalMessage } = require('./lib/notification-throttle');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -279,6 +280,23 @@ function createServer(planningDir) {
         }
 
         const result = await handler({ event, tool, data, planningDir, cache });
+
+        // Throttle non-critical additionalContext in autonomous mode
+        if (result && result.additionalContext && !result.decision) {
+          const isAutonomous = cache.config && cache.config.mode === 'autonomous';
+          const critical = isCriticalMessage(result.additionalContext);
+          const tc = (cache.config && cache.config.hooks && cache.config.hooks.notification_throttle) || {};
+          const throttleKey = `hook:${event}:${tool}:${(result.additionalContext || '').substring(0, 50)}`;
+          if (shouldThrottleDefault(throttleKey, {
+            isAutonomous,
+            isCritical: critical,
+            windowMs: tc.window_ms || 60000,
+            maxPerWindow: tc.max_per_window || 3
+          })) {
+            return sendJSON(res, 200, {});
+          }
+        }
+
         return sendJSON(res, 200, result || {});
       } catch (_e) {
         // Fail-open: never crash, always 200
