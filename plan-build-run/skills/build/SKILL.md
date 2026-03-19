@@ -142,10 +142,19 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
-5. Validate:
-   - Phase directory exists at `.planning/phases/{NN}-{slug}/`
-   - PLAN.md files exist in the directory
-   - Prior phase dependencies are met (check for SUMMARY.md files in dependency phases)
+5. **Pre-build dependency validation (consolidated check):**
+   Run all three checks before spawning any executors:
+
+   a. **Phase artifact check:** Phase directory exists at `.planning/phases/{NN}-{slug}/` and PLAN.md files are present
+   b. **Dependency SUMMARY check:** All phases listed in `depends_on` for each plan have a SUMMARY.md file (i.e., they have been built). If any dependency is unbuilt, display:
+      ```
+      BLOCKED: Plan {plan_id} depends on phase {dep_phase} which has not been built yet.
+      Run `/pbr:build {dep_phase}` first.
+      ```
+      and stop.
+   c. **Staleness / cross-check (optional):** If `--cross-check` flag is present, compare each plan's `files_modified` list against prior-phase `provides` for conflicts (see --cross-check section above for full logic). Without the flag, skip this check.
+
+   All three sub-checks (a, b, c) are part of the same pre-build gate. Stop execution if (a) or (b) fail. Proceed after (c) even if conflicts are acknowledged.
 6. If no phase number given, read current phase from `.planning/STATE.md`
    - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
 7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
