@@ -435,6 +435,82 @@ describe('pre-bash-dispatch.js', () => {
     });
   });
 
+  describe('pre-commit quality checks', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-pbd-precommit-'));
+      // Initialize a git repo so getStagedFiles() works
+      execSync('git init', { cwd: tmpDir, stdio: 'pipe' });
+      execSync('git config user.email "test@test.com"', { cwd: tmpDir, stdio: 'pipe' });
+      execSync('git config user.name "Test"', { cwd: tmpDir, stdio: 'pipe' });
+      // Create .planning/logs for hook-logger
+      fs.mkdirSync(path.join(tmpDir, '.planning', 'logs'), { recursive: true });
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('checks run on git commit and produce advisory warnings for broken require paths', () => {
+      // Create a hooks/ dir with a JS file containing a broken require
+      const hooksDir = path.join(tmpDir, 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'bad-hook.js'), "const x = require('./nonexistent-module');");
+
+      // Stage the file
+      execSync('git add hooks/bad-hook.js', { cwd: tmpDir, stdio: 'pipe' });
+
+      const result = runScript({ command: 'git commit -m "feat(hooks): test commit"' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      // Should have advisory warnings (not blocking)
+      expect(output.decision).toBe('allow');
+      expect(output.additionalContext).toContain('Broken require path');
+    });
+
+    test('checks do NOT run on non-commit commands', () => {
+      // Stage a file with a broken require
+      const hooksDir = path.join(tmpDir, 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(path.join(hooksDir, 'bad-hook.js'), "const x = require('./nonexistent-module');");
+      execSync('git add hooks/bad-hook.js', { cwd: tmpDir, stdio: 'pipe' });
+
+      // Non-commit commands should not trigger pre-commit checks
+      const pushResult = runScript({ command: 'git push origin main' }, tmpDir);
+      expect(pushResult.exitCode).toBe(0);
+      const pushOutput = JSON.parse(pushResult.output);
+      // No broken require warning should appear for non-commit commands
+      expect(pushOutput.additionalContext || '').not.toContain('Broken require path');
+
+      const lsResult = runScript({ command: 'ls -la' }, tmpDir);
+      expect(lsResult.exitCode).toBe(0);
+      const lsOutput = JSON.parse(lsResult.output);
+      expect(lsOutput.additionalContext || '').not.toContain('Broken require path');
+    });
+
+    test('multiple warnings are merged into single advisory', () => {
+      // Create a hooks/ file with a broken require (triggers checkRequirePaths)
+      const hooksDir = path.join(tmpDir, 'hooks');
+      fs.mkdirSync(hooksDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(hooksDir, 'multi-bad.js'),
+        "const a = require('./missing-a');\nconst b = require('./missing-b');"
+      );
+      execSync('git add hooks/multi-bad.js', { cwd: tmpDir, stdio: 'pipe' });
+
+      const result = runScript({ command: 'git commit -m "feat(hooks): multi warnings"' }, tmpDir);
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      // Multiple broken require warnings should be merged into the advisory
+      expect(output.additionalContext).toContain('Broken require path');
+      // The advisory should contain both missing paths
+      expect(output.additionalContext).toContain('missing-a');
+      expect(output.additionalContext).toContain('missing-b');
+    });
+  });
+
   describe('error handling', () => {
     test('malformed JSON does not block', () => {
       // Send invalid JSON - the script should catch the parse error and exit 0
