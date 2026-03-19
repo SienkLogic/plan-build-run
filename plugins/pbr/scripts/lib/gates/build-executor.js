@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readActiveSkill, readCurrentPhase } = require('./helpers');
+const { readActiveSkill, readCurrentPhase, isPlanSpeculative } = require('./helpers');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being
@@ -62,16 +62,33 @@ function checkBuildExecutorGate(data) {
 
     const phaseDir = path.join(phasesDir, dirs[0]);
     const files = fs.readdirSync(phaseDir);
-    const hasPlan = files.some(f => {
+
+    // Only count non-speculative plans. Speculative plans are created for future phases
+    // and must not block builds of the current target phase.
+    const actionablePlans = files.filter(f => {
       if (!/^PLAN.*\.md$/i.test(f)) return false;
+      const fullPath = path.join(phaseDir, f);
       try {
-        return fs.statSync(path.join(phaseDir, f)).size > 0;
+        if (fs.statSync(fullPath).size === 0) return false;
       } catch (_e) {
         return false;
       }
+      return !isPlanSpeculative(fullPath);
     });
 
-    if (!hasPlan) {
+    if (actionablePlans.length === 0) {
+      // No non-speculative plans found. Check whether any non-hidden files exist at all.
+      // An empty or speculative-only directory was created lazily for a future phase — allow.
+      const hasNonHiddenFiles = files.some(f => !f.startsWith('.'));
+      const hasSpeculativeOnly = files.some(f => {
+        if (!/^PLAN.*\.md$/i.test(f)) return false;
+        const fullPath = path.join(phaseDir, f);
+        try {
+          if (fs.statSync(fullPath).size === 0) return false;
+          return isPlanSpeculative(fullPath);
+        } catch (_e) { return false; }
+      });
+      if (!hasNonHiddenFiles || hasSpeculativeOnly) return null;
       return {
         block: true,
         reason: `Cannot spawn executor: no PLAN.md found in .planning/phases/${dirs[0]}/.\n\nThe phase directory exists but contains no PLAN.md files. The executor needs at least one non-empty PLAN.md to work from.\n\nRun /pbr:plan-phase ${currentPhase} to create plans first.`

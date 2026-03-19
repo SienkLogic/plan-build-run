@@ -119,4 +119,23 @@ function readCurrentStatus(planningDir) {
   }
 }
 
-module.exports = { readActiveSkill, readCurrentPhase, readCurrentPhaseInt, readCurrentStatus, VALID_PHASE_STATUSES, STATUS_ALIASES };
+/**
+ * Detect whether a PLAN*.md file has speculative: true in its frontmatter.
+ * Speculative plans are created for future phases and must not trigger validation gates.
+ * @param {string} filePath - absolute path to the PLAN file
+ * @returns {boolean}
+ */
+function isPlanSpeculative(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    if (!content.startsWith('---')) return false;
+    const endIdx = content.indexOf('---', 3);
+    if (endIdx === -1) return false;
+    const frontmatter = content.substring(3, endIdx);
+    return /^\s*speculative\s*:\s*true\s*$/m.test(frontmatter);
+  } catch (_e) {
+    return false;
+  }
+}
+
+module.exports = { readActiveSkill, readCurrentPhase, readCurrentPhaseInt, readCurrentStatus, VALID_PHASE_STATUSES, STATUS_ALIASES, isPlanSpeculative };
