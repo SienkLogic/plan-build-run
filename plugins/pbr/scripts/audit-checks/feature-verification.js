@@ -274,7 +274,7 @@ function checkTrustTrackingActivity(planningDir, config) {
  * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
  */
 function checkLearningsSystemActivity(planningDir, config) {
-  if (!config.learnings || config.learnings.enabled !== true) {
+  if (!config || !config.learnings || config.learnings.enabled !== true) {
     return result('FV-05', 'pass', 'Feature disabled by config');
   }
 
@@ -320,7 +320,7 @@ function checkLearningsSystemActivity(planningDir, config) {
  * @returns {{ dimension: string, status: string, message: string, evidence: string[] }}
  */
 function checkIntelSystemActivity(planningDir, config) {
-  if (!config.intel || config.intel.enabled !== true) {
+  if (!config || !config.intel || config.intel.enabled !== true) {
     return result('FV-06', 'pass', 'Feature disabled by config');
   }
 
