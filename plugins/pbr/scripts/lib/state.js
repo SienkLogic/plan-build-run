@@ -429,15 +429,46 @@ function stateAdvancePlan(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const statePath = path.join(dir, 'STATE.md');
   if (!fs.existsSync(statePath)) return { success: false, error: "STATE.md not found" };
-  const stateContent = fs.readFileSync(statePath, "utf8");
-  const planMatch = stateContent.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
-  if (!planMatch) return { success: false, error: "Could not find Plan: N of M in STATE.md" };
-  const current = parseInt(planMatch[1], 10), total = parseInt(planMatch[2], 10);
-  const next = Math.min(current + 1, total);
-  stateUpdate("plans_complete", String(next), dir);
-  const progressPct = total > 0 ? Math.round((next / total) * 100) : 0;
-  stateUpdate("progress_percent", String(progressPct), dir);
-  return { success: true, previous_plan: current, current_plan: next, total_plans: total, progress_percent: progressPct };
+
+  let resultData = {};
+  const result = lockedFileUpdate(statePath, (content) => {
+    const planMatch = content.match(/Plan:\s*(\d+)\s+of\s+(\d+)/);
+    if (!planMatch) {
+      resultData = { error: "Could not find Plan: N of M in STATE.md" };
+      return content; // Return unchanged
+    }
+    const current = parseInt(planMatch[1], 10);
+    const total = parseInt(planMatch[2], 10);
+    const next = Math.min(current + 1, total);
+    const progressPct = total > 0 ? Math.round((next / total) * 100) : 0;
+
+    resultData = { previous_plan: current, current_plan: next, total_plans: total, progress_percent: progressPct };
+
+    // Update plans_complete field
+    let updated = content.replace(
+      /^(\s*plans_complete:\s*)(\d+)/m,
+      `$1${next}`
+    );
+    // Update progress_percent field
+    updated = updated.replace(
+      /^(\s*progress_percent:\s*)(\d+)/m,
+      `$1${progressPct}`
+    );
+    // Update the "Plan: N of M" display line
+    updated = updated.replace(
+      /Plan:\s*\d+\s+of\s+\d+/,
+      `Plan: ${next} of ${total}`
+    );
+    return updated;
+  });
+
+  if (!result.success) {
+    return { success: false, error: result.error || resultData.error || "Lock failed" };
+  }
+  if (resultData.error) {
+    return { success: false, error: resultData.error };
+  }
+  return { success: true, ...resultData };
 }
 
 /**
