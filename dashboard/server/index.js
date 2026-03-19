@@ -15,6 +15,9 @@ const createAgentsRouter = require('./routes/agents');
 const createMemoryRouter = require('./routes/memory');
 const createRoadmapRouter = require('./routes/roadmap');
 const createRequirementsRouter = require('./routes/requirements');
+const createIntelRouter = require('./routes/intel');
+const createIncidentsRouter = require('./routes/incidents');
+const createSessionsRouter = require('./routes/sessions');
 const { setupStatic } = require('./middleware/static');
 const { setupWebSocket } = require('./ws');
 const { FileWatcher } = require('./services/file-watcher');
@@ -66,6 +69,9 @@ function createApp(options = {}) {
   app.use('/api/memory', createMemoryRouter({ planningDir: resolved.planningDir, planningReader }));
   app.use('/api/roadmap', createRoadmapRouter(planningReader));
   app.use('/api/requirements', createRequirementsRouter(planningReader));
+  app.use('/api/intel', createIntelRouter({ planningDir: resolved.planningDir }));
+  app.use('/api/incidents', createIncidentsRouter({ planningDir: resolved.planningDir }));
+  app.use('/api/sessions', createSessionsRouter({ planningDir: resolved.planningDir }));
 
   // 404 handler for unmatched /api/* routes
   app.all(/^\/api\//, (_req, res) => {

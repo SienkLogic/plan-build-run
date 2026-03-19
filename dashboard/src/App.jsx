@@ -24,6 +24,12 @@ const PlanningPage = lazy(() => import('./pages/PlanningPage.jsx'));
 const ProgressPage = lazy(() => import('./pages/ProgressPage.jsx'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage.jsx'));
 
+// Phase 52 pages
+const ResearchPage = lazy(() => import('./pages/ResearchPage.jsx'));
+const IntelPage = lazy(() => import('./pages/IntelPage.jsx'));
+const IncidentsPage = lazy(() => import('./pages/IncidentsPage.jsx'));
+const SessionsPage = lazy(() => import('./pages/SessionsPage.jsx'));
+
 import useFetch from './hooks/useFetch.js';
 import useWebSocket from './hooks/useWebSocket.js';
 
@@ -74,6 +80,11 @@ export default function App() {
     // Phase 15 DX pages
     progress: ProgressPage,
     onboarding: OnboardingPage,
+    // Phase 52 pages
+    research: ResearchPage,
+    intel: IntelPage,
+    incidents: IncidentsPage,
+    sessions: SessionsPage,
   };
   const PageComponent = PAGES[nav];
 

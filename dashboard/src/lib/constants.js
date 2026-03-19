@@ -15,4 +15,8 @@ export const NAV = [
   { id: 'roadmap', label: 'Roadmap', icon: '\u25A6' },
   { id: 'progress', label: 'Progress', icon: '\u25D4' },
   { id: 'onboarding', label: 'Onboarding', icon: '\u25B7' },
+  { id: 'research', label: 'Research', icon: '\u25C7' },
+  { id: 'intel', label: 'Intel', icon: '\u25CE' },
+  { id: 'incidents', label: 'Incidents', icon: '\u26A0' },
+  { id: 'sessions', label: 'Sessions', icon: '\u25D4' },
 ];
