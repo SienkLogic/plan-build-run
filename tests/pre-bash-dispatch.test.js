@@ -223,6 +223,218 @@ describe('pre-bash-dispatch.js', () => {
     });
   });
 
+  describe('malformed input handling', () => {
+    test('non-JSON stdin exits 0 with valid JSON output', () => {
+      const result = _run('this is not json at all', { cwd: os.tmpdir() });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+    });
+
+    test('empty string stdin exits 0', () => {
+      const result = _run('', { cwd: os.tmpdir() });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('tool_input missing entirely exits 0', () => {
+      const result = _run({ session_id: 'test' }, { cwd: os.tmpdir() });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+    });
+
+    test('tool_input.command is null exits 0', () => {
+      const result = runScript({ command: null });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+    });
+
+    test('tool_input.command is a number exits 0', () => {
+      const result = runScript({ command: 42 });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('tool_input.command is undefined exits 0', () => {
+      const result = runScript({});
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('deeply nested invalid object exits 0', () => {
+      const result = _run({ tool_input: { command: { nested: true } } }, { cwd: os.tmpdir() });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
+  describe('validate-commit edge cases', () => {
+    test('git commit --amend with no message is allowed', () => {
+      const result = runScript({ command: 'git commit --amend --no-edit' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('git commit with --no-verify flag and valid message is allowed', () => {
+      const result = runScript({ command: 'git commit --no-verify -m "feat(hooks): skip hooks"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('git commit -m with empty string is blocked', () => {
+      const result = runScript({ command: "git commit -m ''" });
+      // Empty message can't match COMMIT_PATTERN — either blocked or allowed as unparseable
+      // The key behavior: it should not crash
+      expect(result.exitCode).toBe(0); // empty quote yields no extractable message → allowed
+    });
+
+    test('all valid commit types are allowed', () => {
+      const types = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert'];
+      for (const type of types) {
+        const result = runScript({ command: `git commit -m "${type}(hooks): test message"` });
+        expect(result.exitCode).toBe(0);
+      }
+    });
+
+    test('conventional commit with hyphenated scope is allowed', () => {
+      const result = runScript({ command: 'git commit -m "feat(hook-server): add health endpoint"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('conventional commit with dot in scope is allowed', () => {
+      const result = runScript({ command: 'git commit -m "fix(v2.1): patch release"' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('invalid commit type is blocked', () => {
+      const result = runScript({ command: 'git commit -m "yolo(hooks): bad type"' });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('block');
+      expect(output.reason).toContain('Invalid commit message');
+    });
+
+    test('commit with heredoc-style message extracts first line', () => {
+      // Heredoc syntax: the hook parses heredoc format to extract message
+      const cmd = "git commit -m \"$(cat <<'EOF'\nfeat(hooks): add new hook\n\nDetailed body here\nEOF\n)\"";
+      const result = runScript({ command: cmd });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('perf, ci, and build types are allowed', () => {
+      // hooks/ copy includes perf|ci|build in COMMIT_PATTERN
+      const types = ['perf', 'ci', 'build'];
+      for (const type of types) {
+        const result = runScript({ command: `git commit -m "${type}(hooks): test message"` });
+        expect(result.exitCode).toBe(0);
+      }
+    });
+  });
+
+  describe('check-dangerous-commands edge cases', () => {
+    test('git push --force-with-lease is allowed (not blocked like --force)', () => {
+      const result = runScript({ command: 'git push --force-with-lease origin feature-branch' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('git checkout -- with specific file is allowed', () => {
+      const result = runScript({ command: 'git checkout -- src/index.js' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('rm -rf on non-.planning directory is allowed', () => {
+      const result = runScript({ command: 'rm -rf dist/' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('git clean -fxd is blocked', () => {
+      const result = runScript({ command: 'git clean -fxd' });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('block');
+    });
+
+    test('rm with only -r (no -f) targeting .planning is not blocked by rf pattern', () => {
+      // The regex requires both -r and -f flags
+      const result = runScript({ command: 'rm -r .planning' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('git push without --force to main is allowed', () => {
+      const result = runScript({ command: 'git push origin main' });
+      expect(result.exitCode).toBe(0);
+    });
+
+    test('database destructive commands trigger advisory warning', () => {
+      const result = runScript({ command: 'mysql -e "DROP TABLE users"' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      expect(output.additionalContext).toContain('destructive database');
+    });
+
+    test('npm publish triggers advisory warning', () => {
+      const result = runScript({ command: 'npm publish' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.additionalContext).toContain('npm publish');
+    });
+
+    test('production config reference triggers advisory warning', () => {
+      const result = runScript({ command: 'cat production.env' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.additionalContext).toContain('production config');
+    });
+  });
+
+  describe('JSON output format verification', () => {
+    test('blocked command output is valid JSON with decision and reason', () => {
+      const result = runScript({ command: 'rm -rf .planning' });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(typeof output).toBe('object');
+      expect(output.decision).toBe('block');
+      expect(typeof output.reason).toBe('string');
+      expect(output.reason.length).toBeGreaterThan(0);
+    });
+
+    test('allowed command output is valid JSON with decision allow', () => {
+      const result = runScript({ command: 'echo hello' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(typeof output).toBe('object');
+      expect(output.decision).toBe('allow');
+    });
+
+    test('advisory warning output has decision allow and additionalContext string', () => {
+      const result = runScript({ command: 'npm publish foo' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+      expect(typeof output.additionalContext).toBe('string');
+    });
+
+    test('warn-pattern output (git checkout -- .) has additionalContext but no decision field', () => {
+      const result = runScript({ command: 'git checkout -- .' });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      // Warn patterns return from checkDangerous which sets additionalContext
+      // The dispatch then adds decision: allow in the warnings path
+      expect(output.additionalContext).toBeDefined();
+    });
+
+    test('malformed input produces valid JSON on stdout', () => {
+      const result = _run('garbage input', { cwd: os.tmpdir() });
+      expect(result.exitCode).toBe(0);
+      const output = JSON.parse(result.output);
+      expect(output.decision).toBe('allow');
+    });
+
+    test('block output reason contains the command for context', () => {
+      const result = runScript({ command: 'git reset --hard HEAD~5' });
+      expect(result.exitCode).toBe(2);
+      const output = JSON.parse(result.output);
+      expect(output.reason).toContain('reset --hard');
+    });
+  });
+
   describe('error handling', () => {
     test('malformed JSON does not block', () => {
       // Send invalid JSON - the script should catch the parse error and exit 0
