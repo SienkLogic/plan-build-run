@@ -194,6 +194,10 @@ Files tested:
 ║  ▶ NEXT UP                                                   ║
 ╚══════════════════════════════════════════════════════════════╝
 
+**Run quality gate** to check for requirement-to-test gaps
+
+`/pbr:validate-phase {N}`
+
 **Run coverage check** to see how much is covered
 
 `npm test -- --coverage`
