@@ -6,6 +6,7 @@ nul
 .planning.bak/
 .planning-old/
 .planning-backup-*/
+.release-please-manifest.json
 .claude/agent-memory/
 .claude/settings.local.json
 .claude/sync-plugin-cache.js
