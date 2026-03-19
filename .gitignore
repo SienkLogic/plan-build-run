@@ -2,6 +2,7 @@ node_modules/
 .env
 *.log
 nul
+.planning/
 .planning.bak/
 .planning-old/
 .planning-backup-*/
