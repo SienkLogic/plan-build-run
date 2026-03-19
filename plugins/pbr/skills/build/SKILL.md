@@ -542,6 +542,16 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify PLAN ".planning/pha
 - If the command fails or returns null: skip silently (local LLM unavailable — not an error)
 - This is advisory only — never block on the result
 
+**Teams mode status check:**
+
+Before spawning executors, read the teams config:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get parallelization.use_teams
+```
+
+If `true`: Log `"Teams mode active — executor spawning coordinated with team config"`. This is informational only — teams mode affects planning and review, not execution. The log helps operators understand the full pipeline state.
+
 **Present plan narrative before spawning:**
 
 Display to the user before spawning:

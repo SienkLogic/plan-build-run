@@ -418,9 +418,22 @@ After the Task() completes:
 
 #### Team Mode (--teams)
 
-If `--teams` flag is set OR `config.parallelization.use_teams` is true, spawn 3 parallel planner agents (architect, security, test) then a synthesizer to merge their outputs. See `references/agent-teams.md` for agent role definitions, output paths (`.planning/phases/{NN}-{slug}/team/`), and prompt content for each role.
+**Read teams config:**
 
-If `--teams` is NOT set and `config.parallelization.use_teams` is false or unset, proceed with the single-planner flow below.
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get parallelization.use_teams
+```
+
+Store the result as `use_teams_config`. If the CLI returns `true`, treat it as if `--teams` was passed.
+
+If `--teams` flag is set OR `use_teams_config` is `true` (from the config read above):
+1. Log: "Team mode enabled (source: {--teams flag | config parallelization.use_teams})"
+2. Read `references/agent-teams.md` for role definitions
+3. Spawn 3 parallel planner agents (architect, security, test) with role-specific prompts
+4. Wait for all 3 to complete
+5. Spawn synthesizer agent to merge outputs from `.planning/phases/{NN}-{slug}/team/` into final PLAN files
+
+If neither `--teams` flag nor `use_teams_config` is true, proceed with the single-planner flow below.
 
 #### Multi-Phase Flow (--through)
 

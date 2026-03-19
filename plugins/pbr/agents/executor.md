@@ -390,8 +390,41 @@ After 3 failed attempts to fix a single issue, STOP trying.
 2. Document what you tried and why it failed
 3. Move to the next task
 4. If NO tasks can be completed due to blockers, return ## PLAN FAILED
+5. Record negative knowledge: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js nk record --title "..." --category "build-failure" --files "..." --tried "..." --failed "..." --phase "{phase_num}"`
 Never enter an infinite fix loop. 3 strikes = move on.
 </circuit_breaker>
+
+---
+
+## Negative Knowledge Capture
+
+When a task fails and you apply PRUNE or ESCALATE from the Node Repair System, OR when a task exhausts its fix budget (3 attempts) and is deferred, record a negative knowledge entry:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js nk record \
+  --title "Brief description of what failed" \
+  --category "build-failure" \
+  --files "file1.ts,file2.ts" \
+  --tried "What approach was attempted" \
+  --failed "Why it failed — error message or root cause" \
+  --phase "{phase_num}"
+```
+
+**Categories:** `build-failure` (task code failed), `verification-gap` (verify command failed), `plan-revision` (plan approach was wrong), `debug-finding` (discovered during debugging)
+
+**When to write:**
+
+- Task verify fails after RETRY budget exhausted AND you PRUNE or ESCALATE
+- Task acceptance_criteria fails after repair attempts AND you move on
+- Architectural deviation (Rule 4) forces a CHECKPOINT
+
+**When NOT to write:**
+
+- Rule 1 auto-fixes that succeed (bug was fixed, no failure to record)
+- Rule 2 dependency installs that succeed
+- Rule 5 scope creep items (these go to SUMMARY.md deferred, not negative knowledge)
+
+This enables future planners and executors to avoid repeating known-failed approaches.
 
 ---
 
@@ -415,6 +448,8 @@ When a task fails (verify or acceptance_criteria), apply repair strategies in or
 2. **DECOMPOSE** — Break the failing task into 2-3 smaller subtasks. Execute each subtask independently. Each gets its own commit.
 3. **PRUNE** — If non-essential parts are failing, skip them. Document skipped items in SUMMARY.md deferred section. Only prune if the must-have can still be achieved without the pruned parts.
 4. **ESCALATE** — Return `CHECKPOINT: TASK-FAILURE` with the task ID, error details, strategies attempted, and remaining tasks.
+
+After PRUNE or ESCALATE, record a negative knowledge entry using the CLI command from the Negative Knowledge Capture section above.
 
 Apply strategies in order: exhaust RETRY budget before trying DECOMPOSE, exhaust DECOMPOSE before PRUNE, exhaust PRUNE before ESCALATE.
 

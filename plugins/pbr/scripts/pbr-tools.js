@@ -49,6 +49,9 @@
  *   learnings check-thresholds   — Check deferral trigger conditions
  *   learnings copy-global <path> <proj> — Copy cross_project LEARNINGS.md to ~/.claude/pbr-knowledge/
  *   learnings query-global [--tags X] [--project P] — Query global knowledge files
+ *   nk record --title "..." --category "..." --files "f1,f2" --tried "..." --failed "..." — Record negative knowledge entry
+ *   nk list [--category X] [--phase X] [--status X] — List negative knowledge entries
+ *   nk resolve <slug>               — Mark a negative knowledge entry as resolved
  *   insights import <html-path> [--project <name>] — Parse insights HTML report into learnings
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
@@ -1554,8 +1557,63 @@ async function main() {
       const maxIterations = maxIterIdx !== -1 ? parseInt(args[maxIterIdx + 1], 10) : 3;
       output(ciFix({ dryRun, maxIterations }));
 
+    } else if (command === 'nk') {
+      // Lazy require to avoid loading for unrelated commands
+      const nkLib = require(path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'negative-knowledge.cjs'));
+
+      if (subcommand === 'record') {
+        const titleIdx = args.indexOf('--title');
+        const categoryIdx = args.indexOf('--category');
+        const filesIdx = args.indexOf('--files');
+        const triedIdx = args.indexOf('--tried');
+        const failedIdx = args.indexOf('--failed');
+        const workedIdx = args.indexOf('--worked');
+        const phaseIdx = args.indexOf('--phase');
+
+        const title = titleIdx !== -1 ? args[titleIdx + 1] : null;
+        const category = categoryIdx !== -1 ? args[categoryIdx + 1] : null;
+        const tried = triedIdx !== -1 ? args[triedIdx + 1] : null;
+        const failed = failedIdx !== -1 ? args[failedIdx + 1] : null;
+
+        if (!title || !category || !tried || !failed) {
+          error('Usage: pbr-tools.js nk record --title "..." --category "build-failure" --files "f1,f2" --tried "..." --failed "..."\nRequired: --title, --category, --tried, --failed\nCategories: build-failure, verification-gap, plan-revision, debug-finding');
+        }
+
+        const filesInvolved = filesIdx !== -1 ? (args[filesIdx + 1] || '').split(',').filter(Boolean) : [];
+        const whatWorked = workedIdx !== -1 ? args[workedIdx + 1] : '';
+        const phase = phaseIdx !== -1 ? args[phaseIdx + 1] : '';
+
+        const result = nkLib.recordFailure(planningDir, {
+          title, category, filesInvolved,
+          whatTried: tried, whyFailed: failed,
+          whatWorked, phase
+        });
+        output({ ok: true, path: result.path, slug: result.slug });
+
+      } else if (subcommand === 'list') {
+        const catIdx = args.indexOf('--category');
+        const phIdx = args.indexOf('--phase');
+        const stIdx = args.indexOf('--status');
+        const filters = {};
+        if (catIdx !== -1) filters.category = args[catIdx + 1];
+        if (phIdx !== -1) filters.phase = args[phIdx + 1];
+        if (stIdx !== -1) filters.status = args[stIdx + 1];
+        output(nkLib.listFailures(planningDir, filters));
+
+      } else if (subcommand === 'resolve') {
+        const slug = args[2];
+        if (!slug) {
+          error('Usage: pbr-tools.js nk resolve <slug>');
+        }
+        nkLib.resolveEntry(planningDir, slug);
+        output({ ok: true });
+
+      } else {
+        error('Usage: pbr-tools.js nk <record|list|resolve>\n  nk record --title "..." --category "..." --files "f1,f2" --tried "..." --failed "..."\n  nk list [--category X] [--phase X] [--status X]\n  nk resolve <slug>');
+      }
+
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, nk record|list|resolve, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
     }
   } catch (e) {
     error(e.message);
