@@ -359,7 +359,9 @@ Based on the project state, suggest the single most logical next action:
    YES → "Build the current phase: `/pbr:execute-phase {N}`"
 
 4. Is the current phase built but not reviewed?
-   YES → "Review what was built: `/pbr:verify-work {N}`"
+   YES → Read `workflow.validate_phase` from config.json (default: `true`).
+     IF true  → "Validate coverage gaps: `/pbr:validate-phase {N}`"
+     IF false → "Review what was built: `/pbr:verify-work {N}`"
 
 5. Is the current phase verified (complete)?
    YES → Is there a next phase?
