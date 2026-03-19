@@ -391,6 +391,12 @@ function main() {
   if (tryRemove(path.join(planningDir, '.active-plan'))) {
     cleaned.push('.active-plan');
   }
+  if (tryRemove(path.join(planningDir, '.context-tracker'))) {
+    cleaned.push('.context-tracker');
+  }
+  if (tryRemove(path.join(planningDir, '.active-agent'))) {
+    cleaned.push('.active-agent');
+  }
 
   // Clean stale checkpoint manifests (>24h old)
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);
@@ -530,6 +536,8 @@ function handleHttp(reqBody) {
   if (tryRemove(path.join(planningDir, '.active-operation'))) cleaned.push('.active-operation');
   if (tryRemove(path.join(planningDir, '.active-skill'))) cleaned.push('.active-skill');
   if (tryRemove(path.join(planningDir, '.active-plan'))) cleaned.push('.active-plan');
+  if (tryRemove(path.join(planningDir, '.context-tracker'))) cleaned.push('.context-tracker');
+  if (tryRemove(path.join(planningDir, '.active-agent'))) cleaned.push('.active-agent');
 
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);
   cleaned.push(...staleCheckpoints);
