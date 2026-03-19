@@ -163,7 +163,7 @@ describe('INTG-04: install.js integrity and test-mode exports', () => {
   test('directory structure has expected commands count', () => {
     const commandsDir = path.join(ROOT, 'commands', 'pbr');
     const commands = fs.readdirSync(commandsDir).filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(62);
+    expect(commands.length).toBe(63);
   });
 
   test('directory structure has hooks', () => {
