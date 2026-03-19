@@ -325,7 +325,7 @@ describe('validate-task.js', () => {
       }
     }
 
-    test('blocks executor when active skill is build but no PLAN.md in phase dir', () => {
+    test('allows executor when phase dir is empty (speculative planning support)', () => {
       makeBuildEnv({
         activeSkill: 'build',
         phaseDir: '01-setup',
@@ -333,8 +333,7 @@ describe('validate-task.js', () => {
         stateContent: '# State\nPhase: 1 of 3 (Setup)\nStatus: building'
       });
       const result = runInDir({ description: 'Run executor', subagent_type: 'pbr:executor' }, tmpDir);
-      expect(result.exitCode).toBe(2);
-      expect(result.output).toContain('no PLAN.md found');
+      expect(result.exitCode).toBe(0);
     });
 
     test('passes executor when active skill is build and PLAN.md exists', () => {

@@ -171,13 +171,12 @@ describe('checkBuildExecutorGate', () => {
     expect(result.reason).toContain('phase 01');
   });
 
-  test('blocks when phase dir has no PLAN.md', () => {
+  test('allows when phase dir has no PLAN.md (empty dir for speculative planning)', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 1 of 3');
     fs.mkdirSync(path.join(planningDir, 'phases', '01-setup'), { recursive: true });
     const result = checkBuildExecutorGate({ tool_input: { subagent_type: 'pbr:executor' } });
-    expect(result.block).toBe(true);
-    expect(result.reason).toContain('no PLAN.md');
+    expect(result).toBeNull();
   });
 
   test('passes when PLAN.md exists', () => {
@@ -575,13 +574,15 @@ describe('checkBuildDependencyGate', () => {
     expect(checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } })).toBeNull();
   });
 
-  test('blocks when dependent phase lacks VERIFICATION.md', () => {
+  test('blocks when dependent phase lacks VERIFICATION.md and has non-speculative plans', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'Phase: 2 of 2');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), ROADMAP_WITH_DEPS);
-    fs.mkdirSync(path.join(planningDir, 'phases', '01-first'), { recursive: true });
+    const depDir = path.join(planningDir, 'phases', '01-first');
+    fs.mkdirSync(depDir, { recursive: true });
     fs.mkdirSync(path.join(planningDir, 'phases', '02-second'), { recursive: true });
-    // Phase 01 has no VERIFICATION.md
+    // Phase 01 has a non-speculative PLAN but no VERIFICATION.md
+    fs.writeFileSync(path.join(depDir, 'PLAN-01.md'), '---\nphase: "01-first"\nplan: "01-01"\n---\n# Plan');
     const result = checkBuildDependencyGate({ tool_input: { subagent_type: 'pbr:executor' } });
     expect(result.block).toBe(true);
     expect(result.reason).toContain('Build dependency gate');

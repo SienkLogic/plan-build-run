@@ -45,7 +45,7 @@ describe('checkBuildExecutorGate', () => {
     expect(result).toBeNull();
   });
 
-  test('blocks when PLAN.md missing from phase dir', () => {
+  test('allows when PLAN.md missing from phase dir (empty dir for speculative planning)', () => {
     process.env.PBR_PROJECT_ROOT = tmpDir;
     const planningDir = path.join(tmpDir, '.planning');
     const phaseDir = path.join(planningDir, 'phases', '01-setup');
@@ -53,9 +53,7 @@ describe('checkBuildExecutorGate', () => {
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), '# State\nPhase: 1 of 3 (Setup)\n');
     const result = checkBuildExecutorGate(makeData('pbr:executor'));
-    expect(result).not.toBeNull();
-    expect(result.block).toBe(true);
-    expect(result.reason).toContain('no PLAN.md found');
+    expect(result).toBeNull();
   });
 
   test('returns null when PLAN.md exists in phase dir', () => {
