@@ -685,20 +685,14 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   2. Compute a fingerprint string for each: `"len:{bytes}-mod:{mtime}"` and add as a `dependency_fingerprints` map in each plan's YAML frontmatter — this allows the build skill to detect stale plans if dependencies were rebuilt.
 - **Update ROADMAP.md Progress table** (REQUIRED — do this BEFORE updating STATE.md):
 
-  **Tooling shortcut**: Use the CLI for atomic updates:
+  > Note: Use CLI for atomic writes — direct Write bypasses file locking.
+
   ```bash
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} 0 {N}
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} planned
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status planned
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
   ```
-
-  1. Open `.planning/ROADMAP.md`
-  2. Find the `## Progress` table
-  3. Locate the row matching this phase number
-  4. Update the `Plans Complete` column to `0/{N}` where N = number of plan files just created
-  5. Update the `Status` column to `planned`
-  6. Save the file — do NOT skip this step
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
 **Tooling shortcut**: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_command":"/pbr:plan-phase {N}"}'`

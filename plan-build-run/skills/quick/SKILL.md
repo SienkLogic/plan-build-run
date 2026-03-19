@@ -46,16 +46,23 @@ Additionally for this skill:
 
 Parse `$ARGUMENTS` for optional flags before extracting the task description:
 
-- **`--discuss`**: Include a brief discussion step before building. When passed, after identifying the task, ask 2-3 clarifying questions about the approach before spawning the executor. This adds lightweight discussion without the full `/pbr:discuss-phase` overhead.
-- **`--full`**: Run the complete begin-plan-build chain. When passed, instead of the quick task flow, chain directly: `Skill({ skill: "pbr:plan", args: "" })` with the task description carried over. This escalates to the full pipeline including research.
+- **`--discuss`**: Before spawning the executor, ask 2-3 clarifying questions about the approach. Write the Q&A results to `.planning/quick/{NNN}-{slug}/CONTEXT.md` as a lightweight decision record. Pass this CONTEXT.md to the executor via files_to_read.
+- **`--research`**: Spawn a `Task(subagent_type: "pbr:researcher")` to investigate the task domain before execution. The researcher writes findings to `.planning/quick/{NNN}-{slug}/RESEARCH.md`. Pass this RESEARCH.md to the executor via files_to_read.
+- **`--full`**: Enable plan-checker validation (max 2 iterations) before executor spawn AND post-execution verification via verifier agent. Creates VERIFICATION.md in the quick task directory. Does NOT escalate to /pbr:plan -- stays in quick pipeline.
 
 Strip these flags from `$ARGUMENTS` before using the remainder as the task description.
 
 **Flag combinations:**
-- `--discuss` alone: Quick task with brief discussion step
-- `--full` alone: Escalate to full pipeline
-- `--discuss --full`: Escalate to full pipeline (--full takes precedence)
+- `--discuss` alone: Quick task with discussion + CONTEXT.md
+- `--research` alone: Quick task with research + RESEARCH.md
+- `--full` alone: Quick task with plan-checking + verification
+- `--discuss --research`: Discussion + research before execution
+- `--discuss --full`: Discussion + plan-checking + verification
+- `--research --full`: Research + plan-checking + verification
+- `--discuss --research --full`: All quality layers
 - No flags: Standard quick task flow (zero-friction or legacy based on config)
+
+**Note:** `--full` converts the zero-friction path to use a PLAN.md so plan-checker can validate it. The executor then reads the PLAN.md instead of inline instructions. This adds 1-2 tool calls but enables structured validation.
 
 ## Core Principle
 
@@ -80,12 +87,14 @@ From the init output:
 3. Read `features.zero_friction_quick` from config (default: `true`)
 
 **Route decision:**
-- If `--full` flag: clean up `.active-skill` if it exists, then chain to `Skill({ skill: "pbr:plan", args: "" })`. STOP here.
-- If `--discuss` flag: ask 2-3 clarifying questions about the approach, then continue with the selected path below.
+- If `--full` flag: continue with the selected path below (plan-checker and verifier steps will activate later). Do NOT escalate to `Skill({ skill: "pbr:plan" })`.
+- If `--discuss` flag: go to **Step 1c** (ask clarifying questions, write CONTEXT.md), then continue.
+- If `--research` flag: go to **Step 1d** (spawn researcher, write RESEARCH.md), then continue.
+- If both `--discuss` and `--research`: run Step 1c first, then Step 1d.
 - If `features.zero_friction_quick` is `true` (default): go to **Step 2** (zero-friction path)
 - If `features.zero_friction_quick` is `false`: go to **Step 5** (legacy path)
 
-**DO NOT fall back to the legacy flow when `zero_friction_quick` is `true` unless `--full` flag is set.** The zero-friction path is the intended default experience.
+**DO NOT fall back to the legacy flow when `zero_friction_quick` is `true`.** The zero-friction path is the intended default experience.
 
 ### Step 1b: Get Task Description (if needed)
 
@@ -95,6 +104,49 @@ If `$ARGUMENTS` is provided and non-empty (after stripping flags):
 If `$ARGUMENTS` is empty:
 - Ask the user: "What do you need done? Describe the task in a sentence or two."
   This is a freeform text prompt -- do NOT use AskUserQuestion here. Task descriptions require arbitrary text input, not option selection.
+
+### Step 1c: Discussion (only if `--discuss` flag is set)
+
+Ask 2-3 clarifying questions about the approach, constraints, and edge cases. Use plain text prompts (not AskUserQuestion -- these require freeform answers).
+
+After receiving answers, write the Q&A to `.planning/quick/{NNN}-{slug}/CONTEXT.md`:
+
+```markdown
+# Quick Task Context
+
+**Task:** {description}
+**Date:** {YYYY-MM-DD}
+
+## Discussion
+
+{Q&A content -- each question and answer}
+
+## Decisions
+
+{Key decisions derived from the discussion}
+```
+
+**Note:** The task directory `.planning/quick/{NNN}-{slug}/` must be created before writing CONTEXT.md. In the zero-friction path, create it now (it will be reused in Step 3). In the legacy path, it is created in Step 5e.
+
+Continue to Step 1d if `--research` is also set, otherwise continue to the selected path (Step 2 or Step 5).
+
+### Step 1d: Research (only if `--research` flag is set)
+
+Spawn a `Task(subagent_type: "pbr:researcher")` with the following prompt:
+
+```
+Research the following task domain for a quick task.
+Task: {description}
+Write findings to: .planning/quick/{NNN}-{slug}/RESEARCH.md
+Focus on: existing patterns in the codebase, potential risks, recommended approach.
+Keep it concise (under 500 tokens).
+```
+
+**Note:** The task directory `.planning/quick/{NNN}-{slug}/` must exist before the researcher writes to it. Create it if not already created by Step 1c.
+
+After the researcher completes, verify `.planning/quick/{NNN}-{slug}/RESEARCH.md` exists. If missing, log a warning and continue without research context.
+
+Continue to the selected path (Step 2 or Step 5).
 
 ---
 
@@ -121,12 +173,22 @@ If `$ARGUMENTS` is empty:
 
 Display to the user: `> Spawning executor...`
 
+**Context Assembly:** Build the executor prompt's `files_to_read` block dynamically at spawn time. Always include STATE.md and CLAUDE.md as base files. Add CONTEXT.md line only if `--discuss` was used AND the file was created. Add RESEARCH.md line only if `--research` was used AND the file was created. Only include files that exist on disk.
+
 Spawn a `Task(subagent_type: "pbr:executor")` with the following inline prompt:
 
 > **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
 
 ```
 You are executor. Execute this quick task directly.
+
+<files_to_read>
+CRITICAL (no hook): Read these files BEFORE any other action:
+1. .planning/STATE.md -- current project state (if exists)
+2. CLAUDE.md -- project instructions
+{3. .planning/quick/{NNN}-{slug}/CONTEXT.md -- task context (only if --discuss was used)}
+{4. .planning/quick/{NNN}-{slug}/RESEARCH.md -- research findings (only if --research was used)}
+</files_to_read>
 
 Do NOT look for a PLAN.md file. Execute based on this description:
 
@@ -147,6 +209,33 @@ When done, output ## PLAN COMPLETE with a list of commits made.
 
 This is the 2nd tool call. Code is now running.
 
+### Step 2-full: Plan-Checker Loop for Zero-Friction (only if --full)
+
+If `--full` flag is set in the zero-friction path, add plan-checker validation before executor spawn:
+
+1. **Create PLAN.md**: Write a PLAN.md to `.planning/quick/{NNN}-{slug}/PLAN.md` using the same format as Legacy Step 5f. This is required so the plan-checker has a structured plan to validate.
+
+2. **Run plan-checker loop**: Same logic as Legacy Step 5g-full:
+
+```
+iteration = 0
+max_iterations = 2
+while iteration < max_iterations:
+  Spawn Task(subagent_type: "pbr:plan-checker") with quick-mode validation profile
+  (same prompt as Legacy Step 5g-full)
+
+  If CHECK PASSED: break
+  If CHECK FAILED: fix PLAN.md, iteration += 1
+
+If max_iterations reached: warn user and continue.
+```
+
+3. **Spawn executor with PLAN.md**: Instead of the inline zero-friction prompt, use the legacy-style executor prompt with `files_to_read` pointing to the PLAN.md (same as Legacy Step 5h).
+
+**Note:** `--full` converts the zero-friction path to use a PLAN.md so plan-checker can validate it. The executor then reads the PLAN.md instead of inline instructions.
+
+If `--full` is NOT set, skip this step entirely -- the zero-friction path proceeds directly to Step 2 executor spawn with no overhead.
+
 ### Step 3: Post-Execution Recording (after executor returns)
 
 After the executor completes:
@@ -161,14 +250,16 @@ After the executor completes:
 
 3. **Update STATE.md** quick tasks table (same as Legacy Step 5i)
 
-4. **Check pending todos** (same as Step 6)
+4. **Post-execution verification (only if --full)**: If `--full` flag is set AND executor completed successfully, run the same verifier spawn as Legacy Step 5i-full. Read VERIFICATION.md result after verifier returns.
 
-5. Go to **Step 4**
+5. **Check pending todos** (same as Step 6)
+
+6. Go to **Step 4**
 
 ### Step 4: Commit Planning Docs (if configured)
 
 If `planning.commit_docs: true` in config.json:
-- Stage the quick task directory files (SUMMARY.md if generated)
+- Stage the quick task directory files (SUMMARY.md if generated, VERIFICATION.md if `--full` was used)
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
@@ -273,6 +364,46 @@ Before proceeding to Step 5g, confirm these exist on disk:
 
 If either check fails, you have skipped steps. Go back and complete Steps 5d-5f. Do NOT proceed to spawning an executor.
 
+#### Step 5g-full: Plan-Checker Loop (only if --full)
+
+If `--full` flag is set, run the plan-checker before spawning the executor:
+
+```
+iteration = 0
+max_iterations = 2
+while iteration < max_iterations:
+  Spawn Task(subagent_type: "pbr:plan-checker") with prompt:
+    You are plan-checker validating a QUICK TASK plan (not a full phase plan).
+
+    <files_to_read>
+    1. .planning/quick/{NNN}-{slug}/PLAN.md
+    </files_to_read>
+
+    Quick-mode validation profile -- check ONLY these dimensions:
+    1. Task completeness: all 5 elements present (name, files, action, verify, done)
+    2. Verification commands: verify commands are executable
+    3. Scope sanity: <= 3 tasks, <= 8 files total
+
+    SKIP these full-plan-only dimensions:
+    - Cross-plan data contracts
+    - Wave/dependency correctness
+    - Requirement coverage (quick tasks don't have requirement IDs)
+    - Context compliance (no phase CONTEXT.md for quick tasks unless --discuss)
+
+    Output: ## CHECK PASSED or ## CHECK FAILED with specific issues.
+
+  If plan-checker returns CHECK PASSED: break loop, proceed to executor
+  If plan-checker returns CHECK FAILED:
+    - Read the issues
+    - Fix PLAN.md inline (rewrite the plan addressing issues)
+    - iteration += 1
+    - Loop again
+
+If max_iterations reached without passing: warn user "Plan-checker did not pass after 2 iterations. Proceeding with current plan." and continue to executor.
+```
+
+If `--full` is NOT set, skip this step entirely -- zero overhead on the default path.
+
 #### Step 5g: Local LLM Task Validation (optional, advisory)
 
 If `config.local_llm.enabled` is `true`, run a quick scope validation before spawning:
@@ -295,6 +426,8 @@ Spawn a `Task(subagent_type: "pbr:executor")` with the following prompt:
 
 > **Completion markers**: After executor completes, check for `## PLAN COMPLETE` or `## PLAN FAILED`. Route accordingly.
 
+**Context Assembly:** Build the `files_to_read` block dynamically. Always include PLAN.md, STATE.md, and CLAUDE.md. Add CONTEXT.md line only if `--discuss` was used AND the file was created. Add RESEARCH.md line only if `--research` was used AND the file was created. Only include files that exist on disk.
+
 ```
 You are executor. Execute the following quick task plan.
 
@@ -302,6 +435,9 @@ You are executor. Execute the following quick task plan.
 CRITICAL (no hook): Read these files BEFORE any other action:
 1. .planning/quick/{NNN}-{slug}/PLAN.md -- the quick task plan with task details
 2. .planning/STATE.md -- current project state and progress (if exists)
+3. CLAUDE.md -- project instructions
+{4. .planning/quick/{NNN}-{slug}/CONTEXT.md -- task context (only if --discuss was used)}
+{5. .planning/quick/{NNN}-{slug}/RESEARCH.md -- research findings (only if --research was used)}
 </files_to_read>
 
 Plan file: .planning/quick/{NNN}-{slug}/PLAN.md
@@ -335,6 +471,45 @@ After the executor completes:
 
 If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
 
+#### Step 5i-full: Post-Execution Verification (only if --full)
+
+If `--full` flag is set AND executor completed successfully (status = completed or partial):
+
+Spawn `Task(subagent_type: "pbr:verifier")` with prompt:
+
+```
+You are verifier. Verify this quick task achieved its goals.
+
+<files_to_read>
+1. .planning/quick/{NNN}-{slug}/PLAN.md -- the task plan with acceptance criteria
+2. .planning/quick/{NNN}-{slug}/SUMMARY.md -- executor's completion report
+</files_to_read>
+
+Quick-mode verification:
+1. Check that files listed in PLAN.md files_modified exist on disk
+2. Check that verify commands from PLAN.md pass when re-run
+3. Check that commits exist matching the task scope (quick-{NNN})
+
+Write VERIFICATION.md to: .planning/quick/{NNN}-{slug}/VERIFICATION.md
+
+Use this frontmatter format:
+---
+status: passed|failed
+must_haves_total: {N}
+must_haves_passed: {N}
+gaps: []
+---
+
+Output: ## VERIFICATION COMPLETE
+```
+
+After verifier returns:
+- Read `.planning/quick/{NNN}-{slug}/VERIFICATION.md` frontmatter
+- If status = passed: display "Verification: PASSED" in results
+- If status = failed: display "Verification: FAILED" with gap details, suggest `/pbr:debug`
+
+If `--full` is NOT set, skip this step entirely -- no verifier overhead on the default path.
+
 #### Step 5j: Update STATE.md
 
 If STATE.md exists, update the Quick Tasks section.
@@ -364,7 +539,7 @@ Status indicators:
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
 If `planning.commit_docs: true` in config.json:
-- Stage the quick task directory files (PLAN.md, SUMMARY.md)
+- Stage the quick task directory files (PLAN.md, SUMMARY.md, and VERIFICATION.md if `--full` was used)
 - Stage STATE.md changes
 - Commit: `docs(planning): quick task {NNN} - {slug}`
 
@@ -404,6 +579,7 @@ Delete `.planning/.active-skill` if it exists. This must happen on all paths (su
 1. `.planning/quick/{NNN}-{slug}/` directory exists
 2. `.planning/quick/{NNN}-{slug}/SUMMARY.md` exists and is non-empty (or was intentionally skipped via `post_hoc_artifacts: false`)
 3. STATE.md contains a quick task entry for {NNN} (if STATE.md exists)
+4. If `--full` was used: `.planning/quick/{NNN}-{slug}/VERIFICATION.md` exists
 
 If SUMMARY.md is missing and was expected: the executor may have failed -- re-read executor output and report the failure.
 If STATE.md entry is missing: write it now (Step 5j logic).
@@ -419,6 +595,7 @@ Display results to the user with branded output:
 **Quick Task {NNN}:** {description}
 Commit: {hash} -- {commit message}
 Files: {list of files changed}
+{If --full was used: "Verification: PASSED" or "Verification: FAILED -- {gap details}"}
 
 
 

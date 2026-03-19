@@ -1250,10 +1250,13 @@ The manifest collects commit hashes from each plan's SUMMARY.md and stores them 
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} {completed} {total}
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} {final_status}
 ```
-These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`. Falls back to manual editing if unavailable.
+These return `{ success, old_status, new_status }` or `{ success, old_plans, new_plans }`.
 
-**CLI exit code verification with retry**: Same pattern as Step 6f -- if any CLI command fails, retry once after 1 second. If retry also fails, fall back to manual ROADMAP.md editing. Log a warning but do not block the build.
+> Note: Use CLI for atomic writes — direct Write bypasses file locking.
 
+**CLI exit code verification with retry**: Same pattern as Step 6f -- if any CLI command fails, retry once after 1 second. If retry also fails, log a warning but do not block the build.
+
+**Last-resort fallback** (only if CLI is completely unavailable after retry):
 1. Open `.planning/ROADMAP.md`
 2. Find the `## Progress` table
 3. Locate the row matching this phase number
@@ -1264,9 +1267,18 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 **CRITICAL (no hook): Update STATE.md NOW with phase completion status. Do NOT skip this step. (state-sync warns)**
 
 **8b. Update STATE.md (CRITICAL (no hook) — update BOTH frontmatter AND body):**
-- Frontmatter: `status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`
-- Body `## Current Position`: `Phase:` line, `Plan:` line, `Status:` line, `Last activity:` line, `Progress:` bar
-- These MUST stay in sync — the status line reads frontmatter, humans read the body
+
+> Note: Use CLI for atomic writes — direct Write bypasses file locking.
+
+Use CLI commands to update STATE.md (keeps frontmatter and body in sync atomically):
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {final_status}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete {N}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update progress_percent {pct}
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:execute-phase {N}"
+```
+These update both frontmatter fields (`status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`) and the body `## Current Position` section (`Phase:`, `Plan:`, `Status:`, `Last activity:`, `Progress:` bar) atomically — they MUST stay in sync.
 
 **Completion check:** Before proceeding to 8c, confirm ALL of:
 - [ ] STATE.md frontmatter fields set: status, plans_complete, last_activity, progress_percent, last_command

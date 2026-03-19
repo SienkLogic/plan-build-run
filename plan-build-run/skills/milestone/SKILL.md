@@ -147,8 +147,8 @@ Start a new milestone cycle with new phases.
 
    ### Phase {N}: {name}
    **Goal:** {goal}
-   **Requirements:** {list}
-   **Success criteria:** {criteria}
+   **Requirements:** {REQ-IDs mapped to this phase}
+   **Success Criteria:** {verifiable conditions for phase completion}
    **Depends on:** {prior phases}
 
    ### Phase {N+1}: {name}
@@ -408,21 +408,48 @@ Read `git.branching` from config.
 
    - Move validated requirements from active to completed section
 
+**CRITICAL (no hook): Run PROJECT.md evolution review NOW. Do NOT skip this step.**
+
+6b. **PROJECT.md Evolution Review:**
+   After moving the milestone to completed status, review and evolve the project definition:
+
+   1. **Move completed Active Requirements to Validated** — Any requirement from the completed milestone that was satisfied (per VERIFICATION.md) should move from Active to Validated section
+   2. **Review Out of Scope** — Check if any previously out-of-scope items are now unblocked by the completed milestone's deliverables. If so, note them for the user's consideration (do not move them automatically)
+   3. **Annotate Key Decisions with outcomes** — For each Key Decision in PROJECT.md that relates to the completed milestone, add an Outcome column value: `Good` (decision worked well), `Revisit` (decision caused issues), or `Pending` (outcome not yet clear)
+   4. **Update Constraints** — Remove or update any constraints that changed during the milestone (e.g., a technology constraint that was relaxed)
+   5. **Refresh Core Value** — If the project direction shifted meaningfully during the milestone, suggest an updated Core Value statement to the user via AskUserQuestion
+
 **CRITICAL (no hook): Update ROADMAP.md with collapsed milestone section NOW. Do NOT skip this step.**
 
 7. **Collapse completed phases in ROADMAP.md:**
-   Replace detailed phase entries with collapsed summaries:
+   Replace detailed phase entries with a `<details>` collapsed summary (backward compat: also recognized by `-- COMPLETED` text):
 
    ```markdown
-   ## Milestone: {name} ({version}) -- COMPLETED
-
-   Phases {start}-{end} completed on {date}. See `.planning/milestones/{version}/ROADMAP.md` for details.
+   <details>
+   <summary>## Milestone: {name} ({version}) — SHIPPED {date}</summary>
 
    | Phase | Status |
    |-------|--------|
    | {N}. {name} | Completed |
    | {N+1}. {name} | Completed |
+
+   Completed: {date} | Archive: `.planning/milestones/{version}/`
+
+   </details>
    ```
+
+7a. **Update milestone index:**
+   After collapsing the milestone, update or create a `## Milestones` index section near the top of ROADMAP.md (after the title, before the first active milestone). Each entry is one line:
+
+   ```markdown
+   ## Milestones
+
+   | Version | Name | Status | Date |
+   |---------|------|--------|------|
+   | {version} | {name} | SHIPPED | {date} |
+   ```
+
+   If the section already exists, append a row. If it does not exist, create it.
 
 **CRITICAL (no hook): Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
@@ -432,14 +459,22 @@ Read `git.branching` from config.
    - Update last activity timestamp
    - Record the milestone version in the history/completed section
 
-7c. **Append history to STATE.md:**
-   - Use `historyAppend()` (via `pbr-tools.cjs history append`) to write a milestone completion record to STATE.md ## History section:
-     ```bash
-     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js history append milestone "Milestone {version} Completed" "Milestone: {name}\nPhases: {start} - {end}\nDuration: {duration} days\nKey deliverables: {summary from Step 4}"
-     ```
-   - This writes to STATE.md ## History section (not a separate HISTORY.md file)
+7c. **Record milestone completion in STATE.md frontmatter:**
+   - Update STATE.md frontmatter with milestone completion data:
+     - Set `last_milestone_version: "{version}"`
+     - Set `last_milestone_completed: "{ISO datetime}"`
+   - **Do NOT write to a ## History section in STATE.md** — History has been removed from STATE.md to keep it lean. Milestone completion records are preserved in the archive's STATS.md and ROADMAP.md snapshot.
+   - If a ## History section exists in STATE.md (from a prior version), remove it during milestone completion to enforce the new format.
 
-7d. **Aggregate learnings from milestone phases:**
+**Run state reconcile after archival** to reset phases_total and current_phase to reflect the next milestone's phases:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state reconcile
+```
+
+This command re-derives phase counts from ROADMAP.md and reports any phantom phase rows (progress table rows with no corresponding directory on disk). Review and remove phantom rows manually if no longer needed.
+
+7d. **Aggregate learnings into KNOWLEDGE.md from milestone phases:**
 
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
 
@@ -447,8 +482,10 @@ Read `git.branching` from config.
 node ${CLAUDE_PLUGIN_ROOT}/scripts/milestone-learnings.js .planning/milestones/{version} --project {project-name-from-STATE.md}
 ```
 
+This script aggregates SUMMARY.md patterns, decisions, and deferred items into the project-scoped `.planning/KNOWLEDGE.md` (table format with K/P/L-prefixed IDs). It also writes to the global `~/.claude/learnings.jsonl` for cross-project use.
+
 - If the script outputs an error, log it but do NOT abort milestone completion — learnings aggregation is advisory.
-- Display the aggregation summary line to the user (e.g., "Learnings aggregated: 12 new, 3 updated, 0 errors").
+- Display the aggregation summary line to the user (e.g., "KNOWLEDGE.md: 5 new entries, 2 duplicates skipped").
 - After aggregation, check for triggered deferral thresholds:
 
 ```bash
@@ -466,15 +503,19 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git tag -a {version} -m "Milestone: {name}"
    ```
 
-9. **Commit:**
+9. **Generate RETROSPECTIVE.md:**
+
+   The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_PLUGIN_ROOT}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
+
+9a. **Commit:**
    ```bash
-   git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md
+   git add .planning/milestones/ .planning/phases/ .planning/ROADMAP.md .planning/PROJECT.md .planning/STATE.md .planning/RETROSPECTIVE.md
    git commit -m "docs(planning): complete milestone {version}"
    ```
 
 **CRITICAL (no hook): Generate changelog entry NOW. Do NOT skip this step.**
 
-9a. **Generate changelog entry:**
+9b. **Generate changelog entry:**
 
    Generate a user-facing changelog entry for this milestone. Read all SUMMARY.md files from the milestone phases (now in `.planning/milestones/{version}/phases/`) and categorize deliverables into Keep a Changelog sections:
 
@@ -519,7 +560,7 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
    git commit -m "docs: update changelog for {version}"
    ```
 
-9b. **Push milestone to remote:**
+9c. **Push milestone to remote:**
 
 Use AskUserQuestion to ask the user how they want to publish the milestone:
 
@@ -535,20 +576,18 @@ options:
 - If "Skip for now": display reminder: "Tag v{version} is local only. Push when ready: `git push origin main --follow-tags`"
 - If "Other": follow user instructions (e.g., create a PR, push to a different branch, etc.)
 
-9c. **Offer npm release:**
+9d. **Automatic npm release:**
 
-Use AskUserQuestion to offer publishing this milestone as an npm release:
+After pushing, automatically run the npm release to publish this milestone:
 
-```
-question: "Publish v{version} to npm? This runs `npm run release` which bumps version, generates changelog, and creates a GitHub Release."
-header: "Release"
-options:
-  - label: "Yes, release"    description: "Run npm run release --minor to publish v{version}"
-  - label: "Skip release"    description: "Don't publish to npm right now"
+```bash
+npm run release -- --minor
 ```
 
-- If "Yes, release": run `npm run release --minor` via Bash. Display the output. If it fails, show the error but don't block — the milestone is already archived.
-- If "Skip release" or "Other": display reminder: "Run `npm run release` when ready to publish."
+Display the output to the user. The `--minor` flag is used because milestone completions always represent new features.
+
+- If the release succeeds: display the new version number and GitHub Release URL
+- If the release fails: show the error as an advisory warning — the milestone is already archived. Suggest the user run `npm run release` manually after fixing the issue.
 
 ### Post-Completion Smoke Test
 
@@ -604,9 +643,9 @@ Verify milestone completion with cross-phase integration checks.
 
 6. **Write audit report:**
 
-   Create `.planning/{version}-MILESTONE-AUDIT.md` using the template:
+   Create `.planning/{version}-MILESTONE-AUDIT.md` using the structured template:
 
-   Read `${CLAUDE_SKILL_DIR}/templates/audit-report.md.tmpl` for the audit report format. Fill in all `{variable}` placeholders with actual data from the audit.
+   Read `${CLAUDE_PLUGIN_ROOT}/templates/MILESTONE-AUDIT.md.tmpl` for the audit report format with YAML frontmatter scores. Fill in all `{variable}` placeholders with actual data from the audit. The YAML frontmatter MUST include `scores` (requirements, phases, integration, flows), `gaps` array, and `tech_debt` array.
 
    **Spot-check:** After writing, verify `.planning/{version}-MILESTONE-AUDIT.md` exists on disk using Glob. If missing, re-attempt the write. If still missing, display an error and include findings inline.
 
