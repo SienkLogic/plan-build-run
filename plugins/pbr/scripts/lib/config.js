@@ -7,7 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { validateObject } = require('./core');
+const { validateObject, lockedFileUpdate } = require('./core');
 const { CURRENT_SCHEMA_VERSION } = require('./migrate');
 
 // --- Config defaults (all sections with schema defaults) ---
@@ -871,7 +871,12 @@ function configFormat(config) {
  */
 function configWrite(planningDir, config) {
   const configPath = path.join(planningDir, 'config.json');
-  fs.writeFileSync(configPath, configFormat(config), 'utf8');
+  const formatted = configFormat(config);
+  const result = lockedFileUpdate(configPath, () => formatted);
+  if (!result.success) {
+    // Fallback: write without lock (availability over consistency)
+    fs.writeFileSync(configPath, formatted, 'utf8');
+  }
   // Invalidate cache so next configLoad() picks up changes
   configClearCache();
 }
