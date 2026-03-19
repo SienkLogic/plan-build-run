@@ -192,6 +192,9 @@ Before retrying any build failure, classify the error:
        prompt: "Plan Phase {C} --speculative. Phase goal from ROADMAP.md. Write plans to .planning/phases/{CC}-{slug}/. This is a speculative plan -- Phase {N} is still building. Do NOT write .active-skill. Do NOT update STATE.md."
      })
      ```
+   - After dispatching: add expected plan file paths to `.autonomous-state.json` `speculative_plan_paths["{C}"]`.
+     Paths use pattern `.planning/phases/{CC}-{slug}/PLAN-*.md`. At dispatch time, store the glob pattern as-is;
+     it will be resolved to actual paths after the planner completes.
    - Plans are written directly to the normal phase directory (NOT .speculative/) per locked decision #2
 
 3. After Phase N build completes (the Skill() call returns), proceed to staleness check in 3c-stale below.
@@ -287,6 +290,13 @@ Important: The staleness check uses deviation count from SUMMARY.md frontmatter 
 ### 3e. Phase Complete
 
 - Log: "Phase {N} complete. Moving to Phase {N+1}."
+- **Git branch (conditional):** If `git.branching: "phase"` in `.planning/config.json`:
+  1. Read `git.phase_branch_template` from config (default: `pbr/phase-{phase}-{slug}`)
+  2. Expand template: `{phase}` -> zero-padded phase number (e.g., `23`), `{slug}` -> phase slug from ROADMAP
+  3. Run `git checkout -b {branch_name}` to create branch from current HEAD
+  4. If that fails with "already exists": run `git checkout {branch_name}` instead
+  5. Log: `Branch: {branch_name}`
+  6. Write branch name to `.autonomous-state.json` under `branch_state["{N}"]`
 - Update STATE.md current_phase to next phase via CLI:
   ```bash
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update current_phase {N+1}
@@ -361,6 +371,8 @@ Save execution state to `.planning/.autonomous-state.json` after each phase:
   "current_phase": 4,
   "completed_phases": [2, 3],
   "speculative_plans": {"5": "pending", "6": "pending"},
+  "speculative_plan_paths": {"5": [".planning/phases/05-slug/PLAN-01.md"]},
+  "branch_state": {"2": "pbr/phase-02-slug", "3": "pbr/phase-03-slug"},
   "failed_phase": null,
   "error": null,
   "errors": {},
@@ -374,6 +386,8 @@ Where:
 
 - `"errors"`: object mapping phase number to error description, e.g. `{"4": "stale .active-skill"}`
 - `"retries"`: object mapping phase number to retry count, e.g. `{"4": 1}`
+- `"speculative_plan_paths"`: maps phase number to list of plan file paths written by speculative planner
+- `"branch_state"`: maps phase number to git branch name created for that phase build
 
 - On `--from N`: check `.autonomous-state.json` for prior run context
 - Display prior run info if available: "Resuming from prior autonomous run. Last completed: Phase {N}."
