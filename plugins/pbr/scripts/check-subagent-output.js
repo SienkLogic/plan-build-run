@@ -293,9 +293,11 @@ const AGENT_OUTPUTS = {
     }
   },
   'pbr:nyquist-auditor': {
-    description: 'test files generated for phase coverage',
-    noFileExpected: true,
-    check: () => []
+    description: 'VALIDATION.md in the phase directory',
+    check: (planningDir) => {
+      const phaseMatches = findInPhaseDir(planningDir, /^VALIDATION\.md$/i);
+      return phaseMatches;
+    }
   }
 };
 
