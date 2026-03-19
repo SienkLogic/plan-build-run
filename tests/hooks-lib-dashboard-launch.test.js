@@ -67,8 +67,22 @@ describe('getEnrichedContext', () => {
   });
 
   test('returns null when hook server not running', async () => {
-    // Use a port where nothing is listening
-    const result = await getEnrichedContext({ hook_server: { enabled: true, port: 19998 } }, planningDir);
-    expect(result).toBeNull();
+    // Mock net.createConnection to simulate unreachable server without actual network call
+    const net = require('net');
+    const origCreateConnection = net.createConnection;
+    net.createConnection = (opts) => {
+      const EventEmitter = require('events');
+      const fake = new EventEmitter();
+      fake.setTimeout = () => {};
+      fake.destroy = () => {};
+      process.nextTick(() => fake.emit('error', new Error('ECONNREFUSED')));
+      return fake;
+    };
+    try {
+      const result = await getEnrichedContext({ hook_server: { enabled: true, port: 19998 } }, planningDir);
+      expect(result).toBeNull();
+    } finally {
+      net.createConnection = origCreateConnection;
+    }
   });
 });
