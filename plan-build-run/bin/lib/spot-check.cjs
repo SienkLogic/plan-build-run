@@ -525,7 +525,7 @@ function cmdPlanValidate(projectCwd, phase) {
     return { passed: false, error: 'Phase not found: ' + phase };
   }
 
-  const phaseDir = path.join(projectCwd, phaseInfo.rel);
+  const phaseDir = path.join(projectCwd, phaseInfo.directory);
 
   // Run the existing spot-check
   const spotCheckResult = checkPlan(phaseDir);
@@ -612,7 +612,7 @@ function cmdPlanValidate(projectCwd, phase) {
 
   return {
     passed,
-    phase: phaseInfo.slug,
+    phase: path.basename(phaseInfo.directory),
     plan_count: planFiles.length,
     spot_check: spotCheckResult,
     structure,
