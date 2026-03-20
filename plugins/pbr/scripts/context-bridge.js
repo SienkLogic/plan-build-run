@@ -228,11 +228,6 @@ function updateBridge(planningDir, stdinData) {
     || (stdinData.context && stdinData.context.percent)
     || null;
 
-  const source = contextPercent !== null ? 'bridge' : 'heuristic';
-  const estimatedPercent = contextPercent !== null
-    ? Math.round(contextPercent)
-    : estimateFromHeuristic(planningDir);
-
   // Load existing bridge state
   let bridge = loadBridge(bridgePath) || {
     timestamp: new Date().toISOString(),
@@ -244,6 +239,30 @@ function updateBridge(planningDir, stdinData) {
     calls_since_warn: 0,
     tool_calls: 0
   };
+
+  // Determine source and percentage:
+  // 1. Prefer real data from stdin (rare — PostToolUse doesn't usually have it)
+  // 2. Preserve existing bridge data from status-line.js if fresh (< 60s)
+  // 3. Fall back to heuristic only when no fresh real data exists
+  let source;
+  let estimatedPercent;
+  if (contextPercent !== null) {
+    source = 'bridge';
+    estimatedPercent = Math.round(contextPercent);
+  } else if (bridge.source === 'claude-code' && bridge.timestamp) {
+    const age = Date.now() - new Date(bridge.timestamp).getTime();
+    if (age < 60000) {
+      // Fresh real data from status-line.js — preserve it
+      source = 'claude-code';
+      estimatedPercent = bridge.estimated_percent;
+    } else {
+      source = 'heuristic';
+      estimatedPercent = estimateFromHeuristic(planningDir);
+    }
+  } else {
+    source = 'heuristic';
+    estimatedPercent = estimateFromHeuristic(planningDir);
+  }
 
   // Update bridge
   bridge.timestamp = new Date().toISOString();
