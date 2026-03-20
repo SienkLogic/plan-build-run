@@ -139,14 +139,18 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
 
 1. Parse `$ARGUMENTS` for phase number and flags
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
-2. Read `.planning/config.json` for parallelization, model, and gate settings (see config-loading.md for field reference)
+2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
+   ```bash
+   node plugins/pbr/scripts/pbr-tools.cjs init execute-phase {N}
+   ```
+   Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.status`, `blob.config.depth`, `blob.plans`, `blob.waves`, `blob.executor_model`, `blob.drift`.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
 4. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `build` (registers with workflow enforcement hook)
 5. **Pre-build dependency validation (consolidated check):**
-   Run all three checks before spawning any executors:
+   Run all three checks before spawning any executors. Use `blob.phase.dir` for the phase directory path and `blob.plans` for plan metadata:
 
-   a. **Phase artifact check:** Phase directory exists at `.planning/phases/{NN}-{slug}/` and PLAN.md files are present
-   b. **Dependency SUMMARY check:** All phases listed in `depends_on` for each plan have a SUMMARY.md file (i.e., they have been built). If any dependency is unbuilt, display:
+   a. **Phase artifact check:** `blob.phase.dir` is set and `blob.plans` is non-empty (PLAN.md files are present)
+   b. **Dependency SUMMARY check:** All phases listed in `depends_on` for each plan in `blob.plans` have a SUMMARY.md file (i.e., they have been built). If any dependency is unbuilt, display:
       ```
       BLOCKED: Plan {plan_id} depends on phase {dep_phase} which has not been built yet.
       Run `/pbr:build {dep_phase}` first.
@@ -155,8 +159,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    c. **Staleness / cross-check (optional):** If `--cross-check` flag is present, compare each plan's `files_modified` list against prior-phase `provides` for conflicts (see --cross-check section above for full logic). Without the flag, skip this check.
 
    All three sub-checks (a, b, c) are part of the same pre-build gate. Stop execution if (a) or (b) fail. Proceed after (c) even if conflicts are acknowledged.
-6. If no phase number given, read current phase from `.planning/STATE.md`
-   - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
+6. If no phase number given, use `blob.phase.number` (already resolved from STATE.md by init)
+   - `blob.config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
 7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true:
    **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
@@ -183,14 +187,8 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
      e. Note: milestone branch persists across all phases in the milestone; it is merged by /pbr:milestone complete
 9. Record the current HEAD commit SHA: `git rev-parse HEAD` — store as `pre_build_commit` for use in Step 8-pre-c (codebase map update)
 
-**Staleness check (dependency fingerprints):**
-After validating prerequisites, check plan staleness:
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js staleness-check {phase-slug}
-```
-
-Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
+**Staleness check (from init blob):**
+After validating prerequisites, check `blob.drift` for plan staleness. The drift field contains `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
 **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 - Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
   question: "Plan {plan_id} may be stale — {reason}"
@@ -235,28 +233,18 @@ If config validation fails for a specific field, use conversational recovery:
 
 ### Step 2: Load Config (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init execute-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
-
-Read configuration values needed for execution. See `skills/shared/config-loading.md` for the full field reference; build uses: `parallelization.*`, `features.goal_verification`, `features.inline_verify`, `features.atomic_commits`, `features.auto_continue`, `features.auto_advance`, `planning.commit_docs`, `git.commit_format`, `git.branching`.
+From the init `blob` captured in Step 1, extract the configuration fields needed for execution: `blob.config.parallelization`, `blob.config.features.goal_verification`, `blob.config.features.inline_verify`, `blob.config.features.atomic_commits`, `blob.config.features.auto_continue`, `blob.config.features.auto_advance`, `blob.config.planning.commit_docs`, `blob.config.git.commit_format`, `blob.config.git.branching`. See `skills/shared/config-loading.md` for the full field reference.
 
 ---
 
 ### Step 3: Discover Plans (inline)
 
-**Tooling shortcut**: Instead of manually parsing each PLAN.md frontmatter, run:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index <phase>
-```
-This returns a JSON object with `plans` (array with plan_id, wave, depends_on, autonomous, must_haves_count per plan) and `waves` (grouped by wave). If the CLI fails, display a branded ERROR box: "Failed to index plans. Ensure pbr-tools.js is available." and stop.
+Use `blob.plans` and `blob.waves` from the init blob (Step 1). These contain the plan index with plan_id, wave, depends_on, autonomous, and must_haves_count per plan, already grouped by wave. No additional file reads or CLI calls needed.
 
-1. List all files matching `.planning/phases/{NN}-{slug}/*-PLAN.md`
-2. If `--gaps-only` flag: filter to only plans with `gap_closure: true` in frontmatter
-3. Read each plan file's YAML frontmatter to extract:
-   - Plan ID
-   - Wave number
-   - Dependencies (depends_on)
-   - Whether autonomous
-4. Sort plans by plan number
+1. Use `blob.plans` array for the plan list
+2. If `--gaps-only` flag: filter `blob.plans` to only plans with `gap_closure: true`
+3. Plans are already sorted by plan number in the blob
+4. Use `blob.waves` for wave grouping
 
 **If no plans match filters:**
 - With `--gaps-only`: "No gap-closure plans found. Run `/pbr:plan-phase {N} --gaps` first."
@@ -291,7 +279,7 @@ Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
 
 ### Step 5: Extract Waves (inline)
 
-Use the `waves` object from the `plan-index` CLI output (Step 3) which already groups plans by wave number. Do NOT re-parse plan frontmatter for wave extraction. If `plan-index` did not return wave data, error — do not fall back to manual parsing.
+Use `blob.waves` from the init blob (Step 1) which already groups plans by wave number. Do NOT re-parse plan frontmatter for wave extraction. If `blob.waves` is missing, error — do not fall back to manual parsing.
 
 See `references/wave-execution.md` for the full wave execution model (parallelization, git lock handling, checkpoint manifests).
 
@@ -591,16 +579,15 @@ If `--model <value>` is present in `$ARGUMENTS`, extract the value. Valid values
 Reference: `references/model-selection.md` for full details.
 
 1. Extract the `## Summary` section from the PLAN.md (everything after the `## Summary` heading to end of file). If no ## Summary section exists (legacy plans), fall back to reading the full PLAN.md content. Note: The orchestrator reads the full PLAN.md once for narrative extraction AND summary extraction; only the ## Summary portion is inlined into the executor prompt. The full PLAN.md stays on disk for the executor to Read.
-2. Read `.planning/PROJECT.md` ## Context section (if exists; backwards compat: fall back to `.planning/CONTEXT.md` if PROJECT.md has no ## Context)
-3. Read `.planning/STATE.md`
+2. Use `blob.phase.dir` for phase directory, `blob.phase.status` for current status
+3. Use `blob.config` for config fields instead of re-reading `.planning/config.json`
 4. Read prior SUMMARY.md files from the same phase (completed plans in earlier waves)
-5. Read `.planning/config.json`
 
 Construct the executor prompt by reading `${CLAUDE_SKILL_DIR}/templates/executor-prompt.md.tmpl` and filling in all `{placeholder}` values:
 
-- `{NN}-{slug}` — phase directory (e.g., `02-authentication`)
+- `{NN}-{slug}` — from `blob.phase.dir` (e.g., `02-authentication`)
 - `{plan_id}` — plan being executed (e.g., `02-01`)
-- `{commit_format}`, `{tdd_mode}`, `{atomic_commits}` — from loaded config
+- `{commit_format}`, `{tdd_mode}`, `{atomic_commits}` — from `blob.config`
 - File paths: absolute paths to project root, config.json, STATE.md, PROJECT.md
 - `{prior_work table rows}` — one row per completed plan in this phase
 
