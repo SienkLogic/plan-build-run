@@ -35,7 +35,7 @@ Parse `$ARGUMENTS` to determine the subcommand:
    ```bash
    node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js todo add "{description}"
    ```
-   This handles NNN generation, slug creation, duplicate detection, and file creation.
+   This handles NNN generation, slug creation (via slug-generate internally), duplicate detection, and file creation.
    If the CLI fails, display a branded ERROR box and stop.
 2. Parse the CLI JSON output to extract the created file path, NNN, and slug for the confirmation display.
 
