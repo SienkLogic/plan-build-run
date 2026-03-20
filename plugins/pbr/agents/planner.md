@@ -493,6 +493,7 @@ At 1M, reading full SUMMARY bodies for direct deps surfaces deviations, deferred
 14. DO NOT specify literal `undefined` for parameters that have a known source in the calling context — use data contracts to map sources
 15. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
 16. DO NOT leave implements: empty in PLAN frontmatter — use implements: as the primary traceability field (requirement_ids: is deprecated)
+17. DO NOT decompose feature phases into horizontal layer plans (schema, then API, then UI) — prefer vertical slices that deliver end-to-end features per plan
 
 </anti_patterns>
 
