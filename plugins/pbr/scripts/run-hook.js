@@ -19,7 +19,7 @@
  *   "node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js <script-name> [args...]"
  */
 
-// pbr-hook-version: 2.13.0
+// pbr-hook-version: 2.14.0
 'use strict';
 
 const fs = require('fs');
