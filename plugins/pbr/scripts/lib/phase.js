@@ -922,60 +922,6 @@ function phaseInsert(position, slug, planningDir, options) {
 }
 
 /**
- * Build a phase manifest by collecting commit hashes from all plan SUMMARY.md files.
- *
- * @param {number} phaseNum - Phase number
- * @param {string} phaseDir - Full path to the phase directory
- * @returns {object} Phase manifest
- */
-function _buildPhaseManifest(phaseNum, phaseDir) {
-  const summaryFiles = findFiles(phaseDir, /^SUMMARY.*\.md$/i);
-  const commits = [];
-
-  for (const file of summaryFiles) {
-    const content = fs.readFileSync(path.join(phaseDir, file), 'utf8');
-    const fm = parseYamlFrontmatter(content);
-    const planId = fm.plan || file.replace(/^SUMMARY-?/i, '').replace(/\.md$/i, '');
-
-    // Extract commits from frontmatter metrics or commits field
-    if (fm.commits && Array.isArray(fm.commits)) {
-      for (const c of fm.commits) {
-        commits.push({
-          hash: c.hash || c.sha || c,
-          message: c.message || '',
-          plan: planId,
-          task: c.task || null
-        });
-      }
-    }
-
-    // Also try to parse "Task Commits" section from body
-    const taskCommitRegex = /\|\s*(\d+)\s*\|[^|]*\|\s*([0-9a-f]{7,})\s*\|/gi;
-    let match;
-    while ((match = taskCommitRegex.exec(content)) !== null) {
-      const hash = match[2];
-      // Avoid duplicates
-      if (!commits.some(c => c.hash === hash)) {
-        commits.push({
-          hash,
-          message: '',
-          plan: planId,
-          task: parseInt(match[1], 10)
-        });
-      }
-    }
-  }
-
-  return {
-    phase: String(phaseNum).padStart(2, '0'),
-    completed: new Date().toISOString(),
-    commits,
-    first_commit: commits.length > 0 ? commits[0].hash : null,
-    last_commit: commits.length > 0 ? commits[commits.length - 1].hash : null
-  };
-}
-
-/**
  * Get all commits associated with a phase by scanning SUMMARY.md files.
  *
  * @param {string} phaseNum - Phase number
