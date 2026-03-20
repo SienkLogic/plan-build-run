@@ -170,6 +170,20 @@ Controls planning behavior and documentation.
 
 When `commit_docs: true`, after all plans in a phase complete, the build orchestrator stages and commits planning artifacts with the message format `docs({phase}): add build summaries and verification`.
 
+**Auto-detection:** If `.planning/` is gitignored, `commit_docs` is automatically `false` regardless of `config.json`. This prevents git errors when users have `.planning/` in `.gitignore`.
+
+### search_gitignored Behavior
+
+When `false` (default): Standard ripgrep behavior respects `.gitignore`. Direct path searches (`rg "pattern" .planning/`) still work, but broad searches (`rg "pattern"`) skip gitignored directories. When `true`: Adds `--no-ignore` to broad searches that should include `.planning/`.
+
+### Uncommitted Mode Setup
+
+To keep planning artifacts out of version control:
+
+1. Set `"planning": { "commit_docs": false, "search_gitignored": true }` in config
+2. Add `.planning/` to `.gitignore`
+3. If `.planning/` was previously tracked: `git rm -r --cached .planning/ && git commit -m "chore: stop tracking planning docs"`
+
 ---
 
 ## git
