@@ -2,6 +2,75 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.14.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.12.1...plan-build-run-v2.14.0) — 2026-03-20
+
+### Agents
+
+* Add verify command executability checks to plan-checker D8 ([9fead2be](https://github.com/SienkLogic/plan-build-run/commit/9fead2be))
+* Add vertical slice anti-pattern to planner ([72beb44b](https://github.com/SienkLogic/plan-build-run/commit/72beb44b))
+* Add vertical slice preference section to planner agent ([3832574d](https://github.com/SienkLogic/plan-build-run/commit/3832574d))
+
+### CI/CD
+
+* Add skill-sync job to verify SKILL.md copies match ([ccedb988](https://github.com/SienkLogic/plan-build-run/commit/ccedb988))
+
+### CLI Tools
+
+* Handle gitignored release-please-manifest in release script ([efdb2f8e](https://github.com/SienkLogic/plan-build-run/commit/efdb2f8e))
+* Register init continue/milestone/begin/status in dispatcher with tests ([c084435f](https://github.com/SienkLogic/plan-build-run/commit/c084435f))
+* Add initContinue, initMilestone, initBegin, initStatus compound init commands ([95f6feeb](https://github.com/SienkLogic/plan-build-run/commit/95f6feeb))
+* Register 5 compound completion commands in pbr-tools dispatcher ([07685f4d](https://github.com/SienkLogic/plan-build-run/commit/07685f4d))
+* Use correct findPhaseInternal return fields (directory, not rel/slug) ([5f3e79fa](https://github.com/SienkLogic/plan-build-run/commit/5f3e79fa))
+* Sync enhanced suggest-next to hooks/lib and plugins/pbr/scripts/lib ([dda60e33](https://github.com/SienkLogic/plan-build-run/commit/dda60e33))
+* Add completion.cjs with 5 compound completion commands ([9d754f5c](https://github.com/SienkLogic/plan-build-run/commit/9d754f5c))
+* Add plan validate command for combined spot-check + structure validation ([911bc1c1](https://github.com/SienkLogic/plan-build-run/commit/911bc1c1))
+* Add status-based routing, config-aware built routing, and milestone detection to suggest-next ([f9a20b68](https://github.com/SienkLogic/plan-build-run/commit/f9a20b68))
+* Limit syncStateFrontmatter to stateReconcile only — prevent auto-overwrite on individual writes ([ea9f9866](https://github.com/SienkLogic/plan-build-run/commit/ea9f9866))
+* Add syncStateFrontmatter and STATUS_VALUES enum for drift-proof STATE.md ([7552a0c9](https://github.com/SienkLogic/plan-build-run/commit/7552a0c9))
+
+### Hooks
+
+* Register track-user-gates hook and update schema tests for HTTP type ([b2435e21](https://github.com/SienkLogic/plan-build-run/commit/b2435e21))
+* Register track-user-gates PostToolUse hook for AskUserQuestion ([1049cdb5](https://github.com/SienkLogic/plan-build-run/commit/1049cdb5))
+* Re-apply HTTP type entries for advisory PostToolUse hooks (reverted by sync) ([24dda96f](https://github.com/SienkLogic/plan-build-run/commit/24dda96f))
+* Sync enforce-context-budget to plugin hooks.json (integration audit finding) ([5a37ee9e](https://github.com/SienkLogic/plan-build-run/commit/5a37ee9e))
+* Config-driven gate enforcement with AskUserQuestion validation (phase 67) ([6306b4db](https://github.com/SienkLogic/plan-build-run/commit/6306b4db))
+* Migrate advisory PostToolUse hooks to native HTTP type (phase 66) ([d15f201b](https://github.com/SienkLogic/plan-build-run/commit/d15f201b))
+* Audit infrastructure fixes — latency, false positives, source tags (phase 61) ([74a6bce1](https://github.com/SienkLogic/plan-build-run/commit/74a6bce1))
+* Harden lockedFileUpdate with last-resort write fallback ([f0aeba3b](https://github.com/SienkLogic/plan-build-run/commit/f0aeba3b))
+* Mandatory verifier enforcement + statusline parser fix (phases 57.1-57.2) ([04e2ea61](https://github.com/SienkLogic/plan-build-run/commit/04e2ea61))
+* Quick reliability wins — async hooks, stdin timeouts, config caching, version stamps (phase 57) ([8138e5ef](https://github.com/SienkLogic/plan-build-run/commit/8138e5ef))
+
+### Skills
+
+* Individual agent spawn pattern for colored badges (phase 65) ([6b8bc055](https://github.com/SienkLogic/plan-build-run/commit/6b8bc055))
+* Behavioral fixes — inline debug prevention, audit self-exclusion, regression gate, hook audit (phase 62) ([0556d475](https://github.com/SienkLogic/plan-build-run/commit/0556d475))
+* Autonomous CI verification, ROADMAP reconciliation, context budget enforcement (phase 60) ([caa3e7f0](https://github.com/SienkLogic/plan-build-run/commit/caa3e7f0))
+* AskUserQuestion enforcement — CRITICAL markers, tracking hook, continue fix (phase 58) ([fc23ef6b](https://github.com/SienkLogic/plan-build-run/commit/fc23ef6b))
+* Session metrics completion and CLAUDE.md rules update (phases 55-56) ([0443e4b9](https://github.com/SienkLogic/plan-build-run/commit/0443e4b9))
+
+### Testing
+
+* Update hooks-lib-suggest-next test for validate-phase default routing ([e4416428](https://github.com/SienkLogic/plan-build-run/commit/e4416428))
+* Handle null exitCode in pre-bash-dispatch git-staged tests on macOS CI ([96001cd8](https://github.com/SienkLogic/plan-build-run/commit/96001cd8))
+
+### Other
+
+* Phase 54 squash merge ([780949e5](https://github.com/SienkLogic/plan-build-run/commit/780949e5))
+* Phase 52 squash merge ([ad2cb6a6](https://github.com/SienkLogic/plan-build-run/commit/ad2cb6a6))
+* Phase 51 squash merge ([0cb8de73](https://github.com/SienkLogic/plan-build-run/commit/0cb8de73))
+* Phase 50 squash merge ([a2b8a165](https://github.com/SienkLogic/plan-build-run/commit/a2b8a165))
+* Add key_files_imported check to confidence gate ([e639aac0](https://github.com/SienkLogic/plan-build-run/commit/e639aac0))
+* Phase 49 squash merge ([40735ef6](https://github.com/SienkLogic/plan-build-run/commit/40735ef6))
+* Phase 48 squash merge ([011931ad](https://github.com/SienkLogic/plan-build-run/commit/011931ad))
+* Phase 47 squash merge ([2d665923](https://github.com/SienkLogic/plan-build-run/commit/2d665923))
+* Phase 46 squash merge ([5056ebc0](https://github.com/SienkLogic/plan-build-run/commit/5056ebc0))
+* Phase 45 squash merge ([7a775c5a](https://github.com/SienkLogic/plan-build-run/commit/7a775c5a))
+* Phase 44 squash merge ([c08f1924](https://github.com/SienkLogic/plan-build-run/commit/c08f1924))
+* Phase 43 squash merge ([412c1972](https://github.com/SienkLogic/plan-build-run/commit/412c1972))
+* Phase 42 squash merge ([8772826c](https://github.com/SienkLogic/plan-build-run/commit/8772826c))
+* Phase 41 squash merge ([75bc794b](https://github.com/SienkLogic/plan-build-run/commit/75bc794b))
+
 ## [2.12.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.11.0...plan-build-run-v2.12.0) — 2026-03-19
 
 ### CI/CD
