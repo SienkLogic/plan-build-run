@@ -158,11 +158,11 @@ Continue to the selected path (Step 2 or Step 5).
 
 ### Step 2: Spawn Executor Immediately (1 tool call)
 
-**Generate slug** (inline, no file I/O):
-- Take the first 4-5 meaningful words from the description
-- Lowercase, hyphen-separated
-- Remove articles (a, an, the) and prepositions
-- Example: "Fix auth bug in login flow" -> "fix-auth-bug-login"
+**Generate slug** via CLI (or use `blob.slug` from initQuick if available):
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{description}"
+```
+Parse the JSON output to get the `slug` field. If `blob.slug` is available from the initQuick response, use it directly instead of calling slug-generate.
 
 **Find next task number** from `.planning/quick/` listing (from init output if available, else quick `ls`):
 1. Scan `.planning/quick/` directory for existing quick task directories
@@ -312,11 +312,11 @@ If user types something else (freeform): interpret their response and proceed ac
 
 #### Step 5d: Generate Slug and Task Number
 
-**Generate slug:**
-- Take the first 4-5 meaningful words from the description
-- Lowercase, hyphen-separated
-- Remove articles (a, an, the) and prepositions
-- Example: "Fix auth bug in login flow" -> "fix-auth-bug-login"
+**Generate slug** via CLI:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{description}"
+```
+Parse the JSON output to get the `slug` field.
 
 **Find next task number:**
 1. Scan `.planning/quick/` directory for existing quick task directories

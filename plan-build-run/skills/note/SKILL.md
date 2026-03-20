@@ -78,7 +78,11 @@ Create a timestamped note file in the target directory.
 
 1. Determine scope (project or global) per Storage Format above
 2. Ensure the notes directory exists (`.planning/notes/` or `~/.claude/notes/`)
-3. Generate slug: first ~4 meaningful words of the note text, lowercase, hyphen-separated (strip articles/prepositions from the start)
+3. Generate slug via CLI:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note text}"
+   ```
+   Parse the JSON output to get the `slug` field.
 4. Generate filename: `{YYYY-MM-DD}-{slug}.md`
    - If a file with that name already exists, append `-2`, `-3`, etc.
 5. Write the file with frontmatter and note text (see Storage Format)
@@ -137,7 +141,11 @@ Convert a note into a todo file.
 3. If N is invalid or refers to an already-promoted note, tell the user and stop
 4. **Requires `.planning/` directory** — if it doesn't exist, warn: "Todos require a Plan-Build-Run project. Run `/pbr:new-project` to initialize one, or use `/pbr:add-todo` in an existing project."
 5. Ensure `.planning/todos/pending/` directory exists
-6. Generate todo ID: `{NNN}-{slug}` where NNN is the next sequential number (scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, zero-pad to 3 digits) and slug is the first ~4 meaningful words of the note text, lowercase, hyphen-separated
+6. Generate todo ID: `{NNN}-{slug}` where NNN is the next sequential number (scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, zero-pad to 3 digits) and slug is generated via CLI:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note text}"
+   ```
+   Parse the JSON output to get the `slug` field.
 7. Extract the note text from the source file (body after frontmatter)
 8. Create `.planning/todos/pending/{id}.md`:
 
@@ -184,6 +192,8 @@ Promoted from quick note captured on {original date}.
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Write failure
 If the Write tool fails (permissions, disk full, etc.), display:
 ```
@@ -209,6 +219,8 @@ Note {N} not found. Valid range: 1-{max}.
 ```
 
 ---
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the note file.
 
 ## Anti-Patterns
 

@@ -157,7 +157,11 @@ If `$ARGUMENTS` is empty or minimal:
 1. Scan `.planning/debug/` for existing files
 2. Extract NNN prefixes
 3. Next number = highest + 1 (start at 001)
-4. Generate slug from issue title (same rules as quick task slugs)
+4. Generate slug from issue title via CLI:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{issue title}"
+   ```
+   Parse the JSON output to get the `slug` field.
 
 #### Create Debug File
 

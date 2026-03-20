@@ -83,15 +83,19 @@ Then present to user via AskUserQuestion:
 
 Reference: `skills/shared/context-loader-task.md` (Scan Reconnaissance variation) for the underlying pattern.
 
-Before spawning agents, do a quick scan to identify what we're working with. This gives agents better context.
+Run the CLI to gather baseline project data:
 
-1. **Detect project type** — check for language-specific config files (package.json, requirements.txt, go.mod, Cargo.toml, etc.)
-2. **Detect project scale** — count source files (exclude node_modules, venv, .git, build, dist). Categories: Small (<50), Medium (50-200), Large (200-1000), Very Large (1000+)
-3. **Detect key directories** — identify src, test, docs, config, scripts, public, migrations directories
-4. **Read existing docs** — README.md, architecture docs, .env.example
-5. **CRITICAL (no hook) -- DO NOT SKIP:** Write `.planning/codebase/RECON.md` with project type, scale, key directories, entry points, and quick stats
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init map-codebase
+```
 
-Refer to the "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` for the full detection checklists.
+This detects project type, scale, key directories, entry points, and writes `.planning/codebase/RECON.md`.
+
+Parse the JSON output to extract `project_type`, `scale`, `key_directories`, and `entry_points` for use in Step 3 agent prompts.
+
+If the CLI fails, display a branded ERROR box: "Failed to run codebase reconnaissance. Ensure pbr-tools.js is available." and stop — do NOT fall back to manual file scanning.
+
+Note: The "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` documents the detection checklists used by the CLI internally.
 
 ### Step 3: Spawn Analysis Agents
 

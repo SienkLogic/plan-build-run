@@ -57,29 +57,19 @@ Before presenting the standard resume view, check:
 
 ### Auto-Reconcile STATE.md Against Filesystem
 
-On every resume, reconcile STATE.md claims against filesystem reality. This catches both corruption and drift from interrupted operations.
+On every resume, reconcile STATE.md claims against filesystem reality:
 
-**Step 1: Detect discrepancies** — Compare STATE.md values against the filesystem:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state check-progress
+```
 
-| STATE.md Claim | Filesystem Check |
-|----------------|------------------|
-| Phase number | Does `.planning/phases/{NN}-*/` exist? |
-| Plan count | Count `*-PLAN.md` files in the phase directory |
-| Completed plans | Count `SUMMARY.md` files in the phase directory |
-| Status "verified" | Does `VERIFICATION.md` with `status: passed` exist? |
-| Status "building" | Are there PLAN.md files without SUMMARY.md? |
-| Progress percentage | Recalculate from completed phases / total phases |
-
-**Step 2: Classify** — If any discrepancy found:
-- **Obvious corruption** (duplicate headers, impossible percentages, phase directory missing): flag as corruption
-- **Stale data** (plan count wrong, status outdated): flag as drift
-
-**CRITICAL (no hook) -- DO NOT SKIP: Repair STATE.md when discrepancies are found.**
-
-**Step 3: Repair** —
-- For **corruption**: Present repair and ask for confirmation: "STATE.md appears corrupted. Based on the file system, you're at Phase {N} with {M}/{T} plans complete. Should I repair STATE.md?"
-- For **drift**: Auto-repair silently and note: "Updated STATE.md to match filesystem (plan count {old}→{new}, status {old}→{new})."
+Parse the JSON output:
+- If `discrepancies` array is empty: proceed silently (state is consistent)
+- If discrepancies found with `severity: "corruption"`: present repair and ask for confirmation via AskUserQuestion
+- If discrepancies found with `severity: "drift"`: auto-repair silently and note the changes
 - Log all repairs to `.planning/logs/events.jsonl` with category `state-reconcile`
+
+If the CLI fails, display a branded ERROR box: "Failed to check state consistency." and proceed with resume (non-blocking — state reconciliation is advisory).
 
 ---
 

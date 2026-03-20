@@ -119,6 +119,13 @@ Determine the logical next action (same routing logic as `/pbr:progress`):
 - If phase reviewed, has gaps: "Fix gaps in phase N"
 - If phase complete: "Plan phase N+1"
 
+#### Mental Context
+Reflect on the current approach:
+- What strategy is being followed for this phase?
+- Why was this approach chosen over alternatives?
+- What's been tricky or surprising?
+- Any user preferences expressed in the current conversation?
+
 ### Step 4: Write .continue-here.md
 
 **CRITICAL: Write pause state NOW before displaying confirmation. Do NOT skip this step.**
@@ -129,28 +136,49 @@ Write the handoff file to the current phase directory:
 
 **Content:**
 
-Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3.
+Read `${CLAUDE_SKILL_DIR}/templates/continue-here.md.tmpl` for the handoff file format. Fill in all `{variable}` placeholders with actual session data gathered in Steps 1-3. Fill in all XML sections. The `<context>` section should capture your understanding of the current approach and reasoning -- not just facts. Think of it as a message to your future self explaining what was going on.
+
+### Step 4b: Write HANDOFF.json (Machine-Readable Companion)
+
+**CRITICAL: Write HANDOFF.json NOW, alongside .continue-here.md. Do NOT skip this step.**
+
+After writing `.continue-here.md`, also create `.planning/HANDOFF.json` with structured state for machine consumption:
+
+1. Read current STATE.md for phase/plan/status
+2. Read current plan file to get task progress (current task, total tasks)
+3. Check for uncommitted files via `git status --short`
+4. Read the HANDOFF.json template: `${CLAUDE_PLUGIN_ROOT}/templates/HANDOFF.json.tmpl`
+5. Fill in all fields from the template with actual session data:
+   - `status`: "paused"
+   - `created_at`: current ISO timestamp
+   - `phase`: number, slug, and name from STATE.md
+   - `plan`: number, wave, current task, total tasks
+   - `next_action`: the suggested next action from Step 3
+   - `blockers`: any blockers from STATE.md or verification failures
+   - `human_actions_pending`: any actions the user needs to take
+   - `completed_tasks`: task descriptions already done in current plan
+   - `uncommitted_files`: from `git status --short`
+   - `context_notes`: mental context about current approach and reasoning
+6. Write the filled JSON to `.planning/HANDOFF.json`
+
+**Purpose:** `.continue-here.md` is human-readable; `HANDOFF.json` is machine-readable. The resume skill reads HANDOFF.json first for structured data, falling back to `.continue-here.md` for backward compatibility.
 
 ### Step 5: Update STATE.md
 
-**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body. Both must be updated atomically.**
+**CRITICAL -- DO NOT SKIP: Update STATE.md via CLI.**
 
-First, update the STATE.md YAML frontmatter:
-- Set `last_command: "/pbr:pause-work"`
-- Set `last_activity: {ISO datetime}`
-
-Then update the Session Continuity section of STATE.md:
-
-```markdown
-### Session Continuity
-
-**Last paused:** {ISO datetime}
-**Position:** Phase {N}, Plan {M}
-**Continue file:** .planning/phases/{NN}-{phase-name}/.continue-here.md
-**Next action:** {suggested command}
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-session --stopped-at "{brief description of current work}"
 ```
 
-If the Session Continuity section doesn't exist, create it at the end of STATE.md.
+This updates STATE.md frontmatter (`session_last`, `session_stopped_at`, `session_resume`, `last_command`, `last_activity`) and the Session Continuity body section atomically.
+
+Also update the session_resume pointer:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:pause-work"
+```
+
+If the CLI fails, display a branded ERROR box: "Failed to update STATE.md session state." and stop.
 
 ### Step 6: Commit as WIP
 
@@ -160,6 +188,7 @@ If `planning.commit_docs: true` in config.json:
 
 ```bash
 git add .planning/phases/{NN}-{phase-name}/.continue-here.md
+git add .planning/HANDOFF.json
 git add .planning/STATE.md
 git commit -m "wip(planning): save session state — phase {N} plan {M}"
 ```
@@ -212,6 +241,8 @@ Remaining: {count} plans in this phase
 | Next steps | Routing logic | Immediate action on resume |
 
 ---
+
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 

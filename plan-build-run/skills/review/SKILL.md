@@ -85,19 +85,21 @@ Execute these steps in order.
 
 ### Step 1: Parse and Validate (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init verify-work {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
-
 1. Parse `$ARGUMENTS` for phase number and `--auto-fix` flag
-   - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived verifier_model. If an invalid value is provided, display an error and list valid values.
+   - If `--model <value>` is present in `$ARGUMENTS`, extract the value (sonnet, opus, haiku, inherit). Store as `override_model`. When spawning verifier Task() agents, use `override_model` instead of the config-derived `blob.verifier_model`. If an invalid value is provided, display an error and list valid values.
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — skipping interactive UAT walkthrough"
-2. Read `.planning/config.json`
+2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
+   ```bash
+   node plugins/pbr/scripts/pbr-tools.cjs init verify-work {N}
+   ```
+   Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.name`, `blob.phase.goal`, `blob.phase.plan_count`, `blob.phase.completed`, `blob.verifier_model`, `blob.has_verification`, `blob.prior_attempts`, `blob.prior_status`, `blob.summaries`.
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
-4. Validate:
-   - Phase directory exists at `.planning/phases/{NN}-{slug}/`
-   - SUMMARY.md files exist (phase has been built)
-   - PLAN.md files exist (needed for must-have extraction)
-5. If no phase number given, read current phase from `.planning/STATE.md`
+4. Validate using blob fields:
+   - If `blob.error`: display error and stop
+   - If `blob.summaries` is empty: display "Phase hasn't been built yet" error (see error box below)
+   - If `blob.phase.plan_count === 0`: display "Phase has no plans" error (see error box below)
+5. If no phase number given, use `blob.phase.number` (already resolved from STATE.md by init)
 6. If `.planning/.auto-verify` signal file exists, read it and note the auto-verification was already queued. Delete the signal file after reading (one-shot, same pattern as auto-continue.js).
 7. Resolve verification depth:
    - Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js trust-gate {N}`
@@ -146,12 +148,10 @@ Phase {N} has no plans.
 
 ### Step 2: Check Existing Verification (inline)
 
-Reference: `skills/shared/config-loading.md` for the tooling shortcut (`phase-info`) and config field reference.
+Check if a VERIFICATION.md already exists using `blob.has_verification` and `blob.prior_status` from the init blob:
 
-Check if a VERIFICATION.md already exists from `/pbr:execute-phase`'s auto-verification step:
-
-1. Look for `.planning/phases/{NN}-{slug}/VERIFICATION.md`
-2. If it exists:
+1. Check `blob.has_verification` — if `true`, a VERIFICATION.md exists at `.planning/phases/{blob.phase.dir}/VERIFICATION.md`
+2. If it exists (use `blob.prior_status` and `blob.prior_attempts` for status checks):
    - Read it and check the status
    - If `status: passed` and no `--auto-fix` flag: skip to Step 4 (conversational UAT)
    - If `status: gaps_found`: present gaps and proceed to Step 4
