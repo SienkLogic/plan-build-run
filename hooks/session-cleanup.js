@@ -464,11 +464,18 @@ function main() {
   // Detect orphaned .PROGRESS-* files (executor crash artifacts)
   const orphans = findOrphanedProgressFiles(planningDir);
 
-  // Drain intel queue — log queued files for potential future partial refresh
+  // Drain intel queue — preserve as signal file for next session's briefing
   try {
     const intelQueue = readQueue(planningDir);
     if (intelQueue.length > 0) {
-      logHook('session-cleanup', 'SessionEnd', 'intel-queue-drained', {
+      // Write signal file so next SessionStart can advise user to refresh intel
+      const signalPath = path.join(planningDir, '.intel-refresh-needed');
+      fs.writeFileSync(signalPath, JSON.stringify({
+        files: intelQueue,
+        timestamp: new Date().toISOString(),
+        session: data && data.session_id ? data.session_id : undefined
+      }, null, 2));
+      logHook('session-cleanup', 'SessionEnd', 'intel-refresh-signaled', {
         queued_files: intelQueue.length,
         files: intelQueue.slice(0, 10) // Log first 10 for brevity
       });
