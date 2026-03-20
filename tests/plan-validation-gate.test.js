@@ -118,6 +118,95 @@ describe('checkPlanValidationGate', () => {
     expect(result).toBeNull();
   });
 
+  test('blocks when requirements_coverage has uncovered items (depth: standard)', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
+    fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
+      status: 'passed',
+      dimensions_checked: 9,
+      blockers: 0,
+      warnings: 0,
+      timestamp: new Date().toISOString(),
+      requirements_coverage: {
+        total: 3,
+        covered: 2,
+        uncovered: ['REQ-X'],
+        coverage_percent: 67
+      }
+    }));
+
+    const result = checkPlanValidationGate({
+      tool_input: { subagent_type: 'pbr:executor' }
+    });
+    expect(result).not.toBeNull();
+    expect(result.block).toBe(true);
+    expect(result.reason).toContain('REQ-X');
+    expect(result.reason).toContain('implements');
+  });
+
+  test('returns warning when requirements_coverage has uncovered items (depth: quick)', () => {
+    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
+    const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
+    fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
+      status: 'passed',
+      dimensions_checked: 9,
+      blockers: 0,
+      warnings: 0,
+      timestamp: new Date().toISOString(),
+      requirements_coverage: {
+        total: 3,
+        covered: 2,
+        uncovered: ['REQ-X'],
+        coverage_percent: 67
+      }
+    }));
+
+    const result = checkPlanValidationGate({
+      tool_input: { subagent_type: 'pbr:executor' }
+    });
+    expect(result).not.toBeNull();
+    expect(result.block).toBeUndefined();
+    expect(result.warning).toBeDefined();
+    expect(result.warning).toContain('REQ-X');
+  });
+
+  test('allows when requirements_coverage has zero uncovered items', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
+    fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
+      status: 'passed',
+      dimensions_checked: 9,
+      blockers: 0,
+      warnings: 0,
+      timestamp: new Date().toISOString(),
+      requirements_coverage: {
+        total: 3,
+        covered: 3,
+        uncovered: [],
+        coverage_percent: 100
+      }
+    }));
+
+    const result = checkPlanValidationGate({
+      tool_input: { subagent_type: 'pbr:executor' }
+    });
+    expect(result).toBeNull();
+  });
+
+  test('allows when requirements_coverage section is absent (backward compat)', () => {
+    const phaseDir = path.join(planningDir, 'phases', '01-test-phase');
+    fs.writeFileSync(path.join(phaseDir, '.plan-check.json'), JSON.stringify({
+      status: 'passed',
+      dimensions_checked: 9,
+      blockers: 0,
+      warnings: 0,
+      timestamp: new Date().toISOString()
+    }));
+
+    const result = checkPlanValidationGate({
+      tool_input: { subagent_type: 'pbr:executor' }
+    });
+    expect(result).toBeNull();
+  });
+
   test('returns null on unexpected errors (fail open)', () => {
     // Remove STATE.md so readCurrentPhase returns null
     fs.unlinkSync(path.join(planningDir, 'STATE.md'));

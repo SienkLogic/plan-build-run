@@ -89,6 +89,20 @@ function checkPlanValidationGate(data) {
       };
     }
 
+    // Check requirements coverage
+    if (checkData.requirements_coverage) {
+      const rc = checkData.requirements_coverage;
+      if (Array.isArray(rc.uncovered) && rc.uncovered.length > 0) {
+        if (depth === 'quick') {
+          return { warning: `Requirements coverage incomplete (${rc.covered}/${rc.total}) — uncovered: ${rc.uncovered.join(', ')}` };
+        }
+        return {
+          block: true,
+          reason: `Cannot spawn executor: ${rc.uncovered.length} requirement(s) not covered by any plan's implements field: ${rc.uncovered.join(', ')}. Add missing requirements to plan implements: fields.`
+        };
+      }
+    }
+
     // status === "passed" — allow
     return null;
   } catch (_e) {
