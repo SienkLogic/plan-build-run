@@ -214,7 +214,9 @@ function main() {
   generateChangelog();
 
   console.log('\nCommitting and tagging...');
-  run('git add package.json package-lock.json .release-please-manifest.json CHANGELOG.md');
+  run('git add package.json package-lock.json CHANGELOG.md');
+  // Stage manifest only if not gitignored
+  try { run('git add -f .release-please-manifest.json'); } catch (_e) { /* gitignored, skip */ }
   // Stage version-stamped hook entry point
   if (fs.existsSync(path.join(ROOT, 'plugins', 'pbr', 'scripts', 'run-hook.js'))) {
     run('git add "plugins/pbr/scripts/run-hook.js"');
