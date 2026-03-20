@@ -27,7 +27,9 @@ describe('event-logger.js', () => {
   }
 
   function getLogPath() {
-    return path.join(planningDir, 'logs', 'events.jsonl');
+    // Canonical event-logger uses dated filenames: events-YYYY-MM-DD.jsonl
+    const today = new Date().toISOString().slice(0, 10);
+    return path.join(planningDir, 'logs', `events-${today}.jsonl`);
   }
 
   test('creates valid JSONL entry with ts, cat, event, and details', () => {
@@ -64,34 +66,34 @@ describe('event-logger.js', () => {
     expect(entry2.cat).toBe('agent');
   });
 
-  test('rotates at 1000 entries', () => {
+  test('appends many entries without rotation (canonical uses daily files)', () => {
     const { logEvent } = getLogger();
 
-    for (let i = 0; i < 1001; i++) {
+    for (let i = 0; i < 50; i++) {
       logEvent('test', `entry-${i}`);
     }
 
     const logPath = getLogPath();
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
-    expect(lines).toHaveLength(1000);
+    expect(lines).toHaveLength(50);
 
-    // First entry should be entry-1 (entry-0 was rotated out)
+    // First entry should be entry-0 (no rotation in canonical module)
     const first = JSON.parse(lines[0]);
-    expect(first.event).toBe('entry-1');
+    expect(first.event).toBe('entry-0');
 
-    // Last entry should be entry-1000
+    // Last entry should be entry-49
     const last = JSON.parse(lines[lines.length - 1]);
-    expect(last.event).toBe('entry-1000');
+    expect(last.event).toBe('entry-49');
   });
 
-  test('missing .planning dir is no-op', () => {
+  test('missing .planning dir auto-creates it', () => {
     fs.rmSync(planningDir, { recursive: true, force: true });
 
     const { logEvent } = getLogger();
     expect(() => logEvent('test', 'event')).not.toThrow();
 
-    // No file or directory should be created
-    expect(fs.existsSync(path.join(tmpDir, '.planning'))).toBe(false);
+    // Canonical event-logger auto-creates .planning/logs/
+    expect(fs.existsSync(path.join(tmpDir, '.planning', 'logs'))).toBe(true);
   });
 
   test('auto-creates logs directory', () => {
@@ -111,7 +113,7 @@ describe('event-logger.js', () => {
   });
 
   test('CLI logs event and exits 0', () => {
-    const script = path.resolve(__dirname, '..', 'plan-build-run', 'bin', 'event-logger.cjs');
+    const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     const jsonArg = '{"phase":1}';
     const result = execSync(
       `node "${script}" workflow test ${jsonArg}`,
@@ -132,7 +134,7 @@ describe('event-logger.js', () => {
   });
 
   test('CLI exits 1 with no args', () => {
-    const script = path.resolve(__dirname, '..', 'plan-build-run', 'bin', 'event-logger.cjs');
+    const script = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'event-logger.js');
     let exitCode = 0;
     try {
       execSync(`node "${script}"`, { cwd: tmpDir, encoding: 'utf8' });
