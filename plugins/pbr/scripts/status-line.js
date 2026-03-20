@@ -351,7 +351,7 @@ function countSkills() {
  */
 function countHookEntries() {
   try {
-    const hooksFile = path.join(process.cwd(), 'hooks', 'hooks.json');
+    const hooksFile = path.join(process.cwd(), 'plugins', 'pbr', 'hooks', 'hooks.json');
     const data = JSON.parse(fs.readFileSync(hooksFile, 'utf8'));
     let count = 0;
     if (data.hooks) {

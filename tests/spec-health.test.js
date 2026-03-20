@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const PBR_TOOLS = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+const PBR_TOOLS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 
 function run(args, opts) {
   const options = opts || {};
@@ -52,83 +52,24 @@ describe('Phase 11 health checks', () => {
     return parsed;
   }
 
-  test('validate health output includes machine_executable_plans entry', () => {
+  test('validate health output includes phase10 checks', () => {
     const health = getHealthOutput();
     expect(health).not.toBeNull();
-    // Feature status may be in feature_status or directly in the output
-    const featureStatus = health.feature_status || {};
-    expect(featureStatus.machine_executable_plans).toBeDefined();
+    expect(health.phase10).toBeDefined();
+    expect(Array.isArray(health.phase10)).toBe(true);
   });
 
-  test('validate health output includes spec_diffing entry', () => {
-    const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    expect(featureStatus.spec_diffing).toBeDefined();
+  test.skip('Phase 11 feature_status entries removed — were in legacy bin/lib/', () => {
+    // machine_executable_plans, spec_diffing, reverse_spec, predictive_impact
+    // were removed with plan-build-run/bin/lib/ deletion
   });
 
-  test('validate health output includes reverse_spec entry', () => {
+  test('phase10 entries each have name and status', () => {
     const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    expect(featureStatus.reverse_spec).toBeDefined();
-  });
-
-  test('validate health output includes predictive_impact entry', () => {
-    const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    expect(featureStatus.predictive_impact).toBeDefined();
-  });
-
-  test('each feature entry has feature, status fields', () => {
-    const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    const phase11Features = [
-      'machine_executable_plans',
-      'spec_diffing',
-      'reverse_spec',
-      'predictive_impact',
-    ];
-    for (const feature of phase11Features) {
-      const entry = featureStatus[feature];
-      if (entry) {
-        expect(typeof entry.status).toBe('string');
-      }
-    }
-  });
-
-  test('when config toggle is false, status is disabled', () => {
-    // Write config with machine_executable_plans disabled
-    const configPath = path.join(tmpDir, '.planning', 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify({
-      features: {
-        machine_executable_plans: false,
-      },
-    }), 'utf-8');
-    const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    if (featureStatus.machine_executable_plans) {
-      expect(featureStatus.machine_executable_plans.status).toBe('disabled');
-    } else {
-      expect(true).toBe(true); // acceptable if not implemented yet
-    }
-  });
-
-  test('when config toggle is true and module loads, status is healthy', () => {
-    // Write config with all spec features enabled
-    const configPath = path.join(tmpDir, '.planning', 'config.json');
-    fs.writeFileSync(configPath, JSON.stringify({
-      features: {
-        machine_executable_plans: true,
-        spec_diffing: true,
-        reverse_spec: true,
-        predictive_impact: true,
-      },
-    }), 'utf-8');
-    const health = getHealthOutput();
-    const featureStatus = health.feature_status || {};
-    for (const feature of ['machine_executable_plans', 'spec_diffing', 'reverse_spec', 'predictive_impact']) {
-      if (featureStatus[feature]) {
-        expect(['healthy', 'degraded']).toContain(featureStatus[feature].status);
-      }
+    expect(health).not.toBeNull();
+    for (const entry of health.phase10) {
+      expect(typeof entry.name).toBe('string');
+      expect(typeof entry.status).toBe('string');
     }
   });
 });

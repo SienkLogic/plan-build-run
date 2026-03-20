@@ -356,8 +356,9 @@ function main() {
   const server = createServer(planningDir);
 
   server.listen(args.port, '127.0.0.1', () => {
-    // Signal readiness to parent process
-    process.stdout.write(JSON.stringify({ status: 'ready', port: args.port, pid: process.pid }) + '\n');
+    // Signal readiness to parent process (use actual port for ephemeral port 0)
+    const actualPort = server.address().port;
+    process.stdout.write(JSON.stringify({ status: 'ready', port: actualPort, pid: process.pid }) + '\n');
   });
 
   // Graceful shutdown

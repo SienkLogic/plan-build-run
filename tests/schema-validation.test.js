@@ -8,8 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plan-build-run', 'bin');
-const HOOKS_DIR = path.resolve(__dirname, '..', 'hooks');
+const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts');
+const HOOKS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'hooks');
 
 const VALID_HOOK_EVENTS = [
   'SessionStart', 'InstructionsLoaded', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure',
@@ -28,8 +28,8 @@ describe('hooks.json schema compliance', () => {
 
   test('has $schema reference', () => {
     expect(hooks.$schema).toBeDefined();
-    // Verify the schema file exists at the referenced path
-    const schemaPath = path.resolve(HOOKS_DIR, hooks.$schema);
+    // hooks-schema.json lives in scripts/ alongside pbr-tools.js
+    const schemaPath = path.resolve(SCRIPTS_DIR, hooks.$schema);
     expect(fs.existsSync(schemaPath)).toBe(true);
   });
 

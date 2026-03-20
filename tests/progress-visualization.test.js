@@ -178,19 +178,7 @@ describe('pbr-tools progress command', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('pbr-tools progress command outputs JSON with phases and dependencies', () => {
-    const planningDir = path.join(tmpDir, '.planning');
-    fs.mkdirSync(planningDir, { recursive: true });
-    fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
-      features: { progress_visualization: true },
-    }));
-    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Test\n- [ ] Plan\n');
-
-    const { execSync } = require('child_process');
-    const toolsPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
-    const result = execSync(`node "${toolsPath}" progress --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
-    const parsed = JSON.parse(result);
-    expect(parsed).toHaveProperty('phases');
-    expect(parsed).toHaveProperty('dependencies');
+  test.skip('pbr-tools progress command removed — was in legacy bin/lib/', () => {
+    // progress command was removed with plan-build-run/bin/lib/ deletion
   });
 });

@@ -11,10 +11,10 @@ const os = require('os');
 const http = require('http');
 const { spawn } = require('child_process');
 
-const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
+const HOOK_SERVER = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server.js');
 const { readEventLogTail } = require('../plugins/pbr/scripts/hook-server');
 const { getEnrichedContext } = require('../plugins/pbr/scripts/progress-tracker');
-const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
+// hook-logger import removed — server reads from .hook-events.jsonl directly
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -174,16 +174,14 @@ describe('GET /context endpoint', () => {
       JSON.stringify({ depth: 'standard', mode: 'autonomous' })
     );
 
-    // Pre-populate JSONL with sample events
+    // Pre-populate JSONL with sample events (server reads from .hook-events.jsonl)
     const sampleEvents = [
       { ts: '2026-01-01T00:00:00Z', event: 'PostToolUse', tool: 'Read', activeSkill: 'build' },
       { ts: '2026-01-01T00:01:00Z', event: 'PostToolUse', tool: 'Write', activeSkill: 'plan', additionalContext: 'Wrote PLAN.md' },
       { ts: '2026-01-01T00:02:00Z', event: 'PostToolUse', tool: 'Read', activeSkill: 'build' },
       { ts: '2026-01-01T00:03:00Z', type: 'server_start' }
     ];
-    const logsDir = path.join(planningDir, 'logs');
-    fs.mkdirSync(logsDir, { recursive: true });
-    const logPath = path.join(logsDir, getHooksFilename());
+    const logPath = path.join(planningDir, '.hook-events.jsonl');
     fs.writeFileSync(logPath, sampleEvents.map(e => JSON.stringify(e)).join('\n') + '\n', 'utf8');
 
     server = await startServer(planningDir);

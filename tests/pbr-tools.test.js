@@ -903,7 +903,7 @@ next_top_level: something`;
   });
 
   describe('llm subcommands', () => {
-    const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
     const { execFileSync } = require('child_process');
     let tmpDir;
 
@@ -928,17 +928,18 @@ next_top_level: something`;
       }
     }
 
-    test('llm status returns JSON with status field', () => {
+    test('llm status returns JSON with deprecated flag', () => {
       const result = runTool(['llm', 'status']);
       expect(result.status).toBe(0);
       const json = JSON.parse(result.stdout);
-      expect(json).toHaveProperty('status');
+      expect(json).toHaveProperty('deprecated', true);
     });
 
-    test('llm classify exits with error when no args', () => {
+    test('llm classify returns deprecated JSON when no args', () => {
       const result = runTool(['llm', 'classify']);
-      expect(result.status).toBe(1);
-      expect(result.stderr || result.stdout).toMatch(/Usage|fileType/i);
+      expect(result.status).toBe(0);
+      const json = JSON.parse(result.stdout);
+      expect(json).toHaveProperty('deprecated', true);
     });
 
     test('llm classify PLAN returns stub result when LLM disabled', () => {
@@ -954,7 +955,7 @@ next_top_level: something`;
   });
 
   describe('learnings subcommands', () => {
-    const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+    const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
     const { execFileSync } = require('child_process');
     let tmpDir;
 
@@ -2175,7 +2176,7 @@ describe('rollback', () => {
 // ─── session subcommand tests ───────────────────────────────────────────────
 
 describe('session subcommand (pbr-tools)', () => {
-  const SCRIPT = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+  const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
   const { execFileSync } = require('child_process');
   let tmpDir;
 

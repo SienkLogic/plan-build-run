@@ -6,7 +6,7 @@ const os = require('os');
 const http = require('http');
 const { spawn } = require('child_process');
 
-const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
+const HOOK_SERVER = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server.js');
 const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
 const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
@@ -160,8 +160,8 @@ describe('hook-server.js integration', () => {
     expect(parsed.error).toBeDefined();
   });
 
-  test('POST /hook appends event to daily hooks log', async () => {
-    const logPath = path.join(planningDir, 'logs', getHooksFilename());
+  test('POST /hook appends event to .hook-events.jsonl', async () => {
+    const logPath = path.join(planningDir, '.hook-events.jsonl');
 
     // Remove the log if it exists so we have a clean baseline
     try { fs.unlinkSync(logPath); } catch (_e) { /* ok */ }
@@ -187,7 +187,7 @@ describe('hook-server.js integration', () => {
       data: {}
     });
 
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise(r => setTimeout(r, 500));
 
     const contentAfter = fs.readFileSync(logPath, 'utf8').trim();
     expect(contentAfter.length).toBeGreaterThan(sizeBefore);

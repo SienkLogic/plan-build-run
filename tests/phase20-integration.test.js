@@ -166,9 +166,9 @@ describe('INTG-04: install.js integrity and test-mode exports', () => {
   });
 
   test('directory structure has hooks', () => {
-    const hooksDir = path.join(ROOT, 'hooks');
-    const hooks = fs.readdirSync(hooksDir).filter(f => f.endsWith('.js'));
-    expect(hooks.length).toBeGreaterThanOrEqual(40);
+    const scriptsDir = path.join(ROOT, 'plugins', 'pbr', 'scripts');
+    const scripts = fs.readdirSync(scriptsDir).filter(f => f.endsWith('.js'));
+    expect(scripts.length).toBeGreaterThanOrEqual(40);
   });
 
   test('directory structure has plugins', () => {

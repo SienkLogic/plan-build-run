@@ -100,7 +100,7 @@ describe('getContextualHelp', () => {
 
 describe('pbr-tools help-context and onboard commands', () => {
   let tmpDir;
-  const toolsPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+  const toolsPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 
   beforeEach(() => {
     tmpDir = makeTempDir();
@@ -116,16 +116,11 @@ describe('pbr-tools help-context and onboard commands', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('pbr-tools help-context command outputs JSON with suggestions', () => {
-    const result = execSync(`node "${toolsPath}" help-context --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
-    const parsed = JSON.parse(result);
-    expect(Array.isArray(parsed.suggestions)).toBe(true);
+  test.skip('pbr-tools help-context command removed — was in legacy bin/lib/', () => {
+    // help-context and onboard commands were removed with plan-build-run/bin/lib/ deletion
   });
 
-  test('pbr-tools onboard command outputs markdown guide', () => {
-    const planningDir = path.join(tmpDir, '.planning');
-    fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Setup\n- [ ] Plan\n');
-    const result = execSync(`node "${toolsPath}" onboard --cwd "${tmpDir}"`, { encoding: 'utf8' });
-    expect(result).toMatch(/Getting Started/i);
+  test.skip('pbr-tools onboard command removed — was in legacy bin/lib/', () => {
+    // help-context and onboard commands were removed with plan-build-run/bin/lib/ deletion
   });
 });

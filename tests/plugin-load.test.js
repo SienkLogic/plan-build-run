@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const HOOKS_DIR = path.join(ROOT, 'hooks');
+const HOOKS_DIR = path.join(ROOT, 'plugins', 'pbr', 'hooks');
 const AGENTS_DIR = path.join(ROOT, 'plugins', 'pbr', 'agents');
 const COMMANDS_DIR = path.join(ROOT, 'plugins', 'pbr', 'commands');
 
@@ -30,6 +30,7 @@ describe('hooks.json validity', () => {
 
   test('all referenced hook scripts exist on disk', () => {
     const missing = [];
+    const SCRIPTS_DIR = path.join(ROOT, 'plugins', 'pbr', 'scripts');
     for (const [, groups] of Object.entries(hooks.hooks)) {
       for (const group of groups) {
         for (const hook of group.hooks || []) {
@@ -38,7 +39,7 @@ describe('hooks.json validity', () => {
           // Pattern: ...run-hook.js" scriptname.js [args]
           const match = hook.command.match(/run-hook\.js[)'"]*\s+(\S+\.js)/);
           if (!match) continue;
-          const scriptPath = path.join(HOOKS_DIR, match[1]);
+          const scriptPath = path.join(SCRIPTS_DIR, match[1]);
           if (!fs.existsSync(scriptPath)) {
             missing.push(`${match[1]} (referenced in hooks.json)`);
           }

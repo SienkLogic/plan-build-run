@@ -11,7 +11,7 @@
  *   - agents: plugins/pbr/agents/
  *   - references: plugins/pbr/references/
  *   - templates: plugins/pbr/templates/
- *   - hooks: hooks/
+ *   - hooks: plugins/pbr/hooks/
  */
 
 const fs = require('fs');
@@ -212,7 +212,7 @@ describe('Reference Integrity', () => {
 });
 
 describe('hooks.json Structure', () => {
-  const hooksPath = path.join(PROJECT_ROOT, 'hooks', 'hooks.json');
+  const hooksPath = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'hooks', 'hooks.json');
   const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
 
   test('hooks.json is valid JSON with hooks property', () => {
@@ -222,7 +222,7 @@ describe('hooks.json Structure', () => {
 
   test('all hook script paths reference existing files', () => {
     const missing = [];
-    const hooksDir = path.join(PROJECT_ROOT, 'hooks');
+    const hooksDir = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'scripts');
 
     for (const [eventType, entries] of Object.entries(hooksConfig.hooks)) {
       for (const entry of entries) {

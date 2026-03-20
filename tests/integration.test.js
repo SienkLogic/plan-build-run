@@ -17,7 +17,7 @@ const { execSync } = require('child_process');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'fake-project');
 const FIXTURE_PLANNING = path.join(FIXTURE_DIR, '.planning');
-const PBR_TOOLS = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+const PBR_TOOLS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 const _HOOKS_DIR = path.join(__dirname, '..', 'hooks');
 
 let originalCwd;
@@ -637,14 +637,15 @@ describe('event logger integration', () => {
     expect(entry.event).toBe('test-event');
   });
 
-  test('pbr-tools.cjs event CLI writes event', () => {
+  test('pbr-tools event CLI writes event to dated log', () => {
     const detailsJson = JSON.stringify({ phase: 99 });
     execSync(
       `node "${PBR_TOOLS}" event workflow cli-test "${detailsJson}"`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
-    // Legacy pbr-tools.cjs writes to events.jsonl (not dated files)
-    const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');
+    // pbr-tools.js event writes to events-YYYY-MM-DD.jsonl (dated files)
+    const { getLogFilename } = require('../plugins/pbr/scripts/event-logger');
+    const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', getLogFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const lastEntry = JSON.parse(lines[lines.length - 1]);

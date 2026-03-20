@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const TOOLS_PATH = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+const TOOLS_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-dx-health-'));
@@ -56,39 +56,25 @@ describe('validate health — Phase 15 feature checks', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('validate health reports Phase 15 features as healthy when enabled', () => {
+  test('validate health returns phase10 checks', () => {
     makeMinimalPlanning(tmpDir);
     const result = execSync(`node "${TOOLS_PATH}" validate health --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
     const parsed = JSON.parse(result);
-    expect(parsed.feature_status).toBeDefined();
-    expect(parsed.feature_status.progress_visualization).toBeDefined();
-    expect(parsed.feature_status.contextual_help).toBeDefined();
-    expect(parsed.feature_status.team_onboarding).toBeDefined();
-    expect(parsed.feature_status.progress_visualization.enabled).toBe(true);
-    expect(['healthy', 'enabled']).toContain(parsed.feature_status.progress_visualization.status);
+    expect(parsed.phase10).toBeDefined();
+    expect(Array.isArray(parsed.phase10)).toBe(true);
+    expect(parsed.timestamp).toBeDefined();
   });
 
-  test('validate health reports disabled when features toggled off', () => {
-    makeMinimalPlanning(tmpDir, {
-      progressViz: false,
-      contextualHelp: false,
-      teamOnboarding: false,
-    });
-    const result = execSync(`node "${TOOLS_PATH}" validate health --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
-    const parsed = JSON.parse(result);
-    expect(parsed.feature_status.progress_visualization.status).toBe('disabled');
-    expect(parsed.feature_status.contextual_help.status).toBe('disabled');
-    expect(parsed.feature_status.team_onboarding.status).toBe('disabled');
+  test.skip('validate health feature_status removed — was in legacy bin/lib/', () => {
+    // Phase 15 feature_status (progress_visualization, contextual_help, team_onboarding)
+    // was removed with plan-build-run/bin/lib/ deletion
   });
 
-  test('validate health reports gracefully when STATE.md is missing', () => {
+  test('validate health does not crash when STATE.md is missing', () => {
     makeMinimalPlanning(tmpDir, { withState: false });
     const result = execSync(`node "${TOOLS_PATH}" validate health --cwd "${tmpDir}" --raw`, { encoding: 'utf8' });
     const parsed = JSON.parse(result);
-    // contextual_help should still be present (not crash), status can be healthy/degraded
-    expect(parsed.feature_status.contextual_help).toBeDefined();
-    expect(parsed.feature_status.progress_visualization).toBeDefined();
-    expect(parsed.feature_status.team_onboarding).toBeDefined();
+    expect(parsed.phase10).toBeDefined();
   });
 });
 
