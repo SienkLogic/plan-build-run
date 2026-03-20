@@ -22,7 +22,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogFilename } = require('./hook-logger');
 
 // Source extensions to process
 const SOURCE_EXTENSIONS = new Set(['.js', '.cjs', '.mjs', '.ts', '.tsx', '.jsx']);
@@ -105,6 +105,189 @@ function writeGraphUpdateLog(planningDir, file, nodes) {
   }
 }
 
+// ─── Architecture guard: pattern checks (merged from architecture-guard.js) ──
+
+const MAX_GUARD_LOG_ENTRIES = 200;
+
+/**
+ * Write an architecture_guard log entry to .planning/logs/hooks-YYYY-MM-DD.jsonl.
+ * @param {string} planningDir
+ * @param {string} file
+ * @param {string} violation
+ */
+function writeGuardLog(planningDir, file, violation) {
+  try {
+    const logsDir = path.join(planningDir, 'logs');
+    if (!fs.existsSync(logsDir)) {
+      fs.mkdirSync(logsDir, { recursive: true });
+    }
+    const logPath = path.join(logsDir, getLogFilename());
+    const entry = {
+      ts: new Date().toISOString(),
+      hook: 'architecture-guard',
+      event: 'architecture_guard',
+      decision: 'architecture_guard',
+      file,
+      violation
+    };
+
+    let lines = [];
+    if (fs.existsSync(logPath)) {
+      const content = fs.readFileSync(logPath, 'utf8').trim();
+      if (content) lines = content.split('\n');
+    }
+    lines.push(JSON.stringify(entry));
+    if (lines.length > MAX_GUARD_LOG_ENTRIES) lines = lines.slice(lines.length - MAX_GUARD_LOG_ENTRIES);
+    fs.writeFileSync(logPath, lines.join('\n') + '\n', 'utf8');
+  } catch (_e) {
+    // Best-effort logging
+  }
+}
+
+/**
+ * Check a CJS lib module for required patterns.
+ * Applies to: plan-build-run/bin/lib/*.cjs
+ * @param {string} filePath - Relative file path
+ * @param {string} content - File content
+ * @returns {string|null} Violation message or null
+ */
+function checkCjsLib(filePath, content) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (!/plan-build-run\/bin\/lib\/[^/]+\.cjs$/.test(normalized)) return null;
+
+  const violations = [];
+  if (!/['"]use strict['"]/.test(content)) {
+    violations.push("missing 'use strict' directive");
+  }
+  if (!/module\.exports/.test(content)) {
+    violations.push('missing module.exports');
+  }
+
+  if (violations.length === 0) return null;
+  return `CJS lib module ${path.basename(filePath)}: ${violations.join(', ')}. Convention: 'use strict' at top, module.exports at bottom.`;
+}
+
+/**
+ * Check a hook script for required patterns.
+ * Applies to: plugins/pbr/scripts/*.js
+ * @param {string} filePath - Relative file path
+ * @param {string} content - File content
+ * @returns {string|null} Violation message or null
+ */
+function checkHookScript(filePath, content) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (!/plugins\/pbr\/scripts\/[^/]+\.js$/.test(normalized)) return null;
+
+  const violations = [];
+  if (!/logHook|hook-logger/.test(content)) {
+    violations.push("missing logHook import from hook-logger");
+  }
+  if (!(/process\.stdin/.test(content) || /JSON\.parse/.test(content))) {
+    violations.push('missing stdin read (process.stdin or JSON.parse)');
+  }
+
+  if (violations.length === 0) return null;
+  return `Hook script ${path.basename(filePath)}: ${violations.join(', ')}. Convention: require hook-logger, read from process.stdin.`;
+}
+
+/**
+ * Check an agent definition for required frontmatter fields.
+ * Applies to: plugins/pbr/agents/*.md
+ * @param {string} filePath - Relative file path
+ * @param {string} content - File content
+ * @returns {string|null} Violation message or null
+ */
+function checkAgentDef(filePath, content) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (!/plugins\/pbr\/agents\/[^/]+\.md$/.test(normalized)) return null;
+
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) {
+    return `Agent definition ${path.basename(filePath)}: missing YAML frontmatter. Convention: frontmatter with name, description, tools.`;
+  }
+
+  const fm = fmMatch[1];
+  const violations = [];
+  if (!/\bname\s*:/.test(fm)) violations.push("missing 'name' field");
+  if (!/\bdescription\s*:/.test(fm)) violations.push("missing 'description' field");
+  if (!/\btools\s*:/.test(fm)) violations.push("missing 'tools' field");
+
+  if (violations.length === 0) return null;
+  return `Agent definition ${path.basename(filePath)}: ${violations.join(', ')}. Convention: YAML frontmatter with name, description, tools.`;
+}
+
+/**
+ * Check a skill definition for required frontmatter fields.
+ * Applies to: plugins/pbr/skills/{name}/SKILL.md
+ * @param {string} filePath - Relative file path
+ * @param {string} content - File content
+ * @returns {string|null} Violation message or null
+ */
+function checkSkillDef(filePath, content) {
+  const normalized = filePath.replace(/\\/g, '/');
+  if (!/plugins\/pbr\/skills\/[^/]+\/SKILL\.md$/.test(normalized)) return null;
+
+  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fmMatch) {
+    return `Skill definition ${path.basename(path.dirname(filePath))}/SKILL.md: missing YAML frontmatter. Convention: frontmatter with name, description.`;
+  }
+
+  const fm = fmMatch[1];
+  const violations = [];
+  if (!/\bname\s*:/.test(fm)) violations.push("missing 'name' field");
+  if (!/\bdescription\s*:/.test(fm)) violations.push("missing 'description' field");
+
+  if (violations.length === 0) return null;
+  return `Skill definition ${path.basename(path.dirname(filePath))}/SKILL.md: ${violations.join(', ')}. Convention: YAML frontmatter with name, description.`;
+}
+
+/**
+ * Run the architecture guard for a changed file.
+ * @param {string} planningDir - Path to .planning directory
+ * @param {string} projectRoot - Path to project root
+ * @param {string} changedFile - Relative path of the changed file
+ * @returns {object|null} { additionalContext } if violation found, null otherwise
+ */
+function runGuard(planningDir, projectRoot, changedFile) {
+  const normalizedFile = changedFile.replace(/\\/g, '/');
+
+  // Check if guard is enabled
+  try {
+    const graphModule = require(path.resolve(__dirname, '../../..', 'plan-build-run', 'bin', 'lib', 'graph.cjs'));
+    if (!graphModule.isGuardEnabled(planningDir)) {
+      return null;
+    }
+  } catch (_e) {
+    // If graph module unavailable, default to enabled
+  }
+
+  // Read file content from disk
+  let content = '';
+  const absPath = path.join(projectRoot, normalizedFile);
+  try {
+    if (fs.existsSync(absPath)) {
+      content = fs.readFileSync(absPath, 'utf8');
+    }
+  } catch (_e) {
+    return null; // Can't read file, skip check
+  }
+
+  // Run all pattern checks
+  const violation = checkCjsLib(normalizedFile, content) ||
+    checkHookScript(normalizedFile, content) ||
+    checkAgentDef(normalizedFile, content) ||
+    checkSkillDef(normalizedFile, content);
+
+  if (!violation) return null;
+
+  // Log the violation
+  writeGuardLog(planningDir, normalizedFile, violation);
+
+  return {
+    additionalContext: `Architecture guard: ${violation}`
+  };
+}
+
 // ─── Core update logic (exported for testing) ─────────────────────────────────
 
 /**
@@ -151,6 +334,10 @@ function updateGraph(planningDir, projectRoot, changedFile) {
   const nodeCount = (graph && graph._meta && graph._meta.node_count) || 0;
   writeGraphUpdateLog(planningDir, normalizedFile, nodeCount);
 
+  // Run architecture guard after graph update
+  const guardResult = runGuard(planningDir, projectRoot, changedFile);
+  if (guardResult) return guardResult;
+
   return null;
 }
 
@@ -187,7 +374,10 @@ function main() {
       // Get relative file path from project root
       let relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
 
-      updateGraph(planningDir, projectRoot, relFilePath);
+      const result = updateGraph(planningDir, projectRoot, relFilePath);
+      if (result) {
+        process.stdout.write(JSON.stringify(result));
+      }
       process.exit(0);
     } catch (_e) {
       process.exit(0);
@@ -195,5 +385,5 @@ function main() {
   });
 }
 
-module.exports = { updateGraph, findPlanningDir, isSourceFile };
+module.exports = { updateGraph, findPlanningDir, isSourceFile, checkCjsLib, checkHookScript, checkAgentDef, checkSkillDef, runGuard, writeGuardLog };
 if (require.main === module || process.argv[1] === __filename) { main(); }
