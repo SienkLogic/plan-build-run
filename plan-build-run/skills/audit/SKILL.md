@@ -2,7 +2,7 @@
 name: audit
 description: "Review past Claude Code sessions for PBR workflow compliance and UX quality."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
-argument-hint: "[--from DATE] [--to DATE] [--today] [--mode compliance|ux|full]"
+argument-hint: "[--from DATE] [--to DATE] [--today] [--mode compliance|ux|full] [--preset minimal|standard|comprehensive] [--dimension ID...] [--skip ID...] [--only ID...]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 0 immediately.**
@@ -49,6 +49,10 @@ Parse `$ARGUMENTS` for:
 | `--to DATE` | Now | End of audit window |
 | `--today` | false | Shorthand for `--from` start of today `--to` now |
 | `--mode MODE` | `full` | `compliance` = workflow only, `ux` = user experience only, `full` = both |
+| `--preset PRESET` | config.json audit.preset | Override audit preset (minimal/standard/comprehensive) |
+| `--dimension ID` | (none) | Add specific dimension(s) to the active set. Accepts code (SI-01) or slug (skill-template-refs). Repeatable. |
+| `--skip ID` | (none) | Remove specific dimension(s) from the active set. Accepts code or slug. Repeatable. |
+| `--only ID` | (none) | Run ONLY these dimensions, ignoring preset/categories. Accepts code or slug. Repeatable. |
 
 **Natural language parsing**: Accept formats like:
 - `--today` or just `today`
@@ -65,6 +69,38 @@ Display the parsed time range to the user:
 Audit window: {from} → {to}
 Mode: {mode}
 ```
+
+---
+
+## Step 1b — Resolve Dimensions
+
+Load the project's `config.json` audit section. Build `cliFlags` from parsed arguments:
+
+```javascript
+const cliFlags = {
+  preset: parsedArgs.preset,       // string or undefined
+  dimension: parsedArgs.dimension, // array of ID/slug strings or undefined
+  skip: parsedArgs.skip,           // array of ID/slug strings or undefined
+  only: parsedArgs.only,           // array of ID/slug strings or undefined
+};
+```
+
+Call `audit-dimensions.js` `resolveDimensions(config, cliFlags)` to compute the active dimension set.
+
+Display the resolution summary:
+
+```
+Preset: {preset} ({N} base dimensions)
+Active dimensions: {N} ({breakdown by category, e.g., "SI: 15, IH: 10, EF: 7, WC: 12"})
+```
+
+If `--dimension` or `--skip` was used, also display:
+
+```
+Adjustments: +{added} -{removed}
+```
+
+Store the resolved dimension list for use in Step 4.
 
 ---
 
@@ -85,6 +121,14 @@ Use Bash to find sessions in the audit window:
 find ~/.claude/projects/{encoded-path}/ -name "*.jsonl" -maxdepth 1 \
   -newermt "{from_datetime}" ! -newermt "{to_datetime}" | sort
 ```
+
+**CRITICAL — Exclude Current Session**: Before proceeding, determine the current session ID:
+
+1. The current session's JSONL file is the most recently modified `.jsonl` in the project directory that is actively being written to (i.e., THIS session)
+2. Identify it by checking which session file has been modified within the last 60 seconds: `find ~/.claude/projects/{encoded-path}/ -name "*.jsonl" -maxdepth 1 -mmin -1 2>/dev/null`
+3. Remove the current session from the discovered sessions list
+4. Display: `Excluding current session {id} from analysis (self-referential)`
+5. If no sessions remain after exclusion, show the "no sessions found" error
 
 For each session file found, also check for subagent logs:
 ```bash
@@ -133,6 +177,23 @@ This data feeds into the final report synthesis.
 
 **CRITICAL**: Spawn one `pbr:audit` agent per session, ALL in parallel. Do NOT analyze sessions sequentially.
 
+### 4a. Discover Insights Report
+
+Before spawning agents, check for a recent insights report:
+
+```bash
+ls -t ~/.claude/insights/*.html 2>/dev/null | head -1
+```
+
+If a file exists and was modified within the last 30 days, store its absolute path as `insights_report_path`. Otherwise set to `'none'`.
+
+### 4b. Compute Spawn Parameters
+
+Compute paths for the spawn prompt:
+- **Plugin root**: absolute path to `plugins/pbr` (e.g., `D:/Repos/plan-build-run/plugins/pbr`)
+- **Planning dir**: absolute path to `.planning` (e.g., `D:/Repos/plan-build-run/.planning`)
+- **Config JSON**: `JSON.stringify(config)` from the loaded config.json — escape backslashes and quotes for template embedding
+
 For each session:
 
 ```
@@ -147,11 +208,24 @@ Task({
     Session JSONL: {absolute_path_to_session.jsonl}
     Subagent logs: {list of subagent jsonl paths, or 'none'}
     Audit mode: {mode}
+    Active dimensions: {comma-separated list of dimension codes from Step 1b}
+    Preset: {preset}
+    Plugin root: {absolute path to plugins/pbr}
+    Planning dir: {absolute path to .planning}
+    Config JSON: {JSON.stringify(config) — escaped for template}
+
+    Run programmatic checks first via audit-checks/index.js runAllChecks(),
+    then analyze JSONL for session-dependent dimensions.
+    Return per-dimension results table.
+
+    Only check dimensions in the active set. Skip all others.
     Output path: DO NOT write to disk — return findings inline.
 
     Analyze this session for PBR workflow compliance and/or UX quality
     per your audit checklists. Return your full findings as structured
     markdown in your response.
+
+    Insights report: {insights_report_path}
   </audit_assignment>"
 })
 ```
@@ -183,30 +257,47 @@ As agents complete, check each audit agent's Task() output for `## AUDIT COMPLET
 
 Wait for all agents before proceeding.
 
-Synthesize across all sessions:
+### 5a. Parse Per-Dimension Results
 
-### 5a. Executive Summary
+From each agent's output, extract the per-dimension results tables. Each row has: Code, Dimension, Status, Evidence Summary.
+
+Merge results across sessions:
+- For **static dimensions** (SI, IH, FV): results are the same across sessions — use the single result
+- For **session-dependent dimensions** (EF, WC, BC, SQ, QM): use the **worst status** across sessions (fail > warn > pass)
+- Record which sessions contributed to each dimension's evidence
+
+### 5b. Build Category Summaries
+
+For each of the 9 categories (AC, SI, IH, EF, WC, BC, SQ, FV, QM):
+- Count pass/warn/fail per category
+- Format: `{Category Name} ({Code}): {pass}/{total} pass, {warn} warn, {fail} fail`
+
+Compute overall dimension score: `{pass}/{total} dimensions passed`
+
+### 5c. Executive Summary
 - Total sessions, total commits, releases
+- **Overall dimension score**: `{pass}/{total} dimensions passed`
 - Overall compliance: how many sessions passed/failed
 - Headline finding (the most important issue)
 
-### 5b. Per-Session Summary Table
-| Session | Duration | Commands | Compliance | UX Rating |
-|---------|----------|----------|------------|-----------|
+### 5d. Per-Session Summary Table
+| Session | Duration | Commands | Compliance | UX Rating | Dimensions Checked |
+|---------|----------|----------|------------|-----------|-------------------|
 
-### 5c. Cross-Session Patterns
+### 5e. Cross-Session Patterns
 - Recurring issues (e.g., STATE.md never read across multiple sessions)
 - Hook coverage gaps
 - Common flow mistakes
+- Dimensions that failed across ALL sessions (systemic issues)
 
-### 5d. Consolidated Findings
+### 5f. Consolidated Findings
 Merge and deduplicate findings across sessions. Categorize by severity:
 - **CRITICAL**: Workflow bypassed despite user requests, hooks not firing
 - **HIGH**: State files not consulted, missing artifacts
 - **MEDIUM**: Suboptimal flow choice, missing feedback
 - **LOW**: Minor ceremony issues, informational
 
-### 5e. Recommendations
+### 5g. Recommendations
 Prioritize as:
 - **Immediate**: Fix in next session
 - **Short-term**: Fix in next sprint/milestone
@@ -222,7 +313,7 @@ Write to: `.planning/audits/{YYYY-MM-DD}-session-audit.md`
 
 Create `.planning/audits/` directory if it doesn't exist.
 
-The report should follow this structure:
+The report should follow this v2 structure:
 
 ```markdown
 # PBR Session Audit Report — {date range}
@@ -236,6 +327,34 @@ The report should follow this structure:
 
 ## Executive Summary
 {2-3 sentence overview}
+**Overall dimension score:** {pass}/{total} dimensions passed
+
+## Dimension Coverage
+
+**Preset:** {preset}
+**Dimensions checked:** {N}/{total enabled}
+**Overall:** {pass} pass, {warn} warn, {fail} fail
+
+## Per-Category Results
+
+### Self-Integrity (SI): {pass}/{total} pass, {warn} warn
+
+| Code | Dimension | Status | Evidence Summary |
+|------|-----------|--------|------------------|
+
+### Infrastructure Health (IH): {pass}/{total} pass, {warn} warn
+
+(repeat for each active category: AC, SI, IH, EF, WC, BC, SQ, FV, QM)
+
+## Config Cross-Reference
+
+For each dimension that references an `audit.thresholds` key, show:
+
+| Dimension | Threshold Key | Configured Value | Check Result |
+|-----------|--------------|-----------------|--------------|
+| IH-03 | hook_performance_ms | 500 | pass |
+
+(Only include dimensions with non-null thresholdKey from audit-dimensions.js)
 
 ## Session Summary
 {per-session table}
@@ -248,6 +367,15 @@ The report should follow this structure:
 
 ## Cross-Session Patterns
 {recurring issues}
+
+## Trend Analysis
+
+If QM-03 baseline comparison data is available:
+- Dimensions that **regressed** (were pass, now warn/fail)
+- Dimensions that **improved** (were warn/fail, now pass)
+- Overall trend direction
+
+If no prior audit data: "No prior audit data available for trend comparison."
 
 ## Consolidated Findings
 ### Critical
@@ -272,6 +400,25 @@ The report should follow this structure:
 
 1. Glob `.planning/audits/{YYYY-MM-DD}-session-audit.md` to confirm the file exists
 2. If missing: re-attempt the write (Step 6). If still missing, display an error and include findings inline instead.
+
+---
+
+## Step 6c — Verbosity Control
+
+Apply verbosity filtering to the Per-Category Results section based on the active preset:
+
+| Preset | Per-Category Results Behavior |
+|--------|-------------------------------|
+| `minimal` | Omit Per-Category Results detail entirely. Show only category-level summary lines (e.g., "SI: 14/15 pass, 1 warn"). |
+| `standard` | Per-Category Results shows only warn/fail dimensions. Passing dimensions are omitted from the detail tables. |
+| `comprehensive` | Per-Category Results shows ALL dimensions including passing ones. |
+
+**Implementation**: After building the per-category dimension tables in Step 5, filter rows before writing to the report:
+- If preset is `minimal`: skip writing dimension tables, keep only the `### {Category} ({Code}): {summary}` header lines
+- If preset is `standard`: filter each category table to only include rows where Status is `warn` or `fail`
+- If preset is `comprehensive`: include all rows
+
+The Dimension Coverage section and Executive Summary are always included regardless of verbosity.
 
 ---
 
@@ -313,6 +460,8 @@ Full report: .planning/audits/{filename}
 
 ## Error Handling
 
+Reference: `skills/shared/error-reporting.md` for branded error output patterns.
+
 ### Agent fails to analyze a session
 If an audit agent fails:
 ```
@@ -330,6 +479,10 @@ Warn the agent to sample rather than read the full log:
 ```
 Note: Session {id} is {size}MB. Sampling key sections (first 200 lines, last 200 lines, user messages, hook events).
 ```
+
+---
+
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit the audit report file.
 
 ---
 

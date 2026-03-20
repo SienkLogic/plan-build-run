@@ -122,6 +122,14 @@ find ~/.claude/projects/{encoded-path}/ -name "*.jsonl" -maxdepth 1 \
   -newermt "{from_datetime}" ! -newermt "{to_datetime}" | sort
 ```
 
+**CRITICAL — Exclude Current Session**: Before proceeding, determine the current session ID:
+
+1. The current session's JSONL file is the most recently modified `.jsonl` in the project directory that is actively being written to (i.e., THIS session)
+2. Identify it by checking which session file has been modified within the last 60 seconds: `find ~/.claude/projects/{encoded-path}/ -name "*.jsonl" -maxdepth 1 -mmin -1 2>/dev/null`
+3. Remove the current session from the discovered sessions list
+4. Display: `Excluding current session {id} from analysis (self-referential)`
+5. If no sessions remain after exclusion, show the "no sessions found" error
+
 For each session file found, also check for subagent logs:
 ```bash
 ls ~/.claude/projects/{encoded-path}/{session-id}/subagents/*.jsonl 2>/dev/null

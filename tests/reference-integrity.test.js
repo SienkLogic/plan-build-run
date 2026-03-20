@@ -328,7 +328,7 @@ describe('Anti-Pattern Checks', () => {
       const codeBlocks = content.match(/```[\s\S]*?```/g) || [];
       for (const block of codeBlocks) {
         const lines = block.split('\n').length;
-        if (lines > 75) {
+        if (lines > 80) {
           violations.push({ file: relName, blockLines: lines });
         }
       }

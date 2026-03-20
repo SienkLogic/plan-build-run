@@ -102,6 +102,39 @@ describe('block-skill-self-read.js', () => {
     expect(parsed.decision).toBe('block');
   });
 
+  test('blocks when autonomous skill reads its own SKILL.md', () => {
+    writeActiveSkill('autonomous');
+    const input = JSON.stringify({
+      cwd: tmpDir,
+      tool_input: { file_path: '/path/plugins/pbr/skills/autonomous/SKILL.md' }
+    });
+    const output = run(input);
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('block');
+    expect(parsed.reason).toContain('autonomous');
+  });
+
+  test('blocks when audit skill reads its own SKILL.md', () => {
+    writeActiveSkill('audit');
+    const input = JSON.stringify({
+      cwd: tmpDir,
+      tool_input: { file_path: '/path/plugins/pbr/skills/audit/SKILL.md' }
+    });
+    const output = run(input);
+    const parsed = JSON.parse(output);
+    expect(parsed.decision).toBe('block');
+  });
+
+  test('allows when build skill reads autonomous SKILL.md (different skill)', () => {
+    writeActiveSkill('build');
+    const input = JSON.stringify({
+      cwd: tmpDir,
+      tool_input: { file_path: '/path/plugins/pbr/skills/autonomous/SKILL.md' }
+    });
+    const output = run(input);
+    expect(output).toBe('');
+  });
+
   test('case-insensitive matching on SKILL.md', () => {
     writeActiveSkill('Build');
     const input = JSON.stringify({

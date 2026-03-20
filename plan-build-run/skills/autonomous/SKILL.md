@@ -148,6 +148,12 @@ Before retrying any build failure, classify the error:
 - Executor returned checkpoint:human-action
 - Missing dependency phase SUMMARY.md (means prior phase incomplete)
 
+**CRITICAL — DO NOT DEBUG INLINE**: When build or test failures occur, you MUST spawn a `pbr:debugger` agent via `Task()`. Do NOT read source files, edit modules, or run tests directly in orchestrator context. Inline debugging consumes main context and violates PBR's delegation principle.
+
+If verification (Step 3d) finds test failures:
+- Spawn: `Task({ subagent_type: "pbr:debugger", prompt: "Phase {N}: {failure description}. Fix the failing tests." })`
+- Do NOT use Edit/Write on source files (non-.planning/ files) from the orchestrator
+
 **Classification procedure (Step 3c on failure):**
 
 1. Read the Skill() return value / error message
@@ -281,6 +287,7 @@ If gate passes:
         - On completion: write result to `.planning/.test-cache.json` with the phase directory as key
         - Log: `Tests: ran fresh, result cached`
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
+     Note: This test run serves as both the confidence gate signal AND the regression gate. If tests fail, this is a regression — delegate to debugger agent per the CRITICAL marker above.
   4.5. **Wiring check:** For each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate and fall through to full verification.
   5. **If ALL FOUR signals pass** (completion >= 90%, SHAs verified, tests pass, key_files imported):
    - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK, wiring: OK) — proceeding to verification`
@@ -288,6 +295,8 @@ If gate passes:
 
 6. **If ANY signal fails**:
    - Display: `Phase {N}: confidence gate not met ({failed_signals}) — proceeding to verification`
+
+**CRITICAL — DO NOT FIX FAILURES INLINE**: If test failures are detected, delegate to a debugger agent. Do NOT edit source files in orchestrator context.
 
 In both cases, fall through to full verification below. The confidence gate never skips the verifier.
 - **Full verification** (always runs):

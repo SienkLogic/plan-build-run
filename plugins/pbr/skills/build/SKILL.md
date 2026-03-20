@@ -1078,7 +1078,24 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
 - [ ] `last_activity` timestamp refreshed
 
 To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-6f '["STATE.md updated","SUMMARY.md exists","commit made"]'`
-If any item fails, investigate before proceeding to Step 7.
+If any item fails, investigate before proceeding to the Regression Gate.
+
+---
+
+### Regression Gate (Pre-Verification)
+
+Before proceeding to verification, run a quick regression check:
+
+1. Read `.planning/config.json` — check `features.regression_gate` (default: `true`). If `false`, skip this gate.
+2. Run the project's test suite: `npm test 2>&1 | tail -20`
+3. If tests pass: log `Regression gate: PASSED — all tests pass` and proceed to verification.
+4. If tests fail:
+   a. Log: `Regression gate: FAILED — {N} test failures detected`
+   b. Display the failing test output
+   c. **CRITICAL**: Do NOT fix failures inline. Spawn a debugger agent:
+      `Task({ subagent_type: "pbr:debugger", prompt: "Phase {N} regression gate failed. Test output: {failure_output}. Fix the regressions." })`
+   d. After debugger completes, re-run `npm test` to confirm fix
+   e. If still failing after debugger: STOP and report to user
 
 ---
 
