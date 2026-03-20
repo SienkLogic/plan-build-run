@@ -24,6 +24,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter, findFiles } = require('./core.cjs');
+const { configLoad } = require('./config.cjs');
 
 // ---- Helpers ----
 
@@ -126,6 +127,72 @@ function scanPhasesForRouting(planningDir) {
   return phases;
 }
 
+// ---- Config helper ----
+
+function loadConfig(planningDir) {
+  try {
+    return configLoad(planningDir) || {};
+  } catch (_e) {
+    return {};
+  }
+}
+
+// ---- Milestone boundary detection ----
+
+/**
+ * Parse ROADMAP.md for milestone sections and detect if a phase is the
+ * last phase in its milestone.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {number} phaseNum - Phase number to check
+ * @returns {boolean} True if phaseNum is the last phase in its milestone section
+ */
+function isLastPhaseInMilestone(planningDir, phaseNum) {
+  const roadmapContent = safeReadFile(path.join(planningDir, 'ROADMAP.md'));
+  if (!roadmapContent) return false;
+
+  const lines = roadmapContent.replace(/\r\n/g, '\n').split('\n');
+  const milestones = []; // { startLine, phases: [] }
+  let current = null;
+
+  for (const line of lines) {
+    const milestoneMatch = line.match(/^##\s+Milestone[:\s]/i);
+    if (milestoneMatch) {
+      if (current) milestones.push(current);
+      current = { phases: [] };
+      continue;
+    }
+    if (current) {
+      // Match phase references: ### Phase N, | N. Name |, or checkbox format
+      const phaseMatch = line.match(/###\s+Phase\s+(\d+)/i);
+      if (phaseMatch) {
+        current.phases.push(parseInt(phaseMatch[1], 10));
+        continue;
+      }
+      const tableMatch = line.match(/^\|\s*(\d+)\.\s/);
+      if (tableMatch) {
+        current.phases.push(parseInt(tableMatch[1], 10));
+        continue;
+      }
+      // Checkbox format: - [x] Phase N or - [ ] Phase N
+      const checkboxMatch = line.match(/^-\s*\[.\]\s*(?:Phase\s+)?(\d+)/i);
+      if (checkboxMatch) {
+        current.phases.push(parseInt(checkboxMatch[1], 10));
+      }
+    }
+  }
+  if (current) milestones.push(current);
+
+  // Find which milestone contains phaseNum and check if it's the last
+  for (const ms of milestones) {
+    if (ms.phases.includes(phaseNum)) {
+      const maxPhase = Math.max(...ms.phases);
+      return phaseNum === maxPhase;
+    }
+  }
+  return false;
+}
+
 // ---- Main suggest-next function ----
 
 /**
@@ -151,10 +218,11 @@ function suggestNext(planningDir) {
     };
   }
 
-  // Load state
+  // Load state and config
   const stateContent = safeReadFile(path.join(planningDir, 'STATE.md'));
   const stateFm = safeParseFrontmatter(stateContent);
   const phases = scanPhasesForRouting(planningDir);
+  const config = loadConfig(planningDir);
 
   // Count todos and notes for alternatives
   const todosPending = countFilesIn(
@@ -234,10 +302,12 @@ function suggestNext(planningDir) {
     return result('/pbr:plan', `${gapsPhase.number} --gaps`, `Phase ${gapsPhase.number} has verification gaps`, gapsPhase);
   }
 
-  // Priority 5: Built not verified
+  // Priority 5: Built not verified (config-aware: validate_phase routing)
   const builtPhase = phases.find(p => p.status === 'built');
   if (builtPhase) {
-    return result('/pbr:review', String(builtPhase.number), `Phase ${builtPhase.number} built but not verified`, builtPhase);
+    const useValidatePhase = !(config.workflow && config.workflow.validate_phase === false);
+    const cmd = useValidatePhase ? '/pbr:validate-phase' : '/pbr:review';
+    return result(cmd, String(builtPhase.number), `Phase ${builtPhase.number} built but not verified`, builtPhase);
   }
 
   // Priority 6: Planned not built
@@ -258,6 +328,22 @@ function suggestNext(planningDir) {
       `Phase ${buildingPhase.number} build in progress (${buildingPhase.plans_complete}/${buildingPhase.plans_total} plans done)`,
       buildingPhase
     );
+  }
+
+  // Priority 7b: Milestone boundary detection
+  // If the highest-numbered verified phase is the last in its milestone, suggest milestone completion
+  const verifiedPhases = phases.filter(p => p.status === 'verified');
+  if (verifiedPhases.length > 0) {
+    const highestVerified = verifiedPhases[verifiedPhases.length - 1]; // sorted by number
+    if (isLastPhaseInMilestone(planningDir, highestVerified.number)) {
+      // Only suggest milestone if there are no unfinished phases (built/planned/building/empty)
+      const unfinished = phases.filter(p =>
+        p.status !== 'verified' && p.status !== 'gaps_found'
+      );
+      if (unfinished.length === 0) {
+        return result('/pbr:milestone', '', 'All phases in current milestone verified', highestVerified);
+      }
+    }
   }
 
   // Priority 8: All verified, more phases in ROADMAP
@@ -294,6 +380,39 @@ function suggestNext(planningDir) {
   const emptyPhase = phases.find(p => p.status === 'empty');
   if (emptyPhase) {
     return result('/pbr:plan', String(emptyPhase.number), `Phase ${emptyPhase.number} needs planning`, emptyPhase);
+  }
+
+  // Priority 10b: Status-based routing fallback
+  if (stateFm.status) {
+    const currentPhase = stateFm.current_phase;
+    const currentPhaseStr = String(currentPhase || '');
+    const nextPhaseStr = String((currentPhase || 0) + 1);
+
+    switch (stateFm.status) {
+      case 'not_started':
+      case 'discussed':
+      case 'ready_to_plan':
+        return result('/pbr:plan', currentPhaseStr, `Status: ${stateFm.status}`, null);
+      case 'planning':
+        return result('/pbr:plan', currentPhaseStr, 'Planning in progress', null);
+      case 'planned':
+      case 'ready_to_execute':
+      case 'building':
+      case 'partial':
+        return result('/pbr:build', currentPhaseStr, `Status: ${stateFm.status}`, null);
+      case 'built': {
+        const useVP = !(config.workflow && config.workflow.validate_phase === false);
+        const builtCmd = useVP ? '/pbr:validate-phase' : '/pbr:review';
+        return result(builtCmd, currentPhaseStr, 'Status: built', null);
+      }
+      case 'verified':
+      case 'complete':
+      case 'skipped':
+        return result('/pbr:plan', nextPhaseStr, `Status: ${stateFm.status}, advance to next phase`, null);
+      case 'needs_fixes':
+        return result('/pbr:plan', `${currentPhaseStr} --gaps`, 'Status: needs_fixes', null);
+      // milestone-complete already handled by Priority 9
+    }
   }
 
   // No phases at all
