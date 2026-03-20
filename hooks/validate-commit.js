@@ -26,8 +26,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { classifyCommit } = require('../plan-build-run/bin/lib/local-llm/operations/classify-commit.cjs');
+const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
+const { classifyCommit } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-commit');
 
 const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert', 'perf', 'ci', 'build'];
 

@@ -350,7 +350,6 @@ function checkConfigSchemaCodeConsistency(pluginRoot) {
   // Scan key config-consuming files
   const configFiles = [
     path.join(pluginRoot, 'scripts', 'lib', 'config.js'),
-    path.join(pluginRoot, '..', '..', 'plan-build-run', 'bin', 'lib', 'config.cjs'),
   ];
 
   const codeKeys = new Set();

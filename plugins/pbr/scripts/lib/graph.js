@@ -44,9 +44,8 @@ function classifyNodeType(filePath) {
   if (/plugins\/pbr\/scripts\//.test(normalized)) return 'hook';
   if (/plugins\/pbr\/agents\//.test(normalized)) return 'agent';
   if (/plugins\/pbr\/skills\//.test(normalized)) return 'skill';
-  if (/plan-build-run\/bin\/lib\//.test(normalized)) return 'lib';
-  if (/plan-build-run\/bin\//.test(normalized)) return 'config';
-  if (/plan-build-run\/templates\//.test(normalized)) return 'template';
+  if (/plugins\/pbr\/scripts\/lib\//.test(normalized)) return 'lib';
+  if (/plugins\/pbr\/templates\//.test(normalized)) return 'template';
   if (/\.test\.(js|cjs|mjs|ts)$/.test(normalized)) return 'test';
   if (/config[.-]/.test(path.basename(normalized))) return 'config';
   return 'script';
@@ -160,7 +159,7 @@ function buildGraph(planningDir, projectRoot) {
   if (projectRoot) {
     scanDirectory(projectRoot, 'plugins/pbr/scripts', 'hook', nodes, patternMap);
     scanDirectory(projectRoot, 'plugins/pbr/agents', 'agent', nodes, patternMap);
-    scanDirectory(projectRoot, 'plan-build-run/bin/lib', 'lib', nodes, patternMap);
+    scanDirectory(projectRoot, 'plugins/pbr/scripts/lib', 'lib', nodes, patternMap);
   }
 
   // ─── Detect patterns ─────────────────────────────────────────────────────

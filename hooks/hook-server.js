@@ -268,7 +268,7 @@ function createServer(planningDir) {
 
       // Refresh in-memory cache from disk
       try {
-        const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+        const { configLoad } = require('../plugins/pbr/scripts/lib/config');
         cache.config = configLoad(planningDir);
       } catch (_e) { /* best-effort */ }
 
@@ -323,7 +323,7 @@ function main() {
 
   // Load initial config
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     cache.config = configLoad(planningDir);
   } catch (_e) { /* best-effort */ }
 

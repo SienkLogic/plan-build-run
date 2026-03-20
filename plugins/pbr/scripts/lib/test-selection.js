@@ -24,8 +24,8 @@ const FILE_MAPPING_RULES = [
     testPathFn: (match) => `tests/${match[1]}.test.js`,
   },
   {
-    // plan-build-run/bin/lib/{name}.cjs -> tests/{name}.test.js
-    pattern: /^plan-build-run\/bin\/lib\/(.+)\.cjs$/,
+    // plugins/pbr/scripts/lib/{name}.js -> tests/{name}.test.js
+    pattern: /^plugins\/pbr\/scripts\/lib\/(.+)\.js$/,
     testPathFn: (match) => `tests/${match[1]}.test.js`,
   },
   {
@@ -74,7 +74,7 @@ function getImpactScope(changedFiles) {
   for (const file of changedFiles) {
     if (file.startsWith('hooks/') || file.startsWith('plugins/pbr/hooks/')) {
       scope.hooks.push(file);
-    } else if (file.startsWith('plan-build-run/bin/lib/') || file.startsWith('plugins/pbr/lib/')) {
+    } else if (file.startsWith('plugins/pbr/scripts/lib/') || file.startsWith('plugins/pbr/lib/')) {
       scope.lib.push(file);
     } else if (file.includes('/skills/') || file.endsWith('SKILL.md')) {
       scope.skills.push(file);

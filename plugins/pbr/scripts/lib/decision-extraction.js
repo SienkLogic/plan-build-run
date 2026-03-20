@@ -136,7 +136,7 @@ function handleDecisionExtraction(planningDir, agentOutput, agentType) {
   // Lazy-load decisions module — path relative to hooks/lib/
   let recordDecision;
   try {
-    const decisionsModule = require(path.join(__dirname, '..', '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'decisions.cjs'));
+    const decisionsModule = require(path.join(__dirname, 'decisions'));
     recordDecision = decisionsModule.recordDecision;
   } catch (e) {
     logHook('event-handler', 'SubagentStop', 'decisions-module-load-error', { error: e.message });
@@ -238,7 +238,7 @@ function extractNegativeKnowledge(planningDir, phaseDir, config) {
 
   let recordFailure;
   try {
-    const nkModule = require(path.join(__dirname, '..', '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'negative-knowledge.cjs'));
+    const nkModule = require(path.join(__dirname, 'negative-knowledge'));
     recordFailure = nkModule.recordFailure;
   } catch (e) {
     logHook('event-handler', 'SubagentStop', 'negative-knowledge-module-load-error', { error: e.message });

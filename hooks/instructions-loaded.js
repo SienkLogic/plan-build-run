@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { resolveSessionPath } = require('../plugins/pbr/scripts/lib/core');
 
 function readStdin() {
   try {

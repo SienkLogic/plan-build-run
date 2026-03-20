@@ -17,8 +17,8 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { triageTestOutput } = require('../plan-build-run/bin/lib/local-llm/operations/triage-test-output.cjs');
+const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
+const { triageTestOutput } = require('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output');
 
 const TEST_COMMAND_PATTERNS = [
   /\bnpm\s+test\b/,

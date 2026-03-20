@@ -24,15 +24,15 @@ let _sessionLoad = null;
 let _resolveSessionPath = null;
 
 function getConfigLoad() {
-  if (!_configLoad) _configLoad = require('../plan-build-run/bin/lib/config.cjs').configLoad;
+  if (!_configLoad) _configLoad = require('../plugins/pbr/scripts/lib/config').configLoad;
   return _configLoad;
 }
 function getSessionLoad() {
-  if (!_sessionLoad) _sessionLoad = require('../plan-build-run/bin/lib/core.cjs').sessionLoad;
+  if (!_sessionLoad) _sessionLoad = require('../plugins/pbr/scripts/lib/core').sessionLoad;
   return _sessionLoad;
 }
 function getResolveSessionPath() {
-  if (!_resolveSessionPath) _resolveSessionPath = require('../plan-build-run/bin/lib/core.cjs').resolveSessionPath;
+  if (!_resolveSessionPath) _resolveSessionPath = require('../plugins/pbr/scripts/lib/core').resolveSessionPath;
   return _resolveSessionPath;
 }
 

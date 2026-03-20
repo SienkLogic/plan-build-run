@@ -146,14 +146,14 @@ function writeGuardLog(planningDir, file, violation) {
 
 /**
  * Check a CJS lib module for required patterns.
- * Applies to: plan-build-run/bin/lib/*.cjs
+ * Applies to: plugins/pbr/scripts/lib/*.js (and legacy plan-build-run/bin/lib/*.cjs)
  * @param {string} filePath - Relative file path
  * @param {string} content - File content
  * @returns {string|null} Violation message or null
  */
 function checkCjsLib(filePath, content) {
   const normalized = filePath.replace(/\\/g, '/');
-  if (!/plan-build-run\/bin\/lib\/[^/]+\.cjs$/.test(normalized)) return null;
+  if (!/plugins\/pbr\/scripts\/lib\/[^/]+\.js$/.test(normalized) && !/plan-build-run\/bin\/lib\/[^/]+\.cjs$/.test(normalized)) return null;
 
   const violations = [];
   if (!/['"]use strict['"]/.test(content)) {
@@ -253,7 +253,7 @@ function runGuard(planningDir, projectRoot, changedFile) {
 
   // Check if guard is enabled
   try {
-    const graphModule = require(path.resolve(__dirname, '../../..', 'plan-build-run', 'bin', 'lib', 'graph.cjs'));
+    const graphModule = require(path.join(__dirname, 'lib', 'graph'));
     if (!graphModule.isGuardEnabled(planningDir)) {
       return null;
     }
@@ -314,7 +314,7 @@ function updateGraph(planningDir, projectRoot, changedFile) {
   }
 
   // Load graph module
-  const graphModule = require(path.resolve(__dirname, '../../..', 'plan-build-run', 'bin', 'lib', 'graph.cjs'));
+  const graphModule = require(path.join(__dirname, 'lib', 'graph'));
 
   // Check if graph is enabled
   if (!graphModule.isGraphEnabled(planningDir)) {

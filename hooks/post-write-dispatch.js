@@ -188,8 +188,8 @@ async function processEvent(data, planningDir) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
     try {
-      const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-      const { classifyFileIntent } = require('../plan-build-run/bin/lib/local-llm/operations/classify-file-intent.cjs');
+      const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
+      const { classifyFileIntent } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-file-intent');
       const llmConfig = (() => {
         try {
           const configPath = path.join(planningDir, 'config.json');

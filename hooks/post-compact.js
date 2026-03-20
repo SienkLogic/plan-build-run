@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { stateLoad } = require('../plan-build-run/bin/lib/state.cjs');
+const { stateLoad } = require('../plugins/pbr/scripts/lib/state');
 const { resetLedger } = require('./track-context-budget');
 
 /**

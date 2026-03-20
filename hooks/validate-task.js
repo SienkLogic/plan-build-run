@@ -20,23 +20,23 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
-const { validateTask: llmValidateTask } = require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs');
+const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
+const { validateTask: llmValidateTask } = require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
-const { KNOWN_AGENTS } = require('../plan-build-run/bin/lib/core.cjs');
+const { KNOWN_AGENTS } = require('../plugins/pbr/scripts/lib/core');
 
 // Gate modules
-const { checkQuickExecutorGate } = require('../plan-build-run/bin/lib/gates/quick-executor.cjs');
-const { checkBuildExecutorGate } = require('../plan-build-run/bin/lib/gates/build-executor.cjs');
-const { checkPlanExecutorGate } = require('../plan-build-run/bin/lib/gates/plan-executor.cjs');
-const { checkReviewPlannerGate } = require('../plan-build-run/bin/lib/gates/review-planner.cjs');
-const { checkReviewVerifierGate } = require('../plan-build-run/bin/lib/gates/review-verifier.cjs');
-const { checkMilestoneCompleteGate, getVerificationStatus } = require('../plan-build-run/bin/lib/gates/milestone-complete.cjs');
-const { checkMilestoneSummaryGate } = require('../plan-build-run/bin/lib/gates/milestone-summary.cjs');
-const { checkBuildDependencyGate } = require('../plan-build-run/bin/lib/gates/build-dependency.cjs');
-const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('../plan-build-run/bin/lib/gates/advisories.cjs');
-const { checkDocExistence } = require('../plan-build-run/bin/lib/gates/doc-existence.cjs');
-const { checkUserConfirmationGate } = require('../plan-build-run/bin/lib/gates/user-confirmation.cjs');
+const { checkQuickExecutorGate } = require('../plugins/pbr/scripts/lib/gates/quick-executor');
+const { checkBuildExecutorGate } = require('../plugins/pbr/scripts/lib/gates/build-executor');
+const { checkPlanExecutorGate } = require('../plugins/pbr/scripts/lib/gates/plan-executor');
+const { checkReviewPlannerGate } = require('../plugins/pbr/scripts/lib/gates/review-planner');
+const { checkReviewVerifierGate } = require('../plugins/pbr/scripts/lib/gates/review-verifier');
+const { checkMilestoneCompleteGate, getVerificationStatus } = require('../plugins/pbr/scripts/lib/gates/milestone-complete');
+const { checkMilestoneSummaryGate } = require('../plugins/pbr/scripts/lib/gates/milestone-summary');
+const { checkBuildDependencyGate } = require('../plugins/pbr/scripts/lib/gates/build-dependency');
+const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('../plugins/pbr/scripts/lib/gates/advisories');
+const { checkDocExistence } = require('../plugins/pbr/scripts/lib/gates/doc-existence');
+const { checkUserConfirmationGate } = require('../plugins/pbr/scripts/lib/gates/user-confirmation');
 
 /**
  * Load and resolve the local_llm config block from .planning/config.json.

@@ -3,7 +3,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { resolveSessionPath } = require('../plugins/pbr/scripts/lib/core');
 const { logHook } = require('./hook-logger');
 
 const TRACKER_FILE = '.session-tracker';

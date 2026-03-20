@@ -25,8 +25,8 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { sessionLoad } = require('../plugins/pbr/scripts/lib/core');
+const { resolveSessionPath } = require('../plugins/pbr/scripts/lib/core');
 
 function main() {
   let input = '';

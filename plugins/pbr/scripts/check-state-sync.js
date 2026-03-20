@@ -31,27 +31,21 @@ const { logEvent } = require('./event-logger');
  * Path to PBR lib modules for lazy-requiring state/core functions.
  * Lazy-loaded to avoid circular dependency issues at module load time.
  */
-const pbrToolsPath = (() => {
-  // Works from both hooks/ (root) and plugins/pbr/scripts/ locations
-  const fromRoot = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib');
-  const fromPlugin = path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib');
-  try { if (fs.existsSync(path.join(fromRoot, 'state.cjs'))) return fromRoot; } catch (_e) { /* fallthrough */ }
-  return fromPlugin;
-})();
+const pbrToolsPath = path.join(__dirname, 'lib');
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/state.cjs')} */
+/** @returns {typeof import('./lib/state')} */
 function getStateLib() {
-  return require(path.join(pbrToolsPath, 'state.cjs'));
+  return require(path.join(pbrToolsPath, 'state'));
 }
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/core.cjs')} */
+/** @returns {typeof import('./lib/core')} */
 function getCoreLib() {
-  return require(path.join(pbrToolsPath, 'core.cjs'));
+  return require(path.join(pbrToolsPath, 'core'));
 }
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/state-queue.cjs')} */
+/** @returns {typeof import('./lib/state-queue')} */
 function getQueueLib() {
-  return require(path.join(pbrToolsPath, 'state-queue.cjs'));
+  return require(path.join(pbrToolsPath, 'state-queue'));
 }
 
 /**

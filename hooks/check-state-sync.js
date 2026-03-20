@@ -39,17 +39,17 @@ const pbrToolsPath = (() => {
   return fromPlugin;
 })();
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/state.cjs')} */
+/** @returns {typeof import('../../../plugins/pbr/scripts/lib/state')} */
 function getStateLib() {
   return require(path.join(pbrToolsPath, 'state.cjs'));
 }
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/core.cjs')} */
+/** @returns {typeof import('../../../plugins/pbr/scripts/lib/core')} */
 function getCoreLib() {
   return require(path.join(pbrToolsPath, 'core.cjs'));
 }
 
-/** @returns {typeof import('../../../plan-build-run/bin/lib/state-queue.cjs')} */
+/** @returns {typeof import('../../../plugins/pbr/scripts/lib/state-queue')} */
 function getQueueLib() {
   return require(path.join(pbrToolsPath, 'state-queue.cjs'));
 }

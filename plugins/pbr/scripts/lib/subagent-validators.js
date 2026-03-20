@@ -735,13 +735,7 @@ const SKILL_CHECKS = {
         const taskSlug = dirs[0];
         // Attempt post-hoc generation
         try {
-          // Resolve post-hoc module relative to repo root (works from both hooks/lib/ and plugins/pbr/scripts/lib/)
-          let postHocDir = __dirname;
-          while (postHocDir !== path.dirname(postHocDir)) {
-            if (fs.existsSync(path.join(postHocDir, 'plan-build-run', 'bin', 'lib', 'post-hoc.cjs'))) break;
-            postHocDir = path.dirname(postHocDir);
-          }
-          const { generateSummary } = require(path.join(postHocDir, 'plan-build-run', 'bin', 'lib', 'post-hoc.cjs'));
+          const { generateSummary } = require(path.join(__dirname, 'post-hoc'));
           const projectRoot = path.resolve(planningDir, '..');
           const result = generateSummary(projectRoot, taskDir, {
             commitPattern: taskSlug.replace(/^(\d{3})-.*/, 'quick-$1')

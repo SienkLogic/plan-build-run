@@ -184,7 +184,7 @@ function main() {
 
   // Back up .planning/ state before git operations
   try {
-    const { stateBackup } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateBackup } = require('../plugins/pbr/scripts/lib/state');
     const backupResult = stateBackup();
     if (backupResult.backed_up) {
       console.log(`  State backup: ${path.basename(backupResult.path)} (${backupResult.files.join(', ')})`);

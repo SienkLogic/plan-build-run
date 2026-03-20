@@ -13,7 +13,7 @@
 
 let incidents;
 try {
-  // Resolve relative to plugin scripts dir → plan-build-run/bin/lib/
+  // Resolve relative to plugin scripts dir → lib/incidents
   incidents = require('./lib/incidents');
 } catch (_e) {
   incidents = null;

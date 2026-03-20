@@ -1711,7 +1711,7 @@ async function main() {
 
     } else if (command === 'nk') {
       // Lazy require to avoid loading for unrelated commands
-      const nkLib = require(path.join(__dirname, '..', '..', '..', 'plan-build-run', 'bin', 'lib', 'negative-knowledge.cjs'));
+      const nkLib = require(path.join(__dirname, 'lib', 'negative-knowledge'));
 
       if (subcommand === 'record') {
         const titleIdx = args.indexOf('--title');

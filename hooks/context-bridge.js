@@ -82,7 +82,7 @@ function getAdaptiveThresholds(contextTokens) {
  */
 function getEffectiveThresholds(planningDir) {
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     const config = configLoad(planningDir);
     const curve = (config && config.context_budget && config.context_budget.threshold_curve) || 'linear';
     const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
@@ -152,7 +152,7 @@ function saveBridge(bridgePath, data) {
  */
 function getCharDenominator(planningDir) {
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || 200000;
     return tokens * 4;

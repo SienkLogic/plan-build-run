@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+const { resolveSessionPath } = require('../plugins/pbr/scripts/lib/core');
 
 const BRIDGE_STALENESS_MS = 60000; // 60 seconds
 
@@ -43,7 +43,7 @@ const BASE_CHARS = 800000; // 200k tokens × 4
  */
 function getScaledMilestones(planningDir) {
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || 200000;
     const scale = (tokens * 4) / BASE_CHARS;
@@ -160,13 +160,13 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Write context ledger entry if enabled
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     const config = configLoad(planningDir);
     if (config && config.context_ledger && config.context_ledger.enabled) {
       const estTokens = Math.round(actualChars / 4);
       let phase = null;
       try {
-        const { stateLoad } = require('../plan-build-run/bin/lib/state.cjs');
+        const { stateLoad } = require('../plugins/pbr/scripts/lib/state');
         const fullState = stateLoad(planningDir);
         phase = (fullState && fullState.state && fullState.state.phase_name) || null;
       } catch (_e) { /* best-effort phase detection */ }
@@ -182,7 +182,7 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Fire-and-forget: update context quality score if feature is enabled
   try {
-    const { configLoad: _cLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad: _cLoad } = require('../plugins/pbr/scripts/lib/config');
     const _cfg = _cLoad(planningDir);
     if (_cfg && _cfg.features && _cfg.features.context_quality_scoring !== false) {
       const { getQualityReport, writeQualityReport } = require('./context-quality');

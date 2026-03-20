@@ -34,7 +34,7 @@ router.get('/', (req, res) => {
   try {
     const planningDir = getPlanningDir(req);
     const config = loadConfig(planningDir);
-    const { getProgressData } = require('../../../plan-build-run/bin/lib/progress-visualization.cjs');
+    const { getProgressData } = require('../../../plugins/pbr/scripts/lib/progress-visualization');
     const result = getProgressData(planningDir, config);
     res.json(result);
   } catch (err) {
@@ -50,7 +50,7 @@ router.get('/onboarding', (req, res) => {
   try {
     const planningDir = getPlanningDir(req);
     const config = loadConfig(planningDir);
-    const { generateOnboardingGuide } = require('../../../plan-build-run/bin/lib/onboarding-generator.cjs');
+    const { generateOnboardingGuide } = require('../../../plugins/pbr/scripts/lib/onboarding-generator');
     const result = generateOnboardingGuide(planningDir, config);
     res.json(result);
   } catch (err) {
@@ -66,7 +66,7 @@ router.get('/help-context', (req, res) => {
   try {
     const planningDir = getPlanningDir(req);
     const config = loadConfig(planningDir);
-    const { getContextualHelp } = require('../../../plan-build-run/bin/lib/contextual-help.cjs');
+    const { getContextualHelp } = require('../../../plugins/pbr/scripts/lib/contextual-help');
     const result = getContextualHelp(planningDir, config);
     res.json(result);
   } catch (err) {

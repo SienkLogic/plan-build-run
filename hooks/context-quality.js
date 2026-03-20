@@ -91,7 +91,7 @@ function getQualityReport(planningDir) {
   // Load config and check toggle
   let config;
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('../plugins/pbr/scripts/lib/config');
     config = configLoad(planningDir);
   } catch (_e) {
     try {
@@ -211,7 +211,7 @@ function isSkipRagEligible(planningDir) {
     // Load config
     let config;
     try {
-      const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configLoad } = require('../plugins/pbr/scripts/lib/config');
       config = configLoad(planningDir);
     } catch (_e) {
       try {
