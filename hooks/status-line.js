@@ -14,9 +14,8 @@ const fs = require('fs');
 const path = require('path');
 const cp = require('child_process');
 const { logHook } = require('./hook-logger');
-const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
-const llmMetricsModule = require('../plan-build-run/bin/lib/local-llm/metrics.cjs');
-
+const { configLoad } = require('./pbr-tools');
+const { resolveSessionPath } = require('./lib/core');
 // ANSI color codes
 const c = {
   reset: '\x1b[0m',
@@ -449,7 +448,7 @@ function main() {
     // Bridge real context data to .context-budget.json for TMUX status bar
     if (ctxPercent != null) {
       try {
-        const bridgeMod = require('./lib/context');
+        const { saveBridge } = require('./context-bridge');
         const bridgePath = path.join(planningDir, '.context-budget.json');
         const bridge = {
           timestamp: new Date().toISOString(),
@@ -468,11 +467,7 @@ function main() {
           bridge.calls_since_warn = existing.calls_since_warn || 0;
           bridge.thresholds = existing.thresholds;
         } catch (_e) { /* no existing bridge */ }
-        if (bridgeMod && bridgeMod.saveBridge) {
-          bridgeMod.saveBridge(bridgePath, bridge);
-        } else {
-          fs.writeFileSync(bridgePath, JSON.stringify(bridge), 'utf8');
-        }
+        saveBridge(bridgePath, bridge);
       } catch (_e) {
         // Best-effort — never fail the status line
       }
@@ -551,7 +546,9 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 
     const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
     const fmPhasesTotal = fm && fm.phases_total;
-    const phaseTotal = fmPhasesTotal || (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
+    const phaseTotal = (fmPhasesTotal && fmPhasesTotal !== '0' && fmPhasesTotal !== 'null')
+      ? fmPhasesTotal
+      : (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
     // Format phase_slug from "foo-bar" to "Foo Bar" for display
     const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
     const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
@@ -593,16 +590,27 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   }
 
   // Agent section — active subagent name from .active-agent signal file
+  // Try session-scoped path first, fall back to global
   if (sections.includes('agent') && planningDir) {
     try {
-      const agentFile = path.join(planningDir, '.active-agent');
-      if (fs.existsSync(agentFile)) {
-        let agentName = fs.readFileSync(agentFile, 'utf8').trim();
-        if (agentName) {
-          // Strip pbr- prefix for brevity
-          agentName = agentName.replace(/^pbr-/, '');
-          line1.push(`${c.magenta}\u25C6 ${agentName}${c.reset}`);
+      const agentSessionId = sd.session_id || null;
+      let agentName = null;
+      if (agentSessionId) {
+        const sessionAgentFile = resolveSessionPath(planningDir, '.active-agent', agentSessionId);
+        if (fs.existsSync(sessionAgentFile)) {
+          agentName = fs.readFileSync(sessionAgentFile, 'utf8').trim();
         }
+      }
+      if (!agentName) {
+        const globalAgentFile = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(globalAgentFile)) {
+          agentName = fs.readFileSync(globalAgentFile, 'utf8').trim();
+        }
+      }
+      if (agentName) {
+        // Strip pbr- prefix for brevity
+        agentName = agentName.replace(/^pbr-/, '');
+        line1.push(`${c.magenta}\u25C6 ${agentName}${c.reset}`);
       }
     } catch (_e) {
       // Graceful fallback — skip if unreadable
@@ -680,37 +688,6 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   let output = line1.join(sep);
   if (line2.length > 0) {
     output += '\n' + line2.join(sep);
-  }
-
-  // LLM offload section — renders on a third line below the main status
-  // Shows session stats + lifetime total when both are available
-  if (sections.includes('llm') && planningDir) {
-    try {
-      const lifetime = llmMetricsModule.computeLifetimeMetrics(planningDir);
-      if (lifetime && lifetime.total_calls > 0) {
-        // Try to get session-scoped metrics using duration from stdin
-        let sessionPart = '';
-        const durationMs = sd.cost && sd.cost.total_duration_ms;
-        if (durationMs != null && durationMs > 0) {
-          const sessionStart = new Date(Date.now() - durationMs);
-          const sessionEntries = llmMetricsModule.readSessionMetrics(planningDir, sessionStart);
-          const session = llmMetricsModule.summarizeMetrics(sessionEntries);
-          if (session.total_calls > 0) {
-            sessionPart = `${c.dim}${session.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${formatTokens(session.tokens_saved)} saved${c.reset}`;
-          }
-        }
-
-        const lifetimePart = `${c.dim}${formatTokens(lifetime.tokens_saved)} lifetime${c.reset}`;
-
-        if (sessionPart) {
-          output += `\n${c.green}Local LLM${c.reset} ${sessionPart} ${c.dim}\u2502${c.reset} ${lifetimePart}`;
-        } else {
-          output += `\n${c.green}Local LLM${c.reset} ${c.dim}${lifetime.total_calls} calls${c.reset} ${c.dim}\u00B7${c.reset} ${c.green}${formatTokens(lifetime.tokens_saved)} saved${c.reset}`;
-        }
-      }
-    } catch (_e) {
-      // No metrics available — skip silently
-    }
   }
 
   // Dev line — PBR development stats (version, skills, hooks, coverage, todos, quick, tests, ci)
