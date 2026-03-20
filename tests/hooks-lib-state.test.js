@@ -482,14 +482,14 @@ describe('statePatch', () => {
     expect(result.error).toBe('Invalid JSON');
   });
 
-  it('reports unknown fields in errors array', () => {
+  it('reports unknown fields in error string', () => {
     setupTmp();
     writeStateV2();
     const json = JSON.stringify({ status: 'built', bad_field: 'x' });
     const result = statePatch(json, planningDir);
     expect(result.success).toBe(false);
-    expect(result.errors).toContain('Unknown field: bad_field');
-    expect(result.updated).toContain('status');
+    // Canonical returns a single error string, not an array
+    expect(result.error).toContain('bad_field');
   });
 
   it('returns error for missing STATE.md', () => {

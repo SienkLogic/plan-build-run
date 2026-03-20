@@ -142,13 +142,12 @@ describe('configLoad', () => {
     expect(configLoad(planningDir)).toBeNull();
   });
 
-  it('returns parsed object with defaults merged for valid config', () => {
+  it('returns parsed object for valid config', () => {
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'quick' }));
     const result = configLoad(planningDir);
     expect(result).not.toBeNull();
     expect(result.depth).toBe('quick');
-    // Defaults filled in
-    expect(result.version).toBe(CONFIG_DEFAULTS.version);
+    // Canonical configLoad does NOT merge defaults — it returns raw parsed JSON
   });
 
   it('returns null for malformed JSON', () => {
@@ -217,8 +216,8 @@ describe('configValidate', () => {
   // The schema file is at hooks/config-schema.json — we need it to exist.
 
   it('valid config returns valid: true with no errors/warnings (using current schema_version)', () => {
-    // Use a minimal valid config with schema_version matching CURRENT_SCHEMA_VERSION (1)
-    const cfg = { schema_version: 1, version: 2, mode: 'interactive', depth: 'standard' };
+    // Use a minimal valid config with schema_version matching CURRENT_SCHEMA_VERSION (3)
+    const cfg = { schema_version: 3, version: 2, mode: 'interactive', depth: 'standard' };
     const result = configValidate(cfg);
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
@@ -251,13 +250,13 @@ describe('configValidate', () => {
   });
 
   it('preloaded config object works (bypasses disk read for config)', () => {
-    const result = configValidate({ schema_version: 1, version: 2 });
+    const result = configValidate({ schema_version: 3, version: 2 });
     expect(result.valid).toBe(true);
   });
 
   it('strips _guide_* and _comment_* keys before validation', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       _guide_meta: ['some guide text'],
       features: { _comment_foo: 'bar', structured_planning: true },
@@ -267,33 +266,34 @@ describe('configValidate', () => {
     expect(result.valid).toBe(true);
   });
 
-  it('future schema_version produces warning', () => {
+  it('future schema_version produces validation error', () => {
     const cfg = { schema_version: 999, version: 2 };
     const result = configValidate(cfg);
-    expect(result.warnings).toEqual(expect.arrayContaining([
-      expect.stringContaining('newer than this PBR version supports'),
+    // Canonical: schema validates enum [1,2,3], so 999 is an error not a warning
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(expect.arrayContaining([
+      expect.stringContaining('schema_version'),
     ]));
   });
 
-  it('missing schema_version produces migration warning', () => {
+  it('missing schema_version produces no migration warning (undefined is skipped)', () => {
     const cfg = { version: 2 };
     const result = configValidate(cfg);
-    expect(result.warnings).toEqual(expect.arrayContaining([
-      expect.stringContaining('outdated'),
-    ]));
+    // Canonical: missing schema_version (undefined) skips the migration check
+    expect(result.valid).toBe(true);
   });
 
   it('old schema_version produces migration warning', () => {
     const cfg = { schema_version: 0, version: 2 };
     const result = configValidate(cfg);
     expect(result.warnings).toEqual(expect.arrayContaining([
-      expect.stringContaining('outdated'),
+      expect.stringContaining('behind current'),
     ]));
   });
 
   it('mode=autonomous with active gates produces error', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       mode: 'autonomous',
       gates: { confirm_plan: true },
@@ -307,7 +307,7 @@ describe('configValidate', () => {
 
   it('auto_continue=true with interactive mode produces warning', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       mode: 'interactive',
       features: { auto_continue: true },
@@ -320,7 +320,7 @@ describe('configValidate', () => {
 
   it('parallelization.enabled=false with plan_level=true produces warning', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       parallelization: { enabled: false, plan_level: true },
     };
@@ -335,7 +335,7 @@ describe('configValidate', () => {
 
   it('local_llm.enabled=true produces deprecation warning', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       local_llm: { enabled: true },
     };
@@ -347,7 +347,7 @@ describe('configValidate', () => {
 
   it('local_llm.enabled=false produces no deprecation warning', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       local_llm: { enabled: false },
     };
@@ -358,7 +358,7 @@ describe('configValidate', () => {
 
   it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', () => {
     const cfg = {
-      schema_version: 1,
+      schema_version: 3,
       version: 2,
       parallelization: { max_concurrent_agents: 1 },
       teams: { coordination: 'file-based' },
@@ -669,8 +669,8 @@ describe('CONFIG_SECTIONS', () => {
 // 13. USER_DEFAULTS_PATH
 // ---------------------------------------------------------------------------
 describe('USER_DEFAULTS_PATH', () => {
-  it('is a string path ending with pbr-defaults.json', () => {
+  it('is a string path ending with defaults.json', () => {
     expect(typeof USER_DEFAULTS_PATH).toBe('string');
-    expect(USER_DEFAULTS_PATH.endsWith('pbr-defaults.json')).toBe(true);
+    expect(USER_DEFAULTS_PATH.endsWith('defaults.json')).toBe(true);
   });
 });

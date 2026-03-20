@@ -210,7 +210,7 @@ describe('hook-server.js exports', () => {
     expect(DEFAULT_PORT).toBe(19836);
   });
 
-  test('appendEvent writes JSONL line to daily hooks log', () => {
+  test('appendEvent writes JSONL line to .hook-events.jsonl', () => {
     const savedCwd = process.cwd();
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-append-test-'));
     const planningDir = path.join(tmpDir, '.planning');
@@ -220,7 +220,8 @@ describe('hook-server.js exports', () => {
 
     appendEvent(planningDir, { ts: '2026-01-01T00:00:00Z', event: 'test' });
 
-    const logPath = path.join(planningDir, 'logs', getHooksFilename());
+    // Canonical appendEvent writes to .hook-events.jsonl, not the daily hooks log
+    const logPath = path.join(planningDir, '.hook-events.jsonl');
     expect(fs.existsSync(logPath)).toBe(true);
     const line = fs.readFileSync(logPath, 'utf8').trim();
     const parsed = JSON.parse(line);
@@ -542,9 +543,9 @@ describe('hook-server.js exports', () => {
         res.on('data', c => { _data += c; });
         res.on('end', () => {
           expect(res.statusCode).toBe(200);
-          // Verify the log file was written with the file entry
+          // Verify the event was logged to .hook-events.jsonl with file field
           setTimeout(() => {
-            const logPath = path.join(planningDir, 'logs', getHooksFilename());
+            const logPath = path.join(planningDir, '.hook-events.jsonl');
             if (fs.existsSync(logPath)) {
               const logContent = fs.readFileSync(logPath, 'utf8');
               expect(logContent).toContain('important.md');

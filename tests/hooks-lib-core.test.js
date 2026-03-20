@@ -46,22 +46,26 @@ const {
 
 let mockExit;
 let mockStdout;
+let mockStderr;
 
 beforeAll(() => {
   mockExit = jest.spyOn(process, 'exit').mockImplementation((code) => {
     throw new Error(`process.exit(${code})`);
   });
   mockStdout = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+  mockStderr = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
 });
 
 afterAll(() => {
   mockExit.mockRestore();
   mockStdout.mockRestore();
+  mockStderr.mockRestore();
 });
 
 beforeEach(() => {
   mockExit.mockClear();
   mockStdout.mockClear();
+  mockStderr.mockClear();
 });
 
 // ===========================================================================
@@ -148,10 +152,11 @@ describe('Output helpers', () => {
     try { fs.unlinkSync(tmpPath); } catch (_e) { /* ok */ }
   });
 
-  test('error(msg) writes JSON error to stdout and exits 1', () => {
+  test('error(msg) writes to stderr and exits 1', () => {
     expect(() => error('something broke')).toThrow('process.exit(1)');
-    expect(mockStdout).toHaveBeenCalledWith(
-      JSON.stringify({ error: 'something broke' })
+    // Canonical error() writes to stderr, not stdout
+    expect(mockStderr).toHaveBeenCalledWith(
+      'Error: something broke\n'
     );
     expect(mockExit).toHaveBeenCalledWith(1);
   });
@@ -474,18 +479,19 @@ describe('Atomic File Operations', () => {
     expect(result.content).toBe('updated');
   });
 
-  test('lockedFileUpdate: returns error when lock cannot be acquired', () => {
+  test('lockedFileUpdate: falls through to write without lock when lock is held', () => {
     const filePath = path.join(tmpDir, 'contested.md');
     fs.writeFileSync(filePath, 'data');
     const lockPath = filePath + '.lock';
     // Create a fresh lock (not stale)
     fs.writeFileSync(lockPath, '99999');
 
-    const result = lockedFileUpdate(filePath, () => 'nope', {
+    // Canonical behavior: falls through to last-resort write without lock
+    const result = lockedFileUpdate(filePath, () => 'updated', {
       retries: 2, retryDelayMs: 10, timeoutMs: 60000
     });
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/Could not acquire lock/);
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toBe('updated');
     // Clean up the lock for afterEach
     try { fs.unlinkSync(lockPath); } catch (_e) { /* ok */ }
   });

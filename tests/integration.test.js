@@ -624,11 +624,12 @@ describe('roadmap update-plans', () => {
 // Group 7: Event logger integration
 // ---------------------------------------------------------------------------
 describe('event logger integration', () => {
-  test('logEvent writes to .planning/logs/events.jsonl', () => {
+  test('logEvent writes to dated events log file', () => {
     jest.resetModules();
-    const { logEvent } = require('../plugins/pbr/scripts/event-logger');
+    const { logEvent, getLogFilename } = require('../plugins/pbr/scripts/event-logger');
     logEvent('workflow', 'test-event', { phase: 1 });
-    const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');
+    // Canonical event-logger writes to events-YYYY-MM-DD.jsonl (dated files)
+    const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', getLogFilename());
     expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const entry = JSON.parse(lines[lines.length - 1]);
@@ -642,7 +643,9 @@ describe('event logger integration', () => {
       `node "${PBR_TOOLS}" event workflow cli-test "${detailsJson}"`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
     );
+    // Legacy pbr-tools.cjs writes to events.jsonl (not dated files)
     const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');
+    expect(fs.existsSync(logPath)).toBe(true);
     const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
     const lastEntry = JSON.parse(lines[lines.length - 1]);
     expect(lastEntry.cat).toBe('workflow');

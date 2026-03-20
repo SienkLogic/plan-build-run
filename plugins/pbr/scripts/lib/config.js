@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { safeReadFile, atomicWrite, ensureDir, validateObject } = require('./core');
+const { safeReadFile, atomicWrite, ensureDir, validateObject, lockedFileUpdate } = require('./core');
 
 // ─── Cached config loader ─────────────────────────────────────────────────────
 

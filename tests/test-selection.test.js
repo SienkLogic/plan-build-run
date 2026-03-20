@@ -10,10 +10,10 @@ describe('getImpactScope', () => {
   test('categorizes changed files correctly', () => {
     const files = [
       'hooks/validate-commit.js',
-      'plan-build-run/bin/lib/config.cjs',
-      'plan-build-run/skills/build/SKILL.md',
+      'plugins/pbr/scripts/lib/config.js',
+      'plugins/pbr/skills/build/SKILL.md',
       'agents/executor.md',
-      'plan-build-run/bin/config-schema.json',
+      'plugins/pbr/scripts/config-schema.json',
     ];
     const scope = getImpactScope(files);
     expect(scope).toHaveProperty('hooks');
@@ -22,7 +22,7 @@ describe('getImpactScope', () => {
     expect(scope).toHaveProperty('agents');
     expect(scope).toHaveProperty('configChanged');
     expect(scope.hooks).toContain('hooks/validate-commit.js');
-    expect(scope.lib).toContain('plan-build-run/bin/lib/config.cjs');
+    expect(scope.lib).toContain('plugins/pbr/scripts/lib/config.js');
     expect(scope.configChanged).toBe(true);
   });
 
@@ -42,6 +42,7 @@ describe('selectTests', () => {
     fs.mkdirSync(path.join(tmpDir, 'tests'), { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'tests', 'validate-commit.test.js'), '');
     fs.writeFileSync(path.join(tmpDir, 'tests', 'config.test.js'), '');
+    fs.writeFileSync(path.join(tmpDir, 'tests', 'test-selection.test.js'), '');
   });
 
   afterEach(() => {
@@ -64,13 +65,14 @@ describe('selectTests', () => {
 
   test('maps lib files to test files', () => {
     const config = { features: { regression_prevention: true } };
-    const result = selectTests(['plan-build-run/bin/lib/config.cjs'], config, tmpDir);
-    expect(result.some(f => f.includes('config.test.js'))).toBe(true);
+    // Canonical uses plugins/pbr/scripts/lib/ paths, not plan-build-run/bin/lib/
+    const result = selectTests(['plugins/pbr/scripts/lib/test-selection.js'], config, tmpDir);
+    expect(result.some(f => f.includes('test-selection.test.js'))).toBe(true);
   });
 
   test('includes --all when config file changed', () => {
     const config = { features: { regression_prevention: true } };
-    const result = selectTests(['plan-build-run/bin/config-schema.json'], config, tmpDir);
+    const result = selectTests(['plugins/pbr/scripts/config-schema.json'], config, tmpDir);
     expect(result).toContain('--all');
   });
 

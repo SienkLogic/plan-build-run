@@ -12,9 +12,9 @@ const path = require('path');
  * @private
  */
 const FEATURE_MODULE_MAP = {
-  agent_teams: './team-coordinator.cjs',
-  competing_hypotheses: './hypothesis-runner.cjs',
-  dynamic_teams: './team-composer.cjs'
+  agent_teams: './team-coordinator.js',
+  competing_hypotheses: './hypothesis-runner.js',
+  dynamic_teams: './team-composer.js'
 };
 
 /**
