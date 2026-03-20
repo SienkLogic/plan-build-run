@@ -193,6 +193,8 @@ Additionally for this skill:
 - Read UI-REVIEW.md output for score presentation, extract only the scoring table and key findings
 - Keep follow-up suggestions concise -- one `/pbr:do` command per dimension
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit UI-REVIEW.md.
+
 ## Anti-Patterns
 
 1. DO NOT analyze the UI implementation yourself -- the ui-checker agent does this
