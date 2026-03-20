@@ -176,7 +176,7 @@ function output(data, raw, rawValue) {
     process.stdout.write(String(rawValue));
   } else {
     const json = JSON.stringify(data, null, 2);
-    if (json.length > 50000) {
+    if (json.length > 8192) {
       const tmpPath = path.join(os.tmpdir(), `pbr-${Date.now()}.json`);
       fs.writeFileSync(tmpPath, json, 'utf8');
       process.stdout.write('@file:' + tmpPath + '\n');
