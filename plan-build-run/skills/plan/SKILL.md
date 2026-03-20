@@ -302,6 +302,8 @@ Display to the user: `◆ Spawning researcher...`
 
 Display: `◆ Spawning researcher + pre-planner briefing in parallel (1M context)...`
 
+**Individual Agent Calls:** Each parallel spawn (researcher, pre-planner briefing) MUST be a separate Task() tool call in a single response message. Do NOT combine or describe them in prose. Each separate Task() call gets its own colored badge in the Claude Code UI.
+
 If `context_window_tokens` < 500000, maintain the existing sequential flow: researcher first, then pre-planner briefing.
 
 Spawn a researcher Task():

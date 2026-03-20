@@ -220,6 +220,7 @@ Important constraints:
 - Do NOT speculate on phases that already have plans.
 - Respect max_concurrent_agents: count the build executor as 1 agent. Speculative planners share the remaining budget.
 - After dispatching speculative Task()s, do NOT write .active-skill — the orchestrator already owns it for the active Phase {N} build. The speculative planner receives --speculative and will skip signal file writes.
+- **Individual Agent Calls:** Each speculative planner MUST be dispatched as a separate Task() tool call. Do NOT describe multiple spawns in prose (e.g., "launched 3 planners"). Each separate Task() call gets its own colored badge and independent status tracking in the Claude Code UI. Multiple Task() calls in one message still run concurrently.
 
 ### 3c-stale. Staleness Check (after build completes)
 

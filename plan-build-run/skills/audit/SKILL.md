@@ -493,8 +493,9 @@ Additionally for this skill:
 1. **DO NOT** read JSONL files in main context — always delegate to audit agents
 2. **DO NOT** display the full report inline — write to disk, show summary
 3. **DO NOT** analyze sessions sequentially — spawn all agents in parallel
-4. **DO NOT** report findings without evidence (line numbers, timestamps, quotes)
-5. **DO NOT** judge explore sessions for missing STATE.md updates (explore is read-only)
-6. **DO NOT** flag release-please/merge commits as format violations
-7. **DO NOT** fabricate UX ratings — base them on concrete evidence (user repetitions, escalations, course-corrections)
-8. **DO NOT** exceed 5 headline findings in the inline summary — full details go in the report file
+4. **DO NOT** describe multiple agent spawns in prose (e.g., "launched 5 audit agents") — each session audit agent and the git analysis agent MUST be a separate Task() tool call in a single response message. Each separate call gets its own colored badge and independent ctrl+o expansion in the Claude Code UI. Multiple Task() calls in one message still run concurrently.
+5. **DO NOT** report findings without evidence (line numbers, timestamps, quotes)
+6. **DO NOT** judge explore sessions for missing STATE.md updates (explore is read-only)
+7. **DO NOT** flag release-please/merge commits as format violations
+8. **DO NOT** fabricate UX ratings — base them on concrete evidence (user repetitions, escalations, course-corrections)
+9. **DO NOT** exceed 5 headline findings in the inline summary — full details go in the report file

@@ -507,6 +507,7 @@ Include the resolved absolute path in the researcher prompt (resolve `${CLAUDE_P
 **Parallelization:**
 - Spawn ALL researchers in parallel (multiple Task() calls in one response)
 - Use `run_in_background: true` for each researcher
+- **Individual Agent Calls:** Each researcher MUST be a separate Task() tool call in a single response message. Do NOT describe the batch in prose (e.g., "4 researchers launched"). Each separate Task() call gets its own colored badge and independent ctrl+o expansion in the Claude Code UI. Multiple Task() calls in one message still run concurrently — no parallelism is lost.
 - Before spawning, display to the user: `◆ Spawning {N} researchers in parallel...`
 - While waiting, display progress to the user:
   - After spawning: list of topics being researched

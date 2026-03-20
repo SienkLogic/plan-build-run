@@ -610,6 +610,7 @@ Use the filled template as the Task() prompt.
   - **Extended context override:** If `features.extended_context` is `true` in `.planning/config.json`, use `max_concurrent_agents = 5` regardless of the configured value (unless the configured value is already higher). The 1M context window gives the orchestrator enough headroom to track 5 concurrent executor results. Log: "Extended context: raising max_concurrent_agents to 5"
   - Spawn up to `max_concurrent_agents` Task() calls in parallel
   - Each Task() call is independent
+  - **CRITICAL: Individual Agent Calls** — Each executor MUST be a separate Task() tool call in a single response message. Do NOT describe the batch in prose (e.g., "5 executors launched"). Each separate Task() call gets its own colored badge and independent ctrl+o expansion in the Claude Code UI. Multiple Task() calls in one message still run concurrently — no parallelism is lost.
   - Use `run_in_background: true` for each executor
   - While waiting, display progress to the user:
     - After spawning: "Wave {W}: launched {N} executors in parallel: {list of plan names}"
