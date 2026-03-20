@@ -1,54 +1,18 @@
 /**
- * lib/init.cjs — Compound init commands for Plan-Build-Run tools.
+ * lib/init.js — Compound init commands for Plan-Build-Run tools.
  *
  * These aggregate state from multiple sources into single JSON payloads
  * for skill initialization. Each init function returns everything a skill
  * needs to start work without additional file reads.
- *
- * Hybrid module merging PBR reference features with GSD-unique init commands.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { stateLoad, stateCheckProgress } = require('./state.cjs');
-const { configLoad, configResolveDepth } = require('./config.cjs');
-const { phaseInfo, phasePlanIndex } = require('./phase.cjs');
-const { resolveSessionPath } = require('./core.cjs');
-const { suggestNext } = require('./suggest-next.cjs');
-
-/**
- * Detect drift between STATE.md and filesystem-derived progress.
- * Compares plans_complete and progress_percent.
- *
- * @param {string} planningDir - Path to .planning directory
- * @returns {{ drift_detected: boolean, stale_fields: string[] }}
- */
-function detectDrift(planningDir) {
-  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
-  try {
-    const progress = stateCheckProgress(dir);
-    const state = stateLoad(dir);
-    const stale_fields = [];
-
-    if (state.exists && state.state) {
-      const stPlansComplete = Number(state.state.plans_complete || 0);
-      const fsPlansComplete = progress.completed_plans;
-      if (stPlansComplete !== fsPlansComplete) {
-        stale_fields.push('plans_complete');
-      }
-
-      const stProgress = Number(state.state.progress || 0);
-      const fsProgress = progress.percentage;
-      if (stProgress !== fsProgress) {
-        stale_fields.push('progress_percent');
-      }
-    }
-
-    return { drift_detected: stale_fields.length > 0, stale_fields };
-  } catch (_e) {
-    return { drift_detected: false, stale_fields: [] };
-  }
-}
+const { stateLoad, stateCheckProgress } = require('./state');
+const { configLoad, resolveDepthProfile } = require('./config');
+const { phaseInfo, planIndex } = require('./phase');
+const { resolveSessionPath } = require('./core');
+const { suggestNext } = require('./suggest-next');
 
 /**
  * Initialize context for executing a phase (building plans).
@@ -63,9 +27,9 @@ function initExecutePhase(phaseNum, planningDir, overrideModel) {
   if (!state.exists) return { error: "No .planning/ directory found" };
   const phase = phaseInfo(phaseNum, dir);
   if (phase.error) return { error: phase.error };
-  const plans = phasePlanIndex(phaseNum, dir);
+  const plans = planIndex(phaseNum, dir);
   const config = configLoad(dir) || {};
-  const depthProfile = configResolveDepth(dir);
+  const depthProfile = resolveDepthProfile(config);
   const models = config.models || {};
   let gitState = { branch: null, clean: null };
   try {
@@ -77,12 +41,11 @@ function initExecutePhase(phaseNum, planningDir, overrideModel) {
   return {
     executor_model: overrideModel || models.executor || "sonnet",
     verifier_model: overrideModel || models.verifier || "sonnet",
-    config: { depth: depthProfile.depth || 'standard', mode: config.mode || "interactive", parallelization: config.parallelization || { enabled: false }, planning: config.planning || {}, gates: config.gates || {}, features: config.features || {} },
+    config: { depth: depthProfile.depth, mode: config.mode || "interactive", parallelization: config.parallelization || { enabled: false }, planning: config.planning || {}, gates: config.gates || {}, features: config.features || {} },
     phase: { num: phaseNum, dir: phase.phase, name: phase.name, goal: phase.goal, has_context: phase.has_context, status: phase.filesystem_status, plan_count: phase.plan_count, completed: phase.completed },
     plans: (plans.plans || []).map(p => ({ file: p.file, plan_id: p.plan_id, wave: p.wave, autonomous: p.autonomous, has_summary: p.has_summary, must_haves_count: p.must_haves_count, depends_on: p.depends_on })),
     waves: plans.waves || {},
-    branch_name: gitState.branch, git_clean: gitState.clean,
-    drift: detectDrift(dir)
+    branch_name: gitState.branch, git_clean: gitState.clean
   };
 }
 
@@ -99,7 +62,7 @@ function initPlanPhase(phaseNum, planningDir, overrideModel) {
   if (!state.exists) return { error: "No .planning/ directory found" };
   const config = configLoad(dir) || {};
   const models = config.models || {};
-  const depthProfile = configResolveDepth(dir);
+  const depthProfile = resolveDepthProfile(config);
   const phasesDir = path.join(dir, "phases");
   const paddedPhase = String(phaseNum).padStart(2, "0");
   let existingArtifacts = [], phaseDirName = null;
@@ -114,11 +77,10 @@ function initPlanPhase(phaseNum, planningDir, overrideModel) {
   }
   return {
     researcher_model: overrideModel || models.researcher || "sonnet", planner_model: overrideModel || models.planner || "sonnet", checker_model: overrideModel || models.planner || "sonnet",
-    config: { depth: depthProfile.depth || 'standard', profile: depthProfile.profile || 'balanced', features: config.features || {}, planning: config.planning || {} },
+    config: { depth: depthProfile.depth, profile: depthProfile.profile, features: config.features || {}, planning: config.planning || {} },
     phase: { num: phaseNum, dir: phaseDirName, goal: phaseGoal, depends_on: phaseDeps },
     existing_artifacts: existingArtifacts,
-    workflow: { research_phase: (config.features || {}).research_phase !== false, plan_checking: (config.features || {}).plan_checking !== false },
-    drift: detectDrift(dir)
+    workflow: { research_phase: (config.features || {}).research_phase !== false, plan_checking: (config.features || {}).plan_checking !== false }
   };
 }
 
@@ -190,33 +152,7 @@ function initResume(planningDir, sessionId) {
   try { autoNext = fs.readFileSync(autoNextPath, "utf8").trim(); } catch (_e) { /* file not found */ }
   try { continueHere = fs.readFileSync(path.join(dir, ".continue-here"), "utf8").trim(); } catch (_e) { /* file not found */ }
   try { activeSkill = fs.readFileSync(activeSkillPath, "utf8").trim(); } catch (_e) { /* file not found */ }
-
-  // Drift detection and auto-repair
-  const drift = detectDrift(dir);
-  let rederived = false;
-  let corrections = [];
-  let rederive_error = undefined;
-
-  if (drift.drift_detected) {
-    try {
-      const { stateRederive } = require('./state.cjs');
-      const rederiveResult = stateRederive(dir);
-      if (rederiveResult.success) {
-        rederived = true;
-        corrections = rederiveResult.corrected || [];
-      } else {
-        rederive_error = rederiveResult.error || 'stateRederive returned failure';
-      }
-    } catch (e) {
-      rederived = false;
-      corrections = [];
-      rederive_error = e.message;
-    }
-  }
-
-  const result = { state: state.state, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, current_phase: state.current_phase, progress: state.progress, drift, rederived, corrections };
-  if (rederive_error) result.rederive_error = rederive_error;
-  return result;
+  return { state: state.state, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, current_phase: state.current_phase, progress: state.progress };
 }
 
 /**
@@ -229,7 +165,7 @@ function initProgress(planningDir) {
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
   const progress = stateCheckProgress(dir);
-  return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage, drift: detectDrift(dir) };
+  return { current_phase: state.current_phase, total_phases: state.phase_count, status: state.state ? state.state.status : null, phases: progress.phases, total_plans: progress.total_plans, completed_plans: progress.completed_plans, percentage: progress.percentage };
 }
 
 /**
@@ -241,7 +177,7 @@ function initProgress(planningDir) {
  */
 function initStateBundle(phaseNum, planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
-  const { parseYamlFrontmatter } = require('./core.cjs');
+  const { parseYamlFrontmatter } = require('./core');
 
   // 1. State
   const stateResult = stateLoad(dir);
@@ -258,10 +194,10 @@ function initStateBundle(phaseNum, planningDir) {
 
   // 2. Config summary
   const config = configLoad(dir) || {};
-  const depthProfile = configResolveDepth(dir);
+  const depthProfile = resolveDepthProfile(config);
   const models = config.models || {};
   const config_summary = {
-    depth: depthProfile.depth || 'standard',
+    depth: depthProfile.depth,
     mode: config.mode || 'interactive',
     parallelization: config.parallelization || { enabled: false },
     gates: config.gates || {},
@@ -284,7 +220,7 @@ function initStateBundle(phaseNum, planningDir) {
   };
 
   // 4. Plans
-  const plansResult = phasePlanIndex(phaseNum, dir);
+  const plansResult = planIndex(phaseNum, dir);
   const plans = (plansResult.plans || []).map(p => ({
     file: p.file,
     plan_id: p.plan_id,
@@ -296,7 +232,7 @@ function initStateBundle(phaseNum, planningDir) {
   }));
   const waves = plansResult.waves || {};
 
-  // 5. Prior summaries -- scan all phase directories for SUMMARY*.md, extract frontmatter only
+  // 5. Prior summaries — scan all phase directories for SUMMARY*.md, extract frontmatter only
   const prior_summaries = [];
   const phasesDir = path.join(dir, 'phases');
   if (fs.existsSync(phasesDir)) {
@@ -356,170 +292,85 @@ function initStateBundle(phaseNum, planningDir) {
   };
 }
 
-/**
- * Initialize context for the continue workflow.
- *
- * @param {string} [planningDir] - Path to .planning directory
- */
 function initContinue(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
   const config = configLoad(dir) || {};
-
   let autoNext = null, continueHere = null, activeSkill = null;
   try { autoNext = fs.readFileSync(path.join(dir, '.auto-next'), 'utf8').trim(); } catch (_e) { /* missing */ }
   try { continueHere = fs.readFileSync(path.join(dir, '.continue-here'), 'utf8').trim(); } catch (_e) { /* missing */ }
   try { activeSkill = fs.readFileSync(path.join(dir, '.active-skill'), 'utf8').trim(); } catch (_e) { /* missing */ }
-
   const routing = suggestNext(dir);
   const drift = detectDrift(dir);
-
   let currentPhase = null;
   if (state.current_phase) {
     try {
       const pi = phaseInfo(state.current_phase, dir);
-      if (!pi.error) {
-        currentPhase = { num: pi.num || state.current_phase, dir: pi.phase, name: pi.name, goal: pi.goal, status: pi.filesystem_status, plan_count: pi.plan_count, completed: pi.completed };
-      }
+      if (!pi.error) currentPhase = { num: pi.num || state.current_phase, dir: pi.phase, name: pi.name, goal: pi.goal, status: pi.filesystem_status, plan_count: pi.plan_count, completed: pi.completed };
     } catch (_e) { /* phase not found */ }
   }
-
   return {
     state: state.state,
     config: { mode: config.mode || 'interactive', features: config.features || {}, gates: config.gates || {}, parallelization: config.parallelization || { enabled: false }, workflow: config.workflow || {} },
-    current_phase: currentPhase,
-    auto_next: autoNext,
-    continue_here: continueHere,
-    active_skill: activeSkill,
-    routing,
-    drift
+    current_phase: currentPhase, auto_next: autoNext, continue_here: continueHere, active_skill: activeSkill, routing, drift
   };
 }
 
-/**
- * Initialize context for the milestone workflow.
- *
- * @param {string} [planningDir] - Path to .planning directory
- */
 function initMilestone(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
   if (!state.exists) return { error: "No .planning/ directory found" };
   const config = configLoad(dir) || {};
-
   let roadmapContent = null;
   try { roadmapContent = fs.readFileSync(path.join(dir, 'ROADMAP.md'), 'utf8'); } catch (_e) { /* missing */ }
-
   let hasProject = false;
   try { hasProject = fs.existsSync(path.join(dir, 'PROJECT.md')); } catch (_e) { /* */ }
-
   let existingArchives = [];
   const milestonesDir = path.join(dir, 'milestones');
   try {
     if (fs.existsSync(milestonesDir)) {
-      existingArchives = fs.readdirSync(milestonesDir).filter(d => {
-        try { return fs.statSync(path.join(milestonesDir, d)).isDirectory(); } catch (_e) { return false; }
-      });
+      existingArchives = fs.readdirSync(milestonesDir).filter(d => { try { return fs.statSync(path.join(milestonesDir, d)).isDirectory(); } catch (_e) { return false; } });
     }
   } catch (_e) { /* missing */ }
-
-  // Extract milestone sections from ROADMAP.md
   const milestones = [];
   if (roadmapContent) {
     const lines = roadmapContent.replace(/\r\n/g, '\n').split('\n');
     let currentMs = null;
     for (const line of lines) {
       const msMatch = line.match(/^##\s+Milestone[:\s]+(.+)/i);
-      if (msMatch) {
-        if (currentMs) milestones.push(currentMs);
-        currentMs = { name: msMatch[1].trim(), phases_range: null };
-        continue;
-      }
+      if (msMatch) { if (currentMs) milestones.push(currentMs); currentMs = { name: msMatch[1].trim(), phases_range: null }; continue; }
       if (currentMs) {
         const phaseMatch = line.match(/###\s+Phase\s+(\d+)/i) || line.match(/^\|\s*(\d+)\.\s/) || line.match(/^-\s*\[.\]\s*(?:Phase\s+)?(\d+)/i);
-        if (phaseMatch) {
-          const num = parseInt(phaseMatch[1], 10);
-          if (!currentMs._min || num < currentMs._min) currentMs._min = num;
-          if (!currentMs._max || num > currentMs._max) currentMs._max = num;
-        }
+        if (phaseMatch) { const num = parseInt(phaseMatch[1], 10); if (!currentMs._min || num < currentMs._min) currentMs._min = num; if (!currentMs._max || num > currentMs._max) currentMs._max = num; }
       }
     }
     if (currentMs) milestones.push(currentMs);
-    for (const ms of milestones) {
-      if (ms._min != null && ms._max != null) {
-        ms.phases_range = `${ms._min}-${ms._max}`;
-      }
-      delete ms._min;
-      delete ms._max;
-    }
+    for (const ms of milestones) { if (ms._min != null && ms._max != null) ms.phases_range = `${ms._min}-${ms._max}`; delete ms._min; delete ms._max; }
   }
-
   const st = state.state || {};
-  return {
-    state: {
-      current_phase: state.current_phase,
-      status: st.status || null,
-      last_milestone_version: st.last_milestone_version || null,
-      last_milestone_completed: st.last_milestone_completed || null
-    },
-    config: { mode: config.mode || 'interactive', planning: config.planning || {}, git: config.git || {} },
-    milestones,
-    existing_archives: existingArchives,
-    has_roadmap: roadmapContent !== null,
-    has_project: hasProject,
-    phase_count: state.phase_count || 0
-  };
+  return { state: { current_phase: state.current_phase, status: st.status || null }, config: { mode: config.mode || 'interactive', planning: config.planning || {}, git: config.git || {} }, milestones, existing_archives: existingArchives, has_roadmap: roadmapContent !== null, has_project: hasProject, phase_count: state.phase_count || 0 };
 }
 
-/**
- * Initialize context for the begin workflow.
- *
- * @param {string} [planningDir] - Path to .planning directory
- */
 function initBegin(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const hasPlanning = fs.existsSync(dir);
-
   let state = null, config = null, existingPhases = 0;
   if (hasPlanning) {
     const stateResult = stateLoad(dir);
     if (stateResult.exists) state = stateResult.state;
     config = configLoad(dir) || null;
     const phasesDir = path.join(dir, 'phases');
-    try {
-      if (fs.existsSync(phasesDir)) {
-        existingPhases = fs.readdirSync(phasesDir, { withFileTypes: true }).filter(d => d.isDirectory()).length;
-      }
-    } catch (_e) { /* */ }
+    try { if (fs.existsSync(phasesDir)) existingPhases = fs.readdirSync(phasesDir, { withFileTypes: true }).filter(d => d.isDirectory()).length; } catch (_e) { /* */ }
   }
-
-  // Brownfield detection — check project root (parent of .planning)
   const projectRoot = path.dirname(dir);
   const indicators = ['package.json', 'requirements.txt', 'go.mod', 'Cargo.toml', 'CMakeLists.txt', 'src', 'lib', 'app'];
-  const brownfieldIndicators = indicators.filter(f => {
-    try { return fs.existsSync(path.join(projectRoot, f)); } catch (_e) { return false; }
-  });
-
+  const brownfieldIndicators = indicators.filter(f => { try { return fs.existsSync(path.join(projectRoot, f)); } catch (_e) { return false; } });
   let hasGit = false;
   try { hasGit = fs.existsSync(path.join(projectRoot, '.git')); } catch (_e) { /* */ }
-
-  return {
-    has_planning: hasPlanning,
-    has_existing_code: brownfieldIndicators.length > 0,
-    brownfield_indicators: brownfieldIndicators,
-    has_git: hasGit,
-    existing_phases: existingPhases,
-    state,
-    config
-  };
+  return { has_planning: hasPlanning, has_existing_code: brownfieldIndicators.length > 0, brownfield_indicators: brownfieldIndicators, has_git: hasGit, existing_phases: existingPhases, state, config };
 }
 
-/**
- * Initialize context for the status workflow.
- *
- * @param {string} [planningDir] - Path to .planning directory
- */
 function initStatus(planningDir) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const state = stateLoad(dir);
@@ -528,54 +379,16 @@ function initStatus(planningDir) {
   const progress = stateCheckProgress(dir);
   const routing = suggestNext(dir);
   const drift = detectDrift(dir);
-
-  // Count pending todos
-  let pendingTodos = 0;
-  const todosDir = path.join(dir, 'todos', 'pending');
-  try {
-    if (fs.existsSync(todosDir)) {
-      pendingTodos = fs.readdirSync(todosDir).filter(f => f.endsWith('.md')).length;
-    }
-  } catch (_e) { /* */ }
-
-  // Count notes
-  let notes = 0;
-  const notesDir = path.join(dir, 'notes');
-  try {
-    if (fs.existsSync(notesDir)) {
-      notes = fs.readdirSync(notesDir).filter(f => f.endsWith('.md')).length;
-    }
-  } catch (_e) { /* */ }
-
-  // Count active debug sessions
-  let activeDebug = 0;
-  const debugDir = path.join(dir, 'debug');
-  try {
-    if (fs.existsSync(debugDir)) {
-      activeDebug = fs.readdirSync(debugDir, { withFileTypes: true }).filter(d => d.isDirectory()).length;
-    }
-  } catch (_e) { /* */ }
-
-  // Check for paused work
-  let hasPausedWork = false;
+  let pendingTodos = 0, notes = 0, activeDebug = 0, hasPausedWork = false;
+  try { if (fs.existsSync(path.join(dir, 'todos', 'pending'))) pendingTodos = fs.readdirSync(path.join(dir, 'todos', 'pending')).filter(f => f.endsWith('.md')).length; } catch (_e) { /* */ }
+  try { if (fs.existsSync(path.join(dir, 'notes'))) notes = fs.readdirSync(path.join(dir, 'notes')).filter(f => f.endsWith('.md')).length; } catch (_e) { /* */ }
+  try { if (fs.existsSync(path.join(dir, 'debug'))) activeDebug = fs.readdirSync(path.join(dir, 'debug'), { withFileTypes: true }).filter(d => d.isDirectory()).length; } catch (_e) { /* */ }
   try { hasPausedWork = fs.existsSync(path.join(dir, '.continue-here')); } catch (_e) { /* */ }
-
   const st = state.state || {};
-  return {
-    state: st,
-    progress,
-    routing,
-    drift,
-    config: { mode: config.mode || 'interactive', features: config.features || {}, workflow: config.workflow || {} },
-    counts: { pending_todos: pendingTodos, notes, active_debug: activeDebug },
-    has_paused_work: hasPausedWork,
-    current_phase: state.current_phase,
-    phase_count: state.phase_count || 0
-  };
+  return { state: st, progress, routing, drift, config: { mode: config.mode || 'interactive', features: config.features || {}, workflow: config.workflow || {} }, counts: { pending_todos: pendingTodos, notes, active_debug: activeDebug }, has_paused_work: hasPausedWork, current_phase: state.current_phase, phase_count: state.phase_count || 0 };
 }
 
 module.exports = {
-  detectDrift,
   initExecutePhase,
   initPlanPhase,
   initQuick,

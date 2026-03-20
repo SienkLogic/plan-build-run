@@ -21,9 +21,9 @@ const path = require('path');
 
 let _state, _roadmap, _milestone;
 
-function getState() { if (!_state) _state = require('./state.cjs'); return _state; }
-function getRoadmap() { if (!_roadmap) _roadmap = require('./roadmap.cjs'); return _roadmap; }
-function getMilestone() { if (!_milestone) _milestone = require('./milestone.cjs'); return _milestone; }
+function getState() { if (!_state) _state = require('./state'); return _state; }
+function getRoadmap() { if (!_roadmap) _roadmap = require('./roadmap'); return _roadmap; }
+function getMilestone() { if (!_milestone) _milestone = require('./milestone'); return _milestone; }
 
 /**
  * Resolve the .planning directory from the given planningDir or env/cwd fallback.
