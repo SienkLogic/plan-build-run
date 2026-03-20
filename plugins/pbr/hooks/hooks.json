@@ -96,8 +96,8 @@
         "matcher": "Read|Glob|Grep",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" track-context-budget.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostToolUse/Read",
             "statusMessage": "◆ PBR: Tracking context usage..."
           }
         ]
@@ -106,8 +106,8 @@
         "matcher": "Write|Edit|Bash|Task",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\" context-bridge.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostToolUse/Write",
             "statusMessage": "◆ PBR: Monitoring context health..."
           }
         ]
