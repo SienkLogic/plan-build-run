@@ -99,7 +99,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 - **`plan-build-run/bin/`** — CLI tools (`pbr-tools.cjs` + `lib/` modules)
 - **`plan-build-run/references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`plan-build-run/templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
-- **`commands/pbr/`** — 59 command registration files (one `.md` per command mapping to its skill)
+- **`plugins/pbr/commands/`** — 63 command registration files (one `.md` per command mapping to its skill)
 - **`plan-build-run/skills/shared/`** — 12 shared skill fragments extracted from repeated patterns across skills
 - **`plugins/`** — Derivative plugins (codex-pbr, cursor-pbr, copilot-pbr)
 - **`dashboard/`** — Vite + React 18 dashboard with Express backend

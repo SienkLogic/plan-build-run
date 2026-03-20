@@ -7,9 +7,7 @@
   },
   "files": [
     "bin",
-    "commands",
     "plan-build-run",
-    "agents",
     "hooks/dist",
     "scripts",
     "dashboard",

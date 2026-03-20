@@ -12,8 +12,8 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const HOOKS_DIR = path.join(ROOT, 'hooks');
-const AGENTS_DIR = path.join(ROOT, 'agents');
-const COMMANDS_DIR = path.join(ROOT, 'commands', 'pbr');
+const AGENTS_DIR = path.join(ROOT, 'plugins', 'pbr', 'agents');
+const COMMANDS_DIR = path.join(ROOT, 'plugins', 'pbr', 'commands');
 
 describe('hooks.json validity', () => {
   let hooks;

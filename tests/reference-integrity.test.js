@@ -19,7 +19,7 @@ const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const SKILLS_DIR = path.join(PROJECT_ROOT, 'plan-build-run', 'skills');
-const AGENTS_DIR = path.join(PROJECT_ROOT, 'agents');
+const AGENTS_DIR = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'agents');
 
 /**
  * Extract file path references from markdown content.
@@ -294,7 +294,7 @@ describe('hooks.json Structure', () => {
 
 describe('Anti-Pattern Checks', () => {
   test('synthesizer agent has no model in frontmatter (config-only)', () => {
-    const synthPath = path.join(AGENTS_DIR, 'pbr-synthesizer.md');
+    const synthPath = path.join(AGENTS_DIR, 'synthesizer.md');
     const content = fs.readFileSync(synthPath, 'utf8');
     const frontmatter = content.split('---')[1];
     expect(frontmatter).not.toMatch(/model:\s*\w+/);
@@ -340,7 +340,7 @@ describe('Anti-Pattern Checks', () => {
   });
 
   test('no hardcoded year references in researcher agent', () => {
-    const researcherPath = path.join(AGENTS_DIR, 'pbr-researcher.md');
+    const researcherPath = path.join(AGENTS_DIR, 'researcher.md');
     const content = fs.readFileSync(researcherPath, 'utf8');
     // Should use dynamic date, not hardcoded years
     const yearPattern = /\b20(?:2[5-9]|[3-9]\d)\b/g;

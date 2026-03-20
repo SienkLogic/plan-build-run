@@ -34,10 +34,10 @@ describe('INTG-01: install.js PBR branding (no gsd path refs)', () => {
     expect(matches).toBeNull();
   });
 
-  test('install.js references commands/pbr directory', () => {
+  test('install.js references plugins/pbr/commands directory', () => {
     expect(installContent).toContain("'pbr'");
-    // Verify the path join pattern uses pbr
-    expect(installContent).toMatch(/commands['"],\s*['"]pbr['"]/);
+    // Verify the path join pattern uses plugins/pbr/commands
+    expect(installContent).toMatch(/plugins['"],\s*['"]pbr['"],\s*['"]commands['"]/);
   });
 
   test('install.js has PBR branding in banner text', () => {
@@ -96,9 +96,8 @@ describe('INTG-03: package.json publishable structure', () => {
 
   test('package.json files array includes core directories', () => {
     expect(pkg.files).toContain('bin');
-    expect(pkg.files).toContain('commands');
     expect(pkg.files).toContain('plan-build-run');
-    expect(pkg.files).toContain('agents');
+    expect(pkg.files).toContain('plugins/');
   });
 
   test('package.json has sync:generate script', () => {
@@ -155,13 +154,13 @@ describe('INTG-04: install.js integrity and test-mode exports', () => {
   });
 
   test('directory structure has expected agent count', () => {
-    const agentsDir = path.join(ROOT, 'agents');
+    const agentsDir = path.join(ROOT, 'plugins', 'pbr', 'agents');
     const agents = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'));
     expect(agents.length).toBe(17);
   });
 
   test('directory structure has expected commands count', () => {
-    const commandsDir = path.join(ROOT, 'commands', 'pbr');
+    const commandsDir = path.join(ROOT, 'plugins', 'pbr', 'commands');
     const commands = fs.readdirSync(commandsDir).filter(f => f.endsWith('.md'));
     expect(commands.length).toBe(63);
   });
@@ -200,8 +199,8 @@ describe('INTG-06: CLAUDE.md architecture documentation', () => {
     expect(claudeContent).toContain('pbr-tools');
   });
 
-  test('CLAUDE.md references commands/pbr/', () => {
-    expect(claudeContent).toContain('commands/pbr');
+  test('CLAUDE.md references plugins/pbr/commands/', () => {
+    expect(claudeContent).toContain('plugins/pbr/commands/');
   });
 
   test('CLAUDE.md references hooks/ directory', () => {

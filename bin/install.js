@@ -724,7 +724,7 @@ function installCodexConfig(targetDir, agentsSrc) {
   const agentsTomlDir = path.join(targetDir, 'agents');
   fs.mkdirSync(agentsTomlDir, { recursive: true });
 
-  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.startsWith('pbr-') && f.endsWith('.md'));
+  const agentEntries = fs.readdirSync(agentsSrc).filter(f => f.endsWith('.md'));
   const agents = [];
 
   // Compute the Codex pathPrefix for replacing .claude paths
@@ -2020,7 +2020,7 @@ function install(isGlobal, runtime = 'claude') {
     fs.mkdirSync(commandDir, { recursive: true });
     
     // Copy commands/pbr/*.md as command/pbr-*.md (flatten structure)
-    const pbrSrc = path.join(src, 'commands', 'pbr');
+    const pbrSrc = path.join(src, 'plugins', 'pbr', 'commands');
     copyFlattenedCommands(pbrSrc, commandDir, 'pbr', pathPrefix, runtime);
     if (verifyInstalled(commandDir, 'command/pbr-*')) {
       const count = fs.readdirSync(commandDir).filter(f => f.startsWith('pbr-')).length;
@@ -2030,7 +2030,7 @@ function install(isGlobal, runtime = 'claude') {
     }
   } else if (isCodex) {
     const skillsDir = path.join(targetDir, 'skills');
-    const pbrSrc = path.join(src, 'commands', 'pbr');
+    const pbrSrc = path.join(src, 'plugins', 'pbr', 'commands');
     copyCommandsAsCodexSkills(pbrSrc, skillsDir, 'pbr', pathPrefix, runtime);
     const installedSkillNames = listCodexSkillNames(skillsDir);
     if (installedSkillNames.length > 0) {
@@ -2043,7 +2043,7 @@ function install(isGlobal, runtime = 'claude') {
     const commandsDir = path.join(targetDir, 'commands');
     fs.mkdirSync(commandsDir, { recursive: true });
     
-    const pbrSrc = path.join(src, 'commands', 'pbr');
+    const pbrSrc = path.join(src, 'plugins', 'pbr', 'commands');
     const pbrDest = path.join(commandsDir, 'pbr');
     copyWithPathReplacement(pbrSrc, pbrDest, pathPrefix, runtime, true);
     if (verifyInstalled(pbrDest, 'commands/pbr')) {
@@ -2064,7 +2064,7 @@ function install(isGlobal, runtime = 'claude') {
   }
 
   // Copy agents to agents directory
-  const agentsSrc = path.join(src, 'agents');
+  const agentsSrc = path.join(src, 'plugins', 'pbr', 'agents');
   if (fs.existsSync(agentsSrc)) {
     const agentsDest = path.join(targetDir, 'agents');
     fs.mkdirSync(agentsDest, { recursive: true });

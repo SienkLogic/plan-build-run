@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const AGENTS_DIR = path.resolve(__dirname, '..', 'agents');
+const AGENTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'agents');
 const MAX_TOKENS = 8000;
 
 function estimateTokens(text) {

@@ -37,7 +37,7 @@ describe('model-selection', () => {
 
   describe('planner complexity attribute documentation', () => {
     const plannerContent = fs.readFileSync(
-      path.join(__dirname, '..', 'agents', 'pbr-planner.md'),
+      path.join(__dirname, '..', 'plugins', 'pbr', 'agents', 'planner.md'),
       'utf8'
     );
 

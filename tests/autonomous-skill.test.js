@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SKILL_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'autonomous', 'SKILL.md');
-const COMMAND_PATH = path.join(__dirname, '..', 'commands', 'pbr', 'autonomous.md');
+const COMMAND_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'commands', 'autonomous.md');
 const SYNC_PATH = path.join(__dirname, '..', 'plan-build-run', 'skills', 'autonomous', 'SKILL.md');
 
 describe('/pbr:autonomous skill', () => {

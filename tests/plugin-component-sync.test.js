@@ -32,13 +32,6 @@ function listCommands(dir) {
     .sort();
 }
 
-function listAgents(dir) {
-  return fs.readdirSync(dir)
-    .filter(f => f.endsWith('.md'))
-    .map(f => f.replace(/\.md$/, ''))
-    .sort();
-}
-
 /**
  * Extract the skill name a command file points to.
  * Commands contain "provided by the `pbr:{skill}` skill" in their body.
@@ -110,37 +103,12 @@ describe('Plugin component sync', () => {
     expect(invalid).toEqual([]);
   });
 
-  test('repo-root commands/pbr/ matches plugins/pbr/commands/', () => {
-    const rootCommands = listCommands(path.join(ROOT, 'commands', 'pbr'));
-    const pluginCommands = listCommands(path.join(PLUGIN, 'commands'));
-
-    const inRootOnly = rootCommands.filter(c => !pluginCommands.includes(c));
-    const inPluginOnly = pluginCommands.filter(c => !rootCommands.includes(c));
-
-    expect(inRootOnly).toEqual([]);
-    expect(inPluginOnly).toEqual([]);
-  });
-
   test('repo-root skills match plugins/pbr/skills/', () => {
     const rootSkills = listSkills(path.join(ROOT, 'plan-build-run', 'skills'));
     const pluginSkills = listSkills(path.join(PLUGIN, 'skills'));
 
     const inRootOnly = rootSkills.filter(s => !pluginSkills.includes(s));
     const inPluginOnly = pluginSkills.filter(s => !rootSkills.includes(s));
-
-    expect(inRootOnly).toEqual([]);
-    expect(inPluginOnly).toEqual([]);
-  });
-
-  test('repo-root agents match plugins/pbr/agents/', () => {
-    // Root uses pbr-{name}.md, plugin uses {name}.md
-    const rootAgents = listAgents(path.join(ROOT, 'agents'))
-      .filter(a => a.startsWith('pbr-'))
-      .map(a => a.replace(/^pbr-/, ''));
-    const pluginAgents = listAgents(path.join(PLUGIN, 'agents'));
-
-    const inRootOnly = rootAgents.filter(a => !pluginAgents.includes(a));
-    const inPluginOnly = pluginAgents.filter(a => !rootAgents.includes(a));
 
     expect(inRootOnly).toEqual([]);
     expect(inPluginOnly).toEqual([]);

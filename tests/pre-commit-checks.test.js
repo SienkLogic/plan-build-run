@@ -100,44 +100,9 @@ describe('checkMirrorSync', () => {
     expect(checkMirrorSync({})).toBeNull();
   });
 
-  test('returns null when both mirror sides are staged', () => {
-    execSync.mockReturnValue('commands/pbr/foo.md\nplugins/pbr/commands/foo.md\n');
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockReturnValue('same content');
-
-    expect(checkMirrorSync({})).toBeNull();
-  });
-
-  test('returns warning when only one side of mirror pair is staged with different content', () => {
-    execSync.mockReturnValue('commands/pbr/foo.md\n');
-    fs.existsSync.mockReturnValue(true);
-    fs.readFileSync.mockImplementation((filePath) => {
-      const normalized = filePath.replace(/\\/g, '/');
-      if (normalized.includes('commands/pbr/foo.md')) return 'content A';
-      if (normalized.includes('plugins/pbr/commands/foo.md')) return 'content B';
-      return '';
-    });
-
-    const result = checkMirrorSync({});
-    expect(result).not.toBeNull();
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toContain('Mirror drift');
-    expect(result.warnings[0]).toContain('foo.md');
-  });
-
-  test('returns null when files are outside mirror pairs', () => {
-    execSync.mockReturnValue('hooks/my-hook.js\nsrc/app.js\n');
-    expect(checkMirrorSync({})).toBeNull();
-  });
-
-  test('returns null when mirror counterpart does not exist on disk', () => {
-    execSync.mockReturnValue('commands/pbr/new-file.md\n');
-    fs.existsSync.mockImplementation((filePath) => {
-      const normalized = filePath.replace(/\\/g, '/');
-      if (normalized.includes('commands/pbr/new-file.md')) return true;
-      return false; // counterpart doesn't exist
-    });
-
+  test('returns null when no mirror pairs are configured', () => {
+    // MIRROR_PAIRS is empty after root commands/ removal
+    execSync.mockReturnValue('plugins/pbr/commands/foo.md\nhooks/my-hook.js\n');
     expect(checkMirrorSync({})).toBeNull();
   });
 });

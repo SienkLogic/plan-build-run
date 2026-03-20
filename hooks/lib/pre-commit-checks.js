@@ -103,7 +103,7 @@ function checkRequirePaths(_data) {
  * When a file in source dir is staged, its counterpart in mirror dir should also be staged.
  */
 const MIRROR_PAIRS = {
-  'commands/pbr/': 'plugins/pbr/commands/'
+  // Root commands/ directory removed — no mirror pairs needed
 };
 
 /**

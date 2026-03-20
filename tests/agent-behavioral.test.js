@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const AGENT_DIR = path.join(__dirname, '..', 'agents');
+const AGENT_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'agents');
 
 // Read all agent markdown files once
 const agentFiles = fs.readdirSync(AGENT_DIR).filter(f => f.endsWith('.md'));
@@ -18,8 +18,8 @@ const agentFiles = fs.readdirSync(AGENT_DIR).filter(f => f.endsWith('.md'));
 // Core agents — dev-sync is a utility agent excluded from universal tests
 // Also exclude nyquist-auditor and roadmapper (GSD-unique, format-aligned but not full PBR agents)
 const coreAgents = agentFiles.filter(f =>
-  f !== 'pbr-dev-sync.md' && f !== 'pbr-nyquist-auditor.md' && f !== 'pbr-roadmapper.md' &&
-  f !== 'pbr-intel-updater.md' && f !== 'pbr-ui-researcher.md' && f !== 'pbr-ui-checker.md'
+  f !== 'dev-sync.md' && f !== 'nyquist-auditor.md' && f !== 'roadmapper.md' &&
+  f !== 'intel-updater.md' && f !== 'ui-researcher.md' && f !== 'ui-checker.md'
 );
 
 // Helper: read agent content (cached)
@@ -102,7 +102,7 @@ describe('Universal agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Executor agent patterns', () => {
-  const content = readAgent('pbr-executor.md');
+  const content = readAgent('executor.md');
 
   test('has <deviation_rules> with 4+ rules', () => {
     expect(content).toMatch(/<deviation_rules>/);
@@ -162,7 +162,7 @@ describe('Executor agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Verifier agent patterns', () => {
-  const content = readAgent('pbr-verifier.md');
+  const content = readAgent('verifier.md');
 
   test('has <stub_detection_patterns>', () => {
     expect(content).toMatch(/<stub_detection_patterns>/);
@@ -207,7 +207,7 @@ describe('Verifier agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Planner agent patterns', () => {
-  const content = readAgent('pbr-planner.md');
+  const content = readAgent('planner.md');
 
   test('has task sizing guidance', () => {
     // Planner specifies "2-3 per plan" for task grouping
@@ -249,7 +249,7 @@ describe('Planner agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Plan-checker agent patterns', () => {
-  const content = readAgent('pbr-plan-checker.md');
+  const content = readAgent('plan-checker.md');
 
   test('has <critical_rules>', () => {
     expect(content).toMatch(/<critical_rules>/);
@@ -262,10 +262,10 @@ describe('Plan-checker agent patterns', () => {
     expect(content).toMatch(/INFO/);
   });
 
-  test('has 10 evaluation dimensions', () => {
-    // Plan checker evaluates across dimensions D1-D10
+  test('has 9 evaluation dimensions', () => {
+    // Plan checker evaluates across dimensions D1-D9
     expect(content).toMatch(/D1/);
-    expect(content).toMatch(/D10/);
+    expect(content).toMatch(/D9/);
   });
 
   test('completion markers include CHECK PASSED and ISSUES FOUND', () => {
@@ -279,7 +279,7 @@ describe('Plan-checker agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Debugger agent patterns', () => {
-  const content = readAgent('pbr-debugger.md');
+  const content = readAgent('debugger.md');
 
   test('has scientific method methodology', () => {
     expect(content).toMatch(/scientific method/i);
@@ -319,7 +319,7 @@ describe('Debugger agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Researcher agent patterns', () => {
-  const content = readAgent('pbr-researcher.md');
+  const content = readAgent('researcher.md');
 
   test('has 3 operating modes (project, phase, synthesis)', () => {
     expect(content).toMatch(/Mode 1.*Project/i);
@@ -354,7 +354,7 @@ describe('Researcher agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Synthesizer agent patterns', () => {
-  const content = readAgent('pbr-synthesizer.md');
+  const content = readAgent('synthesizer.md');
 
   test('has findings matrix step', () => {
     expect(content).toMatch(/Findings Matrix/i);
@@ -385,7 +385,7 @@ describe('Synthesizer agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Codebase-mapper agent patterns', () => {
-  const content = readAgent('pbr-codebase-mapper.md');
+  const content = readAgent('codebase-mapper.md');
 
   test('has 4 focus areas (tech, arch, quality, concerns)', () => {
     expect(content).toMatch(/\btech\b/);
@@ -418,7 +418,7 @@ describe('Codebase-mapper agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Integration-checker agent patterns', () => {
-  const content = readAgent('pbr-integration-checker.md');
+  const content = readAgent('integration-checker.md');
 
   test('completion markers include INTEGRATION CHECK COMPLETE', () => {
     expect(content).toMatch(/## INTEGRATION CHECK COMPLETE/);
@@ -434,19 +434,19 @@ describe('Integration-checker agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('Audit agent patterns', () => {
-  const content = readAgent('pbr-audit.md');
+  const content = readAgent('audit.md');
 
-  test('has compliance audit checklist', () => {
-    expect(content).toMatch(/Compliance Audit/i);
-    expect(content).toMatch(/STATE\.md Lifecycle/i);
-    expect(content).toMatch(/Commit Format/i);
-    expect(content).toMatch(/Subagent Delegation/i);
+  test('has compliance dimension categories', () => {
+    expect(content).toMatch(/Workflow Compliance/i);
+    expect(content).toMatch(/Behavioral Compliance/i);
+    expect(content).toMatch(/Commit format/i);
+    expect(content).toMatch(/subagent/i);
   });
 
-  test('has UX audit checklist', () => {
-    expect(content).toMatch(/UX Audit/i);
-    expect(content).toMatch(/User Intent/i);
-    expect(content).toMatch(/Flow Choice/i);
+  test('has session quality dimension category', () => {
+    expect(content).toMatch(/Session Quality/i);
+    expect(content).toMatch(/compliance/);
+    expect(content).toMatch(/\bux\b/i);
   });
 
   test('documents JSONL format', () => {
@@ -473,7 +473,7 @@ describe('Audit agent patterns', () => {
 // ---------------------------------------------------------------------------
 
 describe('General agent patterns', () => {
-  const content = readAgent('pbr-general.md');
+  const content = readAgent('general.md');
 
   test('has self-escalation guidance', () => {
     expect(content).toMatch(/Self-Escalation/i);
