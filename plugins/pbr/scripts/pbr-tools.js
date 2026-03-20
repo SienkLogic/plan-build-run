@@ -59,6 +59,7 @@
  *   nk list [--category X] [--phase X] [--status X] — List negative knowledge entries
  *   nk resolve <slug>               — Mark a negative knowledge entry as resolved
  *   insights import <html-path> [--project <name>] — Parse insights HTML report into learnings
+ *   audit plan-checks [--last N]     — List all plan-check results from hooks.jsonl (default: last 30 days)
  *   spot-check <phaseSlug> <planId>  — Verify SUMMARY, key_files, and commits exist for a plan
  *   staleness-check <phase-slug>  — Check if phase plans are stale vs dependencies
  *   summary-gate <phase-slug> <plan-id>  — Verify SUMMARY.md exists, non-empty, valid frontmatter
@@ -1784,6 +1785,13 @@ async function main() {
     } else if (command === 'graph') {
       const graphCli = require('./lib/graph-cli');
       graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
+
+    // --- Audit Operations ---
+    } else if (command === 'audit' && subcommand === 'plan-checks') {
+      const { auditPlanChecks } = require('./lib/audit');
+      const lastIdx = args.indexOf('--last');
+      const last = lastIdx !== -1 ? parseInt(args[lastIdx + 1], 10) : 30;
+      output(auditPlanChecks({ last }));
 
     // --- Spec Operations ---
     } else if (command === 'spec') {

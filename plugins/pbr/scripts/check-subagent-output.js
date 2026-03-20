@@ -51,6 +51,47 @@ const {
   validateSelfCheck
 } = validators;
 
+/**
+ * Log plan-checker completion results to hooks.jsonl for audit trail.
+ * Extracts phase, status, dimension count, and blocker count from agent output.
+ */
+function logPlanCheckerResult(data) {
+  try {
+    const toolOutput = data.tool_output || '';
+
+    // Extract phase number from output or tool_input
+    let phaseNum = null;
+    const phaseMatch = toolOutput.match(/phase[:\s]+(\d+)/i) ||
+      (data.tool_input && JSON.stringify(data.tool_input).match(/phase[:\s"]+(\d+)/i));
+    if (phaseMatch) phaseNum = parseInt(phaseMatch[1], 10);
+
+    // Determine status from output patterns
+    let status = 'unknown';
+    if (/BLOCKER/i.test(toolOutput)) status = 'issues_found';
+    else if (/WARNING/i.test(toolOutput) && !/BLOCKER/i.test(toolOutput)) status = 'warnings';
+    else if (/pass|clean|no issues/i.test(toolOutput)) status = 'passed';
+    else if (toolOutput.length > 0) status = 'completed';
+
+    // Count dimensions checked (D1: through D9: patterns)
+    const dimensionMatches = toolOutput.match(/D\d+[:\s]/g);
+    const dimensionCount = dimensionMatches ? new Set(dimensionMatches.map(d => d.trim())).size : 0;
+
+    // Count blockers
+    const blockerMatches = toolOutput.match(/BLOCKER/gi);
+    const blockerCount = blockerMatches ? blockerMatches.length : 0;
+
+    logHook('plan-checker', 'SubagentStop', 'complete', {
+      action: 'validate',
+      phase: phaseNum,
+      status: status,
+      dimensions: dimensionCount,
+      blockers: blockerCount
+    });
+  } catch (_e) {
+    // Never let logging failures block the hook
+  }
+}
+
 function readStdin() {
   try {
     const input = fs.readFileSync(0, 'utf8').trim();
@@ -96,6 +137,11 @@ async function main() {
       });
     }
     process.exit(0);
+  }
+
+  // Log plan-checker completions for audit trail
+  if (agentType === 'pbr:plan-checker') {
+    logPlanCheckerResult(data);
   }
 
   // Read active skill -- session-scoped when session_id available
@@ -285,6 +331,11 @@ async function handleHttp(reqBody) {
       });
     }
     return null;
+  }
+
+  // Log plan-checker completions for audit trail
+  if (agentType === 'pbr:plan-checker') {
+    logPlanCheckerResult(data);
   }
 
   const sessionId = data.session_id || null;

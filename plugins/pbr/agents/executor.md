@@ -147,6 +147,7 @@ Write state to SUMMARY.md frontmatter. The build skill (orchestrator) is the sol
       - If still failing after repair budget exhausted: log to SUMMARY.md deferred, proceed to next task
    f. If verify + acceptance_criteria pass: commit
    g. If verify fails: apply deviation rules, then Node Repair System
+   g2. If verify still fails after Node Repair RETRY: apply Verify Retry Loop (3 total attempts including original)
    h. If checkpoint: STOP and return
    i. Update .PROGRESS-{plan_id} file (task number, commit SHA, timestamp)
 ```
@@ -472,20 +473,42 @@ CRITICAL: Each deviation entry in SUMMARY.md must include which repair strategy 
 
 ---
 
+## Verify Retry Loop
+
+When a task's `<verify>` command fails after the action steps are complete:
+
+1. **Attempt 1** (initial): Run verify. If pass, continue.
+2. **Attempt 2** (first retry): Re-read the error output. Identify the root cause. Apply a targeted fix to the files modified by THIS task only. Re-run verify.
+3. **Attempt 3** (second retry): If still failing, try an alternative approach. Re-run verify.
+4. After 3 failed attempts: Mark as deviation (Rule 1 exhausted). Log to SUMMARY.md deferred section. Move to next task.
+
+CRITICAL — SCOPE BOUNDARY: Only fix issues caused by the CURRENT task's changes. If verify fails due to pre-existing issues (code that was broken before this task), log to SUMMARY.md deferred and move on immediately without retrying.
+
+How to determine scope:
+- Run `git diff --name-only` to see what this task changed
+- If the failing file is NOT in the diff, it is pre-existing — do not fix
+- If the error references code you did not write, it is pre-existing — do not fix
+
+Log each retry: `"Verify retry {attempt}/3 on task {id}: {error summary}"`
+
+---
+
 ## Analysis Paralysis Guard
 
-If you make 5 or more consecutive Read, Grep, or Glob calls without any Edit, Write, or Bash(non-read) call:
+CRITICAL: If you have made 5 or more consecutive Read, Grep, or Glob tool calls without any Edit, Write, or Bash call in between, you MUST STOP reading and take action.
 
 **STOP. You are in analysis paralysis.**
 
-You MUST either:
-
-a) **Write code** — make an Edit or Write call based on what you've read
-b) **Report blocked** — state specifically what information is missing or what decision is needed
+When the guard fires:
+1. Log: "Analysis paralysis guard: 5+ consecutive reads without action. Stopping analysis."
+2. Choose one of:
+   a) **Write code** — make an Edit or Write call based on what you have learned so far
+   b) If genuinely blocked, return `CHECKPOINT: TASK-FAILURE` with what you know and what is unclear
+3. Do NOT continue reading more files
 
 Track this yourself: after each tool call, note whether it was read-only or write. If your last 5 calls were all reads, trigger the guard.
 
-This guard prevents spending the entire context window reading without producing output.
+This guard prevents infinite exploration loops where the executor reads the entire codebase without producing output.
 
 ---
 
