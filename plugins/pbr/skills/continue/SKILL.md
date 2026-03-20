@@ -56,12 +56,27 @@ Parse `$ARGUMENTS`:
 |----------|---------|
 | `--auto` | Pass --auto flag to all delegated skills, increase consecutive chain limit from 6 to 20 |
 
-Read `.planning/STATE.md` and determine current position:
-- Current phase number and name
-- Current plan progress
-- Phase status (planning, building, reviewing, complete)
+**CRITICAL — Run init command FIRST before any manual file reads:**
 
-Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
+```bash
+node plugins/pbr/scripts/pbr-tools.cjs init continue
+```
+
+Store the JSON result as `blob`. This single call replaces multiple file reads with a pre-computed payload containing state, config, routing, drift, and signal file data.
+
+Use blob fields for all downstream state references:
+- `blob.state` — STATE.md frontmatter (status, current_phase, plans_complete, last_command, etc.)
+- `blob.current_phase.num`, `blob.current_phase.name`, `blob.current_phase.status` — current phase details
+- `blob.auto_next` — .auto-next file content (or null)
+- `blob.continue_here` — .continue-here file content (or null)
+- `blob.active_skill` — .active-skill file content (or null)
+- `blob.routing` — suggestNext output with `blob.routing.action` and `blob.routing.reason`
+- `blob.drift` — drift detection result (`blob.drift.drift_detected`, `blob.drift.stale_fields`)
+- `blob.config.mode`, `blob.config.features`, `blob.config.gates` — config checks
+
+If `blob.error` is set, display the error banner and stop (no project found).
+
+Then read `.planning/ROADMAP.md` to identify the current milestone boundary (initContinue does not include roadmap data):
 - Find which `## Milestone:` section contains the current phase
 - Determine if the current phase is the **last phase** in that milestone section
 - If this is the last phase and it is verified/complete, warn: "This is the final phase of milestone {name}. After verification, run `/pbr:milestone` to complete it."
@@ -69,7 +84,7 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary:
 
 #### Lookahead Mode (context >= 500k)
 
-Before proceeding to Step 2, check the configured context window:
+Before proceeding to Step 2, check the configured context window from `blob.config` or:
 
 ```bash
 node scripts/pbr-tools.cjs config get context_window_tokens
@@ -92,7 +107,7 @@ Display all findings BEFORE proceeding to Step 2. If no findings exist, display 
 
 If the CLI fails, skip lookahead silently — lookahead is advisory, not blocking.
 
-If STATE.md doesn't exist, display:
+If `blob.error` is set (STATE.md doesn't exist), display:
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  ERROR                                                       ║
@@ -107,11 +122,11 @@ No project state found.
 
 Before proceeding to priority evaluation, check for runaway continue chains:
 
-1. Read `last_command` from STATE.md. **If `last_command` is missing, empty, or the field does not exist, skip directly to the fallback detection** — do NOT error or warn.
-2. If `last_command` is present and equals `/pbr:continue`, this is a chained continue. Check session context for consecutive `/pbr:continue` invocations.
-3. **Fallback detection** — if `last_command` is not available or not present in STATE.md:
-   - Check `.planning/.active-skill` file — if it contains `continue`, treat as a chained continue
-   - Check STATE.md `last_action` field — if it contains `continue`, treat as a chained continue
+1. Read `last_command` from `blob.state.last_command`. **If `last_command` is missing, empty, or the field does not exist, skip directly to the fallback detection** — do NOT error or warn.
+2. If `blob.state.last_command` equals `/pbr:continue`, this is a chained continue. Check session context for consecutive `/pbr:continue` invocations.
+3. **Fallback detection** — if `blob.state.last_command` is not available:
+   - Check `blob.active_skill` — if it contains `continue`, treat as a chained continue
+   - Check `blob.state.last_action` — if it contains `continue`, treat as a chained continue
    - If neither source is available, assume this is the first invocation (do not warn)
 4. **If this is the 6th consecutive `/pbr:continue` in a row** (or 20th if `auto_mode` is true), display:
 
@@ -128,11 +143,11 @@ This prevents runaway chains that fill the context window without a human checkp
 
 ### Step 2: Scan for Priority Items
 
-Check the resumption priority hierarchy (same as /pbr:resume-work):
+Use `blob.routing.action` and `blob.routing.reason` from the init blob to determine the next action. The routing field contains the suggestNext output which implements the full priority hierarchy:
 
 1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `/pbr:plan-phase {N} --gaps`
 2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
-3. **Continue-here file**: `.continue-here.md` exists → Follow its next step
+3. **Continue-here file**: `blob.continue_here` is non-null → Follow its next step
 4. **Incomplete build**: PLAN.md files without SUMMARY.md → Execute `/pbr:execute-phase {N}`
 5. **Unverified phase**: All plans complete, no VERIFICATION.md → Execute `/pbr:verify-work {N}`
 6. **Phase complete, more phases exist**: Verification passed → Execute `/pbr:plan-phase {N+1}`
@@ -141,7 +156,7 @@ Check the resumption priority hierarchy (same as /pbr:resume-work):
 
 #### Status-Based Routing (13 valid statuses)
 
-When the priority hierarchy above doesn't match, route based on the current phase status from STATE.md:
+When `blob.routing.action` doesn't match a priority item above, route based on `blob.current_phase.status`:
 
 | Status | Next Action |
 |--------|-------------|
@@ -178,7 +193,7 @@ Then invoke the appropriate skill via the Skill tool. **NEVER read SKILL.md file
 | Next phase needed | Plan next phase | `Skill({ skill: "pbr:plan", args: "{N+1}" })` (append `--auto` if `auto_mode`) |
 | Project not started | Plan phase 1 | `Skill({ skill: "pbr:plan", args: "1" })` (append `--auto` if `auto_mode`) |
 
-Where `{N}` is the current phase number determined from STATE.md in Step 1.
+Where `{N}` is `blob.current_phase.num` determined from the init blob in Step 1.
 
 ### Step 4: Report and Chain
 
@@ -203,7 +218,7 @@ After execution completes, display a branded completion:
 
 ```
 
-**If `features.auto_advance` is `true` AND `mode` is `autonomous`:**
+**If `blob.config.features.auto_advance` is `true` AND `blob.config.mode` is `autonomous`:**
 After the delegated skill completes, immediately re-run Step 1-3 to determine and execute the NEXT action. Continue chaining until a hard stop is reached. This enables hands-free phase cycling: build→review→plan→build→...
 
 ---
@@ -211,7 +226,7 @@ After the delegated skill completes, immediately re-run Step 1-3 to determine an
 ## Hard Stops
 
 Do NOT auto-continue when:
-- `config.mode` is NOT `autonomous` and a gate confirmation is needed
+- `blob.config.mode` is NOT `autonomous` and a gate confirmation is needed
 - A checkpoint requires human input (decision, verify, action)
 - An error occurred during execution
 - The milestone is complete

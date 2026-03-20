@@ -41,13 +41,32 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 
 ### Step 1: Read Project State
 
-**CRITICAL — STOP. You MUST run this CLI command FIRST. Do NOT skip it. Do NOT read files manually instead.**
+**CRITICAL — STOP. You MUST run these CLI commands FIRST. Do NOT skip them. Do NOT read files manually instead.**
+
+First, run the init command to capture routing, drift, and metadata:
+
+```bash
+node plugins/pbr/scripts/pbr-tools.cjs init status
+```
+
+Store the JSON result as `blob`. This provides:
+- `blob.routing` — suggestNext output with `blob.routing.action` and `blob.routing.reason` for Step 5 smart routing
+- `blob.drift` — STATE.md discrepancy warnings (`blob.drift.drift_detected`, `blob.drift.stale_fields`)
+- `blob.counts.pending_todos`, `blob.counts.notes`, `blob.counts.active_debug` — directory scan counts
+- `blob.has_paused_work` — whether .continue-here file exists
+- `blob.progress` — progress bar data (percentage, completed_plans, total_plans)
+- `blob.state` — STATE.md frontmatter fields
+- `blob.config.mode`, `blob.config.features`, `blob.config.workflow` — config checks
+
+If `blob.error` is set, display the error banner and stop (no project found).
+
+Then run the status render CLI for the full formatted dashboard:
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render
 ```
 
-This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data.
+This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data. The init blob supplements this with routing and metadata that `status render` does not provide.
 
 **If the CLI command fails** (non-zero exit or invalid JSON), display:
 
@@ -79,21 +98,23 @@ Store these for use in Step 4 display and Step 5 routing.
 
 ### Step 3: Check for Special Conditions
 
+Use blob fields from the init call where available to avoid redundant filesystem scans:
+
 #### Paused Work
-- Search for `.continue-here.md` files in `.planning/phases/`
-- If found: note the phase and brief description of where work stopped
+- Check `blob.has_paused_work` — if true, note that paused work exists
+- If more detail is needed, search for `.continue-here.md` files in `.planning/phases/`
 
 #### Verification Gaps
 - Search for `VERIFICATION.md` files with `gaps_found` status
 - If found: note which phases have gaps
 
 #### Active Debug Sessions
-- Check `.planning/debug/` for files with `status: active`
-- Note any active debug sessions
+- Use `blob.counts.active_debug` for the count of active debug sessions
+- If count > 0: note active debug sessions
 
 #### Pending Todos
-- Check `.planning/todos/pending/` for pending todo files
-- Count and summarize if any exist
+- Use `blob.counts.pending_todos` for the count of pending todo files
+- If count > 0: summarize
 
 #### Critical Path
 Identify the single next-blocking item — the one phase or plan whose completion unblocks the most downstream work.
@@ -108,8 +129,8 @@ Logic:
 Store: `criticalPhase` (number + name), `criticalPlan` (plan ID or null if phase not yet planned), `criticalCount` (number of downstream phases blocked).
 
 #### Quick Notes
-- Check `.planning/notes/` directory for note files (individual `.md` files)
-- Count active notes (files where frontmatter does NOT contain `promoted: true`)
+- Use `blob.counts.notes` for the total count of note files in `.planning/notes/`
+- For promoted status filtering, read individual note frontmatter only if needed
 - Also check `~/.claude/notes/` for global notes
 
 #### Quick Tasks
@@ -218,9 +239,9 @@ Use the standardized symbol set from `references/ui-brand.md`:
 
 ### Step 5: Smart Routing
 
-Based on the project state, suggest the single most logical next action:
+Use `blob.routing.action` and `blob.routing.reason` from the init blob to determine the primary next action. The routing field contains the suggestNext output which implements the full decision tree below. Fall back to the manual decision tree only if `blob.routing` is unavailable.
 
-**Decision tree:**
+**Decision tree (fallback):**
 
 ```
 1. Is there paused work (.continue-here.md)?
