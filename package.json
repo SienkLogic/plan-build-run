@@ -8,7 +8,6 @@
   "files": [
     "bin",
     "plan-build-run",
-    "hooks/dist",
     "scripts",
     "dashboard",
     "plugins/",
@@ -64,7 +63,7 @@
     "check-ci": "node scripts/check-ci.js",
     "test:dashboard": "cd dashboard && npx vitest run",
     "test:cjs": "jest --forceExit --testPathPattern=\"tests/(locked-file-update|concurrent-access|integration|local-llm)\"",
-    "lint": "eslint hooks/ tests/",
+    "lint": "eslint plugins/pbr/scripts/ tests/",
     "sync:generate": "node scripts/generate-derivatives.js",
     "sync:verify": "node scripts/generate-derivatives.js --verify",
     "release": "node scripts/release.js",

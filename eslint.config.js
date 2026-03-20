@@ -28,10 +28,10 @@ const relaxedUnusedVars = ['warn', {
 module.exports = [
   js.configs.recommended,
   {
-    ignores: ['hooks/dist/**']
+    ignores: ['plugins/pbr/scripts/test/**']
   },
   {
-    files: ['hooks/**/*.js', 'scripts/**/*.js'],
+    files: ['plugins/pbr/scripts/**/*.js', 'scripts/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',

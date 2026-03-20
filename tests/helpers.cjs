@@ -6,7 +6,7 @@ const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const TOOLS_PATH = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+const TOOLS_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 
 /**
  * Run pbr-tools command.

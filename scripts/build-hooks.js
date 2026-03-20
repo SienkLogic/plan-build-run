@@ -2,15 +2,15 @@
 /**
  * Copy PBR hooks to dist for installation.
  *
- * Dynamically discovers all .js files in hooks/ and copies them along
- * with hooks.json and hooks-schema.json to hooks/dist/.
+ * Dynamically discovers all .js files in plugins/pbr/scripts/ and copies them
+ * along with hooks.json and hooks-schema.json to plugins/pbr/dist/.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const HOOKS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
-const DIST_DIR = path.join(__dirname, '..', 'hooks', 'dist');
+const DIST_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'dist');
 
 // Static assets to copy alongside hook scripts
 const STATIC_FILES = [

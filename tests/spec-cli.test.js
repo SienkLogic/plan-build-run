@@ -8,7 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const PBR_TOOLS = path.join(__dirname, '..', 'plan-build-run', 'bin', 'pbr-tools.cjs');
+const PBR_TOOLS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pbr-tools.js');
 
 const FIXTURE_PLAN_A = [
   '---',
