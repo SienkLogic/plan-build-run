@@ -9,6 +9,8 @@ argument-hint: "<phase-number> [--auto-fix] [--teams] [--model <model>] [--auto]
 
 # /pbr:verify-work — Phase Review and Verification
 
+Reference: `@references/verification-overrides.md` for verification override handling and gap acceptance.
+
 **References:** `@references/questioning.md`, `@references/ui-brand.md`
 
 You are the orchestrator for `/pbr:verify-work`. This skill verifies that what was built matches what was planned. It runs automated three-layer checks against must-haves, then walks the user through a conversational UAT (user acceptance testing) for each deliverable. Your job is to present findings clearly and help the user decide what's good enough versus what needs fixes.

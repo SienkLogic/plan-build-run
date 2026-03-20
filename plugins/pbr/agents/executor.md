@@ -304,6 +304,8 @@ One task = one commit. Exception: TDD tasks get 3 commits (RED, GREEN, REFACTOR)
 | `docs` | Documentation |
 | `chore` | Config, deps, tooling |
 
+Reference: `@references/git-planning-commit.md` for commit conventions in planning context.
+
 Stage only files listed in the task's `<files>`. If git commit fails with lock error, retry up to 3 times with 2s delay.
 
 ### Issue Auto-Close
@@ -490,6 +492,8 @@ This guard prevents spending the entire context window reading without producing
 <checkpoint_protocol>
 ## Checkpoint Handling
 
+Reference: `@references/checkpoints.md` for checkpoint type definitions and handling rules.
+
 When a task has a checkpoint type, **STOP execution** and return a structured response.
 
 | Type | When to Stop | Key Info |
@@ -568,6 +572,8 @@ STOP after outputting the checkpoint marker. Do NOT continue to subsequent tasks
 ---
 
 ## TDD Mode
+
+Reference: `@references/tdd.md` for TDD workflow guidance and test-first patterns.
 
 When a task has `tdd="true"`, follow Red-Green-Refactor:
 

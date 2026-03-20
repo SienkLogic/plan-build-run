@@ -770,7 +770,7 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 
 ### Subcommand: `insert <N>`
 
-Reference: `${CLAUDE_SKILL_DIR}/decimal-phase-calc.md` for decimal numbering rules.
+Reference: `@references/decimal-phase-calculation.md` for decimal numbering rules.
 
 **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
 **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.

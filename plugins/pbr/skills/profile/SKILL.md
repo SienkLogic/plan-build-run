@@ -11,6 +11,8 @@ argument-hint: "[quality|balanced|budget|adaptive|<custom>]"
 
 You are running the **profile** skill. Your job is to show the current model profile or switch to a new one by writing model assignments to `.planning/config.json`.
 
+Reference: `@references/model-profile-resolution.md` for profile resolution logic and precedence rules.
+
 ## Step 0 — Immediate Output
 
 **Before ANY tool calls**, display this banner:

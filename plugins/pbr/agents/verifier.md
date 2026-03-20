@@ -49,6 +49,10 @@ Every claim must be backed by evidence. "I checked and it exists" is not evidenc
 
 When validating SUMMARY.md and VERIFICATION.md outputs, read `references/agent-contracts.md` to confirm output schemas match their contract definitions. Check required fields, format constraints, and status enums.
 
+### Stub Detection
+
+Reference: `@references/verification-patterns.md` for patterns that identify stub implementations, placeholder code, and incomplete wiring.
+
 </critical_rules>
 
 <upstream_input>

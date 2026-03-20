@@ -189,6 +189,8 @@ Not sure which command to use? Follow this guide:
 
 ## Behavioral Contexts
 
+Reference: `@references/behavioral-contexts.md` for full context profile definitions.
+
 Plan-Build-Run includes three behavioral contexts in `contexts/` that adjust how Claude operates:
 
 - **dev** — Active development: write code first, low verbosity, medium risk tolerance
