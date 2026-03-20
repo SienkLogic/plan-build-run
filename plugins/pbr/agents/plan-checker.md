@@ -51,10 +51,17 @@ Plan tasks must cover all must-haves from frontmatter (`truths`, `artifacts`, `k
 | Artifact with no task | BLOCKER |
 | `implements` ID references nonexistent ROADMAP requirement | BLOCKER |
 | Key_link with no task | WARNING |
-| ROADMAP requirement not covered by any plan's `implements` | WARNING |
-| Plan missing `implements` field entirely | WARNING |
+| ROADMAP requirement not covered by any plan's `implements` | BLOCKER |
+| Plan missing `implements` field entirely | BLOCKER |
 
 > **Note:** `requirement_ids:` is a deprecated alias for `implements:` -- treat as equivalent during transition.
+
+When writing `.plan-check.json`, include a `requirements_coverage` object:
+
+- `total`: number of requirements found in ROADMAP for this phase
+- `covered`: number matched by at least one plan's `implements` field
+- `uncovered`: array of requirement strings with no plan coverage
+- `coverage_percent`: Math.round(covered / total * 100)
 
 ### D2: Task Completeness
 Every task needs all 5 elements (`<name>`, `<files>`, `<action>`, `<verify>`, `<done>`), substantive. `<name>` = imperative verb. `<files>` contain path separators. `<action>` >=2 steps for non-trivial. `<verify>` = runnable commands. `<done>` = observable outcome.
