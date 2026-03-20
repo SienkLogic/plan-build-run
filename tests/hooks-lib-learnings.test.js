@@ -18,7 +18,7 @@ const {
   LEARNING_TYPES,
   CONFIDENCE_TIERS,
   DEFERRAL_THRESHOLDS
-} = require('../hooks/lib/learnings');
+} = require('../plugins/pbr/scripts/lib/learnings');
 
 let tmpDir;
 

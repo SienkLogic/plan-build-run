@@ -8,7 +8,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'context-bridge.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'context-bridge.js');
 const { handleHttp, loadBridge } = require(SCRIPT);
 
 describe('context-bridge.js handleHttp parity', () => {

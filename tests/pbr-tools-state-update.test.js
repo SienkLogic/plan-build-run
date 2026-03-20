@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { stateUpdate, stateRecordActivity, stateUpdateProgress, stateRecordVelocity, stateRecordSession, parseStateMd } = require('../plan-build-run/bin/lib/state.cjs');
-const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
-const { syncBodyLine: _syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
+const { stateUpdate, stateRecordActivity, stateUpdateProgress, stateRecordVelocity, stateRecordSession, parseStateMd } = require('../plugins/pbr/scripts/lib/state');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
+const { syncBodyLine: _syncBodyLine } = require('../plugins/pbr/scripts/lib/state');
 
 const STATE_FM = [
   '---', 'version: 2', 'current_phase: 3',
@@ -191,7 +191,7 @@ describe('stateUpdate — expanded field coverage', () => {
 });
 
 describe('syncBodyLine — unit tests', () => {
-  const { syncBodyLine, buildProgressBar } = require('../plan-build-run/bin/lib/state.cjs');
+  const { syncBodyLine, buildProgressBar } = require('../plugins/pbr/scripts/lib/state');
 
   const sampleContent = [
     '---', 'version: 2', 'current_phase: 3', 'status: "building"', '---',
@@ -579,7 +579,7 @@ describe('parseStateMd — velocity and session extraction', () => {
 });
 
 describe('syncBodyLine — session fields', () => {
-  const { syncBodyLine } = require('../plan-build-run/bin/lib/state.cjs');
+  const { syncBodyLine } = require('../plugins/pbr/scripts/lib/state');
 
   const contentWithSessionLines = [
     '---', 'version: 2', 'current_phase: 1', 'status: "building"', '---',

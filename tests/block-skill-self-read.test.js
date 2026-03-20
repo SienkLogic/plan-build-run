@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'block-skill-self-read.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'block-skill-self-read.js');
 
 describe('block-skill-self-read.js', () => {
   let tmpDir;

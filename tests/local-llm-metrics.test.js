@@ -12,7 +12,7 @@ const {
   computeLifetimeMetrics,
   readSessionMetrics,
   summarizeMetrics
-} = require('../plan-build-run/bin/lib/local-llm/metrics.cjs');
+} = require('../plugins/pbr/scripts/lib/local-llm/metrics');
 
 describe('computeLifetimeMetrics (stub)', () => {
   test('returns zero totals', () => {

@@ -8,8 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
-const { suggestNext } = require('../hooks/lib/suggest-next');
-const { configClearCache } = require('../hooks/lib/config');
+const { suggestNext } = require('../plugins/pbr/scripts/lib/suggest-next');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
 // ---- Helpers ----
 

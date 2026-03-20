@@ -23,7 +23,7 @@ afterAll(() => {
 let healthModule;
 
 beforeAll(() => {
-  healthModule = require('../plan-build-run/bin/lib/health-phase06.cjs');
+  healthModule = require('../plugins/pbr/scripts/lib/health-phase06');
 });
 
 describe('health-phase06', () => {

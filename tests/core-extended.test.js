@@ -19,7 +19,7 @@ const {
   ensureSessionDir,
   cleanStaleSessions,
   KNOWN_AGENTS,
-} = require('../plan-build-run/bin/lib/core.cjs');
+} = require('../plugins/pbr/scripts/lib/core');
 
 let tmpDir;
 

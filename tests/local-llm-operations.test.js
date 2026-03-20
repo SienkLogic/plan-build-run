@@ -8,12 +8,12 @@
  * function(s) and returns graceful stub responses.
  */
 
-const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
-const { validateTask } = require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs');
-const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
-const { classifyCommit } = require('../plan-build-run/bin/lib/local-llm/operations/classify-commit.cjs');
-const { classifyFileIntent } = require('../plan-build-run/bin/lib/local-llm/operations/classify-file-intent.cjs');
-const { triageTestOutput } = require('../plan-build-run/bin/lib/local-llm/operations/triage-test-output.cjs');
+const { classifyArtifact } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact');
+const { validateTask } = require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task');
+const { classifyError } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-error');
+const { classifyCommit } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-commit');
+const { classifyFileIntent } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-file-intent');
+const { triageTestOutput } = require('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output');
 
 describe('classifyArtifact (stub)', () => {
   test('returns an object with classification and confidence', async () => {

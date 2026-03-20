@@ -4,12 +4,12 @@
  * Tests for hooks/local-llm/shadow.js — runShadow fire-and-forget comparison.
  */
 
-jest.mock('../hooks/local-llm/metrics', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/metrics', () => ({
   logAgreement: jest.fn()
 }));
 
-const { logAgreement } = require('../hooks/local-llm/metrics');
-const { runShadow } = require('../hooks/local-llm/shadow');
+const { logAgreement } = require('../plugins/pbr/scripts/lib/local-llm/metrics');
+const { runShadow } = require('../plugins/pbr/scripts/lib/local-llm/shadow');
 
 function makeConfig(overrides = {}) {
   return {

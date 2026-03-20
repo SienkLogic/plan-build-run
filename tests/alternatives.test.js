@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { phaseAlternatives, prerequisiteAlternatives, configAlternatives } = require('../plan-build-run/bin/lib/alternatives.cjs');
+const { phaseAlternatives, prerequisiteAlternatives, configAlternatives } = require('../plugins/pbr/scripts/lib/alternatives');
 
 describe('phaseAlternatives', () => {
   let tmpDir;

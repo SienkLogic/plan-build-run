@@ -11,7 +11,7 @@ const {
   extractSection,
   resolveReferencePath,
   referenceGet
-} = require('../hooks/lib/reference');
+} = require('../plugins/pbr/scripts/lib/reference');
 
 let tmpDir, pluginRoot, refsDir;
 

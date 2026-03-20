@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { cmdPlanValidate } = require('../plan-build-run/bin/lib/spot-check.cjs');
+const { cmdPlanValidate } = require('../plugins/pbr/scripts/lib/spot-check');
 
 function makeTmpProject() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-plan-validate-'));

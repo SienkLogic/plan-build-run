@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { createRunner, createTmpPlanning, cleanupTmp, getHooksLogPath, getEventsLogPath } = require('./helpers');
-const { handleHttp, summarizeInput } = require('../hooks/log-tool-failure');
+const { handleHttp, summarizeInput } = require('../plugins/pbr/scripts/log-tool-failure');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'log-tool-failure.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'log-tool-failure.js');
 const runScript = createRunner(SCRIPT);
 
 // Run in a temp dir with .planning/ so loggers can write

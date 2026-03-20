@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
-const { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isTrustTrackingEnabled } = require('../hooks/lib/auto-verify');
+const { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isTrustTrackingEnabled } = require('../plugins/pbr/scripts/lib/auto-verify');
 
 let tmpDir;
 let planningDir;

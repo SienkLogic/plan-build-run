@@ -38,11 +38,11 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
+const { cmdValidateHealth } = require('../plugins/pbr/scripts/lib/verify');
 const { handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/event-handler');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 const { clearRootCache: clearPluginRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
-const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
+const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
 
 function parseOutput() {
   const raw = mockStdout.mock.calls.map(c => c[0]).join('');

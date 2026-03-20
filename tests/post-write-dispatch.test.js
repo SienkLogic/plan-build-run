@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'post-write-dispatch.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'post-write-dispatch.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 

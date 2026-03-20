@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkBuildExecutorGate } = require('../../../plan-build-run/bin/lib/gates/build-executor.cjs');
+const { checkBuildExecutorGate } = require('../../../plugins/pbr/scripts/lib/gates/build-executor');
 
 function makeData(subagentType) {
   return { tool_input: { description: 'Run executor', subagent_type: subagentType } };

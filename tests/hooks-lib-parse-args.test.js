@@ -2,7 +2,7 @@
  * Tests for hooks/lib/parse-args.js — CLI argument parsing for PBR skills.
  */
 
-const { parseArgs, parsePlan, parseQuick } = require('../hooks/lib/parse-args');
+const { parseArgs, parsePlan, parseQuick } = require('../plugins/pbr/scripts/lib/parse-args');
 
 describe('parsePlan', () => {
   test('empty input is valid with null phase', () => {

@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { suggestNext } = require('../hooks/lib/suggest-next');
+const { suggestNext } = require('../plugins/pbr/scripts/lib/suggest-next');
 
 let tmpDir, planningDir;
 

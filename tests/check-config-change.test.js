@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { validateConfig, findPlanningDir } = require('../hooks/check-config-change');
+const { validateConfig, findPlanningDir } = require('../plugins/pbr/scripts/check-config-change');
 
 function createTempConfig(configObj) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-config-test-'));

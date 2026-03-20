@@ -1,4 +1,4 @@
-const { checkDocSprawl, isBlockDocSprawlEnabled } = require('../hooks/check-doc-sprawl');
+const { checkDocSprawl, isBlockDocSprawlEnabled } = require('../plugins/pbr/scripts/check-doc-sprawl');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -191,7 +191,7 @@ describe('check-doc-sprawl.js', () => {
   });
 
   describe('pre-write-dispatch integration', () => {
-    const DISPATCH_SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-write-dispatch.js');
+    const DISPATCH_SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pre-write-dispatch.js');
 
     test('blocks doc sprawl through dispatcher', () => {
       const { tmpDir, planningDir } = makeTmpDir();

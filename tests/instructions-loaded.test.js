@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const SCRIPT_PATH = path.join(__dirname, '..', 'hooks', 'instructions-loaded.js');
+const SCRIPT_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'instructions-loaded.js');
 
 describe('instructions-loaded.js', () => {
   let tmpDir, planningDir;

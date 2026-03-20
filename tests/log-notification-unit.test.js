@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { handleHttp } = require('../hooks/log-notification');
+const { handleHttp } = require('../plugins/pbr/scripts/log-notification');
 
 let tmpDir;
 let origCwd;

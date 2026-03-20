@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { resetTracker, incrementTracker, loadTracker, TRACKER_FILE } = require('../hooks/session-tracker');
+const { resetTracker, incrementTracker, loadTracker, TRACKER_FILE } = require('../plugins/pbr/scripts/session-tracker');
 
 let tmpDir;
 let planningDir;

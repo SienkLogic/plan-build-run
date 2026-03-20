@@ -2,7 +2,7 @@
  * Tests for hooks/lib/pattern-routing.js — Pattern-based file routing.
  */
 
-const { checkPatternRouting, DEFAULT_PATTERNS } = require('../hooks/lib/pattern-routing');
+const { checkPatternRouting, DEFAULT_PATTERNS } = require('../plugins/pbr/scripts/lib/pattern-routing');
 
 describe('DEFAULT_PATTERNS', () => {
   test('is a non-empty array', () => {

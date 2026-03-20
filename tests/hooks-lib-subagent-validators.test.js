@@ -23,7 +23,7 @@ const {
   validateSelfCheck,
   logInlineDecision,
   logCompliance
-} = require('../hooks/lib/subagent-validators');
+} = require('../plugins/pbr/scripts/lib/subagent-validators');
 
 let tmpDir;
 let planningDir;

@@ -9,7 +9,7 @@ const {
   buildProgressBar,
   checkStateSync,
   clearMtimeCache
-} = require('../hooks/check-state-sync');
+} = require('../plugins/pbr/scripts/check-state-sync');
 
 describe('check-state-sync.js', () => {
   describe('extractPhaseNum', () => {
@@ -833,12 +833,12 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
     });
 
     test('ready_to_execute maps to Ready to Execute in STATUS_LABELS', () => {
-      const { STATUS_LABELS } = require('../plan-build-run/bin/lib/core.cjs');
+      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
       expect(STATUS_LABELS.ready_to_execute).toBe('Ready to Execute');
     });
 
     test('ready_to_plan maps to Ready to Plan in STATUS_LABELS', () => {
-      const { STATUS_LABELS } = require('../plan-build-run/bin/lib/core.cjs');
+      const { STATUS_LABELS } = require('../plugins/pbr/scripts/lib/core');
       expect(STATUS_LABELS.ready_to_plan).toBe('Ready to Plan');
     });
 
@@ -1030,7 +1030,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
   });
 
   describe('CLI-routed state mutations', () => {
-    const scriptPath = path.join(__dirname, '..', 'hooks', 'check-state-sync.js');
+    const scriptPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-state-sync.js');
 
     test('STATE.md updates use stateUpdate not atomicWriteFile', () => {
       const source = fs.readFileSync(scriptPath, 'utf8');
@@ -1081,7 +1081,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
         fs.writeFileSync(path.join(tmpDir, 'STATE.md'), stateContent);
 
         // Use stateUpdate from lib/state.cjs to update multiple fields sequentially
-        const stateLibPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'state.cjs');
+        const stateLibPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'state.js');
         const { stateUpdate } = require(stateLibPath);
 
         stateUpdate('plans_complete', '1', tmpDir);
@@ -1123,7 +1123,7 @@ Progress: [████████████████░░░░] 80%
 `;
         fs.writeFileSync(path.join(tmpDir, 'STATE.md'), stateContent);
 
-        const stateLibPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'state.cjs');
+        const stateLibPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'state.js');
         const { stateUpdate } = require(stateLibPath);
 
         // Update only status

@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const {
   checkDependencyBreaks,
   computeFingerprint
-} = require('../hooks/lib/dependency-break');
+} = require('../plugins/pbr/scripts/lib/dependency-break');
 
 let tmpDir, planningDir;
 

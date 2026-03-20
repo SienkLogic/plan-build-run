@@ -4,7 +4,7 @@ const os = require('os');
 const net = require('net');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'progress-tracker.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'progress-tracker.js');
 
 describe('progress-tracker.js', () => {
   let tmpDir;
@@ -379,7 +379,7 @@ const net = require('net');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const { logHook } = require(${JSON.stringify(path.join(__dirname, '..', 'hooks', 'hook-logger'))});
+const { logHook } = require(${JSON.stringify(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-logger'))});
 
 const config = JSON.parse(process.argv[2]);
 const planningDir = process.argv[3];
@@ -399,7 +399,7 @@ probe.on('connect', () => {
   process.exit(0);
 });
 probe.on('error', () => {
-  const serverPath = path.join(${JSON.stringify(path.join(__dirname, '..', 'hooks'))}, 'hook-server.js');
+  const serverPath = path.join(${JSON.stringify(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts'))}, 'hook-server.js');
   if (!fs.existsSync(serverPath)) {
     process.stdout.write(JSON.stringify({ action: 'server-missing' }));
     process.exit(0);

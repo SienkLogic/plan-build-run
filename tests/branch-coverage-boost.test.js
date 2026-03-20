@@ -27,7 +27,7 @@ afterEach(() => {
 // ─── validate-task.js branch coverage ─────────────────────────────────────────
 
 describe('validate-task additional branch coverage', () => {
-  const { checkTask, checkDocExistence } = require('../hooks/validate-task');
+  const { checkTask, checkDocExistence } = require('../plugins/pbr/scripts/validate-task');
 
   test('no warning when description is not a string (number)', () => {
     const w = checkTask({ tool_input: { description: 42 } });
@@ -66,7 +66,7 @@ describe('validate-task additional branch coverage', () => {
 describe('check-subagent-output additional branches', () => {
   let handleHttp;
   try {
-    handleHttp = require('../hooks/check-subagent-output').handleHttp;
+    handleHttp = require('../plugins/pbr/scripts/check-subagent-output').handleHttp;
   } catch (_e) {
     // Module may not export handleHttp
   }
@@ -95,7 +95,7 @@ describe('check-subagent-output additional branches', () => {
 describe('event-handler additional branches', () => {
   let handleHttp;
   try {
-    handleHttp = require('../hooks/event-handler').handleHttp;
+    handleHttp = require('../plugins/pbr/scripts/event-handler').handleHttp;
   } catch (_e) { /* */ }
 
   if (handleHttp) {
@@ -130,7 +130,7 @@ describe('event-handler additional branches', () => {
 describe('task-completed additional branches', () => {
   let handleHttp;
   try {
-    handleHttp = require('../hooks/task-completed').handleHttp;
+    handleHttp = require('../plugins/pbr/scripts/task-completed').handleHttp;
   } catch (_e) { /* */ }
 
   if (handleHttp) {
@@ -152,7 +152,7 @@ describe('task-completed additional branches', () => {
 // ─── post-write-dispatch.js branch coverage ───────────────────────────────────
 
 describe('post-write-dispatch additional branches', () => {
-  const { processEvent } = require('../hooks/post-write-dispatch');
+  const { processEvent } = require('../plugins/pbr/scripts/post-write-dispatch');
 
   test('processEvent returns null for non-planning file', async () => {
     const result = await processEvent(
@@ -198,7 +198,7 @@ describe('post-write-dispatch additional branches', () => {
 describe('milestone-learnings additional branches', () => {
   let handleHttp;
   try {
-    handleHttp = require('../hooks/milestone-learnings').handleHttp;
+    handleHttp = require('../plugins/pbr/scripts/milestone-learnings').handleHttp;
   } catch (_e) { /* */ }
 
   if (handleHttp) {
@@ -214,7 +214,7 @@ describe('milestone-learnings additional branches', () => {
 describe('prompt-routing additional branches', () => {
   let handleHttp;
   try {
-    handleHttp = require('../hooks/prompt-routing').handleHttp;
+    handleHttp = require('../plugins/pbr/scripts/prompt-routing').handleHttp;
   } catch (_e) { /* */ }
 
   if (handleHttp) {
@@ -238,7 +238,7 @@ describe('prompt-routing additional branches', () => {
 // ─── config.cjs additional branch coverage ────────────────────────────────────
 
 describe('config.cjs additional branches', () => {
-  const { configValidate } = require('../plan-build-run/bin/lib/config.cjs');
+  const { configValidate } = require('../plugins/pbr/scripts/lib/config');
 
   // local_llm endpoint validation removed — feature deprecated in phase 53
   test('validates config with local_llm enabled produces deprecation warning', () => {
@@ -262,7 +262,7 @@ describe('config.cjs additional branches', () => {
 // ─── core.cjs additional branch coverage ──────────────────────────────────────
 
 describe('core.cjs additional branches', () => {
-  const { normalizePhaseName, generateSlugInternal, comparePhaseNum, toPosixPath, isGitIgnored, escapeRegex } = require('../plan-build-run/bin/lib/core.cjs');
+  const { normalizePhaseName, generateSlugInternal, comparePhaseNum, toPosixPath, isGitIgnored, escapeRegex } = require('../plugins/pbr/scripts/lib/core');
 
   test('normalizePhaseName pads single digit', () => {
     expect(normalizePhaseName('3')).toBe('03');

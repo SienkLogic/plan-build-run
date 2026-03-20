@@ -10,7 +10,7 @@ const {
   checkAgentFeedbackLoop,
   checkSessionMetrics,
   getAllPhase10Checks
-} = require('../hooks/lib/health-checks');
+} = require('../plugins/pbr/scripts/lib/health-checks');
 
 let tmpDir, planningDir;
 

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { historyAppend, historyLoad } = require('../hooks/lib/history');
+const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/history');
 
 let tmpDir, planningDir;
 

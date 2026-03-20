@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { resolveProjectRoot, clearRootCache } = require('../hooks/lib/resolve-root');
+const { resolveProjectRoot, clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 let tmpDir;
 

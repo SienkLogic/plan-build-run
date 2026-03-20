@@ -10,7 +10,7 @@ const {
   phaseAlternatives,
   prerequisiteAlternatives,
   configAlternatives
-} = require('../hooks/lib/alternatives');
+} = require('../plugins/pbr/scripts/lib/alternatives');
 
 let tmpDir, planningDir;
 

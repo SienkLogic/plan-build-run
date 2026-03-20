@@ -7,7 +7,7 @@ const {
   AUTONOMY_LEVELS,
   ADAPTIVE_THRESHOLDS,
   LEVEL_BEHAVIORS
-} = require('../hooks/lib/autonomy');
+} = require('../plugins/pbr/scripts/lib/autonomy');
 
 describe('exported constants', () => {
   test('AUTONOMY_LEVELS contains all 4 levels', () => {

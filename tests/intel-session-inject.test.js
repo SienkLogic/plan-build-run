@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 
 // We test the exported functions from the hooks/ copy (used by progress-tracker tests)
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'progress-tracker.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'progress-tracker.js');
 
 describe('intel session injection', () => {
   let tmpDir;

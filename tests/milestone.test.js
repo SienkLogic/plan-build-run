@@ -23,7 +23,7 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const { cmdRequirementsMarkComplete, cmdMilestoneComplete } = require('../plan-build-run/bin/lib/milestone.cjs');
+const { cmdRequirementsMarkComplete, cmdMilestoneComplete } = require('../plugins/pbr/scripts/lib/milestone');
 
 describe('cmdRequirementsMarkComplete', () => {
   test('outputs error when REQUIREMENTS.md is missing', () => {

@@ -9,7 +9,7 @@ const { execSync } = require('child_process');
 const PERFORMANCE_BUDGET_MS = process.platform === 'win32' ? 1500 : 800;
 const _PRODUCTION_TARGET_MS = 500;
 
-const HOOKS_DIR = path.join(__dirname, '..', 'hooks');
+const HOOKS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 /**
  * Measure execution time of a hook script.

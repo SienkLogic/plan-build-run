@@ -36,7 +36,7 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const { cmdValidateHealth } = require('../plan-build-run/bin/lib/verify.cjs');
+const { cmdValidateHealth } = require('../plugins/pbr/scripts/lib/verify');
 
 function getOutput() {
   return mockStdout.mock.calls.map(c => c[0]).join('');

@@ -12,47 +12,47 @@ jest.mock('child_process', () => ({
 }));
 
 // Mock hook-logger and event-logger (loaded by progress-tracker)
-jest.mock('../hooks/hook-logger', () => ({
+jest.mock('../plugins/pbr/scripts/hook-logger', () => ({
   logHook: jest.fn(),
 }));
-jest.mock('../hooks/event-logger', () => ({
+jest.mock('../plugins/pbr/scripts/event-logger', () => ({
   logEvent: jest.fn(),
 }));
 
 // Mock other deps that progress-tracker imports at top level
-jest.mock('../plan-build-run/bin/lib/config.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/config', () => ({
   configLoad: jest.fn(() => null),
   configValidate: jest.fn(() => ({ warnings: [], errors: [] })),
 }));
-jest.mock('../plan-build-run/bin/lib/core.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/core', () => ({
   sessionSave: jest.fn(),
   sessionLoad: jest.fn(() => ({})),
   ensureSessionDir: jest.fn(),
   cleanStaleSessions: jest.fn(() => []),
 }));
-jest.mock('../plan-build-run/bin/lib/local-llm/index.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/index', () => ({
   resolveConfig: jest.fn(() => ({ enabled: false })),
   checkHealth: jest.fn(),
   warmUp: jest.fn(),
 }));
-jest.mock('../plan-build-run/bin/lib/intel.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/intel', () => ({
   intelStatus: jest.fn(() => ({ disabled: true })),
 }));
-jest.mock('../hooks/suggest-compact', () => ({
+jest.mock('../plugins/pbr/scripts/suggest-compact', () => ({
   resetCounter: jest.fn(),
 }));
-jest.mock('../hooks/session-tracker', () => ({
+jest.mock('../plugins/pbr/scripts/session-tracker', () => ({
   resetTracker: jest.fn(),
 }));
-jest.mock('../plan-build-run/bin/lib/learnings.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/learnings', () => ({
   checkDeferralThresholds: jest.fn(() => []),
 }));
-jest.mock('../hooks/sync-context-to-claude', () => ({
+jest.mock('../plugins/pbr/scripts/sync-context-to-claude', () => ({
   syncContextToClaude: jest.fn(),
 }));
 
-const { buildEnhancedBriefing } = require('../hooks/progress-tracker');
-const { logHook } = require('../hooks/hook-logger');
+const { buildEnhancedBriefing } = require('../plugins/pbr/scripts/progress-tracker');
+const { logHook } = require('../plugins/pbr/scripts/hook-logger');
 
 let tmpDir;
 let planningDir;

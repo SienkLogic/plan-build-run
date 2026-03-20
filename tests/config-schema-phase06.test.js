@@ -1,6 +1,6 @@
 'use strict';
 
-const schema = require('../plan-build-run/bin/config-schema.json');
+const schema = require('../plugins/pbr/scripts/config-schema.json');
 
 describe('Phase 06 config toggles', () => {
   const features = schema.properties.features.properties;

@@ -7,8 +7,8 @@
 const path = require('path');
 const { execSync } = require('child_process');
 
-const RUN_HOOK = path.join(__dirname, '..', 'hooks', 'run-hook.js');
-const HOOKS_JSON = path.join(__dirname, '..', 'hooks', 'hooks.json');
+const RUN_HOOK = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'run-hook.js');
+const HOOKS_JSON = path.join(__dirname, '..', 'plugins', 'pbr', 'hooks', 'hooks.json');
 
 
 describe('run-hook.js', () => {

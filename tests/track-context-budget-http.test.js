@@ -8,7 +8,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'track-context-budget.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'track-context-budget.js');
 const { handleHttp, processEvent } = require(SCRIPT);
 
 describe('track-context-budget.js handleHttp parity', () => {

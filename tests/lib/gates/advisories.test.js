@@ -6,7 +6,7 @@ const {
   checkDebuggerAdvisory,
   checkCheckpointManifest,
   checkActiveSkillIntegrity
-} = require('../../../plan-build-run/bin/lib/gates/advisories.cjs');
+} = require('../../../plugins/pbr/scripts/lib/gates/advisories');
 
 describe('checkDebuggerAdvisory', () => {
   let tmpDir;

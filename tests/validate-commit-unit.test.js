@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkCommit, enrichCommitLlm } = require('../hooks/validate-commit');
+const { checkCommit, enrichCommitLlm } = require('../plugins/pbr/scripts/validate-commit');
 
 let tmpDir;
 

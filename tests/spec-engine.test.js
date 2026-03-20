@@ -95,7 +95,7 @@ describe('spec-engine', () => {
   let specEngine;
 
   beforeAll(() => {
-    specEngine = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'spec-engine.cjs'));
+    specEngine = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'spec-engine.js'));
   });
 
   describe('parsePlanToSpec()', () => {

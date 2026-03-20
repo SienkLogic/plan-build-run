@@ -18,7 +18,7 @@ const {
   checkDebuggerAdvisory,
   checkActiveSkillIntegrity,
   KNOWN_AGENTS
-} = require('../hooks/validate-task');
+} = require('../plugins/pbr/scripts/validate-task');
 
 let tmpDir;
 let planningDir;
@@ -795,7 +795,7 @@ describe('main() error paths', () => {
   });
 
   test('checkDocExistence blocks when active skill is plan and docs missing', () => {
-    const { checkDocExistence: checkDocs } = require('../hooks/validate-task');
+    const { checkDocExistence: checkDocs } = require('../plugins/pbr/scripts/validate-task');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'plan');
     fs.writeFileSync(path.join(planningDir, 'STATE.md'), 'state');
     fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), 'roadmap');
@@ -807,7 +807,7 @@ describe('main() error paths', () => {
   });
 
   test('checkDocExistence returns null when active skill is not plan/build', () => {
-    const { checkDocExistence: checkDocs } = require('../hooks/validate-task');
+    const { checkDocExistence: checkDocs } = require('../plugins/pbr/scripts/validate-task');
     fs.writeFileSync(path.join(planningDir, '.active-skill'), 'review');
     const result = checkDocs({ tool_input: { subagent_type: 'pbr:verifier' } });
     expect(result).toBeNull();
@@ -827,6 +827,6 @@ describe('main() error paths', () => {
 
 describe('module loading', () => {
   test('validate-task module loads without throwing', () => {
-    expect(() => require('../hooks/validate-task.js')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/validate-task')).not.toThrow();
   });
 });

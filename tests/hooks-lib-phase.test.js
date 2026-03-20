@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { configClearCache } = require('../hooks/lib/config');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 const {
   frontmatter,
   planIndex,
@@ -22,7 +22,7 @@ const {
   milestoneStats,
   phaseComplete,
   phaseInsert
-} = require('../hooks/lib/phase');
+} = require('../plugins/pbr/scripts/lib/phase');
 
 // --- Fixtures ---
 

@@ -4,7 +4,7 @@ const path = require('path');
 describe('dashboard skill', () => {
   describe('config schema includes dashboard section', () => {
     it('has dashboard properties in config-schema.json', () => {
-      const schemaPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'config-schema.json');
+      const schemaPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json');
       const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
 
       expect(schema.properties.dashboard).toBeDefined();
@@ -16,7 +16,7 @@ describe('dashboard skill', () => {
   });
 
   describe('dashboard config validation', () => {
-    const { configValidate, configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configValidate, configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
     beforeEach(() => {
       configClearCache();

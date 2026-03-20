@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { statusRender, progressBar } = require('../hooks/lib/status-render');
+const { statusRender, progressBar } = require('../plugins/pbr/scripts/lib/status-render');
 
 describe('progressBar', () => {
   test('0% => all empty blocks', () => {

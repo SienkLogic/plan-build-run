@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { updateRequirementStatus, getRequirementStatus, markPhaseRequirements } = require('../plan-build-run/bin/lib/requirements.cjs');
+const { updateRequirementStatus, getRequirementStatus, markPhaseRequirements } = require('../plugins/pbr/scripts/lib/requirements');
 
 function makeTmpDir() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-req-'));

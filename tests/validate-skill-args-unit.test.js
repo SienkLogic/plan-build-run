@@ -1,7 +1,7 @@
 // Consolidated from validate-skill-args.test.js + validate-skill-args-unit.test.js
 'use strict';
 
-const { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN } = require('../hooks/validate-skill-args');
+const { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN } = require('../plugins/pbr/scripts/validate-skill-args');
 
 describe('checkSkillArgs branch coverage', () => {
   test('returns null for non-plan skills', () => {

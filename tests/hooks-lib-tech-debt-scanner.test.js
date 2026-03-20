@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { scanTechDebt } = require('../hooks/lib/tech-debt-scanner');
+const { scanTechDebt } = require('../plugins/pbr/scripts/lib/tech-debt-scanner');
 
 let tmpDir;
 

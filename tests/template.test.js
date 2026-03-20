@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { cmdTemplateSelect, cmdTemplateFill } = require('../plan-build-run/bin/lib/template.cjs');
+const { cmdTemplateSelect, cmdTemplateFill } = require('../plugins/pbr/scripts/lib/template');
 
 let tmpDir;
 let mockExit;

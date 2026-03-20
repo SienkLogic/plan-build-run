@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'post-write-dispatch.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'post-write-dispatch.js');
 
 function makeTmpDir() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-pwd-http-'));

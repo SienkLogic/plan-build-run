@@ -9,7 +9,7 @@ const {
   loadHooksConfig,
   findLocalBin,
   detectConsoleLogs,
-} = require('../hooks/post-write-quality');
+} = require('../plugins/pbr/scripts/post-write-quality');
 
 let tmpDir;
 let origCwd;

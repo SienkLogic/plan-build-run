@@ -23,11 +23,11 @@ describe('hook-logger.js', () => {
   });
 
   function getLogger() {
-    return require('../hooks/hook-logger');
+    return require('../plugins/pbr/scripts/hook-logger');
   }
 
   function getDatedLogPath(planDir) {
-    const { getLogFilename } = require('../hooks/hook-logger');
+    const { getLogFilename } = require('../plugins/pbr/scripts/hook-logger');
     return path.join(planDir, 'logs', getLogFilename());
   }
 
@@ -248,7 +248,7 @@ describe('hook-logger.js', () => {
   test('uses appendFileSync not readFile for writing', () => {
     // Verify the implementation uses append-only pattern
     const loggerSource = fs.readFileSync(
-      path.join(__dirname, '..', 'hooks', 'hook-logger.js'),
+      path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-logger.js'),
       'utf8'
     );
     // Should use appendFileSync

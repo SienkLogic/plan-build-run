@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 
 // Mock the LLM classify-artifact module
-jest.mock('../hooks/local-llm/operations/classify-artifact', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact', () => ({
   classifyArtifact: jest.fn().mockResolvedValue(null)
 }));
 
@@ -27,7 +27,7 @@ const {
   validateConfig,
   validateResearch,
   validateContext
-} = require('../hooks/lib/format-validators');
+} = require('../plugins/pbr/scripts/lib/format-validators');
 
 let tmpDir;
 

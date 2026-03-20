@@ -65,7 +65,7 @@ describe('Phase 2 config schema properties', () => {
   describe('schema consistency', () => {
     test('both config-schema.json copies are identical', () => {
       const pluginSchema = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json'));
-      const binSchema = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'config-schema.json'));
+      const binSchema = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json'));
       expect(JSON.stringify(pluginSchema)).toBe(JSON.stringify(binSchema));
     });
   });

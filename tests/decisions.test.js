@@ -7,7 +7,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { recordDecision, listDecisions, getDecision, supersedeDecision, slugify } = require('../plan-build-run/bin/lib/decisions.cjs');
+const { recordDecision, listDecisions, getDecision, supersedeDecision, slugify } = require('../plugins/pbr/scripts/lib/decisions');
 
 function makeTmpDir() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-decisions-'));

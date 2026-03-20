@@ -10,7 +10,7 @@ let loadEnforcementConfig, checkUnmanagedSourceWrite, checkNonPbrAgent, checkUnm
 
 beforeAll(() => {
   try {
-    const m = require('../hooks/enforce-pbr-workflow');
+    const m = require('../plugins/pbr/scripts/enforce-pbr-workflow');
     loadEnforcementConfig = m.loadEnforcementConfig;
     checkUnmanagedSourceWrite = m.checkUnmanagedSourceWrite;
     checkNonPbrAgent = m.checkNonPbrAgent;

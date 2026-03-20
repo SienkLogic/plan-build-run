@@ -9,7 +9,7 @@ const _os = require('os');
 describe('Multi-agent config toggles', () => {
   test('config defaults all 3 multi-agent toggles to false', () => {
     // Load config module's depth profile defaults
-    const { DEPTH_PROFILE_DEFAULTS } = require('../plan-build-run/bin/lib/config.cjs');
+    const { DEPTH_PROFILE_DEFAULTS } = require('../plugins/pbr/scripts/lib/config');
 
     // All profiles should have the 3 toggles set to false
     for (const [_profileName, profile] of Object.entries(DEPTH_PROFILE_DEFAULTS)) {
@@ -20,7 +20,7 @@ describe('Multi-agent config toggles', () => {
   });
 
   test('quality profile keeps multi-agent toggles false (experimental)', () => {
-    const { DEPTH_PROFILE_DEFAULTS } = require('../plan-build-run/bin/lib/config.cjs');
+    const { DEPTH_PROFILE_DEFAULTS } = require('../plugins/pbr/scripts/lib/config');
 
     // Quality profile specifically must keep these false — they are experimental
     const quality = DEPTH_PROFILE_DEFAULTS.comprehensive;
@@ -34,7 +34,7 @@ describe('TeamCoordinator', () => {
   let TeamCoordinator;
 
   beforeAll(() => {
-    TeamCoordinator = require('../plan-build-run/bin/lib/team-coordinator.cjs').TeamCoordinator;
+    TeamCoordinator = require('../plugins/pbr/scripts/lib/team-coordinator').TeamCoordinator;
   });
 
   test('spawnTeam returns early when features.agent_teams is false', () => {

@@ -15,11 +15,11 @@ const {
   parseTodoFilename,
   generateSlug,
   findHighestNumber
-} = require('../plan-build-run/bin/lib/todo.cjs');
+} = require('../plugins/pbr/scripts/lib/todo');
 
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'fake-project');
-const SCRIPTS_DIR = path.join(__dirname, '..', 'plan-build-run', 'bin');
-const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.cjs');
+const SCRIPTS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
+const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.js');
 
 /**
  * Helper: return todo functions bound to cwd's .planning dir.
@@ -28,7 +28,7 @@ const TOOL_PATH = path.join(SCRIPTS_DIR, 'pbr-tools.cjs');
  */
 function requireFreshPbrTools() {
   jest.resetModules();
-  const todoLib = require('../plan-build-run/bin/lib/todo.cjs');
+  const todoLib = require('../plugins/pbr/scripts/lib/todo');
   const planningDir = path.join(process.cwd(), '.planning');
   return {
     todoList: (opts) => todoLib.todoList(planningDir, opts),

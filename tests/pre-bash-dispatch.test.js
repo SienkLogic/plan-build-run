@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { createRunner } = require('./helpers');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-bash-dispatch.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pre-bash-dispatch.js');
 const _run = createRunner(SCRIPT);
 const runScript = (toolInput, cwd) => _run({ tool_input: toolInput }, { cwd: cwd || os.tmpdir() });
 

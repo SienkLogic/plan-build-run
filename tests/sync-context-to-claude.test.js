@@ -7,7 +7,7 @@ const path = require('path');
 // Will fail until sync-context-to-claude.js is created
 let syncModule;
 try {
-  syncModule = require('../hooks/sync-context-to-claude');
+  syncModule = require('../plugins/pbr/scripts/sync-context-to-claude');
 } catch (_e) {
   syncModule = null;
 }

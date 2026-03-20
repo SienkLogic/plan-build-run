@@ -10,7 +10,7 @@ const {
   writeSnapshot,
   loadLatestSnapshot,
   formatSnapshotBriefing
-} = require('../hooks/lib/snapshot-manager');
+} = require('../plugins/pbr/scripts/lib/snapshot-manager');
 
 let tmpDir, planningDir;
 

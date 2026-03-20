@@ -7,13 +7,13 @@ jest.mock('child_process');
 jest.mock('fs');
 
 // Mock hook-logger to avoid file system writes during tests
-jest.mock('../hooks/hook-logger', () => ({
+jest.mock('../plugins/pbr/scripts/hook-logger', () => ({
   logHook: jest.fn()
 }));
 
 const { execSync } = require('child_process');
 const fs = require('fs');
-const { checkRequirePaths, checkMirrorSync, checkLintErrors } = require('../hooks/lib/pre-commit-checks');
+const { checkRequirePaths, checkMirrorSync, checkLintErrors } = require('../plugins/pbr/scripts/lib/pre-commit-checks');
 
 beforeEach(() => {
   jest.clearAllMocks();

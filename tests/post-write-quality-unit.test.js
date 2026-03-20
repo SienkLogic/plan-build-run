@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkQuality, loadHooksConfig, findLocalBin, runPrettier, runTypeCheck, detectConsoleLogs } = require('../hooks/post-write-quality');
+const { checkQuality, loadHooksConfig, findLocalBin, runPrettier, runTypeCheck, detectConsoleLogs } = require('../plugins/pbr/scripts/post-write-quality');
 
 let tmpDir;
 let planningDir;

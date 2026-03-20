@@ -1,10 +1,10 @@
-const { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../hooks/suggest-compact');
+const { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL } = require('../plugins/pbr/scripts/suggest-compact');
 const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'suggest-compact.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'suggest-compact.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 
@@ -72,7 +72,7 @@ describe('suggest-compact.js', () => {
 
   describe('getScaledThreshold', () => {
     test('returns 250 when config has context_window_tokens: 1000000', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
       configClearCache();
@@ -82,7 +82,7 @@ describe('suggest-compact.js', () => {
     });
 
     test('returns 50 (default) when no config', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       const { tmpDir, planningDir } = createTmpPlanning();
       configClearCache();
       expect(getScaledThreshold(planningDir)).toBe(50);
@@ -367,7 +367,7 @@ describe('suggest-compact.js', () => {
 
     test('identifies stale entries', () => {
       const { tmpDir, planningDir } = createTmpPlanning();
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       // Write config with stale_after_minutes: 60
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         context_ledger: { enabled: true, stale_after_minutes: 60 }
@@ -406,7 +406,7 @@ describe('suggest-compact.js', () => {
 
     test('checkCompaction includes composition when bridge tier active and ledger exists', () => {
       const { tmpDir, planningDir } = createTmpPlanning();
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       configClearCache();
 
       // Set up bridge at DEGRADING tier (55%)
@@ -469,7 +469,7 @@ describe('suggest-compact.js', () => {
 
   describe('threshold scaling boundaries', () => {
     test('getScaledThreshold returns 50 at 200k tokens (base)', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 200000 }));
       configClearCache();
@@ -479,7 +479,7 @@ describe('suggest-compact.js', () => {
     });
 
     test('getScaledThreshold returns 125 at 500k tokens', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 500000 }));
       configClearCache();
@@ -489,7 +489,7 @@ describe('suggest-compact.js', () => {
     });
 
     test('getScaledThreshold scales with orchestrator_budget_pct', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       const { tmpDir, planningDir } = createTmpPlanning();
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         context_window_tokens: 200000,

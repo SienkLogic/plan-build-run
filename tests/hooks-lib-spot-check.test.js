@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { spotCheck, verifySpotCheck } = require('../hooks/lib/spot-check');
+const { spotCheck, verifySpotCheck } = require('../plugins/pbr/scripts/lib/spot-check');
 
 let tmpDir, planningDir;
 

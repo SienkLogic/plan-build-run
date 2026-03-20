@@ -8,16 +8,16 @@ const path = require('path');
 const os = require('os');
 
 // Mock execGit before requiring post-hoc
-jest.mock('../plan-build-run/bin/lib/core.cjs', () => {
-  const actual = jest.requireActual('../plan-build-run/bin/lib/core.cjs');
+jest.mock('../plugins/pbr/scripts/lib/core', () => {
+  const actual = jest.requireActual('../plugins/pbr/scripts/lib/core');
   return {
     ...actual,
     execGit: jest.fn(),
   };
 });
 
-const { execGit } = require('../plan-build-run/bin/lib/core.cjs');
-const { generateSummary, parseGitLog, buildCommitGrep } = require('../plan-build-run/bin/lib/post-hoc.cjs');
+const { execGit } = require('../plugins/pbr/scripts/lib/core');
+const { generateSummary, parseGitLog, buildCommitGrep } = require('../plugins/pbr/scripts/lib/post-hoc');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'post-hoc-test-'));

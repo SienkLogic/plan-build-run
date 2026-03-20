@@ -1,9 +1,9 @@
-const { checkSummaryGate, parseFrontmatter, hasSummaryFile, findPhaseDir, ADVANCED_STATUSES } = require('../hooks/check-summary-gate');
+const { checkSummaryGate, parseFrontmatter, hasSummaryFile, findPhaseDir, ADVANCED_STATUSES } = require('../plugins/pbr/scripts/check-summary-gate');
 const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-summary-gate.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-summary-gate.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 

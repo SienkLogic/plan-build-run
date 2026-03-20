@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const schema = require('../plan-build-run/bin/config-schema.json');
+const schema = require('../plugins/pbr/scripts/config-schema.json');
 
 describe('agent-teams', () => {
   describe('config schema', () => {

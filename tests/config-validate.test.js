@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPTS = path.join(__dirname, '..', 'plan-build-run', 'bin');
+const SCRIPTS = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
 const {
   saveUserDefaults,
   mergeUserDefaults,
   USER_DEFAULTS_PATH
-} = require(path.join(SCRIPTS, 'lib', 'config.cjs'));
+} = require(path.join(SCRIPTS, 'lib', 'config.js'));
 
 // configValidate reads from process.cwd()/.planning/config.json
 // We need to test it via CLI execution in a temp directory
@@ -18,7 +18,7 @@ let planningDir;
 
 function run() {
   const result = execSync(
-    `node ${path.join(SCRIPTS, 'pbr-tools.cjs')} config validate`,
+    `node ${path.join(SCRIPTS, 'pbr-tools.js')} config validate`,
     { cwd: tmpDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
   );
   return JSON.parse(result);
@@ -150,7 +150,7 @@ describe('config validate', () => {
   test('handles missing config.json gracefully', () => {
     // .planning exists but config.json does not
     const result = execSync(
-      `node ${path.join(SCRIPTS, 'pbr-tools.cjs')} config validate`,
+      `node ${path.join(SCRIPTS, 'pbr-tools.js')} config validate`,
       { cwd: tmpDir, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const parsed = JSON.parse(result);

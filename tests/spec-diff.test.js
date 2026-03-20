@@ -257,8 +257,8 @@ describe('spec-diff', () => {
   let parsePlanToSpec;
 
   beforeAll(() => {
-    specDiff = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'spec-diff.cjs'));
-    parsePlanToSpec = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'spec-engine.cjs')).parsePlanToSpec;
+    specDiff = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'spec-diff.js'));
+    parsePlanToSpec = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'spec-engine.js')).parsePlanToSpec;
   });
 
   describe('diffSpecs()', () => {

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { selectTests, getImpactScope, formatTestCommand } = require('../plan-build-run/bin/lib/test-selection.cjs');
+const { selectTests, getImpactScope, formatTestCommand } = require('../plugins/pbr/scripts/lib/test-selection');
 
 describe('getImpactScope', () => {
   test('categorizes changed files correctly', () => {

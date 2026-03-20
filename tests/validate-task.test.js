@@ -4,7 +4,7 @@ const path = require('path');
 const os = require('os');
 const { createRunner } = require('./helpers');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'validate-task.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-task.js');
 
 // Use a clean temp dir without .planning/ to avoid enforce-pbr-workflow gate
 // triggering on stale .planning dirs left by other tests in os.tmpdir().

@@ -12,7 +12,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'milestone-learnings.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'milestone-learnings.js');
 
 describe('milestone-learnings.js', () => {
   let tmpDir;

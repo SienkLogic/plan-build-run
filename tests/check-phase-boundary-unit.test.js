@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkBoundary, getEnforceSetting } = require('../hooks/check-phase-boundary');
+const { checkBoundary, getEnforceSetting } = require('../plugins/pbr/scripts/check-phase-boundary');
 
 let tmpDir;
 let planningDir;

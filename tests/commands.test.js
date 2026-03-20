@@ -33,7 +33,7 @@ const {
   cmdResolveModel,
   cmdSummaryExtract,
   cmdProgressRender,
-} = require('../plan-build-run/bin/lib/commands.cjs');
+} = require('../plugins/pbr/scripts/lib/commands');
 
 function getOutput() {
   return mockStdout.mock.calls.map(c => c[0]).join('');

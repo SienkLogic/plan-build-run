@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkDangerous } = require('../hooks/check-dangerous-commands');
+const { checkDangerous } = require('../plugins/pbr/scripts/check-dangerous-commands');
 
 let tmpDir;
 let planningDir;

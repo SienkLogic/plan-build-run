@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const migrate = require('../plan-build-run/bin/lib/migrate.cjs');
+const migrate = require('../plugins/pbr/scripts/lib/migrate');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-migrate-test-'));

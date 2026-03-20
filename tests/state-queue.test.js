@@ -11,7 +11,7 @@ const {
   stateEnqueueBatch,
   stateDrain,
   STATE_QUEUE_DIR
-} = require('../plan-build-run/bin/lib/state-queue.cjs');
+} = require('../plugins/pbr/scripts/lib/state-queue');
 
 describe('state-queue.cjs', () => {
   let tmpDir;

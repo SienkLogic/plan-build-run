@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { getHooksLogPath } = require('./helpers');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 const {
   getHookHealthSummary,
@@ -13,7 +13,7 @@ const {
   detectOtherSessions,
   FAILURE_DECISIONS,
   HOOK_HEALTH_MAX_ENTRIES,
-} = require('../hooks/progress-tracker');
+} = require('../plugins/pbr/scripts/progress-tracker');
 
 let tmpDir;
 let planningDir;

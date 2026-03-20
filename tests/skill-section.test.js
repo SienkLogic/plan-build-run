@@ -1,7 +1,7 @@
 'use strict';
 
 const path = require('path');
-const { skillSection, resolveSkillPath, listAvailableSkills } = require('../plan-build-run/bin/lib/skill-section.cjs');
+const { skillSection, resolveSkillPath, listAvailableSkills } = require('../plugins/pbr/scripts/lib/skill-section');
 
 // Plugin root resolves to plugins/pbr/ from the repo root
 const pluginRoot = path.join(__dirname, '..', 'plugins', 'pbr');

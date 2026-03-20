@@ -24,7 +24,7 @@ const {
   readBridgeData,
   readTrackerData,
   getHeuristicThresholds
-} = require('../hooks/lib/context');
+} = require('../plugins/pbr/scripts/lib/context');
 
 // --- getHeuristicThresholds ---
 

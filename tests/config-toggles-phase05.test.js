@@ -9,7 +9,7 @@ const {
   configClearCache,
   configValidate,
   DEPTH_PROFILE_DEFAULTS,
-} = require('../plan-build-run/bin/lib/config.cjs');
+} = require('../plugins/pbr/scripts/lib/config');
 
 let tmpDir;
 let planningDir;

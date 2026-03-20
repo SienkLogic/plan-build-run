@@ -9,9 +9,9 @@ const { createRunner } = require('./helpers');
 const {
   parseState, getRoadmapPhaseStatus, checkSync, parseRoadmapPhases,
   checkFilesystemDrift, isHighRisk, validatePostMilestone
-} = require('../hooks/check-roadmap-sync');
+} = require('../plugins/pbr/scripts/check-roadmap-sync');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-roadmap-sync.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-roadmap-sync.js');
 const _run = createRunner(SCRIPT);
 const runScript = (input, cwd) => _run(input, { cwd });
 

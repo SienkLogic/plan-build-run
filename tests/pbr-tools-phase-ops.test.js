@@ -12,13 +12,13 @@ const {
   phaseAdd,
   phaseRemove,
   phaseInsert
-} = require('../plan-build-run/bin/lib/phase.cjs');
+} = require('../plugins/pbr/scripts/lib/phase');
 
 const {
   roadmapAppendPhase,
   roadmapRemovePhase,
   roadmapRenumberPhases
-} = require('../plan-build-run/bin/lib/roadmap.cjs');
+} = require('../plugins/pbr/scripts/lib/roadmap');
 
 let tmpDir;
 

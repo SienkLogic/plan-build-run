@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { historyAppend, historyLoad } = require('../plan-build-run/bin/lib/history.cjs');
+const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/history');
 
 let tmpDir;
 let planningDir;

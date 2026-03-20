@@ -5,7 +5,7 @@
  * Endpoint validation removed in phase 53 — local_llm feature deprecated.
  */
 
-const { configValidate } = require('../../plan-build-run/bin/lib/config.cjs');
+const { configValidate } = require('../../plugins/pbr/scripts/lib/config');
 
 function makeConfig(localLlm) {
   return {

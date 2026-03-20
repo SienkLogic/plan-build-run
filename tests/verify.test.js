@@ -40,7 +40,7 @@ const {
   cmdVerifyKeyLinks,
   cmdValidateConsistency,
   cmdValidateHealth,
-} = require('../plan-build-run/bin/lib/verify.cjs');
+} = require('../plugins/pbr/scripts/lib/verify');
 
 function getOutput() {
   return mockStdout.mock.calls.map(c => c[0]).join('');

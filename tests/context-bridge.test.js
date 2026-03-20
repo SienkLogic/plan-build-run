@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'context-bridge.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'context-bridge.js');
 
 // Import module exports for unit tests
 const {
@@ -141,7 +141,7 @@ describe('context-bridge.js', () => {
 
     test('scales with context_window_tokens from config (1M → 20%)', () => {
       // hooks/context-bridge.js uses plan-build-run/bin/lib/config.cjs
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       // Write 1M config: denominator becomes 4000000
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
       configClearCache();
@@ -483,7 +483,7 @@ describe('context-bridge.js', () => {
     });
 
     test('getEffectiveThresholds returns linear thresholds when threshold_curve is linear', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         context_window_tokens: 1000000,
         context_budget: { threshold_curve: 'linear' }
@@ -495,7 +495,7 @@ describe('context-bridge.js', () => {
     });
 
     test('getEffectiveThresholds returns adaptive thresholds when threshold_curve is adaptive', () => {
-      const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+      const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
       fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
         context_window_tokens: 1000000,
         context_budget: { threshold_curve: 'adaptive' }

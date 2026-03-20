@@ -9,7 +9,7 @@ const {
   tryLaunchDashboard,
   tryLaunchHookServer,
   getEnrichedContext,
-} = require('../hooks/lib/dashboard-launch');
+} = require('../plugins/pbr/scripts/lib/dashboard-launch');
 
 let tmpDir;
 let planningDir;

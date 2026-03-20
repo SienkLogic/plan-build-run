@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPTS_DIR = path.join(__dirname, '..', 'hooks');
+const SCRIPTS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 /**
  * Extract reason strings that are part of `decision: 'block'` objects.
@@ -140,7 +140,7 @@ function readScriptContent(script) {
   if (script !== 'validate-task.js') return content;
 
   // Aggregate gate module files so blocking reason checks still work
-  const gatesDir = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'gates');
+  const gatesDir = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'gates');
   let aggregated = content;
   try {
     const gateFiles = fs.readdirSync(gatesDir).filter(f => f.endsWith('.js') || f.endsWith('.cjs'));

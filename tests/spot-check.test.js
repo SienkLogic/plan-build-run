@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { spotCheck } = require('../plan-build-run/bin/lib/spot-check.cjs');
+const { spotCheck } = require('../plugins/pbr/scripts/lib/spot-check');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-spot-check-test-'));

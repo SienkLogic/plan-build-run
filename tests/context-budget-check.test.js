@@ -1,12 +1,12 @@
 const { getHooksLogPath, getEventsLogPath } = require('./helpers');
-const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../hooks/context-budget-check');
+const { readRoadmapSummary, readCurrentPlan, readConfigHighlights, buildRecoveryContext, readRecentErrors, readRecentAgents } = require('../plugins/pbr/scripts/context-budget-check');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
-const SCRIPT_PATH = path.resolve(__dirname, '..', 'hooks', 'context-budget-check.js');
+const SCRIPT_PATH = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'context-budget-check.js');
 
 function makeTmpDir() {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-cbc-'));

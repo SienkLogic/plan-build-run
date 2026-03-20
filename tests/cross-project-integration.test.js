@@ -9,9 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { patternExtract, patternQuery, patternList } = require('../plan-build-run/bin/lib/patterns.cjs');
-const { templateList, templateInstantiate } = require('../plan-build-run/bin/lib/templates.cjs');
-const { learningsIngest, learningsAggregate } = require('../plan-build-run/bin/lib/learnings.cjs');
+const { patternExtract, patternQuery, patternList } = require('../plugins/pbr/scripts/lib/patterns');
+const { templateList, templateInstantiate } = require('../plugins/pbr/scripts/lib/templates');
+const { learningsIngest, learningsAggregate } = require('../plugins/pbr/scripts/lib/learnings');
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-xp-integration-'));

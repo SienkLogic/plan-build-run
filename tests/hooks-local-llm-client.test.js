@@ -7,7 +7,7 @@ const {
   recordFailure,
   resetCircuit,
   complete
-} = require('../hooks/local-llm/client');
+} = require('../plugins/pbr/scripts/lib/local-llm/client');
 
 // ---- tryParseJSON ----
 

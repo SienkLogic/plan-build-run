@@ -59,7 +59,7 @@ function makePlanningDir(tmpDir, opts) {
 // ---------------------------------------------------------------------------
 
 describe('check-subagent-output.js handleHttp', () => {
-  const mod = require('../hooks/check-subagent-output');
+  const mod = require('../plugins/pbr/scripts/check-subagent-output');
   let tmpDir;
   let planningDir;
 
@@ -133,7 +133,7 @@ describe('check-subagent-output.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('log-tool-failure.js handleHttp', () => {
-  const mod = require('../hooks/log-tool-failure');
+  const mod = require('../plugins/pbr/scripts/log-tool-failure');
 
   test('exports handleHttp as a function', () => {
     expect(typeof mod.handleHttp).toBe('function');
@@ -182,7 +182,7 @@ describe('log-tool-failure.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('log-subagent.js handleHttp', () => {
-  const mod = require('../hooks/log-subagent');
+  const mod = require('../plugins/pbr/scripts/log-subagent');
   let tmpDir;
   let planningDir;
 
@@ -253,7 +253,7 @@ describe('log-subagent.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('event-handler.js handleHttp', () => {
-  const mod = require('../hooks/event-handler');
+  const mod = require('../plugins/pbr/scripts/event-handler');
   let tmpDir;
   let planningDir;
 
@@ -348,7 +348,7 @@ describe('event-handler.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('task-completed.js handleHttp', () => {
-  const mod = require('../hooks/task-completed');
+  const mod = require('../plugins/pbr/scripts/task-completed');
   let tmpDir;
   let planningDir;
 
@@ -437,7 +437,7 @@ describe('task-completed.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('instructions-loaded.js handleHttp', () => {
-  const mod = require('../hooks/instructions-loaded');
+  const mod = require('../plugins/pbr/scripts/instructions-loaded');
   let tmpDir;
   let planningDir;
 
@@ -494,7 +494,7 @@ describe('instructions-loaded.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('context-budget-check.js handleHttp', () => {
-  const mod = require('../hooks/context-budget-check');
+  const mod = require('../plugins/pbr/scripts/context-budget-check');
   let tmpDir;
   let planningDir;
 
@@ -549,7 +549,7 @@ describe('context-budget-check.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('check-config-change.js handleHttp', () => {
-  const mod = require('../hooks/check-config-change');
+  const mod = require('../plugins/pbr/scripts/check-config-change');
   let tmpDir;
   let planningDir;
 
@@ -616,7 +616,7 @@ describe('check-config-change.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('session-cleanup.js handleHttp', () => {
-  const mod = require('../hooks/session-cleanup');
+  const mod = require('../plugins/pbr/scripts/session-cleanup');
   let tmpDir;
   let planningDir;
 
@@ -668,7 +668,7 @@ describe('session-cleanup.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('worktree-create.js handleHttp', () => {
-  const mod = require('../hooks/worktree-create');
+  const mod = require('../plugins/pbr/scripts/worktree-create');
   let tmpDir;
   let worktreeDir;
   let parentDir;
@@ -735,7 +735,7 @@ describe('worktree-create.js handleHttp', () => {
 // ---------------------------------------------------------------------------
 
 describe('worktree-remove.js handleHttp', () => {
-  const mod = require('../hooks/worktree-remove');
+  const mod = require('../plugins/pbr/scripts/worktree-remove');
   let tmpDir;
   let worktreeDir;
 

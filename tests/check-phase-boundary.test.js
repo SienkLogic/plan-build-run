@@ -1,9 +1,9 @@
-const { getEnforceSetting } = require('../hooks/check-phase-boundary');
+const { getEnforceSetting } = require('../plugins/pbr/scripts/check-phase-boundary');
 const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-phase-boundary.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-phase-boundary.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 

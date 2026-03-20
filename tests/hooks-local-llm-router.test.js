@@ -1,11 +1,11 @@
 'use strict';
 
-jest.mock('../hooks/local-llm/shadow', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/shadow', () => ({
   runShadow: jest.fn()
 }));
 
-const { route, scoreComplexity, extractConfidence } = require('../hooks/local-llm/router');
-const { runShadow } = require('../hooks/local-llm/shadow');
+const { route, scoreComplexity, extractConfidence } = require('../plugins/pbr/scripts/lib/local-llm/router');
+const { runShadow } = require('../plugins/pbr/scripts/lib/local-llm/shadow');
 
 // ---- scoreComplexity ----
 

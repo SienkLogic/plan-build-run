@@ -13,8 +13,8 @@ describe('reverse-spec', () => {
   let tmpDir;
 
   beforeAll(() => {
-    reverseSpec = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'reverse-spec.cjs'));
-    serializeSpec = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'spec-engine.cjs')).serializeSpec;
+    reverseSpec = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'reverse-spec.js'));
+    serializeSpec = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'spec-engine.js')).serializeSpec;
   });
 
   beforeEach(() => {

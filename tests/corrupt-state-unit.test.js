@@ -8,8 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { suggestNext } = require('../hooks/lib/suggest-next');
-const { statusRender } = require('../hooks/lib/status-render');
+const { suggestNext } = require('../plugins/pbr/scripts/lib/suggest-next');
+const { statusRender } = require('../plugins/pbr/scripts/lib/status-render');
 const { checkBuildDependencyGate } = require('../plugins/pbr/scripts/lib/gates/build-dependency');
 const { checkReviewPlannerGate } = require('../plugins/pbr/scripts/lib/gates/review-planner');
 

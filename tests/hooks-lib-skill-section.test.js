@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { skillSection, resolveSkillPath, listAvailableSkills } = require('../hooks/lib/skill-section');
+const { skillSection, resolveSkillPath, listAvailableSkills } = require('../plugins/pbr/scripts/lib/skill-section');
 
 let tmpDir, pluginRoot;
 

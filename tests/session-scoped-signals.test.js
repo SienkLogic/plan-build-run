@@ -19,11 +19,11 @@ const {
   sessionLoad,
   sessionSave,
   writeActiveSkill
-} = require('../plan-build-run/bin/lib/core.cjs');
+} = require('../plugins/pbr/scripts/lib/core');
 
 const {
   detectOtherSessions
-} = require('../hooks/progress-tracker');
+} = require('../plugins/pbr/scripts/progress-tracker');
 
 // --- Helpers ---
 

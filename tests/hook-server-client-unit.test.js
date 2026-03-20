@@ -12,7 +12,7 @@ const {
   DEFAULT_PORT,
   CIRCUIT_FAILURE_THRESHOLD,
   CIRCUIT_COOLDOWN_MS,
-} = require('../hooks/hook-server-client');
+} = require('../plugins/pbr/scripts/hook-server-client');
 
 let tmpDir;
 let planningDir;

@@ -8,7 +8,7 @@ const { createTmpPlanning, cleanupTmp } = require('./helpers');
 const {
   readActiveSkill, checkSkillRules, hasPlanFile, checkWorkflow,
   checkStatuslineContent
-} = require('../hooks/check-skill-workflow');
+} = require('../plugins/pbr/scripts/check-skill-workflow');
 
 let tmpDir;
 let planningDir;

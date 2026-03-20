@@ -7,7 +7,7 @@ const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
 // Import the writeAutoVerifySignal indirectly via module — it's not exported.
 // We test it through the main flow by testing shouldAutoVerify + getPhaseFromState combinations.
-const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, isVerifierAgent, handleHttp } = require('../hooks/event-handler');
+const { isExecutorAgent, shouldAutoVerify, getPhaseFromState, isVerifierAgent, handleHttp } = require('../plugins/pbr/scripts/event-handler');
 
 let tmpDir;
 let planningDir;

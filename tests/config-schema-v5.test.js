@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SCHEMA_PLUGIN = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json');
-const SCHEMA_BIN = path.join(__dirname, '..', 'plan-build-run', 'bin', 'config-schema.json');
+const SCHEMA_BIN = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'config-schema.json');
 
 describe('Config Schema v5 — Phase 1 feature properties', () => {
   let schema;

@@ -1,5 +1,5 @@
-const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../hooks/status-line');
-const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+const { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS } = require('../plugins/pbr/scripts/status-line');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
 /** Strip ANSI escape codes for readable assertions */
 function strip(str) {

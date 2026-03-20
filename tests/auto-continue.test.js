@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { getLogFilename } = require('../hooks/hook-logger');
+const { getLogFilename } = require('../plugins/pbr/scripts/hook-logger');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'auto-continue.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'auto-continue.js');
 
 describe('auto-continue.js', () => {
   let tmpDir;
@@ -737,7 +737,7 @@ describe('auto-continue.js', () => {
       fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
 
       // Run session-cleanup
-      const cleanupScript = path.join(__dirname, '..', 'hooks', 'session-cleanup.js');
+      const cleanupScript = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'session-cleanup.js');
       try {
         execSync(`node "${cleanupScript}"`, {
           cwd: tmpDir,

@@ -5,7 +5,7 @@ const {
   isCriticalMessage,
   shouldThrottleDefault,
   _defaultState
-} = require('../hooks/lib/notification-throttle');
+} = require('../plugins/pbr/scripts/lib/notification-throttle');
 
 describe('notification-throttle', () => {
   let state;

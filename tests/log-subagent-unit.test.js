@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
-const { buildAgentContext, resolveAgentType, handleHttp } = require('../hooks/log-subagent');
+const { buildAgentContext, resolveAgentType, handleHttp } = require('../plugins/pbr/scripts/log-subagent');
 
 let tmpDir;
 let planningDir;
@@ -389,7 +389,7 @@ describe('resolveAgentType completeness', () => {
 
 describe('trackAgentCost', () => {
   // Import trackAgentCost and thresholds from the hooks version
-  const { trackAgentCost, AGENT_SPAWN_WARN_THRESHOLD, AGENT_SPAWN_CRITICAL_THRESHOLD } = require('../hooks/log-subagent');
+  const { trackAgentCost, AGENT_SPAWN_WARN_THRESHOLD, AGENT_SPAWN_CRITICAL_THRESHOLD } = require('../plugins/pbr/scripts/log-subagent');
 
   test('returns null for first spawn', () => {
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);

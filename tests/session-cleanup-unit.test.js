@@ -13,7 +13,7 @@ const {
   findOrphanedProgressFiles,
   extractSessionLearnings,
   handleHttp,
-} = require('../hooks/session-cleanup');
+} = require('../plugins/pbr/scripts/session-cleanup');
 
 let tmpDir;
 let planningDir;
@@ -260,7 +260,7 @@ describe('handleHttp', () => {
 
 describe('DIRECT_FALLBACK_SCRIPTS includes session-cleanup', () => {
   test('hook-server-client.js contains session-cleanup in DIRECT_FALLBACK_SCRIPTS', () => {
-    const source = fs.readFileSync(path.join(__dirname, '..', 'hooks', 'hook-server-client.js'), 'utf8');
+    const source = fs.readFileSync(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server-client.js'), 'utf8');
     expect(source).toContain("'session-cleanup': 'session-cleanup'");
   });
 });

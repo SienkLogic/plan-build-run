@@ -3,9 +3,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createRunner } = require('./helpers');
-const { checkDangerous } = require('../hooks/check-dangerous-commands');
+const { checkDangerous } = require('../plugins/pbr/scripts/check-dangerous-commands');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-dangerous-commands.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-dangerous-commands.js');
 const _run = createRunner(SCRIPT);
 const run = (cmd) => _run({ tool_input: { command: cmd } });
 

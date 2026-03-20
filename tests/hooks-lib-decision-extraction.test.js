@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
-const { DECISION_PATTERNS, extractDecisions, handleDecisionExtraction, extractNegativeKnowledge } = require('../hooks/lib/decision-extraction');
+const { DECISION_PATTERNS, extractDecisions, handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/lib/decision-extraction');
 
 let tmpDir;
 let planningDir;

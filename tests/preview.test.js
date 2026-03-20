@@ -11,9 +11,9 @@ const os = require('os');
 const path = require('path');
 
 // Under test
-const { buildPreview } = require('../plan-build-run/bin/lib/preview.cjs');
+const { buildPreview } = require('../plugins/pbr/scripts/lib/preview');
 
-const PLUGIN_ROOT = path.join(__dirname, '..', 'plan-build-run');
+const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

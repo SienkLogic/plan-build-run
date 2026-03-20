@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { lockedFileUpdate } = require('../plan-build-run/bin/lib/core.cjs');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
 
 let tmpDir;
 

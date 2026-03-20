@@ -9,7 +9,7 @@ const {
   templateInstantiate,
   USER_TEMPLATES_DIR,
   BUILT_IN_TEMPLATES,
-} = require('../plan-build-run/bin/lib/templates.cjs');
+} = require('../plugins/pbr/scripts/lib/templates');
 
 // --- Helpers ---
 

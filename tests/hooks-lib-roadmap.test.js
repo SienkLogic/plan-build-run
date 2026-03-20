@@ -17,7 +17,7 @@ const {
   roadmapRemovePhase,
   roadmapRenumberPhases,
   roadmapInsertPhase
-} = require('../hooks/lib/roadmap');
+} = require('../plugins/pbr/scripts/lib/roadmap');
 
 // Fixture content for old-format ROADMAP.md (Phase Overview table)
 const OLD_FORMAT_ROADMAP = [

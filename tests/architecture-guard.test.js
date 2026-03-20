@@ -10,8 +10,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { getLogFilename } = require('../hooks/hook-logger');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { getLogFilename } = require('../plugins/pbr/scripts/hook-logger');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 // Helper: create a temp project with .planning
 function makeTempProject(opts = {}) {

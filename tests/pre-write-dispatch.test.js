@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'pre-write-dispatch.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'pre-write-dispatch.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 

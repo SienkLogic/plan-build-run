@@ -6,7 +6,7 @@
  * for common triage scenarios.
  */
 
-jest.mock('../plan-build-run/bin/lib/local-llm/health.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/health', () => ({
   resolveConfig: jest.fn(() => ({
     enabled: true,
     model: 'test-model',
@@ -16,11 +16,11 @@ jest.mock('../plan-build-run/bin/lib/local-llm/health.cjs', () => ({
   }))
 }));
 
-jest.mock('../plan-build-run/bin/lib/local-llm/operations/triage-test-output.cjs', () => ({
+jest.mock('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output', () => ({
   triageTestOutput: jest.fn()
 }));
 
-jest.mock('../hooks/hook-logger', () => ({
+jest.mock('../plugins/pbr/scripts/hook-logger', () => ({
   logHook: jest.fn()
 }));
 
@@ -33,8 +33,8 @@ jest.mock('fs', () => {
   };
 });
 
-const { handleHttp, checkTestTriage } = require('../hooks/post-bash-triage');
-const { triageTestOutput } = require('../plan-build-run/bin/lib/local-llm/operations/triage-test-output.cjs');
+const { handleHttp, checkTestTriage } = require('../plugins/pbr/scripts/post-bash-triage');
+const { triageTestOutput } = require('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output');
 
 beforeEach(() => {
   jest.clearAllMocks();

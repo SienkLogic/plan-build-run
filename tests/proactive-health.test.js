@@ -12,7 +12,7 @@ const os = require('os');
 let checkFeatureHealth;
 
 beforeAll(() => {
-  checkFeatureHealth = require('../plan-build-run/bin/lib/health.cjs').checkFeatureHealth;
+  checkFeatureHealth = require('../plugins/pbr/scripts/lib/health').checkFeatureHealth;
 });
 
 function makeTmpDir() {

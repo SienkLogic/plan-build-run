@@ -4,8 +4,8 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 const { getHooksLogPath, getEventsLogPath } = require('./helpers');
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'session-cleanup.js');
-const { tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, writeSessionHistory, handleHttp } = require('../hooks/session-cleanup');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'session-cleanup.js');
+const { tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, writeSessionHistory, handleHttp } = require('../plugins/pbr/scripts/session-cleanup');
 
 describe('session-cleanup.js', () => {
   let tmpDir;

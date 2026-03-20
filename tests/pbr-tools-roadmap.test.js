@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { roadmapAnalyze } = require('../plan-build-run/bin/lib/roadmap.cjs');
+const { roadmapAnalyze } = require('../plugins/pbr/scripts/lib/roadmap');
 
 const SAMPLE_ROADMAP = `# Roadmap
 

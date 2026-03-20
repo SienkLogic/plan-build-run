@@ -8,7 +8,7 @@ const {
   configLoad,
   configClearCache,
   configValidate,
-} = require('../plan-build-run/bin/lib/config.cjs');
+} = require('../plugins/pbr/scripts/lib/config');
 
 let tmpDir;
 let planningDir;
@@ -169,7 +169,7 @@ const {
   configSaveDefaults,
   configGet,
   configSet,
-} = require('../plan-build-run/bin/lib/config.cjs');
+} = require('../plugins/pbr/scripts/lib/config');
 
 describe('configResolveDepth', () => {
   test('defaults to standard depth', () => {

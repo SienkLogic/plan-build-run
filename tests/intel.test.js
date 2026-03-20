@@ -24,10 +24,10 @@ const {
   intelPatchMeta,
   INTEL_FILES,
   INTEL_DIR
-} = require('../plan-build-run/bin/lib/intel.cjs');
+} = require('../plugins/pbr/scripts/lib/intel');
 
 // Suppress config cache between tests
-const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
 /**
  * Create a temp directory with .planning/intel/ structure and a config.json.

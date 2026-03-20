@@ -7,7 +7,7 @@ const {
   shouldInlineExecution,
   parsePlanTasks,
   parsePlanFrontmatter
-} = require('../hooks/lib/gates/inline-execution');
+} = require('../plugins/pbr/scripts/lib/gates/inline-execution');
 
 let tmpDir, planningDir;
 

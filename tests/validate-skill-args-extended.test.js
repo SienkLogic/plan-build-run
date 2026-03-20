@@ -11,7 +11,7 @@ const {
   PLAN_VALID_PATTERN,
   ROUTE_PATTERNS,
   PHASE_SKILLS
-} = require('../hooks/validate-skill-args');
+} = require('../plugins/pbr/scripts/validate-skill-args');
 
 let tmpDir;
 

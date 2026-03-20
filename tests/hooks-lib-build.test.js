@@ -21,7 +21,7 @@ const {
   seedsMatch,
   ciPoll,
   rollback
-} = require('../hooks/lib/build');
+} = require('../plugins/pbr/scripts/lib/build');
 
 let tmpDir, planningDir;
 

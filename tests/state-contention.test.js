@@ -6,8 +6,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { lockedFileUpdate } = require('../plan-build-run/bin/lib/core.cjs');
-const { statePatch, stateAdvancePlan } = require('../plan-build-run/bin/lib/state.cjs');
+const { lockedFileUpdate } = require('../plugins/pbr/scripts/lib/core');
+const { statePatch, stateAdvancePlan } = require('../plugins/pbr/scripts/lib/state');
 
 describe('state contention handling', () => {
   let tmpDir;

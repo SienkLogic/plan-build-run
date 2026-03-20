@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { list, query, summary } = require('../plan-build-run/bin/lib/incidents.cjs');
+const { list, query, summary } = require('../plugins/pbr/scripts/lib/incidents');
 
 let tmpDir;
 let planningDir;

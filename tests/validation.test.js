@@ -62,7 +62,7 @@ describe('config defaults - Phase 14 features', () => {
 
 // ─── getValidationPasses tests (Task 14-01-T2) ─────────────────────────────
 
-const { getValidationPasses, buildValidationPrompt, getValidationSummary, PASS_DEFINITIONS } = require('../plan-build-run/bin/lib/validation.cjs');
+const { getValidationPasses, buildValidationPrompt, getValidationSummary, PASS_DEFINITIONS } = require('../plugins/pbr/scripts/lib/validation');
 
 describe('getValidationPasses', () => {
   test('returns empty array when feature disabled', () => {

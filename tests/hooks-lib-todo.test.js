@@ -14,7 +14,7 @@ const {
   parseTodoFile,
   findHighestNumber,
   generateSlug
-} = require('../hooks/lib/todo');
+} = require('../plugins/pbr/scripts/lib/todo');
 
 let tmpDir, planningDir;
 

@@ -12,7 +12,7 @@ const {
   detectSchemaVersion,
   getMigrationPath,
   applyMigrations
-} = require('../hooks/lib/migrate');
+} = require('../plugins/pbr/scripts/lib/migrate');
 
 let tmpDir, planningDir;
 

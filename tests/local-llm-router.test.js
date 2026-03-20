@@ -16,9 +16,9 @@
  * In the stub, operations just return default responses.
  */
 
-const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
-const { validateTask } = require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs');
-const { classifyError } = require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs');
+const { classifyArtifact } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact');
+const { validateTask } = require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task');
+const { classifyError } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-error');
 
 describe('Operations through stub router path', () => {
   const disabledConfig = {
@@ -54,28 +54,28 @@ describe('Operations through stub router path', () => {
 
 describe('Stub module structure', () => {
   test('all operation modules are loadable', () => {
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs')).not.toThrow();
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/classify-commit.cjs')).not.toThrow();
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/classify-error.cjs')).not.toThrow();
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/classify-file-intent.cjs')).not.toThrow();
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/triage-test-output.cjs')).not.toThrow();
-    expect(() => require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/classify-commit')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/classify-error')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/classify-file-intent')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task')).not.toThrow();
   });
 
   test('health module is loadable and exports resolveConfig', () => {
-    const health = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+    const health = require('../plugins/pbr/scripts/lib/local-llm/health');
     expect(typeof health.resolveConfig).toBe('function');
   });
 
   test('metrics module is loadable and exports expected functions', () => {
-    const metrics = require('../plan-build-run/bin/lib/local-llm/metrics.cjs');
+    const metrics = require('../plugins/pbr/scripts/lib/local-llm/metrics');
     expect(typeof metrics.computeLifetimeMetrics).toBe('function');
     expect(typeof metrics.readSessionMetrics).toBe('function');
     expect(typeof metrics.summarizeMetrics).toBe('function');
   });
 
   test('index module is loadable and exports all LLM functions', () => {
-    const index = require('../plan-build-run/bin/lib/local-llm/index.cjs');
+    const index = require('../plugins/pbr/scripts/lib/local-llm/index');
     expect(typeof index.llmHealth).toBe('function');
     expect(typeof index.llmStatus).toBe('function');
     expect(typeof index.llmClassify).toBe('function');

@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { scanFiles, formatFindings, SECURITY_RULES } = require('../plan-build-run/bin/lib/security-scan.cjs');
+const { scanFiles, formatFindings, SECURITY_RULES } = require('../plugins/pbr/scripts/lib/security-scan');
 
 describe('SECURITY_RULES', () => {
   test('has at least 8 rules', () => {

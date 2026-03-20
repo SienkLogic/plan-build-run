@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { checkPreResearch } = require('../hooks/lib/pre-research');
+const { checkPreResearch } = require('../plugins/pbr/scripts/lib/pre-research');
 
 let tmpDir, planningDir;
 

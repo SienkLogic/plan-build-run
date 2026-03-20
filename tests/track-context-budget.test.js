@@ -3,7 +3,7 @@ const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'track-context-budget.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'track-context-budget.js');
 
 describe('track-context-budget.js', () => {
   let tmpDir;
@@ -233,10 +233,10 @@ describe('track-context-budget.js', () => {
   });
 
   test('CHAR_MILESTONE fires at 250k chars (not 50k) when config has 1M tokens', () => {
-    const { processEvent, getScaledMilestones } = require('../hooks/track-context-budget.js');
+    const { processEvent, getScaledMilestones } = require('../plugins/pbr/scripts/track-context-budget');
     // Clear both config caches (hooks/ uses config.cjs, plugins/ uses config.js)
     const { configClearCache: clearPlugins } = require('../plugins/pbr/scripts/lib/config.js');
-    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache: clearHooks } = require('../plugins/pbr/scripts/lib/config');
 
     // Write 1M token config
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
@@ -279,7 +279,7 @@ describe('ledger stale entry detection', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { writeLedgerEntry, readLedger } = require('../hooks/track-context-budget.js');
+  const { writeLedgerEntry, readLedger } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('readLedger returns empty array for malformed JSON', () => {
     fs.writeFileSync(path.join(planningDir, '.context-ledger.json'), '{bad');
@@ -324,7 +324,7 @@ describe('milestone crossing', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { processEvent, UNIQUE_FILE_MILESTONE } = require('../hooks/track-context-budget.js');
+  const { processEvent, UNIQUE_FILE_MILESTONE } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('warns when unique files cross milestone from 9 to 10', () => {
     // Seed tracker just below milestone
@@ -375,7 +375,7 @@ describe('handleHttp path', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { handleHttp } = require('../hooks/track-context-budget.js');
+  const { handleHttp } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('returns null when planningDir is missing', () => {
     const result = handleHttp({ planningDir: '/nonexistent', data: { tool_input: { file_path: '/a.js' } } }, {});
@@ -420,7 +420,7 @@ describe('malformed tool_output', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { processEvent } = require('../hooks/track-context-budget.js');
+  const { processEvent } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('handles undefined tool_output (uses estimated chars)', () => {
     const data = { tool_input: { file_path: '/a.js' } };
@@ -462,10 +462,10 @@ describe('context_window_tokens scaling', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { getScaledMilestones } = require('../hooks/track-context-budget.js');
+  const { getScaledMilestones } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('default milestones at 200k tokens', () => {
-    const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     configClearCache();
     const milestones = getScaledMilestones(planningDir);
     expect(milestones.charMilestone).toBe(50000);
@@ -474,7 +474,7 @@ describe('context_window_tokens scaling', () => {
   });
 
   test('scaled milestones at 1M tokens', () => {
-    const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 1000000 }));
     configClearCache();
     const milestones = getScaledMilestones(planningDir);
@@ -484,7 +484,7 @@ describe('context_window_tokens scaling', () => {
   });
 
   test('scaled milestones at 500k tokens', () => {
-    const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ context_window_tokens: 500000 }));
     configClearCache();
     const milestones = getScaledMilestones(planningDir);
@@ -509,7 +509,7 @@ describe('context ledger', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  const { writeLedgerEntry, readLedger, resetLedger, processEvent } = require('../hooks/track-context-budget.js');
+  const { writeLedgerEntry, readLedger, resetLedger, processEvent } = require('../plugins/pbr/scripts/track-context-budget');
 
   test('writeLedgerEntry creates .context-ledger.json with one entry', () => {
     const entry = { file: '/foo/bar.js', timestamp: '2026-01-01T00:00:00Z', est_tokens: 500, phase: 'test', stale: false };
@@ -563,7 +563,7 @@ describe('context ledger', () => {
   });
 
   test('processEvent writes ledger entry when context_ledger.enabled is true', () => {
-    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache: clearHooks } = require('../plugins/pbr/scripts/lib/config');
 
     // Write config with ledger enabled
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({
@@ -593,7 +593,7 @@ describe('context ledger', () => {
   });
 
   test('processEvent does NOT write ledger when context_ledger.enabled is false', () => {
-    const { configClearCache: clearHooks } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache: clearHooks } = require('../plugins/pbr/scripts/lib/config');
 
     // Write config with ledger disabled
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({

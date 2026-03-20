@@ -1,6 +1,6 @@
 'use strict';
 
-const { parsePlan, parseQuick, parseArgs } = require('../hooks/lib/parse-args');
+const { parsePlan, parseQuick, parseArgs } = require('../plugins/pbr/scripts/lib/parse-args');
 
 describe('parsePlan', () => {
   test('empty string returns valid with phase=null', () => {

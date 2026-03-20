@@ -8,7 +8,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { computeThresholdAdjustments } = require('../hooks/local-llm/threshold-tuner');
+const { computeThresholdAdjustments } = require('../plugins/pbr/scripts/lib/local-llm/threshold-tuner');
 
 let tmpDir;
 

@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { stepVerify, matchPredicate } = require('../hooks/lib/step-verify');
+const { stepVerify, matchPredicate } = require('../plugins/pbr/scripts/lib/step-verify');
 
 let tmpDir, planningDir;
 

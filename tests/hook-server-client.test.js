@@ -4,7 +4,7 @@ const http = require('http');
 const { execSync } = require('child_process');
 const path = require('path');
 
-const CLIENT_SCRIPT = path.join(__dirname, '..', 'hooks', 'hook-server-client.js');
+const CLIENT_SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'hook-server-client.js');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -63,7 +63,7 @@ function createMockServer(responseBody) {
 // ---------------------------------------------------------------------------
 
 describe('hook-server-client.js exports', () => {
-  const { probePort, postHook, HOOK_EVENT_MAP, DEFAULT_PORT } = require('../hooks/hook-server-client');
+  const { probePort, postHook, HOOK_EVENT_MAP, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server-client');
 
   test('DEFAULT_PORT is 19836', () => {
     expect(DEFAULT_PORT).toBe(19836);
@@ -181,7 +181,7 @@ describe('hook-server-client.js process behavior', () => {
 
   test('relays additionalContext to stdout when server responds', async () => {
     // Test via exported postHook rather than process spawn to avoid 200ms hardcoded timeout issues
-    const { postHook } = require('../hooks/hook-server-client');
+    const { postHook } = require('../plugins/pbr/scripts/hook-server-client');
     const response = { additionalContext: 'context injected by server' };
     const { server, port } = await createMockServer(response);
 
@@ -200,7 +200,7 @@ describe('hook-server-client.js process behavior', () => {
 
   test('relays decision and reason to stdout when server responds with block', async () => {
     // Test via exported postHook to avoid 200ms hardcoded timeout issues
-    const { postHook } = require('../hooks/hook-server-client');
+    const { postHook } = require('../plugins/pbr/scripts/hook-server-client');
     const response = { decision: 'block', reason: 'too many tokens' };
     const { server, port } = await createMockServer(response);
 
@@ -217,7 +217,7 @@ describe('hook-server-client.js process behavior', () => {
 
   test('exits 0 and emits nothing when server returns empty object', async () => {
     // Verify that empty server response means no output — tested via probePort + postHook
-    const { postHook, probePort } = require('../hooks/hook-server-client');
+    const { postHook, probePort } = require('../plugins/pbr/scripts/hook-server-client');
     const response = {};
     const { server, port } = await createMockServer(response);
 

@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { checkDocExistence } = require('../plan-build-run/bin/lib/gates/doc-existence.cjs');
+const { checkDocExistence } = require('../plugins/pbr/scripts/lib/gates/doc-existence');
 
 // Helper to create a temp project with .planning/ structure
 function makeTempProject(files = []) {

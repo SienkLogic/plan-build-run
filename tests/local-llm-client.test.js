@@ -17,7 +17,7 @@ const {
   llmSummarize,
   llmMetrics,
   llmAdjustThresholds
-} = require('../plan-build-run/bin/lib/local-llm/index.cjs');
+} = require('../plugins/pbr/scripts/lib/local-llm/index');
 
 describe('local-llm index stub', () => {
   test('llmHealth returns available: false', () => {

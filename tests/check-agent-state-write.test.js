@@ -1,4 +1,4 @@
-const { checkAgentStateWrite, BLOCKED_AGENTS } = require('../hooks/check-agent-state-write');
+const { checkAgentStateWrite, BLOCKED_AGENTS } = require('../plugins/pbr/scripts/check-agent-state-write');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');

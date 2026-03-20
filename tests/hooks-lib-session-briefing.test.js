@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 const {
   buildEnhancedBriefing,
@@ -20,7 +20,7 @@ const {
   getNegativeKnowledgeBriefing,
   FAILURE_DECISIONS,
   HOOK_HEALTH_MAX_ENTRIES,
-} = require('../hooks/lib/session-briefing');
+} = require('../plugins/pbr/scripts/lib/session-briefing');
 
 let tmpDir;
 let planningDir;

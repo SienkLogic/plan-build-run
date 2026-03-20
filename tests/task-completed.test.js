@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const { createRunner, getHooksLogPath, getEventsLogPath } = require('./helpers');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'task-completed.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed.js');
 const _run = createRunner(SCRIPT);
 const runScript = (inputData) => _run(inputData);
 const runScriptInProject = (inputData, projectDir) => _run(inputData, { cwd: projectDir });
@@ -83,7 +83,7 @@ describe('task-completed.js', () => {
   });
 
   describe('handleHttp and readCurrentPhase unit tests', () => {
-    const { handleHttp, readCurrentPhase } = require(path.join(__dirname, '..', 'hooks', 'task-completed'));
+    const { handleHttp, readCurrentPhase } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed'));
 
     let haltTmpDir;
     let planningDir;
@@ -152,7 +152,7 @@ describe('task-completed.js', () => {
   });
 
   describe('checkHaltConditions', () => {
-    const { checkHaltConditions } = require(path.join(__dirname, '..', 'hooks', 'task-completed'));
+    const { checkHaltConditions } = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'task-completed'));
 
     let haltTmpDir;
 

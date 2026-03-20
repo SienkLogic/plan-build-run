@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkQuickExecutorGate } = require('../../../plan-build-run/bin/lib/gates/quick-executor.cjs');
+const { checkQuickExecutorGate } = require('../../../plugins/pbr/scripts/lib/gates/quick-executor');
 
 function makeData(subagentType) {
   return { tool_input: { description: 'Run executor', subagent_type: subagentType } };

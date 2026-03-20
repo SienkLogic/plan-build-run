@@ -15,7 +15,7 @@ const {
   reviewComplete,
   milestoneArchive,
   importComplete
-} = require('../plan-build-run/bin/lib/completion.cjs');
+} = require('../plugins/pbr/scripts/lib/completion');
 
 // Minimal STATE.md v2 frontmatter fixture
 function makeStateMd(overrides = {}) {

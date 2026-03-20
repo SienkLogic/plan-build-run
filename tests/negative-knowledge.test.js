@@ -12,7 +12,7 @@ const {
   queryByFiles,
   listFailures,
   resolveEntry,
-} = require('../plan-build-run/bin/lib/negative-knowledge.cjs');
+} = require('../plugins/pbr/scripts/lib/negative-knowledge');
 
 function makeTempDir() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'nk-test-'));

@@ -13,8 +13,8 @@ const {
   getHooksLogPath,
   getEventsLogPath,
 } = require('./helpers');
-const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
-const { getLogFilename: getEventsFilename } = require('../hooks/event-logger');
+const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
+const { getLogFilename: getEventsFilename } = require('../plugins/pbr/scripts/event-logger');
 
 describe('createTmpPlanning', () => {
   let tmpDir;
@@ -138,7 +138,7 @@ describe('createRunner', () => {
   });
 
   test('works with a real hook script (check-dangerous-commands)', () => {
-    const scriptPath = path.resolve(__dirname, '..', 'hooks', 'check-dangerous-commands.js');
+    const scriptPath = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-dangerous-commands.js');
     const run = createRunner(scriptPath);
     const result = run({ tool_input: { command: 'echo hi' } });
     expect(result.exitCode).toBe(0);

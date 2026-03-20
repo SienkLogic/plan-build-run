@@ -1,4 +1,4 @@
-const { checkBudget } = require('../hooks/enforce-context-budget');
+const { checkBudget } = require('../plugins/pbr/scripts/enforce-context-budget');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');

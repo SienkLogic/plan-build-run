@@ -16,7 +16,7 @@ describe('resolve-root.js', () => {
   });
 
   function getResolver() {
-    return require('../hooks/lib/resolve-root');
+    return require('../plugins/pbr/scripts/lib/resolve-root');
   }
 
   test('finds .planning/ in current dir', () => {

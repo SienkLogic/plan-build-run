@@ -7,7 +7,7 @@ const os = require('os');
 const { createRunner } = require('./helpers');
 
 const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-subagent-output.js');
-const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS, checkTriggeredSeeds } = require('../hooks/check-subagent-output');
+const { AGENT_OUTPUTS, findInPhaseDir, findInQuickDir, checkSummaryCommits, checkDeviationsRequiringReview, isRecent, getCurrentPhase, checkRoadmapStaleness, SKILL_CHECKS, checkTriggeredSeeds } = require('../plugins/pbr/scripts/check-subagent-output');
 
 const _run = createRunner(SCRIPT);
 
@@ -1096,13 +1096,13 @@ describe('Self-Check section validation', () => {
 
 describe('KNOWN_AGENTS sync (B3 fix)', () => {
   test('validate-task.js KNOWN_AGENTS matches core.cjs', () => {
-    const vtKnown = require(path.join(__dirname, '..', 'hooks', 'validate-task')).KNOWN_AGENTS;
-    const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+    const vtKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'validate-task')).KNOWN_AGENTS;
+    const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
     expect(vtKnown).toEqual(coreKnown);
   });
 
   test('AGENT_OUTPUTS keys are a subset of KNOWN_AGENTS (prefixed)', () => {
-    const coreKnown = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'core.cjs')).KNOWN_AGENTS;
+    const coreKnown = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'core.js')).KNOWN_AGENTS;
     const prefixed = coreKnown.map(a => 'pbr:' + a);
     for (const key of Object.keys(AGENT_OUTPUTS)) {
       expect(prefixed).toContain(key);

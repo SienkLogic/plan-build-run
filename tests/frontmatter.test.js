@@ -14,7 +14,7 @@ const {
   cmdFrontmatterSet,
   cmdFrontmatterMerge,
   cmdFrontmatterValidate,
-} = require('../plan-build-run/bin/lib/frontmatter.cjs');
+} = require('../plugins/pbr/scripts/lib/frontmatter');
 
 describe('extractFrontmatter', () => {
   test('returns empty object for content without frontmatter', () => {

@@ -12,7 +12,7 @@ const {
   checkDeferralThresholds,
   GLOBAL_LEARNINGS_PATH,
   LEARNING_TYPES
-} = require('../plan-build-run/bin/lib/learnings.cjs');
+} = require('../plugins/pbr/scripts/lib/learnings');
 
 // --- Shared entry factory ---
 
@@ -450,7 +450,7 @@ describe('learningsQuery - additional branch coverage', () => {
   });
 
   test('stack filter matches stack_tags array', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       makeEntry({ id: 's1', summary: 's1', tags: ['backend'], stack_tags: ['express'] })
     ], tmpFile);
@@ -460,7 +460,7 @@ describe('learningsQuery - additional branch coverage', () => {
   });
 
   test('entries missing tags are excluded by tag filter', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       makeEntry({ id: 'notags', summary: 'notags' }),
       { id: 'notagsfield', summary: 'no tags field', occurrences: 1 }
@@ -471,7 +471,7 @@ describe('learningsQuery - additional branch coverage', () => {
   });
 
   test('entries missing tags/stack_tags are excluded by stack filter', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'bare', summary: 'bare entry', occurrences: 1 }
     ], tmpFile);
@@ -480,7 +480,7 @@ describe('learningsQuery - additional branch coverage', () => {
   });
 
   test('entries without occurrences sort as 1', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'noocc', summary: 'no occurrences' },
       makeEntry({ id: 'has3', summary: 'has3', occurrences: 3 })
@@ -490,7 +490,7 @@ describe('learningsQuery - additional branch coverage', () => {
   });
 
   test('entries without confidence are filtered out by minConfidence medium', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([
       { id: 'noconf', summary: 'no confidence field', occurrences: 1 },
       makeEntry({ id: 'med', summary: 'med', confidence: 'medium', occurrences: 2 })
@@ -526,7 +526,7 @@ describe('checkDeferralThresholds - additional branches', () => {
   });
 
   test('statistical-confidence triggers when single tag has high occurrence sum', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const entries = [];
     for (let i = 0; i < 4; i++) {
       entries.push(makeEntry({ id: `sc-${i}`, summary: `sc ${i}`, tags: ['hot'], occurrences: 6 }));
@@ -539,7 +539,7 @@ describe('checkDeferralThresholds - additional branches', () => {
   });
 
   test('audit-integration triggers when planning-failure + process-failure > 10', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const entries = [];
     for (let i = 0; i < 6; i++) {
       entries.push(makeEntry({ id: `pf-${i}`, summary: `pf ${i}`, type: 'planning-failure', tags: ['a'] }));
@@ -554,14 +554,14 @@ describe('checkDeferralThresholds - additional branches', () => {
   });
 
   test('entries without tags do not crash tag counting', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([{ id: 'nt', summary: 'no tags' }], tmpFile);
     const result = checkDeferralThresholds({ filePath: tmpFile });
     expect(Array.isArray(result)).toBe(true);
   });
 
   test('entries without occurrences default to 1 in tag counting', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     saveAll([{ id: 'no', summary: 'no occ', tags: ['x'] }], tmpFile);
     // Should not crash; tag 'x' gets count 1
     const result = checkDeferralThresholds({ filePath: tmpFile });
@@ -580,14 +580,14 @@ describe('saveAll', () => {
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
   test('creates nested directories', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const filePath = path.join(tmpDir, 'deep', 'nested', 'learnings.jsonl');
     saveAll([{ id: '1' }], filePath);
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   test('empty entries produces empty file content', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     const filePath = path.join(tmpDir, 'empty.jsonl');
     saveAll([], filePath);
     expect(fs.readFileSync(filePath, 'utf8')).toBe('');
@@ -604,7 +604,7 @@ describe('default filePath fallback (GLOBAL_LEARNINGS_PATH)', () => {
       const osModule = require('os');
       const origHomedir = osModule.homedir;
       osModule.homedir = () => tmpDir;
-      learningsMod = require('../plan-build-run/bin/lib/learnings.cjs');
+      learningsMod = require('../plugins/pbr/scripts/lib/learnings');
       osModule.homedir = origHomedir;
     });
   });
@@ -720,7 +720,7 @@ describe('learningsIngest - does not mutate input', () => {
   });
 
   test('dedup handles existing entry with no occurrences field', () => {
-    const { saveAll } = require('../plan-build-run/bin/lib/learnings.cjs');
+    const { saveAll } = require('../plugins/pbr/scripts/lib/learnings');
     // Manually write an entry missing occurrences field
     saveAll([{
       id: 'dup-no-occ',
@@ -741,7 +741,7 @@ describe('learningsIngest - does not mutate input', () => {
 // --- learningsAggregate ---
 
 describe('global learnings aggregation', () => {
-  const { learningsAggregate } = require('../plan-build-run/bin/lib/learnings.cjs');
+  const { learningsAggregate } = require('../plugins/pbr/scripts/lib/learnings');
 
   let tmpDir, tmpFile;
 

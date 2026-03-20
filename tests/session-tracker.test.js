@@ -1,5 +1,5 @@
-const { resetTracker, incrementTracker, loadTracker, TRACKER_FILE } = require('../hooks/session-tracker');
-const { handleHttp } = require('../hooks/event-handler');
+const { resetTracker, incrementTracker, loadTracker, TRACKER_FILE } = require('../plugins/pbr/scripts/session-tracker');
+const { handleHttp } = require('../plugins/pbr/scripts/event-handler');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -220,7 +220,7 @@ describe('session-tracker', () => {
 
   describe('config schema', () => {
     test('session_phase_limit is in schema with correct constraints', () => {
-      const schema = require('../plan-build-run/bin/config-schema.json');
+      const schema = require('../plugins/pbr/scripts/config-schema.json');
       const prop = schema.properties.session_phase_limit;
       expect(prop).toBeDefined();
       expect(prop.type).toBe('integer');
@@ -232,7 +232,7 @@ describe('session-tracker', () => {
 
   describe('progress-tracker integration', () => {
     test('progress-tracker module loads without error (proves session-tracker require works)', () => {
-      const progressTracker = require('../hooks/progress-tracker');
+      const progressTracker = require('../plugins/pbr/scripts/progress-tracker');
       expect(progressTracker).toBeDefined();
     });
 
@@ -255,7 +255,7 @@ describe('session-tracker', () => {
 
       // Run progress-tracker.js with PBR_PROJECT_ROOT pointing to tmpDir
       try {
-        execSync(`node "${path.join(process.cwd(), 'hooks/progress-tracker.js')}"`, {
+        execSync(`node "${path.join(process.cwd(), 'plugins/pbr/scripts/progress-tracker.js')}"`, {
           env: { ...process.env, PBR_PROJECT_ROOT: tmpDir },
           cwd: tmpDir,
           stdio: 'pipe',

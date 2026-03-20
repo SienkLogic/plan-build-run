@@ -12,7 +12,7 @@ const {
   loadConventions,
   formatConventionBriefing,
   scanFiles
-} = require('../hooks/lib/convention-detector');
+} = require('../plugins/pbr/scripts/lib/convention-detector');
 
 let tmpDir, planningDir;
 

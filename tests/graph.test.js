@@ -103,13 +103,13 @@ function cleanupTemp(tmp) {
 // Clear config cache between tests
 beforeEach(() => {
   try {
-    const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
     configClearCache();
   } catch (_e) { /* ignore */ }
 });
 
 describe('graph.cjs', () => {
-  const graph = require('../plan-build-run/bin/lib/graph.cjs');
+  const graph = require('../plugins/pbr/scripts/lib/graph');
 
   describe('buildGraph', () => {
     test('returns valid graph structure with nodes and edges', () => {

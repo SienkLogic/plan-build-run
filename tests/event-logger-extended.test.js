@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { logEvent, getLogFilename } = require('../hooks/event-logger');
+const { logEvent, getLogFilename } = require('../plugins/pbr/scripts/event-logger');
 
 let tmpDir;
 let origCwd;

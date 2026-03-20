@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
-const { quickInit, generateQuickSlug } = require('../hooks/lib/quick-init');
+const { quickInit, generateQuickSlug } = require('../plugins/pbr/scripts/lib/quick-init');
 
 let tmpDir, planningDir;
 

@@ -10,7 +10,7 @@ const {
   patternList,
   PATTERNS_DIR,
   PATTERN_TYPES,
-} = require('../plan-build-run/bin/lib/patterns.cjs');
+} = require('../plugins/pbr/scripts/lib/patterns');
 
 // --- Helpers ---
 

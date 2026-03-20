@@ -2,10 +2,10 @@ const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { handleHttp } = require('../hooks/log-notification');
-const { createThrottleState, shouldThrottle, isCriticalMessage } = require('../hooks/lib/notification-throttle');
+const { handleHttp } = require('../plugins/pbr/scripts/log-notification');
+const { createThrottleState, shouldThrottle, isCriticalMessage } = require('../plugins/pbr/scripts/lib/notification-throttle');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'log-notification.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'log-notification.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, data) => _run(data, { cwd });
 

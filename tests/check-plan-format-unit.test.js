@@ -7,11 +7,11 @@ const os = require('os');
 const { createRunner } = require('./helpers');
 
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'check-plan-format.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'check-plan-format.js');
 const _run = createRunner(SCRIPT);
 const runScript = (input, cwd) => _run(input, { cwd });
 
-const { checkPlanWrite, checkStateWrite, validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateContext, syncStateBody } = require('../hooks/check-plan-format');
+const { checkPlanWrite, checkStateWrite, validatePlan, validateSummary, validateVerification, validateState, validateRoadmap, validateContext, syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
 
 let tmpDir;
 let planningDir;
@@ -266,7 +266,7 @@ describe('checkPlanWrite — ROADMAP.md path', () => {
 });
 
 describe('validateRoadmap branch coverage', () => {
-  const { validateRoadmap } = require('../hooks/check-plan-format');
+  const { validateRoadmap } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('errors when no milestone sections exist', () => {
     const result = validateRoadmap('# Roadmap\nSome text but no milestones', 'ROADMAP.md');
@@ -313,7 +313,7 @@ describe('validateRoadmap branch coverage', () => {
 // LLM enrichment branch tests removed — local-llm feature deprecated in phase 53
 
 describe('checkStateWrite — syncStateBody branch', () => {
-  const { syncStateBody } = require('../hooks/check-plan-format');
+  const { syncStateBody } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('returns null when no frontmatter', () => {
     expect(syncStateBody('# State\nNo frontmatter', '/tmp/STATE.md')).toBeNull();
@@ -382,7 +382,7 @@ describe('checkStateWrite — syncStateBody branch', () => {
 });
 
 describe('validateVerification branch coverage', () => {
-  const { validateVerification } = require('../hooks/check-plan-format');
+  const { validateVerification } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('unclosed frontmatter is an error', () => {
     const result = validateVerification('---\nstatus: passed\n', 'VERIFICATION.md');
@@ -449,7 +449,7 @@ Body`;
 });
 
 describe('validateLearnings (deprecated — warnings only)', () => {
-  const { validateLearnings } = require('../hooks/check-plan-format');
+  const { validateLearnings } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('always returns deprecation warning for any LEARNINGS.md', () => {
     const content = `---
@@ -546,7 +546,7 @@ Body`;
 });
 
 describe('validateConfig', () => {
-  const { validateConfig } = require('../hooks/check-plan-format');
+  const { validateConfig } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('valid config passes', () => {
     const content = JSON.stringify({ planning: { depth: 'standard' } });
@@ -595,7 +595,7 @@ describe('validateConfig', () => {
 });
 
 describe('validateResearch', () => {
-  const { validateResearch } = require('../hooks/check-plan-format');
+  const { validateResearch } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('valid research passes', () => {
     const content = '---\nconfidence: high\nsources_checked: 5\nphase: 1\n---\n# Research';
@@ -2352,7 +2352,7 @@ describe('validateSummary metrics warnings', () => {
 });
 
 describe('validateSummary deviations field validation', () => {
-  const { validateDeviationsField } = require('../hooks/check-plan-format');
+  const { validateDeviationsField } = require('../plugins/pbr/scripts/check-plan-format');
 
   test('SUMMARY with valid deviations passes without error', () => {
     const content = [
@@ -2537,11 +2537,11 @@ describe('validateVerification fix_plans and gap severity', () => {
 
 describe('LLM integration smoke test', () => {
   test('check-plan-format module loads with LLM requires', () => {
-    expect(() => require('../hooks/check-plan-format.js')).not.toThrow();
+    expect(() => require('../plugins/pbr/scripts/check-plan-format')).not.toThrow();
   });
 
   test('validatePlan still returns structural errors without LLM', () => {
-    const { validatePlan: _vp } = require('../hooks/check-plan-format.js');
+    const { validatePlan: _vp } = require('../plugins/pbr/scripts/check-plan-format');
     const result = _vp('no frontmatter', '/fake/PLAN.md');
     expect(result.errors.length).toBeGreaterThan(0);
   });

@@ -9,7 +9,7 @@ const {
   resolveVerificationDepth,
   LIGHT_THRESHOLD,
   THOROUGH_THRESHOLD
-} = require('../hooks/lib/trust-gate');
+} = require('../plugins/pbr/scripts/lib/trust-gate');
 
 let tmpDir, planningDir;
 

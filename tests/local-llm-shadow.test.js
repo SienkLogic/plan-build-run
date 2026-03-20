@@ -15,9 +15,9 @@
  * In the stub, all operations return default stub responses.
  */
 
-const { classifyArtifact } = require('../plan-build-run/bin/lib/local-llm/operations/classify-artifact.cjs');
-const { validateTask } = require('../plan-build-run/bin/lib/local-llm/operations/validate-task.cjs');
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+const { classifyArtifact } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact');
+const { validateTask } = require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task');
+const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
 
 describe('Shadow mode stub behavior', () => {
   test('stub classifyArtifact returns immediately (no async wait needed)', async () => {

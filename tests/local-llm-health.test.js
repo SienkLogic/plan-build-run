@@ -8,7 +8,7 @@
  * exists and returns expected defaults.
  */
 
-const { resolveConfig } = require('../plan-build-run/bin/lib/local-llm/health.cjs');
+const { resolveConfig } = require('../plugins/pbr/scripts/lib/local-llm/health');
 
 describe('resolveConfig (stub)', () => {
   test('returns enabled: false by default', () => {

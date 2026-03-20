@@ -1,9 +1,9 @@
-const { checkQuality, loadHooksConfig, findLocalBin, detectConsoleLogs } = require('../hooks/post-write-quality');
+const { checkQuality, loadHooksConfig, findLocalBin, detectConsoleLogs } = require('../plugins/pbr/scripts/post-write-quality');
 const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'post-write-quality.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'post-write-quality.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, toolInput) => _run({ tool_input: toolInput }, { cwd });
 

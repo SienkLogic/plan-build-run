@@ -12,7 +12,7 @@ describe('impact-analysis', () => {
   let tmpDir;
 
   beforeAll(() => {
-    impactAnalysis = require(path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'impact-analysis.cjs'));
+    impactAnalysis = require(path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'impact-analysis.js'));
   });
 
   beforeEach(() => {

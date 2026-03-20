@@ -17,7 +17,7 @@ describe('generateOnboardingGuide', () => {
   beforeEach(() => {
     tmpDir = makeTempDir();
     jest.resetModules();
-    generateOnboardingGuide = require('../plan-build-run/bin/lib/onboarding-generator.cjs').generateOnboardingGuide;
+    generateOnboardingGuide = require('../plugins/pbr/scripts/lib/onboarding-generator').generateOnboardingGuide;
   });
 
   afterEach(() => {

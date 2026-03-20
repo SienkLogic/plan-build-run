@@ -4,8 +4,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const CREATE_PATH = path.join(__dirname, '..', 'hooks', 'worktree-create.js');
-const REMOVE_PATH = path.join(__dirname, '..', 'hooks', 'worktree-remove.js');
+const CREATE_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'worktree-create.js');
+const REMOVE_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'worktree-remove.js');
 
 // Helper: stub fs.readFileSync for stdin (fd 0) to return a JSON payload
 function stubStdin(payload, fn) {

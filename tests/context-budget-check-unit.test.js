@@ -4,13 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { getHooksLogPath, getEventsLogPath } = require('./helpers');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 const {
   readRoadmapSummary, readCurrentPlan, readConfigHighlights,
   buildRecoveryContext, readRecentErrors, readRecentAgents, handleHttp,
   readBlockers, readPendingTodos
-} = require('../hooks/context-budget-check');
+} = require('../plugins/pbr/scripts/context-budget-check');
 
 let tmpDir;
 let planningDir;

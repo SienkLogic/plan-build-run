@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { analyzePrompt, handleHttp } = require('../hooks/prompt-routing');
+const { analyzePrompt, handleHttp } = require('../plugins/pbr/scripts/prompt-routing');
 
 function makeTmpDir(configOverrides) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-nlr-'));

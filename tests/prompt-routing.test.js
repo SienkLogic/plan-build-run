@@ -2,9 +2,9 @@ const { createRunner, createTmpPlanning, cleanupTmp } = require('./helpers');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { analyzePrompt, handleHttp, INTENT_PATTERNS } = require('../hooks/prompt-routing');
+const { analyzePrompt, handleHttp, INTENT_PATTERNS } = require('../plugins/pbr/scripts/prompt-routing');
 
-const SCRIPT = path.join(__dirname, '..', 'hooks', 'prompt-routing.js');
+const SCRIPT = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'prompt-routing.js');
 const _run = createRunner(SCRIPT);
 const runScript = (cwd, data) => _run(data, { cwd });
 

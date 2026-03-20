@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const SCRIPTS_DIR = path.resolve(__dirname, '..', 'hooks');
+const SCRIPTS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'scripts');
 
 /**
  * Spawn a hook script with stdin data and capture results.

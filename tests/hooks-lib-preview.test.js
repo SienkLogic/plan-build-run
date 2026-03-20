@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { buildPreview, groupByWave } = require('../hooks/lib/preview');
+const { buildPreview, groupByWave } = require('../plugins/pbr/scripts/lib/preview');
 
 let tmpDir, planningDir;
 

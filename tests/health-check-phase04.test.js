@@ -8,7 +8,7 @@ const path = require('path');
 const os = require('os');
 
 // Dynamically resolve verify.cjs path
-const verifyPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'verify.cjs');
+const verifyPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'verify.js');
 
 function makeTmpDir(configOverrides, _options = {}) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-hc4-'));

@@ -6,7 +6,7 @@ describe('HypothesisRunner', () => {
   let HypothesisRunner;
 
   beforeAll(() => {
-    HypothesisRunner = require('../plan-build-run/bin/lib/hypothesis-runner.cjs').HypothesisRunner;
+    HypothesisRunner = require('../plugins/pbr/scripts/lib/hypothesis-runner').HypothesisRunner;
   });
 
   test('runHypotheses returns early when features.competing_hypotheses is false', () => {

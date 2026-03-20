@@ -1,4 +1,4 @@
-const { MIGRATIONS: _MIGRATIONS, getMigrationPath } = require('../plan-build-run/bin/lib/migrate.cjs');
+const { MIGRATIONS: _MIGRATIONS, getMigrationPath } = require('../plugins/pbr/scripts/lib/migrate');
 
 describe('config migration', () => {
   function migrateConfig(config) {

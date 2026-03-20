@@ -15,11 +15,11 @@ afterEach(() => {
 
 // Clear module cache between tests to get fresh requires
 afterEach(() => {
-  const healthPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'health.cjs');
+  const healthPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'health.js');
   delete require.cache[require.resolve(healthPath)];
 });
 
-const healthPath = path.join(__dirname, '..', 'plan-build-run', 'bin', 'lib', 'health.cjs');
+const healthPath = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts', 'lib', 'health.js');
 
 describe('health-zero-friction', () => {
   describe('checkZeroFrictionHealth', () => {

@@ -11,7 +11,7 @@ const {
   parseRoadmap,
   parseState,
   countDownstream
-} = require('../hooks/lib/smart-next-task');
+} = require('../plugins/pbr/scripts/lib/smart-next-task');
 
 let tmpDir, planningDir;
 

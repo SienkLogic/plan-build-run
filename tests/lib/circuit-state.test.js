@@ -11,7 +11,7 @@ const {
   recordFailurePersistent,
   resetCircuitPersistent,
   STALE_TTL_MS
-} = require('../../plan-build-run/bin/lib/circuit-state.cjs');
+} = require('../../plugins/pbr/scripts/lib/circuit-state');
 
 let tmpDir;
 
