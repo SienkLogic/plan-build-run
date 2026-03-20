@@ -400,6 +400,51 @@ describe('context-bridge.js', () => {
       const { bridge } = updateBridge(planningDir, {});
       expect(bridge.chars_read).toBe(42000);
     });
+
+    test('skips file write when tier unchanged at PEAK (early-exit)', () => {
+      // Seed bridge at PEAK with 5% usage
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      saveBridge(bridgePath, {
+        timestamp: new Date().toISOString(),
+        estimated_percent: 5,
+        source: 'heuristic',
+        last_warned_tier: 'PEAK',
+        calls_since_warn: 0,
+        tool_calls: 10
+      });
+
+      // First call — should take early-exit path (PEAK unchanged)
+      const r1 = updateBridge(planningDir, {});
+      expect(r1.output).toBeNull();
+      expect(r1.bridge.tool_calls).toBe(11);
+
+      // Second call — also early-exit
+      const r2 = updateBridge(planningDir, {});
+      expect(r2.output).toBeNull();
+      expect(r2.bridge.tool_calls).toBe(12);
+    });
+
+    test('writes file when tier escalates from PEAK to DEGRADING', () => {
+      // Seed bridge at PEAK
+      const bridgePath = path.join(planningDir, '.context-budget.json');
+      saveBridge(bridgePath, {
+        timestamp: new Date().toISOString(),
+        estimated_percent: 5,
+        source: 'heuristic',
+        last_warned_tier: 'PEAK',
+        calls_since_warn: 0,
+        tool_calls: 10
+      });
+
+      // Push into DEGRADING tier with high char count
+      const trackerPath = path.join(planningDir, '.context-tracker');
+      fs.writeFileSync(trackerPath, JSON.stringify({ total_chars: 440000 }));
+
+      const { bridge, output } = updateBridge(planningDir, {});
+      expect(output).not.toBeNull();
+      expect(output.additionalContext).toContain('DEGRADING');
+      expect(bridge.last_warned_tier).toBe('DEGRADING');
+    });
   });
 
   // --- adaptive thresholds ---
