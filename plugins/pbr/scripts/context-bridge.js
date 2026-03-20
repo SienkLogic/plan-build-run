@@ -250,6 +250,29 @@ function updateBridge(planningDir, stdinData) {
     tool_calls: 0
   };
 
+  // Early-exit: if bridge already has data and tier is unchanged at PEAK/GOOD,
+  // skip the expensive file write when estimated_percent hasn't changed much.
+  if (bridge && bridge.timestamp) {
+    const earlyThresholds = getEffectiveThresholds(planningDir);
+    const earlyTier = getTier(estimatedPercent, earlyThresholds);
+    const prevTier = bridge.last_warned_tier || 'PEAK';
+    const warnNeeded = shouldWarn(bridge, earlyTier.name);
+
+    if ((earlyTier.name === 'PEAK' || earlyTier.name === 'GOOD') && !warnNeeded && earlyTier.name === prevTier) {
+      // Tier unchanged at PEAK/GOOD with no warning — early exit
+      bridge.tool_calls = (bridge.tool_calls || 0) + 1;
+      bridge.calls_since_warn = (bridge.calls_since_warn || 0) + 1;
+      bridge.timestamp = new Date().toISOString();
+      const percentDelta = Math.abs(estimatedPercent - (bridge.estimated_percent || 0));
+      bridge.estimated_percent = estimatedPercent;
+      // Only write back if estimated_percent changed by more than 2 points (avoid churn)
+      if (percentDelta > 2) {
+        saveBridge(bridgePath, bridge);
+      }
+      return { bridge, output: null };
+    }
+  }
+
   // If status-line.js recently wrote real data (source: "claude-code"),
   // use that instead of the heuristic. Check freshness (< 120 seconds).
   if (bridge && bridge.source === 'claude-code' && bridge.timestamp) {
