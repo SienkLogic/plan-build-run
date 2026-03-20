@@ -50,7 +50,7 @@ describe('lockedFileUpdate', () => {
     expect(fs.existsSync(filePath + '.lock')).toBe(false);
   });
 
-  test('fails when lock is held by another process', () => {
+  test('performs last-resort write when lock is held by another process', () => {
     const filePath = path.join(tmpDir, 'STATE.md');
     fs.writeFileSync(filePath, 'content');
 
@@ -65,10 +65,11 @@ describe('lockedFileUpdate', () => {
       retryDelayMs: 10,
       timeoutMs: 60000 // Very long timeout so lock won't be considered stale
     });
-    expect(result.success).toBe(false);
-    expect(result.error).toContain('Could not acquire lock');
+    // Last-resort write: succeeds even without acquiring lock
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toContain('modified');
 
-    // Clean up manual lock
+    // Clean up manual lock (last-resort write doesn't remove other process's lock)
     fs.unlinkSync(lockPath);
   });
 

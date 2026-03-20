@@ -888,20 +888,23 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
             }
             continue;
           }
-          process.stderr.write(`[pbr] WARN: lock contention on ${path.basename(filePath)} after ${retries} attempts\n`);
-          return { success: false, error: `Could not acquire lock for ${path.basename(filePath)} after ${retries} attempts` };
+          // Last retry exhausted — break to fall through to last-resort write
+          break;
         }
         throw e;
       }
     }
 
     if (!lockAcquired) {
-      return { success: false, error: `Could not acquire lock for ${path.basename(filePath)}` };
+      process.stderr.write(`[pbr] WARN: lock contention on ${path.basename(filePath)} after ${retries} attempts — writing without lock\n`);
+      // Fall through to read-modify-write below (last-resort write)
     }
 
-    fs.writeSync(lockFd, `${process.pid}`);
-    fs.closeSync(lockFd);
-    lockFd = null;
+    if (lockAcquired) {
+      fs.writeSync(lockFd, `${process.pid}`);
+      fs.closeSync(lockFd);
+      lockFd = null;
+    }
 
     let content = '';
     if (fs.existsSync(filePath)) {
