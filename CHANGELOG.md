@@ -2,6 +2,13 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.15.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.14.0...plan-build-run-v2.15.0) — 2026-03-20
+
+### Plugin
+
+* Restore plugin pbr-tools.js and add v15.0 init/completion with correct require paths ([6da71c3b](https://github.com/SienkLogic/plan-build-run/commit/6da71c3b))
+* Fix routing field name mismatch and sync plugin scripts for v15.0 ([ae6d9099](https://github.com/SienkLogic/plan-build-run/commit/ae6d9099))
+
 ## [2.14.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.12.1...plan-build-run-v2.14.0) — 2026-03-20
 
 ### Agents
