@@ -1,38 +1,88 @@
 /**
- * lib/roadmap.js — ROADMAP.md operations for Plan-Build-Run tools.
+ * lib/roadmap.cjs — ROADMAP.md operations for Plan-Build-Run tools.
  *
- * Handles parsing and updating the ROADMAP.md phase overview table.
+ * Handles parsing and updating the ROADMAP.md phase overview table,
+ * comprehensive analysis with disk cross-referencing, and dynamic
+ * phase operations (append, remove, insert, renumber).
+ *
+ * Hybrid module merging PBR reference features with GSD-unique utilities.
  */
 
 const fs = require('fs');
 const path = require('path');
-const { lockedFileUpdate, validateStatusTransition, parseYamlFrontmatter, findFiles } = require('./core');
+const {
+  lockedFileUpdate,
+  validateStatusTransition,
+  parseYamlFrontmatter,
+  findFiles
+} = require('./core');
 
 // --- Parsers ---
 
 function parseRoadmapMd(content) {
   // Normalize CRLF to LF at parse boundary for cross-platform support
   const normalized = content.replace(/\r\n/g, '\n');
+  // Strip <details>/<summary> tags so collapsed milestones are parsed
+  const stripped = normalized
+    .replace(/<\/?details>/gi, '')
+    .replace(/<\/?summary>/gi, '');
   const result = { phases: [], has_progress_table: false };
 
-  // Find Phase Overview table
-  const overviewMatch = normalized.match(/## Phase Overview[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
-  if (overviewMatch) {
-    const rows = overviewMatch[0].split('\n').filter(r => r.includes('|'));
-    // Skip header and separator rows
-    for (let i = 2; i < rows.length; i++) {
-      const cols = rows[i].split('|').map(c => c.trim()).filter(Boolean);
-      if (cols.length >= 3) {
-        result.phases.push({
-          number: cols[0],
-          name: cols[1],
-          goal: cols[2],
-          plans: cols[3] || '',
-          wave: cols[4] || '',
-          status: cols[5] || 'pending'
-        });
+  // Parse Progress table (primary) or Phase Overview table (legacy fallback)
+  const progressMatch = stripped.match(/## Progress[\s\S]*?(?=\n##(?!\s*Progress)|\s*$)/);
+  // Only use Progress table if it actually contains a markdown table with pipe rows
+  const progressRows = progressMatch ? progressMatch[0].split('\n').filter(r => r.includes('|')) : [];
+  if (progressMatch && progressRows.length >= 2) {
+    result.has_progress_table = true;
+    const rows = progressRows;
+    if (rows.length >= 2) {
+      // Dynamic column detection from header row
+      const headers = rows[0].split('|').map(h => h.trim().toLowerCase()).filter(Boolean);
+      const colIdx = {
+        phase: headers.findIndex(h => /phase/i.test(h)),
+        milestone: headers.findIndex(h => /milestone/i.test(h)),
+        plans: headers.findIndex(h => /plans?\s*complete/i.test(h)),
+        status: headers.findIndex(h => /status/i.test(h)),
+        completed: headers.findIndex(h => /completed/i.test(h))
+      };
+
+      // Skip header (0) and separator (1) rows
+      for (let i = 2; i < rows.length; i++) {
+        const cols = rows[i].split('|').map(c => c.trim()).filter(Boolean);
+        if (cols.length >= 2) {
+          result.phases.push({
+            number: colIdx.phase !== -1 ? cols[colIdx.phase] || '' : cols[0] || '',
+            name: '', // Name is embedded in Phase column as "N. Name"
+            goal: '',
+            plans: colIdx.plans !== -1 && colIdx.plans < cols.length ? cols[colIdx.plans] : '',
+            milestone: colIdx.milestone !== -1 && colIdx.milestone < cols.length ? cols[colIdx.milestone] : '',
+            status: colIdx.status !== -1 && colIdx.status < cols.length ? cols[colIdx.status] : 'pending',
+            completed: colIdx.completed !== -1 && colIdx.completed < cols.length ? cols[colIdx.completed] : ''
+          });
+        }
       }
     }
+  } else {
+    // Fallback: try legacy Phase Overview table
+    const overviewMatch = stripped.match(/## Phase Overview[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
+    if (overviewMatch) {
+      const rows = overviewMatch[0].split('\n').filter(r => r.includes('|'));
+      for (let i = 2; i < rows.length; i++) {
+        const cols = rows[i].split('|').map(c => c.trim()).filter(Boolean);
+        if (cols.length >= 3) {
+          result.phases.push({
+            number: cols[0],
+            name: cols[1],
+            goal: cols[2],
+            plans: cols[3] || '',
+            wave: cols[4] || '',
+            status: cols[5] || 'pending'
+          });
+        }
+      }
+    }
+    // Even without a parseable Progress table, note if the heading exists
+    result.has_progress_table = !!progressMatch;
   }
 
   // Heading-based phase discovery fallback: if no table rows produced phases,
@@ -40,7 +90,7 @@ function parseRoadmapMd(content) {
   if (result.phases.length === 0) {
     const headingRe = /#{2,4}\s*Phase\s+(\d+(?:\.\d+)*)\s*:\s*([^\n]+)/gi;
     let hm;
-    while ((hm = headingRe.exec(normalized)) !== null) {
+    while ((hm = headingRe.exec(stripped)) !== null) {
       result.phases.push({
         number: hm[1],
         name: hm[2].trim(),
@@ -51,8 +101,34 @@ function parseRoadmapMd(content) {
     }
   }
 
-  // Check for Progress table
-  result.has_progress_table = /## Progress/.test(normalized);
+  // Parse phase heading blocks for requirements and success criteria
+  const lines = stripped.split('\n');
+  const phaseMap = new Map();
+  for (const phase of result.phases) {
+    const numMatch = String(phase.number).match(/^(\d+)/);
+    if (numMatch) phaseMap.set(parseInt(numMatch[1], 10), phase);
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const phaseMatch = lines[i].match(/^###\s+Phase\s+(\d+)\s*:\s*(.*)/i);
+    if (phaseMatch) {
+      const phaseNum = parseInt(phaseMatch[1], 10);
+      const phase = phaseMap.get(phaseNum);
+      if (phase) {
+        if (!phase.name) phase.name = phaseMatch[2].trim();
+        // Look ahead for fields
+        for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+          if (/^#{1,3}\s/.test(lines[j])) break;
+          const goalMatch = lines[j].match(/\*\*Goal:\*\*\s*(.*)/i);
+          if (goalMatch && !phase.goal) phase.goal = goalMatch[1].trim();
+          const reqMatch = lines[j].match(/\*\*Requirements:\*\*\s*(.*)/i);
+          if (reqMatch) phase.requirements = reqMatch[1].trim();
+          const critMatch = lines[j].match(/\*\*Success Criteria:\*\*\s*(.*)/i);
+          if (critMatch) phase.success_criteria = critMatch[1].trim();
+        }
+      }
+    }
+  }
 
   return result;
 }
@@ -65,13 +141,26 @@ function parseRoadmapMd(content) {
  */
 function findRoadmapRow(lines, phaseNum) {
   const paddedPhase = phaseNum.padStart(2, '0');
+  const numericPhase = String(parseInt(phaseNum, 10));
   for (let i = 0; i < lines.length; i++) {
     if (!lines[i].includes('|')) continue;
+    // Skip separator rows
+    if (/^\s*\|[\s-:|]+\|\s*$/.test(lines[i])) continue;
     const parts = lines[i].split('|');
     if (parts.length < 3) continue;
-    const phaseCol = parts[1] ? parts[1].trim() : '';
-    if (phaseCol === paddedPhase) {
-      return i;
+    // Search ALL columns for a phase number match (handles both old and new column layouts)
+    // Handles v9+ format: "| 21. Phase Name | X/Y | Status |" (number+name merged in 3-col table)
+    // as well as legacy formats: "| 21 | Phase Name | ... |" (separate columns)
+    for (let c = 1; c < parts.length - 1; c++) {
+      const col = (parts[c] || '').trim();
+      // Match "01", "1", "01.", "01. Name", etc.
+      const match = col.match(/^0*(\d+)\./);
+      if (match && (match[1] === numericPhase || col === paddedPhase)) {
+        return i;
+      }
+      if (col === paddedPhase || col === numericPhase) {
+        return i;
+      }
     }
   }
   return -1;
@@ -92,6 +181,28 @@ function updateTableRow(row, columnIndex, newValue) {
     parts[partIndex] = ` ${newValue} `;
   }
   return parts.join('|');
+}
+
+/**
+ * Find the pipe-delimited column index for a header matching `pattern` by
+ * scanning backward from `rowIdx` to find the nearest header row.
+ * Returns the raw split('|') index (includes leading empty element), or -1.
+ */
+function _findColumnIndex(lines, rowIdx, pattern) {
+  // Scan backward from rowIdx to find the header row
+  for (let h = rowIdx - 1; h >= 0; h--) {
+    if (!lines[h].includes('|')) continue;
+    // Skip separator rows
+    if (/^\s*\|[\s-:|]+\|\s*$/.test(lines[h])) continue;
+    // Check if this looks like a header (contains recognizable column names)
+    if (/phase/i.test(lines[h]) || /status/i.test(lines[h]) || /plans/i.test(lines[h])) {
+      const parts = lines[h].split('|');
+      for (let c = 0; c < parts.length; c++) {
+        if (pattern.test(parts[c].trim())) return c;
+      }
+    }
+  }
+  return -1;
 }
 
 // --- Mutation commands ---
@@ -119,9 +230,21 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
     if (rowIdx === -1) {
       return content; // No matching row found
     }
+    // Dynamic column detection: find Status column from nearest header row
+    const statusColIdx = _findColumnIndex(lines, rowIdx, /status/i);
     const parts = lines[rowIdx].split('|');
-    oldStatus = parts[6] ? parts[6].trim() : 'unknown';
-    lines[rowIdx] = updateTableRow(lines[rowIdx], 5, newStatus);
+    if (statusColIdx !== -1 && statusColIdx < parts.length) {
+      oldStatus = parts[statusColIdx] ? parts[statusColIdx].trim() : 'unknown';
+      parts[statusColIdx] = ` ${newStatus} `;
+      lines[rowIdx] = parts.join('|');
+    } else {
+      // Fallback: detect column count to pick correct index
+      // 3-col table (v9+ format): Status at raw index 3; legacy 6-col: index 5
+      const colCount = parts.filter(p => p.trim()).length;
+      const fallbackIdx = colCount <= 3 ? 3 : 5;
+      oldStatus = parts[fallbackIdx] ? parts[fallbackIdx].trim() : (parts[4] ? parts[4].trim() : 'unknown');
+      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx - 1, newStatus);
+    }
     return lines.join(lineEnding);
   });
 
@@ -129,7 +252,7 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
     return { success: false, error: `Phase ${phaseNum} not found in ROADMAP.md table` };
   }
 
-  // Advisory transition validation — warn on suspicious transitions but don't block
+  // Advisory transition validation -- warn on suspicious transitions but don't block
   const transition = validateStatusTransition(oldStatus, newStatus);
   if (!transition.valid && transition.warning) {
     process.stderr.write(`[pbr-tools] WARNING: ${transition.warning}\n`);
@@ -170,9 +293,21 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
     if (rowIdx === -1) {
       return content;
     }
+    // Dynamic column detection: find Plans Complete column from nearest header row
+    const plansColIdx = _findColumnIndex(lines, rowIdx, /plans?\s*complete/i);
     const parts = lines[rowIdx].split('|');
-    oldPlans = parts[4] ? parts[4].trim() : 'unknown';
-    lines[rowIdx] = updateTableRow(lines[rowIdx], 3, newPlans);
+    if (plansColIdx !== -1 && plansColIdx < parts.length) {
+      oldPlans = parts[plansColIdx] ? parts[plansColIdx].trim() : 'unknown';
+      parts[plansColIdx] = ` ${newPlans} `;
+      lines[rowIdx] = parts.join('|');
+    } else {
+      // Fallback: detect column count to pick correct index
+      // 3-col table (v9+ format): Plans Complete at raw index 2; legacy 6-col: index 3
+      const colCount = parts.filter(p => p.trim()).length;
+      const fallbackIdx = colCount <= 3 ? 2 : 3;
+      oldPlans = parts[fallbackIdx + 1] ? parts[fallbackIdx + 1].trim() : (parts[2] ? parts[2].trim() : 'unknown');
+      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx, newPlans);
+    }
     return lines.join(lineEnding);
   });
 
@@ -182,6 +317,101 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
 
   if (result.success) {
     return { success: true, old_plans: oldPlans, new_plans: newPlans };
+  }
+  return { success: false, error: result.error };
+}
+
+/**
+ * Update plan progress for a specific phase in ROADMAP.md.
+ * GSD-unique: updates progress table row, plan count in phase section,
+ * and checkbox completion status.
+ *
+ * @param {string} phaseNum - Phase number
+ * @param {string} [planningDir] - Path to .planning directory
+ */
+function roadmapUpdatePlanProgress(phaseNum, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const roadmapPath = path.join(dir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) {
+    return { success: false, error: 'ROADMAP.md not found' };
+  }
+
+  // Find the phase directory to count plans and summaries
+  const phasesDir = path.join(dir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { success: false, error: 'No phases directory found' };
+  }
+
+  const paddedPhase = String(phaseNum).padStart(2, '0');
+  let phaseDir = null;
+  try {
+    const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith(paddedPhase + '-')) {
+        phaseDir = path.join(phasesDir, entry.name);
+        break;
+      }
+    }
+  } catch (_e) { /* ignore */ }
+
+  if (!phaseDir) {
+    return { success: false, error: `Phase ${phaseNum} directory not found` };
+  }
+
+  const planFiles = findFiles(phaseDir, /PLAN.*\.md$/i);
+  const summaryFiles = findFiles(phaseDir, /SUMMARY.*\.md$/i);
+  const planCount = planFiles.length;
+  const summaryCount = summaryFiles.length;
+
+  if (planCount === 0) {
+    return { success: false, error: 'No plans found', plan_count: 0, summary_count: 0 };
+  }
+
+  const isComplete = summaryCount >= planCount;
+  const status = isComplete ? 'Complete' : summaryCount > 0 ? 'In Progress' : 'Planned';
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { escapeRegex } = require('./core');
+  const phaseEscaped = escapeRegex(String(phaseNum));
+
+  const result = lockedFileUpdate(roadmapPath, (content) => {
+    let updated = content;
+
+    // Progress table row: update Plans column (summaries/plans) and Status column
+    const tablePattern = new RegExp(
+      `(\\|\\s*${phaseEscaped}\\.?\\s[^|]*\\|)[^|]*(\\|)\\s*[^|]*(\\|)\\s*[^|]*(\\|)`,
+      'i'
+    );
+    const dateField = isComplete ? ` ${today} ` : '  ';
+    updated = updated.replace(
+      tablePattern,
+      `$1 ${summaryCount}/${planCount} $2 ${status.padEnd(11)}$3${dateField}$4`
+    );
+
+    // Update plan count in phase detail section
+    const planCountPattern = new RegExp(
+      `(#{2,4}\\s*Phase\\s+${phaseEscaped}[\\s\\S]*?\\*\\*Plans:\\*\\*\\s*)[^\\n]+`,
+      'i'
+    );
+    const planCountText = isComplete
+      ? `${summaryCount}/${planCount} plans complete`
+      : `${summaryCount}/${planCount} plans executed`;
+    updated = updated.replace(planCountPattern, `$1${planCountText}`);
+
+    // If complete: check checkbox
+    if (isComplete) {
+      const checkboxPattern = new RegExp(
+        `(-\\s*\\[)[ ](\\]\\s*.*Phase\\s+${phaseEscaped}[:\\s][^\\n]*)`,
+        'i'
+      );
+      updated = updated.replace(checkboxPattern, `$1x$2 (completed ${today})`);
+    }
+
+    return updated;
+  });
+
+  if (result.success) {
+    return { success: true, phase: phaseNum, plan_count: planCount, summary_count: summaryCount, status, complete: isComplete };
   }
   return { success: false, error: result.error };
 }
@@ -203,9 +433,11 @@ function roadmapAnalyze(planningDir) {
     return { phases: [], current_phase: null, next_phase: null, stats: _emptyStats(), error: 'ROADMAP.md not found' };
   }
 
-  // snapshot pattern: single read, parse from memory — no re-reads during analysis or renumbering
+  // snapshot pattern: single read, parse from memory -- no re-reads during analysis or renumbering
   const content = fs.readFileSync(roadmapPath, 'utf8');
-  const lines = content.split(/\r?\n/);
+  // Strip <details>/<summary> tags so collapsed milestones are parsed correctly
+  const stripped = content.replace(/<\/?details>/gi, '').replace(/<\/?summary>/gi, '');
+  const lines = stripped.split(/\r?\n/);
 
   // 1. Parse phase headings, goals, dependencies from milestone sections
   const phases = _parsePhaseHeadings(lines);
@@ -273,8 +505,11 @@ function _parsePhaseHeadings(lines) {
   const phaseMap = new Map();
   let currentMilestone = null;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  // Strip <details>/<summary> HTML tags from lines so collapsed milestones are parsed
+  const cleanLines = lines.map(l => l.replace(/<\/?details>/gi, '').replace(/<\/?summary>/gi, ''));
+
+  for (let i = 0; i < cleanLines.length; i++) {
+    const line = cleanLines[i];
 
     // Detect milestone heading: ## Milestone: ...  or ## Milestone N: ...
     const milestoneMatch = line.match(/^##\s+Milestone[:\s]+(.*)/i);
@@ -289,11 +524,13 @@ function _parsePhaseHeadings(lines) {
       const phaseNum = parseInt(phaseMatch[1], 10);
       const phaseName = phaseMatch[2].trim();
 
-      // Look ahead for **Goal:** and **Depends on:**
+      // Look ahead for **Goal:**, **Depends on:**, **Requirements:**, **Success Criteria:**
       let goal = '';
       let depends_on = [];
-      for (let j = i + 1; j < Math.min(i + 15, lines.length); j++) {
-        const ahead = lines[j];
+      let requirements = '';
+      let success_criteria = '';
+      for (let j = i + 1; j < Math.min(i + 20, cleanLines.length); j++) {
+        const ahead = cleanLines[j];
         // Stop at next heading
         if (/^#{1,3}\s/.test(ahead)) break;
 
@@ -312,6 +549,16 @@ function _parsePhaseHeadings(lines) {
               .map(Number);
           }
         }
+
+        const reqMatch = ahead.match(/\*\*Requirements:\*\*\s*(.*)/i);
+        if (reqMatch) {
+          requirements = reqMatch[1].trim();
+        }
+
+        const critMatch = ahead.match(/\*\*Success Criteria:\*\*\s*(.*)/i);
+        if (critMatch) {
+          success_criteria = critMatch[1].trim();
+        }
       }
 
       const entry = {
@@ -319,6 +566,8 @@ function _parsePhaseHeadings(lines) {
         name: phaseName,
         goal,
         depends_on,
+        requirements,
+        success_criteria,
         milestone: currentMilestone || 'Unknown',
         progress: null,
         checklist_checked: null,
@@ -344,8 +593,12 @@ function _parsePhaseHeadings(lines) {
 function _mergeProgressTables(lines, phases) {
   const phaseMap = new Map(phases.map(p => [p.number, p]));
   let inProgressSection = false;
+  let progressColIdx = { phase: 0, plans: 1 };
 
-  for (const line of lines) {
+  // Strip <details>/<summary> tags from lines for parsing
+  const cleanLines = lines.map(l => l.replace(/<\/?details>/gi, '').replace(/<\/?summary>/gi, ''));
+
+  for (const line of cleanLines) {
     if (/^##\s+Progress/i.test(line)) {
       inProgressSection = true;
       continue;
@@ -356,17 +609,30 @@ function _mergeProgressTables(lines, phases) {
     }
 
     if (inProgressSection && line.includes('|')) {
-      // Try to extract: | N. Phase Name | X/Y | Status |
       const cols = line.split('|').map(c => c.trim()).filter(Boolean);
+
+      // Detect header row and extract column positions
+      if (/Plans?\s*Complete/i.test(line)) {
+        const lowerCols = cols.map(c => c.toLowerCase());
+        const pIdx = lowerCols.findIndex(c => /phase/i.test(c));
+        const plIdx = lowerCols.findIndex(c => /plans?\s*complete/i.test(c));
+        if (pIdx !== -1) progressColIdx.phase = pIdx;
+        if (plIdx !== -1) progressColIdx.plans = plIdx;
+        continue;
+      }
+
+      // Skip separator rows
+      if (/^[\s-:|]+$/.test(cols.join(''))) continue;
+
       if (cols.length >= 2) {
-        // First col might be "N. Phase Name" or just a number
-        const numMatch = cols[0].match(/^(\d+)/);
+        const phaseCol = cols[progressColIdx.phase] || cols[0];
+        const numMatch = phaseCol.match(/^(\d+)/);
         if (numMatch) {
           const phaseNum = parseInt(numMatch[1], 10);
           const phase = phaseMap.get(phaseNum);
           if (phase) {
-            // Second col is often X/Y progress
-            const progressMatch = cols[1].match(/(\d+)\s*\/\s*(\d+)/);
+            const plansCol = progressColIdx.plans < cols.length ? cols[progressColIdx.plans] : cols[1];
+            const progressMatch = plansCol.match(/(\d+)\s*\/\s*(\d+)/);
             if (progressMatch) {
               phase.progress = `${progressMatch[1]}/${progressMatch[2]}`;
             }
@@ -515,7 +781,6 @@ function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
     }
 
     // Build the phase heading block
-    const _paddedNum = String(phaseNum).padStart(2, '0');
     const block = [];
     block.push(`### Phase ${phaseNum}: ${name}`);
     if (goal) block.push(`**Goal:** ${goal}`);
@@ -538,7 +803,21 @@ function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
     lines.splice(insertIdx, 0, ...block);
 
     // Find and update Progress table: append a row
-    const progressRowLine = `| ${phaseNum}. ${name} | 0/0 | Pending |`;
+    // Detect if existing table has Milestone column
+    let hasMilestoneCol = false;
+    let hasCompletedCol = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('|') && /Plans?\s*Complete/i.test(lines[i])) {
+        hasMilestoneCol = /milestone/i.test(lines[i]);
+        hasCompletedCol = /completed/i.test(lines[i]);
+        break;
+      }
+    }
+    let progressRowLine = `| ${phaseNum}. ${name} |`;
+    if (hasMilestoneCol) progressRowLine += '  |';
+    progressRowLine += ' 0/0 | Pending |';
+    if (hasCompletedCol) progressRowLine += '  |';
+
     let progressTableEnd = -1;
     let inProgressSection = false;
     for (let i = 0; i < lines.length; i++) {
@@ -752,8 +1031,20 @@ function roadmapInsertPhase(planningDir, position, name, goal, dependsOn) {
 
     lines.splice(insertIdx, 0, ...block);
 
-    // Insert progress table row at the right position
-    const progressRow = `| ${position}. ${name} | 0/0 | Pending |`;
+    // Insert progress table row at the right position — detect Milestone/Completed columns
+    let _hasMilestoneCol = false;
+    let _hasCompletedCol = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('|') && /Plans?\s*Complete/i.test(lines[i])) {
+        _hasMilestoneCol = /milestone/i.test(lines[i]);
+        _hasCompletedCol = /completed/i.test(lines[i]);
+        break;
+      }
+    }
+    let progressRow = `| ${position}. ${name} |`;
+    if (_hasMilestoneCol) progressRow += '  |';
+    progressRow += ' 0/0 | Pending |';
+    if (_hasCompletedCol) progressRow += '  |';
     let progressInsertIdx = -1;
     let inProgressSection = false;
     for (let i = 0; i < lines.length; i++) {
@@ -786,15 +1077,37 @@ function roadmapInsertPhase(planningDir, position, name, goal, dependsOn) {
   });
 }
 
+/**
+ * Get a single phase entry from ROADMAP.md by number.
+ *
+ * @param {string} phaseNum - Phase number
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object|null} Phase entry or null
+ */
+function roadmapGetPhase(phaseNum, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const roadmapPath = path.join(dir, 'ROADMAP.md');
+  if (!fs.existsSync(roadmapPath)) {
+    return null;
+  }
+
+  const content = fs.readFileSync(roadmapPath, 'utf8');
+  const parsed = parseRoadmapMd(content);
+  const paddedPhase = String(phaseNum).padStart(2, '0');
+  return parsed.phases.find(p => p.number === paddedPhase) || null;
+}
+
 module.exports = {
   parseRoadmapMd,
   findRoadmapRow,
   updateTableRow,
   roadmapUpdateStatus,
   roadmapUpdatePlans,
+  roadmapUpdatePlanProgress,
   roadmapAnalyze,
   roadmapAppendPhase,
   roadmapRemovePhase,
   roadmapRenumberPhases,
-  roadmapInsertPhase
+  roadmapInsertPhase,
+  roadmapGetPhase
 };

@@ -1,5 +1,5 @@
 /**
- * lib/migrate.js — Schema migration for Plan-Build-Run config.json.
+ * lib/migrate.cjs -- Schema migration for Plan-Build-Run config.json.
  *
  * Tracks config.json schema version and applies sequential migrations
  * to bring outdated configs up to the current version.
@@ -14,7 +14,7 @@ const path = require('path');
 const { atomicWrite } = require('./core');
 
 /** The current schema version supported by this version of PBR. */
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 3;
 
 /**
  * Migration registry. Each entry describes one schema version step.
@@ -29,6 +29,135 @@ const MIGRATIONS = [
     description: 'Add schema_version field',
     migrate(config) {
       config.schema_version = 1;
+    }
+  },
+  {
+    from: 1,
+    to: 2,
+    description: 'Normalize GSD config format to PBR structure',
+    migrate(config) {
+      // mode: "yolo" -> "autonomous"
+      if (config.mode === 'yolo') config.mode = 'autonomous';
+
+      // depth: old names -> new names
+      const depthMap = { lean: 'quick', balanced: 'standard', thorough: 'comprehensive' };
+      if (config.depth && depthMap[config.depth]) {
+        config.depth = depthMap[config.depth];
+      }
+
+      // parallelization: boolean -> object
+      if (typeof config.parallelization === 'boolean') {
+        config.parallelization = { enabled: config.parallelization };
+      }
+
+      // branching_strategy (flat) -> git.branching (nested)
+      if (config.branching_strategy !== undefined) {
+        if (!config.git) config.git = {};
+        config.git.branching = config.branching_strategy;
+        delete config.branching_strategy;
+      }
+
+      // Top-level feature booleans -> features object
+      const featureMap = {
+        research: 'research_phase',
+        plan_checker: 'plan_checking',
+        verifier: 'goal_verification',
+      };
+      if (!config.features) config.features = {};
+      for (const [oldKey, newKey] of Object.entries(featureMap)) {
+        if (config[oldKey] !== undefined) {
+          config.features[newKey] = config[oldKey];
+          delete config[oldKey];
+        }
+      }
+
+      // Top-level commit_docs -> planning.commit_docs
+      if (config.commit_docs !== undefined) {
+        if (!config.planning) config.planning = {};
+        config.planning.commit_docs = config.commit_docs;
+        delete config.commit_docs;
+      }
+
+      // Top-level search_gitignored -> planning.search_gitignored
+      if (config.search_gitignored !== undefined) {
+        if (!config.planning) config.planning = {};
+        config.planning.search_gitignored = config.search_gitignored;
+        delete config.search_gitignored;
+      }
+
+      // Top-level model_profile (string) -> delete (not a PBR field, depth replaces it)
+      if (config.model_profile !== undefined) {
+        // Map old model_profile to depth if depth not set
+        if (!config.depth) {
+          const profileToDepth = { quality: 'comprehensive', balanced: 'standard', budget: 'quick' };
+          config.depth = profileToDepth[config.model_profile] || 'standard';
+        }
+        delete config.model_profile;
+      }
+
+      // Clean up GSD-only fields
+      const gsdOnlyFields = ['brave_search', 'phase_branch_template', 'milestone_branch_template'];
+      for (const f of gsdOnlyFields) {
+        if (config[f] !== undefined) delete config[f];
+      }
+
+      // workflow object: keep if present, it maps well to PBR
+      // (workflow.research, workflow.plan_check, etc. are valid in both)
+
+      // Ensure version is set
+      if (!config.version) config.version = 2;
+
+      config.schema_version = 2;
+    }
+  },
+  {
+    from: 2,
+    to: 3,
+    description: 'Add 1M context adaptation config sections',
+    migrate(config) {
+      // Add new workflow properties with defaults (do NOT overwrite existing)
+      if (!config.workflow) config.workflow = {};
+      const wfDefaults = {
+        inline_execution: false,
+        inline_max_tasks: 2,
+        inline_context_cap_pct: 40,
+        phase_boundary_clear: 'off',
+        autonomous: false,
+        speculative_planning: false,
+        phase_replay: false
+      };
+      for (const [key, val] of Object.entries(wfDefaults)) {
+        if (config.workflow[key] === undefined) config.workflow[key] = val;
+      }
+
+      // Add planning.multi_phase
+      if (!config.planning) config.planning = {};
+      if (config.planning.multi_phase === undefined) config.planning.multi_phase = false;
+
+      // Add gates.checkpoint_auto_resolve
+      if (!config.gates) config.gates = {};
+      if (config.gates.checkpoint_auto_resolve === undefined) {
+        config.gates.checkpoint_auto_resolve = 'none';
+      }
+
+      // Add new top-level sections with defaults
+      if (!config.intel) {
+        config.intel = { enabled: false, auto_update: false, inject_on_start: false };
+      }
+      if (!config.context_ledger) {
+        config.context_ledger = { enabled: false, stale_after_minutes: 60 };
+      }
+      if (!config.learnings) {
+        config.learnings = { enabled: false, read_depth: 3 };
+      }
+      if (!config.verification) {
+        config.verification = { confidence_gate: false, confidence_threshold: 1.0 };
+      }
+      if (!config.context_budget) {
+        config.context_budget = { threshold_curve: 'linear' };
+      }
+
+      config.schema_version = 3;
     }
   }
 ];
@@ -67,14 +196,14 @@ function getMigrationPath(fromVersion, toVersion) {
  * Apply pending migrations to config.json in planningDir.
  *
  * Options:
- *   dryRun {boolean} — If true, simulate migration without writing files (default: false)
- *   force  {boolean} — Reserved for future use (default: false)
+ *   dryRun {boolean} -- If true, simulate migration without writing files (default: false)
+ *   force  {boolean} -- Reserved for future use (default: false)
  *
  * Returns:
- *   { migrated: false, version: N }                          — already current
- *   { migrated: false, message: string }                     — future version, no-op
- *   { migrated: true, fromVersion, toVersion, applied, backupPath } — success
- *   { error: string }                                        — failure
+ *   { migrated: false, version: N }                          -- already current
+ *   { migrated: false, message: string }                     -- future version, no-op
+ *   { migrated: true, fromVersion, toVersion, applied, backupPath } -- success
+ *   { error: string }                                        -- failure
  *
  * @param {string} planningDir - Path to .planning directory
  * @param {object} [options] - Options { dryRun, force }
@@ -100,7 +229,7 @@ async function applyMigrations(planningDir, options) {
 
   const currentVersion = detectSchemaVersion(config);
 
-  // Future version — don't touch it
+  // Future version -- don't touch it
   if (currentVersion > CURRENT_SCHEMA_VERSION) {
     return {
       migrated: false,
