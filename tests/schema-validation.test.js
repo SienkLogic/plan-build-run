@@ -53,17 +53,22 @@ describe('hooks.json schema compliance', () => {
     expect(violations).toEqual([]);
   });
 
-  test('every hook command has type and command fields', () => {
+  test('every hook has valid type and required fields', () => {
     const violations = [];
     for (const [event, entries] of Object.entries(hooks.hooks)) {
       for (let i = 0; i < entries.length; i++) {
         for (let j = 0; j < (entries[i].hooks || []).length; j++) {
           const hook = entries[i].hooks[j];
-          if (hook.type !== 'command') {
-            violations.push(`${event}[${i}].hooks[${j}] type is "${hook.type}", expected "command"`);
-          }
-          if (!hook.command || typeof hook.command !== 'string') {
-            violations.push(`${event}[${i}].hooks[${j}] missing or invalid command`);
+          if (hook.type === 'command') {
+            if (!hook.command || typeof hook.command !== 'string') {
+              violations.push(`${event}[${i}].hooks[${j}] command-type missing command field`);
+            }
+          } else if (hook.type === 'http') {
+            if (!hook.url || typeof hook.url !== 'string') {
+              violations.push(`${event}[${i}].hooks[${j}] http-type missing url field`);
+            }
+          } else {
+            violations.push(`${event}[${i}].hooks[${j}] unknown type "${hook.type}"`);
           }
         }
       }

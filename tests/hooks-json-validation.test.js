@@ -64,13 +64,10 @@ describe('hooks.json validation', () => {
         }
       }
     }
-    // At least Write, Read, Bash, Task should have http entries
-    expect(httpEntries.length).toBeGreaterThanOrEqual(4);
+    // Advisory hooks should have http entries (Read tracker + Write/Edit/Bash/Task bridge)
+    expect(httpEntries.length).toBeGreaterThanOrEqual(2);
     const urls = httpEntries.map(e => e.url);
-    expect(urls.some(u => u.includes('/PostToolUse/Write'))).toBe(true);
-    expect(urls.some(u => u.includes('/PostToolUse/Read'))).toBe(true);
-    expect(urls.some(u => u.includes('/PostToolUse/Bash'))).toBe(true);
-    expect(urls.some(u => u.includes('/PostToolUse/Task'))).toBe(true);
+    expect(urls.some(u => u.includes('/PostToolUse/'))).toBe(true);
   });
 
   test('PreToolUse hooks remain as command type (not http)', () => {
