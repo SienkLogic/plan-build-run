@@ -208,6 +208,13 @@
  *   template select <plan-path>        Select template type for a plan
  *   template fill summary|plan|verification --phase N [options]
  *
+ * COMPLETION (COMPOUND COMMANDS):
+ *   build-complete <phase> [--completed N] [--total N] [--status S]
+ *   plan-complete <phase> <plans_total>
+ *   review-complete <phase> [--status verified]
+ *   milestone-archive <version> [--name N] [--archive-phases]
+ *   import-complete <phase> [--status planned]
+ *
  * MILESTONES:
  *   milestone complete <version> [--name <name>] [--archive-phases]
  *   milestone stats <version>           Milestone statistics
@@ -284,6 +291,7 @@ let _negativeKnowledge;
 let _patterns;
 let _templates;
 let _incidents;
+let _completion;
 
 function getCore() { if (!_core) _core = require('./lib/core.cjs'); return _core; }
 function getConfig() { if (!_config) _config = require('./lib/config.cjs'); return _config; }
@@ -318,6 +326,7 @@ function getNegativeKnowledge() { if (!_negativeKnowledge) _negativeKnowledge = 
 function getPatterns() { if (!_patterns) _patterns = require('./lib/patterns.cjs'); return _patterns; }
 function getTemplates() { if (!_templates) _templates = require('./lib/templates.cjs'); return _templates; }
 function getIncidents() { if (!_incidents) _incidents = require('./lib/incidents.cjs'); return _incidents; }
+function getCompletion() { if (!_completion) _completion = require('./lib/completion.cjs'); return _completion; }
 
 // ─── Helper: resolve plugin root ──────────────────────────────────────────────
 
@@ -1869,9 +1878,46 @@ async function main() {
         error('Unknown incidents subcommand. Use: record|list|query|summary');
       }
 
+    // ─── Completion (Compound Commands) ─────────────────────────────────────
+    } else if (command === 'build-complete') {
+      const phase = args[1];
+      if (!phase) error('Usage: build-complete <phase> [--completed N] [--total N] [--status S]');
+      const completedIdx = args.indexOf('--completed');
+      const totalIdx = args.indexOf('--total');
+      const statusIdx = args.indexOf('--status');
+      output(getCompletion().buildComplete(phase, {
+        completed: completedIdx !== -1 ? args[completedIdx + 1] : undefined,
+        total: totalIdx !== -1 ? args[totalIdx + 1] : undefined,
+        status: statusIdx !== -1 ? args[statusIdx + 1] : undefined
+      }, planningDir));
+    } else if (command === 'plan-complete') {
+      const phase = args[1];
+      const plansTotal = args[2];
+      if (!phase || !plansTotal) error('Usage: plan-complete <phase> <plans_total>');
+      output(getCompletion().planComplete(phase, plansTotal, {}, planningDir));
+    } else if (command === 'review-complete') {
+      const phase = args[1];
+      if (!phase) error('Usage: review-complete <phase> [--status verified]');
+      const statusIdx = args.indexOf('--status');
+      const status = statusIdx !== -1 ? args[statusIdx + 1] : 'verified';
+      output(getCompletion().reviewComplete(phase, { status }, planningDir));
+    } else if (command === 'milestone-archive') {
+      const version = args[1];
+      if (!version) error('Usage: milestone-archive <version> [--name N] [--archive-phases]');
+      const nameIdx = args.indexOf('--name');
+      const archivePhases = args.includes('--archive-phases');
+      const name = nameIdx !== -1 ? args[nameIdx + 1] : undefined;
+      output(getCompletion().milestoneArchive(version, { name, archivePhases }, planningDir));
+    } else if (command === 'import-complete') {
+      const phase = args[1];
+      if (!phase) error('Usage: import-complete <phase> [--status planned]');
+      const statusIdx = args.indexOf('--status');
+      const status = statusIdx !== -1 ? args[statusIdx + 1] : 'planned';
+      output(getCompletion().importComplete(phase, { status }, planningDir));
+
     // ─── Unknown Command ──────────────────────────────────────────────────────
     } else {
-      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, incidents record|list|query|summary, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, help';
+      const allCommands = 'state load|check-progress|update|get|json|patch|advance-plan|record-metric|record-activity|update-progress|add-decision|add-blocker|resolve-blocker|record-session, state-bundle, state-snapshot, config validate|load-defaults|save-defaults|resolve-depth|get|set|ensure-section, phase add|remove|list|complete|insert|info|commits-for|first-last-commit|next-decimal, phases list, phase-info, phase-plan-index, find-phase, plan-index, must-haves, roadmap get-phase|analyze|update-plan-progress|update-status|update-plans|append-phase|remove-phase|insert-phase, init execute-phase|plan-phase|new-project|new-milestone|quick|resume|verify-work|phase-op|todos|milestone-op|map-codebase|progress, todo list|get|add|done, decisions record|list, negative-knowledge record|query|list, history append|load, history-digest, learnings ingest|query|check-thresholds|aggregate, patterns extract|query|list, templates list|instantiate, incidents record|list|query|summary, intel query|update|status|diff, staleness-check, summary-gate, checkpoint init|update, seeds match, ci-poll, rollback, build-preview, llm health|status|classify|score-source|classify-error|summarize|metrics|adjust-thresholds, session get|set|clear|dump, claim acquire|release|list, verify plan-structure|phase-completeness|references|commits|artifacts|key-links, verify-summary, validate consistency|health, validate-project, frontmatter get|set|merge|validate, template select|fill, milestone complete|stats, milestone-stats, requirements mark-complete, scaffold, resolve-model, generate-slug|slug-generate, quick init, current-timestamp, verify-path-exists, summary-extract, websearch, progress, commit, reference, skill-section, step-verify, context-triage, suggest-alternatives, spot-check, status render|fingerprint, parse-args plan|quick, migrate, event, dashboard [port|stop], tmux detect, build-complete, plan-complete, review-complete, milestone-archive, import-complete, help';
       error(`Unknown command: ${args.join(' ')}\nCommands: ${allCommands}`);
     }
   } catch (e) {
