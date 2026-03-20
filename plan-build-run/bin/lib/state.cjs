@@ -472,7 +472,6 @@ function stateUpdate(field, value, planningDir) {
     if (fm.version === 2 || fm.current_phase !== undefined) {
       let updated = updateFrontmatterField(content, field, value);
       updated = syncBodyLine(updated, field, value);
-      updated = syncStateFrontmatter(updated, dir);
       return updated;
     }
     return updateLegacyStateField(content, field, value);
@@ -516,9 +515,6 @@ function statePatch(jsonStr, planningDir) {
         updated = updateLegacyStateField(updated, field, val);
       }
     }
-    if (isFrontmatter) {
-      updated = syncStateFrontmatter(updated, dir);
-    }
     return updated;
   });
 
@@ -556,7 +552,6 @@ function stateAdvancePlan(planningDir) {
       updated = syncBodyLine(updated, 'plans_complete', String(next));
       updated = updateFrontmatterField(updated, 'progress_percent', String(progressPct));
       updated = syncBodyLine(updated, 'progress_percent', String(progressPct));
-      updated = syncStateFrontmatter(updated, dir);
     } else {
       updated = updateLegacyStateField(updated, 'plans_complete', String(next));
     }
