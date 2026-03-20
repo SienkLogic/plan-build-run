@@ -165,27 +165,20 @@ After writing `.continue-here.md`, also create `.planning/HANDOFF.json` with str
 
 ### Step 5: Update STATE.md
 
-**CRITICAL -- DO NOT SKIP: Update STATE.md frontmatter AND body. Both must be updated atomically.**
+**CRITICAL -- DO NOT SKIP: Update STATE.md via CLI.**
 
-First, update the STATE.md YAML frontmatter:
-- Set `last_command: "/pbr:pause-work"`
-- Set `last_activity: {ISO datetime}`
-- Set `session_last: {ISO datetime}` — when this session ended
-- Set `session_stopped_at: "{brief description of current work}"` — e.g. "Phase 2, Plan 3 — building executor agent updates"
-- Set `session_resume: ".planning/phases/{NN}-{phase-name}/.continue-here.md"` — pointer to the detailed handoff file
-
-Then update the Session Continuity section of STATE.md:
-
-```markdown
-### Session Continuity
-
-**Last paused:** {ISO datetime}
-**Position:** Phase {N}, Plan {M}
-**Continue file:** .planning/phases/{NN}-{phase-name}/.continue-here.md
-**Next action:** {suggested command}
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-session --stopped-at "{brief description of current work}"
 ```
 
-If the Session Continuity section doesn't exist, create it at the end of STATE.md.
+This updates STATE.md frontmatter (`session_last`, `session_stopped_at`, `session_resume`, `last_command`, `last_activity`) and the Session Continuity body section atomically.
+
+Also update the session_resume pointer:
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:pause-work"
+```
+
+If the CLI fails, display a branded ERROR box: "Failed to update STATE.md session state." and stop.
 
 ### Step 6: Commit as WIP
 
