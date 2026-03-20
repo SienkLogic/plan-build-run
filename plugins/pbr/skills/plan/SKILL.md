@@ -155,16 +155,19 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      a. Extract the file path from the argument
      b. Set `prd_mode = true`
      c. Log: "PRD express path — will generate CONTEXT.md from PRD, skip discussion"
-2. Read `.planning/config.json` for settings (see config-loading.md for field reference)
+2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
+   ```bash
+   node plugins/pbr/scripts/pbr-tools.cjs init plan-phase {N}
+   ```
+   Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.goal`, `blob.phase.depends_on`, `blob.config.depth`, `blob.config.profile`, `blob.researcher_model`, `blob.planner_model`, `blob.checker_model`, `blob.existing_artifacts`, `blob.workflow.research_phase`, `blob.workflow.plan_checking`, `blob.drift`.
    **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "plan" to `.planning/.active-skill` using the Write tool.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
-4. Validate:
-   - Phase exists in ROADMAP.md
-   - Phase directory exists at `.planning/phases/{NN}-{slug}/`
-   - Phase does not already have PLAN.md files (unless user confirms re-planning)
-5. If no phase number given, read current phase from `.planning/STATE.md`
-6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{NN}-{slug}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss-phase {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
+4. Validate using blob fields:
+   - `blob.phase.dir` is set (phase exists in ROADMAP.md and directory exists)
+   - `blob.existing_artifacts` is empty or user confirms re-planning
+5. If no phase number given, use `blob.phase.number` (already resolved from STATE.md by init)
+6. **CONTEXT.md existence check**: If the phase is non-trivial (has 2+ requirements or success criteria), check whether a CONTEXT.md exists at EITHER `.planning/CONTEXT.md` (project-level) OR `.planning/phases/{blob.phase.dir}/CONTEXT.md` (phase-level). If NEITHER exists, warn: "Phase {N} has no CONTEXT.md. Consider running `/pbr:discuss-phase {N}` first to capture your preferences. Continue anyway?" If user says no, stop. If yes, continue. If at least one exists, proceed without warning.
 
 #### --prd express path
 
@@ -253,16 +256,14 @@ If `--preview` is present in `$ARGUMENTS`:
 
 ### Step 2: Load Context (inline)
 
-**Init-first pattern**: When spawning agents, pass the output of `node plugins/pbr/scripts/pbr-tools.cjs init plan-phase {N}` as context rather than having the agent read multiple files separately. This reduces file reads and prevents context-loading failures.
-
-Read context file PATHS and metadata. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
+From the init `blob` captured in Step 1, extract the context fields needed for planning. Build lean context bundles for subagent prompts — include paths and one-line descriptions, NOT full file bodies. Agents have the Read tool and will pull file contents on-demand.
 
 ```
-1. Read .planning/ROADMAP.md — extract current phase goal, dependencies, **Requirements:** (REQ-IDs), and **Success Criteria:**
+1. Use blob.phase.goal, blob.phase.depends_on for phase goal and dependencies from ROADMAP.md
 2. Read .planning/REQUIREMENTS.md — extract requirements mapped to this phase
 3. Read .planning/CONTEXT.md (if exists) — extract only the `## Decision Summary` section (everything from `## Decision Summary` to the next `##` heading). If no Decision Summary section exists (legacy CONTEXT.md), fall back to extracting the full `## Decisions (LOCKED...)` and `## Deferred Ideas` sections.
 4. Read .planning/phases/{NN}-{slug}/CONTEXT.md (if exists) — extract only the `## Decision Summary` section. Fall back to full locked decisions + deferred sections if no Decision Summary exists.
-5. Read .planning/config.json — extract feature flags, depth, model settings
+5. Use blob.config for feature flags, depth, model settings instead of re-reading config.json
 6. List prior SUMMARY.md file paths and extract frontmatter metadata only (status, provides, key_files). Do NOT read full SUMMARY bodies — agents pull these on-demand via Read tool.
 7. Read .planning/research/SUMMARY.md (if exists) — extract research findings
 ```
@@ -290,9 +291,9 @@ Before spawning any agents, present 4 assumptions to the user — one each for: 
 - `--gaps` flag is set
 - Depth profile has `features.research_phase: false`
 
-To check: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` and read `profile["features.research_phase"]`. This replaces checking `features.research_phase` and `depth` separately -- the depth profile already incorporates both.
+To check: use `blob.workflow.research_phase` from the init blob. This replaces checking `features.research_phase` and `depth` separately -- the init already incorporates both.
 
-**Conditional research (standard/balanced mode):** When the profile has `features.research_phase: true`, also check whether `.planning/codebase/` or `.planning/research/` already contains relevant context for this phase. If substantial context exists (>3 files in codebase/ or a RESEARCH.md mentioning this phase's technologies), skip research and note: "Skipping research -- existing context found in {directory}." This implements the balanced mode's "conditional research" behavior.
+**Conditional research (standard/balanced mode):** When `blob.workflow.research_phase` is `true`, also check whether `.planning/codebase/` or `.planning/research/` already contains relevant context for this phase. If substantial context exists (>3 files in codebase/ or a RESEARCH.md mentioning this phase's technologies), skip research and note: "Skipping research -- existing context found in {directory}." This implements the balanced mode's "conditional research" behavior.
 
 **If research is needed:**
 
@@ -447,7 +448,7 @@ If neither `--teams` flag nor `use_teams_config` is true, proceed with the singl
 If `through_phases` is set (from Step 1 --through parsing):
 
 1. For each phase P in `through_phases` (in order):
-   a. Load phase P's context: goal, requirements, dependencies from ROADMAP.md
+   a. Load phase P's context: use `blob.phase.goal` and `blob.phase.depends_on` for the first phase; for subsequent phases, run `pbr-tools.cjs init` with `plan-phase {P}` to get a fresh blob
    b. Load phase P's CONTEXT.md (if exists)
    c. If P > first phase: include prior phase plans as accumulated context
       - For each already-planned phase in this session, include:
@@ -540,11 +541,11 @@ After planner completes, check for completion markers: `## PLANNING COMPLETE`, `
 
 Read `${CLAUDE_SKILL_DIR}/templates/planner-prompt.md.tmpl` and use it as the prompt template for spawning the planner agent. Fill in all placeholder blocks with phase-specific context:
 
-- `<phase_context>` - phase number, directory, goal, requirements, dependencies, success criteria
+- `<phase_context>` - from `blob.phase.dir`, `blob.phase.goal`, `blob.phase.depends_on` plus requirements and success criteria
 - `<project_context>` - locked decisions, user constraints, deferred ideas, phase-specific decisions
 - `<prior_work>` - manifest table of preceding phase SUMMARY.md file paths with status and one-line exports (NOT full bodies)
 - `<research>` - file path to RESEARCH.md if it exists (NOT inlined content)
-- `<config>` - max tasks, parallelization, TDD mode from config.json
+- `<config>` - from `blob.config`: max tasks, parallelization, TDD mode
 - `<planning_instructions>` - phase-specific planning rules and output path
 
 **Prepend this block to the planner prompt before sending:**
