@@ -77,54 +77,20 @@ node scripts/pbr-tools.cjs config get context_window_tokens
 
 If the returned value is **>= 500000**, perform the following lookahead reads before moving to Step 2. If the value is **< 500000** (or the command fails), skip this section entirely and proceed to Step 2 with no changes to behavior.
 
-**Lookahead reads:**
+**Lookahead analysis:**
 
-1. You have already read full ROADMAP.md (required above). Extract every phase entry:
-   - Phase number (NN from slug)
-   - Phase slug
-   - `Depends on:` list
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap analyze --lookahead
+```
 
-2. Glob all phase summary and state frontmatters:
-   - `Glob({ pattern: ".planning/phases/*/SUMMARY-*.md" })` — read frontmatter only (lines 1-20) for each result
-   - `Glob({ pattern: ".planning/phases/*/STATE.md" })` — read frontmatter only (lines 1-10) for each result
-   - Build a map: `{ phase_slug -> { status, provides, requires } }`
+Parse the JSON output which includes:
+- `parallel_candidates`: array of phase pairs that can run concurrently (display at most 3)
+- `dependency_inversions`: array of phases where dependency phase number > current phase number
+- `deferred_unblocked`: array of out-of-scope items whose blocking phase is now complete (display at most 2)
 
-3. Read `PROJECT.md` section `## Out of Scope` (or `### Out of Scope`) — extract deferred items as a list.
+Display all findings BEFORE proceeding to Step 2. If no findings exist, display nothing.
 
-**Lookahead analysis (perform after reads above):**
-
-**A. Parallel phase candidates**
-
-For each pair of phases that are both Pending/Planning status:
-- Extract their `Depends on:` sets
-- If their dependency sets are **disjoint** (no shared dependency, and neither depends on the other), they are parallel candidates
-- Display:
-  ```
-  ► Parallel opportunity: Phase {A} and Phase {B} have no shared dependencies — they can be planned and built concurrently.
-  ```
-  Show at most 3 parallel pairs to avoid noise.
-
-**B. Dependency inversion warnings**
-
-For each phase entry in ROADMAP.md, for each item in its `Depends on:` list:
-- Extract the phase number of the dependency (parse `NN` from the slug prefix)
-- If dependency phase number > current phase number → dependency inversion detected
-- Display:
-  ```
-  ⚠ Dependency inversion: Phase {N} ({slug}) lists Phase {M} ({dep-slug}) as a dependency, but Phase M > Phase N. Check roadmap ordering.
-  ```
-
-**C. Deferred item surfacing**
-
-For each item in the PROJECT.md out-of-scope list:
-- Check if the item mentions a phase or capability that is now shown as Complete in the phase map
-- If so, display:
-  ```
-  ► Deferred item may be unblocked: "{item}" — the phase it depends on is now complete. Consider adding it to the next milestone.
-  ```
-  Surface at most 2 items to avoid noise.
-
-Display all findings BEFORE proceeding to Step 2. If no findings exist (no parallel pairs, no inversions, no unblocked deferred items), display nothing — do not add noise when there is nothing to report.
+If the CLI fails, skip lookahead silently — lookahead is advisory, not blocking.
 
 If STATE.md doesn't exist, display:
 ```
