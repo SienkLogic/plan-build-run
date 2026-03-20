@@ -565,6 +565,7 @@ describe('hook-server.js exports', () => {
   });
 
   test('createServer POST /hook without data.tool_input does not include file in log', (done) => {
+    // Increased timeout for Windows Node 18 CI (flaky at 5s default)
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-create-server-'));
     const planningDir = path.join(tmpDir, '.planning');
     fs.mkdirSync(planningDir);
@@ -591,7 +592,7 @@ describe('hook-server.js exports', () => {
       req.write(body);
       req.end();
     });
-  });
+  }, 15000);
 
   test('mergeContext returns null when merged object is empty (no context, no decision)', async () => {
     // Handlers return objects with no additionalContext or decision
