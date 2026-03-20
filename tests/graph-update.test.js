@@ -50,7 +50,7 @@ function cleanupTemp(tmp) {
 }
 
 // Load the module under test
-const { updateGraph, findPlanningDir, isSourceFile } = require('../plugins/pbr/scripts/graph-update.js');
+const { updateGraph, findPlanningDir, isSourceFile, runGuard, checkCjsLib } = require('../plugins/pbr/scripts/graph-update.js');
 
 describe('graph-update.js', () => {
   describe('findPlanningDir', () => {
@@ -176,6 +176,45 @@ describe('graph-update.js', () => {
     test('returns null (no block) for PostToolUse', () => {
       const { tmp, planningDir } = makeTempProject({ writeGraph: true });
       try {
+        const result = updateGraph(planningDir, tmp, 'src/app.js');
+        expect(result).toBeNull();
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+  });
+
+  describe('merged architecture guard', () => {
+    test('exports guard functions from graph-update module', () => {
+      expect(typeof runGuard).toBe('function');
+      expect(typeof checkCjsLib).toBe('function');
+    });
+
+    test('updateGraph returns guard warning when architecture violation found', () => {
+      const { tmp, planningDir } = makeTempProject({ writeGraph: true });
+      try {
+        // Write a CJS lib file missing 'use strict' and module.exports — violates guard
+        const badFile = path.join(tmp, 'plan-build-run', 'bin', 'lib', 'bad.cjs');
+        fs.mkdirSync(path.dirname(badFile), { recursive: true });
+        fs.writeFileSync(badFile, 'function helper() {}');
+
+        const result = updateGraph(planningDir, tmp, 'plan-build-run/bin/lib/bad.cjs');
+        // updateGraph skips non-source extensions, but .cjs IS a source extension
+        expect(result).not.toBeNull();
+        expect(result).toHaveProperty('additionalContext');
+        expect(result.additionalContext).toMatch(/Architecture guard/i);
+      } finally {
+        cleanupTemp(tmp);
+      }
+    });
+
+    test('updateGraph returns null when no architecture violation', () => {
+      const { tmp, planningDir } = makeTempProject({ writeGraph: true });
+      try {
+        const goodFile = path.join(tmp, 'src', 'app.js');
+        fs.mkdirSync(path.join(tmp, 'src'), { recursive: true });
+        fs.writeFileSync(goodFile, "'use strict'; module.exports = {};");
+
         const result = updateGraph(planningDir, tmp, 'src/app.js');
         expect(result).toBeNull();
       } finally {
