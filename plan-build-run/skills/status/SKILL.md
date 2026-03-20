@@ -50,7 +50,7 @@ node plugins/pbr/scripts/pbr-tools.cjs init status
 ```
 
 Store the JSON result as `blob`. This provides:
-- `blob.routing` — suggestNext output with `blob.routing.action` and `blob.routing.reason` for Step 5 smart routing
+- `blob.routing` — suggestNext output with `blob.routing.command` and `blob.routing.reason` for Step 5 smart routing
 - `blob.drift` — STATE.md discrepancy warnings (`blob.drift.drift_detected`, `blob.drift.stale_fields`)
 - `blob.counts.pending_todos`, `blob.counts.notes`, `blob.counts.active_debug` — directory scan counts
 - `blob.has_paused_work` — whether .continue-here file exists
@@ -239,7 +239,7 @@ Use the standardized symbol set from `references/ui-brand.md`:
 
 ### Step 5: Smart Routing
 
-Use `blob.routing.action` and `blob.routing.reason` from the init blob to determine the primary next action. The routing field contains the suggestNext output which implements the full decision tree below. Fall back to the manual decision tree only if `blob.routing` is unavailable.
+Use `blob.routing.command` and `blob.routing.reason` from the init blob to determine the primary next action. The routing field contains the suggestNext output which implements the full decision tree below. Fall back to the manual decision tree only if `blob.routing` is unavailable.
 
 **Decision tree (fallback):**
 

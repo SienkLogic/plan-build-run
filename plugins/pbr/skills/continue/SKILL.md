@@ -70,7 +70,7 @@ Use blob fields for all downstream state references:
 - `blob.auto_next` — .auto-next file content (or null)
 - `blob.continue_here` — .continue-here file content (or null)
 - `blob.active_skill` — .active-skill file content (or null)
-- `blob.routing` — suggestNext output with `blob.routing.action` and `blob.routing.reason`
+- `blob.routing` — suggestNext output with `blob.routing.command` and `blob.routing.reason`
 - `blob.drift` — drift detection result (`blob.drift.drift_detected`, `blob.drift.stale_fields`)
 - `blob.config.mode`, `blob.config.features`, `blob.config.gates` — config checks
 
@@ -143,7 +143,7 @@ This prevents runaway chains that fill the context window without a human checkp
 
 ### Step 2: Scan for Priority Items
 
-Use `blob.routing.action` and `blob.routing.reason` from the init blob to determine the next action. The routing field contains the suggestNext output which implements the full priority hierarchy:
+Use `blob.routing.command` and `blob.routing.reason` from the init blob to determine the next action. The routing field contains the suggestNext output which implements the full priority hierarchy:
 
 1. **UAT Blockers**: VERIFICATION.md with `status: gaps_found` → Execute `/pbr:plan-phase {N} --gaps`
 2. **Checkpoint pending**: `.checkpoint-manifest.json` with pending items → Resume the build
@@ -156,7 +156,7 @@ Use `blob.routing.action` and `blob.routing.reason` from the init blob to determ
 
 #### Status-Based Routing (13 valid statuses)
 
-When `blob.routing.action` doesn't match a priority item above, route based on `blob.current_phase.status`:
+When `blob.routing.command` doesn't match a priority item above, route based on `blob.current_phase.status`:
 
 | Status | Next Action |
 |--------|-------------|
