@@ -1662,5 +1662,123 @@ describe('stateCheckWaiting', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// syncStateFrontmatter, normalizeStatus, STATUS_VALUES
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('syncStateFrontmatter', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('rebuilds plans_total and plans_complete from disk', () => {
+    const { syncStateFrontmatter } = require('../plan-build-run/bin/lib/state.cjs');
+    const planningDir = path.join(tmpDir, '.planning');
+
+    // Create a phase with one plan and one complete summary
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nplan: "01-01"\n---\n# Plan');
+    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nstatus: complete\n---\n# Summary');
+
+    const stateContent = `---\nversion: 2\ncurrent_phase: 1\nplans_total: 0\nplans_complete: 0\nprogress_percent: 0\nstatus: "building"\n---\n# State`;
+    const result = syncStateFrontmatter(stateContent, planningDir);
+
+    assert.ok(result.includes('plans_total: 1'), 'plans_total should be 1');
+    assert.ok(result.includes('plans_complete: 1'), 'plans_complete should be 1');
+    assert.ok(result.includes('progress_percent: 100'), 'progress_percent should be 100');
+  });
+
+  test('stateUpdate auto-syncs frontmatter from disk', () => {
+    const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+    const planningDir = path.join(tmpDir, '.planning');
+
+    // Create 2 plan files (no summaries = 0 complete)
+    const phaseDir = path.join(planningDir, 'phases', '01-test');
+    fs.mkdirSync(phaseDir, { recursive: true });
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nplan: "01-01"\n---\n# Plan 1');
+    fs.writeFileSync(path.join(phaseDir, 'PLAN-02.md'), '---\nplan: "01-02"\n---\n# Plan 2');
+
+    // STATE.md with stale plans_total
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'),
+      '---\nversion: 2\ncurrent_phase: 1\nplans_total: 99\nplans_complete: 99\nprogress_percent: 50\nstatus: "idle"\n---\n# State\n\nPlan: 0 of 2');
+
+    stateUpdate('status', 'building', planningDir);
+
+    const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
+    assert.ok(content.includes('plans_total: 2'), 'plans_total should be auto-derived as 2, got: ' + content);
+    assert.ok(content.includes('plans_complete: 0'), 'plans_complete should be auto-derived as 0');
+  });
+});
+
+describe('normalizeStatus', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('maps known aliases', () => {
+    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+
+    assert.strictEqual(normalizeStatus('planning'), 'planned');
+    assert.strictEqual(normalizeStatus('executing'), 'building');
+    assert.strictEqual(normalizeStatus('completed'), 'complete');
+    assert.strictEqual(normalizeStatus('done'), 'complete');
+  });
+
+  test('is case-insensitive', () => {
+    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+
+    assert.strictEqual(normalizeStatus('Building'), 'building');
+    assert.strictEqual(normalizeStatus('COMPLETE'), 'complete');
+    assert.strictEqual(normalizeStatus('Idle'), 'idle');
+  });
+
+  test('returns null for invalid values', () => {
+    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+
+    assert.strictEqual(normalizeStatus('bogus'), null);
+    assert.strictEqual(normalizeStatus(''), null);
+    assert.strictEqual(normalizeStatus(null), null);
+    assert.strictEqual(normalizeStatus(undefined), null);
+  });
+});
+
+describe('STATUS_VALUES', () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTempProject();
+  });
+
+  afterEach(() => {
+    cleanup(tmpDir);
+  });
+
+  test('contains exactly 7 values', () => {
+    const { STATUS_VALUES } = require('../plan-build-run/bin/lib/state.cjs');
+
+    assert.strictEqual(STATUS_VALUES.length, 7);
+    assert.ok(STATUS_VALUES.includes('idle'));
+    assert.ok(STATUS_VALUES.includes('planned'));
+    assert.ok(STATUS_VALUES.includes('building'));
+    assert.ok(STATUS_VALUES.includes('built'));
+    assert.ok(STATUS_VALUES.includes('verifying'));
+    assert.ok(STATUS_VALUES.includes('verified'));
+    assert.ok(STATUS_VALUES.includes('complete'));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // summary-extract command
 // ─────────────────────────────────────────────────────────────────────────────
