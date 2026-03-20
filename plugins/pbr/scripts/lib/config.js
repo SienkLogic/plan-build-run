@@ -139,7 +139,8 @@ const CONFIG_DEFAULTS = {
     confirm_deferred: false,
     confirm_commit_docs: false,
     auto_checkpoints: false,
-    checkpoint_auto_resolve: 'none'
+    checkpoint_auto_resolve: 'none',
+    user_confirmation: {}
   },
   safety: {
     always_confirm_destructive: true,

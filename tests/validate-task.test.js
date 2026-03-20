@@ -982,6 +982,74 @@ Status: built
     });
   });
 
+  describe('user confirmation gate', () => {
+    let tmpDir;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'validate-task-userconf-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function makeEnv({ activeSkill, gatesConfig, hasSignalFile } = {}) {
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir, { recursive: true });
+      if (activeSkill) {
+        fs.writeFileSync(path.join(planningDir, '.active-skill'), activeSkill);
+      }
+      if (gatesConfig) {
+        fs.writeFileSync(
+          path.join(planningDir, 'config.json'),
+          JSON.stringify({ gates: { user_confirmation: gatesConfig } })
+        );
+      }
+      if (hasSignalFile) {
+        fs.writeFileSync(
+          path.join(planningDir, '.user-gate-passed'),
+          JSON.stringify({ timestamp: new Date().toISOString(), operation: 'test' })
+        );
+      }
+    }
+
+    function runInDir(toolInput) {
+      const input = JSON.stringify({ tool_input: toolInput });
+      try {
+        const output = execSync(`node "${SCRIPT}"`, {
+          input,
+          encoding: 'utf8',
+          timeout: 5000,
+          cwd: tmpDir,
+          env: { ...process.env, PBR_PROJECT_ROOT: tmpDir }
+        });
+        return { exitCode: 0, output };
+      } catch (e) {
+        return { exitCode: e.status, output: e.stdout || '' };
+      }
+    }
+
+    test('blocks milestone complete when no signal file', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        gatesConfig: { milestone_complete: { requires: 'askuser', blocking: true } }
+      });
+      const result = runInDir({ description: 'complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(2);
+      expect(result.output).toContain('milestone_complete');
+    });
+
+    test('allows milestone complete when signal file present', () => {
+      makeEnv({
+        activeSkill: 'milestone',
+        gatesConfig: { milestone_complete: { requires: 'askuser', blocking: true } },
+        hasSignalFile: true
+      });
+      const result = runInDir({ description: 'complete milestone', subagent_type: 'pbr:general' });
+      expect(result.exitCode).toBe(0);
+    });
+  });
+
   describe('error handling', () => {
     test('handles missing TOOL_INPUT gracefully', () => {
       const input = JSON.stringify({});
