@@ -31,37 +31,15 @@ Parse `$ARGUMENTS` to determine the subcommand:
 
 ### `add <description>`
 
-1. Ensure `.planning/todos/pending/` directory exists
-2. Generate NNN: scan **both** `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, then increment by 1 (zero-padded to 3 digits)
-3. Generate slug: take the first ~4 meaningful words from the description, lowercase, hyphen-separated (e.g., "Add rate limiting to login" → `add-rate-limiting-login`)
-4. Infer theme from description (e.g., "auth" → security, "test" → testing, "UI" → frontend, "refactor" → quality)
-5. Check for duplicates — read existing pending todos, if a similar one exists, ask user via AskUserQuestion
-6. Create `.planning/todos/pending/{NNN}-{slug}.md`:
+1. Run the CLI to create the todo:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js todo add "{description}"
+   ```
+   This handles NNN generation, slug creation, duplicate detection, and file creation.
+   If the CLI fails, display a branded ERROR box and stop.
+2. Parse the CLI JSON output to extract the created file path, NNN, and slug for the confirmation display.
 
-```yaml
----
-title: "{description}"
-status: pending
-priority: P2
-source: conversation
-created: {YYYY-MM-DD}
-theme: {inferred-theme}
----
-
-## Goal
-
-{description expanded into a clear goal statement}
-
-## Scope
-
-{any relevant context from the current conversation, or bullet points of what's in/out of scope}
-
-## Acceptance Criteria
-
-- [ ] {primary acceptance criterion derived from description}
-```
-
-7. **CRITICAL -- DO NOT SKIP:** Update STATE.md Pending Todos section
+3. **CRITICAL -- DO NOT SKIP:** Update STATE.md Pending Todos section
 
    If the Write fails, display:
    ```
@@ -141,39 +119,15 @@ Pending Todos:
 
 ### `done <NNN>`
 
-1. Find `.planning/todos/pending/{NNN}-*.md` (match by number prefix)
-2. If not found, display:
-```
-╔══════════════════════════════════════════════════════════════╗
-║  ERROR                                                       ║
-╚══════════════════════════════════════════════════════════════╝
-
-Todo {NNN} not found in pending todos.
-
-**To fix:** Run `/pbr:check-todos` to see available numbers.
-```
-3. Ensure `.planning/todos/done/` directory exists (create if needed)
-4. Read the pending file content
-5. Update frontmatter in the content: set `status: done` and add `completed: {YYYY-MM-DD}`
-
-**CRITICAL: Write to done/ FIRST, verify it exists, THEN delete from pending/. Do NOT delete pending before confirming done/ write succeeded.**
-
-6. Write the updated content to `.planning/todos/done/{NNN}-{slug}.md`
-7. Verify the done/ file was written successfully: check that `.planning/todos/done/{NNN}-{slug}.md` exists and has content (use `ls` or Glob)
-   - If the done/ write failed, abort and display:
-     ```
-     ╔══════════════════════════════════════════════════════════════╗
-     ║  ERROR                                                       ║
-     ╚══════════════════════════════════════════════════════════════╝
-
-     Failed to write to done/. Pending file preserved.
-
-     **To fix:** Check that `.planning/todos/done/` exists and is writable.
-     ```
-     Do NOT proceed to delete the pending file.
-8. Only THEN delete the original file from `.planning/todos/pending/` (use `rm` via Bash)
-8. Update STATE.md
-9. Confirm with branded output:
+1. Run the CLI to complete the todo:
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js todo done {NNN}
+   ```
+   This handles finding the file, updating frontmatter, safe write-to-done-then-delete-pending, and verification.
+   If the CLI fails (e.g., NNN not found), display a branded ERROR box and stop.
+2. Parse the CLI JSON output to extract the title for the confirmation display.
+3. Update STATE.md
+4. Confirm with branded output:
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PLAN-BUILD-RUN ► TODO COMPLETED ✓                           ║
