@@ -54,6 +54,7 @@ function main() {
       const notificationType = data.notification_type || data.type || 'unknown';
       const message = data.message || data.content || '';
       const agentId = data.agent_id || null;
+      const sessionId = data.session_id || null;
 
       // Throttle routine notifications in autonomous mode
       const throttleKey = 'notification:' + notificationType;
@@ -67,12 +68,14 @@ function main() {
       logHook('log-notification', 'Notification', 'received', {
         type: notificationType,
         agent_id: agentId,
-        message: message.substring(0, 100)
+        message: message.substring(0, 100),
+        sessionId
       });
 
       logEvent('notification', notificationType, {
         agent_id: agentId,
-        message: message.substring(0, 200)
+        message: message.substring(0, 200),
+        sessionId
       });
 
       process.exit(0);
@@ -95,6 +98,7 @@ function handleHttp(reqBody) {
     const notificationType = data.notification_type || data.type || 'unknown';
     const message = data.message || data.content || '';
     const agentId = data.agent_id || null;
+    const sessionId = data.session_id || null;
 
     // Throttle routine notifications in autonomous mode
     const throttleKey = 'notification:' + notificationType;
@@ -108,12 +112,14 @@ function handleHttp(reqBody) {
     logHook('log-notification', 'Notification', 'received', {
       type: notificationType,
       agent_id: agentId,
-      message: message.substring(0, 100)
+      message: message.substring(0, 100),
+      sessionId
     });
 
     logEvent('notification', notificationType, {
       agent_id: agentId,
-      message: message.substring(0, 200)
+      message: message.substring(0, 200),
+      sessionId
     });
   } catch (_e) {
     // Never propagate

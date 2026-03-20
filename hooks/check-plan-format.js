@@ -71,6 +71,7 @@ async function main() {
   process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
+      const sessionId = data.session_id || null;
 
       // Get the file path that was written/edited
       const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
@@ -139,12 +140,14 @@ async function main() {
           logHook('check-plan-format', 'PostToolUse', 'warn-downgraded', {
             file: basename,
             errors: result.errors,
-            reason: 'Write tool (first creation)'
+            reason: 'Write tool (first creation)',
+            sessionId
           });
           logEvent('workflow', eventType, {
             file: basename,
             status: 'warn-downgraded',
-            errorCount: result.errors.length
+            errorCount: result.errors.length,
+            sessionId
           });
 
           const output = {
@@ -155,12 +158,14 @@ async function main() {
           // Structural errors on Edit -- block and force correction
           logHook('check-plan-format', 'PostToolUse', 'block', {
             file: basename,
-            errors: result.errors
+            errors: result.errors,
+            sessionId
           });
           logEvent('workflow', eventType, {
             file: basename,
             status: 'block',
-            errorCount: result.errors.length
+            errorCount: result.errors.length,
+            sessionId
           });
 
           const summary = `${basename} has structural errors that must be fixed.`;
@@ -178,12 +183,14 @@ async function main() {
         // Warnings only -- non-blocking feedback
         logHook('check-plan-format', 'PostToolUse', 'warn', {
           file: basename,
-          warnings: result.warnings
+          warnings: result.warnings,
+          sessionId
         });
         logEvent('workflow', eventType, {
           file: basename,
           status: 'warn',
-          warningCount: result.warnings.length
+          warningCount: result.warnings.length,
+          sessionId
         });
 
         const output = {
@@ -192,8 +199,8 @@ async function main() {
         process.stdout.write(JSON.stringify(output));
       } else {
         // Clean pass
-        logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
-        logEvent('workflow', eventType, { file: basename, status: 'pass' });
+        logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename, sessionId });
+        logEvent('workflow', eventType, { file: basename, status: 'pass', sessionId });
       }
 
       process.exit(0);

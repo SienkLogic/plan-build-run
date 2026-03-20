@@ -85,6 +85,8 @@ function cleanOldHookLogs(logsDir) {
 }
 
 // entry fields: { ts, hook, event, decision, source, ...details, duration_ms? }
+// Callers can pass sessionId in details to attribute log entries to a specific session.
+// e.g. logHook('my-hook', 'PreToolUse', 'allow', { sessionId: data.session_id, tool: 'Write' })
 function logHook(hookName, eventType, decision, details = {}, startTime) {
   const logPath = getLogPath();
   if (!logPath) return;

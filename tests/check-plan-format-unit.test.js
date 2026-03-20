@@ -273,9 +273,10 @@ describe('validateRoadmap branch coverage', () => {
     expect(result.errors.some(w => w.includes('No "## Milestone:"'))).toBe(true);
   });
 
-  test('errors when milestone missing Phases line', () => {
+  test('warns when milestone missing Phases line', () => {
     const result = validateRoadmap('# Roadmap\n## Milestone: v1\nNo phases line here\n', 'ROADMAP.md');
-    expect(result.errors.some(w => w.includes('missing "**Phases:**"'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
+    expect(result.errors.some(e => e.includes('Phases'))).toBe(false);
   });
 
   test('warns when phase missing Provides', () => {
@@ -1684,7 +1685,7 @@ describe('validateRoadmap (comprehensive)', () => {
     expect(result.warnings.some(w => w.includes('table'))).toBe(true);
   });
 
-  test('missing Phases line in milestone errors', () => {
+  test('missing Phases line in milestone warns', () => {
     const content = `# Roadmap
 
 ## Milestone: v1.0
@@ -1695,7 +1696,8 @@ describe('validateRoadmap (comprehensive)', () => {
 **Depends on:** z
 `;
     const result = validateRoadmap(content, 'ROADMAP.md');
-    expect(result.errors.some(e => e.includes('Phases'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
+    expect(result.errors.some(e => e.includes('Phases'))).toBe(false);
   });
 
   test('critical structural issues are errors, minor issues are warnings', () => {

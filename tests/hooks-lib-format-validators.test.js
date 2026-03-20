@@ -289,16 +289,37 @@ describe('validateRoadmap', () => {
     expect(result.errors.some(e => e.includes('Milestone'))).toBe(true);
   });
 
-  test('missing Phases line in milestone is an error', () => {
+  test('missing Phases line in milestone is a warning', () => {
     const content = '# Roadmap\n## Milestone: v1\nNo phases line\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
-    expect(result.errors.some(e => e.includes('Phases'))).toBe(true);
+    expect(result.warnings.some(w => w.includes('Phases'))).toBe(true);
+    expect(result.errors.some(e => e.includes('Phases'))).toBe(false);
   });
 
   test('COMPLETED milestone skips checklist checks', () => {
     const content = '# Roadmap\n## Milestone: v1 -- COMPLETED\n**Phases:** 1\n### Phase 01: Setup\n**Goal:** x\n**Provides:** y\n**Depends on:** z\n';
     const result = validateRoadmap(content, 'ROADMAP.md');
     expect(result.warnings.some(w => w.includes('Phase Checklist'))).toBe(false);
+  });
+
+  test('COMPLETED milestone with collapsed format produces zero errors and warnings', () => {
+    const content = `# Roadmap
+## Milestone: v8.0 (GSD Alignment) -- COMPLETED
+Completed: 2026-03-18 | Archive: .planning/milestones/v8.0/
+
+## Milestone: v9.0 (Active Work)
+**Phases:** 3
+**Requirement coverage:** 5/5
+- [ ] Phase 01: Setup
+### Phase 01: Setup
+**Goal:** scaffold
+**Provides:** base
+**Depends on:** nothing
+**Requirements:** REQ-1
+**Success Criteria:** Tests pass`;
+    const result = validateRoadmap(content, 'ROADMAP.md');
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
   });
 });
 

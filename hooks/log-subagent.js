@@ -17,9 +17,24 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
-const { sessionLoad } = require('../plan-build-run/bin/lib/core.cjs');
-const { resolveSessionPath } = require('../plan-build-run/bin/lib/core.cjs');
+
+// Lazy-loaded on demand — these modules do sync I/O at require() time
+let _configLoad = null;
+let _sessionLoad = null;
+let _resolveSessionPath = null;
+
+function getConfigLoad() {
+  if (!_configLoad) _configLoad = require('../plan-build-run/bin/lib/config.cjs').configLoad;
+  return _configLoad;
+}
+function getSessionLoad() {
+  if (!_sessionLoad) _sessionLoad = require('../plan-build-run/bin/lib/core.cjs').sessionLoad;
+  return _sessionLoad;
+}
+function getResolveSessionPath() {
+  if (!_resolveSessionPath) _resolveSessionPath = require('../plan-build-run/bin/lib/core.cjs').resolveSessionPath;
+  return _resolveSessionPath;
+}
 
 function readStdin() {
   try {
@@ -53,12 +68,14 @@ function main() {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
+      description: data.description || null,
+      sessionId
     });
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
+      description: data.description || null,
+      sessionId
     });
 
     // Write .active-agent signal so other hooks know a subagent is running
@@ -81,12 +98,14 @@ function main() {
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
+      duration_ms: data.duration_ms || null,
+      sessionId
     });
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
+      duration_ms: data.duration_ms || null,
+      sessionId
     });
 
     // Track cumulative agent spawns — warn when excessive
@@ -134,6 +153,7 @@ const AGENT_SPAWN_CRITICAL_THRESHOLD = 20;
 
 /**
  * Track cumulative agent spawns per session. Returns warning string if threshold exceeded.
+ * Uses JSONL append for fast writes; only reads back on threshold checks.
  * @param {string} planningDir
  * @param {string|null} agentType
  * @param {number|null} durationMs
@@ -141,34 +161,47 @@ const AGENT_SPAWN_CRITICAL_THRESHOLD = 20;
  * @returns {string|null}
  */
 function trackAgentCost(planningDir, agentType, durationMs, sessionId) {
-  if (!fs.existsSync(planningDir)) return null;
+  try {
+    if (!fs.existsSync(planningDir)) return null;
+  } catch (_e) { return null; }
 
+  const resolveSessionPath = getResolveSessionPath();
   const trackerPath = sessionId
     ? resolveSessionPath(planningDir, AGENT_COST_FILE, sessionId)
     : path.join(planningDir, AGENT_COST_FILE);
 
-  let tracker = { total_spawns: 0, total_duration_ms: 0, by_type: {} };
+  // Append a JSONL line — no read required on the hot path
+  const entry = { ts: Date.now(), type: agentType || 'unknown', ms: durationMs || 0 };
+  try { fs.appendFileSync(trackerPath, JSON.stringify(entry) + '\n', 'utf8'); } catch (_e) { /* best-effort */ }
+
+  // Count lines to check thresholds (cheaper than JSON parse of entire structure)
+  let lineCount = 0;
   try {
-    tracker = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
-  } catch (_e) { /* start fresh */ }
+    const content = fs.readFileSync(trackerPath, 'utf8');
+    const lines = content.trim().split('\n');
+    lineCount = lines.length;
 
-  tracker.total_spawns = (tracker.total_spawns || 0) + 1;
-  tracker.total_duration_ms = (tracker.total_duration_ms || 0) + (durationMs || 0);
-  if (agentType) {
-    if (!tracker.by_type) tracker.by_type = {};
-    tracker.by_type[agentType] = (tracker.by_type[agentType] || 0) + 1;
-  }
+    // Only compute detailed stats at threshold boundaries
+    if (lineCount === AGENT_SPAWN_WARN_THRESHOLD || lineCount === AGENT_SPAWN_CRITICAL_THRESHOLD) {
+      let totalMs = 0;
+      const byType = {};
+      for (const line of lines) {
+        try {
+          const rec = JSON.parse(line);
+          totalMs += rec.ms || 0;
+          byType[rec.type] = (byType[rec.type] || 0) + 1;
+        } catch (_e) { /* skip malformed lines */ }
+      }
 
-  try { fs.writeFileSync(trackerPath, JSON.stringify(tracker), 'utf8'); } catch (_e) { /* best-effort */ }
-
-  // Warn at thresholds
-  if (tracker.total_spawns === AGENT_SPAWN_CRITICAL_THRESHOLD) {
-    const topAgents = Object.entries(tracker.by_type || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, c]) => `${t}: ${c}`).join(', ');
-    return `[pbr] CRITICAL: ${tracker.total_spawns} agents spawned this session (~${Math.round(tracker.total_duration_ms / 1000)}s total). Top: ${topAgents}. Run /pbr:pause-work to cycle session and reclaim context.`;
-  }
-  if (tracker.total_spawns === AGENT_SPAWN_WARN_THRESHOLD) {
-    return `[pbr] Advisory: ${tracker.total_spawns} agents spawned this session (~${Math.round(tracker.total_duration_ms / 1000)}s total). Consider /pbr:pause-work if context quality is degrading.`;
-  }
+      if (lineCount === AGENT_SPAWN_CRITICAL_THRESHOLD) {
+        const topAgents = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, c]) => `${t}: ${c}`).join(', ');
+        return `[pbr] CRITICAL: ${lineCount} agents spawned this session (~${Math.round(totalMs / 1000)}s total). Top: ${topAgents}. Run /pbr:pause-work to cycle session and reclaim context.`;
+      }
+      if (lineCount === AGENT_SPAWN_WARN_THRESHOLD) {
+        return `[pbr] Advisory: ${lineCount} agents spawned this session (~${Math.round(totalMs / 1000)}s total). Consider /pbr:pause-work if context quality is degrading.`;
+      }
+    }
+  } catch (_e) { /* best-effort — threshold check is advisory */ }
 
   return null;
 }
@@ -197,8 +230,12 @@ function buildAgentContext(sessionId) {
   }
 
   // Active skill context — session-scoped when sessionId available
-  let activeSkill = sessionLoad(planningDir, sessionId).activeSkill || '';
+  let activeSkill = '';
+  try {
+    activeSkill = getSessionLoad()(planningDir, sessionId).activeSkill || '';
+  } catch (_e) { /* skip */ }
   if (!activeSkill) {
+    const resolveSessionPath = getResolveSessionPath();
     const skillPath = sessionId
       ? resolveSessionPath(planningDir, '.active-skill', sessionId)
       : path.join(planningDir, '.active-skill');
@@ -207,7 +244,7 @@ function buildAgentContext(sessionId) {
   if (activeSkill) parts.push(`Active skill: /pbr:${activeSkill}`);
 
   // Config highlights
-  const config = configLoad(planningDir);
+  const config = getConfigLoad()(planningDir);
   if (config) {
     const configParts = [];
     if (config.depth) configParts.push(`depth=${config.depth}`);
@@ -232,16 +269,20 @@ function handleHttp(reqBody) {
   const data = reqBody.data || {};
   const agentType = resolveAgentType(data);
 
+  const sessionId = data.session_id || null;
+
   if (event === 'SubagentStart') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
+      description: data.description || null,
+      sessionId
     });
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
+      description: data.description || null,
+      sessionId
     });
 
     // Write .active-agent signal — use planningDir from reqBody if available
@@ -282,12 +323,14 @@ function handleHttp(reqBody) {
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
+      duration_ms: data.duration_ms || null,
+      sessionId
     });
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
+      duration_ms: data.duration_ms || null,
+      sessionId
     });
 
     // Track agent cost via HTTP path

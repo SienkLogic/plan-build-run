@@ -229,6 +229,22 @@ describe('hook-logger.js', () => {
     expect(entry.hook).toBe('auto-create-test');
   });
 
+  test('includes sessionId when passed in details', () => {
+    const { logHook } = getLogger();
+    logHook('test-hook', 'PostToolUse', 'allow', {
+      sessionId: 'sess-123',
+      tool: 'Write'
+    });
+
+    const logPath = getDatedLogPath(planningDir);
+    const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+
+    expect(entry.sessionId).toBe('sess-123');
+    expect(entry.source).toBe('test-hook');
+    expect(entry.tool).toBe('Write');
+  });
+
   test('uses appendFileSync not readFile for writing', () => {
     // Verify the implementation uses append-only pattern
     const loggerSource = fs.readFileSync(

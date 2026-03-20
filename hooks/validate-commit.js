@@ -59,9 +59,9 @@ const MERGE_PATTERN = /^Merge\s/;
 // AI co-author patterns to block
 const AI_COAUTHOR_PATTERN = /Co-Authored-By:.*(?:Claude|Anthropic|noreply@anthropic\.com|OpenAI|Copilot|GPT|AI Assistant)/i;
 
-function checkAiCoAuthorResult(command) {
+function checkAiCoAuthorResult(command, sessionId) {
   if (AI_COAUTHOR_PATTERN.test(command)) {
-    logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200) });
+    logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200), sessionId });
     return {
       output: {
         decision: 'block',
@@ -73,7 +73,7 @@ function checkAiCoAuthorResult(command) {
   return null;
 }
 
-function checkSensitiveFilesResult() {
+function checkSensitiveFilesResult(sessionId) {
   try {
     const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
     const files = output.trim().split('\n').filter(Boolean);
@@ -87,7 +87,7 @@ function checkSensitiveFilesResult() {
     });
 
     if (matched.length > 0) {
-      logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched });
+      logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched, sessionId });
       return {
         output: {
           decision: 'block',
@@ -109,6 +109,7 @@ function checkSensitiveFilesResult() {
  */
 function checkCommit(data) {
   const command = data.tool_input?.command || '';
+  const sessionId = data.session_id || null;
 
   // Only validate git commit commands
   if (!isGitCommit(command)) {
@@ -119,19 +120,19 @@ function checkCommit(data) {
   const message = extractCommitMessage(command);
   if (!message) {
     // Could not parse message - let it through (might be --amend or other form)
-    logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message' });
+    logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message', sessionId });
     return null;
   }
 
   // Validate format
   if (MERGE_PATTERN.test(message)) {
-    logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit' });
+    logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit', sessionId });
     return null;
   }
 
   if (!COMMIT_PATTERN.test(message)) {
-    logHook('validate-commit', 'PreToolUse', 'block', { message });
-    logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block' });
+    logHook('validate-commit', 'PreToolUse', 'block', { message, sessionId });
+    logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block', sessionId });
     return {
       output: {
         decision: 'block',
@@ -142,15 +143,15 @@ function checkCommit(data) {
   }
 
   // Valid format
-  logHook('validate-commit', 'PreToolUse', 'allow', { message });
-  logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
+  logHook('validate-commit', 'PreToolUse', 'allow', { message, sessionId });
+  logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow', sessionId });
 
   // Check AI co-author
-  const coAuthorResult = checkAiCoAuthorResult(command);
+  const coAuthorResult = checkAiCoAuthorResult(command, sessionId);
   if (coAuthorResult) return coAuthorResult;
 
   // Check sensitive files
-  const sensitiveResult = checkSensitiveFilesResult();
+  const sensitiveResult = checkSensitiveFilesResult(sessionId);
   if (sensitiveResult) return sensitiveResult;
 
   return null;

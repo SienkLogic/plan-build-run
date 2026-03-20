@@ -400,30 +400,31 @@ describe('trackAgentCost', () => {
     trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
     expect(fs.existsSync(trackerPath)).toBe(true);
-    const data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
-    expect(data.total_spawns).toBe(1);
-    expect(data.total_duration_ms).toBe(1000);
+    const lines = fs.readFileSync(trackerPath, 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]);
+    expect(entry.type).toBe('pbr:executor');
+    expect(entry.ms).toBe(1000);
   });
 
   test('accumulates spawns across calls', () => {
     trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     trackAgentCost(planningDir, 'pbr:planner', 2000, null);
     trackAgentCost(planningDir, 'pbr:executor', 500, null);
-    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
-    expect(data.total_spawns).toBe(3);
-    expect(data.total_duration_ms).toBe(3500);
-    expect(data.by_type['pbr:executor']).toBe(2);
-    expect(data.by_type['pbr:planner']).toBe(1);
+    const lines = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(3);
+    const types = lines.map(l => JSON.parse(l).type);
+    expect(types.filter(t => t === 'pbr:executor')).toHaveLength(2);
+    expect(types.filter(t => t === 'pbr:planner')).toHaveLength(1);
   });
 
   test('returns warning at warn threshold', () => {
-    // Pre-seed tracker to one below threshold
+    // Pre-seed tracker with JSONL lines to one below threshold
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
-    fs.writeFileSync(trackerPath, JSON.stringify({
-      total_spawns: AGENT_SPAWN_WARN_THRESHOLD - 1,
-      total_duration_ms: 50000,
-      by_type: { 'pbr:executor': AGENT_SPAWN_WARN_THRESHOLD - 1 }
-    }));
+    const lines = Array.from({ length: AGENT_SPAWN_WARN_THRESHOLD - 1 }, (_, i) =>
+      JSON.stringify({ ts: Date.now() + i, type: 'pbr:executor', ms: 1000 })
+    ).join('\n') + '\n';
+    fs.writeFileSync(trackerPath, lines);
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     expect(result).toContain('Advisory');
     expect(result).toContain(`${AGENT_SPAWN_WARN_THRESHOLD}`);
@@ -431,11 +432,10 @@ describe('trackAgentCost', () => {
 
   test('returns critical warning at critical threshold', () => {
     const trackerPath = path.join(planningDir, '.agent-cost-tracker');
-    fs.writeFileSync(trackerPath, JSON.stringify({
-      total_spawns: AGENT_SPAWN_CRITICAL_THRESHOLD - 1,
-      total_duration_ms: 100000,
-      by_type: { 'pbr:executor': AGENT_SPAWN_CRITICAL_THRESHOLD - 1 }
-    }));
+    const lines = Array.from({ length: AGENT_SPAWN_CRITICAL_THRESHOLD - 1 }, (_, i) =>
+      JSON.stringify({ ts: Date.now() + i, type: 'pbr:executor', ms: 1000 })
+    ).join('\n') + '\n';
+    fs.writeFileSync(trackerPath, lines);
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
     expect(result).toContain('CRITICAL');
     expect(result).toContain(`${AGENT_SPAWN_CRITICAL_THRESHOLD}`);
@@ -449,23 +449,28 @@ describe('trackAgentCost', () => {
   test('handles null agentType gracefully', () => {
     const result = trackAgentCost(planningDir, null, 1000, null);
     expect(result).toBeNull();
-    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
-    expect(data.total_spawns).toBe(1);
-    // null agent not tracked in by_type
-    expect(Object.keys(data.by_type)).toHaveLength(0);
+    const lines = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]);
+    expect(entry.type).toBe('unknown');
   });
 
   test('handles null durationMs gracefully', () => {
     trackAgentCost(planningDir, 'pbr:executor', null, null);
-    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
-    expect(data.total_duration_ms).toBe(0);
+    const lines = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim().split('\n');
+    const entry = JSON.parse(lines[0]);
+    expect(entry.ms).toBe(0);
   });
 
-  test('handles corrupt tracker file by starting fresh', () => {
-    fs.writeFileSync(path.join(planningDir, '.agent-cost-tracker'), 'not json');
+  test('handles corrupt tracker file by appending', () => {
+    fs.writeFileSync(path.join(planningDir, '.agent-cost-tracker'), 'not json\n');
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);
+    // JSONL append works even with prior corrupt lines
     expect(result).toBeNull();
-    const data = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8'));
-    expect(data.total_spawns).toBe(1);
+    const content = fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8');
+    const lines = content.trim().split('\n');
+    // Last line should be valid JSONL
+    const lastEntry = JSON.parse(lines[lines.length - 1]);
+    expect(lastEntry.type).toBe('pbr:executor');
   });
 });

@@ -762,12 +762,14 @@ function validateRoadmap(content, _filePath) {
   } else {
     const milestoneBlocks = strippedContent.split(/^##\s+Milestone:/m).slice(1);
     milestoneBlocks.forEach((block, idx) => {
-      if (!/\*\*Phases:\*\*/.test(block)) {
-        errors.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
-      }
-
       const headingLine = block.split('\n')[0] || '';
+
+      // Skip all structural checks for completed milestones (collapsed format)
       if (/--\s*COMPLETED/i.test(headingLine)) return;
+
+      if (!/\*\*Phases:\*\*/.test(block)) {
+        warnings.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
+      }
 
       if (!/###\s+Phase Checklist/.test(block) && !/- \[[ x]\] Phase/i.test(block)) {
         warnings.push(`Milestone ${idx + 1}: missing Phase Checklist (expected "- [ ] Phase NN:" format)`);
@@ -779,11 +781,19 @@ function validateRoadmap(content, _filePath) {
     });
   }
 
-  // Check each ### Phase NN:
+  // Check each ### Phase NN: (only in active milestones)
+  // Extract content from active milestones only (skip COMPLETED blocks)
+  const activeMilestoneContent = strippedContent.split(/^##\s+Milestone:/m).slice(1)
+    .filter(block => {
+      const headingLine = block.split('\n')[0] || '';
+      return !/--\s*COMPLETED/i.test(headingLine);
+    })
+    .join('\n');
+
   const phaseRegex = /^###\s+Phase\s+\d+:/gm;
-  const phaseMatches = strippedContent.match(phaseRegex);
+  const phaseMatches = activeMilestoneContent.match(phaseRegex);
   if (phaseMatches) {
-    const phaseBlocks = strippedContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
+    const phaseBlocks = activeMilestoneContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
     phaseBlocks.forEach((block, idx) => {
       const nextHeading = block.search(/^#{2,3}\s+/m);
       const section = nextHeading !== -1 ? block.substring(0, nextHeading) : block;

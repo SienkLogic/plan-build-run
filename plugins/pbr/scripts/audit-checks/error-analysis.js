@@ -181,15 +181,25 @@ function checkToolFailureRate(planningDir, config) {
   const evidence = [];
   let anyAboveThreshold = false;
 
+  // Detect if we only have failure events (no success events logged)
+  const onlyFailureEventsLogged = totalToolEvents.length === eventFailures.length;
+  if (onlyFailureEventsLogged && totalToolEvents.length > 0) {
+    evidence.push('Tool success events not logged — failure rates are raw counts, not percentages');
+  }
+
   for (const [tool, rawCount] of Object.entries(failuresByTool)) {
     const total = totalByTool[tool];
-    if (total && total > 0) {
-      // Cap failure count at total to prevent >100% rates
+    if (total && total > 0 && total > rawCount) {
+      // We have more total events than failures — rate is meaningful
       const count = Math.min(rawCount, total);
       const rate = count / total;
       const pct = (rate * 100).toFixed(1);
       evidence.push(`${tool}: ${count} failures (${pct}% rate of ${total} calls)`);
       if (rate > threshold) anyAboveThreshold = true;
+    } else if (total && total === rawCount) {
+      // Total equals failures — only failure events tracked, rate not calculable
+      evidence.push(`${tool}: ${rawCount} failure(s) (total calls not tracked — rate not calculable)`);
+      // Do NOT flag as above-threshold since rate is unknown
     } else {
       evidence.push(`${tool}: ${rawCount} failures (total calls unknown)`);
     }
