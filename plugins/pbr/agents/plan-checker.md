@@ -125,12 +125,25 @@ Plan honors CONTEXT.md locked decisions and excludes deferred ideas. Skip if no 
 ### D8: Nyquist Compliance
 Verification criteria must be specific enough for machine verification. Check that `<verify>` commands test actual outputs (not just file existence), `<done>` statements are falsifiable with concrete thresholds, and must-haves contain enough detail to distinguish pass from fail without human judgment.
 
+#### Verify Command Executability
+
+For each `<verify>` command in every task, check basic executability:
+1. **File references**: If the command references a test file path (e.g., `npx jest tests/foo.test.js`), verify the plan creates that file OR it already exists in the codebase
+2. **Tool availability**: If the command runs a CLI tool (jest, pytest, eslint, tsc), verify the tool is in `package.json` devDependencies or `requirements.txt`
+3. **Server dependencies**: If the command curls a URL (e.g., `curl localhost:3000/api/health`), verify the plan starts a server or documents that one is already running
+4. **Grep targets**: If the command greps a file, verify the file is in the plan's `files_modified` list or already exists
+
+Flag executability issues as WARNING (not BLOCKER) since verify commands may depend on task output that is hard to statically verify.
+
 | Condition | Severity |
 |-----------|----------|
 | Verify command cannot distinguish pass/fail programmatically | WARNING |
 | Done statement uses vague language ("works correctly", "is good") | WARNING |
 | Truth is not a boolean assertion testable by grep/command | WARNING |
 | `<verify>` uses only file-existence checks, no functional test | WARNING |
+| Verify command references file not created by plan and not in codebase | WARNING |
+| Verify command uses CLI tool not in project dependencies | WARNING |
+| Verify command assumes running server with no start task | WARNING |
 | Artifact size hint missing (no `: >N lines`) | INFO |
 
 ### D9: Cross-Plan Data Contracts
