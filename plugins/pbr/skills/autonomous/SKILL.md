@@ -116,7 +116,24 @@ For each remaining phase N:
   - Invoke: `Skill({ skill: "pbr:plan", args: "{N} --auto" })`
 - If plans exist (from speculative planning or prior run): skip planning.
   - Log: `Phase {N}: plans already exist (speculative or prior) -- skipping plan step.`
+  - Note: even if planning is skipped, the 3b-validate gate below will verify plans are validated.
 - If Skill returns failure: stop autonomous loop, display error, suggest: `/pbr:plan {N}`
+
+### 3b-validate. Plan Validation Gate (always runs)
+
+**CRITICAL -- DO NOT SKIP. No phase may enter build without passing plan validation.**
+
+1. Check if `.planning/phases/{NN}-{slug}/.plan-check.json` exists.
+2. If it exists: read it and verify `status === "passed"`.
+   - If passed: log `Phase {N}: plan validation passed` and proceed to 3c.
+   - If not passed: log `Phase {N}: plan validation failed -- re-running plan checker`
+     - Invoke: `Skill({ skill: "pbr:plan", args: "{N} --audit --auto" })`
+     - Re-check `.plan-check.json`. If still not passed: stop autonomous loop.
+       Display: `BLOCKED: Phase {N} plans failed validation. Fix issues with /pbr:plan {N} --audit`
+3. If `.plan-check.json` does NOT exist (plans came from speculative planner which bypassed plan-checker):
+   - Log: `Phase {N}: no .plan-check.json -- running plan checker on existing plans`
+   - Invoke: `Skill({ skill: "pbr:plan", args: "{N} --audit --auto" })`
+   - After completion, re-check `.plan-check.json`. If missing or failed: stop autonomous loop with same BLOCKED message.
 
 ### 3c. Build Phase
 
@@ -233,6 +250,19 @@ that the build skill does not try to skip plans that no longer exist.
 **Procedure:**
 
 1. Wait for any outstanding speculative planner tasks to complete (they run in background).
+1.5. **Validate speculative plans:** For each speculatively-planned phase C that completed successfully:
+   - Check if `.planning/phases/{CC}-{slug}/.plan-check.json` exists (it will not -- raw planner does not write it)
+   - Run plan-checker on the speculative plans:
+     ```
+     Task({
+       subagent_type: "pbr:plan-checker",
+       model: "sonnet",
+       prompt: "Validate plans in .planning/phases/{CC}-{slug}/. Read all PLAN-*.md files. Write .plan-check.json to the phase directory. Phase goal: {goal from ROADMAP}. Check structural completeness, task elements, dependency correctness."
+     })
+     ```
+   - Log: `Speculative plans for Phase {C}: validated ({status})`
+   - If plan-checker finds blockers: log warning but do NOT stop the loop (plans will be re-validated at 3b-validate before build)
+   - **Design note:** Speculative planning uses raw `Task(subagent_type: "pbr:planner")` + separate plan-checker rather than `Skill("pbr:plan")` because: (a) Skill() writes .active-skill which conflicts with the orchestrator's ownership, (b) Skill() updates STATE.md which is incorrect for speculative phases, (c) the raw planner + separate checker is more appropriate for speculative context where state should not be mutated. The 3b-validate gate provides the authoritative check before build.
 2. Read Phase N's SUMMARY.md files. For each SUMMARY.md, extract `deviations` from YAML frontmatter.
 3. Compute total deviation count across all SUMMARY files for Phase N.
 4. If total deviations == 0: speculative plans are fresh -- no action needed. Log:
@@ -246,6 +276,9 @@ that the build skill does not try to skip plans that no longer exist.
         ```
         Skill({ skill: "pbr:plan", args: "{C} --auto" })
         ```
+      - **Verify re-plan validation:** After `Skill()` returns, confirm `.plan-check.json` exists in the phase directory with `status: "passed"`. The `/pbr:plan` skill writes this artifact. If missing (edge case -- plan skill failed to write artifact):
+        - Run: `Task({ subagent_type: "pbr:plan-checker", model: "sonnet", prompt: "Validate plans in .planning/phases/{CC}-{slug}/. Write .plan-check.json." })`
+        - Log: `Phase {C}: re-plan validation completed`
       - Re-initialize checkpoint manifest for Phase C with the new plan IDs:
         ```bash
         # Collect new PLAN-*.md filenames from .planning/phases/{CC}-{slug}/
@@ -253,6 +286,7 @@ that the build skill does not try to skip plans that no longer exist.
         node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js checkpoint init {CC}-{slug} --plans "{comma-separated plan IDs}"
         ```
         This ensures the build skill starts with accurate plan tracking when Phase C is built.
+      - Note: The re-plan via `/pbr:plan` already includes plan-checker validation (Step 6 of the plan skill). The explicit check above is a safety net -- if the plan skill's checker was skipped due to depth profile, the autonomous mode enforces it independently.
    c. If Phase C does NOT depend on Phase N: plans are still valid, no action needed.
 
 Important: The staleness check uses deviation count from SUMMARY.md frontmatter (locked decision #3). Any deviation > 0 triggers re-plan for dependent phases. This is intentionally simple -- no partial staleness analysis.
