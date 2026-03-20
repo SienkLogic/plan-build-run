@@ -49,32 +49,17 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render
 
 This returns a **complete, deterministic JSON object** with ALL project status: milestones, phases, progress bar, routing recommendations, todos, notes, quick tasks, paused work, documents, and warnings. Parse the JSON and proceed directly to Step 4 (Display) using the structured data.
 
-**If and ONLY if the CLI command fails** (non-zero exit or invalid JSON), fall back to reading files manually:
+**If the CLI command fails** (non-zero exit or invalid JSON), display:
 
-1. **`.planning/config.json`** — Project settings
-   - If this doesn't exist, display:
-     ```
-     ╔══════════════════════════════════════════════════════════════╗
-     ║  ERROR                                                       ║
-     ╚══════════════════════════════════════════════════════════════╝
+```
+╔══════════════════════════════════════════════════════════════╗
+║  ERROR                                                       ║
+╚══════════════════════════════════════════════════════════════╝
 
-     No Plan-Build-Run project found.
+Failed to render status dashboard. Run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js status render` manually to diagnose.
+```
 
-     **To fix:** Run `/pbr:new-project` to start a new project, or `/pbr:map-codebase` to analyze an existing codebase.
-     ```
-   - Stop here if no project found.
-
-2. **`.planning/STATE.md`** — Current position, progress, blockers
-   - Extract: current phase, current plan, overall progress, blockers, session info
-
-3. **`.planning/ROADMAP.md`** — Phase overview
-   - Extract: all phases with names, descriptions, status indicators
-
-4. **`.planning/PROJECT.md`** — Project metadata (if exists)
-   - Extract: project name, milestone info
-
-5. **`.planning/REQUIREMENTS.md`** — Requirements (if exists)
-   - Extract: requirement completion status if tracked
+Stop execution — do NOT attempt manual file reads as fallback.
 
 ### Step 1b: Read Context Budget (advisory — skip on any error)
 
@@ -90,72 +75,7 @@ Parse the JSON response. Capture:
 
 Store these for use in Step 4 display and Step 5 routing.
 
-6. **`.planning/STATE.md` `velocity` frontmatter field** (if exists)
-   - Note: velocity metrics object with plans_executed, avg_duration_minutes, trend
-   - Display in status dashboard if present
-
-6b. **`.planning/STATE.md` session continuity fields** (if exists)
-   - Extract: `session_last`, `session_stopped_at`, `session_resume` from frontmatter
-   - Display last session info if present
-
-7. **`.planning/PROJECT.md` ## Context section** (if exists)
-   - Note: locked decisions, user constraints, deferred ideas (consolidated from legacy CONTEXT.md)
-   - **Backwards compat:** If PROJECT.md has no ## Context section but `.planning/CONTEXT.md` exists, read from the legacy file
-
-### Step 1d: Check Project Documents
-
-Check existence of the core project-level documents and record their status for Step 4 display:
-- `.planning/PROJECT.md` — exists or not (includes ## Context section for locked decisions)
-- `.planning/REQUIREMENTS.md` — exists or not
-
-### Step 2: Scan Phase Directories
-
-For each phase listed in ROADMAP.md:
-
-1. Check if the phase directory exists in `.planning/phases/`
-2. If exists, scan for:
-   - `CONTEXT.md` — discussion happened
-   - `*-PLAN.md` or `PLAN.md` files — plans exist
-   - `*-SUMMARY.md` or `SUMMARY.md` files — plans were executed
-   - `VERIFICATION.md` — phase was reviewed
-   - `.continue-here.md` — paused work
-
-3. Calculate phase status:
-
-| Condition | Status | Status Value |
-|-----------|--------|-------------|
-| No directory | Not started | `not_started` |
-| Directory exists, CONTEXT.md only | Discussed | `discussed` |
-| Directory exists, no plans, ready for planning | Ready to plan | `ready_to_plan` |
-| Planning in progress (planner running) | Planning | `planning` |
-| Plans exist, no summaries | Planned | `planned` |
-| Plans exist, ready to execute | Ready to execute | `ready_to_execute` |
-| Some summaries, not all | Building (in progress) | `building` |
-| All summaries exist | Built (ready to review) | `built` |
-| Some plans completed with issues | Partial | `partial` |
-| VERIFICATION.md exists, status=passed | Verified | `verified` |
-| VERIFICATION.md exists, status=gaps_found | Needs fixes | `needs_fixes` |
-| Phase fully done | Complete | `complete` |
-| Phase explicitly skipped | Skipped | `skipped` |
-
-4. Calculate progress percentage:
-   - Count total plans across all phases
-   - Count plans with SUMMARY.md (status=completed)
-   - Progress = completed / total * 100
-
-### Step 2b: Check STATE.md Size and Consistency
-
-Count lines in `.planning/STATE.md`. If over 150 lines, add a warning to the dashboard:
-```
-Warning: STATE.md is {N} lines (limit: 150). Run any build/review command to auto-compact it.
-```
-
-**Discrepancy check:** Compare STATE.md phase/plan/status claims against the filesystem:
-- Does the phase directory exist? If not: `Warning: STATE.md references Phase {N} but no directory exists.`
-- Does the plan count match? If not: `Warning: STATE.md says {X} plans but filesystem has {Y}.`
-- Does the status match? If STATE.md says "verified" but no `VERIFICATION.md` exists: `Warning: STATE.md says "verified" but no VERIFICATION.md found.`
-
-If any discrepancy found, add: `Run /pbr:resume-work to auto-reconcile STATE.md.`
+**Steps 2-2b:** The `status render` CLI output includes phase statuses, plan counts, progress percentage, and STATE.md discrepancy warnings. Parse the JSON directly — do NOT re-scan the filesystem.
 
 ### Step 3: Check for Special Conditions
 
@@ -166,18 +86,6 @@ If any discrepancy found, add: `Run /pbr:resume-work to auto-reconcile STATE.md.
 #### Verification Gaps
 - Search for `VERIFICATION.md` files with `gaps_found` status
 - If found: note which phases have gaps
-
-#### Cross-Phase Re-Planning Check
-- For each planned phase, check if its dependency phases have been built yet
-- Logic:
-  1. Read ROADMAP.md to find phase dependencies (phases that come before)
-  2. If Phase N has plans but Phase N-1 doesn't have summaries (wasn't built yet):
-     - This means Phase N was planned without knowledge of what Phase N-1 actually produced
-     - Flag for re-planning
-- **Dependency fingerprint check**: For each planned phase with `dependency_fingerprints` in plan frontmatter:
-  1. Compare the fingerprints against current dependency SUMMARY.md files
-  2. If any fingerprint is stale (dependency was re-built after the plan was created):
-     - Flag: "WARN: Phase {N} plans may be stale — dependency phase {M} was re-built since planning. Consider re-planning with `/pbr:plan-phase {N}`."
 
 #### Active Debug Sessions
 - Check `.planning/debug/` for files with `status: active`
