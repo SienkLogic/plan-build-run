@@ -144,7 +144,7 @@ const {
 const {
   stateReconcile: _stateReconcile,
   stateBackup: _stateBackup
-} = require('../../../plan-build-run/bin/lib/state.cjs');
+} = require('./lib/state');
 
 const {
   parseRoadmapMd,
@@ -292,7 +292,7 @@ const {
   list: _incidentsList,
   query: _incidentsQuery,
   summary: _incidentsSummary
-} = require('../../../plan-build-run/bin/lib/incidents.cjs');
+} = require('./lib/incidents');
 
 // --- Module-level state (for backwards compatibility) ---
 
@@ -1048,10 +1048,10 @@ async function main() {
       const field = args[2];
       const value = args[3];
       if (!field || value === undefined) { error('Usage: state enqueue <field> <value>'); }
-      const { stateEnqueue } = require('../../../plan-build-run/bin/lib/state-queue.cjs');
+      const { stateEnqueue } = require('./lib/state-queue');
       output(stateEnqueue(field, value, planningDir));
     } else if (command === 'state' && subcommand === 'drain') {
-      const { stateDrain } = require('../../../plan-build-run/bin/lib/state-queue.cjs');
+      const { stateDrain } = require('./lib/state-queue');
       output(stateDrain(planningDir));
     } else if (command === 'phase' && subcommand === 'add') {
       const slug = args[2];

@@ -35,6 +35,22 @@ function parseRoadmapMd(content) {
     }
   }
 
+  // Heading-based phase discovery fallback: if no table rows produced phases,
+  // scan for "## Phase N: Name" / "### Phase N: Name" headings (v14.0+ format)
+  if (result.phases.length === 0) {
+    const headingRe = /#{2,4}\s*Phase\s+(\d+(?:\.\d+)*)\s*:\s*([^\n]+)/gi;
+    let hm;
+    while ((hm = headingRe.exec(normalized)) !== null) {
+      result.phases.push({
+        number: hm[1],
+        name: hm[2].trim(),
+        goal: '',
+        plans: '',
+        status: 'unknown'
+      });
+    }
+  }
+
   // Check for Progress table
   result.has_progress_table = /## Progress/.test(normalized);
 
@@ -499,7 +515,7 @@ function roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn) {
     }
 
     // Build the phase heading block
-    const paddedNum = String(phaseNum).padStart(2, '0');
+    const _paddedNum = String(phaseNum).padStart(2, '0');
     const block = [];
     block.push(`### Phase ${phaseNum}: ${name}`);
     if (goal) block.push(`**Goal:** ${goal}`);
@@ -770,173 +786,6 @@ function roadmapInsertPhase(planningDir, position, name, goal, dependsOn) {
   });
 }
 
-// --- Reconciliation ---
-
-/**
- * Reconcile ROADMAP.md phase statuses against actual disk state.
- *
- * Walks all phases in the Phase Overview table, checks disk for
- * VERIFICATION.md, SUMMARY-*.md, PLAN-*.md, and milestone archives,
- * then corrects any stale status entries.
- *
- * @param {string} planningDir - Path to .planning/ directory
- * @returns {{ fixed: number, mismatches: Array<{ phase: string, from: string, to: string }> }}
- */
-function reconcileRoadmapStatuses(planningDir) {
-  const roadmapPath = path.join(planningDir, 'ROADMAP.md');
-  if (!fs.existsSync(roadmapPath)) {
-    return { fixed: 0, mismatches: [], error: 'ROADMAP.md not found' };
-  }
-
-  const phasesDir = path.join(planningDir, 'phases');
-  const milestonesDir = path.join(planningDir, 'milestones');
-
-  // Read and parse ROADMAP.md Phase Overview table
-  const content = fs.readFileSync(roadmapPath, 'utf8');
-  const parsed = parseRoadmapMd(content);
-
-  if (parsed.phases.length === 0) {
-    return { fixed: 0, mismatches: [] };
-  }
-
-  const mismatches = [];
-
-  for (const phase of parsed.phases) {
-    const phaseNum = phase.number.trim();
-    const paddedNum = phaseNum.padStart(2, '0');
-    const currentStatus = (phase.status || '').trim().toLowerCase();
-
-    // Determine expected status from disk
-    const expectedStatus = _determineExpectedStatus(paddedNum, phasesDir, milestonesDir);
-
-    // If we couldn't determine status (no directory exists), leave as-is
-    if (!expectedStatus) continue;
-
-    // Compare (case-insensitive)
-    if (currentStatus !== expectedStatus.toLowerCase()) {
-      mismatches.push({
-        phase: phaseNum,
-        from: phase.status.trim(),
-        to: _capitalizeStatus(expectedStatus)
-      });
-    }
-  }
-
-  // Apply fixes if any mismatches found
-  if (mismatches.length === 0) {
-    return { fixed: 0, mismatches: [] };
-  }
-
-  const mismatchMap = new Map(mismatches.map(m => [m.phase, m.to]));
-
-  const result = lockedFileUpdate(roadmapPath, (fileContent) => {
-    const lineEnding = fileContent.includes('\r\n') ? '\r\n' : '\n';
-    const lines = fileContent.replace(/\r\n/g, '\n').split('\n');
-
-    for (const [phaseNum, newStatus] of mismatchMap) {
-      const rowIdx = findRoadmapRow(lines, phaseNum);
-      if (rowIdx !== -1) {
-        lines[rowIdx] = updateTableRow(lines[rowIdx], 5, newStatus);
-      }
-    }
-
-    return lines.join(lineEnding);
-  });
-
-  if (!result.success) {
-    return { fixed: 0, mismatches, error: result.error };
-  }
-
-  return { fixed: mismatches.length, mismatches };
-}
-
-/**
- * Determine the expected ROADMAP status for a phase based on disk state.
- *
- * @param {string} paddedNum - Zero-padded phase number (e.g., "01")
- * @param {string} phasesDir - Path to .planning/phases/
- * @param {string} milestonesDir - Path to .planning/milestones/
- * @returns {string|null} Expected status or null if no directory found
- */
-function _determineExpectedStatus(paddedNum, phasesDir, milestonesDir) {
-  // Check active phases directory
-  if (fs.existsSync(phasesDir)) {
-    try {
-      const entries = fs.readdirSync(phasesDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory() && entry.name.startsWith(paddedNum + '-')) {
-          const phaseDir = path.join(phasesDir, entry.name);
-          return _statusFromPhaseDir(phaseDir);
-        }
-      }
-    } catch (_e) { /* ignore */ }
-  }
-
-  // Check milestone archives
-  if (fs.existsSync(milestonesDir)) {
-    try {
-      const milestones = fs.readdirSync(milestonesDir, { withFileTypes: true });
-      for (const ms of milestones) {
-        if (!ms.isDirectory()) continue;
-        const archivedPhasesDir = path.join(milestonesDir, ms.name, 'phases');
-        if (!fs.existsSync(archivedPhasesDir)) continue;
-        const archivedEntries = fs.readdirSync(archivedPhasesDir, { withFileTypes: true });
-        for (const ae of archivedEntries) {
-          if (ae.isDirectory() && ae.name.startsWith(paddedNum + '-')) {
-            return 'completed'; // Archived phases are completed
-          }
-        }
-      }
-    } catch (_e) { /* ignore */ }
-  }
-
-  // No directory found anywhere — leave as-is
-  return null;
-}
-
-/**
- * Determine status from a phase directory's contents.
- *
- * @param {string} phaseDir - Full path to a phase directory
- * @returns {string} Status string
- */
-function _statusFromPhaseDir(phaseDir) {
-  // Check for VERIFICATION.md with status: passed
-  const verificationPath = path.join(phaseDir, 'VERIFICATION.md');
-  if (fs.existsSync(verificationPath)) {
-    try {
-      const vContent = fs.readFileSync(verificationPath, 'utf8');
-      const fm = parseYamlFrontmatter(vContent);
-      if (fm && (fm.result === 'passed' || fm.status === 'passed')) {
-        return 'completed';
-      }
-    } catch (_e) { /* ignore */ }
-  }
-
-  // Check for SUMMARY-*.md files
-  const summaries = findFiles(phaseDir, /^SUMMARY.*\.md$/i);
-  if (summaries.length > 0) {
-    return 'built';
-  }
-
-  // Check for PLAN-*.md files
-  const plans = findFiles(phaseDir, /^PLAN.*\.md$/i);
-  if (plans.length > 0) {
-    return 'planned';
-  }
-
-  // Directory exists but empty
-  return 'pending';
-}
-
-/**
- * Capitalize a status string for display in ROADMAP.md table.
- */
-function _capitalizeStatus(status) {
-  if (!status) return status;
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-}
-
 module.exports = {
   parseRoadmapMd,
   findRoadmapRow,
@@ -947,6 +796,5 @@ module.exports = {
   roadmapAppendPhase,
   roadmapRemovePhase,
   roadmapRenumberPhases,
-  roadmapInsertPhase,
-  reconcileRoadmapStatuses
+  roadmapInsertPhase
 };

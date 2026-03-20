@@ -39,7 +39,7 @@ const BASE_TOKENS = 200000;
  */
 function getScaledThreshold(planningDir) {
   try {
-    const { configLoad } = require('./pbr-tools');
+    const { configLoad } = require('./lib/config');
     const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
     const budgetPct = (config && config.orchestrator_budget_pct) || 25;
@@ -66,7 +66,7 @@ function buildCompositionAdvice(planningDir) {
   // Read stale_after_minutes from config (default 60)
   let staleMinutes = 60;
   try {
-    const { configLoad } = require('./pbr-tools');
+    const { configLoad } = require('./lib/config');
     const config = configLoad(planningDir);
     if (config && config.context_ledger && config.context_ledger.stale_after_minutes != null) {
       staleMinutes = config.context_ledger.stale_after_minutes;
@@ -137,6 +137,7 @@ function main() {
       }
       process.exit(0);
     } catch (_e) {
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] suggest-compact failed: ' + _e.message }));
       process.exit(0);
     }
   });
@@ -256,7 +257,7 @@ function saveCounter(counterPath, counter) {
   // Derive planningDir from counterPath (counterPath is planningDir/.compact-counter)
   try {
     const planningDir = path.dirname(counterPath);
-    const { sessionSave } = require('./pbr-tools');
+    const { sessionSave } = require('./lib/core');
     // Note: saveCounter doesn't have sessionId context — mirror to legacy path
     sessionSave(planningDir, { compactCounter: counter });
   } catch (_e) { /* non-fatal mirror */ }
@@ -264,7 +265,7 @@ function saveCounter(counterPath, counter) {
 
 function getThreshold(cwd) {
   const planningDir = path.join(cwd, '.planning');
-  const { configLoad } = require('./pbr-tools');
+  const { configLoad } = require('./lib/config');
   const config = configLoad(planningDir);
   // Honor explicit hooks.compactThreshold override first
   if (config && config.hooks && config.hooks.compactThreshold != null) {
@@ -276,7 +277,7 @@ function getThreshold(cwd) {
 function resetCounter(planningDir, sessionId) {
   // Primary: reset compactCounter in .session.json to 0
   try {
-    const { sessionSave } = require('./pbr-tools');
+    const { sessionSave } = require('./lib/core');
     sessionSave(planningDir, { compactCounter: { count: 0, lastSuggested: 0 } }, sessionId);
   } catch (_e) { /* best-effort */ }
 

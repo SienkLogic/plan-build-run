@@ -91,7 +91,7 @@ function getQualityReport(planningDir) {
   // Load config and check toggle
   let config;
   try {
-    const { configLoad } = require('./pbr-tools');
+    const { configLoad } = require('./lib/config');
     config = configLoad(planningDir);
   } catch (_e) {
     try {
@@ -211,7 +211,7 @@ function isSkipRagEligible(planningDir) {
     // Load config
     let config;
     try {
-      const { configLoad } = require('./pbr-tools');
+      const { configLoad } = require('./lib/config');
       config = configLoad(planningDir);
     } catch (_e) {
       try {
@@ -232,7 +232,6 @@ function isSkipRagEligible(planningDir) {
     const { execSync } = require('child_process');
     const projectRoot = planningDir.replace(/[/\\]\.planning$/, '');
     const codeExtensions = ['js', 'ts', 'py', 'jsx', 'tsx', 'cjs', 'mjs', 'vue', 'svelte', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'cs', 'rb', 'php'];
-    const extPattern = codeExtensions.map(e => `*.${e}`).join('\n');
 
     // Get list of tracked code files
     const files = execSync(`git ls-files --cached`, {
@@ -244,7 +243,7 @@ function isSkipRagEligible(planningDir) {
       return codeExtensions.includes(ext);
     });
 
-    // Count lines in batches to avoid command line length limits
+    // Count lines by reading files directly
     let totalLines = 0;
     const batchSize = 50;
     for (let i = 0; i < files.length; i += batchSize) {

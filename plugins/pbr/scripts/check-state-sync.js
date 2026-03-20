@@ -49,22 +49,9 @@ function getCoreLib() {
   return require(path.join(pbrToolsPath, 'core.cjs'));
 }
 
-/**
- * Map internal status values to human-readable display labels.
- * Uses STATUS_LABELS from core.cjs when available, falls back to title-case conversion.
- *
- * @param {string} status - Internal status value (e.g., 'ready_to_execute')
- * @returns {string} Human-readable label (e.g., 'Ready to Execute')
- */
-function statusToLabel(status) {
-  try {
-    const { STATUS_LABELS } = getCoreLib();
-    if (STATUS_LABELS && STATUS_LABELS[status]) return STATUS_LABELS[status];
-  } catch (_e) {
-    // Fall through to manual conversion
-  }
-  // Fallback: convert snake_case to Title Case
-  return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+/** @returns {typeof import('../../../plan-build-run/bin/lib/state-queue.cjs')} */
+function getQueueLib() {
+  return require(path.join(pbrToolsPath, 'state-queue.cjs'));
 }
 
 /**
@@ -330,16 +317,16 @@ function checkStateSync(data) {
   const phaseSlug = phaseDirName.replace(/^\d+-/, '');
   const phaseName = phaseSlug.replace(/-/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
-  let totalPhases = 0;
+  let _totalPhases = 0;
   try {
-    totalPhases = fs.readdirSync(phasesDir, { withFileTypes: true })
+    _totalPhases = fs.readdirSync(phasesDir, { withFileTypes: true })
       .filter(e => e.isDirectory() && /^\d+-/.test(e.name)).length;
   } catch (_e) { /* leave as 0 */ }
 
   if (isSummary) {
     const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
     const allComplete = artifacts.completeSummaries >= artifacts.plans;
-    const newStatus = allComplete ? statusToLabel('built') : statusToLabel('building');
+    const newStatus = allComplete ? 'Complete' : 'In progress';
     const completedDate = allComplete ? today : null;
 
     // Update ROADMAP.md Progress table via lockedFileUpdate
@@ -364,6 +351,17 @@ function checkStateSync(data) {
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });
       }
+    }
+
+    // Drain any queued state updates before our own write
+    try {
+      const { stateDrain } = getQueueLib();
+      const drainResult = stateDrain(planningDir);
+      if (drainResult.success && drainResult.processed > 0) {
+        logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
+      }
+    } catch (_drainErr) {
+      // Queue drain is best-effort; don't block the sync
     }
 
     // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)
@@ -426,8 +424,8 @@ function checkStateSync(data) {
     }
 
     const isPassed = verStatus === 'passed';
-    const roadmapStatus = isPassed ? statusToLabel('complete') : statusToLabel('needs_fixes');
-    const stateStatus = isPassed ? statusToLabel('verified') : statusToLabel('needs_fixes');
+    const roadmapStatus = isPassed ? 'Complete' : 'Needs fixes';
+    const stateStatus = isPassed ? 'Verified' : 'Needs fixes';
     const completedDate = isPassed ? today : null;
     const plansComplete = `${artifacts.completeSummaries}/${artifacts.plans}`;
 
@@ -453,6 +451,17 @@ function checkStateSync(data) {
       } catch (e) {
         logHook('check-state-sync', 'PostToolUse', 'error', { reason: 'ROADMAP.md update failed', error: e.message });
       }
+    }
+
+    // Drain any queued state updates before our own write
+    try {
+      const { stateDrain } = getQueueLib();
+      const drainResult = stateDrain(planningDir);
+      if (drainResult.success && drainResult.processed > 0) {
+        logHook('check-state-sync', 'PostToolUse', 'drain', { processed: drainResult.processed });
+      }
+    } catch (_drainErr) {
+      // Queue drain is best-effort; don't block the sync
     }
 
     // Update STATE.md via lib/state.cjs (locked, atomic per-field updates)
@@ -495,14 +504,7 @@ function checkStateSync(data) {
 
   if (isPlan) {
     // Status ordering: only set Planning if current status is lower
-    // Covers both legacy display labels and new lifecycle labels
-    const statusOrder = {
-      '': 0, 'not started': 0, 'not_started': 0, 'discussed': 0, 'ready to plan': 0,
-      'planning': 1,
-      'planned': 2, 'ready to execute': 2, 'in progress': 2,
-      'building': 3, 'built': 3, 'partial': 3,
-      'complete': 4, 'verified': 4, 'needs fixes': 4, 'needs_fixes': 4, 'skipped': 4
-    };
+    const statusOrder = { 'not started': 0, '': 0, 'planning': 1, 'in progress': 2, 'complete': 3, 'needs fixes': 4 };
 
     if (fs.existsSync(roadmapPath)) {
       try {
@@ -584,6 +586,7 @@ function main() {
       }
       process.exit(0);
     } catch (_e) {
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-state-sync failed: ' + _e.message }));
       process.exit(0);
     }
   });
@@ -657,6 +660,5 @@ module.exports = {
   buildProgressBar,
   calculateOverallProgress,
   checkStateSync,
-  clearMtimeCache,
-  statusToLabel
+  clearMtimeCache
 };

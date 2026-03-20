@@ -7,7 +7,8 @@
  * Suggests /pbr:plan-phase instead. Does NOT block — just advises.
  *
  * Exit codes:
- *   0 = always (advisory only, never blocks)
+ *   0 = not a PBR project (passes through)
+ *   2 = blocked (PBR project detected — redirects to /pbr:plan-phase)
  */
 
 const fs = require('fs');
@@ -19,14 +20,11 @@ function main() {
   process.stdin.on('data', () => {});
   process.stdin.on('end', () => {
     try {
-      try { logHook('intercept-plan-mode', 'PreToolUse', 'entry', {}); } catch(_) {}
-
       const cwd = process.cwd();
       const planningDir = path.join(cwd, '.planning');
 
       // Only relevant for Plan-Build-Run projects
       if (!fs.existsSync(planningDir)) {
-        try { logHook('intercept-plan-mode', 'PreToolUse', 'skip', { reason: 'no .planning dir' }); } catch(_) {}
         process.exit(0);
       }
 
@@ -42,7 +40,7 @@ function main() {
       process.exit(2);
     } catch (_e) {
       process.stderr.write(`[pbr] intercept-plan-mode error: ${_e.message}\n`);
-      process.stdout.write(JSON.stringify({ decision: 'allow' }));
+      process.stdout.write(JSON.stringify({ decision: 'allow', additionalContext: '⚠ [PBR] intercept-plan-mode failed: ' + _e.message }));
       process.exit(0);
     }
   });

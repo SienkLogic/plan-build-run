@@ -905,7 +905,7 @@ function checkSessionCleanupVerification(planningDir, config) {
 function checkIncidentPatterns(planningDir, _config) {
   let _incidents;
   try {
-    _incidents = require('../../../../plan-build-run/bin/lib/incidents.cjs');
+    _incidents = require('../lib/incidents');
   } catch (_e) {
     return result('EF-08', 'pass', 'Incident journal module not available — skipping', []);
   }

@@ -18,6 +18,8 @@ const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { configLoad, sessionSave } = require('./pbr-tools');
 const { ensureSessionDir, cleanStaleSessions } = require('./lib/core');
+const { resolveConfig, checkHealth, warmUp } = require('./lib/local-llm/health');
+
 // Re-export from extracted modules for backward compatibility
 const {
   buildEnhancedBriefing,
@@ -41,42 +43,6 @@ const {
   tryLaunchHookServer,
   getEnrichedContext,
 } = require('./lib/dashboard-launch');
-
-/**
- * Check if hook scripts match the installed plugin version.
- * Returns a warning string if versions mismatch, null otherwise.
- */
-function checkHookVersion() {
-  try {
-    const runHookPath = path.join(__dirname, 'run-hook.js');
-    const runHookSrc = fs.readFileSync(runHookPath, 'utf8');
-    const versionMatch = runHookSrc.match(/\/\/ pbr-hook-version: (.+)/);
-    if (!versionMatch) return null; // No version stamp yet
-    const hookVersion = versionMatch[1].trim();
-    if (hookVersion === '0.0.0-dev') return null; // Dev mode, skip check
-
-    // Try to find package.json — walk up from scripts dir
-    let pkgVersion = null;
-    const candidates = [
-      path.resolve(__dirname, '..', 'package.json'),           // plugins/pbr/package.json
-      path.resolve(__dirname, '..', '..', '..', 'package.json') // repo root package.json
-    ];
-    for (const pkgPath of candidates) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-        if (pkg.version) { pkgVersion = pkg.version; break; }
-      } catch (_e) { /* try next */ }
-    }
-    if (!pkgVersion) return null; // Can't determine plugin version
-
-    if (hookVersion !== pkgVersion) {
-      return `[PBR] Hook scripts may be outdated (hooks: ${hookVersion}, plugin: ${pkgVersion}). Plugin cache may need refresh.`;
-    }
-    return null;
-  } catch (_e) {
-    return null; // Version check failure must never break SessionStart
-  }
-}
 
 function readStdin() {
   try {
@@ -168,7 +134,7 @@ async function main() {
     tryLaunchHookServer(config, planningDir);
   }
 
-  // Write session-start timestamp for session metrics
+  // Write session-start timestamp for local-llm metrics correlation
   // Primary: write to .session.json (unified session state)
   // Legacy: also write .session-start file for session-cleanup.js backward compat
   const sessionStart = new Date().toISOString();
@@ -178,7 +144,24 @@ async function main() {
     fs.writeFileSync(sessionStartFile, sessionStart, 'utf8');
   } catch (_e) { /* non-fatal */ }
 
-  // Local LLM health check removed (phase 53 — feature archived)
+  // Local LLM health check (advisory only -- never blocks SessionStart)
+  let llmContext = '';
+  try {
+    const rawLlmConfig = config && config.local_llm;
+    const llmConfig = resolveConfig(rawLlmConfig);
+    if (llmConfig.enabled) {
+      const health = await checkHealth(llmConfig);
+      if (health.available) {
+        llmContext = `\nLocal LLM: ${llmConfig.model} (${health.warm ? 'warm' : 'cold start'})`;
+        if (!health.warm) {
+          // Fire warm-up without awaiting -- 23s cold start must not block hook
+          warmUp(llmConfig);
+        }
+      } else if (health.reason !== 'disabled') {
+        llmContext = `\nLocal LLM: unavailable -- ${health.detail || health.reason}`;
+      }
+    }
+  } catch (_e) { /* graceful degradation -- never surface to user */ }
 
   // Enrich context with recent session activity from hook server (advisory, fail-open)
   let enrichedContext = '';
@@ -194,16 +177,9 @@ async function main() {
     }
   } catch (_e) { /* graceful degradation */ }
 
-  // Check for stale hook version (advisory, never blocks)
-  let hookVersionWarning = '';
-  try {
-    const warning = checkHookVersion();
-    if (warning) hookVersionWarning = '\n' + warning;
-  } catch (_e) { /* non-fatal */ }
-
   if (context) {
     const output = {
-      additionalContext: context + sessionWarning + enrichedContext + hookVersionWarning
+      additionalContext: context + sessionWarning + llmContext + enrichedContext
     };
     process.stdout.write(JSON.stringify(output));
     logHook('progress-tracker', 'SessionStart', 'injected', { hasState: true });
@@ -217,6 +193,6 @@ async function main() {
 }
 
 // Exported for testing — re-exports from extracted modules
-module.exports = { buildEnhancedBriefing, buildContext, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, checkHookVersion, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
+module.exports = { buildEnhancedBriefing, buildContext, getHookHealthSummary, checkLearningsDeferrals, getEnrichedContext, detectOtherSessions, getIntelContext, getIntelStalenessWarning, getDecisionBriefing, getNegativeKnowledgeBriefing, FAILURE_DECISIONS, HOOK_HEALTH_MAX_ENTRIES, tryLaunchDashboard, tryLaunchHookServer };
 
 if (require.main === module || process.argv[1] === __filename) { main().catch(() => {}); }

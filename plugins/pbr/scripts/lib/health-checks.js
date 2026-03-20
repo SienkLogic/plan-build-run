@@ -92,113 +92,6 @@ function checkSessionMetrics(planningDir) {
 }
 
 /**
- * Check hook coverage by cross-referencing hooks.json against recent hook log entries.
- * @param {string} planningDir
- * @returns {Object} Check result with name, enabled, status, detail, configured, evidenced, missing
- */
-function checkHookCoverage(planningDir) {
-  try {
-    // Load hooks.json from plugin root
-    let hooksConfig;
-    const primaryPath = path.resolve(__dirname, '..', '..', '..', 'hooks', 'hooks.json');
-    const fallbackPath = path.resolve(__dirname, '..', '..', 'hooks', 'hooks.json');
-
-    try {
-      hooksConfig = JSON.parse(fs.readFileSync(primaryPath, 'utf8'));
-    } catch (_e) {
-      try {
-        hooksConfig = JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
-      } catch (_e2) {
-        return { name: 'hook_coverage', enabled: false, status: 'error', detail: 'hooks.json not found' };
-      }
-    }
-
-    // Extract unique script names from hooks.json entries
-    const scriptRegex = /\b(\w[\w-]*\.js)\s*"?\s*$/;
-    const configuredHooks = new Set();
-    const hooks = hooksConfig.hooks || {};
-    for (const eventType of Object.keys(hooks)) {
-      const entries = hooks[eventType];
-      if (!Array.isArray(entries)) continue;
-      for (const entry of entries) {
-        const hookList = entry.hooks || [];
-        for (const h of hookList) {
-          if (h.command) {
-            const match = h.command.match(scriptRegex);
-            if (match) {
-              // Strip .js to match the hook field format in log entries
-              configuredHooks.add(match[1].replace(/\.js$/, ''));
-            }
-          }
-        }
-      }
-    }
-
-    const configuredArr = Array.from(configuredHooks).sort();
-
-    // Read the 3 most recent hooks-*.jsonl files (covers session-boundary hooks
-    // like progress-tracker that may only fire at SessionStart in earlier logs)
-    const logsDir = path.join(planningDir, 'logs');
-    const evidencedHooks = new Set();
-
-    if (fs.existsSync(logsDir)) {
-      const logFiles = fs.readdirSync(logsDir)
-        .filter(f => /^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
-        .sort()
-        .reverse()
-        .slice(0, 3);
-
-      for (const logFile of logFiles) {
-        const logPath = path.join(logsDir, logFile);
-        const content = fs.readFileSync(logPath, 'utf8');
-        for (const line of content.split('\n')) {
-          if (!line.trim()) continue;
-          try {
-            const entry = JSON.parse(line);
-            if (entry.hook) evidencedHooks.add(entry.hook);
-          } catch (_e) { /* skip malformed lines */ }
-        }
-      }
-    }
-
-    const evidencedArr = Array.from(evidencedHooks).sort();
-    const allMissing = configuredArr.filter(h => !evidencedHooks.has(h));
-
-    // Hooks that only fire on rare/specific events — not concerning if absent
-    const rareEventHooks = new Set([
-      'intercept-plan-mode',  // only fires when user enters native plan mode
-      'progress-tracker',     // only fires at SessionStart (may log to different day)
-      'context-bridge'        // only fires at SessionStart
-    ]);
-
-    const missingHooks = allMissing.filter(h => !rareEventHooks.has(h));
-    const untestedHooks = allMissing.filter(h => rareEventHooks.has(h));
-
-    let status = 'healthy';
-    let detail = `All ${configuredArr.length} configured hooks accounted for`;
-    if (missingHooks.length > 0) {
-      status = 'degraded';
-      detail = `${missingHooks.length} hooks with no evidence: ${missingHooks.join(', ')}`;
-    } else if (untestedHooks.length > 0) {
-      detail += ` (${untestedHooks.length} rare-event hooks untested: ${untestedHooks.join(', ')})`;
-    }
-
-    return {
-      name: 'hook_coverage',
-      enabled: true,
-      status,
-      detail,
-      configured: configuredArr.length,
-      evidenced: evidencedArr.length,
-      missing: missingHooks,
-      untested: untestedHooks
-    };
-  } catch (e) {
-    return { name: 'hook_coverage', enabled: false, status: 'error', detail: e.message };
-  }
-}
-
-/**
  * Run all Phase 10 health checks.
  * @param {string} planningDir
  * @returns {Array<Object>} Array of check results
@@ -207,9 +100,8 @@ function getAllPhase10Checks(planningDir) {
   return [
     checkPostHocArtifacts(planningDir),
     checkAgentFeedbackLoop(planningDir),
-    checkSessionMetrics(planningDir),
-    checkHookCoverage(planningDir)
+    checkSessionMetrics(planningDir)
   ];
 }
 
-module.exports = { checkPostHocArtifacts, checkAgentFeedbackLoop, checkSessionMetrics, checkHookCoverage, getAllPhase10Checks };
+module.exports = { checkPostHocArtifacts, checkAgentFeedbackLoop, checkSessionMetrics, getAllPhase10Checks };

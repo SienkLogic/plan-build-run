@@ -3,8 +3,12 @@
 /**
  * PreToolUse hook: Validates git commit message format.
  *
- * Expected format: {type}({phase}-{plan}): {description}
- * Valid types: feat, fix, refactor, test, docs, chore
+ * Expected format: {type}({scope}): {description}
+ * Valid types: feat, fix, refactor, test, docs, chore, wip, revert, perf, ci, build
+ *
+ * Scopes: Component names (hooks, skills, agents, cli, dashboard, templates,
+ * plugin, ci, config, tests, commands, refs), descriptive words, quick-{NNN},
+ * planning, or legacy phase-plan numbers ({NN}-{MM}).
  *
  * Also accepts:
  * - Merge commits (starts with "Merge")
@@ -22,7 +26,10 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert'];
+const { resolveConfig } = require('./lib/local-llm/health');
+const { classifyCommit } = require('./lib/local-llm/operations/classify-commit');
+
+const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert', 'perf', 'ci', 'build'];
 
 const SENSITIVE_PATTERNS = [
   /^\.env$/,                          // .env exactly (not .env.example)
@@ -43,8 +50,8 @@ const SAFE_PATTERNS = [
 ];
 
 // Pattern: type(scope): description
-// Scope can be: NN-MM (phase-plan), quick-NNN, planning, or any word
-const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip|revert)(\([a-zA-Z0-9._-]+\))?:\s+.+/;
+// Scope can be: component name, NN-MM (phase-plan), quick-NNN, planning, or any word
+const COMMIT_PATTERN = /^(feat|fix|refactor|test|docs|chore|wip|revert|perf|ci|build)(\([a-zA-Z0-9._/-]+\))?!?:\s+.+/;
 
 // Merge commits are always allowed
 const MERGE_PATTERN = /^Merge\s/;
@@ -52,9 +59,9 @@ const MERGE_PATTERN = /^Merge\s/;
 // AI co-author patterns to block
 const AI_COAUTHOR_PATTERN = /Co-Authored-By:.*(?:Claude|Anthropic|noreply@anthropic\.com|OpenAI|Copilot|GPT|AI Assistant)/i;
 
-function checkAiCoAuthorResult(command) {
+function checkAiCoAuthorResult(command, sessionId) {
   if (AI_COAUTHOR_PATTERN.test(command)) {
-    logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200) });
+    logHook('validate-commit', 'PreToolUse', 'block-coauthor', { command: command.substring(0, 200), sessionId });
     return {
       output: {
         decision: 'block',
@@ -66,7 +73,7 @@ function checkAiCoAuthorResult(command) {
   return null;
 }
 
-function checkSensitiveFilesResult() {
+function checkSensitiveFilesResult(sessionId) {
   try {
     const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
     const files = output.trim().split('\n').filter(Boolean);
@@ -80,7 +87,7 @@ function checkSensitiveFilesResult() {
     });
 
     if (matched.length > 0) {
-      logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched });
+      logHook('validate-commit', 'PreToolUse', 'block-sensitive', { files: matched, sessionId });
       return {
         output: {
           decision: 'block',
@@ -102,6 +109,7 @@ function checkSensitiveFilesResult() {
  */
 function checkCommit(data) {
   const command = data.tool_input?.command || '';
+  const sessionId = data.session_id || null;
 
   // Only validate git commit commands
   if (!isGitCommit(command)) {
@@ -112,19 +120,19 @@ function checkCommit(data) {
   const message = extractCommitMessage(command);
   if (!message) {
     // Could not parse message - let it through (might be --amend or other form)
-    logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message' });
+    logHook('validate-commit', 'PreToolUse', 'allow', { reason: 'unparseable message', sessionId });
     return null;
   }
 
   // Validate format
   if (MERGE_PATTERN.test(message)) {
-    logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit' });
+    logHook('validate-commit', 'PreToolUse', 'allow', { message, reason: 'merge commit', sessionId });
     return null;
   }
 
   if (!COMMIT_PATTERN.test(message)) {
-    logHook('validate-commit', 'PreToolUse', 'block', { message });
-    logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block' });
+    logHook('validate-commit', 'PreToolUse', 'block', { message, sessionId });
+    logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'block', sessionId });
     return {
       output: {
         decision: 'block',
@@ -135,18 +143,70 @@ function checkCommit(data) {
   }
 
   // Valid format
-  logHook('validate-commit', 'PreToolUse', 'allow', { message });
-  logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow' });
+  logHook('validate-commit', 'PreToolUse', 'allow', { message, sessionId });
+  logEvent('workflow', 'commit-validated', { message: message.substring(0, 80), status: 'allow', sessionId });
 
   // Check AI co-author
-  const coAuthorResult = checkAiCoAuthorResult(command);
+  const coAuthorResult = checkAiCoAuthorResult(command, sessionId);
   if (coAuthorResult) return coAuthorResult;
 
   // Check sensitive files
-  const sensitiveResult = checkSensitiveFilesResult();
+  const sensitiveResult = checkSensitiveFilesResult(sessionId);
   if (sensitiveResult) return sensitiveResult;
 
   return null;
+}
+
+/**
+ * Load and resolve the local_llm config block from .planning/config.json.
+ * Returns a resolved config (always safe to use — disabled by default on error).
+ */
+function loadLocalLlmConfig(cwd) {
+  try {
+    const configPath = path.join(cwd || process.cwd(), '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_e) {
+    return resolveConfig(undefined);
+  }
+}
+
+/**
+ * Async LLM enrichment for commit messages. Returns an advisory string or null.
+ * Called after checkCommit passes (valid format) to provide semantic classification.
+ *
+ * @param {object} data - parsed hook data
+ * @returns {Promise<string|null>}
+ */
+async function enrichCommitLlm(data) {
+  try {
+    const command = data.tool_input?.command || '';
+    const message = extractCommitMessage(command);
+    if (!message) return null;
+
+    const cwd = process.cwd();
+    const llmConfig = loadLocalLlmConfig(cwd);
+    const planningDir = path.join(cwd, '.planning');
+
+    // Get staged files for scope validation
+    let stagedFiles = [];
+    try {
+      const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+      stagedFiles = output.trim().split('\n').filter(Boolean);
+    } catch (_e) {
+      // Not in a git repo — skip staged files context
+    }
+
+    const llmResult = await classifyCommit(llmConfig, planningDir, message, stagedFiles, data.session_id);
+    if (llmResult && llmResult.classification !== 'correct') {
+      return 'LLM commit advisory: ' + llmResult.classification +
+        ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)';
+    }
+    return null;
+  } catch (_llmErr) {
+    // Never propagate LLM errors
+    return null;
+  }
 }
 
 function main() {
@@ -163,9 +223,18 @@ function main() {
         process.exit(result.exitCode);
       }
 
+      // LLM semantic classification — advisory only (after format validation passes)
+      const llmAdvisory = await enrichCommitLlm(data);
+      if (llmAdvisory) {
+        process.stdout.write(JSON.stringify({
+          additionalContext: '[pbr] ' + llmAdvisory
+        }));
+      }
+
       process.exit(0);
     } catch (_e) {
       // Parse error - don't block
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] validate-commit failed: ' + _e.message }));
       process.exit(0);
     }
   });
@@ -198,5 +267,5 @@ function extractCommitMessage(command) {
   return null;
 }
 
-module.exports = { checkCommit };
+module.exports = { checkCommit, enrichCommitLlm };
 if (require.main === module || process.argv[1] === __filename) { main(); }

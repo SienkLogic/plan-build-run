@@ -11,7 +11,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('../hook-logger');
 const { configLoad } = require('../pbr-tools');
-const { intelStatus } = require('../../../../plan-build-run/bin/lib/intel.cjs');
+const { intelStatus } = require('./intel');
 const { loadLatestSnapshot, formatSnapshotBriefing } = require('./snapshot-manager');
 const { loadConventions, formatConventionBriefing } = require('./convention-detector');
 
@@ -826,7 +826,7 @@ function buildContext(planningDir, stateFile) {
   try {
     const snapshotsEnabled = config && config.features && config.features.mental_model_snapshots !== false;
     if (snapshotsEnabled) {
-      const snapshot = loadLatestSnapshot(planningDir);
+      const snapshot = loadLatestSnapshot(planningDir, { maxAgeHours: 48 });
       const snapshotBrief = formatSnapshotBriefing(snapshot);
       if (snapshotBrief) {
         parts.push('\n' + snapshotBrief);

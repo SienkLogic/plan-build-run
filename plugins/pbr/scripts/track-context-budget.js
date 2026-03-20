@@ -39,15 +39,12 @@ const BASE_CHARS = 800000; // 200k tokens × 4
  * UNIQUE_FILE_MILESTONE is unchanged (absolute file count, not char-based).
  *
  * @param {string} planningDir - Path to .planning/
- * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {{ charMilestone: number, largeFileThreshold: number }}
  */
-function getScaledMilestones(planningDir, config) {
+function getScaledMilestones(planningDir) {
   try {
-    if (!config) {
-      const { configLoad } = require('./pbr-tools');
-      config = configLoad(planningDir);
-    }
+    const { configLoad } = require('./lib/config');
+    const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || 200000;
     const scale = (tokens * 4) / BASE_CHARS;
     return {
@@ -72,35 +69,40 @@ function getScaledMilestones(planningDir, config) {
  */
 function processEvent(data, planningDir, opts, sessionId) {
   const filePath = data.tool_input?.file_path || '';
-  if (!filePath) {
+  const toolName = data.tool_name || '';
+
+  // Glob/Grep don't have file_path — detect them by tool name or input shape
+  const isGlobGrep = toolName === 'Glob' || toolName === 'Grep'
+    || data.tool_input?.pattern != null;
+
+  if (!filePath && !isGlobGrep) {
     return null;
   }
 
-  // Load config once per processEvent call — sub-functions reuse this
-  let config;
-  try {
-    const { configLoad } = require('./pbr-tools');
-    config = configLoad(planningDir);
-  } catch (_e) { config = null; }
-
   // Skip plugin-internal files — these are loaded by the plugin system,
   // not by the orchestrator, so they shouldn't count against context budget
-  const pluginRoot = (opts && opts.pluginRoot != null) ? opts.pluginRoot : (process.env.CLAUDE_PLUGIN_ROOT || '');
-  if (pluginRoot) {
-    const normalizedFile = path.resolve(filePath);
-    const normalizedPlugin = path.resolve(pluginRoot);
-    if (normalizedFile.startsWith(normalizedPlugin + path.sep) || normalizedFile === normalizedPlugin) {
-      return null;
+  if (filePath) {
+    const pluginRoot = (opts && opts.pluginRoot != null) ? opts.pluginRoot : (process.env.CLAUDE_PLUGIN_ROOT || '');
+    if (pluginRoot) {
+      const normalizedFile = path.resolve(filePath);
+      const normalizedPlugin = path.resolve(pluginRoot);
+      if (normalizedFile.startsWith(normalizedPlugin + path.sep) || normalizedFile === normalizedPlugin) {
+        return null;
+      }
     }
   }
 
-  // Estimate chars read from actual output or limit, with a conservative default.
-  // Previous default of 80k (2000 lines × 40 chars) caused every read to cross
-  // the 50k milestone, flooding logs with warnings on every single Read call.
-  const limit = data.tool_input?.limit;
-  const estimatedChars = limit ? limit * 40 : 8000;
-  // Use actual output length if available
-  const actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
+  // Estimate chars from tool output or input hints.
+  // For Read: use limit or conservative default.
+  // For Glob/Grep: use actual output length (search results vary widely).
+  let actualChars;
+  if (isGlobGrep) {
+    actualChars = data.tool_output ? String(data.tool_output).length : 2000;
+  } else {
+    const limit = data.tool_input?.limit;
+    const estimatedChars = limit ? limit * 40 : 8000;
+    actualChars = data.tool_output ? String(data.tool_output).length : estimatedChars;
+  }
 
   const trackerPath = path.join(planningDir, '.context-tracker');
   const skillPath = sessionId
@@ -140,8 +142,10 @@ function processEvent(data, planningDir, opts, sessionId) {
   const prevFileCount = tracker.files.length;
   tracker.reads += 1;
   tracker.total_chars += actualChars;
-  if (!tracker.files.includes(filePath)) {
-    tracker.files.push(filePath);
+  // For Glob/Grep, use pattern as the tracking key instead of file_path
+  const trackingKey = filePath || `[${toolName || 'search'}] ${(data.tool_input?.pattern || '').slice(0, 80)}`;
+  if (trackingKey && !tracker.files.includes(trackingKey)) {
+    tracker.files.push(trackingKey);
   }
 
   // Save tracker (atomic write to avoid corruption from concurrent hooks)
@@ -156,16 +160,18 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Write context ledger entry if enabled
   try {
+    const { configLoad } = require('./lib/config');
+    const config = configLoad(planningDir);
     if (config && config.context_ledger && config.context_ledger.enabled) {
       const estTokens = Math.round(actualChars / 4);
       let phase = null;
       try {
-        const { stateLoad } = require('./pbr-tools');
+        const { stateLoad } = require('./lib/state');
         const fullState = stateLoad(planningDir);
         phase = (fullState && fullState.state && fullState.state.phase_name) || null;
       } catch (_e) { /* best-effort phase detection */ }
       writeLedgerEntry(planningDir, {
-        file: filePath,
+        file: filePath || trackingKey || '',
         timestamp: new Date().toISOString(),
         est_tokens: estTokens,
         phase: phase,
@@ -176,7 +182,9 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Fire-and-forget: update context quality score if feature is enabled
   try {
-    if (config && config.features && config.features.context_quality_scoring !== false) {
+    const { configLoad: _cLoad } = require('./lib/config');
+    const _cfg = _cLoad(planningDir);
+    if (_cfg && _cfg.features && _cfg.features.context_quality_scoring !== false) {
       const { getQualityReport, writeQualityReport } = require('./context-quality');
       const report = getQualityReport(planningDir);
       if (report) {
@@ -200,7 +208,7 @@ function processEvent(data, planningDir, opts, sessionId) {
 
   // Check thresholds — only warn at milestone crossings, not every read
   const warnings = [];
-  const { charMilestone, largeFileThreshold } = getScaledMilestones(planningDir, config);
+  const { charMilestone, largeFileThreshold } = getScaledMilestones(planningDir);
 
   // Milestone: unique files read crosses a multiple of UNIQUE_FILE_MILESTONE
   const curUniqueFiles = tracker.files.length;
@@ -217,10 +225,11 @@ function processEvent(data, planningDir, opts, sessionId) {
     warnings.push(`~${kChars}k chars read (milestone: every ${charMilestone / 1000}k)`);
   }
 
-  // Single large file warning
+  // Single large read warning (file or search result)
   if (actualChars >= largeFileThreshold) {
     const kChars = Math.round(actualChars / 1000);
-    warnings.push(`large file read (~${kChars}k chars): ${path.basename(filePath)}`);
+    const label = path.basename(filePath) || trackingKey || 'search result';
+    warnings.push(`large read (~${kChars}k chars): ${label}`);
   }
 
   if (warnings.length > 0) {
@@ -286,6 +295,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Never block on tracking errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] track-context-budget failed: ' + _e.message }));
       process.exit(0);
     }
   });

@@ -154,10 +154,9 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on errors — emit valid output for Claude Code
-      logHook('pre-write-dispatch', 'PreToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
       process.stderr.write(`[pbr] pre-write-dispatch error: ${_e.message}
 `);
-      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      process.stdout.write(JSON.stringify({ decision: "allow", additionalContext: '⚠ [PBR] pre-write-dispatch failed: ' + _e.message }));
       process.exit(0);
     }
   });

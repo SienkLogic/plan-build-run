@@ -16,7 +16,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { resolveSessionPath } = require('./lib/core');
 
 const BLOCKED_AGENTS = [
   'pbr:executor',
@@ -38,23 +37,13 @@ function checkAgentStateWrite(data) {
   const normalized = filePath.replace(/\\/g, '/');
   if (!normalized.endsWith('.planning/STATE.md')) return null;
 
-  // Check if we're inside a subagent — try session-scoped path first, fall back to global
+  // Check if we're inside a subagent
   const cwd = process.cwd();
-  const planningDir = path.join(cwd, '.planning');
-  const sessionId = data.session_id || null;
+  const agentFile = path.join(cwd, '.planning', '.active-agent');
 
   let agent;
   try {
-    if (sessionId) {
-      const sessionPath = resolveSessionPath(planningDir, '.active-agent', sessionId);
-      if (fs.existsSync(sessionPath)) {
-        agent = fs.readFileSync(sessionPath, 'utf8').trim();
-      }
-    }
-    if (!agent) {
-      const globalPath = path.join(planningDir, '.active-agent');
-      agent = fs.readFileSync(globalPath, 'utf8').trim();
-    }
+    agent = fs.readFileSync(agentFile, 'utf8').trim();
   } catch (_e) {
     // No .active-agent file — not in an agent context
     return null;

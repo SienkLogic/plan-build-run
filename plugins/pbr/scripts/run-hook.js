@@ -13,13 +13,12 @@
  *     (function(r){var m=r.match(/^\\/([a-zA-Z])\\/(.*)/);
  *      return m?m[1]+':'+m[2].replace(/\\//g,'\\\\'):r})
  *     (process.env.CLAUDE_PLUGIN_ROOT||''),
- *     'scripts','run-hook.js'))(process.argv[1])\" <script> [args...]"
+ *     'hooks','run-hook.js'))(process.argv[1])\" <script> [args...]"
  *
  * Or directly (when CLAUDE_PLUGIN_ROOT resolves correctly):
- *   "node ${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.js <script-name> [args...]"
+ *   "node ${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.js <script-name> [args...]"
  */
 
-// pbr-hook-version: 2.15.0
 'use strict';
 
 const fs = require('fs');
@@ -76,7 +75,7 @@ if (invokedViaEval) {
 
 // When required as a module from -e bootstrap, export a runner function
 if (typeof module !== 'undefined' && module.exports) {
-  const BOOTSTRAP_SNIPPET = "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\"";
+  const BOOTSTRAP_SNIPPET = "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\"";
   module.exports = runScript;
   module.exports.BOOTSTRAP_SNIPPET = BOOTSTRAP_SNIPPET;
   module.exports.runScript = runScript;
@@ -93,7 +92,7 @@ function runScript(name, args) {
   // Try __dirname first, then pluginRoot
   const candidates = [
     path.resolve(__dirname, name),
-    pluginRoot ? path.resolve(pluginRoot, 'scripts', name) : null
+    pluginRoot ? path.resolve(pluginRoot, 'hooks', name) : null
   ].filter(Boolean);
 
   // Phase 1: Resolve the script path (cheap — just fs.statSync, no require).
@@ -120,7 +119,7 @@ function runScript(name, args) {
   // doesn't — skip loading the module entirely. This avoids the full
   // require() chain (~10-20ms) for every hook invocation in non-PBR projects.
   if (!ALWAYS_RUN.has(name)) {
-    const cwd = fixMsysPath(process.env.PBR_PROJECT_ROOT) || process.cwd();
+    const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
     try {
       fs.statSync(path.join(cwd, '.planning'));
     } catch (_e) {
@@ -128,21 +127,18 @@ function runScript(name, args) {
     }
   }
 
-  // Phase 3: Stdin timeout guard — prevent indefinite hangs on Windows/Git Bash.
-  // PreToolUse hooks get shorter timeout (user-visible latency).
-  // PostToolUse/lifecycle hooks get longer timeout (advisory).
-  const PRE_TIMEOUT_MS = 5000;
-  const POST_TIMEOUT_MS = 10000;
-  const isPreHook = name.startsWith('pre-') || name === 'validate-task.js'
-    || name === 'validate-commit.js' || name === 'validate-skill-args.js'
-    || name === 'intercept-plan-mode.js' || name === 'block-skill-self-read.js';
-  const hookTimeout = isPreHook ? PRE_TIMEOUT_MS : POST_TIMEOUT_MS;
-  const _hookTimer = setTimeout(() => {
-    process.exit(0); // Exit cleanly, don't block session
-  }, hookTimeout);
-  _hookTimer.unref(); // Don't keep process alive just for timeout
-
-  // Phase 4: Load and execute the script.
+  // Phase 3: Load and execute the script with timing.
+  const startTime = process.hrtime();
   process.argv = [process.argv[0], resolvedPath, ...args];
   require(resolvedPath);
+
+  // Log slow hooks (>200ms) to stderr for diagnostics.
+  // Measures module load + synchronous setup time only.
+  // Async hooks (progress-tracker, post-write-dispatch, etc.) exit before this runs,
+  // so their actual execution time is NOT captured here.
+  const [secs, nanos] = process.hrtime(startTime);
+  const elapsedMs = secs * 1000 + nanos / 1e6;
+  if (elapsedMs > 200) {
+    process.stderr.write(`[pbr-timing] ${name}: ${Math.round(elapsedMs)}ms (>200ms threshold)\n`);
+  }
 }

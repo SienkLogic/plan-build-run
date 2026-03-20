@@ -50,9 +50,9 @@ const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
 const { checkCommit, enrichCommitLlm } = require('./validate-commit');
 const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
+const { checkRequirePaths, checkMirrorSync, checkLintErrors } = require('./lib/pre-commit-checks');
 // Cross-plugin sync disabled — derivative plugins updated separately
 // const { checkCrossPluginSync } = require('./check-cross-plugin-sync');
-const { recordIncident } = require('./record-incident');
 
 function main() {
   let input = '';
@@ -67,14 +67,6 @@ function main() {
       const dangerousResult = checkDangerous(data);
       if (dangerousResult) {
         logHook('pre-bash-dispatch', 'PreToolUse', 'dispatched', { handler: 'check-dangerous-commands' });
-        // Record incident (fire-and-forget — does not affect exit code)
-        recordIncident({
-          source: 'hook',
-          type: 'block',
-          severity: 'warning',
-          issue: dangerousResult.output.reason || 'PreToolUse block: dangerous command',
-          context: { tool: data.tool_name, command: (data.tool_input && data.tool_input.command || '').slice(0, 200) }
-        });
         process.stdout.write(JSON.stringify(dangerousResult.output));
         process.exit(dangerousResult.exitCode);
       }
@@ -83,14 +75,6 @@ function main() {
       const commitResult = checkCommit(data);
       if (commitResult) {
         logHook('pre-bash-dispatch', 'PreToolUse', 'dispatched', { handler: 'validate-commit' });
-        // Record incident (fire-and-forget — does not affect exit code)
-        recordIncident({
-          source: 'hook',
-          type: 'block',
-          severity: 'warning',
-          issue: commitResult.output.reason || 'PreToolUse block: invalid commit format',
-          context: { tool: data.tool_name, command: (data.tool_input && data.tool_input.command || '').slice(0, 200) }
-        });
         process.stdout.write(JSON.stringify(commitResult.output));
         process.exit(commitResult.exitCode);
       }
@@ -115,6 +99,18 @@ function main() {
         if (/\b(DROP|TRUNCATE|DELETE\s+FROM|ALTER\s+TABLE)\b/i.test(command)) {
           warnings.push('destructive database operation (DROP/TRUNCATE/DELETE/ALTER) — verify correct database is targeted and a backup exists');
         }
+      }
+
+      // Pre-commit quality checks — advisory only, on git commit commands
+      if (/\bgit\s+commit\b/.test(command)) {
+        const pathResult = checkRequirePaths(data);
+        if (pathResult) warnings.push(...pathResult.warnings);
+
+        const mirrorResult = checkMirrorSync(data);
+        if (mirrorResult) warnings.push(...mirrorResult.warnings);
+
+        const lintResult = checkLintErrors(data);
+        if (lintResult) warnings.push(...lintResult.warnings);
       }
 
       // Unmanaged commit advisory — warn when git commit runs without PBR skill
@@ -152,9 +148,8 @@ function main() {
     } catch (e) {
       // Don't block on errors — but emit valid output so Claude Code
       // doesn't report "hook error" for silent exit
-      logHook('pre-bash-dispatch', 'PreToolUse', 'error', { error: e.message, stack: (e.stack || '').split('\n').slice(0, 3).join(' | ') });
       process.stderr.write(`[pbr] pre-bash-dispatch error: ${e.message}\n`);
-      process.stdout.write(JSON.stringify({ decision: 'allow' }));
+      process.stdout.write(JSON.stringify({ decision: 'allow', additionalContext: '⚠ [PBR] pre-bash-dispatch failed: ' + e.message }));
       process.exit(0);
     }
   });

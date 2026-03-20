@@ -61,6 +61,14 @@ const WARN_PATTERNS = [
   {
     pattern: /\bgit\s+push\s+.*(-f|--force)\b/,
     message: 'Force-pushing can overwrite remote history. Ensure this is intentional.'
+  },
+  {
+    pattern: /\bgit\s+stash\b(?!\s+show)(?!\s+list)/,
+    message: 'git stash may capture .planning/ files if they were previously tracked. After stash pop, verify .planning/STATE.md and ROADMAP.md are current. Run: node plugins/pbr/scripts/pbr-tools.js state reconcile'
+  },
+  {
+    pattern: /\bgit\s+checkout\s+(?!-b\b)(?!--orphan\b)[^\s-]/,
+    message: 'git checkout to a branch/commit may overwrite .planning/ files if they were previously tracked. After checkout, verify .planning/STATE.md and ROADMAP.md are current. Run: node plugins/pbr/scripts/pbr-tools.js state reconcile'
   }
 ];
 
@@ -175,6 +183,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Parse error — don't block
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-dangerous-commands failed: ' + _e.message }));
       process.exit(0);
     }
   });

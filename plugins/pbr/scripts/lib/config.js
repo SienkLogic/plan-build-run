@@ -139,8 +139,7 @@ const CONFIG_DEFAULTS = {
     confirm_deferred: false,
     confirm_commit_docs: false,
     auto_checkpoints: false,
-    checkpoint_auto_resolve: 'none',
-    user_confirmation: {}
+    checkpoint_auto_resolve: 'none'
   },
   safety: {
     always_confirm_destructive: true,
@@ -807,11 +806,10 @@ function sortKeys(obj) {
  * @returns {string} Formatted JSON string
  */
 function configFormat(config) {
-  // 1. Strip guide/comment keys and numeric string keys (array serialization artifacts),
-  //    then ensure all defaults present
+  // 1. Strip guide/comment keys and ensure all defaults present
   const clean = {};
   for (const [k, v] of Object.entries(config)) {
-    if (!k.startsWith('_guide') && !k.startsWith('_comment') && !/^\d+$/.test(k)) {
+    if (!k.startsWith('_guide') && !k.startsWith('_comment')) {
       clean[k] = v;
     }
   }

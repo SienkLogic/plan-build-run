@@ -25,7 +25,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { sessionLoad } = require('./pbr-tools');
+const { sessionLoad } = require('./lib/core');
 const { resolveSessionPath } = require('./lib/core');
 
 function main() {
@@ -53,7 +53,7 @@ function main() {
       }
 
       // Apply skill-specific rules
-      const violation = checkSkillRules(activeSkill, filePath, planningDir, sessionId);
+      const violation = checkSkillRules(activeSkill, filePath, planningDir);
       if (violation) {
         logHook('check-skill-workflow', 'PreToolUse', 'block', {
           skill: activeSkill,
@@ -77,6 +77,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Don't block on errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] check-skill-workflow failed: ' + _e.message }));
       process.exit(0);
     }
   });
@@ -98,7 +99,7 @@ function readActiveSkill(planningDir, sessionId) {
  * Check skill-specific workflow rules.
  * Returns { rule, message } if violated, null if OK.
  */
-function checkSkillRules(skill, filePath, planningDir, sessionId) {
+function checkSkillRules(skill, filePath, planningDir) {
   const normalizedPath = filePath.replace(/\\/g, '/');
   const normalizedPlanning = planningDir.replace(/\\/g, '/');
   // Check with both raw paths and resolved symlinks (macOS /var → /private/var)
@@ -111,7 +112,7 @@ function checkSkillRules(skill, filePath, planningDir, sessionId) {
   }
 
   // Check for orchestrator writing agent artifacts (any skill)
-  const artifactViolation = checkArtifactRules(filePath, planningDir, sessionId);
+  const artifactViolation = checkArtifactRules(filePath, planningDir);
   if (artifactViolation) return artifactViolation;
 
   switch (skill) {
@@ -152,7 +153,7 @@ function checkSkillRules(skill, filePath, planningDir, sessionId) {
  * - If .active-agent exists, a subagent is running (allow writes)
  * - If .active-agent does NOT exist, the orchestrator is writing (block)
  */
-function checkArtifactRules(filePath, planningDir, sessionId) {
+function checkArtifactRules(filePath, planningDir) {
   const basename = path.basename(filePath);
 
   // Only check SUMMARY and VERIFICATION files in phase directories
@@ -161,16 +162,8 @@ function checkArtifactRules(filePath, planningDir, sessionId) {
   if (!isSummary && !isVerification) return null;
 
   // If .active-agent exists, a subagent is running — allow
-  // Try session-scoped path first, fall back to global
-  let agentExists = false;
-  if (sessionId) {
-    const sessionPath = resolveSessionPath(planningDir, '.active-agent', sessionId);
-    agentExists = fs.existsSync(sessionPath);
-  }
-  if (!agentExists) {
-    agentExists = fs.existsSync(path.join(planningDir, '.active-agent'));
-  }
-  if (agentExists) return null;
+  const activeAgentFile = path.join(planningDir, '.active-agent');
+  if (fs.existsSync(activeAgentFile)) return null;
 
   const artifactType = isSummary ? 'SUMMARY.md' : 'VERIFICATION.md';
   return {
@@ -326,7 +319,7 @@ function checkWorkflow(data) {
   const activeSkill = readActiveSkill(planningDir, sessionId);
   if (!activeSkill) return null;
 
-  const violation = checkSkillRules(activeSkill, filePath, planningDir, sessionId);
+  const violation = checkSkillRules(activeSkill, filePath, planningDir);
   if (violation) {
     logHook('check-skill-workflow', 'PreToolUse', 'block', {
       skill: activeSkill, file: path.basename(filePath), rule: violation.rule

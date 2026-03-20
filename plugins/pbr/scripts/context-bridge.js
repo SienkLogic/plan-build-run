@@ -78,15 +78,12 @@ function getAdaptiveThresholds(contextTokens) {
  * If "linear" (default), returns fixed base thresholds.
  *
  * @param {string} planningDir - Path to .planning/
- * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {{ degrading: number, poor: number, critical: number }}
  */
-function getEffectiveThresholds(planningDir, config) {
+function getEffectiveThresholds(planningDir) {
   try {
-    if (!config) {
-      const { configLoad } = require('./pbr-tools');
-      config = configLoad(planningDir);
-    }
+    const { configLoad } = require('./lib/config');
+    const config = configLoad(planningDir);
     const curve = (config && config.context_budget && config.context_budget.threshold_curve) || 'linear';
     const tokens = (config && config.context_window_tokens) || BASE_TOKENS;
     if (curve === 'adaptive') {
@@ -151,15 +148,12 @@ function saveBridge(bridgePath, data) {
  * Reads context_window_tokens from config (default 200k) and multiplies by 4 chars/token.
  *
  * @param {string} planningDir - Path to .planning/
- * @param {Object} [config] - Pre-loaded config object (avoids redundant configLoad)
  * @returns {number} Total char capacity (context_window_tokens × 4, default 800000)
  */
-function getCharDenominator(planningDir, config) {
+function getCharDenominator(planningDir) {
   try {
-    if (!config) {
-      const { configLoad } = require('./pbr-tools');
-      config = configLoad(planningDir);
-    }
+    const { configLoad } = require('./lib/config');
+    const config = configLoad(planningDir);
     const tokens = (config && config.context_window_tokens) || 200000;
     return tokens * 4;
   } catch (_e) {
@@ -229,9 +223,10 @@ function updateBridge(planningDir, stdinData) {
 
   // Check if Claude Code provides real context percentage in stdin
   // Look for context_percent, usage_percent, context_usage, or similar fields
-  const contextPercent = (stdinData.context_window && stdinData.context_window.used_percentage != null)
-    ? stdinData.context_window.used_percentage
-    : (stdinData.context_percent || stdinData.usage_percent || (stdinData.context && stdinData.context.percent) || null);
+  const contextPercent = stdinData.context_percent
+    || stdinData.usage_percent
+    || (stdinData.context && stdinData.context.percent)
+    || null;
 
   const source = contextPercent !== null ? 'bridge' : 'heuristic';
   const estimatedPercent = contextPercent !== null
@@ -249,64 +244,6 @@ function updateBridge(planningDir, stdinData) {
     calls_since_warn: 0,
     tool_calls: 0
   };
-
-  // Early-exit: if bridge already has data and tier is unchanged at PEAK/GOOD,
-  // skip the expensive file write when estimated_percent hasn't changed much.
-  if (bridge && bridge.timestamp) {
-    const earlyThresholds = getEffectiveThresholds(planningDir);
-    const earlyTier = getTier(estimatedPercent, earlyThresholds);
-    const prevTier = bridge.last_warned_tier || 'PEAK';
-    const warnNeeded = shouldWarn(bridge, earlyTier.name);
-
-    if ((earlyTier.name === 'PEAK' || earlyTier.name === 'GOOD') && !warnNeeded && earlyTier.name === prevTier) {
-      // Tier unchanged at PEAK/GOOD with no warning — early exit
-      bridge.tool_calls = (bridge.tool_calls || 0) + 1;
-      bridge.calls_since_warn = (bridge.calls_since_warn || 0) + 1;
-      bridge.timestamp = new Date().toISOString();
-      const percentDelta = Math.abs(estimatedPercent - (bridge.estimated_percent || 0));
-      bridge.estimated_percent = estimatedPercent;
-      // Only write back if estimated_percent changed by more than 2 points (avoid churn)
-      if (percentDelta > 2) {
-        saveBridge(bridgePath, bridge);
-      }
-      return { bridge, output: null };
-    }
-  }
-
-  // If status-line.js recently wrote real data (source: "claude-code"),
-  // use that instead of the heuristic. Check freshness (< 120 seconds).
-  if (bridge && bridge.source === 'claude-code' && bridge.timestamp) {
-    const age = Date.now() - new Date(bridge.timestamp).getTime();
-    if (age < 120000) {
-      // Real data is fresh — just update tool_calls and save
-      bridge.tool_calls = (bridge.tool_calls || 0) + 1;
-      bridge.calls_since_warn = (bridge.calls_since_warn || 0) + 1;
-      // Still read chars from tracker for informational purposes
-      const trackerPath2 = path.join(planningDir, '.context-tracker');
-      try {
-        const tracker = JSON.parse(fs.readFileSync(trackerPath2, 'utf8'));
-        bridge.chars_read = tracker.total_chars || 0;
-      } catch (_e) { /* keep existing */ }
-      // Check tier warnings using the real percentage
-      const thresholds = getEffectiveThresholds(planningDir);
-      bridge.thresholds = thresholds;
-      const tier = getTier(bridge.estimated_percent, thresholds);
-      let output = null;
-      if (shouldWarn(bridge, tier.name)) {
-        const msg = TIER_MESSAGES[tier.name];
-        if (msg) {
-          bridge.last_warned_tier = tier.name;
-          bridge.calls_since_warn = 0;
-          bridge.warnings_issued = bridge.warnings_issued || [];
-          bridge.warnings_issued.push({ tier: tier.name, percent: bridge.estimated_percent, timestamp: new Date().toISOString() });
-          if (bridge.warnings_issued.length > 20) bridge.warnings_issued = bridge.warnings_issued.slice(-20);
-          output = { additionalContext: `[Context Monitor — ${tier.name}] ${bridge.estimated_percent}% used (claude-code). ${msg}` };
-        }
-      }
-      saveBridge(bridgePath, bridge);
-      return { bridge, output };
-    }
-  }
 
   // Update bridge
   bridge.timestamp = new Date().toISOString();
@@ -400,6 +337,7 @@ function main() {
       process.exit(0);
     } catch (_e) {
       // Never block on tracking errors
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] context-bridge failed: ' + _e.message }));
       process.exit(0);
     }
   });

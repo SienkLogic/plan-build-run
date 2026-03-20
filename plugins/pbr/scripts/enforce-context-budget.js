@@ -61,7 +61,7 @@ function checkBudget({ toolName, planningDir }) {
   let hardStopPercent = DEFAULT_HARD_STOP_PERCENT;
   let enforce = true;
   try {
-    const { configLoad } = require('../plan-build-run/bin/lib/config.cjs');
+    const { configLoad } = require('./lib/config');
     const config = configLoad(planningDir);
     if (config && config.context_budget) {
       if (config.context_budget.hard_stop_percent != null) {

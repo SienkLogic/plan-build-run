@@ -17,9 +17,9 @@ const { resolveSessionPath } = require('../core');
  * @returns {string|null}
  */
 function readActiveSkill(planningDir, sessionId) {
-  // Check .session.json first (consistent with check-subagent-output.js and log-subagent.js)
+  // Check .session.json first (consistent with check-subagent-output and log-subagent)
   try {
-    const { sessionLoad } = require('../../pbr-tools');
+    const { sessionLoad } = require('../core');
     const session = sessionLoad(planningDir, sessionId);
     if (session && session.activeSkill) return session.activeSkill;
   } catch (_e) { /* pbr-tools unavailable */ }
@@ -72,54 +72,6 @@ function readCurrentPhaseInt(planningDir) {
 }
 
 /**
- * All valid phase status values in the 13-state lifecycle (+ legacy aliases).
- * Gates can use this to validate or map status values.
- */
-const VALID_PHASE_STATUSES = [
-  'not_started', 'discussed', 'ready_to_plan', 'planning',
-  'planned', 'ready_to_execute', 'building', 'built',
-  'partial', 'verified', 'needs_fixes', 'complete', 'skipped',
-  // Legacy aliases
-  'pending', 'reviewed', 'milestone_complete'
-];
-
-/** Map legacy status aliases to their canonical equivalents. */
-const STATUS_ALIASES = {
-  pending: 'not_started',
-  reviewed: 'verified'
-};
-
-/**
- * Read and normalize the current status from STATE.md.
- * Checks frontmatter status: first, then falls back to body Status: line.
- * Resolves legacy aliases to canonical values.
- * @param {string} planningDir - path to .planning directory
- * @returns {string|null} Canonical status value, or null if not found
- */
-function readCurrentStatus(planningDir) {
-  try {
-    const state = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
-    // Try frontmatter first
-    const fmMatch = state.match(/^status:\s*["']?([a-z_]+)["']?/m);
-    let status = null;
-    if (fmMatch) {
-      status = fmMatch[1].trim();
-    } else {
-      // Fall back to body Status: line
-      const bodyMatch = state.match(/^Status:\s*(\S+)/m);
-      if (bodyMatch) {
-        status = bodyMatch[1].trim().toLowerCase().replace(/\s+/g, '_');
-      }
-    }
-    if (!status) return null;
-    // Resolve legacy aliases
-    return STATUS_ALIASES[status] || status;
-  } catch (_e) {
-    return null;
-  }
-}
-
-/**
  * Detect whether a PLAN*.md file has speculative: true in its frontmatter.
  * Speculative plans are created for future phases and must not trigger validation gates.
  * @param {string} filePath - absolute path to the PLAN file
@@ -138,4 +90,4 @@ function isPlanSpeculative(filePath) {
   }
 }
 
-module.exports = { readActiveSkill, readCurrentPhase, readCurrentPhaseInt, readCurrentStatus, VALID_PHASE_STATUSES, STATUS_ALIASES, isPlanSpeculative };
+module.exports = { readActiveSkill, readCurrentPhase, readCurrentPhaseInt, isPlanSpeculative };

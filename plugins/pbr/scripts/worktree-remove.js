@@ -85,7 +85,7 @@ function main() {
     process.exit(0);
   } catch (err) {
     logHook('worktree-remove', 'WorktreeRemove', 'error', { error: err.message });
-    process.stdout.write('{}');
+    process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] worktree-remove failed: ' + err.message }));
     process.exit(0);
   }
 }

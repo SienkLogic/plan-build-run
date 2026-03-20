@@ -32,12 +32,7 @@ const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
-const { checkDirectStateWrite } = require('./check-direct-state-write');
 const { queueIntelUpdate } = require('./intel-queue');
-const { recordIncident } = require('./record-incident');
-
-let checkDependencyBreaks;
-try { checkDependencyBreaks = require('./lib/dependency-break').checkDependencyBreaks; } catch (_e) { checkDependencyBreaks = null; }
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -104,10 +99,6 @@ function checkContextWrite(data) {
  * @returns {Promise<Object|null>} Hook response object or null
  */
 async function processEvent(data, planningDir) {
-  // Load config once per invocation — sub-checks reuse this cached value
-  let config;
-  try { config = require('./pbr-tools').configLoad(planningDir); } catch (_e) { config = null; }
-
   const results = [];
 
   /**
@@ -149,15 +140,6 @@ async function processEvent(data, planningDir) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkRoadmapWrite', error: e.message });
   }
 
-  // Direct Write bypass warning for STATE.md and ROADMAP.md
-  try {
-    const directWriteResult = checkDirectStateWrite(data);
-    const ctx = extractContext(directWriteResult);
-    if (ctx) results.push(ctx);
-  } catch (e) {
-    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkDirectStateWrite', error: e.message });
-  }
-
   // Roadmap sync check (STATE.md)
   try {
     const syncResult = checkSync(data);
@@ -185,27 +167,6 @@ async function processEvent(data, planningDir) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkStateSync', error: e.message });
   }
 
-  // Dependency break detection: when SUMMARY.md is written in .planning/phases/
-  if (checkDependencyBreaks) {
-    try {
-      const depFilePath = data.tool_input?.file_path || '';
-      const depNormalized = depFilePath.replace(/\\/g, '/');
-      if (depNormalized.includes('.planning/phases/') && depNormalized.endsWith('SUMMARY.md')) {
-        const phaseNumMatch = depNormalized.match(/(\d{2})-[^/\\]+[/\\]SUMMARY/);
-        if (phaseNumMatch) {
-          if (!config || !config.features || config.features.dependency_break_detection !== false) {
-            const depBreaks = checkDependencyBreaks(planningDir, parseInt(phaseNumMatch[1], 10));
-            if (depBreaks.length > 0) {
-              results.push(`[Dependency Break] ${depBreaks.length} downstream plan(s) may be stale: ${depBreaks.map(b => b.plan).join(', ')}. Run /pbr:plan-phase to re-plan affected phases.`);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkDependencyBreaks', error: e.message });
-    }
-  }
-
   // Quality checks (Prettier, tsc, console.log detection)
   try {
     const qualityResult = checkQuality(data);
@@ -222,36 +183,40 @@ async function processEvent(data, planningDir) {
     // Intel queue must never break the dispatch chain
   }
 
-  // Pattern-based routing — lowest-priority advisory
-  try {
-    let _checkPatternRouting;
-    try { _checkPatternRouting = require('./lib/pattern-routing').checkPatternRouting; } catch (_e) { _checkPatternRouting = null; }
-    if (_checkPatternRouting) {
-      const patternFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
-      if (patternFilePath) {
-        const patternResult = _checkPatternRouting(patternFilePath, config || {});
-        if (patternResult) {
-          results.push('[Pattern] ' + patternResult.advisory);
+  // LLM file intent classification — advisory enrichment for non-planning files
+  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
+    try {
+      const { resolveConfig } = require('./lib/local-llm/health');
+      const { classifyFileIntent } = require('./lib/local-llm/operations/classify-file-intent');
+      const llmConfig = (() => {
+        try {
+          const configPath = path.join(planningDir, 'config.json');
+          const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+          return resolveConfig(parsed.local_llm);
+        } catch (_e) {
+          return resolveConfig(undefined);
+        }
+      })();
+
+      let contentSnippet = '';
+      try {
+        const content = data.tool_input?.content || data.tool_input?.new_string || '';
+        contentSnippet = content.slice(0, 400);
+      } catch (_e) {
+        // No content available
+      }
+
+      if (contentSnippet) {
+        const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
+        if (llmResult && llmResult.file_type) {
+          results.push(`[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`);
         }
       }
+    } catch (_llmErr) {
+      // Never propagate LLM errors
     }
-  } catch (_e) {
-    // Pattern routing must never break the dispatch chain
-  }
-
-  try { logHook('post-write-dispatch', 'PostToolUse', 'complete', { checks: results.length, hasWarnings: results.length > 0 }); } catch(_) {}
-
-  // Record warnings as incidents (fire-and-forget)
-  const incidentFilePath = data.tool_input?.file_path || data.tool_input?.path || '';
-  for (const msg of results) {
-    if (!msg) continue;
-    recordIncident({
-      source: 'hook',
-      type: 'warn',
-      severity: 'warning',
-      issue: typeof msg === 'string' ? msg.slice(0, 300) : JSON.stringify(msg).slice(0, 300),
-      context: { file: incidentFilePath }
-    });
   }
 
   // Merge all results into a single response
@@ -288,7 +253,6 @@ function main() {
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk) => { input += chunk; });
   process.stdin.on('end', async () => {
-    try { logHook('post-write-dispatch', 'PostToolUse', 'entry', {}); } catch(_) {}
     try {
       const data = JSON.parse(input);
       const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
@@ -302,6 +266,7 @@ function main() {
     } catch (_e) {
       // Don't block on parse errors
       logHook('post-write-dispatch', 'PostToolUse', 'error', { error: _e.message, stack: (_e.stack || '').split('\n').slice(0, 3).join(' | ') });
+      process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] post-write-dispatch failed: ' + _e.message }));
       process.exit(0);
     }
   });

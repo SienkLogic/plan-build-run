@@ -5,7 +5,7 @@
  * When active skill is "milestone" and a general/planner agent is spawned
  * for a "complete" operation, verify all milestone phases have SUMMARY.md.
  *
- * This mirrors milestone-complete.js (which checks VERIFICATION.md) to
+ * This mirrors milestone-complete.cjs (which checks VERIFICATION.md) to
  * close the enforcement gap where SUMMARY.md was only advisory.
  */
 

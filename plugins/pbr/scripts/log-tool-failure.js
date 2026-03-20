@@ -13,7 +13,6 @@
 
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { recordIncident } = require('./record-incident');
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -53,20 +52,19 @@ async function main() {
     input_summary: summarizeInput(toolName, toolInput)
   });
 
-  // Record tool failure as incident (fire-and-forget)
-  recordIncident({
-    source: 'hook',
-    type: 'error',
-    severity: 'error',
-    issue: `Tool failure: ${toolName} — ${typeof error === 'string' ? error.slice(0, 200) : JSON.stringify(error).slice(0, 200)}`,
-    context: { tool: toolName, interrupt: isInterrupt }
-  });
-
-  // Provide recovery hints for Bash failures (most common actionable failure)
+  // Provide recovery hints for tool failures
+  let hint = null;
   if (toolName === 'Bash' && !isInterrupt) {
-    const output = {
-      additionalContext: '[Tool Failure] Bash command failed. To investigate: check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.'
-    };
+    hint = '[Tool Failure] Bash command failed. Check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.';
+  } else if (toolName === 'Write' || toolName === 'Edit') {
+    hint = `[Tool Failure] ${toolName} failed for ${(toolInput.file_path || 'unknown file')}. Check: (1) directory exists, (2) file is not read-only, (3) path uses forward slashes. For path issues: verify with Glob.`;
+  } else if (toolName === 'Read') {
+    hint = `[Tool Failure] Read failed for ${(toolInput.file_path || 'unknown file')}. Check: (1) file exists on disk, (2) path is absolute, (3) no typos in filename. Use Glob to find the correct path.`;
+  } else if (toolName === 'Task') {
+    hint = '[Tool Failure] Task (subagent) failed. Check: (1) subagent_type is valid (pbr:*), (2) prompt is not empty, (3) no circular spawning. Re-run the parent skill to retry.';
+  }
+  if (hint) {
+    const output = { additionalContext: hint };
     process.stdout.write(JSON.stringify(output));
   }
 
@@ -92,7 +90,9 @@ function summarizeInput(toolName, toolInput) {
   }
 }
 
-main().catch(() => {});
+if (require.main === module) {
+  main().catch(() => {});
+}
 
 /**
  * HTTP handler for hook-server.js integration.
@@ -121,19 +121,18 @@ function handleHttp(reqBody) {
     input_summary: summarizeInput(toolName, toolInput)
   });
 
-  // Record tool failure as incident (fire-and-forget)
-  recordIncident({
-    source: 'hook',
-    type: 'error',
-    severity: 'error',
-    issue: `Tool failure: ${toolName} — ${typeof error === 'string' ? error.slice(0, 200) : JSON.stringify(error).slice(0, 200)}`,
-    context: { tool: toolName, interrupt: isInterrupt }
-  });
-
+  let hint = null;
   if (toolName === 'Bash' && !isInterrupt) {
-    return {
-      additionalContext: '[Tool Failure] Bash command failed. To investigate: check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.'
-    };
+    hint = '[Tool Failure] Bash command failed. Check the error output above for permission/path issues. For recurring failures: /pbr:debug for systematic investigation.';
+  } else if (toolName === 'Write' || toolName === 'Edit') {
+    hint = `[Tool Failure] ${toolName} failed for ${(toolInput.file_path || 'unknown file')}. Check: (1) directory exists, (2) file is not read-only, (3) path uses forward slashes. For path issues: verify with Glob.`;
+  } else if (toolName === 'Read') {
+    hint = `[Tool Failure] Read failed for ${(toolInput.file_path || 'unknown file')}. Check: (1) file exists on disk, (2) path is absolute, (3) no typos in filename. Use Glob to find the correct path.`;
+  } else if (toolName === 'Task') {
+    hint = '[Tool Failure] Task (subagent) failed. Check: (1) subagent_type is valid (pbr:*), (2) prompt is not empty, (3) no circular spawning. Re-run the parent skill to retry.';
+  }
+  if (hint) {
+    return { additionalContext: hint };
   }
   return null;
 }

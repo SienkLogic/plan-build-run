@@ -15,7 +15,54 @@
  *   2 = blocked (freeform text detected for /pbr:plan-phase)
  */
 
+const fs = require('fs');
+const path = require('path');
 const { logHook } = require('./hook-logger');
+
+/**
+ * Skills that accept a phase number as their first argument.
+ */
+const PHASE_SKILLS = new Set([
+  'pbr:plan-phase', 'pbr:execute-phase', 'pbr:discuss-phase',
+  'pbr:research-phase', 'pbr:list-phase-assumptions',
+  'pbr:insert-phase', 'pbr:remove-phase'
+]);
+
+/**
+ * Validate that a phase number exists in ROADMAP.md.
+ * Returns null if valid or no roadmap, or an advisory string if phase not found.
+ */
+function validatePhaseExists(phaseNum) {
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const roadmapPath = path.join(cwd, '.planning', 'ROADMAP.md');
+  try {
+    if (!fs.existsSync(roadmapPath)) return null;
+    const roadmap = fs.readFileSync(roadmapPath, 'utf8');
+    // Look for phase number in roadmap (e.g., "| 03 |" or "## Phase 3")
+    const padded = String(phaseNum).padStart(2, '0');
+    const patterns = [
+      new RegExp(`\\|\\s*${phaseNum}\\s*\\|`),
+      new RegExp(`\\|\\s*${padded}\\s*\\|`),
+      new RegExp(`##\\s+Phase\\s+${phaseNum}\\b`),
+      new RegExp(`##\\s+Phase\\s+${padded}\\b`),
+      new RegExp(`${padded}-[a-z]`)
+    ];
+    if (patterns.some(p => p.test(roadmap))) return null;
+    // Phase not found — extract valid phase numbers
+    const phaseNums = [];
+    const tableRows = roadmap.match(/\|\s*(\d+(?:\.\d+)?)\s*\|/g);
+    if (tableRows) {
+      for (const row of tableRows) {
+        const m = row.match(/\|\s*(\d+(?:\.\d+)?)\s*\|/);
+        if (m) phaseNums.push(m[1]);
+      }
+    }
+    const validList = phaseNums.length > 0 ? ` Valid phases: ${phaseNums.join(', ')}.` : '';
+    return `Phase ${phaseNum} not found in ROADMAP.md.${validList}`;
+  } catch (_e) {
+    return null; // Can't read roadmap — don't block
+  }
+}
 
 /**
  * Valid argument patterns for /pbr:plan-phase.
@@ -79,7 +126,28 @@ function checkSkillArgs(data) {
   const skill = toolInput.skill || '';
   const args = toolInput.args || '';
 
-  // Only validate /pbr:plan-phase for now
+  // Phase number existence check for all phase-taking skills
+  const fullSkillName = skill.startsWith('pbr:') ? skill : `pbr:${skill}`;
+  if (PHASE_SKILLS.has(fullSkillName) && args) {
+    const phaseMatch = args.trim().match(/^(\d+(?:\.\d+)?)/);
+    if (phaseMatch) {
+      const warning = validatePhaseExists(phaseMatch[1]);
+      if (warning) {
+        logHook('validate-skill-args', 'PreToolUse', 'phase-not-found', {
+          skill, phase: phaseMatch[1]
+        });
+        return {
+          output: {
+            decision: 'block',
+            reason: `[pbr] ${warning} Check your ROADMAP.md or use /pbr:progress to see current phases.`
+          },
+          exitCode: 2
+        };
+      }
+    }
+  }
+
+  // Only validate pbr:plan (invoked as /pbr:plan-phase) arg format for now
   if (skill !== 'pbr:plan') {
     return null;
   }
@@ -144,11 +212,11 @@ function main() {
       // Don't block on errors — emit valid output for Claude Code
       process.stderr.write(`[pbr] validate-skill-args error: ${_e.message}
 `);
-      process.stdout.write(JSON.stringify({ decision: "allow" }));
+      process.stdout.write(JSON.stringify({ decision: "allow", additionalContext: '⚠ [PBR] validate-skill-args failed: ' + _e.message }));
       process.exit(0);
     }
   });
 }
 
-module.exports = { checkSkillArgs, suggestSkill, PLAN_VALID_PATTERN, ROUTE_PATTERNS };
+module.exports = { checkSkillArgs, suggestSkill, validatePhaseExists, PLAN_VALID_PATTERN, ROUTE_PATTERNS, PHASE_SKILLS };
 if (require.main === module || process.argv[1] === __filename) { main(); }

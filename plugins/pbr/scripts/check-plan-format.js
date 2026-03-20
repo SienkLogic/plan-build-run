@@ -25,6 +25,9 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { resolveConfig } = require('./lib/local-llm/health');
+const { classifyArtifact } = require('./lib/local-llm/operations/classify-artifact');
+
 // Import all validators from extracted module
 const {
   validateMustHaves,
@@ -46,6 +49,20 @@ const {
   validateContext
 } = require('./lib/format-validators');
 
+/**
+ * Load and resolve the local_llm config block from .planning/config.json.
+ * Returns a resolved config (always safe to use -- disabled by default on error).
+ */
+function loadLocalLlmConfig() {
+  try {
+    const configPath = path.join(process.cwd(), '.planning', 'config.json');
+    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return resolveConfig(parsed.local_llm);
+  } catch (_e) {
+    return resolveConfig(undefined);
+  }
+}
+
 async function main() {
   let input = '';
 
@@ -54,6 +71,7 @@ async function main() {
   process.stdin.on('end', async () => {
     try {
       const data = JSON.parse(input);
+      const sessionId = data.session_id || null;
 
       // Get the file path that was written/edited
       const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
@@ -94,6 +112,22 @@ async function main() {
                     ? validateContext(content, filePath)
                     : validateSummary(content, filePath);
 
+      // LLM advisory enrichment -- advisory only, never blocks
+      if ((isPlan || isSummary) && result.errors.length === 0) {
+        try {
+          const llmConfig = loadLocalLlmConfig();
+          const planningDir = path.join(process.cwd(), '.planning');
+          const fileType = isPlan ? 'PLAN' : 'SUMMARY';
+          const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
+          if (llmResult && llmResult.classification) {
+            const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
+            result.warnings.push(llmNote);
+          }
+        } catch (_llmErr) {
+          // Never propagate LLM errors
+        }
+      }
+
       const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
       // Detect Write vs Edit: Write = full creation/overwrite (likely first attempt)
@@ -106,12 +140,14 @@ async function main() {
           logHook('check-plan-format', 'PostToolUse', 'warn-downgraded', {
             file: basename,
             errors: result.errors,
-            reason: 'Write tool (first creation)'
+            reason: 'Write tool (first creation)',
+            sessionId
           });
           logEvent('workflow', eventType, {
             file: basename,
             status: 'warn-downgraded',
-            errorCount: result.errors.length
+            errorCount: result.errors.length,
+            sessionId
           });
 
           const output = {
@@ -122,12 +158,14 @@ async function main() {
           // Structural errors on Edit -- block and force correction
           logHook('check-plan-format', 'PostToolUse', 'block', {
             file: basename,
-            errors: result.errors
+            errors: result.errors,
+            sessionId
           });
           logEvent('workflow', eventType, {
             file: basename,
             status: 'block',
-            errorCount: result.errors.length
+            errorCount: result.errors.length,
+            sessionId
           });
 
           const summary = `${basename} has structural errors that must be fixed.`;
@@ -145,12 +183,14 @@ async function main() {
         // Warnings only -- non-blocking feedback
         logHook('check-plan-format', 'PostToolUse', 'warn', {
           file: basename,
-          warnings: result.warnings
+          warnings: result.warnings,
+          sessionId
         });
         logEvent('workflow', eventType, {
           file: basename,
           status: 'warn',
-          warningCount: result.warnings.length
+          warningCount: result.warnings.length,
+          sessionId
         });
 
         const output = {
@@ -159,8 +199,8 @@ async function main() {
         process.stdout.write(JSON.stringify(output));
       } else {
         // Clean pass
-        logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename });
-        logEvent('workflow', eventType, { file: basename, status: 'pass' });
+        logHook('check-plan-format', 'PostToolUse', 'pass', { file: basename, sessionId });
+        logEvent('workflow', eventType, { file: basename, status: 'pass', sessionId });
       }
 
       process.exit(0);

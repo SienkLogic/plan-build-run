@@ -146,33 +146,15 @@ function suggestNextTask(planningDir) {
     // No state file — proceed with defaults
   }
 
-  // Terminal states where the current phase is done — skip to next phase suggestion
-  const terminalStatuses = ['verified', 'complete', 'skipped', 'reviewed', 'milestone_complete'];
-
-  // If current phase is in-progress, suggest the appropriate next action
-  if (state.current_phase > 0 && state.status && !terminalStatuses.includes(state.status)) {
+  // If current phase is in-progress, suggest continuing it
+  if (state.current_phase > 0 && state.status && state.status !== 'verified') {
     const currentPhaseData = phases.get(state.current_phase);
     if (currentPhaseData && !currentPhaseData.completed) {
-      // Map status to appropriate command suggestion
-      let command = '/pbr:build';
-      let reason = 'Current phase in progress — continue building';
-
-      if (state.status === 'ready_to_plan' || state.status === 'discussed' || state.status === 'not_started') {
-        command = `/pbr:plan-phase ${state.current_phase}`;
-        reason = 'Current phase needs planning';
-      } else if (state.status === 'needs_fixes') {
-        command = '/pbr:build';
-        reason = 'Current phase needs fixes — continue building';
-      } else if (state.status === 'built') {
-        command = `/pbr:verify-work ${state.current_phase}`;
-        reason = 'Current phase built — verify before advancing';
-      }
-
       return {
         phase: state.current_phase,
         name: currentPhaseData.name,
-        reason,
-        command
+        reason: 'Current phase in progress — continue building',
+        command: '/pbr:build'
       };
     }
   }

@@ -20,10 +20,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { logHook } = require('./hook-logger');
+const { logHook, getLogFilename: getHooksFilename, cleanOldHookLogs } = require('./hook-logger');
+const { getLogFilename: getEventsFilename, cleanOldEventLogs } = require('./event-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
+const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./lib/local-llm/metrics');
 const { writeSnapshot } = require('./lib/snapshot-manager');
+const { readQueue, clearQueue } = require('./intel-queue');
 
 function readStdin() {
   try {
@@ -48,7 +51,6 @@ function tryRemove(filePath) {
 }
 
 const STALE_CHECKPOINT_MS = 24 * 60 * 60 * 1000; // 24 hours
-const MAX_HOOKS_LOG_BYTES = 200 * 1024; // 200KB
 
 function cleanStaleCheckpoints(planningDir) {
   const removed = [];
@@ -74,22 +76,9 @@ function cleanStaleCheckpoints(planningDir) {
   return removed;
 }
 
-function rotateHooksLog(planningDir) {
-  try {
-    const logsDir = path.join(planningDir, 'logs');
-    const hooksLog = path.join(logsDir, 'hooks.jsonl');
-    if (!fs.existsSync(hooksLog)) return false;
-
-    const stat = fs.statSync(hooksLog);
-    if (stat.size <= MAX_HOOKS_LOG_BYTES) return false;
-
-    const rotatedPath = hooksLog + '.1';
-    // Overwrite any existing .1 file
-    fs.renameSync(hooksLog, rotatedPath);
-    return true;
-  } catch (_e) {
-    return false;
-  }
+/** @deprecated Daily dated log files no longer need size-based rotation. */
+function rotateHooksLog(_planningDir) {
+  return false;
 }
 
 function findOrphanedProgressFiles(planningDir) {
@@ -140,6 +129,59 @@ function formatSessionMetrics(stats) {
 }
 
 const MAX_SESSION_ENTRIES = 100;
+const MAX_SESSION_METRIC_FILES = 50;
+
+/**
+ * Write a per-session metrics JSON file to logs/sessions/ directory.
+ * Each session gets its own file for easy browsing and archival.
+ * Directory is capped at MAX_SESSION_METRIC_FILES (oldest deleted first).
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {object} sessionData - Session summary object from writeSessionHistory
+ */
+function writeSessionMetricsFile(planningDir, sessionData) {
+  try {
+    const sessionsDir = path.join(planningDir, 'logs', 'sessions');
+    fs.mkdirSync(sessionsDir, { recursive: true });
+
+    // Generate Windows-safe filename from timestamp (replace colons with dashes)
+    const ts = (sessionData.end || new Date().toISOString()).replace(/:/g, '-');
+    const filename = `${ts}-metrics.json`;
+
+    const metricsData = {
+      session_id: sessionData.session_id || null,
+      start: sessionData.start || null,
+      end: sessionData.end || null,
+      duration_minutes: sessionData.duration_minutes || null,
+      agents_spawned: sessionData.agents_spawned || 0,
+      commits_created: sessionData.commits_created || 0,
+      commands_run: sessionData.commands_run || [],
+      plans_executed: sessionData.plans_executed || 0,
+      plans_verified: sessionData.plans_verified || 0,
+      compliance_pct: sessionData.compliance_pct || 0,
+      feedback_loops_triggered: sessionData.feedback_loops_triggered || 0
+    };
+
+    fs.writeFileSync(
+      path.join(sessionsDir, filename),
+      JSON.stringify(metricsData, null, 2) + '\n',
+      'utf8'
+    );
+
+    // Cap directory to MAX_SESSION_METRIC_FILES (delete oldest by name sort)
+    const files = fs.readdirSync(sessionsDir)
+      .filter(f => f.endsWith('-metrics.json'))
+      .sort();
+    if (files.length > MAX_SESSION_METRIC_FILES) {
+      const toRemove = files.slice(0, files.length - MAX_SESSION_METRIC_FILES);
+      for (const f of toRemove) {
+        try { fs.unlinkSync(path.join(sessionsDir, f)); } catch (_e) { /* best-effort */ }
+      }
+    }
+  } catch (_e) {
+    // Best-effort — don't fail the hook
+  }
+}
 
 function writeSessionHistory(planningDir, data) {
   try {
@@ -150,9 +192,9 @@ function writeSessionHistory(planningDir, data) {
 
     const sessionsFile = path.join(logsDir, 'sessions.jsonl');
 
-    // Mine existing logs for session stats
-    const hooksLog = path.join(logsDir, 'hooks.jsonl');
-    const eventsLog = path.join(logsDir, 'events.jsonl');
+    // Mine existing logs for session stats (today's dated log files)
+    const hooksLog = path.join(logsDir, getHooksFilename());
+    const eventsLog = path.join(logsDir, getEventsFilename());
 
     let agentsSpawned = 0;
     let commitsCreated = 0;
@@ -253,6 +295,9 @@ function writeSessionHistory(planningDir, data) {
       lines = lines.slice(lines.length - MAX_SESSION_ENTRIES);
     }
     fs.writeFileSync(sessionsFile, lines.join('\n') + '\n', 'utf8');
+
+    // Write per-session metrics JSON file
+    writeSessionMetricsFile(planningDir, summary);
   } catch (_e) {
     // Best-effort — don't fail the hook
   }
@@ -328,7 +373,15 @@ function gatherSessionContext(cwd, planningDir, sessionId) {
 }
 
 function main() {
+  // Safety timeout: prevent hang if stdin never closes or cleanup stalls
+  const safetyTimeout = setTimeout(() => { process.exit(0); }, 3000);
+
+  // Log invocation evidence before any I/O
+  logHook('session-cleanup', 'SessionEnd', 'hook-invoked', { pid: process.pid });
+
   const data = readStdin();
+  clearTimeout(safetyTimeout);
+
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
 
@@ -370,7 +423,7 @@ function main() {
     try {
       const releasedClaims = releaseSessionClaims(planningDir, sessionId);
       if (releasedClaims.released.length > 0) {
-        logHook('session-cleanup', `Released ${releasedClaims.released.length} phase claim(s): ${releasedClaims.released.join(', ')}`);
+        logHook('session-cleanup', 'SessionEnd', 'claims-released', { released: releasedClaims.released });
         cleaned.push(...releasedClaims.released.map(p => `phases/${p}/.claim`));
       }
     } catch (_e) { /* best-effort */ }
@@ -393,19 +446,36 @@ function main() {
   if (tryRemove(path.join(planningDir, '.context-tracker'))) {
     cleaned.push('.context-tracker');
   }
-  if (tryRemove(path.join(planningDir, '.active-agent'))) {
-    cleaned.push('.active-agent');
-  }
 
   // Clean stale checkpoint manifests (>24h old)
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);
   cleaned.push(...staleCheckpoints);
 
-  // Rotate hooks.jsonl if >200KB
+  // Rotate hooks.jsonl if >200KB (no-op now that we use daily dated files)
   const rotated = rotateHooksLog(planningDir);
+
+  // Clean up daily log files older than 30 days
+  const logsDir = path.join(planningDir, 'logs');
+  if (fs.existsSync(logsDir)) {
+    cleanOldHookLogs(logsDir);
+    cleanOldEventLogs(logsDir);
+  }
 
   // Detect orphaned .PROGRESS-* files (executor crash artifacts)
   const orphans = findOrphanedProgressFiles(planningDir);
+
+  // Drain intel queue — log queued files for potential future partial refresh
+  try {
+    const intelQueue = readQueue(planningDir);
+    if (intelQueue.length > 0) {
+      logHook('session-cleanup', 'SessionEnd', 'intel-queue-drained', {
+        queued_files: intelQueue.length,
+        files: intelQueue.slice(0, 10) // Log first 10 for brevity
+      });
+      clearQueue(planningDir);
+      cleaned.push('.intel-queue.json');
+    }
+  } catch (_e) { /* best-effort */ }
 
   // Write session history log
   writeSessionHistory(planningDir, data);
@@ -436,13 +506,35 @@ function main() {
     }
   } catch (_e) { /* metrics display is best-effort */ }
 
-  // Clean up session-start file (legacy, kept for backward compat)
+  // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
+  let llmAdditionalContext = null;
   try {
     const sessionStartFile = path.join(planningDir, '.session-start');
     if (fs.existsSync(sessionStartFile)) {
-      fs.unlinkSync(sessionStartFile);
+      const sessionStartTime = fs.readFileSync(sessionStartFile, 'utf8').trim();
+      const entries = readSessionMetrics(planningDir, sessionStartTime);
+      if (entries.length > 0) {
+        const summary = summarizeMetrics(entries);
+        logHook('session-cleanup', 'SessionEnd', 'llm-metrics', {
+          total_calls: summary.total_calls,
+          fallback_count: summary.fallback_count,
+          avg_latency_ms: summary.avg_latency_ms,
+          tokens_saved: summary.tokens_saved,
+          cost_saved_usd: summary.cost_saved_usd
+        });
+        if (summary.total_calls > 0) {
+          let modelName = null;
+          try {
+            const rawConfig = configLoad(planningDir) || {};
+            modelName = (rawConfig.local_llm && rawConfig.local_llm.model) || null;
+          } catch (_e) { /* config read failure is non-fatal */ }
+          llmAdditionalContext = formatSessionSummary(summary, modelName);
+        }
+      }
+      // Clean up session-start file
+      try { fs.unlinkSync(sessionStartFile); } catch (_e) { /* non-fatal */ }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* metrics never crash the hook */ }
 
   // Surface compliance violations from this session
   let complianceContext = null;
@@ -490,7 +582,7 @@ function main() {
     // Snapshot failure must never crash SessionEnd
   }
 
-  const combinedContext = [metricsContext, complianceContext].filter(Boolean).join('\n');
+  const combinedContext = [metricsContext, llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }
@@ -504,6 +596,8 @@ function main() {
  * Returns null. Never calls process.exit().
  */
 function handleHttp(reqBody) {
+  logHook('session-cleanup', 'SessionEnd', 'hook-invoked', { pid: process.pid, mode: 'http' });
+
   const data = (reqBody && reqBody.data) || {};
   const planningDir = reqBody && reqBody.planningDir;
   if (!planningDir || !fs.existsSync(planningDir)) return null;
@@ -514,7 +608,6 @@ function handleHttp(reqBody) {
   if (tryRemove(path.join(planningDir, '.active-skill'))) cleaned.push('.active-skill');
   if (tryRemove(path.join(planningDir, '.active-plan'))) cleaned.push('.active-plan');
   if (tryRemove(path.join(planningDir, '.context-tracker'))) cleaned.push('.context-tracker');
-  if (tryRemove(path.join(planningDir, '.active-agent'))) cleaned.push('.active-agent');
 
   const staleCheckpoints = cleanStaleCheckpoints(planningDir);
   cleaned.push(...staleCheckpoints);
@@ -543,8 +636,9 @@ function handleHttp(reqBody) {
  */
 function extractSessionLearnings(planningDir, sessionId) {
   const logsDir = path.join(planningDir, 'logs');
-  const hooksLog = path.join(logsDir, 'hooks.jsonl');
-  const eventsLog = path.join(logsDir, 'events.jsonl');
+  // Use today's dated log files (built from planningDir, not from resolved project root).
+  const hooksLog = path.join(logsDir, getHooksFilename());
+  const eventsLog = path.join(logsDir, getEventsFilename());
 
   const gatesTriggered = [];
   const agentFailures = [];
@@ -599,5 +693,5 @@ function extractSessionLearnings(planningDir, sessionId) {
   fs.appendFileSync(learningsFile, entry + '\n');
 }
 
-module.exports = { writeSessionHistory, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
+module.exports = { writeSessionHistory, writeSessionMetricsFile, tryRemove, cleanStaleCheckpoints, rotateHooksLog, findOrphanedProgressFiles, gatherSessionContext, handleHttp, formatSessionMetrics, extractSessionLearnings };
 if (require.main === module || process.argv[1] === __filename) { main(); }

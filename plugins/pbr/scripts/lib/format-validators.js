@@ -234,6 +234,23 @@ function validateSummary(content, _filePath) {
     }
   }
 
+  // Body section validation — check that required template sections exist
+  // Advisory only (warnings) since executors may use minimal template
+  const secondDash = content.indexOf('---', 3);
+  if (secondDash !== -1) {
+    const body = content.substring(secondDash + 3);
+    const hasWhatWasBuilt = /^##\s+What Was Built/m.test(body);
+    const hasTaskResults = /^##\s+Task Results/m.test(body);
+    const hasSelfCheck = /^##\s+Self-Check/m.test(body);
+
+    if (!hasWhatWasBuilt && !hasTaskResults) {
+      warnings.push('Body missing required section: "## What Was Built" or "## Task Results" (see SUMMARY.md template)');
+    }
+    if (!hasSelfCheck) {
+      warnings.push('Body missing required section: "## Self-Check" (required per all template tiers)');
+    }
+  }
+
   return { errors, warnings };
 }
 
@@ -355,6 +372,31 @@ async function checkPlanWrite(data) {
                 ? validateContext(content, filePath)
                 : validateSummary(content, filePath);
 
+  // LLM advisory enrichment -- advisory only, never blocks
+  if ((isPlan || isSummary) && result.errors.length === 0) {
+    try {
+      const { resolveConfig } = require('../local-llm/health');
+      const { classifyArtifact } = require('../local-llm/operations/classify-artifact');
+      let llmConfig;
+      try {
+        const configPath = path.join(process.cwd(), '.planning', 'config.json');
+        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        llmConfig = resolveConfig(parsed.local_llm);
+      } catch (_e) {
+        llmConfig = resolveConfig(undefined);
+      }
+      const planningDir = path.join(process.cwd(), '.planning');
+      const fileType = isPlan ? 'PLAN' : 'SUMMARY';
+      const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
+      if (llmResult && llmResult.classification) {
+        const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
+        result.warnings.push(llmNote);
+      }
+    } catch (_llmErr) {
+      // Never propagate LLM errors
+    }
+  }
+
   const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
@@ -441,7 +483,7 @@ function validateState(content, _filePath) {
 // VERIFICATION validation
 // ---------------------------------------------------------------------------
 
-function validateVerification(content, _filePath) {
+function validateVerification(content, filePath) {
   const errors = [];
   const warnings = [];
 
@@ -480,6 +522,64 @@ function validateVerification(content, _filePath) {
       if (gapsFoundMatch && parseInt(gapsFoundMatch[1], 10) > 0) {
         if (!frontmatter.includes('severity:') && !frontmatter.includes('gap_severity:')) {
           warnings.push('Gaps found but no severity classification — add severity (critical|non-critical) to gap entries');
+        }
+      }
+
+      // Advisory: must_haves_checked: 0 with PLAN files that have must-haves
+      const mustHavesCheckedMatch = frontmatter.match(/must_haves_checked:\s*(\d+)/);
+      if (mustHavesCheckedMatch && parseInt(mustHavesCheckedMatch[1], 10) === 0 && filePath) {
+        try {
+          const phaseDir = path.dirname(filePath);
+          const planFiles = fs.readdirSync(phaseDir).filter(f => /^PLAN.*\.md$/i.test(f));
+          let totalMustHaves = 0;
+          for (const pf of planFiles) {
+            try {
+              const planContent = fs.readFileSync(path.join(phaseDir, pf), 'utf8');
+              const pfmEnd = planContent.indexOf('---', 3);
+              if (pfmEnd !== -1) {
+                const pfm = planContent.substring(3, pfmEnd);
+                // Count non-empty truths and artifacts entries
+                const truthsMatch = pfm.match(/truths:\s*\n((?:\s+-\s+.+\n)*)/);
+                const artifactsMatch = pfm.match(/artifacts:\s*\n((?:\s+-\s+.+\n)*)/);
+                if (truthsMatch && truthsMatch[1].trim()) totalMustHaves += truthsMatch[1].trim().split('\n').length;
+                if (artifactsMatch && artifactsMatch[1].trim()) totalMustHaves += artifactsMatch[1].trim().split('\n').length;
+              }
+            } catch (_planErr) { /* best-effort */ }
+          }
+          if (totalMustHaves > 0) {
+            warnings.push(`VERIFICATION.md has must_haves_checked: 0 but phase has ${totalMustHaves} must-haves in PLAN files. Run /pbr:verify-work to check them.`);
+          }
+        } catch (_dirErr) { /* best-effort — phase dir may not exist */ }
+      }
+    }
+  }
+
+  // Body section validation — check that required template sections exist
+  // Advisory only (warnings) since verifier output may vary
+  const secondDash = content.indexOf('---', 3);
+  if (secondDash !== -1) {
+    const body = content.substring(secondDash + 3);
+    const hasObservableTruths = /^##\s+Observable Truths/m.test(body);
+    const hasMustHaveVerification = /^##\s+Must-Have Verification/m.test(body);
+    const hasArtifactVerification = /^##\s+Artifact Verification/m.test(body);
+    const hasSummary = /^##\s+Summary/m.test(body);
+
+    if (!hasObservableTruths && !hasMustHaveVerification && !hasArtifactVerification) {
+      warnings.push('Body missing required section: "## Observable Truths", "## Must-Have Verification", or "## Artifact Verification" (see VERIFICATION template)');
+    }
+    if (!hasSummary) {
+      warnings.push('Body missing required section: "## Summary" (see VERIFICATION template)');
+    }
+
+    // If status is gaps_found, check for a Gaps section
+    const fmEnd = content.indexOf('---', 3);
+    if (fmEnd !== -1) {
+      const fm = content.substring(3, fmEnd);
+      const statusMatch = fm.match(/^status:\s*["']?([^"'\r\n]+)["']?\s*$/m);
+      if (statusMatch && statusMatch[1].trim() === 'gaps_found') {
+        const hasGapsSection = /^##\s+(Gaps|Critical Gaps|Gap \d)/m.test(body);
+        if (!hasGapsSection) {
+          warnings.push('Status is "gaps_found" but body missing "## Gaps", "## Critical Gaps", or "## Gap N" section');
         }
       }
     }
@@ -662,12 +762,14 @@ function validateRoadmap(content, _filePath) {
   } else {
     const milestoneBlocks = strippedContent.split(/^##\s+Milestone:/m).slice(1);
     milestoneBlocks.forEach((block, idx) => {
-      if (!/\*\*Phases:\*\*/.test(block)) {
-        errors.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
-      }
-
       const headingLine = block.split('\n')[0] || '';
+
+      // Skip all structural checks for completed milestones (collapsed format)
       if (/--\s*COMPLETED/i.test(headingLine)) return;
+
+      if (!/\*\*Phases:\*\*/.test(block)) {
+        warnings.push(`Milestone ${idx + 1}: missing "**Phases:**" line`);
+      }
 
       if (!/###\s+Phase Checklist/.test(block) && !/- \[[ x]\] Phase/i.test(block)) {
         warnings.push(`Milestone ${idx + 1}: missing Phase Checklist (expected "- [ ] Phase NN:" format)`);
@@ -679,11 +781,19 @@ function validateRoadmap(content, _filePath) {
     });
   }
 
-  // Check each ### Phase NN:
+  // Check each ### Phase NN: (only in active milestones)
+  // Extract content from active milestones only (skip COMPLETED blocks)
+  const activeMilestoneContent = strippedContent.split(/^##\s+Milestone:/m).slice(1)
+    .filter(block => {
+      const headingLine = block.split('\n')[0] || '';
+      return !/--\s*COMPLETED/i.test(headingLine);
+    })
+    .join('\n');
+
   const phaseRegex = /^###\s+Phase\s+\d+:/gm;
-  const phaseMatches = strippedContent.match(phaseRegex);
+  const phaseMatches = activeMilestoneContent.match(phaseRegex);
   if (phaseMatches) {
-    const phaseBlocks = strippedContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
+    const phaseBlocks = activeMilestoneContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
     phaseBlocks.forEach((block, idx) => {
       const nextHeading = block.search(/^#{2,3}\s+/m);
       const section = nextHeading !== -1 ? block.substring(0, nextHeading) : block;

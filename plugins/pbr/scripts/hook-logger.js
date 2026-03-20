@@ -34,14 +34,6 @@ function getLogFilename(date) {
 
 /** Return the full path to the hooks log for a given date (defaults to today). */
 function getLogPath(date) {
-  const logDirOverride = process.env.PBR_LOG_DIR;
-  if (logDirOverride) {
-    if (!fs.existsSync(logDirOverride)) {
-      fs.mkdirSync(logDirOverride, { recursive: true });
-    }
-    return path.join(logDirOverride, getLogFilename(date));
-  }
-
   const cwd = resolveProjectRoot();
   const logsDir = path.join(cwd, '.planning', 'logs');
 
@@ -92,7 +84,10 @@ function cleanOldHookLogs(logsDir) {
   }
 }
 
-function logHook(hookName, eventType, decision, details = {}, startTime, source, sessionId) {
+// entry fields: { ts, hook, event, decision, source, ...details, duration_ms? }
+// Callers can pass sessionId in details to attribute log entries to a specific session.
+// e.g. logHook('my-hook', 'PreToolUse', 'allow', { sessionId: data.session_id, tool: 'Write' })
+function logHook(hookName, eventType, decision, details = {}, startTime) {
   const logPath = getLogPath();
   if (!logPath) return;
 
@@ -101,11 +96,9 @@ function logHook(hookName, eventType, decision, details = {}, startTime, source,
     hook: hookName,
     event: eventType,
     decision,
-    ...details
+    ...details,
+    source: hookName
   };
-
-  if (source) entry.source = source;
-  if (sessionId) entry.sid = sessionId;
 
   if (typeof startTime === 'number' && startTime > 0) {
     entry.duration_ms = Date.now() - startTime;
@@ -118,4 +111,4 @@ function logHook(hookName, eventType, decision, details = {}, startTime, source,
   }
 }
 
-module.exports = { logHook, getLogPath, getLogFilename, cleanOldHookLogs, getTodayDate };
+module.exports = { logHook, getLogPath, getLogFilename, cleanOldHookLogs };

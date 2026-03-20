@@ -105,12 +105,12 @@ function checkPostHocHealth(config) {
     return { feature: 'post_hoc_artifacts', status: 'disabled', detail: 'Feature disabled by config' };
   }
   try {
-    require(path.resolve(__dirname, '../../../plugins/pbr/scripts/lib/post-hoc.cjs'));
+    require('./post-hoc');
     return { feature: 'post_hoc_artifacts', status: 'healthy', detail: 'post-hoc.cjs loaded successfully' };
   } catch (err) {
     // Try alternate path
     try {
-      require(path.resolve(__dirname, 'post-hoc.cjs'));
+      require('./post-hoc');
       return { feature: 'post_hoc_artifacts', status: 'healthy', detail: 'post-hoc.cjs loaded successfully' };
     } catch (_e) {
       return { feature: 'post_hoc_artifacts', status: 'degraded', detail: err.message };

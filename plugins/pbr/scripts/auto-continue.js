@@ -19,12 +19,9 @@ const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
 const { logHook } = require('./hook-logger');
-const { configLoad } = require('./pbr-tools');
+const { configLoad } = require('./lib/config');
 const { loadTracker } = require('./session-tracker');
 const { resolveSessionPath } = require('./lib/core');
-
-let suggestNextTask;
-try { suggestNextTask = require('./lib/smart-next-task').suggestNextTask; } catch (_e) { suggestNextTask = null; }
 
 function main() {
   try {
@@ -195,9 +192,7 @@ function main() {
               const buf = new SharedArrayBuffer(4);
               Atomics.wait(new Int32Array(buf), 0, 0, delay);
             } catch (_atomicsErr) {
-              // Fallback for environments without SharedArrayBuffer
-              const end = Date.now() + delay;
-              while (Date.now() < end) { /* fallback busy-wait */ }
+              // No SharedArrayBuffer — skip delay, retry immediately
             }
           }
         }
@@ -217,29 +212,21 @@ function main() {
           const pending = fs.readdirSync(todoPendingDir).filter(f => f.endsWith('.md'));
           if (pending.length > 0) {
             logHook('auto-continue', 'Stop', 'pending-todos', { count: pending.length });
-            process.stderr.write(`[pbr] ${pending.length} pending todo(s) in .planning/todos/pending/ — run /pbr:check-todos to review\n`);
+            process.stderr.write(`[pbr] ${pending.length} pending todo(s) in .planning/todos/pending/ — run /pbr:todo list to review\n`);
           }
         }
       } catch (_todoErr) {
         // Ignore errors scanning todos
       }
-      // Smart next-task suggestion (advisory only — never blocks)
-      if (config.features && config.features.smart_next_task !== false && suggestNextTask) {
-        try {
-          const suggestion = suggestNextTask(planningDir);
-          if (suggestion) {
-            process.stderr.write(`[pbr] Next task suggestion: ${suggestion.reason} — run ${suggestion.command}\n`);
-            logHook('auto-continue', 'Stop', 'smart-next-task', { suggestion });
-          }
-        } catch (_suggestErr) {
-          // Never block on suggestion errors
-        }
-      }
-
       // Reset continue count on normal session stop (no signal)
       const countPathNoSig = path.join(planningDir, '.continue-count');
       try { fs.unlinkSync(countPathNoSig); } catch (_e) { /* ignore */ }
       logHook('auto-continue', 'Stop', 'no-signal', {});
+      process.exit(0);
+    }
+
+    if (!nextCommand) {
+      logHook('auto-continue', 'Stop', 'empty-signal', {});
       process.exit(0);
     }
 
@@ -282,6 +269,7 @@ function main() {
     process.exit(0);
   } catch (_e) {
     // Don't block on errors
+    process.stdout.write(JSON.stringify({ additionalContext: '⚠ [PBR] auto-continue failed: ' + _e.message }));
     process.exit(0);
   }
 }

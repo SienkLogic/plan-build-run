@@ -99,21 +99,6 @@ function processExecutorCompletion(data, planningDir) {
 
   writeAutoVerifySignal(planningDir, stateInfo.phase);
 
-  // Extract negative knowledge from verification gaps (if any VERIFICATION.md exists)
-  try {
-    const stateInfo2 = getPhaseFromState(planningDir);
-    if (stateInfo2 && stateInfo2.phase) {
-      const phaseDirs = fs.readdirSync(path.join(planningDir, 'phases')).filter(d => d.startsWith(String(stateInfo2.phase).padStart(2, '0') + '-'));
-      if (phaseDirs.length > 0) {
-        const phaseDir = path.join(planningDir, 'phases', phaseDirs[0]);
-        const config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
-        extractNegativeKnowledge(planningDir, phaseDir, config);
-      }
-    }
-  } catch (e) {
-    logHook('event-handler', 'SubagentStop', 'nk-extract-error', { error: e.message });
-  }
-
   const verifyHint = buildVerifyHint(data.last_assistant_message || '');
   return {
     additionalContext: `Executor complete. Auto-verification queued for Phase ${stateInfo.phase}.${verifyHint}`

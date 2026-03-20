@@ -17,8 +17,24 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
-const { configLoad, sessionLoad } = require('./pbr-tools');
-const { resolveSessionPath, ensureSessionDir } = require('./lib/core');
+
+// Lazy-loaded on demand — these modules do sync I/O at require() time
+let _configLoad = null;
+let _sessionLoad = null;
+let _resolveSessionPath = null;
+
+function getConfigLoad() {
+  if (!_configLoad) _configLoad = require('./lib/config').configLoad;
+  return _configLoad;
+}
+function getSessionLoad() {
+  if (!_sessionLoad) _sessionLoad = require('./lib/core').sessionLoad;
+  return _sessionLoad;
+}
+function getResolveSessionPath() {
+  if (!_resolveSessionPath) _resolveSessionPath = require('./lib/core').resolveSessionPath;
+  return _resolveSessionPath;
+}
 
 function readStdin() {
   try {
@@ -52,16 +68,18 @@ function main() {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
-    }, undefined, undefined, sessionId);
+      description: data.description || null,
+      sessionId
+    });
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
-    }, sessionId);
+      description: data.description || null,
+      sessionId
+    });
 
     // Write .active-agent signal so other hooks know a subagent is running
-    writeActiveAgent(agentType || 'unknown', sessionId);
+    writeActiveAgent(agentType || 'unknown');
 
     // Inject project context into subagent
     const context = buildAgentContext(sessionId);
@@ -76,36 +94,40 @@ function main() {
     }
   } else if (action === 'stop') {
     // Remove .active-agent signal
-    removeActiveAgent(sessionId);
+    removeActiveAgent();
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
-    }, undefined, undefined, sessionId);
+      duration_ms: data.duration_ms || null,
+      sessionId
+    });
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
-    }, sessionId);
-    // Emit stdout so Claude Code captures SubagentStop in session JSONL for audit visibility
-    process.stdout.write(JSON.stringify({ decision: 'allow' }));
+      duration_ms: data.duration_ms || null,
+      sessionId
+    });
+
+    // Track cumulative agent spawns — warn when excessive
+    const cwd = process.cwd();
+    const planningDir = path.join(cwd, '.planning');
+    const warning = trackAgentCost(planningDir, agentType, data.duration_ms, sessionId);
+    if (warning) {
+      process.stdout.write(JSON.stringify({ additionalContext: warning }));
+    } else {
+      // Emit stdout so Claude Code captures SubagentStop in session JSONL for audit visibility
+      process.stdout.write(JSON.stringify({ decision: 'allow' }));
+    }
   }
 
   process.exit(0);
 }
 
-function writeActiveAgent(agentType, sessionId) {
+function writeActiveAgent(agentType) {
   try {
     const cwd = process.cwd();
-    const planningDir = path.join(cwd, '.planning');
-    if (!fs.existsSync(planningDir)) return;
-
-    if (sessionId) {
-      ensureSessionDir(planningDir, sessionId);
-      const filePath = resolveSessionPath(planningDir, '.active-agent', sessionId);
-      fs.writeFileSync(filePath, agentType, 'utf8');
-    } else {
-      const filePath = path.join(planningDir, '.active-agent');
+    const filePath = path.join(cwd, '.planning', '.active-agent');
+    if (fs.existsSync(path.join(cwd, '.planning'))) {
       fs.writeFileSync(filePath, agentType, 'utf8');
     }
   } catch (_e) {
@@ -113,21 +135,75 @@ function writeActiveAgent(agentType, sessionId) {
   }
 }
 
-function removeActiveAgent(sessionId) {
+function removeActiveAgent() {
   try {
     const cwd = process.cwd();
-    const planningDir = path.join(cwd, '.planning');
-
-    if (sessionId) {
-      const filePath = resolveSessionPath(planningDir, '.active-agent', sessionId);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } else {
-      const filePath = path.join(planningDir, '.active-agent');
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    const filePath = path.join(cwd, '.planning', '.active-agent');
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
     }
   } catch (_e) {
     // Best-effort
   }
+}
+
+const AGENT_COST_FILE = '.agent-cost-tracker';
+const AGENT_SPAWN_WARN_THRESHOLD = 10;
+const AGENT_SPAWN_CRITICAL_THRESHOLD = 20;
+
+/**
+ * Track cumulative agent spawns per session. Returns warning string if threshold exceeded.
+ * Uses JSONL append for fast writes; only reads back on threshold checks.
+ * @param {string} planningDir
+ * @param {string|null} agentType
+ * @param {number|null} durationMs
+ * @param {string|null} sessionId
+ * @returns {string|null}
+ */
+function trackAgentCost(planningDir, agentType, durationMs, sessionId) {
+  try {
+    if (!fs.existsSync(planningDir)) return null;
+  } catch (_e) { return null; }
+
+  const resolveSessionPath = getResolveSessionPath();
+  const trackerPath = sessionId
+    ? resolveSessionPath(planningDir, AGENT_COST_FILE, sessionId)
+    : path.join(planningDir, AGENT_COST_FILE);
+
+  // Append a JSONL line — no read required on the hot path
+  const entry = { ts: Date.now(), type: agentType || 'unknown', ms: durationMs || 0 };
+  try { fs.appendFileSync(trackerPath, JSON.stringify(entry) + '\n', 'utf8'); } catch (_e) { /* best-effort */ }
+
+  // Count lines to check thresholds (cheaper than JSON parse of entire structure)
+  let lineCount = 0;
+  try {
+    const content = fs.readFileSync(trackerPath, 'utf8');
+    const lines = content.trim().split('\n');
+    lineCount = lines.length;
+
+    // Only compute detailed stats at threshold boundaries
+    if (lineCount === AGENT_SPAWN_WARN_THRESHOLD || lineCount === AGENT_SPAWN_CRITICAL_THRESHOLD) {
+      let totalMs = 0;
+      const byType = {};
+      for (const line of lines) {
+        try {
+          const rec = JSON.parse(line);
+          totalMs += rec.ms || 0;
+          byType[rec.type] = (byType[rec.type] || 0) + 1;
+        } catch (_e) { /* skip malformed lines */ }
+      }
+
+      if (lineCount === AGENT_SPAWN_CRITICAL_THRESHOLD) {
+        const topAgents = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t, c]) => `${t}: ${c}`).join(', ');
+        return `[pbr] CRITICAL: ${lineCount} agents spawned this session (~${Math.round(totalMs / 1000)}s total). Top: ${topAgents}. Run /pbr:pause-work to cycle session and reclaim context.`;
+      }
+      if (lineCount === AGENT_SPAWN_WARN_THRESHOLD) {
+        return `[pbr] Advisory: ${lineCount} agents spawned this session (~${Math.round(totalMs / 1000)}s total). Consider /pbr:pause-work if context quality is degrading.`;
+      }
+    }
+  } catch (_e) { /* best-effort — threshold check is advisory */ }
+
+  return null;
 }
 
 function buildAgentContext(sessionId) {
@@ -154,8 +230,12 @@ function buildAgentContext(sessionId) {
   }
 
   // Active skill context — session-scoped when sessionId available
-  let activeSkill = sessionLoad(planningDir, sessionId).activeSkill || '';
+  let activeSkill = '';
+  try {
+    activeSkill = getSessionLoad()(planningDir, sessionId).activeSkill || '';
+  } catch (_e) { /* skip */ }
   if (!activeSkill) {
+    const resolveSessionPath = getResolveSessionPath();
     const skillPath = sessionId
       ? resolveSessionPath(planningDir, '.active-skill', sessionId)
       : path.join(planningDir, '.active-skill');
@@ -164,7 +244,7 @@ function buildAgentContext(sessionId) {
   if (activeSkill) parts.push(`Active skill: /pbr:${activeSkill}`);
 
   // Config highlights
-  const config = configLoad(planningDir);
+  const config = getConfigLoad()(planningDir);
   if (config) {
     const configParts = [];
     if (config.depth) configParts.push(`depth=${config.depth}`);
@@ -189,38 +269,36 @@ function handleHttp(reqBody) {
   const data = reqBody.data || {};
   const agentType = resolveAgentType(data);
 
-  const httpSessionId = data.session_id || null;
+  const sessionId = data.session_id || null;
 
   if (event === 'SubagentStart') {
     logHook('log-subagent', 'SubagentStart', 'spawned', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
-    }, undefined, undefined, httpSessionId);
+      description: data.description || null,
+      sessionId
+    });
     logEvent('agent', 'spawn', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      description: data.description || null
-    }, httpSessionId);
+      description: data.description || null,
+      sessionId
+    });
 
     // Write .active-agent signal — use planningDir from reqBody if available
     const planningDir = reqBody.planningDir;
     if (planningDir) {
       try {
+        const filePath = path.join(planningDir, '.active-agent');
         if (fs.existsSync(planningDir)) {
-          if (httpSessionId) {
-            ensureSessionDir(planningDir, httpSessionId);
-            const filePath = resolveSessionPath(planningDir, '.active-agent', httpSessionId);
-            fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
-          } else {
-            const filePath = path.join(planningDir, '.active-agent');
-            fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
-          }
+          fs.writeFileSync(filePath, agentType || 'unknown', 'utf8');
         }
       } catch (_e) { /* best-effort */ }
     } else {
-      writeActiveAgent(agentType || 'unknown', httpSessionId);
+      writeActiveAgent(agentType || 'unknown');
     }
+
+    const httpSessionId = data.session_id || null;
     const context = buildAgentContext(httpSessionId);
     if (context) {
       return {
@@ -234,34 +312,38 @@ function handleHttp(reqBody) {
   } else if (event === 'SubagentStop') {
     // Remove .active-agent signal
     const planningDir = reqBody.planningDir;
-    const stopSessionId = data.session_id || null;
     if (planningDir) {
       try {
-        if (stopSessionId) {
-          const filePath = resolveSessionPath(planningDir, '.active-agent', stopSessionId);
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        } else {
-          const filePath = path.join(planningDir, '.active-agent');
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        }
+        const filePath = path.join(planningDir, '.active-agent');
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       } catch (_e) { /* best-effort */ }
     } else {
-      removeActiveAgent(stopSessionId);
+      removeActiveAgent();
     }
     logHook('log-subagent', 'SubagentStop', 'completed', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
-    }, undefined, undefined, httpSessionId);
+      duration_ms: data.duration_ms || null,
+      sessionId
+    });
     logEvent('agent', 'complete', {
       agent_id: data.agent_id || null,
       agent_type: agentType,
-      duration_ms: data.duration_ms || null
-    }, httpSessionId);
+      duration_ms: data.duration_ms || null,
+      sessionId
+    });
+
+    // Track agent cost via HTTP path
+    const costPlanningDir = reqBody.planningDir || path.join(process.cwd(), '.planning');
+    const httpSessionId = data.session_id || null;
+    const costWarning = trackAgentCost(costPlanningDir, agentType, data.duration_ms, httpSessionId);
+    if (costWarning) {
+      return { additionalContext: costWarning };
+    }
     return null;
   }
   return null;
 }
 
-module.exports = { buildAgentContext, resolveAgentType, handleHttp };
+module.exports = { buildAgentContext, resolveAgentType, handleHttp, trackAgentCost, AGENT_SPAWN_WARN_THRESHOLD, AGENT_SPAWN_CRITICAL_THRESHOLD };
 if (require.main === module || process.argv[1] === __filename) { main(); }
