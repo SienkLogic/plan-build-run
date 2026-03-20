@@ -874,6 +874,161 @@ function validateProject() {
   };
 }
 
+// --- Spec subcommand handler ---
+
+/**
+ * Handle spec subcommands: parse, diff, reverse, impact.
+ * @param {string[]} args - raw CLI args (args[0] is 'spec', args[1] is subcommand)
+ * @param {string} pDir - planningDir
+ * @param {string} projectRoot - cwd
+ * @param {Function} outputFn - output function
+ * @param {Function} errorFn - error function
+ */
+function handleSpec(args, pDir, projectRoot, outputFn, errorFn) {
+  const subcommand = args[1];
+
+  // Parse common flags
+  const formatIdx = args.indexOf('--format');
+  const format = formatIdx !== -1 ? args[formatIdx + 1] : 'json';
+  const projectRootIdx = args.indexOf('--project-root');
+  const effectiveRoot = projectRootIdx !== -1 ? args[projectRootIdx + 1] : projectRoot;
+
+  // Load config for feature toggle checks
+  let config = {};
+  try {
+    const configPath = path.join(pDir, 'config.json');
+    if (fs.existsSync(configPath)) {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  } catch (_e) {
+    // Config unreadable — use defaults
+  }
+  const features = config.features || {};
+
+  // Audit log helper
+  function writeAuditLog(cmd, featureName, status, fileCount) {
+    try {
+      const logDir = path.join(pDir, 'logs');
+      if (fs.existsSync(logDir)) {
+        const logFile = path.join(logDir, 'spec-engine.jsonl');
+        const entry = JSON.stringify({
+          ts: new Date().toISOString(),
+          cmd: `spec.${cmd}`,
+          feature: featureName,
+          status,
+          files: fileCount || 0,
+        });
+        fs.appendFileSync(logFile, entry + '\n', 'utf-8');
+      }
+    } catch (_e2) {
+      // No-op if log dir missing or unwritable
+    }
+  }
+
+  if (!subcommand || subcommand === '--help' || subcommand === 'help') {
+    const usageText = [
+      'Usage: spec <subcommand> [args] [--format json|markdown]',
+      '',
+      'Subcommands:',
+      '  parse <plan-file>           Parse PLAN.md into structured JSON',
+      '  diff <file-a> <file-b>      Semantic diff between two PLAN.md versions',
+      '  reverse <file...>           Generate spec from source files',
+      '  impact <file...>            Predict impact of changed files',
+      '',
+      'Flags:',
+      '  --format json|markdown      Output format (default: json)',
+      '  --project-root <path>       Project root for impact analysis',
+    ].join('\n');
+    outputFn(null, true, usageText);
+    return;
+  }
+
+  if (subcommand === 'parse') {
+    const planFile = args[2];
+    if (!planFile) { errorFn('Usage: spec parse <plan-file>'); return; }
+    const { parsePlanToSpec } = require('./lib/spec-engine');
+    let content;
+    try {
+      content = fs.readFileSync(planFile, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${planFile}: ${e.message}`);
+      return;
+    }
+    const spec = parsePlanToSpec(content);
+    writeAuditLog('parse', 'machine_executable_plans', 'ok', 1);
+    outputFn({ frontmatter: spec.frontmatter, tasks: spec.tasks });
+    return;
+  }
+
+  if (subcommand === 'diff') {
+    if (features.spec_diffing === false) {
+      outputFn({ error: 'Feature disabled. Enable features.spec_diffing in config.json' });
+      return;
+    }
+    const fileA = args[2];
+    const fileB = args[3];
+    if (!fileA || !fileB) { errorFn('Usage: spec diff <file-a> <file-b>'); return; }
+    const { diffPlanFiles, formatDiff } = require('./lib/spec-diff');
+    let contentA, contentB;
+    try {
+      contentA = fs.readFileSync(fileA, 'utf-8');
+      contentB = fs.readFileSync(fileB, 'utf-8');
+    } catch (e) {
+      errorFn(`Cannot read file: ${e.message}`);
+      return;
+    }
+    const diff = diffPlanFiles(contentA, contentB);
+    writeAuditLog('diff', 'spec_diffing', 'ok', 2);
+    if (format === 'markdown') {
+      outputFn(null, true, formatDiff(diff, 'markdown'));
+    } else {
+      outputFn(diff);
+    }
+    return;
+  }
+
+  if (subcommand === 'reverse') {
+    if (features.reverse_spec === false) {
+      outputFn({ error: 'Feature disabled. Enable features.reverse_spec in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--')) files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec reverse <file...>'); return; }
+    const { generateReverseSpec } = require('./lib/reverse-spec');
+    const { serializeSpec } = require('./lib/spec-engine');
+    const spec = generateReverseSpec(files, { readFile: (p) => fs.readFileSync(p, 'utf-8') });
+    writeAuditLog('reverse', 'reverse_spec', 'ok', files.length);
+    if (format === 'markdown') {
+      outputFn(null, true, serializeSpec(spec));
+    } else {
+      outputFn(spec);
+    }
+    return;
+  }
+
+  if (subcommand === 'impact') {
+    if (features.predictive_impact === false) {
+      outputFn({ error: 'Feature disabled. Enable features.predictive_impact in config.json' });
+      return;
+    }
+    const files = [];
+    for (let i = 2; i < args.length; i++) {
+      if (!args[i].startsWith('--') && args[i - 1] !== '--project-root') files.push(args[i]);
+    }
+    if (files.length === 0) { errorFn('Usage: spec impact <file...>'); return; }
+    const { analyzeImpact } = require('./lib/impact-analysis');
+    const report = analyzeImpact(files, effectiveRoot);
+    writeAuditLog('impact', 'predictive_impact', 'ok', files.length);
+    outputFn(report);
+    return;
+  }
+
+  errorFn(`Unknown spec subcommand: ${subcommand}\nAvailable: parse, diff, reverse, impact`);
+}
+
 // --- CLI entry point ---
 
 async function main() {
@@ -1625,8 +1780,17 @@ async function main() {
         error('Usage: pbr-tools.js data <status|prune>\n  data status — freshness report for research/, intel/, codebase/\n  data prune --before <ISO-date> [--dry-run] — archive stale files');
       }
 
+    // --- Graph Operations ---
+    } else if (command === 'graph') {
+      const graphCli = require('./lib/graph-cli');
+      graphCli.handleGraphCommand(subcommand, args, planningDir, cwd, output, error);
+
+    // --- Spec Operations ---
+    } else if (command === 'spec') {
+      handleSpec(args, planningDir, cwd, output, error);
+
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, graph build|query|impact|stats, spec parse|diff|reverse|impact, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status`);
     }
   } catch (e) {
     error(e.message);

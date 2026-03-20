@@ -921,6 +921,108 @@ function phaseInsert(position, slug, planningDir, options) {
   };
 }
 
+/**
+ * Build a phase manifest by collecting commit hashes from all plan SUMMARY.md files.
+ *
+ * @param {number} phaseNum - Phase number
+ * @param {string} phaseDir - Full path to the phase directory
+ * @returns {object} Phase manifest
+ */
+function _buildPhaseManifest(phaseNum, phaseDir) {
+  const summaryFiles = findFiles(phaseDir, /^SUMMARY.*\.md$/i);
+  const commits = [];
+
+  for (const file of summaryFiles) {
+    const content = fs.readFileSync(path.join(phaseDir, file), 'utf8');
+    const fm = parseYamlFrontmatter(content);
+    const planId = fm.plan || file.replace(/^SUMMARY-?/i, '').replace(/\.md$/i, '');
+
+    // Extract commits from frontmatter metrics or commits field
+    if (fm.commits && Array.isArray(fm.commits)) {
+      for (const c of fm.commits) {
+        commits.push({
+          hash: c.hash || c.sha || c,
+          message: c.message || '',
+          plan: planId,
+          task: c.task || null
+        });
+      }
+    }
+
+    // Also try to parse "Task Commits" section from body
+    const taskCommitRegex = /\|\s*(\d+)\s*\|[^|]*\|\s*([0-9a-f]{7,})\s*\|/gi;
+    let match;
+    while ((match = taskCommitRegex.exec(content)) !== null) {
+      const hash = match[2];
+      // Avoid duplicates
+      if (!commits.some(c => c.hash === hash)) {
+        commits.push({
+          hash,
+          message: '',
+          plan: planId,
+          task: parseInt(match[1], 10)
+        });
+      }
+    }
+  }
+
+  return {
+    phase: String(phaseNum).padStart(2, '0'),
+    completed: new Date().toISOString(),
+    commits,
+    first_commit: commits.length > 0 ? commits[0].hash : null,
+    last_commit: commits.length > 0 ? commits[commits.length - 1].hash : null
+  };
+}
+
+/**
+ * Get all commits associated with a phase by scanning SUMMARY.md files.
+ *
+ * @param {string} phaseNum - Phase number
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { commits: Array, first_commit, last_commit }
+ */
+function phaseCommitsFor(phaseNum, planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const phasesDir = path.join(dir, 'phases');
+  const padded = String(phaseNum).padStart(2, '0');
+
+  let phaseDir = null;
+  try {
+    const entries = fs.readdirSync(phasesDir);
+    const match = entries.find(d => d.startsWith(padded + '-'));
+    if (match) phaseDir = path.join(phasesDir, match);
+  } catch (_e) { /* ignore */ }
+
+  if (!phaseDir) {
+    return { error: `Phase ${phaseNum} directory not found`, commits: [] };
+  }
+
+  const manifest = _buildPhaseManifest(parseInt(phaseNum, 10), phaseDir);
+  return {
+    commits: manifest.commits,
+    first_commit: manifest.first_commit,
+    last_commit: manifest.last_commit,
+    phase: padded
+  };
+}
+
+/**
+ * Get the first and last commit hashes for a phase.
+ *
+ * @param {string} phaseNum - Phase number
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { first_commit, last_commit }
+ */
+function phaseFirstLastCommit(phaseNum, planningDir) {
+  const result = phaseCommitsFor(phaseNum, planningDir);
+  return {
+    first_commit: result.first_commit || null,
+    last_commit: result.last_commit || null,
+    commit_count: result.commits ? result.commits.length : 0
+  };
+}
+
 module.exports = {
   frontmatter,
   planIndex,
@@ -931,5 +1033,11 @@ module.exports = {
   phaseList,
   milestoneStats,
   phaseComplete,
-  phaseInsert
+  phaseInsert,
+  // Aliases for backward compatibility with phase.cjs consumers
+  phasePlanIndex: planIndex,
+  phaseMustHaves: mustHavesCollect,
+  // New exports
+  phaseCommitsFor,
+  phaseFirstLastCommit
 };
