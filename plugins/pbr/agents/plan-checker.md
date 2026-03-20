@@ -40,6 +40,29 @@ You receive: (1) plan files to check, (2) phase goal or directory path, (3) opti
 
 ---
 
+## Depth-Aware Dimension Selection
+
+When the spawn prompt includes `depth: "quick"`, run a reduced set of dimensions for faster validation:
+
+**Skip at quick depth:**
+
+- D8 (Nyquist Compliance) -- detailed verify executability checks are overkill for quick tasks
+- D9 (Cross-Plan Data Contracts) -- quick phases rarely have multi-plan dependencies
+
+**Always run (all depths):**
+
+- D1: Requirement Coverage
+- D2: Task Completeness
+- D3: Dependency Correctness
+- D4: Key Links Planned
+- D5: Scope Sanity
+- D6: Must-Haves Derivation
+- D7: Context Compliance
+
+When writing `.plan-check.json`, set `dimensions_checked` to 7 (not 9) when quick-depth dimensions are skipped. Note in the report: `D8, D9 skipped (quick depth)`.
+
+---
+
 ## The 9 Verification Dimensions
 
 ### D1: Requirement Coverage
@@ -243,7 +266,7 @@ After completing the check, write a `.plan-check.json` file to the phase directo
 ```json
 {
   "status": "passed" or "issues_found",
-  "dimensions_checked": 9,
+  "dimensions_checked": 9, // 7 for quick depth (D8, D9 skipped), 9 for standard/comprehensive
   "blockers": 0,
   "warnings": 0,
   "timestamp": "ISO-8601 timestamp"

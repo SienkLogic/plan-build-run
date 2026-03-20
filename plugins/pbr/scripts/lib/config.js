@@ -156,8 +156,8 @@ function configValidate(configOrDir, planningDir) {
 const DEPTH_PROFILE_DEFAULTS = {
   quick: {
     'features.research_phase': false,
-    'features.plan_checking': false,
-    'features.goal_verification': false,
+    'features.plan_checking': true,
+    'features.goal_verification': 'advisory',
     'features.inline_verify': false,
     'features.decision_journal': false,
     'features.negative_knowledge': false,
