@@ -79,7 +79,7 @@ describe('suggestNext', () => {
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01.md'), '---\nplan: "01-01"\nstatus: complete\nrequires: []\nkey_files: []\ndeferred: []\n---\n');
 
     const result = suggestNext(planningDir);
-    expect(result.command).toBe('/pbr:review');
+    expect(result.command).toBe('/pbr:validate-phase');
     expect(result.reason).toContain('not verified');
   });
 
