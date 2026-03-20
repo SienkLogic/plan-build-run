@@ -70,18 +70,34 @@ function countNotes(notesDir) {
  */
 function getIntelContext(planningDir, config) {
   if (!config || config.intel?.enabled === false) return '';
-  if (config.intel?.inject_on_start !== true) return '';
+
+  // Check for signal file from prior session's intel queue drain
+  let refreshWarning = '';
+  try {
+    const signalPath = path.join(planningDir, '.intel-refresh-needed');
+    if (fs.existsSync(signalPath)) {
+      const signal = JSON.parse(fs.readFileSync(signalPath, 'utf8'));
+      const fileCount = Array.isArray(signal.files) ? signal.files.length : 0;
+      if (fileCount > 0) {
+        refreshWarning = `\nIntel refresh needed: ${fileCount} code file${fileCount === 1 ? '' : 's'} changed since last refresh. Run \`/pbr:intel\` to update.`;
+      }
+      // Consume the signal file — one-time advisory
+      fs.unlinkSync(signalPath);
+    }
+  } catch (_e) { /* best-effort */ }
+
+  if (config.intel?.inject_on_start !== true) return refreshWarning;
 
   const archPath = path.join(planningDir, 'intel', 'arch.md');
   try {
-    if (!fs.existsSync(archPath)) return '';
+    if (!fs.existsSync(archPath)) return refreshWarning;
     let content = fs.readFileSync(archPath, 'utf8');
     if (content.length > 2000) {
       content = content.substring(0, 2000);
     }
-    return '\n## Codebase Intelligence\n' + content;
+    return '\n## Codebase Intelligence\n' + content + refreshWarning;
   } catch (_e) {
-    return '';
+    return refreshWarning;
   }
 }
 
