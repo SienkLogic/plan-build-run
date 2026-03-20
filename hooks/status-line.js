@@ -226,6 +226,28 @@ function getMilestone(planningDir) {
 }
 
 /**
+ * Get the last completed (SHIPPED) milestone version from ROADMAP.md milestone table.
+ * Reads the table at the top of ROADMAP.md looking for SHIPPED entries.
+ * Returns the version string (e.g., "v15.0") or null.
+ */
+function getLastCompletedMilestone(planningDir) {
+  try {
+    const roadmapPath = path.join(planningDir, 'ROADMAP.md');
+    if (!fs.existsSync(roadmapPath)) return null;
+    const content = fs.readFileSync(roadmapPath, 'utf8');
+    // Match table rows: | vN.N | Name | SHIPPED | date |
+    const rows = content.matchAll(/\|\s*(v[\d.]+)\s*\|[^|]+\|\s*SHIPPED\s*\|[^|]*\|/gi);
+    let lastVersion = null;
+    for (const m of rows) {
+      lastVersion = m[1];
+    }
+    return lastVersion;
+  } catch (_e) {
+    return null;
+  }
+}
+
+/**
  * Synchronous TCP probe — checks if hook server port is open.
  * Uses cp.execSync with a tiny node script to avoid async in status line.
  * Returns true if port is accepting connections, false otherwise.
@@ -538,33 +560,49 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 
   // Phase section (always includes brand text)
   if (sections.includes('phase')) {
-    const fmPhase = fm && fm.current_phase;
-    // phase_slug is the canonical field; phase_name is a legacy alias
-    const fmSlug = fm && fm.phase_slug;
-    const fmName = fm && fm.phase_name;
-    const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
+    const fmStatus = fm && fm.status;
 
-    const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
-    const fmPhasesTotal = fm && fm.phases_total;
-    const phaseTotal = (fmPhasesTotal && fmPhasesTotal !== '0' && fmPhasesTotal !== 'null')
-      ? fmPhasesTotal
-      : (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
-    // Format phase_slug from "foo-bar" to "Foo Bar" for display
-    const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
-    const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
-
-    if (phaseNum && phaseTotal) {
-      line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseNum}/${phaseTotal}${c.reset}`);
-      if (phaseName) {
-        line1.push(`${c.magenta}${phaseName}${c.reset}`);
+    // When milestone is complete, show celebration with version instead of stale phase info
+    if (fmStatus === 'milestone-complete') {
+      const lastVersion = getLastCompletedMilestone(planningDir);
+      if (lastVersion) {
+        line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.green}✓ ${lastVersion} Complete${c.reset}`);
+      } else {
+        line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.green}✓ Milestone Complete${c.reset}`);
       }
     } else {
-      line1.push(`${c.boldCyan}${brandText}${c.reset}`);
+      const fmPhase = fm && fm.current_phase;
+      // phase_slug is the canonical field; phase_name is a legacy alias
+      const fmSlug = fm && fm.phase_slug;
+      const fmName = fm && fm.phase_name;
+      const phaseMatch = content.match(/Phase:\s*(\d+)\s*of\s*(\d+)\s*(?:\(([^)]+)\))?/);
+
+      const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
+      const fmPhasesTotal = fm && fm.phases_total;
+      // Sanity check: if phases_total < current_phase, it's stale — fall through to countPhaseDirs
+      const phaseNumInt = phaseNum ? parseInt(String(phaseNum), 10) : 0;
+      const phasesTotalInt = fmPhasesTotal ? parseInt(String(fmPhasesTotal), 10) : 0;
+      const isTotalStale = phasesTotalInt > 0 && phasesTotalInt < phaseNumInt;
+      const phaseTotal = (!isTotalStale && fmPhasesTotal && fmPhasesTotal !== '0' && fmPhasesTotal !== 'null')
+        ? fmPhasesTotal
+        : (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
+      // Format phase_slug from "foo-bar" to "Foo Bar" for display
+      const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
+      const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);
+
+      if (phaseNum && phaseTotal) {
+        line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.bold}Phase ${phaseNum}/${phaseTotal}${c.reset}`);
+        if (phaseName) {
+          line1.push(`${c.magenta}${phaseName}${c.reset}`);
+        }
+      } else {
+        line1.push(`${c.boldCyan}${brandText}${c.reset}`);
+      }
     }
   }
 
-  // Plan section — shows current plan progress within the phase
-  if (sections.includes('plan')) {
+  // Plan section — shows current plan progress within the phase (hidden when milestone complete)
+  if (sections.includes('plan') && !(fm && fm.status === 'milestone-complete')) {
     const fmComplete = fm && fm.plans_complete;
     const fmPlansTotal = fm && fm.plans_total;
     const planMatch = content.match(/Plan:\s*(\d+)\s*of\s*(\d+)/);
@@ -578,8 +616,8 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     }
   }
 
-  // Status section
-  if (sections.includes('status')) {
+  // Status section (hidden when milestone-complete — already shown in phase section)
+  if (sections.includes('status') && !(fm && fm.status === 'milestone-complete')) {
     const fmStatus = fm && fm.status;
     const statusMatch = content.match(/^Status:\s*(.+)/m);
     const text = fmStatus || (statusMatch && statusMatch[1].trim());
@@ -767,4 +805,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, getLastCompletedMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
