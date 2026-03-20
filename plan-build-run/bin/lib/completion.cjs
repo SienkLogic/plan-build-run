@@ -69,6 +69,7 @@ function runStep(stepName, fn, partial) {
 function buildComplete(phaseNum, opts, planningDir) {
   const pd = resolvePlanningDir(planningDir);
   if (!phaseNum) return { success: false, error: 'phase number required' };
+  const phase = String(phaseNum);
 
   const completed = opts.completed != null ? Number(opts.completed) : 0;
   const total = opts.total != null ? Number(opts.total) : 0;
@@ -78,12 +79,12 @@ function buildComplete(phaseNum, opts, planningDir) {
 
   // Step a: roadmapUpdatePlans
   let step = runStep('roadmapUpdatePlans', () =>
-    getRoadmap().roadmapUpdatePlans(phaseNum, completed, total, pd), partial);
+    getRoadmap().roadmapUpdatePlans(phase, completed, total, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step b: roadmapUpdateStatus
   step = runStep('roadmapUpdateStatus', () =>
-    getRoadmap().roadmapUpdateStatus(phaseNum, status, pd), partial);
+    getRoadmap().roadmapUpdateStatus(phase, status, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step c: statePatch
@@ -92,7 +93,7 @@ function buildComplete(phaseNum, opts, planningDir) {
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step d: stateRecordActivity
-  const description = `Phase ${phaseNum} ${status} (${completed}/${total} plans)`;
+  const description = `Phase ${phase} ${status} (${completed}/${total} plans)`;
   step = runStep('stateRecordActivity', () =>
     getState().stateRecordActivity(description, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
@@ -104,7 +105,7 @@ function buildComplete(phaseNum, opts, planningDir) {
 
   return {
     success: true,
-    phase: phaseNum,
+    phase: phase,
     roadmap_status: status,
     state_status: status,
     plans: `${completed}/${total}`,
@@ -132,18 +133,19 @@ function planComplete(phaseNum, plansTotal, opts, planningDir) {
   if (!phaseNum) return { success: false, error: 'phase number required' };
   if (!plansTotal && plansTotal !== 0) return { success: false, error: 'plans_total required' };
 
+  const phase = String(phaseNum);
   const total = Number(plansTotal);
   const lastCommand = (opts && opts.last_command) || '/pbr:plan-phase';
   const partial = [];
 
   // Step a: roadmapUpdatePlans
   let step = runStep('roadmapUpdatePlans', () =>
-    getRoadmap().roadmapUpdatePlans(phaseNum, 0, total, pd), partial);
+    getRoadmap().roadmapUpdatePlans(phase, 0, total, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step b: roadmapUpdateStatus
   step = runStep('roadmapUpdateStatus', () =>
-    getRoadmap().roadmapUpdateStatus(phaseNum, 'planned', pd), partial);
+    getRoadmap().roadmapUpdateStatus(phase, 'planned', pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step c: statePatch
@@ -156,14 +158,14 @@ function planComplete(phaseNum, plansTotal, opts, planningDir) {
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step d: stateRecordActivity
-  const description = `Phase ${phaseNum} planned (${total} plans)`;
+  const description = `Phase ${phase} planned (${total} plans)`;
   step = runStep('stateRecordActivity', () =>
     getState().stateRecordActivity(description, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   return {
     success: true,
-    phase: phaseNum,
+    phase: phase,
     plans_total: total,
     roadmap_status: 'planned',
     state_status: 'planned'
@@ -188,13 +190,14 @@ function reviewComplete(phaseNum, opts, planningDir) {
   const pd = resolvePlanningDir(planningDir);
   if (!phaseNum) return { success: false, error: 'phase number required' };
 
+  const phase = String(phaseNum);
   const status = (opts && opts.status) || 'verified';
   const lastCommand = (opts && opts.last_command) || '/pbr:review';
   const partial = [];
 
   // Step a: roadmapUpdateStatus
   let step = runStep('roadmapUpdateStatus', () =>
-    getRoadmap().roadmapUpdateStatus(phaseNum, status, pd), partial);
+    getRoadmap().roadmapUpdateStatus(phase, status, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step b: statePatch
@@ -203,7 +206,7 @@ function reviewComplete(phaseNum, opts, planningDir) {
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step c: stateRecordActivity
-  const description = `Phase ${phaseNum} ${status}`;
+  const description = `Phase ${phase} ${status}`;
   step = runStep('stateRecordActivity', () =>
     getState().stateRecordActivity(description, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
@@ -215,7 +218,7 @@ function reviewComplete(phaseNum, opts, planningDir) {
 
   return {
     success: true,
-    phase: phaseNum,
+    phase: phase,
     roadmap_status: status,
     state_status: status
   };
@@ -248,9 +251,7 @@ function milestoneArchive(version, opts, planningDir) {
 
   try {
     // cmdMilestoneComplete with raw=true outputs JSON to stdout.
-    // We call it directly and let it handle the work.
-    // Since it calls output() internally which writes to stdout,
-    // we capture the result by temporarily redirecting stdout.
+    // We capture stdout and intercept process.exit since core.cjs output() calls it.
     const result = captureOutput(() => {
       getMilestone().cmdMilestoneComplete(cwd, version, options, true);
     });
@@ -277,11 +278,13 @@ function milestoneArchive(version, opts, planningDir) {
 
 /**
  * Capture stdout output from a function call and parse as JSON.
+ * Also intercepts process.exit() since core.cjs output() calls it.
  * @param {Function} fn
  * @returns {object|null}
  */
 function captureOutput(fn) {
   const originalWrite = process.stdout.write;
+  const originalExit = process.exit;
   let captured = '';
 
   process.stdout.write = function (chunk) {
@@ -289,10 +292,16 @@ function captureOutput(fn) {
     return true;
   };
 
+  // Prevent process.exit() from killing the process
+  process.exit = function () {
+    // no-op: swallow exit calls from output()/error()
+  };
+
   try {
     fn();
   } finally {
     process.stdout.write = originalWrite;
+    process.exit = originalExit;
   }
 
   if (captured.trim()) {
@@ -323,13 +332,14 @@ function importComplete(phaseNum, opts, planningDir) {
   const pd = resolvePlanningDir(planningDir);
   if (!phaseNum) return { success: false, error: 'phase number required' };
 
+  const phase = String(phaseNum);
   const status = (opts && opts.status) || 'planned';
   const lastCommand = (opts && opts.last_command) || '/pbr:import';
   const partial = [];
 
   // Step a: roadmapUpdateStatus
   let step = runStep('roadmapUpdateStatus', () =>
-    getRoadmap().roadmapUpdateStatus(phaseNum, status, pd), partial);
+    getRoadmap().roadmapUpdateStatus(phase, status, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step b: statePatch
@@ -341,14 +351,14 @@ function importComplete(phaseNum, opts, planningDir) {
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   // Step c: stateRecordActivity
-  const description = `Phase ${phaseNum} imported`;
+  const description = `Phase ${phase} imported`;
   step = runStep('stateRecordActivity', () =>
     getState().stateRecordActivity(description, pd), partial);
   if (!step.ok) return { success: false, error: step.error, step: step.step, partial };
 
   return {
     success: true,
-    phase: phaseNum,
+    phase: phase,
     roadmap_status: status,
     state_status: status
   };
