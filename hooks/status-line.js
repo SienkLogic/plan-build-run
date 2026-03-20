@@ -226,9 +226,9 @@ function getMilestone(planningDir) {
 }
 
 /**
- * Get the last completed (SHIPPED) milestone version from ROADMAP.md milestone table.
+ * Get the last completed (SHIPPED) milestone from ROADMAP.md milestone table.
  * Reads the table at the top of ROADMAP.md looking for SHIPPED entries.
- * Returns the version string (e.g., "v15.0") or null.
+ * Returns { version, name } (e.g., { version: "v15.0", name: "CLI Enforcement Completion" }) or null.
  */
 function getLastCompletedMilestone(planningDir) {
   try {
@@ -236,12 +236,12 @@ function getLastCompletedMilestone(planningDir) {
     if (!fs.existsSync(roadmapPath)) return null;
     const content = fs.readFileSync(roadmapPath, 'utf8');
     // Match table rows: | vN.N | Name | SHIPPED | date |
-    const rows = content.matchAll(/\|\s*(v[\d.]+)\s*\|[^|]+\|\s*SHIPPED\s*\|[^|]*\|/gi);
-    let lastVersion = null;
+    const rows = content.matchAll(/\|\s*(v[\d.]+)\s*\|\s*([^|]+?)\s*\|\s*SHIPPED\s*\|[^|]*\|/gi);
+    let last = null;
     for (const m of rows) {
-      lastVersion = m[1];
+      last = { version: m[1], name: m[2].trim() };
     }
-    return lastVersion;
+    return last;
   } catch (_e) {
     return null;
   }
@@ -562,11 +562,11 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   if (sections.includes('phase')) {
     const fmStatus = fm && fm.status;
 
-    // When milestone is complete, show celebration with version instead of stale phase info
+    // When milestone is complete, show celebration with version + name instead of stale phase info
     if (fmStatus === 'milestone-complete') {
-      const lastVersion = getLastCompletedMilestone(planningDir);
-      if (lastVersion) {
-        line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.green}✓ ${lastVersion} Complete${c.reset}`);
+      const lastMilestone = getLastCompletedMilestone(planningDir);
+      if (lastMilestone) {
+        line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.green}✓ ${lastMilestone.version} ${lastMilestone.name} — Complete${c.reset}`);
       } else {
         line1.push(`${c.boldCyan}${brandText}${c.reset} ${c.green}✓ Milestone Complete${c.reset}`);
       }
