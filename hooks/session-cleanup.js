@@ -373,7 +373,15 @@ function gatherSessionContext(cwd, planningDir, sessionId) {
 }
 
 function main() {
+  // Safety timeout: prevent hang if stdin never closes or cleanup stalls
+  const safetyTimeout = setTimeout(() => { process.exit(0); }, 3000);
+
+  // Log invocation evidence before any I/O
+  logHook('session-cleanup', 'SessionEnd', 'hook-invoked', { pid: process.pid });
+
   const data = readStdin();
+  clearTimeout(safetyTimeout);
+
   const cwd = process.cwd();
   const planningDir = path.join(cwd, '.planning');
 
@@ -588,6 +596,8 @@ function main() {
  * Returns null. Never calls process.exit().
  */
 function handleHttp(reqBody) {
+  logHook('session-cleanup', 'SessionEnd', 'hook-invoked', { pid: process.pid, mode: 'http' });
+
   const data = (reqBody && reqBody.data) || {};
   const planningDir = reqBody && reqBody.planningDir;
   if (!planningDir || !fs.existsSync(planningDir)) return null;

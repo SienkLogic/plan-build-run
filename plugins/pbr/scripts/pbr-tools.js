@@ -26,6 +26,7 @@
  *   phase-info <phase>      — Comprehensive single-phase status → JSON
  *   roadmap update-status <phase> <status>      — Update phase status in ROADMAP.md
  *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
+ *   roadmap reconcile                              — Reconcile ROADMAP statuses against disk state
  *   history append <type> <title> [body] — Append record to STATE.md ## History (fallback: HISTORY.md)
  *   history load                         — Load history records as JSON (STATE.md first, HISTORY.md fallback)
  *   todo list [--theme X] [--status Y]  — List todos as JSON (default: pending)
@@ -155,7 +156,8 @@ const {
   roadmapAppendPhase: _roadmapAppendPhase,
   roadmapRemovePhase: _roadmapRemovePhase,
   roadmapRenumberPhases: _roadmapRenumberPhases,
-  roadmapInsertPhase: _roadmapInsertPhase
+  roadmapInsertPhase: _roadmapInsertPhase,
+  reconcileRoadmapStatuses: _reconcileRoadmapStatuses
 } = require('./lib/roadmap');
 
 const {
@@ -371,6 +373,10 @@ function roadmapUpdateStatus(phaseNum, newStatus) {
 
 function roadmapUpdatePlans(phaseNum, complete, total) {
   return _roadmapUpdatePlans(phaseNum, complete, total, planningDir);
+}
+
+function roadmapReconcile() {
+  return _reconcileRoadmapStatuses(planningDir);
 }
 
 function frontmatter(filePath) {
@@ -930,6 +936,17 @@ async function main() {
       output(roadmapUpdatePlans(phase, complete, total));
     } else if (command === 'roadmap' && subcommand === 'analyze') {
       output(roadmapAnalyze());
+    } else if (command === 'roadmap' && subcommand === 'reconcile') {
+      const result = roadmapReconcile();
+      if (result.fixed > 0) {
+        process.stderr.write(`Reconciled ${result.fixed} ROADMAP entries\n`);
+        for (const m of result.mismatches) {
+          process.stderr.write(`  Phase ${m.phase}: ${m.from} -> ${m.to}\n`);
+        }
+      } else {
+        process.stderr.write('ROADMAP statuses are consistent\n');
+      }
+      output(result);
     } else if (command === 'history' && subcommand === 'append') {
       const type = args[2];   // 'milestone' or 'phase'
       const title = args[3];

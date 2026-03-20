@@ -334,8 +334,23 @@ In both cases, fall through to full verification below. The confidence gate neve
   Where `{phase_errors}` and `{phase_retries}` are the accumulated error description and retry count tracked during Step 3c for phase N. If phase N had no errors, omit the errors entry.
 
 - **Update root MILESTONE.md** — If `MILESTONE.md` exists at project root, overwrite it with updated phase statuses from ROADMAP.md progress table for the current milestone. If it doesn't exist, skip silently.
+- Proceed to 3e-ci (CI Verification) before starting next phase.
 - Check milestone boundary: if this was the last phase in milestone, stop loop.
   Display: "Milestone complete! Run `/pbr:milestone` to archive."
+
+### 3e-ci. CI Verification (after phase complete)
+
+**Gate:** Run only if git commits were pushed during this phase's build step.
+
+1. Run `gh run list --limit 3` to check CI status
+2. Parse the output for the most recent run:
+   - If status is "in_progress" or "queued": run `gh run watch {run_id} --exit-status` with a 5-minute timeout
+   - If status is "completed" and conclusion is "success": log `CI passed for Phase {N}` and continue
+   - If status is "completed" and conclusion is "failure":
+     - Display: `CI FAILED for Phase {N}. Run ID: {run_id}`
+     - Display the failed jobs: `gh run view {run_id} --log-failed | head -40`
+     - Stop autonomous loop. Suggest: `/pbr:debug {N}` or manual CI investigation
+3. If `gh` CLI is not available or errors: log warning `gh CLI unavailable — skipping CI check` and continue (do not block)
 
 ---
 

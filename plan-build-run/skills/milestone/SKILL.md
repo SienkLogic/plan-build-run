@@ -521,6 +521,19 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state reconcile
 
 This command re-derives phase counts from ROADMAP.md and reports any phantom phase rows (progress table rows with no corresponding directory on disk). Review and remove phantom rows manually if no longer needed.
 
+**CRITICAL (no hook): Reconcile ROADMAP phase statuses NOW. Do NOT skip this step.**
+
+7c2. **ROADMAP Reconciliation:**
+   After state reconcile, run a full reconciliation pass to fix any stale phase statuses across the entire ROADMAP:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap reconcile
+```
+
+   - Log the output (number of entries fixed)
+   - This catches phase status mismatches that accumulated during the milestone lifecycle
+   - Covers both the just-completed milestone and any prior stale entries
+
 7d. **Aggregate learnings into KNOWLEDGE.md from milestone phases:**
 
 **CRITICAL (no hook): Run learnings aggregation NOW. Do NOT skip this step.**
