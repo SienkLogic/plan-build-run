@@ -306,11 +306,16 @@ describe('validate-task.js', () => {
         fs.writeFileSync(path.join(planningDir, 'STATE.md'), stateContent);
       }
 
+      // Write config.json for plan-validation gate depth check
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
+
       if (phaseDir) {
         const pDir = path.join(planningDir, 'phases', phaseDir);
         fs.mkdirSync(pDir, { recursive: true });
         if (hasPlan) {
           fs.writeFileSync(path.join(pDir, 'PLAN-01.md'), '---\nplan: 01\n---\n<task name="test" type="auto">\ndo stuff\n</task>');
+          // Add .plan-check.json so plan-validation gate passes
+          fs.writeFileSync(path.join(pDir, '.plan-check.json'), JSON.stringify({ status: 'passed', dimensions_checked: 9, blockers: 0, warnings: 0, timestamp: new Date().toISOString() }));
         }
       }
     }
@@ -770,8 +775,12 @@ Status: built
           }
           // Always add a PLAN.md so the build executor gate doesn't block first
           fs.writeFileSync(path.join(pDir, 'PLAN-01.md'), '# Plan\n<task name="test" type="auto">\ndo stuff\n</task>');
+          // Add .plan-check.json so plan-validation gate passes
+          fs.writeFileSync(path.join(pDir, '.plan-check.json'), JSON.stringify({ status: 'passed', dimensions_checked: 9, blockers: 0, warnings: 0, timestamp: new Date().toISOString() }));
         }
       }
+      // Write config.json for plan-validation gate depth check
+      fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
     }
 
     function runInDir(toolInput) {

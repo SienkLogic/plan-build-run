@@ -5,6 +5,7 @@ description: "Verifies plans will achieve phase goals before execution. Goal-bac
 memory: project
 tools:
   - Read
+  - Write
   - Bash
   - Glob
   - Grep
@@ -225,6 +226,29 @@ issues:
     suggested_fix: "Split into two plans"
 ```
 ```
+
+---
+
+## Artifact Output
+
+After completing the check, write a `.plan-check.json` file to the phase directory:
+
+```json
+{
+  "status": "passed" or "issues_found",
+  "dimensions_checked": 9,
+  "blockers": 0,
+  "warnings": 0,
+  "timestamp": "ISO-8601 timestamp"
+}
+```
+
+- Set `status` to `"passed"` when returning `## CHECK PASSED`
+- Set `status` to `"issues_found"` when returning `## ISSUES FOUND`
+- Set `blockers` and `warnings` to the respective counts from the check
+- Write to: `.planning/phases/{NN}-{slug}/.plan-check.json`
+
+**CRITICAL**: Write this file BEFORE outputting the completion marker. The build gate depends on this artifact.
 
 ---
 

@@ -158,7 +158,12 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
       and stop.
    c. **Staleness / cross-check (optional):** If `--cross-check` flag is present, compare each plan's `files_modified` list against prior-phase `provides` for conflicts (see --cross-check section above for full logic). Without the flag, skip this check.
 
-   All three sub-checks (a, b, c) are part of the same pre-build gate. Stop execution if (a) or (b) fail. Proceed after (c) even if conflicts are acknowledged.
+   d. **Plan validation check:** Verify `.plan-check.json` exists in the phase directory and has `status: "passed"`. If missing or failed:
+      - Display: `BLOCKED: Phase {N} plans have not passed validation. Run /pbr:plan-phase {N} to validate plans.`
+      - Stop execution.
+      Note: This is an early-exit check complementing the validate-task.js hook gate. The hook gate catches executor spawns; this skill-level check catches the entire build flow before any executor is spawned.
+
+   All four sub-checks (a, b, c, d) are part of the same pre-build gate. Stop execution if (a), (b), or (d) fail. Proceed after (c) even if conflicts are acknowledged.
 6. If no phase number given, use `blob.phase.number` (already resolved from STATE.md by init)
    - `blob.config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
 7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true:

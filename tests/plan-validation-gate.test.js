@@ -26,6 +26,9 @@ describe('checkPlanValidationGate', () => {
     // Write config.json with standard depth
     fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify({ depth: 'standard' }));
 
+    // Write a PLAN file so the gate doesn't skip (empty dirs are allowed through)
+    fs.writeFileSync(path.join(planningDir, 'phases', '01-test-phase', 'PLAN-01.md'), '---\nplan: 01\n---\n');
+
     // Set project root so the gate finds .planning
     process.env.PBR_PROJECT_ROOT = tmpDir;
   });

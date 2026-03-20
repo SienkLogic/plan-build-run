@@ -52,6 +52,12 @@ function checkPlanValidationGate(data) {
     if (dirs.length === 0) return null;
 
     const phaseDir = path.join(phasesDir, dirs[0]);
+
+    // Skip gate if no PLAN files exist (empty/speculative phase dir)
+    const files = fs.readdirSync(phaseDir);
+    const hasPlanFiles = files.some(f => /^PLAN.*\.md$/i.test(f));
+    if (!hasPlanFiles) return null;
+
     const checkFile = path.join(phaseDir, '.plan-check.json');
 
     // Read depth from config
@@ -67,7 +73,7 @@ function checkPlanValidationGate(data) {
       if (depth === 'quick') {
         return { warning: 'Plan validation skipped (quick depth) — .plan-check.json missing or not passed' };
       }
-      return { block: true, reason: `Cannot spawn executor: .plan-check.json not found in phase directory. Run /pbr:plan-phase ${currentPhase} with plan-checker enabled first.` };
+      return { block: true, reason: `Cannot spawn executor: .plan-check.json not found in phase directory.\n\nThe build gate requires a passing plan-check artifact before executor spawn. This artifact is written by the plan-checker agent during /pbr:plan-phase.\n\nRun /pbr:plan-phase ${currentPhase} with plan-checker enabled first.` };
     }
 
     // Parse the JSON
@@ -79,7 +85,7 @@ function checkPlanValidationGate(data) {
       }
       return {
         block: true,
-        reason: `Cannot spawn executor: plan-checker found issues (status: ${checkData.status}, blockers: ${checkData.blockers || 0}). Fix plan issues and re-run /pbr:plan-phase ${currentPhase}.`
+        reason: `Cannot spawn executor: plan validation failed.\n\nThe plan-check artifact indicates unresolved issues (status: ${checkData.status}, blockers: ${checkData.blockers || 0}). Plans must pass validation before executors can run.\n\nFix plan issues and re-run /pbr:plan-phase ${currentPhase}.`
       };
     }
 

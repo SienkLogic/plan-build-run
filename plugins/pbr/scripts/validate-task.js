@@ -34,6 +34,7 @@ const { checkReviewVerifierGate } = require('./lib/gates/review-verifier');
 const { checkMilestoneCompleteGate, getVerificationStatus } = require('./lib/gates/milestone-complete');
 const { checkMilestoneSummaryGate } = require('./lib/gates/milestone-summary');
 const { checkBuildDependencyGate } = require('./lib/gates/build-dependency');
+const { checkPlanValidationGate } = require('./lib/gates/plan-validation');
 const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('./lib/gates/advisories');
 const { checkDocExistence } = require('./lib/gates/doc-existence');
 const { checkUserConfirmationGate } = require('./lib/gates/user-confirmation');
@@ -150,6 +151,15 @@ function main() {
         return;
       }
 
+      // Blocking gate: plan validation artifact must exist and pass
+      const planValGate = checkPlanValidationGate(data);
+      if (planValGate && planValGate.block) {
+        logHook('validate-task', 'PreToolUse', 'blocked', { reason: planValGate.reason });
+        process.stdout.write(JSON.stringify({ decision: 'block', reason: planValGate.reason }));
+        process.exit(2);
+        return;
+      }
+
       // Blocking gate: review skill planner needs VERIFICATION.md
       const reviewGate = checkReviewPlannerGate(data);
       if (reviewGate && reviewGate.block) {
@@ -252,6 +262,7 @@ function main() {
       const activeSkillWarning = checkActiveSkillIntegrity(data);
       if (activeSkillWarning) warnings.push(activeSkillWarning);
       if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
+      if (planValGate && planValGate.warning) warnings.push(planValGate.warning);
 
       // LLM task coherence check — advisory only
       try {
@@ -286,5 +297,5 @@ function main() {
   });
 }
 
-module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkMilestoneSummaryGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, checkDocExistence, checkUserConfirmationGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
+module.exports = { checkTask, checkQuickExecutorGate, checkBuildExecutorGate, checkPlanValidationGate, checkPlanExecutorGate, checkReviewPlannerGate, checkReviewVerifierGate, checkMilestoneCompleteGate, checkMilestoneSummaryGate, checkBuildDependencyGate, checkCheckpointManifest, checkDebuggerAdvisory, getVerificationStatus, checkActiveSkillIntegrity, checkDocExistence, checkUserConfirmationGate, KNOWN_AGENTS, MAX_DESCRIPTION_LENGTH };
 if (require.main === module || process.argv[1] === __filename) { main(); }

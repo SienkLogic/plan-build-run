@@ -609,6 +609,8 @@ To check: use the resolved depth profile from Step 1. The profile consolidates t
 
 **Inline verify mode:** If `features.inline_verify` is `true` and `--audit` is NOT set, skip plan-checker spawn — the planner agent has already self-validated. Display: `✓ Planner self-validated (inline_verify enabled). Use --audit to force full plan-checker.`
 
+When inline_verify skips the plan-checker spawn, write `.plan-check.json` with `{ "status": "passed", "dimensions_checked": 9, "blockers": 0, "warnings": 0, "timestamp": "<ISO>" }` to the phase directory so the build gate does not block.
+
 **If validation is enabled:**
 
 Display to the user: `◆ Spawning plan checker...`
@@ -648,6 +650,11 @@ After the plan checker returns, display its result:
 
 - If `VERIFICATION PASSED`: display `✓ Plan checker: all plans passed` and proceed to Step 8
 - If issues found: display `⚠ Plan checker found {N} issue(s) — entering revision loop` and proceed to Step 7
+
+**Plan-check artifact:** The plan-checker agent writes `.plan-check.json` to the phase directory as part of its output. After the checker completes, verify the artifact exists:
+- Run: `ls .planning/phases/{NN}-{slug}/.plan-check.json`
+- If missing: write it manually based on checker output (status, blocker/warning counts, timestamp)
+- If present: proceed — the build gate will read this artifact
 
 ---
 
