@@ -170,4 +170,14 @@ Config written to .planning/config.json.
 Run /pbr:set-profile to verify.
 ```
 
+### Commit Changes
+
+Reference: `skills/shared/commit-planning-docs.md` for the commit pattern.
+
+If `planning.commit_docs` is true in config.json, commit config.json:
+
+```text
+docs(profile): switch to {profile_name} model profile
+```
+
 Stop. Done.

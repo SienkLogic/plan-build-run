@@ -22,11 +22,11 @@ Then proceed to Step 1.
 
 ## Contextual Help
 
-If `$ARGUMENTS` contains a command name (e.g., `plan-phase`, `execute-phase`, `verify-work`, `settings`, `quick`), show detailed help for just that command instead of the full reference. Match the argument against the command tables below and display only the matching section with its subcommands and flags. If the argument doesn't match any command, show the full reference.
+If `$ARGUMENTS` contains a command name (e.g., `plan`, `build`, `review`, `config`, `quick`), show detailed help for just that command instead of the full reference. Match the argument against the command tables below and display only the matching section with its subcommands and flags. If the argument doesn't match any command, show the full reference.
 
 Examples:
-- `/pbr:help plan-phase` → Show only the plan-phase command and its flags
-- `/pbr:help execute-phase` → Show only the execute-phase command and its flags
+- `/pbr:help plan` → Show only the plan command and its flags (--assumptions, --skip-research, --gaps, add, insert, remove)
+- `/pbr:help build` → Show only the build command and its flags (--gaps-only, --team)
 - `/pbr:help` → Show the full reference below
 
 ## Full Reference
@@ -53,13 +53,13 @@ Display the following reference to the user:
 |---------|-------------|
 | `/pbr:explore [topic]` | Explore ideas, think through approaches. No phase number needed. |
 | `/pbr:discuss-phase <N>` | Talk through a phase before planning. Captures decisions. |
-| `/pbr:list-phase-assumptions <N>` | Surface Claude's assumptions before planning. Zero cost. |
-| `/pbr:research-phase <N>` | Standalone research for a phase (usually integrated into plan-phase). |
+| `/pbr:plan-phase <N> --assumptions` | Surface Claude's assumptions before planning. Zero cost. |
 | `/pbr:plan-phase <N> --skip-research` | Plan without research phase. Faster. |
 | `/pbr:plan-phase <N> --gaps` | Create gap-closure plans from verification failures. |
-| `/pbr:add-phase <description>` | Append a new phase to the roadmap. |
-| `/pbr:insert-phase <N> <description>` | Insert a phase using decimal numbering. |
-| `/pbr:remove-phase <N>` | Remove a future phase and renumber. |
+| `/pbr:plan-phase add` | Append a new phase to the roadmap. |
+| `/pbr:plan-phase insert <N>` | Insert a phase using decimal numbering. |
+| `/pbr:plan-phase remove <N>` | Remove a future phase and renumber. |
+| `/pbr:ui-phase <N>` | Generate UI-SPEC.md design contracts for frontend-heavy phases. |
 
 ### Execution
 
@@ -70,6 +70,7 @@ Display the following reference to the user:
 | `/pbr:execute-phase <N> --team` | Use Agent Teams for complex inter-agent coordination. |
 | `/pbr:quick` | Quick ad-hoc task with atomic commit. Low cost. |
 | `/pbr:continue` | Execute the next logical step automatically. No prompts. |
+| `/pbr:autonomous` | Run multiple phases hands-free. Chains discuss, plan, build, verify. |
 
 ### Verification & Debugging
 
@@ -79,6 +80,7 @@ Display the following reference to the user:
 | `/pbr:verify-work <N> --auto-fix` | Auto-diagnose and fix verification failures. |
 | `/pbr:test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
 | `/pbr:debug` | Systematic debugging with hypothesis testing. |
+| `/pbr:ui-review <N>` | Retroactive visual audit of UI implementation with scoring. |
 | `/pbr:map-codebase` | Analyze existing codebase (brownfield). |
 
 ### Session Management
@@ -90,6 +92,7 @@ Display the following reference to the user:
 | `/pbr:pause-work` | Save session state for later. |
 | `/pbr:pause-work --checkpoint` | Save with a named checkpoint for easier resumption. |
 | `/pbr:resume-work` | Pick up where you left off. |
+| `/pbr:undo` | Revert recent PBR-generated commits by phase/plan using git revert. |
 
 ### Project Management
 
@@ -97,20 +100,19 @@ Display the following reference to the user:
 |---------|-------------|
 | `/pbr:new-milestone` | Start a new milestone cycle. |
 | `/pbr:complete-milestone` | Archive completed milestone. |
+| `/pbr:milestone preview` | Dry-run of complete — show what would happen. |
 | `/pbr:audit-milestone` | Verify milestone completion. |
 | `/pbr:plan-milestone-gaps` | Create phases to close audit gaps. |
-| `/pbr:add-todo [description]` | Capture idea or task as todo. |
-| `/pbr:check-todos [area]` | List pending todos and select one to work on. |
+| `/pbr:add-todo\|list\|done` | Persistent file-based todos. |
+| `/pbr:todo work <NNN>` | Work on a specific todo by ID. |
 | `/pbr:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
 | `/pbr:note --global` | Save note to global notes directory (shared across projects). |
-| `/pbr:settings` | Configure workflow settings. |
 | `/pbr:settings session_phase_limit <N>` | Set max phases per session before auto-pause (0 = disabled, default 3). |
-| `/pbr:set-profile <profile>` | Switch model profile (quality/balanced/budget). |
+| `/pbr:settings` | Configure workflow settings. |
 | `/pbr:import <N>` | Import external plans (design docs, RFCs) into PBR format. |
 | `/pbr:import --from <path>` | Import from a specific file path. |
 | `/pbr:import --skip-checker` | Skip plan-checker validation on import. |
-| `/pbr:setup` | Reconfigure an existing project's settings. |
-| `/pbr:update` | Update PBR to latest version. |
+| `/pbr:setup` | Interactive onboarding wizard for new projects. |
 
 ### Analysis & Utilities
 
@@ -123,9 +125,12 @@ Display the following reference to the user:
 | `/pbr:do <description>` | Route freeform text to the right PBR skill automatically. |
 | `/pbr:dashboard` | Launch the web dashboard for the current project. |
 | `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
+| `/pbr:intel` | Refresh or query codebase intelligence (file graph, APIs, architecture). |
+| `/pbr:release` | Generate or update changelog and release notes from project history. |
+| `/pbr:session-report` | Generate post-session summary with work performed and outcomes. |
+| `/pbr:ship` | Create a rich PR from planning artifacts (SUMMARYs, requirements, verification). |
+| `/pbr:profile-user` | Analyze session history to generate a developer behavioral profile. |
 | `/pbr:statusline` | Install or configure the PBR status line in Claude Code. |
-| `/pbr:join-discord` | Join the PBR Discord community. |
-| `/pbr:reapply-patches` | Reapply local modifications after a PBR update. |
 
 ## Choose Your Command
 
@@ -147,22 +152,22 @@ Not sure which command to use? Follow this guide:
 ## Typical Workflow
 
 ```
-/pbr:new-project           ← Start project, define requirements, create roadmap
-/pbr:discuss-phase 1       ← (optional) Talk through phase details
-/pbr:plan-phase 1          ← Plan the first phase
-/pbr:execute-phase 1       ← Build it
-/pbr:verify-work 1         ← Verify it works
-/pbr:plan-phase 2          ← Plan the next phase
-...                        ← Repeat plan → build → review
-/pbr:complete-milestone    ← Archive when done
+/pbr:new-project              ← Start project, define requirements, create roadmap
+/pbr:discuss-phase 1          ← (optional) Talk through phase details
+/pbr:plan-phase 1             ← Plan the first phase
+/pbr:execute-phase 1            ← Build it
+/pbr:verify-work 1           ← Verify it works
+/pbr:plan-phase 2             ← Plan the next phase
+...                     ← Repeat plan → build → review
+/pbr:complete-milestone ← Archive when done
 ```
 
 **Shortcut**: After `/pbr:new-project`, run `/pbr:continue` repeatedly — it auto-advances through plan → build → review → next phase, stopping at milestones and errors.
 
-## progress vs continue vs do
+## status vs continue vs do
 
 | | `/pbr:progress` | `/pbr:continue` | `/pbr:do <text>` |
-|-|-----------------|-----------------|-------------------|
+|-|---------------|-----------------|-------------------|
 | **Purpose** | Dashboard — show progress, suggest next | Auto-execute the next logical step | Route freeform text to a skill |
 | **Reads state?** | Yes (full scan) | Yes (minimal) | No |
 | **Modifies files?** | Never | Yes (via delegation) | Depends on routed skill |
@@ -195,14 +200,14 @@ Skills automatically activate the appropriate context: `/pbr:execute-phase` uses
 ## When to Use Quick vs Plan+Build
 
 | Use `/pbr:quick` when... | Use `/pbr:plan-phase` + `/pbr:execute-phase` when... |
-|--------------------------|-----------------------------------------------|
+|--------------------------|----------------------------------------|
 | Change touches ≤3 files | Change touches 4+ files |
 | ≤100 lines of code | 100+ lines of code |
 | Single subsystem | Multiple subsystems or cross-cutting |
 | No architectural decisions | Requires design choices |
 | Bug fix, small feature, docs | New feature, refactor, migration |
 
-## Setup vs New-Project
+## Setup vs Begin
 
 - **`/pbr:new-project`** — Use this to start a new project. It handles everything: questioning, research, requirements, roadmap, AND config initialization. This is the standard entry point.
 - **`/pbr:setup`** — Use this only to reconfigure an existing project's settings (model profiles, gates, depth, parallelization) without re-running the full begin flow.

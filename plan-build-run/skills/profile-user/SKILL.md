@@ -193,6 +193,10 @@ clearly and wait for your input rather than assuming a default.
 
 ---
 
+Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` is true, commit USER-PROFILE.md.
+
+---
+
 ## Step 7 -- Summary Output
 
 After writing `USER-PROFILE.md`, display a summary table:
