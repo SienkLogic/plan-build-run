@@ -98,7 +98,7 @@ function checkPlanValidationGate(data) {
         }
         return {
           block: true,
-          reason: `Cannot spawn executor: ${rc.uncovered.length} requirement(s) not covered by any plan's implements field: ${rc.uncovered.join(', ')}. Add missing requirements to plan implements: fields.`
+          reason: `Cannot spawn executor: requirements coverage incomplete.\n\n${rc.uncovered.length} requirement(s) not covered by any plan's implements field: ${rc.uncovered.join(', ')}.\n\nAdd missing requirements to plan implements: fields and re-run /pbr:plan-phase.`
         };
       }
     }
