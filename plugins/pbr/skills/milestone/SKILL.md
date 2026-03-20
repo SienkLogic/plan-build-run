@@ -97,6 +97,24 @@ Subcommands:
   gaps             — Create phases to close audit gaps
 ```
 
+**CRITICAL — After parsing the subcommand, run init command before any manual state reads:**
+
+```bash
+node plugins/pbr/scripts/pbr-tools.cjs init milestone
+```
+
+Store the JSON result as `blob`. This single call replaces multiple file reads across all subcommands:
+- `blob.state.current_phase`, `blob.state.status` — current phase and status from STATE.md
+- `blob.state.last_milestone_version`, `blob.state.last_milestone_completed` — milestone history
+- `blob.has_roadmap` — whether ROADMAP.md exists
+- `blob.has_project` — whether PROJECT.md exists
+- `blob.milestones` — array of milestone sections parsed from ROADMAP.md (each with `name` and `phases_range`)
+- `blob.existing_archives` — array of existing archive directory names
+- `blob.phase_count` — total phase count
+- `blob.config.mode`, `blob.config.planning`, `blob.config.git` — config settings
+
+If `blob.error` is set, display the error banner and stop (no project found).
+
 ---
 
 ## Subcommand: `new`
@@ -105,10 +123,11 @@ Start a new milestone cycle with new phases.
 
 ### Flow
 
-1. **Read current state:**
-   - Read ROADMAP.md to see existing phases
-   - Read STATE.md for current position
-   - Read PROJECT.md if it exists (milestone history)
+1. **Read current state from init blob:**
+   - `blob.milestones` for existing milestone sections from ROADMAP.md
+   - `blob.state.current_phase` and `blob.state.status` for current position
+   - `blob.has_project` to check if PROJECT.md exists (read it for milestone history if needed)
+   - `blob.phase_count` for total phase count
 
 2. **Get milestone details** via AskUserQuestion:
    - "What's the name/goal for this new milestone?"
@@ -288,8 +307,8 @@ Archive a completed milestone and prepare for the next one.
    - If not provided: ask via AskUserQuestion: "What version number for this milestone? (e.g., v1.0)"
 
 2. **Verify all phases are complete:**
-   - Read ROADMAP.md to find milestone phases
-   - For each phase, check for VERIFICATION.md
+   - Use `blob.milestones` to find the target milestone's phase range instead of re-parsing ROADMAP.md
+   - For each phase in the range, check for VERIFICATION.md
    - If any phase lacks VERIFICATION.md:
 
      Present the warning context:
@@ -350,7 +369,7 @@ Archive a completed milestone and prepare for the next one.
    - Collect `tech_stack` union
 
 **Milestone branching (config-gated):**
-Read `git.branching` from config.
+Read `blob.config.git.branching` (or fall back to reading config if blob unavailable).
 - If `milestone`:
   a. Check if milestone branch exists: `git branch --list pbr/milestone-v{version}`
   b. If branch exists:
@@ -374,7 +393,7 @@ Read `git.branching` from config.
    **CRITICAL (no hook): Pre-flight safety checks BEFORE archiving. Do NOT skip this step.**
 
    Before creating or moving anything, verify the destination is safe:
-   - Check if `.planning/milestones/{version}/` already exists
+   - Check `blob.existing_archives` to see if the version directory already exists
    - If it exists AND contains files (phases/, STATS.md, etc.), STOP and display:
      ```
      ╔══════════════════════════════════════════════════════════════╗
@@ -720,9 +739,9 @@ Verify milestone completion with cross-phase integration checks.
 
 1. **Determine target:**
    - If version provided: audit that specific milestone
-   - If no version: audit the current milestone (most recent active)
+   - If no version: audit the current milestone (use `blob.milestones` to identify the most recent active milestone)
 
-2. **Read all VERIFICATION.md files** for milestone phases:
+2. **Read all VERIFICATION.md files** for milestone phases (use `blob.milestones` to identify the phase range):
    - Collect verification results
    - Note any `gaps_found` statuses
    - Note any phases without verification
@@ -839,7 +858,7 @@ Create phases to close gaps found during an audit.
 
 ## State Integration
 
-All subcommands update STATE.md:
+All subcommands use `blob.state` and `blob.config` from the init call for reading state. All subcommands update STATE.md on write:
 - `new`: Sets current milestone, resets phase
 - `complete`: Clears current milestone, updates history
 - `audit`: Notes audit status and date
@@ -851,7 +870,7 @@ All subcommands update STATE.md:
 
 Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
 
-All subcommands commit if `planning.commit_docs: true`:
+All subcommands commit if `blob.config.planning.commit_docs` is true:
 - `new`: `docs(planning): start milestone "{name}" (phases {start}-{end})`
 - `complete`: `docs(planning): complete milestone {version}`
 - `audit`: `docs(planning): audit milestone {version} - {status}`

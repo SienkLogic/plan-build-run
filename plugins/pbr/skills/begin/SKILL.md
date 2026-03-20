@@ -64,20 +64,24 @@ Execute these steps in order. Each step specifies whether it runs inline (in you
 
 ### Step 1: Detect Brownfield (inline)
 
-> **Cross-platform note**: Use the Glob tool (not Bash `ls` or `find`) for all file and directory discovery. Bash file commands fail on Windows due to path separator issues.
+**CRITICAL — Run init command FIRST before any Glob calls or manual file checks:**
 
-Check if the current directory has existing code:
-
-```
-1. Use Glob to check directory contents (e.g., pattern "*" at project root)
-2. Look for indicators of existing code:
-   - package.json, requirements.txt, CMakeLists.txt, go.mod, Cargo.toml
-   - src/, lib/, app/ directories
-   - .git/ directory with commits
-3. Use Glob to check if .planning/ already exists (e.g., pattern ".planning/*")
+```bash
+node plugins/pbr/scripts/pbr-tools.cjs init begin
 ```
 
-**If existing code found:**
+Store the JSON result as `blob`. This single call replaces multiple Glob/filesystem checks with a pre-computed payload:
+- `blob.has_planning` — whether .planning/ directory exists
+- `blob.has_existing_code` — whether brownfield indicators were found
+- `blob.brownfield_indicators` — array of detected indicators (package.json, src/, etc.)
+- `blob.has_git` — whether .git directory exists
+- `blob.existing_phases` — count of existing phase directories
+- `blob.state` — existing STATE.md frontmatter (or null if no project)
+- `blob.config` — existing config.json contents (or null)
+
+> **Cross-platform note**: The init command handles all filesystem checks cross-platform. No Glob or Bash file discovery needed.
+
+**If `blob.has_existing_code` is true:**
 **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "This looks like an existing codebase. Run /pbr:map-codebase to analyze what's here first?"
@@ -87,7 +91,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 - If user selects "Yes, scan": suggest `/pbr:map-codebase` and stop
 - If user selects "No, begin": proceed to Step 2
 
-**If `.planning/` already exists:**
+**If `blob.has_planning` is true:**
 **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "A .planning/ directory already exists. This will overwrite it. Continue?"
