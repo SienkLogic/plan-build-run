@@ -102,6 +102,10 @@
  *   init milestone-op                  All context for milestone operations
  *   init map-codebase                  All context for map-codebase workflow
  *   init progress                      All context for progress workflow
+ *   init continue                      All context for continue workflow
+ *   init milestone                     All context for milestone workflow
+ *   init begin                         All context for begin workflow
+ *   init status                        All context for status workflow
  *
  * TODO OPERATIONS:
  *   todo list [--theme T] [--status S] List todos as JSON
@@ -383,6 +387,10 @@ function initVerifyWork(p, dir, model) { return getInit().initVerifyWork(p, dir 
 function initResume() { return getInit().initResume(planningDir); }
 function initProgress() { return getInit().initProgress(planningDir); }
 function initStateBundle(p) { return getInit().initStateBundle(p, planningDir); }
+function initContinue() { return getInit().initContinue(planningDir); }
+function initMilestone() { return getInit().initMilestone(planningDir); }
+function initBegin() { return getInit().initBegin(planningDir); }
+function initStatus() { return getInit().initStatus(planningDir); }
 
 function historyAppend(entry, dir) { return getHistory().historyAppend(entry, dir || planningDir); }
 function historyLoad(dir) { return getHistory().historyLoad(dir || planningDir); }
@@ -1043,8 +1051,16 @@ async function main() {
         : output({ error: 'init map-codebase not available' });
     } else if (command === 'init' && subcommand === 'progress') {
       output(initProgress());
+    } else if (command === 'init' && subcommand === 'continue') {
+      output(initContinue());
+    } else if (command === 'init' && subcommand === 'milestone') {
+      output(initMilestone());
+    } else if (command === 'init' && subcommand === 'begin') {
+      output(initBegin());
+    } else if (command === 'init' && subcommand === 'status') {
+      output(initStatus());
     } else if (command === 'init') {
-      error(`Unknown init workflow: ${subcommand}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, progress`);
+      error(`Unknown init workflow: ${subcommand}\nAvailable: execute-phase, plan-phase, new-project, new-milestone, quick, resume, verify-work, phase-op, todos, milestone-op, map-codebase, progress, continue, milestone, begin, status`);
 
     // ─── Todo Operations ──────────────────────────────────────────────────────
     } else if (command === 'todo' && subcommand === 'list') {

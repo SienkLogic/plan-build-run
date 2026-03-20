@@ -46,9 +46,9 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('large payload (>50KB) writes to tmpfile and emits @file: path', () => {
-    // Create a payload whose JSON stringification exceeds 50000 chars
-    const largeString = 'x'.repeat(60000);
+  test('large payload (>8KB) writes to tmpfile and emits @file: path', () => {
+    // Create a payload whose JSON stringification exceeds 8192 chars
+    const largeString = 'x'.repeat(10000);
     const data = { payload: largeString };
 
     output(data);
@@ -70,15 +70,11 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('payload exactly at 50000 chars writes inline (boundary: equal is NOT over)', () => {
-    // JSON.stringify({ value: "..." }) length must be exactly 50000
-    // JSON template: {"value":"..."}\n — overhead is 12 chars: {"value":"" }
-    // '{"value":"' (10) + '"}\n' (3 if we include newline, but stringify doesn't add one)
-    // JSON.stringify({ value: str }) = '{\n  "value": "' + str + '"\n}' with indent 2
-    // Let's calculate empirically:
+  test('payload exactly at 8192 chars writes inline (boundary: equal is NOT over)', () => {
+    // JSON.stringify({ value: "..." }) length must be exactly 8192
     const probe = JSON.stringify({ value: '' }, null, 2); // '{\n  "value": ""\n}' = 18 chars
     const overhead = probe.length; // 18
-    const targetLength = 50000;
+    const targetLength = 8192;
     const strLen = targetLength - overhead;
     const str = 'a'.repeat(strLen);
     const data = { value: str };
@@ -90,7 +86,7 @@ describe('output() @file: escape hatch (core.js)', () => {
 
     expect(writeSpy).toHaveBeenCalledTimes(1);
     const written = writeSpy.mock.calls[0][0];
-    // Exactly 50000 is NOT > 50000, so it should go inline
+    // Exactly 8192 is NOT > 8192, so it should go inline
     expect(written.trim()).not.toMatch(/^@file:/);
     const parsed = JSON.parse(written.trim());
     expect(parsed).toEqual(data);
@@ -98,11 +94,11 @@ describe('output() @file: escape hatch (core.js)', () => {
     expect(exitSpy).toHaveBeenCalledWith(0);
   });
 
-  test('payload one byte over (50001 chars) writes to tmpfile', () => {
-    // Build a JSON string that is exactly 50001 chars
+  test('payload one byte over (8193 chars) writes to tmpfile', () => {
+    // Build a JSON string that is exactly 8193 chars
     const probe = JSON.stringify({ value: '' }, null, 2); // 18 chars overhead
     const overhead = probe.length;
-    const targetLength = 50001;
+    const targetLength = 8193;
     const strLen = targetLength - overhead;
     const str = 'b'.repeat(strLen);
     const data = { value: str };
