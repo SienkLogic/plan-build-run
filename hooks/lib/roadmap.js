@@ -35,6 +35,22 @@ function parseRoadmapMd(content) {
     }
   }
 
+  // Heading-based phase discovery fallback: if no table rows produced phases,
+  // scan for "## Phase N: Name" / "### Phase N: Name" headings (v14.0+ format)
+  if (result.phases.length === 0) {
+    const headingRe = /#{2,4}\s*Phase\s+(\d+(?:\.\d+)*)\s*:\s*([^\n]+)/gi;
+    let hm;
+    while ((hm = headingRe.exec(normalized)) !== null) {
+      result.phases.push({
+        number: hm[1],
+        name: hm[2].trim(),
+        goal: '',
+        plans: '',
+        status: 'unknown'
+      });
+    }
+  }
+
   // Check for Progress table
   result.has_progress_table = /## Progress/.test(normalized);
 

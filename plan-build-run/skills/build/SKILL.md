@@ -1104,37 +1104,14 @@ Before spawning the verifier, check if the build passes the confidence gate:
    - `key_files_imported`: all key_files (excluding tests, docs, config) have at least one import/require reference elsewhere in the project
 
 5. If ALL FOUR pass:
-   - Display: `Confidence gate passed (completion: {pct}%, SHAs: verified, tests: passed, wiring: OK) — skipping verifier`
-   - Set verification status to `passed` (auto-verified)
-   **CRITICAL — DO NOT SKIP: Write VERIFICATION.md NOW. Without this file, the autonomous loop cannot confirm phase completion.**
-   - Write a minimal VERIFICATION.md:
-
-<!-- markdownlint-disable MD046 -->
-
-     ```yaml
-     ---
-     status: passed
-     method: confidence-gate
-     completion: {pct}
-     shas_verified: true
-     tests_passed: true
-     key_files_imported: true
-     must_haves_checked: 0
-     must_haves_passed: 0
-     ---
-     # Verification — Confidence Gate
-
-     Phase auto-verified via confidence gate. Run `/pbr:verify-work {N}` for full must-have verification.
-     ```
-
-<!-- markdownlint-enable MD046 -->
-
-   - Skip the verifier spawn — proceed directly to Step 8.
+   - Display: `Confidence gate passed — spawning verifier in light mode`
+   - The confidence gate result is advisory context for the verifier. The verifier ALWAYS runs to check must-haves.
 
 6. If ANY signal fails:
-   - Display: `Confidence gate not met ({failed_signals}) — spawning verifier`
-   - If wiring check failed specifically: `Display: Confidence gate not met (orphaned files: {list}) — spawning verifier`
-   - Proceed with normal verification flow below (unchanged behavior).
+   - Display: `Confidence gate not met ({failed_signals}) — spawning verifier in full mode`
+   - If wiring check failed specifically: `Display: Confidence gate not met (orphaned files: {list}) — spawning verifier in full mode`
+
+In both cases, proceed to the verifier spawn below. The confidence gate never skips the verifier — it only determines logging output.
 
 **If verification is enabled:**
 

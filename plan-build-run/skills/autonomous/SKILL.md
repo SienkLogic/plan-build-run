@@ -283,37 +283,14 @@ If gate passes:
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
   4.5. **Wiring check:** For each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate and fall through to full verification.
   5. **If ALL FOUR signals pass** (completion >= 90%, SHAs verified, tests pass, key_files imported):
-     **CRITICAL — DO NOT SKIP: Write VERIFICATION.md to the phase directory NOW.**
-     - Write a minimal VERIFICATION.md to the phase directory:
+   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK, wiring: OK) — proceeding to verification`
+   - The confidence gate result is advisory only. Always fall through to full verification below.
 
-<!-- markdownlint-disable MD046 -->
+6. **If ANY signal fails**:
+   - Display: `Phase {N}: confidence gate not met ({failed_signals}) — proceeding to verification`
 
-     ```yaml
-     ---
-     status: passed
-     method: confidence-gate
-     completion: {pct}
-     shas_verified: true
-     tests_passed: true
-     key_files_imported: true
-     must_haves_checked: 0
-     must_haves_passed: 0
-     ---
-     # Verification — Confidence Gate (Autonomous)
-
-     Phase auto-verified via confidence gate in autonomous mode.
-     Run `/pbr:verify-work {N}` for full must-have verification.
-     ```
-
-<!-- markdownlint-disable MD046 -->
-
-   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK, wiring: OK)`
-   - Continue to next phase — do NOT spawn verifier agent.
-
-<!-- markdownlint-enable MD046 -->
-
-6. **If ANY signal fails**: fall through to full verification below.
-- **Full verification fallback** (only when confidence gate fails):
+In both cases, fall through to full verification below. The confidence gate never skips the verifier.
+- **Full verification** (always runs):
   - Invoke: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
 - If verification finds gaps:
   - Attempt gap closure: `Skill({ skill: "pbr:plan", args: "{N} --gaps --auto" })`

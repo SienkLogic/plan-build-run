@@ -47,8 +47,11 @@ describe('Advanced Execution Features in Build SKILL.md', () => {
       expect(skillContent).toContain('tests_passed');
     });
 
-    test('passes gate writes minimal VERIFICATION.md with method: confidence-gate', () => {
-      expect(skillContent).toContain('method: confidence-gate');
+    test('passed gate still spawns verifier (advisory only)', () => {
+      expect(skillContent).toContain('Confidence gate passed');
+      expect(skillContent).toContain('spawning verifier in light mode');
+      // Confidence gate no longer writes VERIFICATION.md or skips the verifier
+      expect(skillContent).not.toContain('Skip the verifier spawn');
     });
 
     test('failed gate falls through to normal verifier', () => {

@@ -546,7 +546,9 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 
     const phaseNum = fmPhase || (phaseMatch && phaseMatch[1]);
     const fmPhasesTotal = fm && fm.phases_total;
-    const phaseTotal = fmPhasesTotal || (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
+    const phaseTotal = (fmPhasesTotal && fmPhasesTotal !== '0' && fmPhasesTotal !== 'null')
+      ? fmPhasesTotal
+      : (phaseMatch && phaseMatch[2]) || countPhaseDirs(planningDir);
     // Format phase_slug from "foo-bar" to "Foo Bar" for display
     const formattedSlug = fmSlug ? String(fmSlug).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase()) : null;
     const phaseName = fmName || formattedSlug || (phaseMatch && phaseMatch[3]);

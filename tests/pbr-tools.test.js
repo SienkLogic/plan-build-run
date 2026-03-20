@@ -180,6 +180,43 @@ Some progress data
       expect(result.phases).toEqual([]);
     });
 
+    test('discovers phases from headings when no table exists', () => {
+      const content = `# Roadmap
+
+### Phase 41: Planning File Desync Prevention
+
+**Goal:** Fix desync issues
+
+### Phase 42: Hook Consolidation
+
+**Goal:** Merge hooks
+
+### Phase 42.1: Minor Patch
+`;
+      const result = parseRoadmapMd(content);
+      expect(result.phases.length).toBe(3);
+      expect(result.phases[0].number).toBe('41');
+      expect(result.phases[0].name).toBe('Planning File Desync Prevention');
+      expect(result.phases[0].status).toBe('unknown');
+      expect(result.phases[1].number).toBe('42');
+      expect(result.phases[1].name).toBe('Hook Consolidation');
+      expect(result.phases[2].number).toBe('42.1');
+      expect(result.phases[2].name).toBe('Minor Patch');
+    });
+
+    test('heading fallback does not activate when table has phases', () => {
+      const content = `## Progress
+| Phase | Plans Complete | Status |
+|---|---|---|
+| 01. Setup | 1/1 | complete |
+
+### Phase 99: Invisible Heading Phase
+`;
+      const result = parseRoadmapMd(content);
+      expect(result.phases.length).toBe(1);
+      expect(result.phases[0].number).toBe('01. Setup');
+    });
+
     test('defaults missing status column to pending', () => {
       const content = `## Phase Overview
 | Phase | Name | Goal | Plans | Wave |

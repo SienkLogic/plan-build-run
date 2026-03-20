@@ -483,7 +483,7 @@ function validateState(content, _filePath) {
 // VERIFICATION validation
 // ---------------------------------------------------------------------------
 
-function validateVerification(content, _filePath) {
+function validateVerification(content, filePath) {
   const errors = [];
   const warnings = [];
 
@@ -523,6 +523,33 @@ function validateVerification(content, _filePath) {
         if (!frontmatter.includes('severity:') && !frontmatter.includes('gap_severity:')) {
           warnings.push('Gaps found but no severity classification — add severity (critical|non-critical) to gap entries');
         }
+      }
+
+      // Advisory: must_haves_checked: 0 with PLAN files that have must-haves
+      const mustHavesCheckedMatch = frontmatter.match(/must_haves_checked:\s*(\d+)/);
+      if (mustHavesCheckedMatch && parseInt(mustHavesCheckedMatch[1], 10) === 0 && filePath) {
+        try {
+          const phaseDir = path.dirname(filePath);
+          const planFiles = fs.readdirSync(phaseDir).filter(f => /^PLAN.*\.md$/i.test(f));
+          let totalMustHaves = 0;
+          for (const pf of planFiles) {
+            try {
+              const planContent = fs.readFileSync(path.join(phaseDir, pf), 'utf8');
+              const pfmEnd = planContent.indexOf('---', 3);
+              if (pfmEnd !== -1) {
+                const pfm = planContent.substring(3, pfmEnd);
+                // Count non-empty truths and artifacts entries
+                const truthsMatch = pfm.match(/truths:\s*\n((?:\s+-\s+.+\n)*)/);
+                const artifactsMatch = pfm.match(/artifacts:\s*\n((?:\s+-\s+.+\n)*)/);
+                if (truthsMatch && truthsMatch[1].trim()) totalMustHaves += truthsMatch[1].trim().split('\n').length;
+                if (artifactsMatch && artifactsMatch[1].trim()) totalMustHaves += artifactsMatch[1].trim().split('\n').length;
+              }
+            } catch (_planErr) { /* best-effort */ }
+          }
+          if (totalMustHaves > 0) {
+            warnings.push(`VERIFICATION.md has must_haves_checked: 0 but phase has ${totalMustHaves} must-haves in PLAN files. Run /pbr:verify-work to check them.`);
+          }
+        } catch (_dirErr) { /* best-effort — phase dir may not exist */ }
       }
     }
   }

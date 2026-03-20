@@ -980,7 +980,12 @@ function stateReconcile(planningDir) {
 
   // Derive correct phases_total: count of phases with directories on disk
   // (active milestone phases that actually exist)
-  const phasesTotal = activePhases.filter(p => dirsOnDisk.has(p.num)).length;
+  // Fallback: if roadmap parser found no phases (e.g., heading-only format
+  // not yet in table), use raw disk directory count to avoid writing 0
+  let phasesTotal = activePhases.filter(p => dirsOnDisk.has(p.num)).length;
+  if (phasesTotal === 0 && dirsOnDisk.size > 0) {
+    phasesTotal = dirsOnDisk.size;
+  }
 
   // Derive correct current_phase: lowest phase that is NOT complete/verified/shipped
   const nonCompletePhasesOnDisk = activePhases
