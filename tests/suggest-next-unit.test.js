@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 const { suggestNext } = require('../hooks/lib/suggest-next');
+const { configClearCache } = require('../hooks/lib/config');
 
 // ---- Helpers ----
 
@@ -84,6 +85,13 @@ function writeRoadmap(planningDir, content) {
   fs.writeFileSync(path.join(planningDir, 'ROADMAP.md'), content);
 }
 
+/**
+ * Write config.json with given object.
+ */
+function writeConfig(planningDir, config) {
+  fs.writeFileSync(path.join(planningDir, 'config.json'), JSON.stringify(config, null, 2));
+}
+
 // ---- Tests ----
 
 let tmpDir, planningDir;
@@ -93,6 +101,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  configClearCache();
   cleanupTmp(tmpDir);
 });
 
@@ -197,19 +206,19 @@ describe('suggestNext routing tree', () => {
     });
   });
 
-  // --- Priority 5: Built not verified ---
+  // --- Priority 5: Built not verified (config-aware) ---
   describe('Priority 5 - Built not verified', () => {
-    test('phase with plans=summaries and no verification triggers /pbr:review', () => {
+    test('phase with plans=summaries and no verification triggers /pbr:validate-phase (default)', () => {
       setupPhase(planningDir, 2, 'core', { plans: 1, summaries: 1 });
       const result = suggestNext(planningDir);
-      expect(result.command).toBe('/pbr:review');
+      expect(result.command).toBe('/pbr:validate-phase');
       expect(result.args).toBe('2');
     });
 
-    test('phase with multiple plans all summarized triggers review', () => {
+    test('phase with multiple plans all summarized triggers validate-phase', () => {
       setupPhase(planningDir, 2, 'core', { plans: 3, summaries: 3 });
       const result = suggestNext(planningDir);
-      expect(result.command).toBe('/pbr:review');
+      expect(result.command).toBe('/pbr:validate-phase');
     });
   });
 
@@ -340,7 +349,7 @@ describe('suggestNext routing tree', () => {
       setupPhase(planningDir, 1, 'built', { plans: 1, summaries: 1 });
       setupPhase(planningDir, 2, 'planned', { plans: 1, summaries: 0 });
       const result = suggestNext(planningDir);
-      expect(result.command).toBe('/pbr:review');
+      expect(result.command).toBe('/pbr:validate-phase');
       expect(result.args).toBe('1');
     });
   });
@@ -406,6 +415,182 @@ describe('suggestNext routing tree', () => {
       const result = suggestNext(planningDir);
       expect(result.context.current_phase).toBe(5);
       expect(result.context.phase_status).toBe('building');
+    });
+  });
+
+  // --- Status-based routing fallback ---
+  describe('Status-based routing fallback', () => {
+    // These tests set STATE.md status with no phase directories that would
+    // match higher-priority conditions, forcing the status fallback to trigger.
+
+    test('not_started -> /pbr:plan', () => {
+      writeState(planningDir, { current_phase: 1, status: 'not_started' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('1');
+    });
+
+    test('discussed -> /pbr:plan', () => {
+      writeState(planningDir, { current_phase: 2, status: 'discussed' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('2');
+    });
+
+    test('ready_to_plan -> /pbr:plan', () => {
+      writeState(planningDir, { current_phase: 3, status: 'ready_to_plan' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('3');
+    });
+
+    test('planning -> /pbr:plan with planning in progress reason', () => {
+      writeState(planningDir, { current_phase: 4, status: 'planning' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('4');
+      expect(result.reason).toMatch(/[Pp]lanning in progress/);
+    });
+
+    test('planned -> /pbr:build', () => {
+      writeState(planningDir, { current_phase: 5, status: 'planned' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:build');
+      expect(result.args).toBe('5');
+    });
+
+    test('ready_to_execute -> /pbr:build', () => {
+      writeState(planningDir, { current_phase: 6, status: 'ready_to_execute' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:build');
+      expect(result.args).toBe('6');
+    });
+
+    test('building -> /pbr:build', () => {
+      writeState(planningDir, { current_phase: 7, status: 'building' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:build');
+      expect(result.args).toBe('7');
+    });
+
+    test('built -> /pbr:validate-phase (default config)', () => {
+      writeState(planningDir, { current_phase: 8, status: 'built' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:validate-phase');
+      expect(result.args).toBe('8');
+    });
+
+    test('partial -> /pbr:build', () => {
+      writeState(planningDir, { current_phase: 9, status: 'partial' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:build');
+      expect(result.args).toBe('9');
+    });
+
+    test('verified -> /pbr:plan (next phase)', () => {
+      writeState(planningDir, { current_phase: 10, status: 'verified' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('11');
+    });
+
+    test('needs_fixes -> /pbr:plan --gaps', () => {
+      writeState(planningDir, { current_phase: 11, status: 'needs_fixes' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toContain('--gaps');
+      expect(result.args).toContain('11');
+    });
+
+    test('complete -> /pbr:plan (next phase)', () => {
+      writeState(planningDir, { current_phase: 12, status: 'complete' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('13');
+    });
+
+    test('skipped -> /pbr:plan (next phase)', () => {
+      writeState(planningDir, { current_phase: 14, status: 'skipped' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('15');
+    });
+  });
+
+  // --- Config-aware built routing ---
+  describe('Config-aware built routing', () => {
+    test('built phase with default config -> /pbr:validate-phase', () => {
+      setupPhase(planningDir, 1, 'core', { plans: 1, summaries: 1 });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:validate-phase');
+    });
+
+    test('built phase with validate_phase: false -> /pbr:review', () => {
+      writeConfig(planningDir, { workflow: { validate_phase: false } });
+      setupPhase(planningDir, 1, 'core', { plans: 1, summaries: 1 });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:review');
+    });
+
+    test('built phase with validate_phase: true -> /pbr:validate-phase', () => {
+      writeConfig(planningDir, { workflow: { validate_phase: true } });
+      setupPhase(planningDir, 1, 'core', { plans: 1, summaries: 1 });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:validate-phase');
+    });
+
+    test('status-fallback built with validate_phase: false -> /pbr:review', () => {
+      writeConfig(planningDir, { workflow: { validate_phase: false } });
+      writeState(planningDir, { current_phase: 5, status: 'built' });
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:review');
+    });
+  });
+
+  // --- Milestone boundary detection ---
+  describe('Milestone boundary detection', () => {
+    test('last phase in milestone verified -> /pbr:milestone', () => {
+      setupPhase(planningDir, 1, 'setup', {
+        plans: 1, summaries: 1, verification: 'passed'
+      });
+      setupPhase(planningDir, 2, 'core', {
+        plans: 1, summaries: 1, verification: 'passed'
+      });
+      writeRoadmap(planningDir,
+        '## Milestone: v1.0\n\n### Phase 1: Setup\n### Phase 2: Core\n'
+      );
+      const result = suggestNext(planningDir);
+      expect(result.command).toBe('/pbr:milestone');
+      expect(result.reason).toMatch(/milestone verified/i);
+    });
+
+    test('non-last phase verified with unstarted phases -> /pbr:plan next', () => {
+      setupPhase(planningDir, 1, 'setup', {
+        plans: 1, summaries: 1, verification: 'passed'
+      });
+      writeRoadmap(planningDir,
+        '## Milestone: v1.0\n\n### Phase 1: Setup\n### Phase 2: Core\n'
+      );
+      const result = suggestNext(planningDir);
+      // Phase 2 is unstarted in ROADMAP, so Priority 8 fires (plan next phase)
+      expect(result.command).toBe('/pbr:plan');
+      expect(result.args).toBe('2');
+    });
+
+    test('last phase in milestone but unfinished phases exist -> not milestone', () => {
+      setupPhase(planningDir, 1, 'setup', {
+        plans: 1, summaries: 1, verification: 'passed'
+      });
+      setupPhase(planningDir, 2, 'core', {
+        plans: 1, summaries: 0 // planned but not built
+      });
+      writeRoadmap(planningDir,
+        '## Milestone: v1.0\n\n### Phase 1: Setup\n### Phase 2: Core\n'
+      );
+      const result = suggestNext(planningDir);
+      // Phase 2 is planned not built -> Priority 6 fires
+      expect(result.command).toBe('/pbr:build');
+      expect(result.args).toBe('2');
     });
   });
 });
