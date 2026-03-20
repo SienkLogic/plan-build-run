@@ -247,7 +247,7 @@ Read configuration values needed for execution. See `skills/shared/config-loadin
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js plan-index <phase>
 ```
-This returns a JSON object with `plans` (array with plan_id, wave, depends_on, autonomous, must_haves_count per plan) and `waves` (grouped by wave). Falls back to manual parsing if unavailable.
+This returns a JSON object with `plans` (array with plan_id, wave, depends_on, autonomous, must_haves_count per plan) and `waves` (grouped by wave). If the CLI fails, display a branded ERROR box: "Failed to index plans. Ensure pbr-tools.js is available." and stop.
 
 1. List all files matching `.planning/phases/{NN}-{slug}/*-PLAN.md`
 2. If `--gaps-only` flag: filter to only plans with `gap_closure: true` in frontmatter
@@ -291,7 +291,9 @@ Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
 
 ### Step 5: Extract Waves (inline)
 
-Group plans by wave number from their frontmatter. See `references/wave-execution.md` for the full wave execution model (parallelization, git lock handling, checkpoint manifests).
+Use the `waves` object from the `plan-index` CLI output (Step 3) which already groups plans by wave number. Do NOT re-parse plan frontmatter for wave extraction. If `plan-index` did not return wave data, error — do not fall back to manual parsing.
+
+See `references/wave-execution.md` for the full wave execution model (parallelization, git lock handling, checkpoint manifests).
 
 Validate wave consistency:
 - Wave 1 plans must have `depends_on: []`
