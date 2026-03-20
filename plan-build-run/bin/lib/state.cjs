@@ -17,6 +17,62 @@ const {
   determinePhaseStatus
 } = require('./core.cjs');
 
+// --- Status enum ---
+
+const STATUS_VALUES = ['idle', 'planned', 'building', 'built', 'verifying', 'verified', 'complete'];
+
+const STATUS_ALIASES = {
+  'planning': 'planned',
+  'executing': 'building',
+  'done': 'complete',
+  'completed': 'complete'
+};
+
+/**
+ * Normalize a status value to the canonical 7-value enum.
+ * Returns null if the value is not a valid status or alias.
+ *
+ * @param {string} value
+ * @returns {string|null}
+ */
+function normalizeStatus(value) {
+  if (!value || typeof value !== 'string') return null;
+  const lower = value.toLowerCase().trim();
+  if (STATUS_VALUES.includes(lower)) return lower;
+  return STATUS_ALIASES[lower] || null;
+}
+
+/**
+ * Auto-regenerate STATE.md frontmatter fields from disk scan.
+ * Overwrites plans_total, plans_complete, progress_percent from filesystem truth.
+ * Normalizes status to the 7-value enum.
+ *
+ * @param {string} content - Current STATE.md content
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {string} Updated content
+ */
+function syncStateFrontmatter(content, planningDir) {
+  const fm = parseYamlFrontmatter(content);
+  if (fm.version !== 2 && fm.current_phase === undefined) return content;
+
+  const progress = stateCheckProgress(planningDir);
+  let updated = content;
+
+  updated = updateFrontmatterField(updated, 'plans_total', String(progress.total_plans));
+  updated = updateFrontmatterField(updated, 'plans_complete', String(progress.completed_plans));
+  updated = updateFrontmatterField(updated, 'progress_percent', String(progress.percentage));
+
+  // Normalize status if present
+  if (fm.status) {
+    const normalized = normalizeStatus(fm.status);
+    if (normalized && normalized !== fm.status) {
+      updated = updateFrontmatterField(updated, 'status', normalized);
+    }
+  }
+
+  return updated;
+}
+
 // --- Parsers ---
 
 function parseStateMd(content) {
@@ -416,6 +472,7 @@ function stateUpdate(field, value, planningDir) {
     if (fm.version === 2 || fm.current_phase !== undefined) {
       let updated = updateFrontmatterField(content, field, value);
       updated = syncBodyLine(updated, field, value);
+      updated = syncStateFrontmatter(updated, dir);
       return updated;
     }
     return updateLegacyStateField(content, field, value);
@@ -459,6 +516,9 @@ function statePatch(jsonStr, planningDir) {
         updated = updateLegacyStateField(updated, field, val);
       }
     }
+    if (isFrontmatter) {
+      updated = syncStateFrontmatter(updated, dir);
+    }
     return updated;
   });
 
@@ -496,6 +556,7 @@ function stateAdvancePlan(planningDir) {
       updated = syncBodyLine(updated, 'plans_complete', String(next));
       updated = updateFrontmatterField(updated, 'progress_percent', String(progressPct));
       updated = syncBodyLine(updated, 'progress_percent', String(progressPct));
+      updated = syncStateFrontmatter(updated, dir);
     } else {
       updated = updateLegacyStateField(updated, 'plans_complete', String(next));
     }
@@ -801,6 +862,7 @@ function statePhaseComplete(phaseNum, planningDir) {
     // Sync body lines
     updated = syncBodyLine(updated, 'status', 'complete');
     updated = syncBodyLine(updated, 'last_activity', activityValue);
+    updated = syncStateFrontmatter(updated, dir);
     return updated;
   });
 
@@ -1123,5 +1185,8 @@ module.exports = {
   stateSignalResume,
   stateCheckWaiting,
   stateReconcile,
-  stateBackup
+  stateBackup,
+  syncStateFrontmatter,
+  normalizeStatus,
+  STATUS_VALUES
 };
