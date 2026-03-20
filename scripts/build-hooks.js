@@ -9,8 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const HOOKS_DIR = path.join(__dirname, '..', 'hooks');
-const DIST_DIR = path.join(HOOKS_DIR, 'dist');
+const HOOKS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'scripts');
+const DIST_DIR = path.join(__dirname, '..', 'hooks', 'dist');
 
 // Static assets to copy alongside hook scripts
 const STATIC_FILES = [

@@ -36,11 +36,11 @@ module.exports = {
     },
   },
   coverageReporters: ['text', 'text-summary', 'json-summary'],
-  coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/', '/hooks/dist/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/', '/plugins/pbr/scripts/test/'],
   collectCoverageFrom: [
     'plan-build-run/bin/lib/**/*.cjs',
-    'hooks/**/*.js',
-    '!hooks/dist/**',
+    'plugins/pbr/scripts/**/*.js',
+    '!plugins/pbr/scripts/test/**',
   ],
   projects: [
     {
