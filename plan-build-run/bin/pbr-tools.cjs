@@ -192,6 +192,7 @@
  *   verify artifacts <plan-file>       Check must_haves.artifacts
  *   verify key-links <plan-file>       Check must_haves.key_links
  *   verify-summary <path>              Verify a SUMMARY.md file
+ *   plan validate <phase>              Combined spot-check + structure validation
  *   validate consistency               Check phase/roadmap sync
  *   validate health [--repair]         Check .planning/ integrity
  *   validate-project                   Comprehensive integrity check
@@ -1305,6 +1306,11 @@ async function main() {
       if (!scType || !scPath) { error('Usage: verify spot-check <type> <path>  (types: plan, summary, verification, quick)'); }
       const result = verifySpotCheck(scType, scPath);
       if (result.error) { process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exit(1); }
+      output(result, raw, result.passed ? 'passed' : 'failed');
+    } else if (command === 'plan' && subcommand === 'validate') {
+      const phase = args[2];
+      if (!phase) { error('Usage: plan validate <phase>'); }
+      const result = getSpotCheck().cmdPlanValidate(cwd, phase);
       output(result, raw, result.passed ? 'passed' : 'failed');
     } else if (command === 'verify-summary') {
       const summaryPath = args[1];

@@ -506,4 +506,137 @@ function verifySpotCheck(type, dirPath) {
   }
 }
 
-module.exports = { spotCheck, verifySpotCheck };
+// ─── Plan Validate (combined spot-check + structural validation) ────────────
+
+/**
+ * Resolve a phase directory from phase number or slug.
+ * Inline resolution for hooks (no core.cjs dependency).
+ * @param {string} projectCwd - Project root directory
+ * @param {string} phase - Phase number or slug
+ * @returns {{ slug: string, rel: string } | null}
+ */
+function resolvePhaseDir(projectCwd, phase) {
+  const phasesDir = path.join(projectCwd, '.planning', 'phases');
+  if (!fs.existsSync(phasesDir)) return null;
+  try {
+    const entries = fs.readdirSync(phasesDir);
+    const phaseStr = String(phase);
+    for (const entry of entries) {
+      if (entry === phaseStr || entry.startsWith(phaseStr + '-')) {
+        return { slug: entry, rel: path.join('.planning', 'phases', entry) };
+      }
+    }
+  } catch (_e) { /* best effort */ }
+  return null;
+}
+
+/**
+ * Validate all PLAN files in a phase directory.
+ * Combines verifySpotCheck('plan') with deeper structural checks.
+ *
+ * @param {string} projectCwd - Project root directory
+ * @param {string} phase - Phase number or slug
+ * @returns {object} Combined validation result
+ */
+function cmdPlanValidate(projectCwd, phase) {
+  const phaseInfo = resolvePhaseDir(projectCwd, phase);
+  if (!phaseInfo) {
+    return { passed: false, error: 'Phase not found: ' + phase };
+  }
+
+  const phaseDir = path.join(projectCwd, phaseInfo.rel);
+
+  // Run the existing spot-check
+  const spotCheckResult = checkPlan(phaseDir);
+
+  // Find all PLAN files for structural validation
+  const planFiles = findFiles(phaseDir, /PLAN.*\.md$|.*-PLAN\.md$/i);
+
+  const structure = [];
+  const requiredFmFields = ['phase', 'wave', 'depends_on', 'files_modified', 'must_haves'];
+  const requiredTaskElements = ['name', 'action', 'verify', 'done'];
+
+  for (const file of planFiles) {
+    const filePath = path.join(phaseDir, file);
+    const entry = { file, valid: true, errors: [], warnings: [], task_count: 0 };
+
+    let content;
+    try {
+      content = fs.readFileSync(filePath, 'utf8');
+    } catch (_e) {
+      entry.valid = false;
+      entry.errors.push('Cannot read file');
+      structure.push(entry);
+      continue;
+    }
+
+    // Check frontmatter
+    const fm = parseYamlFrontmatter(content);
+    const hasFm = content.replace(/\r\n/g, '\n').match(/^---\s*\n[\s\S]*?\n---/);
+    if (!hasFm) {
+      entry.valid = false;
+      entry.errors.push('Missing YAML frontmatter');
+      structure.push(entry);
+      continue;
+    }
+
+    // Check required frontmatter fields
+    const hasPlanField = fm.plan !== undefined || fm.plan_id !== undefined;
+    if (!hasPlanField) {
+      entry.errors.push('Missing required field: plan or plan_id');
+    }
+    for (const field of requiredFmFields) {
+      if (fm[field] === undefined) {
+        entry.errors.push('Missing required field: ' + field);
+      }
+    }
+
+    // Check task elements
+    const taskMatches = content.match(/<task[\s>][\s\S]*?<\/task>/g) || [];
+    entry.task_count = taskMatches.length;
+
+    if (taskMatches.length === 0) {
+      entry.warnings.push('No <task> elements found');
+    }
+
+    for (let i = 0; i < taskMatches.length; i++) {
+      const taskBlock = taskMatches[i];
+      const taskNum = i + 1;
+      for (const elem of requiredTaskElements) {
+        const elemRegex = new RegExp('<' + elem + '[\\s>]');
+        if (!elemRegex.test(taskBlock)) {
+          entry.errors.push('Task ' + taskNum + ' missing <' + elem + '> element');
+        }
+      }
+    }
+
+    if (entry.errors.length > 0) {
+      entry.valid = false;
+    }
+    structure.push(entry);
+  }
+
+  const allStructureValid = structure.every(s => s.valid);
+  const passed = spotCheckResult.passed && allStructureValid;
+
+  const failures = [];
+  if (!spotCheckResult.passed) {
+    failures.push(...spotCheckResult.failures);
+  }
+  for (const s of structure) {
+    for (const err of s.errors) {
+      failures.push(s.file + ': ' + err);
+    }
+  }
+
+  return {
+    passed,
+    phase: phaseInfo.slug,
+    plan_count: planFiles.length,
+    spot_check: spotCheckResult,
+    structure,
+    failures
+  };
+}
+
+module.exports = { spotCheck, verifySpotCheck, cmdPlanValidate };
