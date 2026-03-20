@@ -9,8 +9,8 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
-const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
-const { getLogFilename: getEventsFilename } = require('../hooks/event-logger');
+const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
+const { getLogFilename: getEventsFilename } = require('../plugins/pbr/scripts/event-logger');
 
 /**
  * Create a temporary directory with a .planning subdirectory and logs folder.

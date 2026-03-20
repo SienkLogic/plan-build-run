@@ -4,9 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { detectDrift, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress } = require('../plan-build-run/bin/lib/init.cjs');
-const { statePatch, stateAdvancePlan, stateRecordMetric } = require('../plan-build-run/bin/lib/state.cjs');
-const { configClearCache } = require('../plan-build-run/bin/lib/config.cjs');
+const { detectDrift, initExecutePhase, initPlanPhase, initQuick, initVerifyWork, initResume, initProgress } = require('../plugins/pbr/scripts/lib/init');
+const { statePatch, stateAdvancePlan, stateRecordMetric } = require('../plugins/pbr/scripts/lib/state');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
 const STATE_FM = [
   '---', 'version: 2', 'current_phase: 3',

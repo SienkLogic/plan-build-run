@@ -7,8 +7,8 @@ const http = require('http');
 const { spawn } = require('child_process');
 
 const HOOK_SERVER = path.join(__dirname, '..', 'hooks', 'hook-server.js');
-const { getLogFilename: getHooksFilename } = require('../hooks/hook-logger');
-const { clearRootCache } = require('../hooks/lib/resolve-root');
+const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
+const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -204,7 +204,7 @@ describe('hook-server.js integration', () => {
 // ---------------------------------------------------------------------------
 
 describe('hook-server.js exports', () => {
-  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, lazyHandler, createServer, DEFAULT_PORT } = require('../hooks/hook-server');
+  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, lazyHandler, createServer, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
 
   test('DEFAULT_PORT is 19836', () => {
     expect(DEFAULT_PORT).toBe(19836);

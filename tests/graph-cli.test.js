@@ -17,7 +17,7 @@ const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
 
-const PBR_TOOLS = path.resolve(__dirname, '../plan-build-run/bin/pbr-tools.cjs');
+const PBR_TOOLS = path.resolve(__dirname, '../plugins/pbr/scripts/pbr-tools.js');
 
 // Helper: create a temp project with .planning and intel data
 function makeTempProject(opts = {}) {

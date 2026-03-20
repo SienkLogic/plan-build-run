@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { configClearCache } = require('../hooks/lib/config');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 const {
   initExecutePhase,
   initPlanPhase,
@@ -14,7 +14,7 @@ const {
   initResume,
   initProgress,
   initStateBundle
-} = require('../hooks/lib/init');
+} = require('../plugins/pbr/scripts/lib/init');
 
 let tmpDir, planningDir;
 

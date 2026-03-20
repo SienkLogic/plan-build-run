@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { stepVerify } = require('../plan-build-run/bin/lib/step-verify.cjs');
+const { stepVerify } = require('../plugins/pbr/scripts/lib/step-verify');
 
 describe('stepVerify', () => {
   let tmpDir;

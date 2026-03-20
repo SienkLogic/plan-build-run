@@ -506,7 +506,7 @@ describe('STATE.md frontmatter sync', () => {
 // stateExtractField and stateReplaceField helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { stateExtractField, stateReplaceField } = require('../plan-build-run/bin/lib/state.cjs');
+const { stateExtractField, stateReplaceField } = require('../plugins/pbr/scripts/lib/state');
 
 describe('stateExtractField and stateReplaceField helpers', () => {
   // stateExtractField tests
@@ -1413,7 +1413,7 @@ describe('statePhaseComplete', () => {
     ].join('\n');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'STATE.md'), stateMd);
 
-    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const { statePhaseComplete } = require('../plugins/pbr/scripts/lib/state');
     const result = statePhaseComplete(3, path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
@@ -1430,7 +1430,7 @@ describe('statePhaseComplete', () => {
   });
 
   test('returns error when STATE.md not found', () => {
-    const { statePhaseComplete } = require('../plan-build-run/bin/lib/state.cjs');
+    const { statePhaseComplete } = require('../plugins/pbr/scripts/lib/state');
     const result = statePhaseComplete(1, path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, false, 'should fail');
@@ -1485,7 +1485,7 @@ describe('stateRederive', () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
 
-    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
     const result = stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
@@ -1530,7 +1530,7 @@ describe('stateRederive', () => {
     fs.writeFileSync(path.join(phaseDir, 'PLAN-01.md'), '---\nphase: "01"\nplan: "01-01"\n---\n# Plan\n');
     fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), '---\nstatus: complete\n---\n# Summary\n');
 
-    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
     const result = stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
@@ -1540,7 +1540,7 @@ describe('stateRederive', () => {
   });
 
   test('handles missing STATE.md gracefully', () => {
-    const { stateRederive } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateRederive } = require('../plugins/pbr/scripts/lib/state');
     const result = stateRederive(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, false, 'should fail');
@@ -1564,7 +1564,7 @@ describe('stateSignalWaiting', () => {
   });
 
   test('creates WAITING.json with correct fields', () => {
-    const { stateSignalWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateSignalWaiting } = require('../plugins/pbr/scripts/lib/state');
     const result = stateSignalWaiting('Waiting for API key', 'hours', path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
@@ -1582,7 +1582,7 @@ describe('stateSignalWaiting', () => {
   });
 
   test('defaults expected_duration to unknown', () => {
-    const { stateSignalWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateSignalWaiting } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('Some reason', undefined, path.join(tmpDir, '.planning'));
 
     const data = JSON.parse(fs.readFileSync(path.join(tmpDir, '.planning', 'WAITING.json'), 'utf8'));
@@ -1602,7 +1602,7 @@ describe('stateSignalResume', () => {
   });
 
   test('deletes WAITING.json when it exists', () => {
-    const { stateSignalWaiting, stateSignalResume } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateSignalWaiting, stateSignalResume } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('test reason', 'minutes', path.join(tmpDir, '.planning'));
 
     const waitingFile = path.join(tmpDir, '.planning', 'WAITING.json');
@@ -1615,7 +1615,7 @@ describe('stateSignalResume', () => {
   });
 
   test('returns was_waiting=false when no WAITING.json', () => {
-    const { stateSignalResume } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateSignalResume } = require('../plugins/pbr/scripts/lib/state');
     const result = stateSignalResume(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result.success, true, 'should succeed');
@@ -1635,14 +1635,14 @@ describe('stateCheckWaiting', () => {
   });
 
   test('returns null when no WAITING.json exists', () => {
-    const { stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
 
     assert.strictEqual(result, null, 'should return null when not waiting');
   });
 
   test('returns parsed JSON when WAITING.json exists', () => {
-    const { stateSignalWaiting, stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateSignalWaiting, stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     stateSignalWaiting('Waiting for deploy', 'minutes', path.join(tmpDir, '.planning'));
 
     const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
@@ -1653,7 +1653,7 @@ describe('stateCheckWaiting', () => {
   });
 
   test('returns null for corrupted WAITING.json', () => {
-    const { stateCheckWaiting } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateCheckWaiting } = require('../plugins/pbr/scripts/lib/state');
     fs.writeFileSync(path.join(tmpDir, '.planning', 'WAITING.json'), 'not valid json');
 
     const result = stateCheckWaiting(path.join(tmpDir, '.planning'));
@@ -1677,7 +1677,7 @@ describe('syncStateFrontmatter', () => {
   });
 
   test('rebuilds plans_total and plans_complete from disk', () => {
-    const { syncStateFrontmatter } = require('../plan-build-run/bin/lib/state.cjs');
+    const { syncStateFrontmatter } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
 
     // Create a phase with one plan and one complete summary
@@ -1695,7 +1695,7 @@ describe('syncStateFrontmatter', () => {
   });
 
   test('stateUpdate auto-syncs frontmatter from disk', () => {
-    const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
 
     // Create 2 plan files (no summaries = 0 complete)
@@ -1728,7 +1728,7 @@ describe('normalizeStatus', () => {
   });
 
   test('maps known aliases', () => {
-    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+    const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('planning'), 'planned');
     assert.strictEqual(normalizeStatus('executing'), 'building');
@@ -1737,7 +1737,7 @@ describe('normalizeStatus', () => {
   });
 
   test('is case-insensitive', () => {
-    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+    const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('Building'), 'building');
     assert.strictEqual(normalizeStatus('COMPLETE'), 'complete');
@@ -1745,7 +1745,7 @@ describe('normalizeStatus', () => {
   });
 
   test('returns null for invalid values', () => {
-    const { normalizeStatus } = require('../plan-build-run/bin/lib/state.cjs');
+    const { normalizeStatus } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(normalizeStatus('bogus'), null);
     assert.strictEqual(normalizeStatus(''), null);
@@ -1766,7 +1766,7 @@ describe('STATUS_VALUES', () => {
   });
 
   test('contains exactly 7 values', () => {
-    const { STATUS_VALUES } = require('../plan-build-run/bin/lib/state.cjs');
+    const { STATUS_VALUES } = require('../plugins/pbr/scripts/lib/state');
 
     assert.strictEqual(STATUS_VALUES.length, 7);
     assert.ok(STATUS_VALUES.includes('idle'));

@@ -31,7 +31,7 @@ describe('getContextualHelp', () => {
   beforeEach(() => {
     tmpDir = makeTempDir();
     jest.resetModules();
-    getContextualHelp = require('../plan-build-run/bin/lib/contextual-help.cjs').getContextualHelp;
+    getContextualHelp = require('../plugins/pbr/scripts/lib/contextual-help').getContextualHelp;
   });
 
   afterEach(() => {

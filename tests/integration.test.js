@@ -44,7 +44,7 @@ describe('stateLoad', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    stateLoad = require('../plan-build-run/bin/lib/state.cjs').stateLoad;
+    stateLoad = require('../plugins/pbr/scripts/lib/state').stateLoad;
   });
 
   test('returns exists: true for fixture project', () => {
@@ -91,7 +91,7 @@ describe('stateCheckProgress', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    stateCheckProgress = require('../plan-build-run/bin/lib/state.cjs').stateCheckProgress;
+    stateCheckProgress = require('../plugins/pbr/scripts/lib/state').stateCheckProgress;
   });
 
   test('detects 6 phases', () => {
@@ -150,7 +150,7 @@ describe('planIndex', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    phasePlanIndex = require('../plan-build-run/bin/lib/phase.cjs').phasePlanIndex;
+    phasePlanIndex = require('../plugins/pbr/scripts/lib/phase').phasePlanIndex;
   });
 
   test('returns 2 plans for phase 2', () => {
@@ -204,7 +204,7 @@ describe('roadmap sync', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    ({ parseState, getRoadmapPhaseStatus } = require('../hooks/check-roadmap-sync'));
+    ({ parseState, getRoadmapPhaseStatus } = require('../plugins/pbr/scripts/check-roadmap-sync'));
   });
 
   test('detects mismatch: STATE says built, ROADMAP says planned for phase 2', () => {
@@ -238,7 +238,7 @@ describe('plan format validation', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    ({ validatePlan, validateSummary } = require('../hooks/check-plan-format'));
+    ({ validatePlan, validateSummary } = require('../plugins/pbr/scripts/check-plan-format'));
   });
 
   test('valid plan passes with no issues', () => {
@@ -297,7 +297,7 @@ describe('frontmatter', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    frontmatter = require('../plan-build-run/bin/lib/phase.cjs').frontmatter;
+    frontmatter = require('../plugins/pbr/scripts/lib/phase').frontmatter;
   });
 
   test('parses plan file frontmatter via function', () => {
@@ -342,7 +342,7 @@ describe('mustHavesCollect', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    phaseMustHaves = require('../plan-build-run/bin/lib/phase.cjs').phaseMustHaves;
+    phaseMustHaves = require('../plugins/pbr/scripts/lib/phase').phaseMustHaves;
   });
 
   test('collects must-haves from phase 2 (2 plans)', () => {
@@ -390,7 +390,7 @@ describe('phaseInfo', () => {
 
   beforeAll(() => {
     jest.resetModules();
-    phaseInfo = require('../plan-build-run/bin/lib/phase.cjs').phaseInfo;
+    phaseInfo = require('../plugins/pbr/scripts/lib/phase').phaseInfo;
   });
 
   test('returns comprehensive info for phase 2', () => {
@@ -466,7 +466,7 @@ describe('state update', () => {
 
   test('updates status field via function', () => {
     jest.resetModules();
-    const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
     const result = stateUpdate('status', 'building', planningDir);
     expect(result.success).toBe(true);
@@ -478,7 +478,7 @@ describe('state update', () => {
 
   test('updates current_phase field', () => {
     jest.resetModules();
-    const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
     const result = stateUpdate('current_phase', '3', planningDir);
     expect(result.success).toBe(true);
@@ -488,7 +488,7 @@ describe('state update', () => {
 
   test('rejects invalid field', () => {
     jest.resetModules();
-    const { stateUpdate } = require('../plan-build-run/bin/lib/state.cjs');
+    const { stateUpdate } = require('../plugins/pbr/scripts/lib/state');
     const planningDir = path.join(tmpDir, '.planning');
     const result = stateUpdate('invalid_field', 'value', planningDir);
     expect(result.success).toBe(false);
@@ -532,7 +532,7 @@ describe('roadmap update-status', () => {
 
   test('updates phase 2 status via function', () => {
     jest.resetModules();
-    const { roadmapUpdateStatus } = require('../plan-build-run/bin/lib/roadmap.cjs');
+    const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
     const result = roadmapUpdateStatus('2', 'building', planningDir);
     expect(result.success).toBe(true);
@@ -545,7 +545,7 @@ describe('roadmap update-status', () => {
 
   test('returns error for nonexistent phase', () => {
     jest.resetModules();
-    const { roadmapUpdateStatus } = require('../plan-build-run/bin/lib/roadmap.cjs');
+    const { roadmapUpdateStatus } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
     const result = roadmapUpdateStatus('99', 'building', planningDir);
     expect(result.success).toBe(false);
@@ -589,7 +589,7 @@ describe('roadmap update-plans', () => {
 
   test('updates phase 2 plans via function', () => {
     jest.resetModules();
-    const { roadmapUpdatePlans } = require('../plan-build-run/bin/lib/roadmap.cjs');
+    const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
     const result = roadmapUpdatePlans('2', '1', '2', planningDir);
     expect(result.success).toBe(true);
@@ -602,7 +602,7 @@ describe('roadmap update-plans', () => {
 
   test('returns error for nonexistent phase', () => {
     jest.resetModules();
-    const { roadmapUpdatePlans } = require('../plan-build-run/bin/lib/roadmap.cjs');
+    const { roadmapUpdatePlans } = require('../plugins/pbr/scripts/lib/roadmap');
     const planningDir = path.join(tmpDir, '.planning');
     const result = roadmapUpdatePlans('99', '1', '2', planningDir);
     expect(result.success).toBe(false);
@@ -626,7 +626,7 @@ describe('roadmap update-plans', () => {
 describe('event logger integration', () => {
   test('logEvent writes to .planning/logs/events.jsonl', () => {
     jest.resetModules();
-    const { logEvent } = require('../plan-build-run/bin/event-logger.cjs');
+    const { logEvent } = require('../plugins/pbr/scripts/event-logger');
     logEvent('workflow', 'test-event', { phase: 1 });
     const logPath = path.join(FIXTURE_DIR, '.planning', 'logs', 'events.jsonl');
     expect(fs.existsSync(logPath)).toBe(true);

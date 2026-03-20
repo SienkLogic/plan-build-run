@@ -8,10 +8,10 @@ const path = require('path');
 const os = require('os');
 
 // Lib module paths
-const phaseLib = require('../plan-build-run/bin/lib/phase.cjs');
-const configLib = require('../plan-build-run/bin/lib/config.cjs');
-const historyLib = require('../plan-build-run/bin/lib/history.cjs');
-const coreLib = require('../plan-build-run/bin/lib/core.cjs');
+const phaseLib = require('../plugins/pbr/scripts/lib/phase');
+const configLib = require('../plugins/pbr/scripts/lib/config');
+const historyLib = require('../plugins/pbr/scripts/lib/history');
+const coreLib = require('../plugins/pbr/scripts/lib/core');
 
 function makeTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-lib-test-'));
@@ -371,7 +371,7 @@ describe('validateObject array type', () => {
 });
 
 // --- roadmap operations ---
-const roadmapLib = require('../plan-build-run/bin/lib/roadmap.cjs');
+const roadmapLib = require('../plugins/pbr/scripts/lib/roadmap');
 
 describe('parseRoadmapMd', () => {
   test('parses phase overview table', () => {

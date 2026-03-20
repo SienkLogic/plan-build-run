@@ -1329,7 +1329,7 @@ describe('phase complete command', () => {
 // comparePhaseNum and normalizePhaseName (imported directly)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { comparePhaseNum, normalizePhaseName } = require('../plan-build-run/bin/lib/core.cjs');
+const { comparePhaseNum, normalizePhaseName } = require('../plugins/pbr/scripts/lib/core');
 
 describe('comparePhaseNum', () => {
   test('sorts integer phases numerically', () => {

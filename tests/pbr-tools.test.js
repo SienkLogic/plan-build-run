@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { parseStateMd, updateLegacyStateField, updateFrontmatterField } = require('../plan-build-run/bin/lib/state.cjs');
-const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plan-build-run/bin/lib/roadmap.cjs');
-const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, STATUS_LABELS, validateStatusTransition, sessionLoad, sessionSave } = require('../plan-build-run/bin/lib/core.cjs');
-const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plan-build-run/bin/lib/config.cjs');
-const { historyAppend, historyLoad } = require('../plan-build-run/bin/lib/history.cjs');
+const { parseStateMd, updateLegacyStateField, updateFrontmatterField } = require('../plugins/pbr/scripts/lib/state');
+const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plugins/pbr/scripts/lib/roadmap');
+const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, STATUS_LABELS, validateStatusTransition, sessionLoad, sessionSave } = require('../plugins/pbr/scripts/lib/core');
+const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plugins/pbr/scripts/lib/config');
+const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/history');
 
 describe('pbr-tools.cjs', () => {
   describe('parseStateMd', () => {
@@ -1054,7 +1054,7 @@ next_top_level: something`;
 
 // ─── reference module tests ────────────────────────────────────────────────
 
-const { listHeadings, extractSection, resolveReferencePath, referenceGet: referenceGetLib } = require('../plan-build-run/bin/lib/reference.cjs');
+const { listHeadings, extractSection, resolveReferencePath, referenceGet: referenceGetLib } = require('../plugins/pbr/scripts/lib/reference');
 
 describe('referenceGet / lib/reference', () => {
   const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
@@ -1284,7 +1284,7 @@ describe('referenceGet / lib/reference', () => {
 // ─── milestoneStats tests ────────────────────────────────────────────────────
 // Uses PBR_PROJECT_ROOT + configClearCache() to redirect module-level planningDir
 
-const { milestoneStats } = require('../plan-build-run/bin/lib/phase.cjs');
+const { milestoneStats } = require('../plugins/pbr/scripts/lib/phase');
 
 describe('milestoneStats', () => {
   let tmpDir;
@@ -1390,8 +1390,8 @@ describe('milestoneStats', () => {
 
 // --- stateBundle / initStateBundle tests ---
 
-const { initStateBundle } = require('../plan-build-run/bin/lib/init.cjs');
-const { contextTriage: contextTriageLib } = require('../plan-build-run/bin/lib/context.cjs');
+const { initStateBundle } = require('../plugins/pbr/scripts/lib/init');
+const { contextTriage: contextTriageLib } = require('../plugins/pbr/scripts/lib/context');
 
 const BUNDLE_STATE_FM = [
   '---', 'version: 2', 'current_phase: 3',
@@ -1671,7 +1671,7 @@ describe('build helpers', () => {
     checkpointInit,
     checkpointUpdate,
     seedsMatch
-  } = require('../plan-build-run/bin/lib/build.cjs');
+  } = require('../plugins/pbr/scripts/lib/build');
 
   let tmpDir;
 
@@ -1968,7 +1968,7 @@ describe('ciPoll', () => {
     jest.mock('child_process', () => ({
       execSync: jest.fn()
     }));
-    ({ ciPoll } = require('../plan-build-run/bin/lib/build.cjs'));
+    ({ ciPoll } = require('../plugins/pbr/scripts/lib/build'));
   });
 
   afterEach(() => {
@@ -2055,7 +2055,7 @@ describe('rollback', () => {
     jest.mock('child_process', () => ({
       execSync: jest.fn()
     }));
-    ({ rollback } = require('../plan-build-run/bin/lib/build.cjs'));
+    ({ rollback } = require('../plugins/pbr/scripts/lib/build'));
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-rollback-'));
     fs.mkdirSync(path.join(tmpDir, 'phases', '01-test'), { recursive: true });
   });

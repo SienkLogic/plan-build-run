@@ -28,7 +28,7 @@ const {
   resolveConfig,
   resolveDepthProfile,
   saveUserDefaults,
-} = require('../hooks/lib/config');
+} = require('../plugins/pbr/scripts/lib/config');
 
 // configValidate reads config-schema.json from path.join(hooks/lib/../, 'config-schema.json')
 // = hooks/config-schema.json. That file doesn't exist (real schema is in plugins/pbr/scripts/).

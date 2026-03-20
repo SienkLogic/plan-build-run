@@ -26,7 +26,7 @@ const {
   getRoadmapPhaseInternal,
   searchPhaseInDir,
   findPhaseInternal,
-} = require('../plan-build-run/bin/lib/core.cjs');
+} = require('../plugins/pbr/scripts/lib/core');
 
 // ─── loadConfig ────────────────────────────────────────────────────────────────
 

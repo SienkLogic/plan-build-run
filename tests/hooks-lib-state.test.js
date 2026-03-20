@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { configClearCache } = require('../hooks/lib/config');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 const {
   parseStateMd,
   updateLegacyStateField,
@@ -26,7 +26,7 @@ const {
   stateRecordMetric,
   stateRecordActivity,
   stateUpdateProgress
-} = require('../hooks/lib/state');
+} = require('../plugins/pbr/scripts/lib/state');
 
 // --- Fixtures ---
 

@@ -23,7 +23,7 @@ describe('event-logger.js', () => {
   });
 
   function getLogger() {
-    return require('../plan-build-run/bin/event-logger.cjs');
+    return require('../plugins/pbr/scripts/event-logger');
   }
 
   function getLogPath() {

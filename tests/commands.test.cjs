@@ -1068,7 +1068,7 @@ describe('commit command', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('websearch command', () => {
-  const { cmdWebsearch } = require('../plan-build-run/bin/lib/commands.cjs');
+  const { cmdWebsearch } = require('../plugins/pbr/scripts/lib/commands');
   let origFetch;
   let origApiKey;
   let origStdoutWrite;

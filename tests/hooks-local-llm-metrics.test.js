@@ -13,7 +13,7 @@ const {
   logAgreement,
   updateLifetimeTotals,
   seedTotalsFromJsonl
-} = require('../hooks/local-llm/metrics');
+} = require('../plugins/pbr/scripts/lib/local-llm/metrics');
 
 let tmpDir;
 

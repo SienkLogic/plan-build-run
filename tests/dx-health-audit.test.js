@@ -111,7 +111,7 @@ describe('audit evidence logging', () => {
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Test\n- [ ] Plan\n');
 
-    const { getProgressData } = require('../plan-build-run/bin/lib/progress-visualization.cjs');
+    const { getProgressData } = require('../plugins/pbr/scripts/lib/progress-visualization');
     const config = { features: { progress_visualization: true } };
     getProgressData(tmpDir, config);
 
@@ -128,7 +128,7 @@ describe('audit evidence logging', () => {
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'STATE.md'), '---\nstatus: "building"\nblockers: []\n---\n');
 
-    const { getContextualHelp } = require('../plan-build-run/bin/lib/contextual-help.cjs');
+    const { getContextualHelp } = require('../plugins/pbr/scripts/lib/contextual-help');
     const config = { features: { contextual_help: true } };
     getContextualHelp(tmpDir, config);
 
@@ -144,7 +144,7 @@ describe('audit evidence logging', () => {
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'ROADMAP.md'), '# Roadmap\n\n## Phase 1: Test\n- [ ] Plan\n');
 
-    const { generateOnboardingGuide } = require('../plan-build-run/bin/lib/onboarding-generator.cjs');
+    const { generateOnboardingGuide } = require('../plugins/pbr/scripts/lib/onboarding-generator');
     const config = { features: { team_onboarding: true } };
     generateOnboardingGuide(tmpDir, config);
 

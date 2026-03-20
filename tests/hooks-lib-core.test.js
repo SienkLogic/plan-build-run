@@ -40,7 +40,7 @@ const {
   releaseClaim,
   listClaims,
   releaseSessionClaims
-} = require('../hooks/lib/core');
+} = require('../plugins/pbr/scripts/lib/core');
 
 // --- Mock process.exit and process.stdout.write for output/error tests ---
 

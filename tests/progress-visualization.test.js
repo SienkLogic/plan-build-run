@@ -17,7 +17,7 @@ describe('config defaults — Phase 15 feature toggles', () => {
 
   beforeEach(() => {
     tmpDir = makeTempDir();
-    const configMod = require('../plan-build-run/bin/lib/config.cjs');
+    const configMod = require('../plugins/pbr/scripts/lib/config');
     configLoad = configMod.configLoad;
     configClearCacheFn = configMod.configClearCache;
   });
@@ -87,9 +87,9 @@ describe('getProgressData', () => {
     tmpDir = makeTempDir();
     planningDir = tmpDir;
     jest.resetModules();
-    getProgressData = require('../plan-build-run/bin/lib/progress-visualization.cjs').getProgressData;
-    getPhaseDependencyGraph = require('../plan-build-run/bin/lib/progress-visualization.cjs').getPhaseDependencyGraph;
-    getAgentActivity = require('../plan-build-run/bin/lib/progress-visualization.cjs').getAgentActivity;
+    getProgressData = require('../plugins/pbr/scripts/lib/progress-visualization').getProgressData;
+    getPhaseDependencyGraph = require('../plugins/pbr/scripts/lib/progress-visualization').getPhaseDependencyGraph;
+    getAgentActivity = require('../plugins/pbr/scripts/lib/progress-visualization').getAgentActivity;
   });
 
   afterEach(() => {

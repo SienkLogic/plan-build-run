@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { logEvent } = require('../plan-build-run/bin/event-logger.cjs');
+const { logEvent } = require('../plugins/pbr/scripts/event-logger');
 
 let tmpDir;
 let originalCwd;

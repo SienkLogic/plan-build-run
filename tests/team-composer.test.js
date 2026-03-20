@@ -6,7 +6,7 @@ describe('TeamComposer', () => {
   let TeamComposer;
 
   beforeAll(() => {
-    TeamComposer = require('../plan-build-run/bin/lib/team-composer.cjs').TeamComposer;
+    TeamComposer = require('../plugins/pbr/scripts/lib/team-composer').TeamComposer;
   });
 
   test('composeTeam returns early when features.dynamic_teams is false', () => {
@@ -76,7 +76,7 @@ describe('Multi-agent health check', () => {
   let checkMultiAgentHealth;
 
   beforeAll(() => {
-    checkMultiAgentHealth = require('../plan-build-run/bin/lib/health.cjs').checkMultiAgentHealth;
+    checkMultiAgentHealth = require('../plugins/pbr/scripts/lib/health').checkMultiAgentHealth;
   });
 
   test('health check reports disabled when all 3 toggles are false', () => {
@@ -97,7 +97,7 @@ describe('Multi-agent health check', () => {
 
   test('health check reports degraded when toggle is true but module fails to load', () => {
     // Use a patched version that can't load the module
-    const _healthModule = require('../plan-build-run/bin/lib/health.cjs');
+    const _healthModule = require('../plugins/pbr/scripts/lib/health');
 
     // We test via the function's resilience — pass a config that enables a feature
     // but mock the module resolver by testing the function with an unreachable module path

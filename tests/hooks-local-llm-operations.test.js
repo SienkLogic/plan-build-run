@@ -19,18 +19,18 @@ jest.mock('../hooks/local-llm/router', () => ({
   route: jest.fn()
 }));
 
-const { complete, tryParseJSON, isDisabled } = require('../hooks/local-llm/client');
-const { logMetric } = require('../hooks/local-llm/metrics');
-const { route } = require('../hooks/local-llm/router');
+const { complete, tryParseJSON, isDisabled } = require('../plugins/pbr/scripts/lib/local-llm/client');
+const { logMetric } = require('../plugins/pbr/scripts/lib/local-llm/metrics');
+const { route } = require('../plugins/pbr/scripts/lib/local-llm/router');
 
-const { classifyArtifact } = require('../hooks/local-llm/operations/classify-artifact');
-const { classifyCommit, classifyCommitHeuristic } = require('../hooks/local-llm/operations/classify-commit');
-const { classifyError } = require('../hooks/local-llm/operations/classify-error');
-const { classifyFileIntent, classifyFileIntentHeuristic } = require('../hooks/local-llm/operations/classify-file-intent');
-const { scoreSource } = require('../hooks/local-llm/operations/score-source');
-const { summarizeContext } = require('../hooks/local-llm/operations/summarize-context');
-const { triageTestOutput } = require('../hooks/local-llm/operations/triage-test-output');
-const { validateTask } = require('../hooks/local-llm/operations/validate-task');
+const { classifyArtifact } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact');
+const { classifyCommit, classifyCommitHeuristic } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-commit');
+const { classifyError } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-error');
+const { classifyFileIntent, classifyFileIntentHeuristic } = require('../plugins/pbr/scripts/lib/local-llm/operations/classify-file-intent');
+const { scoreSource } = require('../plugins/pbr/scripts/lib/local-llm/operations/score-source');
+const { summarizeContext } = require('../plugins/pbr/scripts/lib/local-llm/operations/summarize-context');
+const { triageTestOutput } = require('../plugins/pbr/scripts/lib/local-llm/operations/triage-test-output');
+const { validateTask } = require('../plugins/pbr/scripts/lib/local-llm/operations/validate-task');
 
 function makeConfig(overrides = {}) {
   return {

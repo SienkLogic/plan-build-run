@@ -1,6 +1,6 @@
 'use strict';
 
-const { resolveConfig, checkHealth, warmUp } = require('../hooks/local-llm/health');
+const { resolveConfig, checkHealth, warmUp } = require('../plugins/pbr/scripts/lib/local-llm/health');
 
 // ---- resolveConfig ----
 
