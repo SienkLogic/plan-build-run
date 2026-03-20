@@ -411,7 +411,7 @@ describe('resolveDepthProfile', () => {
     // Custom key added
     expect(profile['custom.key']).toBe(42);
     // Built-in default preserved
-    expect(profile['features.plan_checking']).toBe(false);
+    expect(profile['features.plan_checking']).toBe(true);
   });
 });
 
