@@ -247,6 +247,20 @@ Read `references/plan-authoring.md` for plan quality guidelines including action
 
 ---
 
+## Vertical Slice Preference
+
+When decomposing a phase into plans, prefer feature-complete vertical slices over horizontal layers. Each plan should deliver a working end-to-end feature (UI to API to data) rather than a single architectural layer across all features.
+
+**Why:** Horizontal plans create many cross-plan integration points and wiring dependencies. Vertical slices are self-contained — each plan delivers a working feature with fewer cross-plan dependencies, reducing integration gaps and verification complexity.
+
+**Example — "Add user authentication":**
+- PREFER: Plan 1: Login flow (form + API + session), Plan 2: Registration flow (form + API + validation)
+- AVOID: Plan 1: Database schema, Plan 2: API routes, Plan 3: Frontend forms
+
+**When horizontal is acceptable:** Infrastructure-only phases (database migrations, CI setup) or phases where all plans share a single layer by nature. The preference is for feature work, not utility work.
+
+---
+
 ## Dependency Graph Rules
 
 Two plans CONFLICT if their `files_modified` lists overlap. Conflicting plans MUST be in different waves with explicit `depends_on`. Use `depends_on: ["02-01", "02-02"]` notation. Cross-phase dependencies (e.g., `depends_on: ["01-03"]`) must be documented in the roadmap. **NEVER create circular dependencies** — resolve by merging circular plans or extracting shared deps into a new plan.
