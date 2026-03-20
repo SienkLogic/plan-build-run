@@ -1318,6 +1318,41 @@ If `planning.commit_docs` is `true`:
 - Stage SUMMARY.md files and VERIFICATION.md
 - Commit: `docs({phase}): add build summaries and verification`
 
+**8c-ii. Evolve PROJECT.md (conditional, lightweight):**
+
+After a successful phase build (final_status is "built" or "built (unverified)"), check if `.planning/PROJECT.md` exists. If it does:
+
+1. Read the current phase's SUMMARY.md files (frontmatter only: `provides`, `key_files`, `deferred` fields)
+2. Read `.planning/PROJECT.md` to find the `### Active` requirements section
+3. Spawn a lightweight Task() to propose PROJECT.md updates:
+
+```
+Task({
+  subagent_type: "pbr:general",
+  model: "haiku",
+  prompt: "Evolve PROJECT.md after Phase {N} completion.
+
+Read .planning/PROJECT.md and the SUMMARY.md files in .planning/phases/{NN}-{slug}/.
+
+For each SUMMARY.md, check the 'provides' field against PROJECT.md's ### Active requirements:
+- If a requirement was satisfied by this phase's deliverables, move it to ### Validated with: '- [checkmark] {requirement} -- Phase {N}'
+- If a SUMMARY.md 'deferred' field mentions a new capability need, add it to ### Active
+
+Also check STATE.md ## Accumulated Context ### Blockers/Concerns:
+- If a blocker was resolved by this phase's work (check provides/key_files), remove it
+- Keep unresolved blockers
+
+Write the updated PROJECT.md. Write the updated STATE.md Accumulated Context section.
+
+End with: ## EVOLUTION COMPLETE"
+})
+```
+
+4. Run in background (`run_in_background: true`) -- do NOT block the finalization flow.
+5. **Skip if**: `final_status` is "partial" (incomplete builds should not evolve project state).
+
+This step restores the legacy transition workflow's PROJECT.md evolution that was lost during migration. It keeps requirements and blockers current across phases.
+
 **8d. Handle git branching:**
 If `git.branching` is `phase`:
 - Verify we are on the phase branch: `git branch --show-current`
