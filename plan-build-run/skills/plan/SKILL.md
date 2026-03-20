@@ -239,7 +239,8 @@ If `--preview` is present in `$ARGUMENTS`:
 ---
 
 **If phase already has plans:**
-- Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+- **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+  Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Phase {N} already has plans. Re-plan from scratch?"
   header: "Re-plan?"
   options:
@@ -391,7 +392,9 @@ Output format: Return both sections as markdown. End with ## BRIEFING COMPLETE."
 
 After the Task() completes:
 - If `## Seeds` section contains matches:
-  - If `gates.confirm_seeds` is `true` in config: present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
+  - If `gates.confirm_seeds` is `true` in config:
+    **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+    Present them to the user via AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`):
       question: "Include these {N} seeds in planning?"
       header: "Seeds?"
       options:
@@ -404,7 +407,9 @@ After the Task() completes:
   - If `gates.confirm_seeds` is `false` (default): automatically include all matching seeds in planner context without prompting. Log: "Including {N} seeds automatically (gates.confirm_seeds=false)."
 
 - If `## Deferred Ideas` section has items:
-  - If `gates.confirm_deferred` is `true` in config: present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  - If `gates.confirm_deferred` is `true` in config:
+    **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+    Present via AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
       question: "Include these deferred ideas in planning context?"
     - If "Yes": append to planner context under `Deferred ideas to consider:`
     - If "No": proceed without changes
@@ -692,6 +697,7 @@ LOOP (iteration = 1 to 3):
 
 Present a summary of all plans to the user. For each plan include: plan name, wave, task count, must-haves, files_modified. For each task include the task name. Add a wave execution order summary (Wave 1: Plan 01, 02 (parallel), Wave 2: Plan 03, etc.).
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prompts.md`):
   question: "Approve these {count} plans for Phase {N}?"
   header: "Approve?"
@@ -831,7 +837,8 @@ If the specified phase doesn't exist in ROADMAP.md, use conversational recovery:
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
    - Offer "Show all phases" to list `available`.
-4. Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
+4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
    - If user picks a valid phase slug: re-run with that slug.
    - If user chooses to abort: stop cleanly with a friendly message.
 

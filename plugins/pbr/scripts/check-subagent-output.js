@@ -46,7 +46,8 @@ const {
   shouldTrackTrust,
   loadFeatureFlag,
   updateConventionsAfterBuild,
-  validateSelfCheck
+  validateSelfCheck,
+  checkUserGateCompliance
 } = validators;
 
 function readStdin() {
@@ -171,6 +172,12 @@ async function main() {
         skillWarnings.push('Executor SUMMARY.md missing ## Self-Check section. Self-verification may have been skipped.');
       }
     }
+  }
+
+  // Check for gate-requiring skills that completed without AskUserQuestion
+  const gateWarning = checkUserGateCompliance(planningDir, activeSkill);
+  if (gateWarning) {
+    skillWarnings.push(gateWarning);
   }
 
   // Log compliance violations for tracking and session-end summary
@@ -319,6 +326,12 @@ async function handleHttp(reqBody) {
         skillWarnings.push('Executor SUMMARY.md missing ## Self-Check section. Self-verification may have been skipped.');
       }
     }
+  }
+
+  // Check for gate-requiring skills that completed without AskUserQuestion
+  const gateWarningHttp = checkUserGateCompliance(planningDir, activeSkill);
+  if (gateWarningHttp) {
+    skillWarnings.push(gateWarningHttp);
   }
 
   if (genericMissing && skillWarnings.length > 0) {

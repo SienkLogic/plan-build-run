@@ -105,7 +105,9 @@ This mode writes to `.planning/PROJECT.md` ## Context section (project-level), N
 
 **Check for existing project context:**
 1. Read `.planning/PROJECT.md` and check if it has a `## Context` section.
-2. If it has a ## Context section, ask the user (using the context-handling pattern from
+2. If it has a ## Context section:
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Ask the user (using the context-handling pattern from
    `skills/shared/gate-prompts.md`):
    question: "PROJECT.md already has a ## Context section. How should we handle it?"
    options: Overwrite | Append | Cancel
@@ -171,7 +173,9 @@ Read the following files to understand what this phase needs to accomplish:
 3. **REQUIREMENTS.md** (if exists) — Read project requirements relevant to this phase. **CRITICAL**: After reading, display to the user which specific requirements map to this phase. Flag any requirements that could constrain decisions. If the user's discussion decisions later contradict a stated requirement, surface the contradiction immediately — don't wait until planning.
 
 4. **CONTEXT.md** (if exists in the phase directory) — Check if a prior discussion already happened
-   - If CONTEXT.md exists, inform the user and use the **context-handling** pattern from `skills/shared/gate-prompts.md`:
+   - If CONTEXT.md exists, inform the user and:
+     **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+     Use the **context-handling** pattern from `skills/shared/gate-prompts.md`:
      question: "Phase {N} already has a CONTEXT.md from a prior discussion. How should we handle it?"
 
    Handle responses:
@@ -218,6 +222,7 @@ Read `${CLAUDE_SKILL_DIR}/templates/decision-categories.md` for the category ref
 
 **Standard mode (auto_mode is false or absent):**
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Present each gray area to the user using the **gray-area-option** pattern from `skills/shared/gate-prompts.md`. For each gray area:
 
 Use AskUserQuestion:
@@ -249,6 +254,7 @@ For each gray area where the user made a decision (not "Let Claude decide"), ask
 
 **CRITICAL — STOP: Do NOT skip this follow-up area.**
 1. **Scope boundary**: "Should {feature} also handle {edge case}?"
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use the **yes-no** pattern — this is a binary decision.
 
 **CRITICAL — STOP: Do NOT skip this follow-up area.**
@@ -261,6 +267,7 @@ For each gray area where the user made a decision (not "Let Claude decide"), ask
 
 **CRITICAL — STOP: Do NOT skip this follow-up area.**
 4. **Future-proofing**: "Should we design this to support {potential future need}, or keep it simple?"
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use the **yes-no** pattern:
      question: "Design {feature} to support {future need}, or keep it simple for now?"
      options:
@@ -423,7 +430,8 @@ These come from:
 ## Edge Cases
 
 ### Phase already has CONTEXT.md
-- Use the **context-handling** pattern from `skills/shared/gate-prompts.md` (same as Step 2)
+- **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+  Use the **context-handling** pattern from `skills/shared/gate-prompts.md` (same as Step 2)
 - If "Overwrite": replace entirely
 - If "Append": add new decisions below existing ones, marking them as "Amendment"
 - If "Cancel": stop the discussion, keep existing CONTEXT.md

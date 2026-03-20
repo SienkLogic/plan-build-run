@@ -297,6 +297,7 @@ Archive a completed milestone and prepare for the next one.
        - Phase {N}: {name}
        - Phase {M}: {name}
 
+     **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
      Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
        question: "{count} phases haven't been verified. Continue with milestone completion?"
        header: "Unverified"
@@ -312,6 +313,7 @@ Archive a completed milestone and prepare for the next one.
    - Warn: "Phase {N} ({name}) was modified after verification. The VERIFICATION.md may not reflect the current code state."
    - List affected phases with their freshness details
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
      question: "{count} phases were modified after verification. Re-verify or continue?"
      header: "Stale"
@@ -777,6 +779,7 @@ Create phases to close gaps found during an audit.
    Nice to fix ({count}):
    - {gap}: {description}
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: multi-option-priority from `skills/shared/gate-prompts.md`):
      question: "Which gaps should we address? ({must_count} must-fix, {should_count} should-fix, {nice_count} nice-to-fix)"
      header: "Priority"

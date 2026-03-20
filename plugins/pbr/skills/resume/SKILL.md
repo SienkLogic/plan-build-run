@@ -213,6 +213,7 @@ Search for `.continue-here.md` files across all phase directories:
 - This is the resume point. Go to **Normal Resume** (Step 3a).
 
 **If multiple found:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **pause-point-select** pattern (see `skills/shared/gate-prompts.md`):
 
 Use AskUserQuestion:
@@ -314,7 +315,9 @@ Blockers:
 
 ```
 
-**If multiple reasonable actions exist** (e.g., the continue-here suggests one thing but the filesystem state suggests another), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
+**If multiple reasonable actions exist** (e.g., the continue-here suggests one thing but the filesystem state suggests another):
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
 
 Use AskUserQuestion:
   question: "How would you like to proceed?"
@@ -367,6 +370,7 @@ Note: No detailed pause context available. Run `/pbr:progress` for a full overvi
 
 5. Suggest the next action based on phase state using the **action-routing** pattern:
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion:
   question: "What would you like to do next?"
   header: "Next Step"

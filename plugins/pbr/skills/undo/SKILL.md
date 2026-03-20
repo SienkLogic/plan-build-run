@@ -93,6 +93,7 @@ For descriptive scopes, show just the scope label. For phase-plan scopes (NN-MM 
 
 ## Step 3 — Prompt for Selection
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion with the **select-action** pattern:
 
 - **question**: "Which commit(s) do you want to undo? Select a scope to revert all commits in that scope, or choose a custom option."
@@ -129,6 +130,7 @@ Commits to revert ({count}):
 ```
 
 **Gate 3: Explicit confirmation**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion with the **yes-no** pattern:
 - **question**: "Revert {count} commits from phase {N}? This uses git revert (history-preserving)."
 - **options**: ["Proceed with revert", "Cancel"]
@@ -152,6 +154,7 @@ The following commits will be reverted (using git revert, NOT git reset):
 This creates new revert commits — your history is preserved.
 ```
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion with the **yes-no** pattern:
 - **question**: "Proceed with reverting these commits?"
 - **options**: ["Proceed with revert", "Cancel"]

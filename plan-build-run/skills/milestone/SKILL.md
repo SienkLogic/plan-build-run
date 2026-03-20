@@ -297,6 +297,7 @@ Archive a completed milestone and prepare for the next one.
        - Phase {N}: {name}
        - Phase {M}: {name}
 
+     **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
      Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
        question: "{count} phases haven't been verified. Continue with milestone completion?"
        header: "Unverified"
@@ -312,6 +313,7 @@ Archive a completed milestone and prepare for the next one.
    - Warn: "Phase {N} ({name}) was modified after verification. The VERIFICATION.md may not reflect the current code state."
    - List affected phases with their freshness details
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
      question: "{count} phases were modified after verification. Re-verify or continue?"
      header: "Stale"
@@ -417,6 +419,20 @@ Read `git.branching` from config.
 
    Read `${CLAUDE_SKILL_DIR}/templates/stats-file.md.tmpl` for the stats file format. Fill in all `{variable}` placeholders with actual data gathered in Steps 3-4.
 
+5b. **Archive stale research data:**
+
+   After archiving phase directories, prune stale research/intel/codebase data that predates the milestone:
+
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js data prune --before {milestone_start_date}
+   ```
+
+   Where `{milestone_start_date}` is the earliest phase start date from the milestone (derived from the first SUMMARY.md `start_time` or the milestone creation date).
+
+   - Log the count of archived files (e.g., "Archived 12 stale research files")
+   - If no files to archive, log "No stale research files to archive"
+   - Note: SUMMARY.md, STACK.md, and FEATURES.md are preserved (never pruned) since they are canonical references for active work
+
 6. **Update PROJECT.md:**
    - Move milestone from "Active" to "Completed"
    - Add completion date and version tag
@@ -478,10 +494,17 @@ Read `git.branching` from config.
 **CRITICAL (no hook): Update STATE.md to mark milestone as complete NOW. Do NOT skip this step.**
 
 7b. **Update STATE.md:**
-   - Update `.planning/STATE.md` to mark the milestone as complete
-   - Clear the current milestone field or set status to "completed"
-   - Update last activity timestamp
-   - Record the milestone version in the history/completed section
+   - Update `.planning/STATE.md` frontmatter to reset to idle state:
+     - `current_phase: null`
+     - `phase_slug: null`
+     - `phase_name: null`
+     - `phases_total: 0`
+     - `status: "idle"`
+     - `progress_percent: 0`
+     - `plans_total: 0`
+     - `plans_complete: 0`
+     - `last_activity: "{date} Milestone {version} complete"`
+   - Update the body section to reflect idle state (no active phase)
 
 7c. **Record milestone completion in STATE.md frontmatter:**
    - Update STATE.md frontmatter with milestone completion data:
@@ -530,6 +553,27 @@ Note: Learnings threshold met — {key}: {trigger}. Consider implementing the de
 9. **Generate RETROSPECTIVE.md:**
 
    The CLI (`pbr-tools.js milestone complete`) auto-generates a RETROSPECTIVE.md entry. Verify it exists at `.planning/RETROSPECTIVE.md`. If the CLI was not used (manual completion), create the entry using `${CLAUDE_PLUGIN_ROOT}/templates/RETROSPECTIVE.md.tmpl` as the format reference. Fill in `{version}`, `{name}`, `{date}`, and the "What Was Built" section from MILESTONES.md accomplishments. Leave other sections as placeholders for the user to fill.
+
+9aa. **Insights integration:**
+
+   Check for a recent /insights HTML report:
+
+   ```bash
+   find ~/.claude/insights/ -name "*.html" -mtime -7 2>/dev/null | head -1
+   ```
+
+   **If a recent report exists (modified within 7 days):**
+   1. Read the HTML file and extract key workflow findings (friction patterns, efficiency suggestions, recurring issues)
+   2. Append a "## Workflow Insights" section to `.planning/RETROSPECTIVE.md` with 3-5 bullet points summarizing the most relevant insights for this milestone's work
+   3. Add the RETROSPECTIVE.md to the git staging area
+
+   **If no recent report exists:**
+   Display this suggestion after the RETROSPECTIVE.md is generated:
+
+   ```
+   Tip: Run /insights to capture workflow patterns from this milestone's sessions.
+        Insights feed into future audits and help the planner avoid repeated friction.
+   ```
 
 9a. **Commit:**
    ```bash
@@ -735,6 +779,7 @@ Create phases to close gaps found during an audit.
    Nice to fix ({count}):
    - {gap}: {description}
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: multi-option-priority from `skills/shared/gate-prompts.md`):
      question: "Which gaps should we address? ({must_count} must-fix, {should_count} should-fix, {nice_count} nice-to-fix)"
      header: "Priority"

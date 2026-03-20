@@ -239,6 +239,7 @@ Display:
 Scan results can seed the intel system for faster agent planning.
 ```
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion (pattern: yes-no):
   question: "Populate intel from scan results?"
   options:
@@ -285,7 +286,9 @@ git add .planning/codebase/
 git commit -m "docs(planning): map existing codebase"
 ```
 
-If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+If no config exists yet (scan before begin):
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Commit the codebase analysis to git?"
   header: "Commit?"
   options:

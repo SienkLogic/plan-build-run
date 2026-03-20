@@ -293,6 +293,7 @@ Analyze the task description. If it appears to involve:
 - Significant architectural decisions
 - Complex multi-step workflows
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Then use the **scope-confirm** pattern (see `skills/shared/gate-prompts.md`):
 
 Use AskUserQuestion:

@@ -1,7 +1,7 @@
 ---
 name: continue
 description: "Execute the next logical step automatically. No prompts, no decisions — just do it."
-allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill
+allowed-tools: Read, Write, Bash, Glob, Grep, Task, Skill, AskUserQuestion
 argument-hint: "[--auto]"
 ---
 

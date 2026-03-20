@@ -78,6 +78,7 @@ Check if the current directory has existing code:
 ```
 
 **If existing code found:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "This looks like an existing codebase. Run /pbr:map-codebase to analyze what's here first?"
   options:
@@ -87,6 +88,7 @@ Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
 - If user selects "No, begin": proceed to Step 2
 
 **If `.planning/` already exists:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "A .planning/ directory already exists. This will overwrite it. Continue?"
   options:
@@ -275,6 +277,7 @@ Apply selections:
 - **Git branching**: Set `git.branching: "phase"`
 
 **3a. Mode:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
   question: "How do you want to work?"
   header: "Mode"
@@ -285,6 +288,7 @@ Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
 - `autonomous` — auto-proceed, only stop for critical decisions
 
 **3b. Depth:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **depth-select** pattern from `skills/shared/gate-prompts.md`:
   question: "How thorough should planning be?"
 - `quick` — 3-5 phases, skip research, ~50% cheaper
@@ -292,6 +296,7 @@ Use the **depth-select** pattern from `skills/shared/gate-prompts.md`:
 - `comprehensive` — 8-12 phases, full deep research, ~2x cost
 
 **3c. Parallelization:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
   question: "Run multiple agents in parallel when plans are independent?"
   header: "Parallel"
@@ -302,6 +307,7 @@ Use the **toggle-confirm** pattern from `skills/shared/gate-prompts.md`:
 - `disabled` — sequential execution
 
 **3d. Git Branching:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **git-strategy-select** pattern from `skills/shared/gate-prompts.md`:
   question: "Git branching strategy?"
 - `none` (default) — commit to current branch
@@ -309,6 +315,7 @@ Use the **git-strategy-select** pattern from `skills/shared/gate-prompts.md`:
 - `milestone` — create branch per milestone
 
 **3e. Commit Planning Docs:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "Should planning documents (.planning/ directory) be committed to git?"
   options:
@@ -380,6 +387,7 @@ Based on the depth setting from Step 3, determine the research approach:
 
 **Interactive mode (default):**
 - If `gates.confirm_research` is `true` in config:
+  **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
   Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
     question: "I'd like to research the technology landscape before planning. This helps create better plans. Proceed with research?"
     options:
@@ -527,7 +535,9 @@ List the missing dimensions.
 
 **Auto-mode:** Display "Continuing with gaps (auto-mode). Gaps will be noted in synthesis." and proceed to Step 6.
 
-**Interactive mode:** Use AskUserQuestion with 3 options:
+**Interactive mode:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use AskUserQuestion with 3 options:
 
 ```
 question: "Research partially complete. {N} of {M} researchers succeeded. How would you like to proceed?"
@@ -595,6 +605,7 @@ CRITICAL (no hook): Read these files BEFORE any other action:
   ⚠ Synthesizer reported BLOCKED: {reason from output}
   Research files are still available individually in .planning/research/.
   ```
+  **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
     question: "Synthesis was blocked. Continue without synthesis?"
     header: "Blocked"
@@ -706,7 +717,9 @@ CRITICAL (no hook): Read these files BEFORE any other action:
   ✓ Roadmap created — {N} phases in milestone "{name}"
   ```
 - **Auto-mode bypass:** If `config.mode === 'autonomous'`, display "PBR > Auto-mode: advancing to state initialization..." and skip the roadmap approval gate. Proceed directly to Step 9.
-- If `gates.confirm_roadmap` is true in config (interactive mode), use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
+- If `gates.confirm_roadmap` is true in config (interactive mode):
+  **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+  Use the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
   question: "Approve this roadmap?"
   options:
     - label: "Approve"          description: "Proceed with this roadmap"
@@ -854,6 +867,7 @@ If `gates.confirm_project` is true in config:
   - Requirements: {count} v1 requirements
   - Config: depth={depth}, mode={mode}
 - If `gates.confirm_commit_docs` is `true` OR this is a **brownfield** project (existing code detected in Step 1):
+  **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
   Use the **yes-no** pattern from `skills/shared/gate-prompts.md`:
     question: "Everything look good? Commit the planning docs?"
     options:

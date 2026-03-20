@@ -394,7 +394,9 @@ Other skills available for routing:
 
 ```
 
-**If multiple reasonable next actions exist** (2-3 alternatives), use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
+**If multiple reasonable next actions exist** (2-3 alternatives):
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use the **action-routing** pattern (see `skills/shared/gate-prompts.md`):
 
 Use AskUserQuestion:
   question: "What would you like to do next?"

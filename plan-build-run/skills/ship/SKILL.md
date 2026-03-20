@@ -35,6 +35,7 @@ Then proceed to Step 1.
    ```
    WARNING: You have uncommitted changes. Commit or stash before shipping.
    ```
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: yes-no):
      question: "Continue with uncommitted changes?"
    If "No": stop.

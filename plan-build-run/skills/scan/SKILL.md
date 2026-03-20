@@ -230,6 +230,27 @@ Top concerns:
 3. {third concern}
 ```
 
+### Step 6b: Intel Bridge
+
+If `.planning/intel/` directory exists AND `.planning/config.json` has `intel.enabled` not explicitly `false`:
+
+Display:
+```
+Scan results can seed the intel system for faster agent planning.
+```
+
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use AskUserQuestion (pattern: yes-no):
+  question: "Populate intel from scan results?"
+  options:
+    - label: "Yes" description: "Run /pbr:intel refresh to build intel from scan data"
+    - label: "No" description: "Skip — you can run /pbr:intel later"
+
+- If "Yes": Display `Run /pbr:intel refresh` as the suggested next command. Do NOT spawn the intel agent inline — the user should run it in a fresh context window.
+- If "No": Continue to Step 7.
+
+If `.planning/intel/` does NOT exist or intel is disabled: skip this substep silently.
+
 Then use the "Next Up" routing block:
 ```
 
@@ -265,7 +286,9 @@ git add .planning/codebase/
 git commit -m "docs(planning): map existing codebase"
 ```
 
-If no config exists yet (scan before begin), use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+If no config exists yet (scan before begin):
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Commit the codebase analysis to git?"
   header: "Commit?"
   options:

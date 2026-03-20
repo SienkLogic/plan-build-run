@@ -86,6 +86,7 @@ Read each file's frontmatter to check status:
 
 **If active sessions found:**
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **debug-session-select** pattern from `skills/shared/gate-prompts.md`:
   question: "Found active debug sessions. Which would you like?"
 
@@ -367,7 +368,8 @@ Investigation progress:
 Actions:
 1. Update debug file with findings so far
 2. Present checkpoint to user
-3. Use the **debug-checkpoint** pattern from `skills/shared/gate-prompts.md`:
+3. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use the **debug-checkpoint** pattern from `skills/shared/gate-prompts.md`:
    question: "Investigation has reached a checkpoint. How should we proceed?"
 
 Handle responses:

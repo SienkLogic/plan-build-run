@@ -987,6 +987,55 @@ function validateSelfCheck(summaryPath, config) {
   return warnings;
 }
 
+/**
+ * Skills that require AskUserQuestion gate prompts.
+ * Value = minimum expected calls (0 = conditional, warn only if zero).
+ */
+const SKILLS_REQUIRING_GATES = {
+  health: 1,
+  milestone: 1,
+  import: 1,
+  review: 1,
+  discuss: 1,
+  build: 0
+};
+
+/**
+ * Check whether a gate-requiring skill completed without any AskUserQuestion calls.
+ * Called by check-subagent-output.js after subagent completion.
+ *
+ * @param {string} planningDir - Path to .planning/ directory
+ * @param {string} skillName - Active skill name
+ * @returns {string|null} Warning message or null if compliant
+ */
+function checkUserGateCompliance(planningDir, skillName) {
+  if (!skillName || !SKILLS_REQUIRING_GATES.hasOwnProperty(skillName)) {
+    return null; // Not a gate-requiring skill
+  }
+
+  const signalPath = path.join(planningDir, '.user-gate-passed');
+
+  try {
+    if (!fs.existsSync(signalPath)) {
+      return `Skill '${skillName}' completed without any AskUserQuestion calls. This skill has gate-prompt references that should require user confirmation.`;
+    }
+
+    const signalData = JSON.parse(fs.readFileSync(signalPath, 'utf8'));
+
+    // Check if signal matches current skill
+    if (signalData.skill !== skillName) {
+      return `Skill '${skillName}' completed without any AskUserQuestion calls. This skill has gate-prompt references that should require user confirmation.`;
+    }
+
+    // Signal exists and matches — clean up
+    try { fs.unlinkSync(signalPath); } catch (_e) { /* best-effort cleanup */ }
+    return null;
+  } catch (_e) {
+    // If signal file exists but can't be parsed, treat as missing
+    return `Skill '${skillName}' completed without any AskUserQuestion calls. This skill has gate-prompt references that should require user confirmation.`;
+  }
+}
+
 module.exports = {
   AGENT_TO_SKILL,
   AGENT_OUTPUTS,
@@ -1006,5 +1055,7 @@ module.exports = {
   shouldTrackTrust,
   loadFeatureFlag,
   updateConventionsAfterBuild,
-  validateSelfCheck
+  validateSelfCheck,
+  checkUserGateCompliance,
+  SKILLS_REQUIRING_GATES
 };

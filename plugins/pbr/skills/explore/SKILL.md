@@ -147,6 +147,7 @@ After researchers complete, synthesize findings inline and continue the Socratic
 
 When a knowledge gap emerges during the conversation — you're unsure about a library, pattern, or approach — surface it explicitly.
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 **Ask the user** using the **yes-no** pattern from `skills/shared/gate-prompts.md`:
   question: "I'm not sure about the best approach for {topic}. Research it now?"
   options:
@@ -261,6 +262,7 @@ Want to adjust, add, or remove any of these?
 
 ### Step 3: Confirm
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **output-routing** pattern from `skills/shared/gate-prompts.md`:
   question: "How do you want to handle these proposed outputs?"
 

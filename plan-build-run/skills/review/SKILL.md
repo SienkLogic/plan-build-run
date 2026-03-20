@@ -115,7 +115,8 @@ If phase directory not found, use conversational recovery:
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
    - Offer "Show all phases" to list `available`.
-4. Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
+4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
    - If user picks a valid phase slug: re-run with that slug.
    - If user chooses to abort: stop cleanly with a friendly message.
 
@@ -278,20 +279,6 @@ CRITICAL (no hook): Verify verifier output before proceeding.
 4. **Completion marker**: Look for `## VERIFICATION COMPLETE` in the Task() output
 
 If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
-
----
-
-### Step 3b: Local LLM Verification Quality Check (optional, advisory)
-
-After the verifier completes and writes VERIFICATION.md, if `config.local_llm.enabled` is `true`, run a quality classification:
-
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm classify SUMMARY ".planning/phases/{NN}-{slug}/VERIFICATION.md"
-```
-
-- If classification is `"thin"` with confidence >= 0.7: warn `"⚠ Verification report appears thin on details — UAT may not catch all gaps. Consider re-running with /pbr:verify-work {N}."`
-- If the command fails or returns null: skip silently (local LLM unavailable)
-- This is advisory only — never block on the result
 
 ---
 

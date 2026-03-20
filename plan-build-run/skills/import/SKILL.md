@@ -168,6 +168,7 @@ Using the PRD content (plus any gap-fill answers from Step B), generate the cont
 
 Display a preview of the three generated files (show first 10 lines of each with a `...` truncation).
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Then present the confirmation gate using the **approve-revise-abort** pattern from `skills/shared/gate-prompts.md`:
 
 ```
@@ -194,7 +195,9 @@ Use AskUserQuestion:
 For each of the two files (`PROJECT.md`, `REQUIREMENTS.md` in `.planning/`):
 
 1. Check if the file already exists (Glob `.planning/PROJECT.md`, etc.).
-2. If it exists: use AskUserQuestion yes-no pattern:
+2. If it exists:
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion yes-no pattern:
    ```
    question: ".planning/{filename} already exists. Overwrite it?"
    header: "Overwrite?"

@@ -157,7 +157,9 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    All three sub-checks (a, b, c) are part of the same pre-build gate. Stop execution if (a) or (b) fail. Proceed after (c) even if conflicts are acknowledged.
 6. If no phase number given, read current phase from `.planning/STATE.md`
    - `config.models.complexity_map` — adaptive model mapping (default: `{ simple: "haiku", medium: "sonnet", complex: "inherit" }`)
-7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true: use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+7. If `gates.confirm_execute` is true AND `auto_mode` is NOT true:
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
    question: "Ready to build Phase {N}? This will execute {count} plans."
    header: "Build?"
    options:
@@ -189,6 +191,7 @@ node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js staleness-check {phase-slug}
 ```
 
 Returns `{ stale: bool, plans: [{id, stale, reason}] }`. If `stale: true` for any plan:
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 - Use AskUserQuestion (pattern: stale-continue from `skills/shared/gate-prompts.md`):
   question: "Plan {plan_id} may be stale — {reason}"
   options: ["Continue anyway", "Re-plan with /pbr:plan-phase {N}"]
@@ -213,7 +216,8 @@ If dependencies incomplete, use conversational recovery:
 1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives missing-prereq {dependency-phase-slug}`
 2. Parse the JSON response to get `existing_summaries`, `missing_summaries`, and `suggested_action`.
 3. Display what summaries exist and what is still missing.
-4. Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`) to offer:
+4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`) to offer:
    - "Build {dependency-phase} first" — stop and show: `/pbr:execute-phase {dependency-phase}`
    - "Continue anyway (skip dependency check)" — proceed with build, note unmet deps in output
 
@@ -222,7 +226,8 @@ If config validation fails for a specific field, use conversational recovery:
 1. Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js suggest-alternatives config-invalid {field} {value}`
 2. Parse the JSON response to get `valid_values` and `suggested_fix`.
 3. Display the invalid field, its current value, and the valid options.
-4. Use AskUserQuestion to offer: "Fix config.json now, or continue with current value?"
+4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion to offer: "Fix config.json now, or continue with current value?"
    - If "Fix now": stop and display the `suggested_fix` instruction.
    - If "Continue": proceed with default value for that field.
 
@@ -272,6 +277,7 @@ Check for existing SUMMARY.md files from previous runs (crash recovery):
 3. Build the skip list of plans to exclude
 
 **If all plans already have completed SUMMARYs:**
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
   question: "Phase {N} has already been built. All plans have completed SUMMARYs. Re-build from scratch?"
   header: "Re-build?"
@@ -352,7 +358,9 @@ If the condition is false, skip this step entirely and proceed to Step 5c.
    {For each implicit dependency: "Add depends_on: ['{earlier_plan_id}'] to {later_plan_id}"}
    ```
 
-6. If **any** conflicts or warnings were found, present the report and use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+6. If **any** conflicts or warnings were found, present the report and:
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
 
    ```
    question: "{N} conflict(s) detected between plans in this phase. Proceed anyway?"
@@ -418,6 +426,7 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
    These files were established as deliverables by prior phases. Modifying them may cause regressions.
    ```
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
 
    ```
@@ -677,6 +686,7 @@ Choose an action:
   Abort   — Stop the build entirely
 ```
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion with the three options. Route:
 
 - Retry: Re-spawn the executor for this plan (go back to Step 6a for this plan only)
@@ -833,6 +843,7 @@ Plan {id} {status}:
   Last verify output: {output}
 ```
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion (pattern: multi-option-failure from `skills/shared/gate-prompts.md`):
   question: "Plan {id} failed at task {N} ({name}). How should we proceed?"
   header: "Failed"
@@ -950,6 +961,7 @@ If any executor returned `checkpoint`:
    {verify_steps from checkpoint data}
    ```
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion with options: "Looks good", "Has issues" (+ text field for details)
 
    **For `decision`:**
@@ -963,6 +975,7 @@ If any executor returned `checkpoint`:
    {options from checkpoint data}
    ```
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion with the options from the checkpoint as selectable choices
 
    **For `human-action`:**
@@ -978,6 +991,7 @@ If any executor returned `checkpoint`:
    Reply when complete.
    ```
 
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Use AskUserQuestion with options: "Done", "Can't do this right now"
    If user selects "Can't do this right now": suggest "Run `/pbr:pause` to save state and resume later."
 
@@ -1014,6 +1028,7 @@ If `config.ci.gate_enabled` is `true` AND `config.git.branching` is not `none`:
 5. If `next_action` is `"continue"`: proceed to next wave
 6. If `next_action` is `"wait"`: re-run ci-poll after 15 seconds (repeat up to `config.ci.wait_timeout_seconds`)
 7. If `next_action` is `"abort"` or `status` is `"failed"`:
+   **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
    Show warning box and use AskUserQuestion: Wait / Continue anyway / Abort
 8. If "Continue anyway": log deviation — `DEVIATION: CI gate bypassed for wave {N}`
 9. If "Abort": stop build, update STATE.md
@@ -1301,7 +1316,8 @@ If `git.branching` is `phase`:
 - Verify we are on the phase branch: `git branch --show-current`
 - If NOT on the phase branch, warn: "Expected to be on {branch-name} but on {current}. Skipping merge."
 - If on the phase branch:
-  - Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
+  - **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+    Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
     question: "Phase {N} complete on branch `pbr/phase-{NN}-{name}`. Squash merge to main?"
     header: "Merge?"
     options:
@@ -1343,7 +1359,8 @@ Generated by Plan-Build-Run
 EOF
 )"`
 3. If `config.git.auto_pr` is `false`:
-   - Use AskUserQuestion to ask: "Phase branch pushed. Create a PR?"
+   - **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+     Use AskUserQuestion to ask: "Phase branch pushed. Create a PR?"
    - Options: Yes (create PR as above) / No / Later (skip)
 
 **8e. Auto-advance / auto-continue (conditional):**

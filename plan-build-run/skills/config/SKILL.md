@@ -177,6 +177,7 @@ Status Line:
 Spinner Tips: (none configured — using defaults)
 ```
 
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Then present the configuration menu using the **settings-category-select** pattern (see `skills/shared/gate-prompts.md`):
 
 Use AskUserQuestion:
@@ -216,6 +217,7 @@ For example: to use quick mode but keep plan-checking, the user would set depth 
 This writes `depth_profiles.quick.features.plan_checking: true` to config.json.
 
 If user selects "Model profile":
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use the **model-profile-select** pattern:
 Use AskUserQuestion:
   question: "Select model profile"
@@ -232,6 +234,7 @@ If user asks for per-agent model selection (typed "models" or "per-agent"), pres
 If user selects "Features":
 List all features and gates with current status, then use the **toggle-confirm** pattern for each change.
 **Feature name normalization:** When toggling a feature, if the user specifies a bare name (e.g., `inline_verify`), normalize it to `features.inline_verify` before writing to config. All feature flags live under the `features.*` namespace in config.json.
+**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
 Use AskUserQuestion:
   question: "Enable {feature_name}?"
   header: "Toggle"

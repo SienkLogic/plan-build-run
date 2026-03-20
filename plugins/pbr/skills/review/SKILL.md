@@ -115,7 +115,8 @@ If phase directory not found, use conversational recovery:
 3. Display: "Phase '{slug}' not found. Did you mean one of these?"
    - List `suggestions` (if any) as numbered options.
    - Offer "Show all phases" to list `available`.
-4. Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
+4. **CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+   Use AskUserQuestion (pattern: yes-no-pick from `skills/shared/gate-prompts.md`) to let the user pick a phase or abort.
    - If user picks a valid phase slug: re-run with that slug.
    - If user chooses to abort: stop cleanly with a friendly message.
 
