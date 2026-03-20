@@ -12,12 +12,43 @@
 
 const graphUpdate = require('./graph-update.js');
 
+/**
+ * HTTP handler for hook-server.js.
+ * Delegates to graph-update.js runGuard() for architecture violation checking.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ *
+ * @param {Object} reqBody - Request body from hook-server
+ * @param {Object} _cache - In-memory server cache (unused)
+ * @returns {Promise<Object|null>} Hook response or null
+ */
+async function handleHttp(reqBody, _cache) {
+  const data = reqBody.data || {};
+  const filePath = (data.tool_input && data.tool_input.file_path) || '';
+
+  if (!filePath) return null;
+
+  const path = require('path');
+  const planningDir = reqBody.planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+
+  try {
+    const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+    const projectRoot = path.dirname(planningDir);
+    const relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
+
+    return graphUpdate.runGuard(planningDir, projectRoot, relFilePath);
+  } catch (_e) {
+    return null;
+  }
+}
+
 module.exports = {
   checkCjsLib: graphUpdate.checkCjsLib,
   checkHookScript: graphUpdate.checkHookScript,
   checkAgentDef: graphUpdate.checkAgentDef,
   checkSkillDef: graphUpdate.checkSkillDef,
-  runGuard: graphUpdate.runGuard
+  runGuard: graphUpdate.runGuard,
+  handleHttp
 };
 
 // If invoked directly as a hook, delegate to graph-update's main

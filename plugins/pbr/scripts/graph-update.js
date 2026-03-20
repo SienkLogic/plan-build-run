@@ -341,6 +341,39 @@ function updateGraph(planningDir, projectRoot, changedFile) {
   return null;
 }
 
+// ─── HTTP handler for hook-server.js ──────────────────────────────────────────
+
+/**
+ * HTTP handler for hook-server.js.
+ * Called as handleHttp(reqBody, cache) where reqBody = { event, tool, data, planningDir, cache }.
+ * Must NOT call process.exit().
+ *
+ * @param {Object} reqBody - Request body from hook-server
+ * @param {Object} _cache - In-memory server cache (unused)
+ * @returns {Promise<Object|null>} Hook response or null
+ */
+async function handleHttp(reqBody, _cache) {
+  const data = reqBody.data || {};
+  const filePath = (data.tool_input && data.tool_input.file_path) || '';
+
+  if (!filePath) return null;
+
+  const planningDir = reqBody.planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+
+  try {
+    // Resolve absolute path for project root detection
+    const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+    const resolvedPlanningDir = findPlanningDir(absFilePath) || planningDir;
+    const projectRoot = path.dirname(resolvedPlanningDir);
+    const relFilePath = path.relative(projectRoot, absFilePath).replace(/\\/g, '/');
+
+    return updateGraph(resolvedPlanningDir, projectRoot, relFilePath);
+  } catch (_e) {
+    try { logHook('graph-update', 'PostToolUse', 'error', { error: _e.message }); } catch (__e) { /* never crash */ }
+    return null;
+  }
+}
+
 // ─── Main (stdin-based hook entry point) ─────────────────────────────────────
 
 function main() {
@@ -385,5 +418,5 @@ function main() {
   });
 }
 
-module.exports = { updateGraph, findPlanningDir, isSourceFile, checkCjsLib, checkHookScript, checkAgentDef, checkSkillDef, runGuard, writeGuardLog };
+module.exports = { updateGraph, findPlanningDir, isSourceFile, checkCjsLib, checkHookScript, checkAgentDef, checkSkillDef, runGuard, writeGuardLog, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }

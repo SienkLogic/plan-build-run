@@ -600,4 +600,135 @@ describe('hook-server.js exports', () => {
     const result = await merged({});
     expect(result).toBeNull();
   });
+
+  // -------------------------------------------------------------------------
+  // URL routing: POST /hook/:event/:tool
+  // Tests use plugins/pbr/scripts/hook-server.js which has URL routing
+  // (hooks/hook-server.js is the older copy without URL-based dispatch)
+  // -------------------------------------------------------------------------
+
+  describe('URL routing /hook/:event/:tool', () => {
+    // Import createServer from the updated hook-server with URL routing
+    const { createServer: createServerV2 } = require('../plugins/pbr/scripts/hook-server');
+    let tmpDir2;
+    let planDir2;
+    let srv;
+
+    beforeEach(() => {
+      tmpDir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-url-route-'));
+      planDir2 = path.join(tmpDir2, '.planning');
+      fs.mkdirSync(planDir2);
+      fs.writeFileSync(
+        path.join(planDir2, 'config.json'),
+        JSON.stringify({ depth: 'standard', mode: 'autonomous' })
+      );
+    });
+
+    afterEach((done) => {
+      if (srv) {
+        srv.close(() => {
+          fs.rmSync(tmpDir2, { recursive: true, force: true });
+          done();
+        });
+      } else {
+        fs.rmSync(tmpDir2, { recursive: true, force: true });
+        done();
+      }
+    });
+
+    function listenAndPost(server, urlPath, payload) {
+      return new Promise((resolve, reject) => {
+        server.listen(0, '127.0.0.1', () => {
+          const { port: p } = server.address();
+          const body = JSON.stringify(payload);
+          const req = http.request({
+            hostname: '127.0.0.1', port: p, path: urlPath, method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+          }, res => {
+            let data = '';
+            res.setEncoding('utf8');
+            res.on('data', c => { data += c; });
+            res.on('end', () => resolve({ status: res.statusCode, body: data }));
+          });
+          req.on('error', reject);
+          req.write(body);
+          req.end();
+        });
+      });
+    }
+
+    test('POST /hook/PostToolUse/Write dispatches to Write handler and returns 200', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook/PostToolUse/Write', {
+        tool_input: { file_path: '/test/file.md' }
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      // Response is either {} or { additionalContext: "..." } — both are valid
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/PostToolUse/Read dispatches to Read handler and returns 200', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook/PostToolUse/Read', {
+        tool_input: { file_path: '/test/file.md' }
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/PostToolUse/Bash dispatches to Bash handler and returns 200', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook/PostToolUse/Bash', {
+        tool_input: { command: 'echo test' }
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/PostToolUse/Task dispatches to Task handler and returns 200', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook/PostToolUse/Task', {
+        tool_input: { prompt: 'test' }
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/UnknownEvent/Write returns 200 with empty object (no handler)', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook/UnknownEvent/Write', {});
+      expect(status).toBe(200);
+      expect(JSON.parse(body)).toEqual({});
+    });
+
+    test('legacy POST /hook endpoint still works (backward compat)', async () => {
+      srv = createServerV2(planDir2);
+      const { status, body } = await listenAndPost(srv, '/hook', {
+        event: 'PostToolUse', tool: 'Write', data: { tool_input: { file_path: '/test.md' } }
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('URL routing and legacy dispatch produce equivalent results for same event/tool', async () => {
+      // Use an unknown event so both paths return {} deterministically
+      srv = createServerV2(planDir2);
+      const p = await new Promise((resolve) => {
+        srv.listen(0, '127.0.0.1', () => resolve(srv.address().port));
+      });
+
+      // URL routing
+      const urlResult = await post(p, '/hook/NoSuchEvent/NoTool', {});
+      // Legacy body dispatch
+      const legacyResult = await post(p, '/hook', { event: 'NoSuchEvent', tool: 'NoTool', data: {} });
+
+      expect(JSON.parse(urlResult.body)).toEqual(JSON.parse(legacyResult.body));
+      expect(urlResult.status).toBe(legacyResult.status);
+    });
+  });
 });

@@ -54,12 +54,16 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["command"],
-          "description": "Hook type — currently only 'command' is supported"
+          "enum": ["command", "http"],
+          "description": "Hook type — 'command' spawns a process, 'http' sends POST to a URL"
         },
         "command": {
           "type": "string",
-          "description": "Shell command to execute (use ${CLAUDE_PLUGIN_ROOT} for script paths)"
+          "description": "Shell command to execute (use ${CLAUDE_PLUGIN_ROOT} for script paths). Required when type is 'command'."
+        },
+        "url": {
+          "type": "string",
+          "description": "HTTP endpoint URL for type: http hooks (e.g. http://127.0.0.1:19836/hook/PostToolUse/Write). Required when type is 'http'."
         },
         "statusMessage": {
           "type": "string",
@@ -76,7 +80,7 @@
           "description": "Maximum seconds before hook is killed (required when async: true)"
         }
       },
-      "required": ["type", "command"],
+      "required": ["type"],
       "additionalProperties": false
     }
   }

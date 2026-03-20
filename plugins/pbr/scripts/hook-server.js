@@ -11,8 +11,9 @@
  *   node hook-server.js [--port 19836] [--dir /path/to/.planning]
  *
  * Endpoints:
- *   GET  /health  → { status: "ok", pid, uptime }
- *   POST /hook    → { event, tool, data } → handler response
+ *   GET  /health              → { status: "ok", pid, uptime }
+ *   POST /hook/:event/:tool   → native HTTP hook dispatch (URL-based routing)
+ *   POST /hook                → legacy dispatch (event/tool in JSON body)
  *
  * Event log:
  *   All events appended to .planning/.hook-events.jsonl (JSONL, unbounded).
@@ -165,8 +166,8 @@ function mergeContext(...fns) {
 
 const ROUTES = {
   'PostToolUse:Read':       lazyHandler('track-context-budget'),
-  'PostToolUse:Write':      mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch')),
-  'PostToolUse:Edit':       mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch')),
+  'PostToolUse:Write':      mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch'), lazyHandler('graph-update'), lazyHandler('architecture-guard')),
+  'PostToolUse:Edit':       mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch'), lazyHandler('graph-update'), lazyHandler('architecture-guard')),
   'PostToolUse:Bash':       mergeContext(lazyHandler('context-bridge'), lazyHandler('post-bash-triage')),
   'PostToolUse:Task':       mergeContext(lazyHandler('context-bridge'), lazyHandler('check-subagent-output')),
   'PostToolUseFailure:*':   lazyHandler('log-tool-failure'),
@@ -245,7 +246,50 @@ function createServer(planningDir) {
       }
     }
 
-    // Hook dispatch
+    // Native HTTP hook dispatch (URL-based routing: /hook/:event/:tool)
+    const hookMatch = req.url && req.url.match(/^\/hook\/([^/?]+)\/([^/?]+)$/);
+    if (req.method === 'POST' && hookMatch) {
+      const event = decodeURIComponent(hookMatch[1]);
+      const tool = decodeURIComponent(hookMatch[2]);
+
+      let data;
+      try {
+        const raw = await readBody(req);
+        data = raw ? JSON.parse(raw) : {};
+      } catch (_e) {
+        return sendJSON(res, 400, { error: 'invalid JSON' });
+      }
+
+      // Log the incoming event
+      appendEvent(planningDir, {
+        ts: new Date().toISOString(),
+        event,
+        tool,
+        source: 'http-native',
+        ...(data && data.tool_input ? { file: data.tool_input.file_path } : {})
+      });
+
+      // Refresh in-memory cache from disk
+      try {
+        const { configLoad } = require('./lib/config');
+        cache.config = configLoad(planningDir);
+      } catch (_e) { /* best-effort */ }
+
+      // Resolve and run handler (fail-open)
+      try {
+        const handler = resolveHandler(event, tool);
+        if (!handler) {
+          return sendJSON(res, 200, {});
+        }
+
+        const result = await handler({ event, tool, data, planningDir, cache });
+        return sendJSON(res, 200, result || {});
+      } catch (_e) {
+        return sendJSON(res, 200, {});
+      }
+    }
+
+    // Hook dispatch (legacy: event/tool in JSON body)
     if (req.method === 'POST' && req.url === '/hook') {
       let reqBody;
       try {
