@@ -1003,7 +1003,7 @@ const SKILLS_REQUIRING_GATES = {
  * @returns {string|null} Warning message or null if compliant
  */
 function checkUserGateCompliance(planningDir, skillName) {
-  if (!skillName || !SKILLS_REQUIRING_GATES.hasOwnProperty(skillName)) {
+  if (!skillName || !Object.prototype.hasOwnProperty.call(SKILLS_REQUIRING_GATES, skillName)) {
     return null; // Not a gate-requiring skill
   }
 

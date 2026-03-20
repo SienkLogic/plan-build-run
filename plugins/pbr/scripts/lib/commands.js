@@ -1,3 +1,4 @@
+/* global fetch */
 /**
  * Commands — Standalone utility commands
  */

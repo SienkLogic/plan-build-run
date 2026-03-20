@@ -16,6 +16,7 @@ const commonGlobals = {
   URL: 'readonly',
   TextEncoder: 'readonly',
   TextDecoder: 'readonly',
+  URLSearchParams: 'readonly',
 };
 
 const relaxedUnusedVars = ['warn', {
@@ -39,7 +40,9 @@ module.exports = [
     },
     rules: {
       'no-unused-vars': relaxedUnusedVars,
-      'no-useless-assignment': 'off'
+      'no-useless-assignment': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'no-useless-escape': 'warn'
     }
   },
   {

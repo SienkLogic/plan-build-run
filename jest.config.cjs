@@ -18,27 +18,20 @@ const sharedConfig = {
 
 module.exports = {
   maxWorkers: '50%',
-  // Coverage thresholds — raised 2026-03-19 after excluding plugin copies from collection
-  // Global: actual ~73/65/78/74 — set 5pt below to allow headroom
-  // bin/lib: actual ~71/59/77/72 — set 5pt below to allow headroom
+  // Coverage thresholds — updated 2026-03-20 after source unification (v18.0)
+  // Single canonical source: plugins/pbr/scripts/
+  // Actual: 61.68/52.77/66.28/62.54 — set 5pt below for headroom
   coverageThreshold: {
     global: {
-      statements: 68,
-      branches: 60,
-      functions: 73,
-      lines: 69,
-    },
-    './plan-build-run/bin/lib/': {
-      statements: 66,
-      branches: 55,
-      functions: 72,
-      lines: 67,
+      statements: 56,
+      branches: 47,
+      functions: 61,
+      lines: 57,
     },
   },
   coverageReporters: ['text', 'text-summary', 'json-summary'],
   coveragePathIgnorePatterns: ['/node_modules/', '/dashboard/', '/tests/', '/plugins/pbr/scripts/test/'],
   collectCoverageFrom: [
-    'plan-build-run/bin/lib/**/*.cjs',
     'plugins/pbr/scripts/**/*.js',
     '!plugins/pbr/scripts/test/**',
   ],

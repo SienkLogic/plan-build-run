@@ -901,8 +901,9 @@ function checkCommitPatternValidation(planningDir, _config) {
   // Fallback: validate recent git log commit messages match convention
   const conventionPattern = /^[a-z]+\([^)]+\):\s.+$/;
   try {
+    const _projectRoot = path.resolve(planningDir, '..');
     const log = execSync('git log --oneline -20', {
-      cwd: projectRoot,
+      cwd: _projectRoot,
       timeout: 10000,
       encoding: 'utf8',
     });
