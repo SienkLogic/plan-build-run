@@ -11,8 +11,6 @@ const path = require('path');
 
 const SKILL_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'autonomous', 'SKILL.md');
 const COMMAND_PATH = path.join(__dirname, '..', 'plugins', 'pbr', 'commands', 'autonomous.md');
-const SYNC_PATH = path.join(__dirname, '..', 'plan-build-run', 'skills', 'autonomous', 'SKILL.md');
-
 describe('/pbr:autonomous skill', () => {
   let content;
 
@@ -67,9 +65,4 @@ describe('/pbr:autonomous skill', () => {
     expect(cmdContent).toMatch(/pbr:autonomous/);
   });
 
-  test('synced to plan-build-run/skills/', () => {
-    expect(fs.existsSync(SYNC_PATH)).toBe(true);
-    const syncContent = fs.readFileSync(SYNC_PATH, 'utf8');
-    expect(syncContent).toEqual(content);
-  });
 });

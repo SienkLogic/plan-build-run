@@ -58,7 +58,7 @@ describe('dashboard skill', () => {
 
   describe('SKILL.md exists and has valid frontmatter', () => {
     it('has dashboard SKILL.md', () => {
-      const skillPath = path.join(__dirname, '..', 'plan-build-run', 'skills', 'dashboard', 'SKILL.md');
+      const skillPath = path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'dashboard', 'SKILL.md');
       expect(fs.existsSync(skillPath)).toBe(true);
 
       const content = fs.readFileSync(skillPath, 'utf8');

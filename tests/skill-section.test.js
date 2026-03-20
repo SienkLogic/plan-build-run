@@ -3,8 +3,8 @@
 const path = require('path');
 const { skillSection, resolveSkillPath, listAvailableSkills } = require('../plan-build-run/bin/lib/skill-section.cjs');
 
-// Plugin root resolves to plan-build-run/ from the repo root
-const pluginRoot = path.join(__dirname, '..', 'plan-build-run');
+// Plugin root resolves to plugins/pbr/ from the repo root
+const pluginRoot = path.join(__dirname, '..', 'plugins', 'pbr');
 
 describe('skillSection', () => {
   // --- Happy path ---

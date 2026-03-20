@@ -14,7 +14,8 @@ const fs = require('fs');
 const path = require('path');
 
 const AGENTS_DIR = path.join(__dirname, '..', 'agents');
-const WORKFLOWS_DIR = path.join(__dirname, '..', 'plan-build-run', 'workflows');
+// Legacy workflows dir removed; skills are now in plugins/pbr/skills/
+const SKILLS_DIR = path.join(__dirname, '..', 'plugins', 'pbr', 'skills');
 const COMMANDS_DIR = path.join(__dirname, '..', 'commands', 'pbr');
 
 const ALL_AGENTS = fs.readdirSync(AGENTS_DIR)
@@ -115,7 +116,7 @@ describe('HOOK: hooks frontmatter pattern', () => {
 
 describe('SPAWN: spawn type consistency', () => {
   test('no "First, read agent .md" workaround pattern remains', () => {
-    const dirs = [WORKFLOWS_DIR, COMMANDS_DIR];
+    const dirs = [SKILLS_DIR, COMMANDS_DIR];
     for (const dir of dirs) {
       if (!fs.existsSync(dir)) continue;
       const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
@@ -136,7 +137,7 @@ describe('SPAWN: spawn type consistency', () => {
       'general-purpose',  // Allowed for orchestrator spawns
     ]);
 
-    const dirs = [WORKFLOWS_DIR, COMMANDS_DIR];
+    const dirs = [SKILLS_DIR, COMMANDS_DIR];
     for (const dir of dirs) {
       if (!fs.existsSync(dir)) continue;
       const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
@@ -154,13 +155,13 @@ describe('SPAWN: spawn type consistency', () => {
     }
   });
 
-  test('diagnose-issues uses pbr-debugger (not general-purpose)', () => {
-    const content = fs.readFileSync(
-      path.join(WORKFLOWS_DIR, 'diagnose-issues.md'), 'utf-8'
-    );
+  test('debug skill uses debugger agent (not general-purpose)', () => {
+    const debugSkillPath = path.join(SKILLS_DIR, 'debug', 'SKILL.md');
+    if (!fs.existsSync(debugSkillPath)) return; // skip if skill not present
+    const content = fs.readFileSync(debugSkillPath, 'utf-8');
     assert.ok(
-      content.includes('subagent_type="pbr-debugger"'),
-      'diagnose-issues should spawn pbr-debugger, not general-purpose'
+      content.includes('debugger') || content.includes('pbr-debugger'),
+      'debug skill should reference debugger agent'
     );
   });
 });

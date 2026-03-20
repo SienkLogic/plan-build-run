@@ -103,13 +103,4 @@ describe('Advanced Execution Features in Build SKILL.md', () => {
     });
   });
 
-  describe('SKILL.md Sync', () => {
-    test('plugins/pbr and plan-build-run copies are identical', () => {
-      const primaryPath = path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'build', 'SKILL.md');
-      const syncPath = path.join(__dirname, '..', 'plan-build-run', 'skills', 'build', 'SKILL.md');
-      const primary = fs.readFileSync(primaryPath, 'utf8');
-      const synced = fs.readFileSync(syncPath, 'utf8');
-      expect(primary).toEqual(synced);
-    });
-  });
 });

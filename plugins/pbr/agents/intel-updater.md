@@ -63,7 +63,7 @@ Intel system is disabled. Enable with: /pbr:config set intel.enabled true
 
 When analyzing this project, use ONLY canonical source locations:
 
-- Skills: `plugins/pbr/skills/*/SKILL.md` (NOT `plan-build-run/skills/`)
+- Skills: `plugins/pbr/skills/*/SKILL.md`
 - Agents: `plugins/pbr/agents/*.md`
 - Hooks: `hooks/*.js`
 - CLI: `plan-build-run/bin/`
@@ -74,7 +74,6 @@ EXCLUDE from counts and analysis:
 - `plugins/cursor-pbr/` (suspended derivative)
 - `plugins/copilot-pbr/` (suspended derivative)
 - `plugins/codex-pbr/` (suspended derivative)
-- `plan-build-run/skills/` (duplicate of plugins/pbr/skills/)
 
 **Count accuracy:** When reporting component counts in stack.json or arch.md, always derive
 counts by running Glob on canonical locations above, not from memory or CLAUDE.md.

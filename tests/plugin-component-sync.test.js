@@ -103,17 +103,6 @@ describe('Plugin component sync', () => {
     expect(invalid).toEqual([]);
   });
 
-  test('repo-root skills match plugins/pbr/skills/', () => {
-    const rootSkills = listSkills(path.join(ROOT, 'plan-build-run', 'skills'));
-    const pluginSkills = listSkills(path.join(PLUGIN, 'skills'));
-
-    const inRootOnly = rootSkills.filter(s => !pluginSkills.includes(s));
-    const inPluginOnly = pluginSkills.filter(s => !rootSkills.includes(s));
-
-    expect(inRootOnly).toEqual([]);
-    expect(inPluginOnly).toEqual([]);
-  });
-
   test('direct command descriptions match their skill descriptions', () => {
     // Only check commands that map directly to same-named skills.
     // Alias commands (e.g., discuss-phase -> discuss) have different

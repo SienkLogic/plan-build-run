@@ -6,11 +6,11 @@
  *
  * Also checks for known anti-patterns across the project.
  *
- * Ported from plugin layout to standalone PBR structure:
- *   - skills: plan-build-run/skills/
- *   - agents: agents/
- *   - references: plan-build-run/references/
- *   - templates: plan-build-run/templates/
+ * Plugin layout:
+ *   - skills: plugins/pbr/skills/
+ *   - agents: plugins/pbr/agents/
+ *   - references: plugins/pbr/references/
+ *   - templates: plugins/pbr/templates/
  *   - hooks: hooks/
  */
 
@@ -18,8 +18,9 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
-const SKILLS_DIR = path.join(PROJECT_ROOT, 'plan-build-run', 'skills');
-const AGENTS_DIR = path.join(PROJECT_ROOT, 'plugins', 'pbr', 'agents');
+const PLUGIN_ROOT = path.join(PROJECT_ROOT, 'plugins', 'pbr');
+const SKILLS_DIR = path.join(PLUGIN_ROOT, 'skills');
+const AGENTS_DIR = path.join(PLUGIN_ROOT, 'agents');
 
 /**
  * Extract file path references from markdown content.
@@ -42,10 +43,10 @@ function extractReferences(content) {
 
 /**
  * Resolve a reference path from plugin-relative to actual filesystem path.
- * In standalone PBR, templates/references/skills are under plan-build-run/.
+ * Templates/references/skills are under plugins/pbr/.
  */
 function resolveReference(ref) {
-  return path.join(PROJECT_ROOT, 'plan-build-run', ref);
+  return path.join(PLUGIN_ROOT, ref);
 }
 
 /**
@@ -81,7 +82,7 @@ describe('Reference Integrity', () => {
       const content = fs.readFileSync(filePath, 'utf8');
       const refs = extractReferences(content);
       const relName = filePath.includes('skills')
-        ? path.relative(path.join(PROJECT_ROOT, 'plan-build-run'), filePath)
+        ? path.relative(PLUGIN_ROOT, filePath)
         : path.relative(PROJECT_ROOT, filePath);
 
       for (const ref of refs) {
@@ -129,7 +130,7 @@ describe('Reference Integrity', () => {
       for (const d of fs.readdirSync(SKILLS_DIR, { withFileTypes: true })) {
         if (d.isDirectory() && d.name !== 'shared') {
           const tmplDir = path.join('skills', d.name, 'templates');
-          if (fs.existsSync(path.join(PROJECT_ROOT, 'plan-build-run', tmplDir))) {
+          if (fs.existsSync(path.join(PLUGIN_ROOT, tmplDir))) {
             templateDirs.push(tmplDir);
           }
         }
@@ -138,7 +139,7 @@ describe('Reference Integrity', () => {
 
     const orphaned = [];
     for (const dir of templateDirs) {
-      const absDir = path.join(PROJECT_ROOT, 'plan-build-run', dir);
+      const absDir = path.join(PLUGIN_ROOT, dir);
       if (!fs.existsSync(absDir)) continue;
       for (const f of fs.readdirSync(absDir)) {
         if (!f.endsWith('.tmpl') && !f.endsWith('.md')) continue;
@@ -161,7 +162,7 @@ describe('Reference Integrity', () => {
   });
 
   test('references/ directory files all exist and are non-empty', () => {
-    const refsDir = path.join(PROJECT_ROOT, 'plan-build-run', 'references');
+    const refsDir = path.join(PLUGIN_ROOT, 'references');
     expect(fs.existsSync(refsDir)).toBe(true);
 
     // List actual reference files in target (different from plugin layout)
@@ -322,7 +323,7 @@ describe('Anti-Pattern Checks', () => {
 
     for (const filePath of skillFiles) {
       const content = fs.readFileSync(filePath, 'utf8');
-      const relName = path.relative(path.join(PROJECT_ROOT, 'plan-build-run'), filePath);
+      const relName = path.relative(PLUGIN_ROOT, filePath);
 
       // Check for very large code blocks that might be inlined agent prompts
       const codeBlocks = content.match(/```[\s\S]*?```/g) || [];

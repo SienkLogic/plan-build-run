@@ -1057,7 +1057,7 @@ next_top_level: something`;
 const { listHeadings, extractSection, resolveReferencePath, referenceGet: referenceGetLib } = require('../plan-build-run/bin/lib/reference.cjs');
 
 describe('referenceGet / lib/reference', () => {
-  const PLUGIN_ROOT = path.join(__dirname, '..', 'plan-build-run');
+  const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
 
   // ── listHeadings ──────────────────────────────────────────────────────────
 

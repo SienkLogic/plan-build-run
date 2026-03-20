@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SKILLS_DIR = path.resolve(__dirname, '..', 'plan-build-run', 'skills');
+const SKILLS_DIR = path.resolve(__dirname, '..', 'plugins', 'pbr', 'skills');
 const GATE_PROMPTS_PATH = path.join(SKILLS_DIR, 'shared', 'gate-prompts.md');
 
 /**

@@ -40,7 +40,7 @@ describe('agent-teams', () => {
 
   describe('plan skill team documentation', () => {
     const planSkill = fs.readFileSync(
-      path.join(__dirname, '..', 'plan-build-run', 'skills', 'plan', 'SKILL.md'), 'utf8');
+      path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'plan', 'SKILL.md'), 'utf8');
 
     test('documents --teams flag', () => {
       expect(planSkill).toContain('--teams');
@@ -63,7 +63,7 @@ describe('agent-teams', () => {
 
   describe('review skill team documentation', () => {
     const reviewSkill = fs.readFileSync(
-      path.join(__dirname, '..', 'plan-build-run', 'skills', 'review', 'SKILL.md'), 'utf8');
+      path.join(__dirname, '..', 'plugins', 'pbr', 'skills', 'review', 'SKILL.md'), 'utf8');
 
     test('documents all three review roles', () => {
       expect(reviewSkill).toContain('FUNCTIONAL REVIEWER');

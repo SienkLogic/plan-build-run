@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const schema = require('../plan-build-run/bin/config-schema.json');
-const PLUGIN_ROOT = path.join(__dirname, '..', 'plan-build-run');
+const PLUGIN_ROOT = path.join(__dirname, '..', 'plugins', 'pbr');
 
 describe('model-selection', () => {
   describe('config schema structure', () => {
