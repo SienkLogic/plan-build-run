@@ -601,7 +601,9 @@ If ANY spot-check fails, present the user with options: **Retry** / **Continue a
 ### Step 6: Plan Validation (delegated, conditional)
 
 **Skip this step if:**
-- Depth profile has `features.plan_checking: false` AND `--audit` flag is NOT set AND `features.inline_verify` is `true` in config (planner self-validates)
+- `features.inline_verify` is `true` in config AND `--audit` flag is NOT set (planner self-validates)
+
+Plan-checking is always enabled. Quick depth uses a reduced dimension set (D1-D7, skipping D8 Nyquist and D9 Data Contracts). The `--audit` flag forces full 9-dimension checking regardless of depth.
 
 To check: use the resolved depth profile from Step 1. The profile consolidates the depth setting and any user overrides into a single boolean.
 
@@ -633,6 +635,7 @@ NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT
 Read `${CLAUDE_SKILL_DIR}/templates/checker-prompt.md.tmpl` and use it as the prompt template for spawning the plan checker agent. Fill in the placeholders:
 - `<plans_to_check>` - manifest table of PLAN.md file paths (checker reads each via Read tool)
 - `<phase_context>` - phase goal and requirement IDs
+- `<depth>` - current depth profile (quick, standard, comprehensive) so checker knows which dimensions to evaluate
 - `<context>` - file paths to project-level and phase-level CONTEXT.md files (checker reads via Read tool)
 
 **Prepend this block to the checker prompt before sending:**

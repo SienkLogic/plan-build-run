@@ -71,7 +71,7 @@ function checkPlanValidationGate(data) {
     // Check if .plan-check.json exists
     if (!fs.existsSync(checkFile)) {
       if (depth === 'quick') {
-        return { warning: 'Plan validation skipped (quick depth) — .plan-check.json missing or not passed' };
+        return { warning: 'Plan validation advisory (quick depth) — .plan-check.json missing. Run /pbr:plan-phase to generate it.' };
       }
       return { block: true, reason: `Cannot spawn executor: .plan-check.json not found in phase directory.\n\nThe build gate requires a passing plan-check artifact before executor spawn. This artifact is written by the plan-checker agent during /pbr:plan-phase.\n\nRun /pbr:plan-phase ${currentPhase} with plan-checker enabled first.` };
     }
@@ -81,7 +81,7 @@ function checkPlanValidationGate(data) {
 
     if (checkData.status !== 'passed') {
       if (depth === 'quick') {
-        return { warning: 'Plan validation skipped (quick depth) — .plan-check.json missing or not passed' };
+        return { warning: 'Plan validation advisory (quick depth) — plan-check has unresolved issues (status: ' + checkData.status + '). Review recommended before building.' };
       }
       return {
         block: true,
