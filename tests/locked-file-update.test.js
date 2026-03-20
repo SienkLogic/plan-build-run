@@ -111,6 +111,79 @@ describe('lockedFileUpdate', () => {
     expect(receivedContent).toBe('');
   });
 
+  test('writes data as last resort when lock cannot be acquired', () => {
+    const filePath = path.join(tmpDir, 'STATE.md');
+    fs.writeFileSync(filePath, 'original');
+
+    // Create a lock file with current timestamp (not stale)
+    const lockPath = filePath + '.lock';
+    fs.writeFileSync(lockPath, '99999');
+    fs.utimesSync(lockPath, new Date(), new Date());
+
+    // Capture stderr
+    const origWrite = process.stderr.write;
+    let stderrOutput = '';
+    process.stderr.write = (msg) => { stderrOutput += msg; };
+
+    try {
+      const result = lockedFileUpdate(filePath, (c) => c + ' last-resort', {
+        retries: 2,
+        retryDelayMs: 1,
+        timeoutMs: 999999 // long timeout so lock is not stale
+      });
+
+      expect(result.success).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('original last-resort');
+      expect(stderrOutput).toContain('writing without lock');
+    } finally {
+      process.stderr.write = origWrite;
+      try { fs.unlinkSync(lockPath); } catch (_e) { /* ignore */ }
+    }
+  });
+
+  test('removes stale lock and succeeds', () => {
+    const filePath = path.join(tmpDir, 'STATE.md');
+    fs.writeFileSync(filePath, 'content');
+
+    // Create a stale lock (15 seconds ago)
+    const lockPath = filePath + '.lock';
+    fs.writeFileSync(lockPath, '99999');
+    const oldTime = new Date(Date.now() - 15000);
+    fs.utimesSync(lockPath, oldTime, oldTime);
+
+    const result = lockedFileUpdate(filePath, (c) => c + ' recovered', {
+      timeoutMs: 10000 // lock is 15s old, timeout is 10s -> stale
+    });
+
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toContain('recovered');
+    // Lock file should be cleaned up after successful acquisition
+    expect(fs.existsSync(lockPath)).toBe(false);
+  });
+
+  test('last-resort write still cleans up when lock was never acquired', () => {
+    const filePath = path.join(tmpDir, 'STATE.md');
+    fs.writeFileSync(filePath, 'data');
+
+    // Create a non-stale lock
+    const lockPath = filePath + '.lock';
+    fs.writeFileSync(lockPath, '99999');
+    fs.utimesSync(lockPath, new Date(), new Date());
+
+    const result = lockedFileUpdate(filePath, (c) => c + ' updated', {
+      retries: 1,
+      retryDelayMs: 1,
+      timeoutMs: 999999
+    });
+
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(filePath, 'utf8')).toBe('data updated');
+    // The foreign lock file should still exist (we didn't acquire it, so we don't clean it)
+    expect(fs.existsSync(lockPath)).toBe(true);
+    // Clean up
+    fs.unlinkSync(lockPath);
+  });
+
   test('sequential updates work correctly', () => {
     const filePath = path.join(tmpDir, 'counter.txt');
     fs.writeFileSync(filePath, '0');
