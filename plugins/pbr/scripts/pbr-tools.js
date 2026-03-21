@@ -52,6 +52,9 @@
  *   phase insert <N> <slug> [--goal "..."] [--depends-on N] — Insert phase at position N, renumber subsequent
  *   phase commits-for <N>       — Read .phase-manifest.json for phase N, output commits JSON. Falls back to git log
  *   phase first-last-commit <N> — Output { first, last } commit hashes from manifest or git log
+ *   compound init-phase <N> <slug> [--goal "..."] [--depends-on N] — Atomically create phase dir + STATE + ROADMAP
+ *   compound complete-phase <N>     — Atomically validate SUMMARY + update STATE + ROADMAP
+ *   compound init-milestone <version> [--name "..."] [--phases "N-M"] — Atomically create milestone archive structure
  *   learnings ingest <json-file>  — Ingest a learning entry into global store
  *   learnings query [--tags X] [--min-confidence Y] [--stack S] [--type T] — Query learnings
  *   learnings check-thresholds   — Check deferral trigger conditions
@@ -180,6 +183,12 @@ const {
   phaseComplete: _phaseComplete,
   phaseInsert: _phaseInsert
 } = require('./lib/phase');
+
+const {
+  compoundInitPhase: _compoundInitPhase,
+  compoundCompletePhase: _compoundCompletePhase,
+  compoundInitMilestone: _compoundInitMilestone
+} = require('./lib/compound');
 
 const {
   initExecutePhase: _initExecutePhase,
@@ -429,6 +438,18 @@ function phaseInsert(position, slug, options) {
 
 function milestoneStats(version) {
   return _milestoneStats(version, planningDir);
+}
+
+function compoundInitPhase(phaseNum, slug, opts) {
+  return _compoundInitPhase(phaseNum, slug, planningDir, opts);
+}
+
+function compoundCompletePhase(phaseNum) {
+  return _compoundCompletePhase(phaseNum, planningDir);
+}
+
+function compoundInitMilestone(version, opts) {
+  return _compoundInitMilestone(version, planningDir, opts);
 }
 
 function initExecutePhase(phaseNum, overridePlanningDir, overrideModel) {
@@ -1338,6 +1359,27 @@ async function main() {
       const phaseNum = args[2];
       if (!phaseNum) { error('Usage: phase first-last-commit <N>'); }
       output(_phaseFirstLastCommit(phaseNum));
+    } else if (command === 'compound' && subcommand === 'init-phase') {
+      const phaseNum = args[2];
+      const slug = args[3];
+      if (!phaseNum || !slug) error('Usage: compound init-phase <N> <slug> [--goal "..."] [--depends-on N]');
+      const goalIdx = args.indexOf('--goal');
+      const goal = goalIdx !== -1 ? args[goalIdx + 1] : null;
+      const depIdx = args.indexOf('--depends-on');
+      const dependsOn = depIdx !== -1 ? args[depIdx + 1] : null;
+      output(compoundInitPhase(phaseNum, slug, { goal, dependsOn }));
+    } else if (command === 'compound' && subcommand === 'complete-phase') {
+      const phaseNum = args[2];
+      if (!phaseNum) error('Usage: compound complete-phase <N>');
+      output(compoundCompletePhase(phaseNum));
+    } else if (command === 'compound' && subcommand === 'init-milestone') {
+      const version = args[2];
+      if (!version) error('Usage: compound init-milestone <version> [--name "..."] [--phases "N-M"]');
+      const nameIdx = args.indexOf('--name');
+      const name = nameIdx !== -1 ? args[nameIdx + 1] : null;
+      const phasesIdx = args.indexOf('--phases');
+      const phases = phasesIdx !== -1 ? args[phasesIdx + 1] : null;
+      output(compoundInitMilestone(version, { name, phases }));
     } else if (command === 'todo' && subcommand === 'list') {
       const opts = {};
       const themeIdx = args.indexOf('--theme');

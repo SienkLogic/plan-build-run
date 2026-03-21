@@ -1045,9 +1045,7 @@ Once gates pass, update `.planning/STATE.md`:
 
 **Tooling shortcut**: Use the CLI for atomic STATE.md updates instead of manual read-modify-write:
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete {N}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status building
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"plans_complete":"{N}","status":"building","last_activity":"now"}'
 ```
 
 **CLI exit code verification with retry**: After running each pbr-tools CLI command above, check the exit code:
@@ -1265,11 +1263,7 @@ These return `{ success, old_status, new_status }` or `{ success, old_plans, new
 
 Use CLI commands to update STATE.md (keeps frontmatter and body in sync atomically):
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status {final_status}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update plans_complete {N}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update progress_percent {pct}
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:execute-phase {N}"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"{final_status}","plans_complete":"{N}","last_activity":"now","progress_percent":"{pct}","last_command":"/pbr:execute-phase {N}"}'
 ```
 These update both frontmatter fields (`status`, `plans_complete`, `last_activity`, `progress_percent`, `last_command`) and the body `## Current Position` section (`Phase:`, `Plan:`, `Status:`, `Last activity:`, `Progress:` bar) atomically — they MUST stay in sync.
 

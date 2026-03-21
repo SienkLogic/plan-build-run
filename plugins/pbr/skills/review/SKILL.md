@@ -444,8 +444,7 @@ If all automated checks and UAT items passed:
 
    ```bash
    node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"verified","last_activity":"now"}'
    ```
 
 2. Update `.planning/STATE.md` via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body):**
@@ -453,9 +452,7 @@ If all automated checks and UAT items passed:
    > Note: Use CLI for atomic writes — direct Write bypasses file locking.
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status verified
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_command "/pbr:verify-work {N}"
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"verified","last_activity":"now","last_command":"/pbr:verify-work {N}"}'
    ```
    These update both frontmatter (`status`, `progress_percent`, `last_activity`, `last_command`) and body `## Current Position` (`Status:`, `Last activity:`, `Progress:` bar) atomically — they MUST stay in sync. See `skills/shared/state-update.md`.
    - **STATE.md size limit:** Follow size limit enforcement rules in `skills/shared/state-update.md` (150 lines max).

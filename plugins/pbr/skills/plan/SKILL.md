@@ -745,10 +745,11 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
   > Note: Use CLI for atomic writes — direct Write bypasses file locking.
 
   ```bash
+  # Note: For initial phase setup, `compound init-phase` bundles dir creation + ROADMAP + STATE atomically.
+  # Here we update ROADMAP plan counts and status separately, then patch STATE atomically.
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase} 0 {N}
   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-status {phase} planned
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status planned
-  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update last_activity now
+  node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state patch '{"status":"planned","last_activity":"now"}'
   ```
 - Update STATE.md via CLI **(CRITICAL (no hook) — update BOTH frontmatter AND body)**: set `status: "planned"`, `plans_total`, `last_command` in frontmatter AND update `Status:`, `Plan:` lines in body `## Current Position`
 
