@@ -33,7 +33,7 @@ malformed file is already written to disk by the time the warning appears.
 ## CLI Commands in Prompts Are Best-Effort
 
 **Limitation**: When skill or agent prompts instruct the LLM to run CLI
-commands (e.g., `node pbr-tools.js state advance-plan`), the LLM may skip
+commands (e.g., `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan`), the LLM may skip
 them under cognitive load. Prompt instructions are suggestions, not guarantees.
 
 **Why it matters**: State updates, progress tracking, and roadmap syncing that

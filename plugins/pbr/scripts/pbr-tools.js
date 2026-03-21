@@ -20,6 +20,11 @@
  *   state check-progress    — Recalculate progress from filesystem
  *   state update <f> <v>    — Atomically update a STATE.md field
  *   config validate          — Validate config.json against schema
+ *   config get <dot.path>   — Read a config value by dot-path key
+ *   intel query <term>      — Search intel files for a term
+ *   intel status             — Report staleness of each intel file
+ *   intel diff               — Show changes since last refresh snapshot
+ *   requirements mark-complete <ids> — Mark comma-separated REQ-IDs as complete
  *   plan-index <phase>      — Plan inventory for a phase, grouped by wave
  *   frontmatter <filepath>  — Parse .md file's YAML frontmatter → JSON
  *   must-haves <phase>      — Collect all must-haves from phase plans → JSON
@@ -27,6 +32,8 @@
  *   roadmap update-status <phase> <status>      — Update phase status in ROADMAP.md
  *   roadmap update-plans <phase> <complete> <total> — Update phase plans in ROADMAP.md
  *   roadmap reconcile                              — Reconcile ROADMAP statuses against disk state
+ *   roadmap get-phase <N>                          — Get comprehensive phase info JSON (alias for phase-info)
+ *   roadmap append-phase [--goal "..."] [--name "..."] [--depends-on N] — Append a new phase to the roadmap
  *   history append <type> <title> [body] — Append record to STATE.md ## History (fallback: HISTORY.md)
  *   history load                         — Load history records as JSON (STATE.md first, HISTORY.md fallback)
  *   todo list [--theme X] [--status Y]  — List todos as JSON (default: pending)
@@ -40,7 +47,7 @@
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
  *   phase remove <N>             — Remove an empty phase directory (with renumbering)
- *   phase list                   — List all phase directories with status
+ *   phase list [--status S] [--before N] — List phase directories with optional status/before filters
  *   phase complete <N>           — Mark phase N complete, advance STATE.md to next phase
  *   phase insert <N> <slug> [--goal "..."] [--depends-on N] — Insert phase at position N, renumber subsequent
  *   phase commits-for <N>       — Read .phase-manifest.json for phase N, output commits JSON. Falls back to git log
@@ -408,8 +415,8 @@ function phaseRemove(phaseNum) {
   return _phaseRemove(phaseNum, planningDir);
 }
 
-function phaseList() {
-  return _phaseList(planningDir);
+function phaseList(opts) {
+  return _phaseList(planningDir, opts);
 }
 
 function phaseComplete(phaseNum) {
@@ -508,6 +515,30 @@ function incidentsQuery(filter, opts) {
 }
 function incidentsSummary(opts) {
   return _incidentsSummary({ ...opts, planningDir });
+}
+
+function intelQuery(term) {
+  const { intelQuery: _intelQuery } = require('./lib/intel');
+  return _intelQuery(term, planningDir);
+}
+
+function intelStatus() {
+  const { intelStatus: _intelStatus } = require('./lib/intel');
+  return _intelStatus(planningDir);
+}
+
+function intelDiff() {
+  const { intelDiff: _intelDiff } = require('./lib/intel');
+  return _intelDiff(planningDir);
+}
+
+function requirementsMarkComplete(ids) {
+  const { updateRequirementStatus } = require('./lib/requirements');
+  return updateRequirementStatus(planningDir, ids, 'done');
+}
+
+function roadmapAppendPhase(phaseNum, name, goal, dependsOn) {
+  return _roadmapAppendPhase(planningDir, phaseNum, name, goal, dependsOn);
 }
 
 function dataStatus() {
@@ -1071,6 +1102,40 @@ async function main() {
       const dir = args[2] || undefined;
       const config = configLoad(dir);
       output(resolveDepthProfile(config));
+    } else if (command === 'config' && subcommand === 'get') {
+      const key = args[2];
+      if (!key) { error('Usage: config get <dot.path.key>'); }
+      const cfg = configLoad();
+      if (!cfg) { error('No config.json found'); }
+      const parts = key.split('.');
+      let val = cfg;
+      for (const p of parts) {
+        if (val == null || typeof val !== 'object') { val = undefined; break; }
+        val = val[p];
+      }
+      if (val === undefined) { error(`Config key not found: ${key}`); }
+      output(typeof val === 'object' ? val : { value: val });
+
+    } else if (command === 'intel') {
+      const subCmd = args[1];
+      if (subCmd === 'query') {
+        const term = args[2];
+        if (!term) { error('Usage: intel query <term>'); }
+        output(intelQuery(term));
+      } else if (subCmd === 'status') {
+        output(intelStatus());
+      } else if (subCmd === 'diff') {
+        output(intelDiff());
+      } else {
+        error('Usage: intel <query|status|diff>');
+      }
+
+    } else if (command === 'requirements' && subcommand === 'mark-complete') {
+      const ids = args[2];
+      if (!ids) { error('Usage: requirements mark-complete <comma-separated-REQ-IDs>'); }
+      const idList = ids.split(',').map(s => s.trim());
+      output(requirementsMarkComplete(idList));
+
     } else if (command === 'plan-index') {
       const phase = args[1];
       if (!phase) {
@@ -1123,6 +1188,22 @@ async function main() {
         process.stderr.write('ROADMAP statuses are consistent\n');
       }
       output(result);
+    } else if (command === 'roadmap' && subcommand === 'get-phase') {
+      const phaseNum = args[2];
+      if (!phaseNum) { error('Usage: roadmap get-phase <phase_num>'); }
+      output(phaseInfo(phaseNum));
+    } else if (command === 'roadmap' && subcommand === 'append-phase') {
+      const goalIdx = args.indexOf('--goal');
+      const goal = goalIdx >= 0 ? args[goalIdx + 1] : args[2] || '';
+      const nameIdx = args.indexOf('--name');
+      const name = nameIdx >= 0 ? args[nameIdx + 1] : '';
+      const depIdx = args.indexOf('--depends-on');
+      const dependsOn = depIdx >= 0 ? args[depIdx + 1] : null;
+      const analysis = roadmapAnalyze();
+      const maxPhase = analysis.phases ? Math.max(...analysis.phases.map(p => p.num || 0), 0) : 0;
+      const nextNum = maxPhase + 1;
+      output(roadmapAppendPhase(nextNum, name || goal, goal, dependsOn));
+
     } else if (command === 'history' && subcommand === 'append') {
       const type = args[2];   // 'milestone' or 'phase'
       const title = args[3];
@@ -1227,7 +1308,12 @@ async function main() {
       if (!phaseNum) { error('Usage: phase remove <phase_num>'); }
       output(phaseRemove(phaseNum));
     } else if (command === 'phase' && subcommand === 'list') {
-      output(phaseList());
+      const statusIdx = args.indexOf('--status');
+      const beforeIdx = args.indexOf('--before');
+      const listOpts = {};
+      if (statusIdx >= 0) listOpts.status = args[statusIdx + 1];
+      if (beforeIdx >= 0) listOpts.before = args[beforeIdx + 1];
+      output(phaseList(listOpts));
     } else if (command === 'phase' && subcommand === 'complete') {
       const phaseNum = args[2];
       if (!phaseNum) { error('Usage: phase complete <phase_num>'); }

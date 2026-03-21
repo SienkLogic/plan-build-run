@@ -48,7 +48,7 @@ Write machine-parseable, evidence-based intelligence. Every claim references act
 **CRITICAL:** At startup, check if intel is enabled. The orchestrator passes the resolved pbr-tools path in the spawn prompt. Use that path instead of `$HOME` which breaks on Windows MSYS.
 
 ```bash
-node <pbr-tools-path> config get intel.enabled
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get intel.enabled
 ```
 
 If the result shows `intel.enabled` is `false`, return immediately:
@@ -206,7 +206,7 @@ Glob for project structure indicators:
 
 Read package.json, configs, and build files. Write `stack.json`. Then patch its timestamp:
 ```bash
-<pbr-tools-path> intel patch-meta .planning/intel/stack.json --cwd <project_root>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel patch-meta .planning/intel/stack.json --cwd <project_root>
 ```
 
 ### Step 3: File Graph
@@ -215,7 +215,7 @@ Glob source files (`**/*.ts`, `**/*.js`, `**/*.py`, etc., excluding node_modules
 Read key files (entry points, configs, core modules) for imports/exports.
 Write `files.json`. Then patch its timestamp:
 ```bash
-<pbr-tools-path> intel patch-meta .planning/intel/files.json --cwd <project_root>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel patch-meta .planning/intel/files.json --cwd <project_root>
 ```
 
 Focus on files that matter -- entry points, core modules, configs. Skip test files and generated code unless they reveal architecture.
@@ -226,7 +226,7 @@ Grep for route definitions, endpoint declarations, CLI command registrations.
 Patterns to search: `app.get(`, `router.post(`, `@GetMapping`, `def route`, express route patterns.
 Write `apis.json`. If no API endpoints found, write an empty entries object. Then patch its timestamp:
 ```bash
-<pbr-tools-path> intel patch-meta .planning/intel/apis.json --cwd <project_root>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel patch-meta .planning/intel/apis.json --cwd <project_root>
 ```
 
 ### Step 5: Dependencies
@@ -235,7 +235,7 @@ Read package.json (dependencies, devDependencies), requirements.txt, go.mod, Car
 Cross-reference with actual imports to populate `used_by`.
 Write `deps.json`. Then patch its timestamp:
 ```bash
-<pbr-tools-path> intel patch-meta .planning/intel/deps.json --cwd <project_root>
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel patch-meta .planning/intel/deps.json --cwd <project_root>
 ```
 
 ### Step 6: Architecture
@@ -245,7 +245,7 @@ Write `arch.md`.
 
 ### Step 6.5: Self-Check
 
-Run: `<pbr-tools-path> intel validate --cwd <project_root>`
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel validate --cwd <project_root>`
 
 Review the output:
 
@@ -257,7 +257,7 @@ This step is MANDATORY -- do not skip it.
 
 ### Step 7: Snapshot
 
-Run: `<pbr-tools-path> intel snapshot --cwd <project_root>`
+Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js intel snapshot --cwd <project_root>`
 
 This writes `.last-refresh.json` with accurate timestamps and hashes. Do NOT write `.last-refresh.json` manually.
 </execution_flow>

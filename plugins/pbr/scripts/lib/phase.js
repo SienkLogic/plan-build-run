@@ -402,14 +402,14 @@ function phaseRemove(phaseNum, planningDir) {
  *
  * @param {string} [planningDir] - Path to .planning directory
  */
-function phaseList(planningDir) {
+function phaseList(planningDir, opts = {}) {
   const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
   const phasesDir = path.join(dir, 'phases');
   if (!fs.existsSync(phasesDir)) {
     return { phases: [] };
   }
 
-  const phases = fs.readdirSync(phasesDir)
+  let phases = fs.readdirSync(phasesDir)
     .filter(d => /^\d+-/.test(d))
     .sort()
     .map(d => {
@@ -420,8 +420,24 @@ function phaseList(planningDir) {
       const hasPlan = files.some(f => /^PLAN/i.test(f));
       const hasSummary = files.some(f => /^SUMMARY/i.test(f));
       const hasVerification = files.some(f => /^VERIFICATION/i.test(f));
-      return { num, slug, directory: d, files: files.length, hasPlan, hasSummary, hasVerification };
+      // Determine status from filesystem artifacts
+      let status = 'pending';
+      if (hasVerification) status = 'verified';
+      else if (hasSummary) status = 'built';
+      else if (hasPlan) status = 'planned';
+      return { num, slug, directory: d, files: files.length, hasPlan, hasSummary, hasVerification, status };
     });
+
+  // Apply --status filter
+  if (opts.status) {
+    phases = phases.filter(p => p.status === opts.status);
+  }
+
+  // Apply --before filter
+  if (opts.before) {
+    const beforeNum = parseInt(opts.before, 10);
+    phases = phases.filter(p => p.num < beforeNum);
+  }
 
   return { phases };
 }

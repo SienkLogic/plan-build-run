@@ -38,7 +38,7 @@ Set in `.planning/config.json`:
 
 Or override per-command via pbr-tools:
 ```bash
-node pbr-tools.js resolve-context --raw
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js resolve-context --raw
 # Returns: {"context": "dev", "risk_tolerance": "medium", "verbosity": "low"}
 ```
 

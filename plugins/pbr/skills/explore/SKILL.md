@@ -161,12 +161,12 @@ Display to the user: `◆ Spawning researcher...`
 **Learnings injection (opt-in):** Check for relevant tech stack learnings:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" 2>/dev/null
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
 
-- Write to temp file: `node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" > /tmp/pbr-learnings-$$.md`
+- Write to temp file: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js learnings query --tags "stack,tech,friction" > /tmp/pbr-learnings-$$.md`
 - Note path as `{learnings_temp_path}`; add as item 3 in the researcher's `files_to_read` block below
 
 If no learnings or command fails: omit the extra files_to_read entry.

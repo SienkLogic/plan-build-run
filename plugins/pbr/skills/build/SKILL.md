@@ -396,7 +396,7 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
 2. Collect prior completed phase provides:
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase list --status verified --before {phase_number}
    ```
 
    For each returned phase, read SUMMARY.md `provides` list (frontmatter only — keep context lean).
@@ -539,7 +539,7 @@ Before spawning each Task() executor, enrich its prompt with project context if 
 Before spawning executors, read the teams config:
 
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get parallelization.use_teams
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get parallelization.use_teams
 ```
 
 If `true`: Log `"Teams mode active — executor spawning coordinated with team config"`. This is informational only — teams mode affects planning and review, not execution. The log helps operators understand the full pipeline state.
@@ -1504,7 +1504,7 @@ Only auto-close when the match is unambiguous. When in doubt, leave it open.
 
 After verification completes and before the branded banner, check `workflow.phase_boundary_clear` from config:
 
-1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get workflow.phase_boundary_clear`
+1. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.phase_boundary_clear`
 2. If `"off"` or missing: skip (no action — current default behavior)
 3. If `"recommend"`:
    - Add an advisory line to the completion output:

@@ -412,7 +412,7 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
 2. **Collect completed prior phases:**
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-list --status verified --before {current_phase_number}
+   node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase list --status verified --before {current_phase_number}
    ```
 
    Returns a JSON array of `{ phase_number, slug, status }` entries. If the list is empty, skip cross-phase checks — there is nothing to regress against.

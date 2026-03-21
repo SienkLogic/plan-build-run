@@ -1,23 +1,20 @@
 # Git Planning Commit
 
-Commit planning artifacts using the pbr-tools CLI, which automatically checks `commit_docs` config and gitignore status.
+Use git directly for `.planning/` file commits. Check `commit_docs` in config and `.gitignore` before committing. If `commit_docs: false` in config or `.planning/` is gitignored, skip committing planning files.
 
-## Commit via CLI
-
-Always use `pbr-tools.js commit` for `.planning/` files — it handles `commit_docs` and gitignore checks automatically:
+## Commit via git
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "docs({scope}): {description}" --files .planning/STATE.md .planning/ROADMAP.md
+# Check if .planning/ is gitignored first
+git check-ignore -q .planning/ && echo "SKIP: .planning/ is gitignored" || git add .planning/STATE.md .planning/ROADMAP.md && git commit -m "docs({scope}): {description}"
 ```
-
-The CLI will return `skipped` (with reason) if `commit_docs` is `false` or `.planning/` is gitignored. No manual conditional checks needed.
 
 ## Amend previous commit
 
 To fold `.planning/` file changes into the previous commit:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "" --files .planning/codebase/*.md --amend
+git add .planning/codebase/*.md && git commit --amend --no-edit
 ```
 
 ## Commit Message Patterns

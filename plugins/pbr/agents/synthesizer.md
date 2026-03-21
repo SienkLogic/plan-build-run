@@ -192,17 +192,9 @@ conflicts: N
 - **Research gaps**: Add `[RESEARCH GAP]` flag, add to Open Questions with high impact, never fabricate
 - **Duplicates**: Consolidate into one entry, note multi-source agreement, reference all documents
 
-## Local LLM Context Summarization (Optional)
+## Local LLM Context Summarization (DEPRECATED -- no-op)
 
-When input research documents are large (>2000 words combined), you MAY use the local LLM to pre-summarize each document before synthesis. This reduces your own context consumption. Advisory only -- if unavailable, read documents normally.
-
-```bash
-# Pre-summarize a large research document to ~150 words:
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm summarize /path/to/RESEARCH.md 150 2>/dev/null
-# Returns: {"summary":"...plain text summary under 150 words...","latency_ms":2100,"fallback_used":false}
-```
-
-Use the returned `summary` string as your working copy of that document's findings. Still read the original for any specific version numbers, code examples, or direct quotes needed in the output.
+The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and read documents normally.
 
 ## Context Budget
 

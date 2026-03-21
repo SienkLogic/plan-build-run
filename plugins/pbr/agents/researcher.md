@@ -75,25 +75,9 @@ All claims must be attributed to a source level. Higher levels override lower le
 
 **Offline Fallback**: If web tools are unavailable (air-gapped environment, MCP not configured), rely on local sources: codebase analysis via Glob/Grep, existing documentation, and README files. Assign these S3-S4 confidence levels. Do not attempt WebFetch or WebSearch -- note in the output header that external sources were unavailable.
 
-## Local LLM Source Scoring (Optional)
+## Local LLM Source Scoring (DEPRECATED -- no-op)
 
-If local LLM offload is configured, you MAY use it to score source credibility instead of manually assigning S-levels. This is advisory -- never wait on it or fail if it returns null.
-
-Check availability first:
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm status 2>/dev/null
-```
-
-If `enabled: true`, score a source excerpt:
-
-```bash
-echo "Source URL and content excerpt" > /tmp/source-excerpt.txt
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm score-source "https://example.com/docs" /tmp/source-excerpt.txt 2>/dev/null
-# Returns: {"level":"S2","confidence":0.87,"reason":"Official library documentation page"}
-```
-
-Use the returned `level` to set your source tag. If the call fails or returns `null`, assign the level manually per the hierarchy table above.
+The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and assign source levels manually per the hierarchy table above.
 
 ---
 

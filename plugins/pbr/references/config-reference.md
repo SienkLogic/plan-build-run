@@ -560,7 +560,7 @@ Offloads selected PBR inference tasks to a locally running Ollama instance, redu
    }
    ```
 
-4. Verify connectivity: `node /path/to/${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm health`
+4. Verify connectivity: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm health` (DEPRECATED -- returns `{ deprecated: true }` as a no-op)
 
 ### Field reference
 
@@ -614,16 +614,12 @@ For GPU acceleration, ensure NVIDIA drivers are 520+ and CUDA 11.8+ is installed
 - **`num_ctx` must be 4096**: Higher values cause GPU memory fragmentation on Windows and result in OOM errors mid-session. Always set `advanced.num_ctx: 4096` in your config.
 - **Firewall**: Ollama listens on `localhost:11434` by default. If you see connection refused errors, check that Windows Firewall is not blocking loopback connections.
 
-### Viewing metrics
+### Viewing metrics (DEPRECATED)
 
-After enabling local LLM, PBR logs per-call metrics to `.planning/logs/local-llm-metrics.jsonl`. Use the built-in subcommands to inspect them:
+The local LLM feature was removed in v14.0. The `llm metrics` and `llm adjust-thresholds` subcommands are no-ops that return `{ deprecated: true }`. No metrics are collected.
 
 ```bash
-# Show session summary (calls routed, latency, token savings)
+# These commands return { deprecated: true } and perform no action:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm metrics
-
-# Suggest routing threshold adjustments based on recent accuracy
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js llm adjust-thresholds
 ```
-
-Metrics include: routing decision, model used, latency ms, confidence score, whether the frontier fallback was triggered, and estimated tokens saved.

@@ -195,20 +195,9 @@ When you need human input, emit a checkpoint block. Always include `Debug file:`
 | `HUMAN-ACTION` | User must do something you cannot | action needed, why, steps |
 | `DECISION` | Investigation branched | options with pros/cons, recommendation |
 
-## Local LLM Error Classification (Optional)
+## Local LLM Error Classification (DEPRECATED -- no-op)
 
-When you receive an error message or stack trace, you MAY use the local LLM to classify it before starting hypothesis generation. This is advisory — skip it if unavailable.
-
-```bash
-# Write the error to a temp file, then classify:
-echo "Error text here" > /tmp/debug-error.txt
-node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" llm classify-error /tmp/debug-error.txt debugger 2>/dev/null
-# Returns: {"category":"missing_output","confidence":0.91,"latency_ms":1840,"fallback_used":false}
-```
-
-Categories: `connection_refused`, `timeout`, `missing_output`, `wrong_output_format`, `permission_error`, `unknown`.
-
-If classification succeeds, use the returned category to bias your initial hypothesis ranking. If it returns null or fails, proceed with manual hypothesis generation as normal.
+The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and proceed with manual hypothesis generation.
 
 ## Common Bug Patterns
 

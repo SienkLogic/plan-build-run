@@ -26,13 +26,14 @@ overrides:
 
 ## Managing Overrides
 
-```bash
-# Add an override via pbr-tools
-node pbr-tools.js override add --must-have "Unit tests for auth" --reason "Tested via integration" --raw
+Add overrides directly to VERIFICATION.md frontmatter. There is no CLI command -- edit the YAML directly:
 
-# List current overrides
-node pbr-tools.js override list --raw
-
-# Remove an override
-node pbr-tools.js override remove --must-have "Unit tests for auth" --raw
+```yaml
+overrides:
+  - must_have: "Unit tests for auth"
+    reason: "Tested via integration"
+    accepted_by: "user"
+    accepted_at: "2026-02-12T10:00:00Z"
 ```
+
+To remove an override, delete its entry from the `overrides` array.

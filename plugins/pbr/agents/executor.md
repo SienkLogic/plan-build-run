@@ -213,7 +213,7 @@ Before writing the completion marker, output any memory_suggestion blocks if you
 
 After writing SUMMARY.md, if you discovered noteworthy patterns, API quirks, or architectural insights during execution, write `.planning/phases/{phase_dir}/LEARNINGS.md`.
 
-**Gate:** Read `learnings.enabled` from config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get learnings.enabled`
+**Gate:** Read `learnings.enabled` from config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get learnings.enabled`
 If false or missing, skip this step entirely.
 
 **Format:**
@@ -447,7 +447,7 @@ Format: Append a new row to the appropriate table. Auto-increment the ID (K/P/L 
 
 When a task fails (verify or acceptance_criteria), apply repair strategies in order:
 
-1. **RETRY** — Re-read the action steps and try again. Budget: `workflow.node_repair_budget` from config (default 2) retries per task. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config-get workflow.node_repair_budget`
+1. **RETRY** — Re-read the action steps and try again. Budget: `workflow.node_repair_budget` from config (default 2) retries per task. Read config: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get workflow.node_repair_budget`
 2. **DECOMPOSE** — Break the failing task into 2-3 smaller subtasks. Execute each subtask independently. Each gets its own commit.
 3. **PRUNE** — If non-essential parts are failing, skip them. Document skipped items in SUMMARY.md deferred section. Only prune if the must-have can still be achieved without the pruned parts.
 4. **ESCALATE** — Return `CHECKPOINT: TASK-FAILURE` with the task ID, error details, strategies attempted, and remaining tasks.
@@ -526,7 +526,7 @@ When a task has a checkpoint type, **STOP execution** and return a structured re
 | `human-action` | Before executing | What user must do, step-by-step |
 
 **auto_checkpoints config**: After loading plan frontmatter, read `gates.auto_checkpoints` from config.json (default false):
-- Load with: `node pbr-tools.js config-get gates.auto_checkpoints`
+- Load with: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config get gates.auto_checkpoints`
 - When `auto_checkpoints` is true AND task type is `checkpoint:human-verify`: run the automated verify command. If it passes, auto-approve and continue. If it fails, still STOP and return the checkpoint response.
 - `checkpoint:decision` and `checkpoint:human-action` always require human input regardless of `auto_checkpoints`.
 
