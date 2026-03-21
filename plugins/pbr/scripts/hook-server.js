@@ -27,6 +27,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { acquireLock, releaseLock } = require('./lib/pid-lock');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -355,6 +356,39 @@ function main() {
 
   const server = createServer(planningDir);
 
+  // Acquire PID lockfile before starting
+  const lockResult = acquireLock(planningDir, args.port);
+  if (!lockResult.acquired) {
+    process.stdout.write(JSON.stringify({ status: 'already-running', pid: lockResult.pid, reason: lockResult.reason }) + '\n');
+    process.exit(0);
+  }
+
+  // Handle EADDRINUSE — probe /health to check if it's another hook server
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      const req = http.get({ hostname: '127.0.0.1', port: args.port, path: '/health', timeout: 1000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          // Another hook server is healthy — exit gracefully
+          releaseLock(planningDir);
+          process.exit(0);
+        });
+      });
+      req.on('error', () => {
+        // Port taken by non-PBR process — log error and exit
+        process.stderr.write(JSON.stringify({ error: 'EADDRINUSE', port: args.port }) + '\n');
+        releaseLock(planningDir);
+        process.exit(1);
+      });
+      req.on('timeout', () => { req.destroy(); releaseLock(planningDir); process.exit(1); });
+    } else {
+      process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
+      releaseLock(planningDir);
+      process.exit(1);
+    }
+  });
+
   server.listen(args.port, '127.0.0.1', () => {
     // Signal readiness to parent process (use actual port for ephemeral port 0)
     const actualPort = server.address().port;
@@ -363,6 +397,7 @@ function main() {
 
   // Graceful shutdown
   function shutdown() {
+    releaseLock(planningDir);
     server.close(() => {
       process.exit(0);
     });
