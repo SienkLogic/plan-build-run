@@ -199,6 +199,7 @@ function initRoutes() {
   register('PostToolUse', 'Edit', lazyHandler('post-write-dispatch'));
   register('PostToolUse', 'Edit', lazyHandler('graph-update'));
   register('PostToolUse', 'Edit', lazyHandler('architecture-guard'));
+  register('PostToolUse', 'Write|Edit', lazyHandler('suggest-compact'));
   register('PostToolUse', 'Bash', lazyHandler('context-bridge'));
   register('PostToolUse', 'Bash', lazyHandler('post-bash-triage'));
   register('PostToolUse', 'Task', lazyHandler('context-bridge'));

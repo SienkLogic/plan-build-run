@@ -292,5 +292,24 @@ function resetCounter(planningDir, sessionId) {
   }
 }
 
-module.exports = { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL };
+/**
+ * HTTP handler for hook-server integration.
+ * Wraps the existing checkCompaction logic for use as a route handler.
+ *
+ * @param {Object} reqBody - { event, tool, data, planningDir, cache }
+ * @param {Object} _cache - In-memory server cache (unused; suggest-compact reads its own state)
+ * @returns {Object|null} Hook output with additionalContext, or null
+ */
+function handleHttp(reqBody, _cache) {
+  try {
+    const planningDir = reqBody.planningDir;
+    if (!planningDir) return null;
+    const cwd = path.dirname(planningDir);
+    return checkCompaction(planningDir, cwd);
+  } catch (_e) {
+    return null;
+  }
+}
+
+module.exports = { checkCompaction, checkBridgeTier, buildCompositionAdvice, loadCounter, saveCounter, getThreshold, getScaledThreshold, resetCounter, DEFAULT_THRESHOLD, REMINDER_INTERVAL, handleHttp };
 if (require.main === module || process.argv[1] === __filename) { main(); }
