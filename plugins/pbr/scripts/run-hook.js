@@ -13,7 +13,7 @@
  *     (function(r){var m=r.match(/^\\/([a-zA-Z])\\/(.*)/);
  *      return m?m[1]+':'+m[2].replace(/\\//g,'\\\\'):r})
  *     (process.env.CLAUDE_PLUGIN_ROOT||''),
- *     'hooks','run-hook.js'))(process.argv[1])\" <script> [args...]"
+ *     'scripts','run-hook.js'))(process.argv[1])\" <script> [args...]"
  *
  * Or directly (when CLAUDE_PLUGIN_ROOT resolves correctly):
  *   "node ${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.js <script-name> [args...]"
@@ -75,7 +75,7 @@ if (invokedViaEval) {
 
 // When required as a module from -e bootstrap, export a runner function
 if (typeof module !== 'undefined' && module.exports) {
-  const BOOTSTRAP_SNIPPET = "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'hooks','run-hook.js'))\"";
+  const BOOTSTRAP_SNIPPET = "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\"";
   module.exports = runScript;
   module.exports.BOOTSTRAP_SNIPPET = BOOTSTRAP_SNIPPET;
   module.exports.runScript = runScript;
