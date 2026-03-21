@@ -60,7 +60,8 @@ Stop immediately. Do NOT proceed.
    Store as `checkpointResolveLevel` for use in Step 3c.
 5. Read `.planning/STATE.md` to determine current phase (used as default for `--from`).
 6. Read `.planning/ROADMAP.md` to build phase list for current milestone.
-7. Filter to phases from `--from` through `--through` that are not yet complete.
+7. **CRITICAL (hook-enforced): Write .active-skill NOW.** Write `.planning/.active-skill` with the content `autonomous` using the Write tool. This registers the autonomous session with the workflow enforcement hooks. Child Skill() calls (plan, build, review) will overwrite this with their own skill name during execution and should restore or re-write it — but the orchestrator owns the initial write and final cleanup.
+8. Filter to phases from `--from` through `--through` that are not yet complete.
 8. If no phases to execute, display: "All phases in range are complete." and stop.
 
 **If `--dry-run`:** Display the phase list with planned actions per phase, then stop without executing.
@@ -379,8 +380,16 @@ In both cases, fall through to full verification below. The confidence gate neve
 
 - **Update root MILESTONE.md** — If `MILESTONE.md` exists at project root, overwrite it with updated phase statuses from ROADMAP.md progress table for the current milestone. If it doesn't exist, skip silently.
 - Proceed to 3e-ci (CI Verification) before starting next phase.
-- Check milestone boundary: if this was the last phase in milestone, stop loop.
-  Display: "Milestone complete! Run `/pbr:milestone` to archive."
+- Check milestone boundary: if this was the last phase in the current milestone:
+  1. Log: `All phases in milestone complete. Invoking milestone completion...`
+  2. Invoke: `Skill({ skill: "pbr:milestone", args: "complete --auto" })`
+  3. If the milestone skill succeeds:
+     - Check if there are more milestones with unexecuted phases in ROADMAP.md
+     - If yes and within `--through` range: continue to next milestone's first phase
+     - If no more milestones or beyond `--through`: stop loop
+     - Display: "Milestone archived. {next action}"
+  4. If the milestone skill fails: stop loop.
+     Display: "Milestone completion failed. Run `/pbr:milestone complete` manually."
 
 ### 3e-ci. CI Verification (after phase complete)
 
@@ -414,6 +423,8 @@ Target: <100 status lines per 7-phase autonomous session (excluding agent output
 
 ## Step 4: Completion
 
+**CRITICAL — DO NOT SKIP:** Delete `.planning/.active-skill` if it exists. This must happen on all paths (success, partial, and failure) before displaying the completion summary.
+
 Display summary:
 
 ```
@@ -444,9 +455,11 @@ The autonomous loop MUST stop immediately when any of these conditions occur:
 1. **human-action checkpoint** encountered — NEVER auto-resolve these
 2. **Gap closure fails** on retry — gaps persist after one attempt
 3. **Build fails** after exhausting retries — error_strategy is 'stop' or retries exhausted
-4. **Milestone boundary** reached — last phase in milestone verified
+4. **Milestone boundary** reached — last phase verified AND milestone archived (or archive failed)
 5. **`--through` limit** reached — user-specified phase limit hit
 6. **Context budget > 70%** — suggest: `/pbr:pause` then resume in new session with `/pbr:autonomous --from {N}`
+
+On ALL hard stops: delete `.planning/.active-skill` before displaying the stop message.
 
 ---
 
@@ -478,6 +491,7 @@ Where:
 - `"branch_state"`: maps phase number to git branch name created for that phase build
 
 - On `--from N`: check `.autonomous-state.json` for prior run context
+  - Re-write `.planning/.active-skill` with content `autonomous` when resuming (the prior session's .active-skill may be stale or missing).
 - Display prior run info if available: "Resuming from prior autonomous run. Last completed: Phase {N}."
 - Clean up `.autonomous-state.json` on successful completion of all phases
 
@@ -496,3 +510,4 @@ Reference: `skills/shared/commit-planning-docs.md` -- if `planning.commit_docs` 
 5. **DO NOT** read SKILL.md files into context — use Skill() tool for delegation
 6. **DO NOT** modify STATE.md directly — use CLI commands
 7. **DO NOT** ignore dynamic phase detection — always re-read ROADMAP.md between iterations
+8. **DO NOT** leave `.active-skill` set after autonomous mode exits — always clean up on every exit path

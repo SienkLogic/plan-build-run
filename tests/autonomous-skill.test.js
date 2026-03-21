@@ -59,6 +59,31 @@ describe('/pbr:autonomous skill', () => {
     expect(content).toMatch(/gap.*closure|--gaps/i);
   });
 
+  test('writes .active-skill at startup', () => {
+    expect(content).toMatch(/Write.*\.active-skill.*autonomous/i);
+    expect(content).toMatch(/CRITICAL.*active-skill/i);
+  });
+
+  test('deletes .active-skill at completion', () => {
+    expect(content).toMatch(/Delete.*\.active-skill/i);
+  });
+
+  test('invokes milestone complete via Skill()', () => {
+    expect(content).toMatch(/Skill\(.*pbr:milestone.*complete/);
+    // Old display-only pattern should be replaced by Skill() call
+    expect(content).not.toMatch(/Run `\/pbr:milestone` to archive/);
+  });
+
+  test('cleans up .active-skill on hard stops', () => {
+    // Hard Stops section must reference .active-skill cleanup
+    expect(content).toMatch(/Hard Stops/);
+    expect(content).toMatch(/hard stop.*active-skill|active-skill.*stop message/i);
+  });
+
+  test('re-writes .active-skill on resume', () => {
+    expect(content).toMatch(/Re-write.*active-skill.*resum|resum.*Re-write.*active-skill/i);
+  });
+
   test('command registration exists', () => {
     expect(fs.existsSync(COMMAND_PATH)).toBe(true);
     const cmdContent = fs.readFileSync(COMMAND_PATH, 'utf8');
