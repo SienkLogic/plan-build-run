@@ -1,10 +1,10 @@
 ---
 name: help
 description: "Command reference and workflow guide for Plan-Build-Run."
-allowed-tools: Read
+allowed-tools: Read, Bash
 ---
 
-**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**
+**STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 1 immediately.**
 
 ## Step 0 — Immediate Output
 
@@ -20,117 +20,64 @@ Then proceed to Step 1.
 
 # /pbr:help — Plan-Build-Run Command Reference
 
-## Contextual Help
+## Step 1 — Contextual Help (Single Command)
 
-If `$ARGUMENTS` contains a command name (e.g., `plan`, `build`, `review`, `config`, `quick`), show detailed help for just that command instead of the full reference. Match the argument against the command tables below and display only the matching section with its subcommands and flags. If the argument doesn't match any command, show the full reference.
+If `$ARGUMENTS` contains a command name (e.g., `plan`, `build`, `review`, `config`, `quick`), show detailed help for just that command:
 
-Examples:
-- `/pbr:help plan` → Show only the plan command and its flags (--assumptions, --skip-research, --gaps, add, insert, remove)
-- `/pbr:help build` → Show only the build command and its flags (--gaps-only, --team)
-- `/pbr:help` → Show the full reference below
+1. Run this command to get metadata for the requested skill:
 
-## Full Reference
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js skill-metadata $ARGUMENTS
+```
 
-Display the following reference to the user:
+2. Parse the JSON response.
 
----
+3. **If the response contains a `name` field** (success): Display a formatted detail block:
 
-## Plan-Build-Run Commands
+| Field | Value |
+|-------|-------|
+| **Command** | `/pbr:{name}` |
+| **Description** | `{description}` |
+| **Arguments** | `{argument_hint}` (or "None" if empty) |
+| **Allowed Tools** | `{allowed_tools}` joined with ", " |
 
-### Core Workflow (the main loop)
+4. **If the response contains an `error` field** (not found): Tell the user the command was not found. List available commands from the `available` array, formatted as `/pbr:{name}`.
 
-| Command | Description | Cost |
-|---------|-------------|------|
-| `/pbr:new-project` | Start a new project. Deep questioning, research, requirements, roadmap. | High (4-6 agents) |
-| `/pbr:plan-phase <N>` | Plan a phase. Research, create plans, verify before building. | Medium (2-3 agents) |
-| `/pbr:execute-phase <N>` | Build a phase. Execute plans in parallel waves, verify results. | High (2-4 agents) |
-| `/pbr:verify-work <N>` | Review what was built. Automated verification + walkthrough with you. | Low (1 agent) |
-| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework automatically. | Medium (1-3 agents) |
+5. **STOP after displaying single-skill help.** Do not continue to Step 2.
 
-### Planning & Discovery
+## Step 2 — Full Help (All Commands)
 
-| Command | Description |
-|---------|-------------|
-| `/pbr:explore [topic]` | Explore ideas, think through approaches. No phase number needed. |
-| `/pbr:discuss-phase <N>` | Talk through a phase before planning. Captures decisions. |
-| `/pbr:plan-phase <N> --assumptions` | Surface Claude's assumptions before planning. Zero cost. |
-| `/pbr:plan-phase <N> --skip-research` | Plan without research phase. Faster. |
-| `/pbr:plan-phase <N> --gaps` | Create gap-closure plans from verification failures. |
-| `/pbr:plan-phase add` | Append a new phase to the roadmap. |
-| `/pbr:plan-phase insert <N>` | Insert a phase using decimal numbering. |
-| `/pbr:plan-phase remove <N>` | Remove a future phase and renumber. |
-| `/pbr:ui-phase <N>` | Generate UI-SPEC.md design contracts for frontend-heavy phases. |
+If no argument was provided, display the full command reference:
 
-### Execution
+1. Run this command to get all skills:
 
-| Command | Description |
-|---------|-------------|
-| `/pbr:execute-phase <N>` | Execute all plans in a phase. |
-| `/pbr:execute-phase <N> --gaps-only` | Execute only gap-closure plans. |
-| `/pbr:execute-phase <N> --team` | Use Agent Teams for complex inter-agent coordination. |
-| `/pbr:quick` | Quick ad-hoc task with atomic commit. Low cost. |
-| `/pbr:continue` | Execute the next logical step automatically. No prompts. |
-| `/pbr:autonomous` | Run multiple phases hands-free. Chains discuss, plan, build, verify. |
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js help
+```
 
-### Verification & Debugging
+2. Parse the JSON response. The result has a `.skills` array of objects with `name`, `description`, and `argument_hint` fields.
+
+3. Group the skills into these categories based on skill name:
+
+- **Core Workflow**: begin, plan, build, review, test
+- **Planning & Discovery**: explore, discuss, import, scan, list-phase-assumptions
+- **Execution**: quick, continue, autonomous, do
+- **Verification & Debugging**: debug, health, validate-phase, ui-review, ui-phase
+- **Session Management**: status, pause, resume, undo, continue
+- **Project Management**: milestone, todo, note, config, setup, release, ship
+- **Analysis & Utilities**: audit, audit-fix, dashboard, intel, profile, profile-user, session-report, statusline
+
+Skills not matching any category go under **Other**.
+
+4. For each category, display a markdown table:
 
 | Command | Description |
 |---------|-------------|
-| `/pbr:verify-work <N>` | Verify phase + conversational UAT. |
-| `/pbr:verify-work <N> --auto-fix` | Auto-diagnose and fix verification failures. |
-| `/pbr:test <N>` | Generate tests for completed phase code. Detects framework, targets key files. |
-| `/pbr:debug` | Systematic debugging with hypothesis testing. |
-| `/pbr:ui-review <N>` | Retroactive visual audit of UI implementation with scoring. |
-| `/pbr:map-codebase` | Analyze existing codebase (brownfield). |
+| `/pbr:{name} {argument_hint}` | `{description}` |
 
-### Session Management
+Format command names as `/pbr:{name}` with the `argument_hint` appended (space-separated) when present.
 
-| Command | Description |
-|---------|-------------|
-| `/pbr:progress` | Where am I? Shows progress and suggests next action. |
-| `/pbr:health` | Check planning directory integrity. Find and fix corrupted state. |
-| `/pbr:pause-work` | Save session state for later. |
-| `/pbr:pause-work --checkpoint` | Save with a named checkpoint for easier resumption. |
-| `/pbr:resume-work` | Pick up where you left off. |
-| `/pbr:undo` | Revert recent PBR-generated commits by phase/plan using git revert. |
-
-### Project Management
-
-| Command | Description |
-|---------|-------------|
-| `/pbr:new-milestone` | Start a new milestone cycle. |
-| `/pbr:complete-milestone` | Archive completed milestone. |
-| `/pbr:milestone preview` | Dry-run of complete — show what would happen. |
-| `/pbr:audit-milestone` | Verify milestone completion. |
-| `/pbr:plan-milestone-gaps` | Create phases to close audit gaps. |
-| `/pbr:add-todo\|list\|done` | Persistent file-based todos. |
-| `/pbr:todo work <NNN>` | Work on a specific todo by ID. |
-| `/pbr:note <text>\|list\|promote` | Zero-friction idea capture. Quick notes that persist across sessions. |
-| `/pbr:note --global` | Save note to global notes directory (shared across projects). |
-| `/pbr:settings session_phase_limit <N>` | Set max phases per session before auto-pause (0 = disabled, default 3). |
-| `/pbr:settings` | Configure workflow settings. |
-| `/pbr:import <N>` | Import external plans (design docs, RFCs) into PBR format. |
-| `/pbr:import --from <path>` | Import from a specific file path. |
-| `/pbr:import --skip-checker` | Skip plan-checker validation on import. |
-| `/pbr:setup` | Interactive onboarding wizard for new projects. |
-
-### Analysis & Utilities
-
-| Command | Description |
-|---------|-------------|
-| `/pbr:audit` | Review past sessions for PBR workflow compliance and UX quality. |
-| `/pbr:audit --today` | Audit today's sessions (default). |
-| `/pbr:audit --from DATE --to DATE` | Audit a specific date range. |
-| `/pbr:audit --mode compliance\|ux` | Run compliance-only or UX-only audit. |
-| `/pbr:do <description>` | Route freeform text to the right PBR skill automatically. |
-| `/pbr:dashboard` | Launch the web dashboard for the current project. |
-| `/pbr:dashboard --port <N>` | Launch dashboard on a specific port. |
-| `/pbr:intel` | Refresh or query codebase intelligence (file graph, APIs, architecture). |
-| `/pbr:release` | Generate or update changelog and release notes from project history. |
-| `/pbr:session-report` | Generate post-session summary with work performed and outcomes. |
-| `/pbr:ship` | Create a rich PR from planning artifacts (SUMMARYs, requirements, verification). |
-| `/pbr:profile-user` | Analyze session history to generate a developer behavioral profile. |
-| `/pbr:statusline` | Install or configure the PBR status line in Claude Code. |
+5. After the CLI-driven command tables, display the static sections below.
 
 ## Choose Your Command
 
@@ -186,39 +133,6 @@ Not sure which command to use? Follow this guide:
 - **PR hygiene**: When creating PRs from a Plan-Build-Run project, `.planning/` commits can be filtered using phase branching (`git.branching: phase`) which squash-merges code-only changes to main.
 - **Session cycling**: After `session_phase_limit` phases (default 3), PBR auto-pauses and resumes with a fresh context. In TMUX, this is seamless. Configure via `/pbr:settings session_phase_limit <N>`.
 - **Seeds**: `/pbr:explore` can create seed files (`.planning/seeds/`) with trigger conditions. Seeds auto-inject into planning when their trigger phase is reached.
-
-## Behavioral Contexts
-
-Reference: `@references/behavioral-contexts.md` for full context profile definitions.
-
-Plan-Build-Run includes three behavioral contexts in `contexts/` that adjust how Claude operates:
-
-- **dev** — Active development: write code first, low verbosity, medium risk tolerance
-- **research** — Exploration mode: read widely, no code writing, high verbosity, evidence-based
-- **review** — Code review: read thoroughly, prioritize by severity, report don't fix
-
-Skills automatically activate the appropriate context: `/pbr:execute-phase` uses dev context, `/pbr:discuss-phase` uses research context, `/pbr:verify-work` uses review context.
-
-## When to Use Quick vs Plan+Build
-
-| Use `/pbr:quick` when... | Use `/pbr:plan-phase` + `/pbr:execute-phase` when... |
-|--------------------------|----------------------------------------|
-| Change touches ≤3 files | Change touches 4+ files |
-| ≤100 lines of code | 100+ lines of code |
-| Single subsystem | Multiple subsystems or cross-cutting |
-| No architectural decisions | Requires design choices |
-| Bug fix, small feature, docs | New feature, refactor, migration |
-
-## Setup vs Begin
-
-- **`/pbr:new-project`** — Use this to start a new project. It handles everything: questioning, research, requirements, roadmap, AND config initialization. This is the standard entry point.
-- **`/pbr:setup`** — Use this only to reconfigure an existing project's settings (model profiles, gates, depth, parallelization) without re-running the full begin flow.
-
-If you're unsure, start with `/pbr:new-project`. It will detect existing config and offer to reuse or overwrite.
-
-## Team Discussions
-
-The `features.team_discussions` config flag (and `/pbr:execute-phase --team`) enables **Agent Teams** for complex builds. When enabled, executor agents can coordinate with each other during parallel wave execution — sharing context about what they've built, resolving interface conflicts, and avoiding duplicate work. Best for phases where multiple plans have shared dependencies. Configure via `/pbr:settings`.
 
 ## Getting Started
 
