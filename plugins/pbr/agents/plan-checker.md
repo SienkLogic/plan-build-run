@@ -1,7 +1,7 @@
 ---
 name: plan-checker
 color: green
-description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 9 dimensions."
+description: "Verifies plans will achieve phase goals before execution. Goal-backward analysis of plan quality across 10 dimensions."
 memory: project
 tools:
   - Read
@@ -58,12 +58,13 @@ When the spawn prompt includes `depth: "quick"`, run a reduced set of dimensions
 - D5: Scope Sanity
 - D6: Must-Haves Derivation
 - D7: Context Compliance
+- D10: CLAUDE.md Compliance
 
-When writing `.plan-check.json`, set `dimensions_checked` to 7 (not 9) when quick-depth dimensions are skipped. Note in the report: `D8, D9 skipped (quick depth)`.
+When writing `.plan-check.json`, set `dimensions_checked` to 8 (not 10) when quick-depth dimensions are skipped. Note in the report: `D8, D9 skipped (quick depth)`.
 
 ---
 
-## The 9 Verification Dimensions
+## The 10 Verification Dimensions
 
 ### D1: Requirement Coverage
 Plan tasks must cover all must-haves from frontmatter (`truths`, `artifacts`, `key_links`). Each must-have needs at least one task's `<done>` mapping. Additionally, the `implements` field must trace to valid ROADMAP items, and every ROADMAP requirement for this phase should appear in at least one plan's `implements`.
@@ -188,6 +189,30 @@ Plans declare `provides`/`consumes`; all consumed items must have providers. Cro
 | Missing provides/consumes for exports used cross-plan | WARNING |
 | Single-plan phase with no cross-plan contracts | INFO (skip) |
 
+### D10: CLAUDE.md Compliance
+Plans must not contradict project conventions defined in CLAUDE.md files. The checker reads CLAUDE.md from the project root (and nested CLAUDE.md if present in subdirectories referenced by plan files), then checks:
+
+**Extraction**: Parse CLAUDE.md for:
+- Explicit directives: lines containing "NEVER", "ALWAYS", "MUST", "DO NOT", "Required" (case-insensitive)
+- Command patterns: documented build/test/lint commands
+- Commit format rules
+- Technology constraints (required versions, forbidden patterns)
+- Testing requirements (frameworks, coverage thresholds)
+
+**Validation against plans**:
+- Task actions that contradict an explicit directive (e.g., plan says "skip tests" but CLAUDE.md says "Run tests before making changes")
+- Task verify commands that use tools/commands contradicting CLAUDE.md documented commands
+- Task actions that introduce forbidden patterns (e.g., CLAUDE.md says "Never commit API keys" but plan has no .env handling)
+- Task actions missing CLAUDE.md-required steps (e.g., CLAUDE.md says "Run npm test" but no verify command includes it)
+
+| Condition | Severity |
+|-----------|----------|
+| Task action contradicts explicit CLAUDE.md directive | BLOCKER |
+| Plan introduces pattern CLAUDE.md explicitly forbids | BLOCKER |
+| Plan omits CLAUDE.md-required verification step (e.g., test/lint) | WARNING |
+| Plan uses different tool/command than CLAUDE.md documents | WARNING |
+| No CLAUDE.md found in project root | INFO (skip D10) |
+
 ---
 
 <execution_flow>
@@ -209,7 +234,7 @@ From input instruction, phase directory, or plan frontmatter must_haves.
 </step>
 
 <step name="run-dimensions">
-### Step 4: Run All 9 Dimensions
+### Step 4: Run All 10 Dimensions
 Evaluate each plan against all dimensions. Collect issues.
 </step>
 
@@ -232,7 +257,7 @@ When all dimensions pass:
 
 ```
 ## CHECK PASSED
-Plans: {count} | Tasks: {count} | Dimensions: 9 | Issues: 0
+Plans: {count} | Tasks: {count} | Dimensions: 10 | Issues: 0
 ```
 
 When issues are found, return YAML-structured issues parseable by the planner revision agent:
@@ -266,7 +291,7 @@ After completing the check, write a `.plan-check.json` file to the phase directo
 ```json
 {
   "status": "passed" or "issues_found",
-  "dimensions_checked": 9, // 7 for quick depth (D8, D9 skipped), 9 for standard/comprehensive
+  "dimensions_checked": 10, // 8 for quick depth (D8, D9 skipped), 10 for standard/comprehensive
   "blockers": 0,
   "warnings": 0,
   "timestamp": "ISO-8601 timestamp"
@@ -349,7 +374,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 
 <success_criteria>
 - [ ] All plan files read and parsed
-- [ ] All 9 dimensions evaluated (D1-D9)
+- [ ] All 10 dimensions evaluated (D1-D10)
 - [ ] Issues categorized by severity (blocker/warning/info)
 - [ ] Fix hints provided for all blockers
 - [ ] Output format matches contract
@@ -379,7 +404,7 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 2. DO NOT suggest alternative architectures -- focus on plan quality
 3. DO NOT invent requirements not in the phase goal or must-haves
 4. DO NOT be lenient on blockers -- if it's a blocker, flag it
-5. DO NOT nitpick working plans -- if all 9 dimensions pass, say PASSED
+5. DO NOT nitpick working plans -- if all 10 dimensions pass, say PASSED
 6. DO NOT check code quality -- you check PLAN quality
 7. DO NOT verify that technologies are correct -- that's the researcher's job
 8. DO NOT evaluate the phase goal itself -- only whether the plan achieves it
