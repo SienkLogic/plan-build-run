@@ -162,26 +162,59 @@ function mergeContext(...fns) {
 }
 
 // ---------------------------------------------------------------------------
-// Handler routing table
+// Handler routing table (dynamic Map populated by register/initRoutes)
 // ---------------------------------------------------------------------------
 
-const ROUTES = {
-  'PostToolUse:Read':       lazyHandler('track-context-budget'),
-  'PostToolUse:Write':      mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch'), lazyHandler('graph-update'), lazyHandler('architecture-guard')),
-  'PostToolUse:Edit':       mergeContext(lazyHandler('context-bridge'), lazyHandler('post-write-dispatch'), lazyHandler('graph-update'), lazyHandler('architecture-guard')),
-  'PostToolUse:Bash':       mergeContext(lazyHandler('context-bridge'), lazyHandler('post-bash-triage')),
-  'PostToolUse:Task':       mergeContext(lazyHandler('context-bridge'), lazyHandler('check-subagent-output')),
-  'PostToolUseFailure:*':   lazyHandler('log-tool-failure'),
-  'SubagentStart:*':        lazyHandler('log-subagent'),
-  'SubagentStop:*':         mergeContext(lazyHandler('log-subagent'), lazyHandler('event-handler')),
-  'TaskCompleted:*':        lazyHandler('task-completed'),
-  'InstructionsLoaded:*':   lazyHandler('instructions-loaded'),
-  'PreCompact:*':           lazyHandler('context-budget-check'),
-  'ConfigChange:*':         lazyHandler('check-config-change'),
-  'SessionEnd:*':           lazyHandler('session-cleanup'),
-  'WorktreeCreate:*':       lazyHandler('worktree-create'),
-  'WorktreeRemove:*':       lazyHandler('worktree-remove')
-};
+const ROUTES = new Map();
+
+/**
+ * Register a handler for a given event + matcher pair.
+ * Pipe-separated matchers expand to multiple route keys (e.g., 'Write|Edit' -> two keys).
+ * Multiple handlers per route key are auto-wrapped in mergeContext().
+ */
+function register(event, matcher, handlerFn) {
+  const tools = matcher.includes('|') ? matcher.split('|') : [matcher];
+  for (const tool of tools) {
+    const key = `${event}:${tool}`;
+    const existing = ROUTES.get(key);
+    if (existing) {
+      ROUTES.set(key, mergeContext(existing, handlerFn));
+    } else {
+      ROUTES.set(key, handlerFn);
+    }
+  }
+}
+
+/**
+ * Populate the route table with all known handlers.
+ * Called once during server startup before createServer().
+ */
+function initRoutes() {
+  register('PostToolUse', 'Read', lazyHandler('track-context-budget'));
+  register('PostToolUse', 'Write', lazyHandler('context-bridge'));
+  register('PostToolUse', 'Write', lazyHandler('post-write-dispatch'));
+  register('PostToolUse', 'Write', lazyHandler('graph-update'));
+  register('PostToolUse', 'Write', lazyHandler('architecture-guard'));
+  register('PostToolUse', 'Edit', lazyHandler('context-bridge'));
+  register('PostToolUse', 'Edit', lazyHandler('post-write-dispatch'));
+  register('PostToolUse', 'Edit', lazyHandler('graph-update'));
+  register('PostToolUse', 'Edit', lazyHandler('architecture-guard'));
+  register('PostToolUse', 'Bash', lazyHandler('context-bridge'));
+  register('PostToolUse', 'Bash', lazyHandler('post-bash-triage'));
+  register('PostToolUse', 'Task', lazyHandler('context-bridge'));
+  register('PostToolUse', 'Task', lazyHandler('check-subagent-output'));
+  register('PostToolUseFailure', '*', lazyHandler('log-tool-failure'));
+  register('SubagentStart', '*', lazyHandler('log-subagent'));
+  register('SubagentStop', '*', lazyHandler('log-subagent'));
+  register('SubagentStop', '*', lazyHandler('event-handler'));
+  register('TaskCompleted', '*', lazyHandler('task-completed'));
+  register('InstructionsLoaded', '*', lazyHandler('instructions-loaded'));
+  register('PreCompact', '*', lazyHandler('context-budget-check'));
+  register('ConfigChange', '*', lazyHandler('check-config-change'));
+  register('SessionEnd', '*', lazyHandler('session-cleanup'));
+  register('WorktreeCreate', '*', lazyHandler('worktree-create'));
+  register('WorktreeRemove', '*', lazyHandler('worktree-remove'));
+}
 
 /**
  * Resolve handler for a given event + tool pair.
@@ -189,9 +222,9 @@ const ROUTES = {
  */
 function resolveHandler(event, tool) {
   const exactKey = `${event}:${tool}`;
-  if (ROUTES[exactKey]) return ROUTES[exactKey];
+  if (ROUTES.get(exactKey)) return ROUTES.get(exactKey);
   const wildcardKey = `${event}:*`;
-  if (ROUTES[wildcardKey]) return ROUTES[wildcardKey];
+  if (ROUTES.get(wildcardKey)) return ROUTES.get(wildcardKey);
   return null;
 }
 
@@ -354,6 +387,8 @@ function main() {
     cache.config = configLoad(planningDir);
   } catch (_e) { /* best-effort */ }
 
+  initRoutes();
+
   const server = createServer(planningDir);
 
   // Acquire PID lockfile before starting
@@ -409,6 +444,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
