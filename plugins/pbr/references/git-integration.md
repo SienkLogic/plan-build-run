@@ -29,7 +29,7 @@ Use these scopes to indicate which part of PBR the change affects. git-cliff use
 | `hooks` | Hook scripts in `hooks/` and `plugins/pbr/scripts/` | `feat(hooks): add drift detection to state sync` |
 | `skills` | SKILL.md files and skill logic | `feat(skills): add velocity metrics to status` |
 | `agents` | Agent definitions in `agents/` | `fix(agents): scale executor budget for 1M context` |
-| `cli` | `pbr-tools.cjs` and `bin/lib/` modules | `feat(cli): implement stateRederive command` |
+| `cli` | `pbr-tools.js` and `bin/lib/` modules | `feat(cli): implement stateRederive command` |
 | `dashboard` | Dashboard UI and server | `fix(dashboard): handle missing phases in chart` |
 | `templates` | `.tmpl` template files | `feat(templates): add XML sections to CONTEXT.md` |
 | `plugin` | Plugin manifests, CLAUDE.md, commands | `chore(plugin): bump version to 2.9.0` |

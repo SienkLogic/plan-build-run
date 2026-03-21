@@ -100,7 +100,7 @@ Subcommands:
 **CRITICAL — After parsing the subcommand, run init command before any manual state reads:**
 
 ```bash
-node plugins/pbr/scripts/pbr-tools.cjs init milestone
+node plugins/pbr/scripts/pbr-tools.js init milestone
 ```
 
 Store the JSON result as `blob`. This single call replaces multiple file reads across all subcommands:

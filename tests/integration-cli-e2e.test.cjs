@@ -1,6 +1,6 @@
 /**
  * CLI end-to-end tests for suggest-next, plan-validate, slug-generate, and @file: fallback.
- * All tests invoke pbr-tools.cjs via CLI subprocess using runPbrTools.
+ * All tests invoke pbr-tools.js via CLI subprocess using runPbrTools.
  */
 
 const { test, describe, beforeEach, afterEach } = require('node:test');

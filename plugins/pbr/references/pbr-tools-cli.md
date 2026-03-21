@@ -1,4 +1,4 @@
-# pbr-tools.cjs CLI Reference
+# pbr-tools.js CLI Reference
 
 Command-line interface for structured JSON operations on `.planning/` state.
 Skills and agents call this via Bash to avoid token-expensive text parsing.

@@ -28,11 +28,11 @@ overrides:
 
 ```bash
 # Add an override via pbr-tools
-node pbr-tools.cjs override add --must-have "Unit tests for auth" --reason "Tested via integration" --raw
+node pbr-tools.js override add --must-have "Unit tests for auth" --reason "Tested via integration" --raw
 
 # List current overrides
-node pbr-tools.cjs override list --raw
+node pbr-tools.js override list --raw
 
 # Remove an override
-node pbr-tools.cjs override remove --must-have "Unit tests for auth" --raw
+node pbr-tools.js override remove --must-have "Unit tests for auth" --raw
 ```

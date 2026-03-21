@@ -157,7 +157,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut (`state lo
      c. Log: "PRD express path — will generate CONTEXT.md from PRD, skip discussion"
 2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
    ```bash
-   node plugins/pbr/scripts/pbr-tools.cjs init plan-phase {N}
+   node plugins/pbr/scripts/pbr-tools.js init plan-phase {N}
    ```
    Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.goal`, `blob.phase.depends_on`, `blob.config.depth`, `blob.config.profile`, `blob.researcher_model`, `blob.planner_model`, `blob.checker_model`, `blob.existing_artifacts`, `blob.workflow.research_phase`, `blob.workflow.plan_checking`, `blob.drift`.
    **Speculative mode guard:** If `$ARGUMENTS` contains `--speculative` or `--no-state-update`, SKIP the `.active-skill` write below — the autonomous orchestrator owns `.active-skill` during speculative planning.
@@ -318,7 +318,7 @@ Task({
 NOTE: The pbr:researcher subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Phase Research Prompt Template
 
@@ -448,7 +448,7 @@ If neither `--teams` flag nor `use_teams_config` is true, proceed with the singl
 If `through_phases` is set (from Step 1 --through parsing):
 
 1. For each phase P in `through_phases` (in order):
-   a. Load phase P's context: use `blob.phase.goal` and `blob.phase.depends_on` for the first phase; for subsequent phases, run `pbr-tools.cjs init` with `plan-phase {P}` to get a fresh blob
+   a. Load phase P's context: use `blob.phase.goal` and `blob.phase.depends_on` for the first phase; for subsequent phases, run `pbr-tools.js init` with `plan-phase {P}` to get a fresh blob
    b. Load phase P's CONTEXT.md (if exists)
    c. If P > first phase: include prior phase plans as accumulated context
       - For each already-planned phase in this session, include:
@@ -484,7 +484,7 @@ If `through_phases` is set (from Step 1 --through parsing):
 **Learnings injection (opt-in):** Check for planning and estimation learnings before spawning the planner:
 
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process,workflow" 2>/dev/null
+node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process,workflow" 2>/dev/null
 ```
 
 If non-empty JSON array returned:
@@ -492,7 +492,7 @@ If non-empty JSON array returned:
 - Write to temp file and note as `{learnings_temp_path}`:
 
   ```bash
-  node {resolved_plugin_root}/scripts/pbr-tools.cjs learnings query --tags "estimation,planning,process,workflow" > /tmp/pbr-learnings-$$.md
+  node {resolved_plugin_root}/scripts/pbr-tools.js learnings query --tags "estimation,planning,process,workflow" > /tmp/pbr-learnings-$$.md
   ```
 
 - Add as an additional `files_to_read` item in the planner prompt below
@@ -505,7 +505,7 @@ If `.planning/config.json` has `intel.enabled` not explicitly `false`:
 
 Run:
 ```bash
-node {resolved_plugin_root}/scripts/pbr-tools.cjs intel status
+node {resolved_plugin_root}/scripts/pbr-tools.js intel status
 ```
 
 If the output indicates any intel file is stale (>24h old) or missing:
@@ -535,7 +535,7 @@ After planner completes, check for completion markers: `## PLANNING COMPLETE`, `
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check planner output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during planning.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Planning Prompt Template
 
@@ -628,7 +628,7 @@ Task({
 NOTE: The pbr:plan-checker subagent type auto-loads the agent definition. Do NOT inline it.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Checker Prompt Template
 

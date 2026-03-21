@@ -772,11 +772,11 @@ describe('atomicWrite', () => {
 });
 
 // --- validateProject (pbr-tools.js — direct import for coverage) ---
-// validateProject is defined inside pbr-tools.cjs dispatcher (not exported from lib modules)
+// validateProject is defined inside pbr-tools.js dispatcher (not exported from lib modules)
 // These tests will need validateProject to be extracted to a lib module in a future plan
 const pbrTools = { configClearCache: configLib.configClearCache };
 
-// Skipped: validateProject is defined inside pbr-tools.cjs closure, not exported from any lib module
+// Skipped: validateProject is defined inside pbr-tools.js closure, not exported from any lib module
 describe.skip('validateProject', () => {
   let tmpDir, planningDir;
   beforeEach(() => {

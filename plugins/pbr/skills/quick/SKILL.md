@@ -77,7 +77,7 @@ Strip these flags from `$ARGUMENTS` before using the remainder as the task descr
 **Init-first pattern**: Run the init command to get config + state in a single call:
 
 ```bash
-node plugins/pbr/scripts/pbr-tools.cjs init quick "{description}"
+node plugins/pbr/scripts/pbr-tools.js init quick "{description}"
 ```
 
 From the init output:

@@ -46,7 +46,7 @@ This skill runs **inline** and is **read-only** — it never modifies any files.
 First, run the init command to capture routing, drift, and metadata:
 
 ```bash
-node plugins/pbr/scripts/pbr-tools.cjs init status
+node plugins/pbr/scripts/pbr-tools.js init status
 ```
 
 Store the JSON result as `blob`. This provides:

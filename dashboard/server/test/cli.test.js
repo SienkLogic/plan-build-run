@@ -24,7 +24,7 @@ describe('CLI Integration', () => {
     assert.ok(content.includes("require('../server/index')"), 'cli.cjs should require server/index');
   });
 
-  it.todo('pbr-tools.cjs contains dashboard case (not yet implemented)');
+  it.todo('pbr-tools.js contains dashboard case (not yet implemented)');
 
   it('dashboard/server/index.js exports createApp and startServer', () => {
     const serverIndex = require('../index');

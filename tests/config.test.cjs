@@ -2,7 +2,7 @@
  * PBR Tools Tests - config.cjs
  *
  * CLI integration tests for config-ensure-section, config-set, and config-get
- * commands exercised through pbr-tools.cjs via execSync.
+ * commands exercised through pbr-tools.js via execSync.
  *
  * Requirements: TEST-13
  */

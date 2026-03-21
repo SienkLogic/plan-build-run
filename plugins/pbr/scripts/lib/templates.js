@@ -11,9 +11,9 @@
  * Usage (library):
  *   const { templateList, templateInstantiate } = require('./templates');
  *
- * Usage (CLI via pbr-tools.cjs):
- *   node pbr-tools.cjs templates list
- *   node pbr-tools.cjs templates instantiate auth-oauth --param provider=google ...
+ * Usage (CLI via pbr-tools.js):
+ *   node pbr-tools.js templates list
+ *   node pbr-tools.js templates instantiate auth-oauth --param provider=google ...
  */
 
 const os = require('os');

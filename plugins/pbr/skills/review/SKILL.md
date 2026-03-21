@@ -92,7 +92,7 @@ Execute these steps in order.
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — skipping interactive UAT walkthrough"
 2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
    ```bash
-   node plugins/pbr/scripts/pbr-tools.cjs init verify-work {N}
+   node plugins/pbr/scripts/pbr-tools.js init verify-work {N}
    ```
    Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.name`, `blob.phase.goal`, `blob.phase.plan_count`, `blob.phase.completed`, `blob.verifier_model`, `blob.has_verification`, `blob.prior_attempts`, `blob.prior_status`, `blob.summaries`.
    **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "review" to `.planning/.active-skill` using the Write tool.
@@ -218,7 +218,7 @@ Task({
 })
 ```
 
-**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 

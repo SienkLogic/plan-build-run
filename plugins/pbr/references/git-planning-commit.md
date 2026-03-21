@@ -4,7 +4,7 @@ Commit planning artifacts using the pbr-tools CLI, which automatically checks `c
 
 ## Commit via CLI
 
-Always use `pbr-tools.cjs commit` for `.planning/` files — it handles `commit_docs` and gitignore checks automatically:
+Always use `pbr-tools.js commit` for `.planning/` files — it handles `commit_docs` and gitignore checks automatically:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js" commit "docs({scope}): {description}" --files .planning/STATE.md .planning/ROADMAP.md

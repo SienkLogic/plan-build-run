@@ -495,8 +495,8 @@ PBR supports user-level default preferences stored at `~/.claude/pbr-defaults.js
 **Location:** `~/.claude/pbr-defaults.json` (created by `config save-defaults`)
 
 **Commands:**
-- `pbr-tools.cjs config save-defaults` -- Save current project config as global defaults (only portable keys: mode, depth, features, models, parallelization, planning, git, gates, safety, hooks, dashboard, status_line)
-- `pbr-tools.cjs config load-defaults` -- Load global defaults (returns JSON or `{ exists: false }`)
+- `pbr-tools.js config save-defaults` -- Save current project config as global defaults (only portable keys: mode, depth, features, models, parallelization, planning, git, gates, safety, hooks, dashboard, status_line)
+- `pbr-tools.js config load-defaults` -- Load global defaults (returns JSON or `{ exists: false }`)
 
 **Portable keys saved:** mode, depth, context_strategy, features, models, parallelization, planning, git, gates, safety, hooks, dashboard, status_line. Project-specific state (version, schema_version) is excluded.
 

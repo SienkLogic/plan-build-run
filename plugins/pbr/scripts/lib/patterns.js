@@ -10,10 +10,10 @@
  * Usage (library):
  *   const { patternExtract, patternQuery, patternList } = require('./patterns');
  *
- * Usage (CLI via pbr-tools.cjs):
- *   node pbr-tools.cjs patterns extract <json-file>
- *   node pbr-tools.cjs patterns query [--tags X,Y] [--type T] [--stack S]
- *   node pbr-tools.cjs patterns list
+ * Usage (CLI via pbr-tools.js):
+ *   node pbr-tools.js patterns extract <json-file>
+ *   node pbr-tools.js patterns query [--tags X,Y] [--type T] [--stack S]
+ *   node pbr-tools.js patterns list
  */
 
 const os = require('os');

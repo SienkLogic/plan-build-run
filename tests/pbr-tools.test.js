@@ -7,7 +7,7 @@ const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID
 const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plugins/pbr/scripts/lib/config');
 const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/history');
 
-describe('pbr-tools.cjs', () => {
+describe('pbr-tools.js', () => {
   describe('parseStateMd', () => {
     test('extracts phase number and total', () => {
       const content = 'Phase: 3 of 10\n-- Auth System\nProgress: 45%\nStatus: building';

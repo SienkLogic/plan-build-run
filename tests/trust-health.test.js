@@ -1,5 +1,5 @@
 /**
- * Tests for trust tracking health checks in pbr-tools.cjs validate health.
+ * Tests for trust tracking health checks in pbr-tools.js validate health.
  */
 
 const fs = require('fs');

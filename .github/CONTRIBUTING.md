@@ -88,7 +88,7 @@ agents/pbr-*.md            # 14 agent definitions with color-coded frontmatter
 commands/pbr/              # 41 slash command registrations
 plan-build-run/
   skills/                  # 28 skill definitions (SKILL.md + templates)
-  scripts/pbr-tools.cjs        # CLI tool — deterministic operations
+  scripts/pbr-tools.js        # CLI tool — deterministic operations
   references/              # Shared reference documents
   templates/               # Document templates
 hooks/                     # 49 hook scripts (PreToolUse, PostToolUse, etc.)

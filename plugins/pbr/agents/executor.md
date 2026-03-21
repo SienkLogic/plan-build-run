@@ -526,7 +526,7 @@ When a task has a checkpoint type, **STOP execution** and return a structured re
 | `human-action` | Before executing | What user must do, step-by-step |
 
 **auto_checkpoints config**: After loading plan frontmatter, read `gates.auto_checkpoints` from config.json (default false):
-- Load with: `node pbr-tools.cjs config-get gates.auto_checkpoints`
+- Load with: `node pbr-tools.js config-get gates.auto_checkpoints`
 - When `auto_checkpoints` is true AND task type is `checkpoint:human-verify`: run the automated verify command. If it passes, auto-approve and continue. If it fails, still STOP and return the checkpoint response.
 - `checkpoint:decision` and `checkpoint:human-action` always require human input regardless of `auto_checkpoints`.
 

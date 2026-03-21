@@ -1,7 +1,7 @@
 /**
  * PBR Tools Tests - Dispatcher
  *
- * Tests for pbr-tools.cjs dispatch routing and error paths.
+ * Tests for pbr-tools.js dispatch routing and error paths.
  * Covers: no-command, unknown command, unknown subcommands for every command group,
  * --cwd parsing, and previously untouched routing branches.
  *

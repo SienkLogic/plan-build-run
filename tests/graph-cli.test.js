@@ -1,5 +1,5 @@
 /**
- * Tests for pbr-tools.cjs graph subcommand and graph.cjs health checks.
+ * Tests for pbr-tools.js graph subcommand and graph.cjs health checks.
  *
  * Tests:
  *   - graph build creates graph.json in .planning/codebase/
@@ -79,7 +79,7 @@ function runPbrTools(args, cwd) {
   return JSON.parse(result);
 }
 
-describe('pbr-tools.cjs graph subcommand', () => {
+describe('pbr-tools.js graph subcommand', () => {
   describe('graph build', () => {
     test('creates graph.json in .planning/codebase/', () => {
       const { tmp, codebaseDir } = makeTempProject();

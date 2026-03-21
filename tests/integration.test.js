@@ -6,7 +6,7 @@
  * event-logger, status-line, and log-subagent against realistic data.
  *
  * Function-level tests import directly from lib modules (state.cjs,
- * roadmap.cjs, phase.cjs) since pbr-tools.cjs is a CLI dispatcher
+ * roadmap.cjs, phase.cjs) since pbr-tools.js is a CLI dispatcher
  * that only exports {main}.
  */
 
@@ -265,7 +265,7 @@ describe('plan format validation', () => {
 // Group 6: CLI commands
 // ---------------------------------------------------------------------------
 describe('CLI commands', () => {
-  test('pbr-tools.cjs state load exits 0 with valid JSON', () => {
+  test('pbr-tools.js state load exits 0 with valid JSON', () => {
     const result = execSync(
       `node "${PBR_TOOLS}" state load`,
       { cwd: FIXTURE_DIR, encoding: 'utf8' }
@@ -274,7 +274,7 @@ describe('CLI commands', () => {
     expect(parsed.exists).toBe(true);
   });
 
-  test('pbr-tools.cjs bad-command exits non-zero', () => {
+  test('pbr-tools.js bad-command exits non-zero', () => {
     expect(() => {
       execSync(
         `node "${PBR_TOOLS}" bad-command`,
@@ -283,7 +283,7 @@ describe('CLI commands', () => {
     }).toThrow();
   });
 
-  // status-line.js test skipped: requires configLoad from pbr-tools.cjs
+  // status-line.js test skipped: requires configLoad from pbr-tools.js
   // which only exports {main} in the target (CLI dispatcher, not library).
   // The status-line hook itself needs a fix to import from lib/config.cjs.
   test.skip('status-line.js with piped stdin', () => {});

@@ -14,7 +14,7 @@ Use this pattern when:
 - Reading all context files directly would consume too much orchestrator context
 
 Do NOT use this pattern when:
-- The skill already uses `pbr-tools.cjs state load` (build, plan, review, import)
+- The skill already uses `pbr-tools.js state load` (build, plan, review, import)
 - The skill reads only STATE.md lines 1-20 (continue, status, resume)
 - The skill has no project dependency (note with `--global`)
 

@@ -59,7 +59,7 @@ Parse `$ARGUMENTS`:
 **CRITICAL — Run init command FIRST before any manual file reads:**
 
 ```bash
-node plugins/pbr/scripts/pbr-tools.cjs init continue
+node plugins/pbr/scripts/pbr-tools.js init continue
 ```
 
 Store the JSON result as `blob`. This single call replaces multiple file reads with a pre-computed payload containing state, config, routing, drift, and signal file data.
@@ -87,7 +87,7 @@ Then read `.planning/ROADMAP.md` to identify the current milestone boundary (ini
 Before proceeding to Step 2, check the configured context window from `blob.config` or:
 
 ```bash
-node scripts/pbr-tools.cjs config get context_window_tokens
+node scripts/pbr-tools.js config get context_window_tokens
 ```
 
 If the returned value is **>= 500000**, perform the following lookahead reads before moving to Step 2. If the value is **< 500000** (or the command fails), skip this section entirely and proceed to Step 2 with no changes to behavior.

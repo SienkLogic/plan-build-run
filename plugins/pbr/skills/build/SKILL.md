@@ -141,7 +141,7 @@ Reference: `skills/shared/config-loading.md` for the tooling shortcut and config
    - If `--auto` is present in `$ARGUMENTS`: set `auto_mode = true`. Log: "Auto mode enabled — suppressing confirmation gates"
 2. **CRITICAL — Init first.** Run the init CLI call as the FIRST action after argument parsing:
    ```bash
-   node plugins/pbr/scripts/pbr-tools.cjs init execute-phase {N}
+   node plugins/pbr/scripts/pbr-tools.js init execute-phase {N}
    ```
    Store the JSON result as `blob`. All downstream steps MUST reference `blob` fields instead of re-reading files. Key fields: `blob.phase.dir`, `blob.phase.status`, `blob.config.depth`, `blob.plans`, `blob.waves`, `blob.executor_model`, `blob.drift`.
 3. Resolve depth profile: run `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth` to get the effective feature/gate settings for the current depth. Store the result for use in later gating decisions.
@@ -635,7 +635,7 @@ Route accordingly. Do NOT inline executor output into orchestrator context.
 **Memory capture:** Reference `skills/shared/memory-capture.md` — check executor output for `<memory_suggestion>` blocks and save any reusable knowledge discovered during execution.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### 6b. Wait for Wave Completion
 
@@ -1157,7 +1157,7 @@ NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inl
 After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
 
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.cjs or template references included in the prompt.
+**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -1478,7 +1478,7 @@ Write `.planning/.auto-next` containing the next logical command (e.g., `/pbr:pl
 - [ ] auto_advance OR auto_continue evaluated (one path taken)
 - [ ] If auto_continue: `.auto-next` file written with correct next command
 - [ ] Pending todos evaluated (Step 8e-ii)
-- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.cjs todo done`
+- [ ] Clearly-satisfied todos auto-closed via `pbr-tools.js todo done`
 
 To verify programmatically: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js step-verify build step-8e '["STATE.md updated","commit made"]'`
 If any item fails, investigate before closing the session.

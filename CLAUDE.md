@@ -96,7 +96,7 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 
 ### Supporting Directories
 
-- **`plan-build-run/bin/`** — CLI tools (`pbr-tools.cjs` + `lib/` modules)
+- **`plan-build-run/bin/`** — CLI tools (`pbr-tools.js` + `lib/` modules)
 - **`plan-build-run/references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`plan-build-run/templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
 - **`plugins/pbr/commands/`** — 63 command registration files (one `.md` per command mapping to its skill)
@@ -152,7 +152,7 @@ Skills and agents communicate through files on disk, not messages:
 
 The orchestrator stays lean (~15% context) by delegating heavy work to agents. Each agent gets a fresh context window.
 
-**Utility library**: `plan-build-run/bin/pbr-tools.cjs` is a shared Node.js library (stateLoad, configLoad, frontmatterParse, mustHavesCollect, etc.) used by multiple hook scripts. It provides CLI subcommands that agents call to avoid wasting tokens on file parsing.
+**Utility library**: `plan-build-run/bin/pbr-tools.js` is a shared Node.js library (stateLoad, configLoad, frontmatterParse, mustHavesCollect, etc.) used by multiple hook scripts. It provides CLI subcommands that agents call to avoid wasting tokens on file parsing.
 
 ## Testing
 

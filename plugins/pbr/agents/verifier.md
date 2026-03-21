@@ -112,7 +112,7 @@ Look for an existing `VERIFICATION.md` in the phase directory.
 
 ### Step 2: Load Context (Always)
 
-Use `pbr-tools.cjs` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
+Use `pbr-tools.js` CLI to efficiently load phase data (saves ~500-800 tokens vs. manual parsing):
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js must-haves {phase_number}
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase-info {phase_number}
