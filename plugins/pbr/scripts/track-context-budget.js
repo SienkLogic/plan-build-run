@@ -68,6 +68,14 @@ function getScaledMilestones(planningDir) {
  * @returns {{ additionalContext: string }|null} Warning output or null
  */
 function processEvent(data, planningDir, opts, sessionId) {
+  // Track reads for read_first enforcement
+  try {
+    const { trackRead } = require('./check-read-first');
+    trackRead(data, planningDir, sessionId);
+  } catch (_e) {
+    // Never block context tracking on read_first errors
+  }
+
   const filePath = data.tool_input?.file_path || '';
   const toolName = data.tool_name || '';
 

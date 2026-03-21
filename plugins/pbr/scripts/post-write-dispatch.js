@@ -32,6 +32,7 @@ const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
+const { checkReadFirst } = require('./check-read-first');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -173,6 +174,15 @@ async function processEvent(data, planningDir) {
     if (ctx) results.push(ctx);
   } catch (e) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkQuality', error: e.message });
+  }
+
+  // read_first enforcement (advisory)
+  try {
+    const rfResult = checkReadFirst(data, planningDir, data.session_id);
+    const ctx = extractContext(rfResult);
+    if (ctx) results.push(ctx);
+  } catch (e) {
+    logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkReadFirst', error: e.message });
   }
 
   // LLM file intent classification — advisory enrichment for non-planning files
