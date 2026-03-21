@@ -30,8 +30,10 @@
  *      or warn (exit 0 with message).
  *
  *   6. check-doc-sprawl      — Prevents creation of new .md/.txt files
- *      outside a known allowlist (when enabled in config). Runs last
- *      because it's the most granular check. Can block (exit 2).
+ *      outside a known allowlist (when enabled in config). Can block (exit 2).
+ *
+ *   7. prompt-guard           — Scans .planning/ writes for prompt injection
+ *      patterns. Advisory only (exit 0).
  *
  * ── Short-Circuit Behavior ──────────────────────────────────────
  *
@@ -65,6 +67,7 @@ const { checkWorkflow } = require('./check-skill-workflow');
 const { checkSummaryGate } = require('./check-summary-gate');
 const { checkBoundary } = require('./check-phase-boundary');
 const { checkDocSprawl } = require('./check-doc-sprawl');
+const { checkPromptInjection } = require('./prompt-guard');
 const { checkUnmanagedSourceWrite } = require('./enforce-pbr-workflow');
 
 function main() {
@@ -118,6 +121,13 @@ function main() {
       if (sprawlResult) {
         process.stdout.write(JSON.stringify(sprawlResult.output));
         process.exit(sprawlResult.exitCode || 0);
+      }
+
+      // Prompt injection scan — advisory only (never blocks)
+      const injectionResult = checkPromptInjection(data);
+      if (injectionResult) {
+        process.stdout.write(JSON.stringify(injectionResult.output));
+        process.exit(injectionResult.exitCode || 0);
       }
 
       // Soft warning: writing outside current phase directory
