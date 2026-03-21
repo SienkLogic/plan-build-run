@@ -204,7 +204,7 @@ describe('hook-server.js integration', () => {
 // ---------------------------------------------------------------------------
 
 describe('hook-server.js exports', () => {
-  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, lazyHandler, createServer, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
+  const { appendEvent, readEventLogTail, mergeContext, resolveHandler, register, lazyHandler, createServer, DEFAULT_PORT } = require('../plugins/pbr/scripts/hook-server');
 
   test('DEFAULT_PORT is 19836', () => {
     expect(DEFAULT_PORT).toBe(19836);
@@ -242,14 +242,16 @@ describe('hook-server.js exports', () => {
     expect(handler).toBeNull();
   });
 
-  test('resolveHandler finds exact match', () => {
-    const handler = resolveHandler('PostToolUse', 'Read');
+  test('resolveHandler finds exact match after register()', () => {
+    register('ResolveExact', 'ReadTest', async () => ({ additionalContext: 'found' }));
+    const handler = resolveHandler('ResolveExact', 'ReadTest');
     expect(handler).not.toBeNull();
     expect(typeof handler).toBe('function');
   });
 
-  test('resolveHandler finds wildcard match', () => {
-    const handler = resolveHandler('PostToolUseFailure', 'anything');
+  test('resolveHandler finds wildcard match after register()', () => {
+    register('ResolveWild', '*', async () => ({ additionalContext: 'wild' }));
+    const handler = resolveHandler('ResolveWild', 'anything');
     expect(handler).not.toBeNull();
   });
 
@@ -601,6 +603,140 @@ describe('hook-server.js exports', () => {
     const merged = mergeContext(h1);
     const result = await merged({});
     expect(result).toBeNull();
+  });
+
+  // -------------------------------------------------------------------------
+  // Error isolation (fail-open behavior)
+  // -------------------------------------------------------------------------
+
+  describe('error isolation (fail-open)', () => {
+    test('handler that throws synchronously returns 200 with {} via URL route', (done) => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-err-iso-'));
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir);
+
+      // Register a handler that always throws
+      register('ErrIsoSync', 'Throw', async () => { throw new Error('sync boom'); });
+
+      const server = createServer(planningDir);
+      server.listen(0, '127.0.0.1', () => {
+        const { port } = server.address();
+        const body = JSON.stringify({});
+        const req = http.request({
+          hostname: '127.0.0.1', port, path: '/hook/ErrIsoSync/Throw', method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        }, res => {
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', c => { data += c; });
+          res.on('end', () => {
+            expect(res.statusCode).toBe(200);
+            expect(JSON.parse(data)).toEqual({});
+            server.close(() => {
+              fs.rmSync(tmpDir, { recursive: true, force: true });
+              done();
+            });
+          });
+        });
+        req.on('error', done);
+        req.write(body);
+        req.end();
+      });
+    });
+
+    test('handler that rejects (async throw) returns 200 with {} via URL route', (done) => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-err-iso-'));
+      const planningDir = path.join(tmpDir, '.planning');
+      fs.mkdirSync(planningDir);
+
+      register('ErrIsoAsync', 'Reject', async () => {
+        return Promise.reject(new Error('async boom'));
+      });
+
+      const server = createServer(planningDir);
+      server.listen(0, '127.0.0.1', () => {
+        const { port } = server.address();
+        const body = JSON.stringify({});
+        const req = http.request({
+          hostname: '127.0.0.1', port, path: '/hook/ErrIsoAsync/Reject', method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+        }, res => {
+          let data = '';
+          res.setEncoding('utf8');
+          res.on('data', c => { data += c; });
+          res.on('end', () => {
+            expect(res.statusCode).toBe(200);
+            expect(JSON.parse(data)).toEqual({});
+            server.close(() => {
+              fs.rmSync(tmpDir, { recursive: true, force: true });
+              done();
+            });
+          });
+        });
+        req.on('error', done);
+        req.write(body);
+        req.end();
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // EADDRINUSE behavior
+  // -------------------------------------------------------------------------
+
+  describe('EADDRINUSE behavior', () => {
+    test('server emits EADDRINUSE error when port is already taken', (done) => {
+      // Occupy a port with a dummy server
+      const blocker = http.createServer((_req, res) => {
+        res.writeHead(200);
+        res.end('occupied');
+      });
+
+      blocker.listen(0, '127.0.0.1', () => {
+        const occupiedPort = blocker.address().port;
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-eaddrinuse-'));
+        const planningDir = path.join(tmpDir, '.planning');
+        fs.mkdirSync(planningDir);
+
+        // Try to start hook server on same port
+        const hookServer = createServer(planningDir);
+        hookServer.on('error', (err) => {
+          expect(err.code).toBe('EADDRINUSE');
+          blocker.close(() => {
+            fs.rmSync(tmpDir, { recursive: true, force: true });
+            done();
+          });
+        });
+        hookServer.listen(occupiedPort, '127.0.0.1');
+      });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // register() pipe-separated and resolveHandler priority
+  // -------------------------------------------------------------------------
+
+  describe('register and resolveHandler', () => {
+    test('pipe-separated register creates both route keys', () => {
+      const handler = async () => ({ additionalContext: 'pipe-test' });
+      register('PipeTest', 'ToolX|ToolY', handler);
+      expect(resolveHandler('PipeTest', 'ToolX')).toBe(handler);
+      expect(resolveHandler('PipeTest', 'ToolY')).toBe(handler);
+    });
+
+    test('exact key match takes priority over wildcard', () => {
+      const exactH = async () => ({ additionalContext: 'exact' });
+      const wildH = async () => ({ additionalContext: 'wild' });
+      register('PriorityTest', 'Exact', exactH);
+      register('PriorityTest', '*', wildH);
+      expect(resolveHandler('PriorityTest', 'Exact')).toBe(exactH);
+    });
+
+    test('wildcard Event:* matches when no exact key', () => {
+      const wildH = async () => ({ additionalContext: 'wild-fallback' });
+      register('WildOnly', '*', wildH);
+      expect(resolveHandler('WildOnly', 'AnyTool')).toBe(wildH);
+    });
   });
 
   // -------------------------------------------------------------------------
