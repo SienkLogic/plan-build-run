@@ -311,12 +311,6 @@
           "default": true,
           "description": "Enable team onboarding guide generation from ROADMAP.md, CONTEXT.md, and project conventions."
         },
-        "multi_layer_validation": {
-          "type": "boolean",
-          "default": false,
-          "deprecated": true,
-          "description": "DEPRECATED. Parallel multi-layer review passes were never integrated. Key retained for backward compatibility."
-        },
         "regression_prevention": {
           "type": "boolean",
           "default": true,
@@ -339,16 +333,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "validation_passes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["correctness", "security", "performance", "style", "tests", "accessibility", "docs", "deps"]
-      },
-      "default": ["correctness", "security"],
-      "deprecated": true,
-      "description": "DEPRECATED. Used only with multi_layer_validation which was never integrated. Key retained for backward compatibility."
     },
     "autonomy": {
       "type": "object",

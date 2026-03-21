@@ -1,3 +1,5 @@
+// STATUS: Library module — imported by team-composer.js and hypothesis-runner.js. Not directly used by hooks/gates.
+
 /**
  * lib/team-coordinator.cjs — Multi-agent team coordination for Plan-Build-Run.
  *

@@ -15,6 +15,10 @@ Complete reference for `.planning/config.json` -- the file that controls all Pla
 | `session_phase_limit` | integer | `0`-`20` | `3` | Maximum phases to complete per session before auto-pause. Set to `0` to disable. Only effective when `features.auto_continue` is `true`. |
 | `context_window_tokens` | integer | `100000`-`2000000` | `200000` | Context window size in tokens for the active Claude model. Scales hook thresholds and agent budgets. Set to `1000000` for 1M-context models. |
 | `agent_checkpoint_pct` | integer | `40`-`80` | `50` | Context usage % at which agents checkpoint. Set to `65` for 1M-context models. |
+| `ceremony_level` | string | `auto`, `low`, `medium`, `high` | `auto` | Override risk-based ceremony. `auto` = classifier decides per task. |
+| `orchestrator_budget_pct` | integer | `15`-`50` | `25` | Percentage of context window reserved for the orchestrator. Higher values enable more inline work. |
+| `session_cycling` | string | `tmux`, `compact-first`, `compact`, `manual` | `compact` | What happens when session phase limit is reached. `tmux` auto-cycles via tmux send-keys; `compact-first` tries `/compact` before cycling (recommended for 1M); `compact` instructs user to compact and resume; `manual` shows a banner only. |
+| `skip_rag_max_lines` | integer | `1000`-`500000` | `50000` | Maximum project LOC for Skip-RAG eligibility. Projects under this threshold can load entire codebase into context when `features.skip_rag` is enabled. |
 
 ### context_strategy
 
@@ -63,6 +67,35 @@ The context usage percentage at which agents should stop work and return output 
 
 Valid range: `40`–`80`. Values outside this range are rejected by schema validation. Set by the `quality` profile to `65`; all other profiles default to `50`.
 
+### ceremony_level
+
+| Value | Behavior |
+|-------|----------|
+| `auto` | Risk-classifier decides ceremony per task (default) |
+| `low` | Inline execution, no plan file generated |
+| `medium` | Lightweight plan, minimal verification |
+| `high` | Full plan-build-verify cycle for every task |
+
+### orchestrator_budget_pct
+
+Controls how much of the context window the orchestrator (main skill) reserves for its own use before delegating to subagents. Higher values allow more inline work; lower values force earlier delegation.
+
+| Value | Meaning |
+|-------|---------|
+| `25` | Default for 200k models -- delegates early |
+| `35` | Recommended for 1M models -- more inline work before delegation |
+
+### session_cycling
+
+Controls the behavior when the session reaches its `session_phase_limit`.
+
+| Value | Behavior |
+|-------|----------|
+| `tmux` | Auto-cycle via tmux `send-keys` (requires TMUX environment) |
+| `compact-first` | Try `/compact` before cycling; recommended for 1M context models |
+| `compact` | Instruct user to run `/compact` then `/pbr:resume-work` (default) |
+| `manual` | Show banner only; user decides next action |
+
 ---
 
 ## features
@@ -85,6 +118,7 @@ Boolean toggles that enable or disable specific workflow capabilities. All defau
 | `auto_advance` | `false` | Chain build, review, and plan automatically (requires `mode: autonomous`) |
 | `team_discussions` | `false` | Enable team-based discussion workflows (never used for execution) |
 | `inline_verify` | `false` | Per-task verification after each executor commit; adds ~10-20s latency per plan |
+| `multi_layer_validation` | `false` | **(DEPRECATED)** Parallel BugBot-style review passes. Never integrated; removed in plan 100-01. Key retained for backward compatibility. |
 | `extended_context` | `false` | Enable aggressive 1M context optimizations: higher concurrency (5 agents vs 3), default team review, always-parallel scan, pre-load build steps. Auto-set by quality profile. Safe optimizations (parallel research, full SUMMARY reads) use `context_window_tokens >= 500000` instead. |
 
 **Notable interactions:**
@@ -327,7 +361,7 @@ Controls how many phases PBR completes in a single session before suggesting a p
 
 **Tracking:** Phase completions are tracked in `.planning/.session-tracker` (reset each session start). The counter increments when an executor subagent completes successfully.
 
-See `references/tmux-setup.md` for TMUX environment setup.
+See `references/archive/tmux-setup.md` for TMUX environment setup.
 
 ---
 
@@ -363,6 +397,250 @@ Controls the visual context budget bar.
 | `thresholds.yellow` | integer | -- | Percentage threshold for yellow indicator (0-100) |
 | `chars.filled` | string | -- | Character used for the filled portion of the bar |
 | `chars.empty` | string | -- | Character used for the empty portion of the bar |
+
+---
+
+## autonomy
+
+Progressive autonomy control for agent behavior.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `level` | string | `supervised` | Autonomy level: `supervised` (human approves all), `guided` (AI acts, human reviews async), `collaborative` (AI handles routine, escalates novel), `adaptive` (AI adjusts own autonomy per task confidence) |
+| `error_strategy` | string | `retry` | How agents handle errors: `retry` or `stop` |
+| `max_retries` | integer | `2` | Maximum retry attempts for autonomous error recovery |
+
+---
+
+## model_profiles
+
+User-defined custom model profiles. Each key is a profile name (e.g., `budget`, `quality`); the value maps agent names to model strings (`sonnet`, `opus`, `haiku`, `inherit`). Partial profiles are allowed -- omitted agents fall back to the active profile defaults.
+
+```json
+{
+  "model_profiles": {
+    "budget": {
+      "researcher": "haiku",
+      "planner": "sonnet",
+      "executor": "sonnet",
+      "verifier": "haiku"
+    }
+  }
+}
+```
+
+Agent keys match the `models` section: `researcher`, `planner`, `executor`, `verifier`, `integration_checker`, `debugger`, `mapper`, `synthesizer`.
+
+---
+
+## workflow
+
+Controls workflow-level execution behavior including inline execution, speculative planning, and phase boundaries.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `autonomous` | boolean | `false` | Enable `/pbr:autonomous` for hands-free multi-phase execution |
+| `enforce_pbr_skills` | string | `advisory` | PBR workflow compliance enforcement: `advisory` (warn), `block` (prevent non-PBR edits), `off` (disabled) |
+| `inline_execution` | boolean | `false` | Trivial plans execute inline without spawning a subagent |
+| `inline_max_tasks` | integer | `2` | Maximum tasks for inline execution eligibility (1-5) |
+| `inline_max_files` | integer | `5` | Maximum files for inline execution eligibility (1-20) |
+| `inline_max_lines` | integer | `50` | Maximum estimated lines of change for inline execution (10-500) |
+| `inline_context_cap_pct` | integer | `40` | Context usage % above which always spawn subagent (10-80) |
+| `max_phases_in_context` | integer | `3` | Max phase plans held simultaneously by orchestrator (1-10) |
+| `phase_boundary_clear` | string | `off` | `/clear` at phase boundaries: `recommend` (advisory), `enforce` (block without `/clear`), `off` |
+| `phase_replay` | boolean | `false` | Failed verification triggers replay with enriched context |
+| `speculative_planning` | boolean | `false` | Plan phase N+1 while executor runs phase N |
+| `speculative_depth` | integer | `2` | How many phases ahead to speculatively plan (1-5) |
+| `validate_phase` | boolean | `true` | Validate phase structure before execution |
+
+---
+
+## verification
+
+Controls post-build verification behavior.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `confidence_gate` | boolean | `false` | Skip verification if executor reports 100% must-have completion and tests pass |
+| `confidence_threshold` | number | `1.0` | Minimum completion confidence (0.5-1.0) required to skip verification |
+
+When `confidence_gate` is `true` and the executor SUMMARY reports all must-haves as DONE with commit SHAs, the build skill can auto-mark the phase as verified without spawning a verifier agent.
+
+---
+
+## validation_passes (DEPRECATED)
+
+> **DEPRECATED**: The `multi_layer_validation` feature was never integrated and was removed in plan 100-01. This config key is retained for backward compatibility. The array has no effect.
+
+Defined which review passes would run with the multi-layer validation feature. Options included: `correctness`, `security`, `performance`, `style`, `tests`, `accessibility`, `docs`, `deps`.
+
+---
+
+## context_budget
+
+Controls context budget warning thresholds.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `threshold_curve` | string | `linear` | Warning threshold scaling: `linear` (fixed 50/70/85%) or `adaptive` (shifts up for 1M context: 60/75/85%) |
+
+Use `adaptive` with `context_window_tokens >= 500000` to reduce premature compaction warnings.
+
+---
+
+## context_ledger
+
+Tracks what files are loaded in context and when they become stale.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable context composition tracking via `track-context-budget.js` |
+| `stale_after_minutes` | integer | `60` | Minutes before a context read is considered stale for compact suggestions (5-1440) |
+
+When enabled, the hook records file path, timestamp, estimated tokens, and active phase per Read call in `.planning/.context-ledger.json`.
+
+---
+
+## hook_server
+
+Persistent HTTP hook server for faster hook execution. When enabled, hooks POST to the server instead of spawning per-hook Node.js processes.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Route hooks through the persistent HTTP server |
+| `port` | integer | `19836` | TCP port the hook server listens on (127.0.0.1 only, 1024-65535) |
+| `event_log` | boolean | `true` | Append all hook events to `.planning/.hook-events.jsonl` |
+
+---
+
+## intel
+
+Persistent codebase intelligence system providing architecture maps and file dependency graphs.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable the intel system. When `false`, all intel features are no-ops. |
+| `auto_update` | boolean | `false` | PostToolUse hooks queue intel updates when code files change |
+| `inject_on_start` | boolean | `false` | SessionStart hook injects `.planning/intel/arch.md` summary into context |
+
+When fully enabled, the `/pbr:intel` skill generates architecture maps, module graphs, and convention summaries in `.planning/intel/`.
+
+---
+
+## learnings
+
+Cross-phase knowledge transfer system. Executors write `LEARNINGS.md` files; planners read prior learnings for context.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable cross-phase learning |
+| `read_depth` | integer | `3` | Number of prior phases' LEARNINGS.md files the planner reads (1-20) |
+| `cross_project_knowledge` | boolean | `false` | Copy learnings marked `cross_project: true` to `~/.claude/pbr-knowledge/` for reuse across projects |
+
+---
+
+## dashboard
+
+Web UI for browsing `.planning/` state.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `auto_launch` | boolean | `false` | Automatically launch dashboard when starting a PBR session |
+| `port` | integer | `3141` | TCP port for the dashboard server (1024-65535) |
+
+Launch manually with: `npm run dashboard -- --dir /path/to/project --port 3141`
+
+---
+
+## developer_profile
+
+Behavioral profiling from session history with optional prompt injection for personalized agent communication.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable developer profiling. When `true`, `/pbr:profile-user` skill generates behavioral profiles. |
+| `inject_prompts` | boolean | `false` | Inject `USER-PROFILE.md` summary into agent prompts for personalized communication |
+
+---
+
+## prd
+
+Settings for PRD (Product Requirements Document) import via `/pbr:import --prd`.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `auto_extract` | boolean | `false` | Skip the confirmation gate during PRD import and write files immediately |
+
+---
+
+## timeouts
+
+Timeout limits for various operations in milliseconds.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `task_default_ms` | integer | `300000` | Default timeout per task (5 minutes). Minimum: 30000. |
+| `build_max_ms` | integer | `600000` | Maximum time for entire build command (10 minutes). Minimum: 60000. |
+| `verify_max_ms` | integer | `300000` | Maximum time for verification (5 minutes). Minimum: 30000. |
+
+---
+
+## ui
+
+Controls the UI design pipeline for frontend projects.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Enable UI design pipeline. When `true`, `/pbr:ui-phase` and `/pbr:ui-review` skills are available. Auto-detected for frontend projects unless explicitly set. |
+
+---
+
+## worktree
+
+Settings for agents running with `isolation: worktree` in their agent definition.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `sparse_paths` | string[] | `[]` | Glob patterns for sparse checkout in worktrees (e.g., `["src/**", "package.json", ".planning/**"]`). Empty array = full checkout. |
+
+---
+
+## audit
+
+Audit system configuration for `/pbr:audit`. Controls which audit dimensions run and their thresholds.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `preset` | string | `standard` | Audit preset: `minimal`, `standard`, `comprehensive`, `custom` |
+| `categories` | object | *(all true)* | Per-category enable/disable toggles (overrides preset defaults) |
+| `overrides` | object | `{}` | Per-dimension enable/disable by ID (e.g., `"SI-01": false`) |
+| `thresholds` | object | *(see below)* | Tunable numeric thresholds referenced by audit dimensions |
+
+### audit.categories
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `self_integrity` | `true` | Self-integrity checks |
+| `infrastructure` | `true` | Infrastructure health checks |
+| `error_analysis` | `true` | Error pattern analysis |
+| `workflow_compliance` | `true` | PBR workflow compliance |
+| `behavioral_compliance` | `true` | Agent behavioral compliance |
+| `session_quality` | `true` | Session quality metrics |
+| `feature_verification` | `true` | Feature flag verification |
+| `quality_metrics` | `true` | Code quality metrics |
+
+### audit.thresholds
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `hook_performance_ms` | integer | `500` | Hook execution time warning threshold |
+| `session_duration_warn_ms` | integer | `3600000` | Session duration warning (1 hour) |
+| `tool_failure_rate_warn` | number | `0.10` | Tool failure rate warning threshold (0-1) |
+| `stale_file_age_hours` | integer | `24` | Hours before a planning file is considered stale |
+| `retry_pattern_min_count` | integer | `3` | Minimum retries before flagging a retry pattern |
+| `agent_timeout_ms` | integer | `600000` | Agent execution timeout (10 minutes) |
+| `disk_usage_warn_mb` | integer | `50` | `.planning/` disk usage warning in MB |
+| `log_rotation_max_days` | integer | `30` | Maximum age for log files before rotation |
 
 ---
 

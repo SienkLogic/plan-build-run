@@ -100,7 +100,6 @@
     "graduated_verification: trust-based verification depth (light/standard/thorough)",
     "inline_verify: per-task verification after each commit (+10-20s per plan)",
     "integration_verification: cross-phase integration checks",
-    "(DEPRECATED) multi_layer_validation: parallel BugBot-style review passes — never integrated",
     "self_verification: executor self-checks before presenting output",
     "trust_tracking: trust scores per agent type and task category",
     "",
@@ -177,7 +176,6 @@
     "living_requirements": true,
     "machine_executable_plans": false,
     "mental_model_snapshots": true,
-    "multi_layer_validation": false,
     "multi_phase_awareness": true,
     "natural_language_routing": true,
     "negative_knowledge": true,
@@ -316,14 +314,8 @@
     "search_gitignored": false
   },
   "_guide_verification": [
-    "(DEPRECATED) validation_passes: which review passes run with multi_layer_validation — never integrated",
-    "  options: correctness, security, performance, style, tests, accessibility, docs, deps",
     "verification.confidence_gate: skip verification if executor reports 100% completion + tests pass",
     "verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification"
-  ],
-  "validation_passes": [
-    "correctness",
-    "security"
   ],
   "verification": {
     "confidence_gate": false,

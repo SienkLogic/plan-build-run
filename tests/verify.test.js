@@ -235,31 +235,6 @@ describe('cmdValidateHealth', () => {
 });
 
 describe('cmdValidateHealth - Phase 14 feature checks', () => {
-  // multi_layer_validation feature deprecated — see v14.0 dead feature cleanup
-  // Health check still reports status for backward compat until full removal
-  test('health check reports multi_layer_validation enabled status', () => {
-    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify({
-        depth: 'standard',
-        features: { multi_layer_validation: true, regression_prevention: true, security_scanning: true },
-        validation_passes: ['correctness', 'security'],
-      }));
-    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
-    const out = getOutput();
-    expect(out).toMatch(/multi_layer_validation.*(?:healthy|degraded|deprecated)/i);
-  });
-
-  test('health check reports multi_layer_validation disabled', () => {
-    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify({
-        depth: 'standard',
-        features: { multi_layer_validation: false },
-      }));
-    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
-    const out = getOutput();
-    expect(out).toMatch(/multi_layer_validation.*disabled|disabled.*multi_layer_validation/i);
-  });
-
   test('health check reports regression_prevention status', () => {
     fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
       JSON.stringify({
@@ -282,17 +257,4 @@ describe('cmdValidateHealth - Phase 14 feature checks', () => {
     expect(out).toMatch(/security_scanning/i);
   });
 
-  // multi_layer_validation feature deprecated — health check retained for backward compat
-  test('health check reports multi_layer_validation status when enabled', () => {
-    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify({
-        depth: 'standard',
-        features: { multi_layer_validation: true },
-        validation_passes: ['correctness'],
-      }));
-    try { cmdValidateHealth(tmpDir, {}, false); } catch (_e) { /* exit */ }
-    const out = getOutput();
-    // Either healthy (module exists) or degraded — both valid for deprecated feature
-    expect(out).toMatch(/multi_layer_validation.*(?:healthy|degraded|deprecated)/i);
-  });
 });

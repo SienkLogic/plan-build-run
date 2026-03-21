@@ -1006,24 +1006,6 @@ function cmdValidateHealth(cwd, options, raw) {
       }
     };
 
-    // multi_layer_validation: default false
-    const mlvEnabled = p14Features.multi_layer_validation === true;
-    const mlvModPath = path.join(__dirname, 'validation.cjs');
-    const mlvHealth = checkFeatureHealth(
-      'multi_layer_validation',
-      mlvEnabled,
-      mlvModPath,
-      (mod) => mod.PASS_DEFINITIONS && Object.keys(mod.PASS_DEFINITIONS).length > 0
-    );
-    if (mlvHealth.status === 'healthy') {
-      try {
-        const vlMod = require(mlvModPath);
-        const passCount = Object.keys(vlMod.PASS_DEFINITIONS).length;
-        addIssue('info', 'I-MLV-HEALTHY', `multi_layer_validation: healthy (${passCount} passes configured)`, '');
-      } catch (_) {}
-    }
-    feature_status.multi_layer_validation = mlvHealth;
-
     // regression_prevention: default true
     const rpEnabled = p14Features.regression_prevention !== false;
     const rpModPath = path.join(__dirname, 'test-selection.cjs');

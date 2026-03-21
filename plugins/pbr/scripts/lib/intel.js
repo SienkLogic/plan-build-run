@@ -627,23 +627,6 @@ function intelExtractExports(filePath) {
   return { file: filePath, exports, method };
 }
 
-/**
- * Drain the intel auto-update queue and return queued file paths.
- * Reads .intel-queue.json, deletes it, and returns the contents.
- *
- * @param {string} planningDir - Path to .planning directory
- * @returns {{ drained: number, files: string[] }}
- */
-function intelDrain(planningDir) {
-  const queuePath = path.join(planningDir, '.intel-queue.json');
-  if (!fs.existsSync(queuePath)) return { drained: 0, files: [] };
-  let queue = [];
-  try { queue = JSON.parse(fs.readFileSync(queuePath, 'utf8')); } catch (_e) { return { drained: 0, files: [] }; }
-  // Clear the queue after reading
-  try { fs.unlinkSync(queuePath); } catch (_e) { /* best-effort */ }
-  return { drained: queue.length, files: queue };
-}
-
 // ─── Exports ─────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -655,7 +638,6 @@ module.exports = {
   saveRefreshSnapshot,
 
   // CLI subcommands
-  intelDrain,
   intelSnapshot,
   intelValidate,
   intelExtractExports,

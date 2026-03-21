@@ -745,10 +745,6 @@ For each plan that completed successfully in this wave:
 
 ---
 
-> **Note:** Multi-layer validation (`multi_layer_validation`) has been deprecated and removed. Standard verification via the verifier agent is used instead.
-
----
-
 #### 6c-iii. Security Scan (conditional)
 
 **Skip if** `features.security_scanning` is not `true` in `.planning/config.json`.

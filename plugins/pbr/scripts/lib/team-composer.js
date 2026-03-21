@@ -1,3 +1,5 @@
+// STATUS: Library module — not wired into hooks/gates. Available when parallelization.use_teams is enabled.
+
 /**
  * lib/team-composer.cjs — Dynamic team assembly for Plan-Build-Run.
  *

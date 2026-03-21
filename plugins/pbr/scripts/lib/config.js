@@ -794,14 +794,12 @@ const CONFIG_DEFAULTS = {
     progress_visualization: true,
     contextual_help: true,
     team_onboarding: false,
-    multi_layer_validation: false, // DEPRECATED: multi_layer_validation never integrated. Key retained for backward compat.
     regression_prevention: true,
     security_scanning: true,
     architecture_graph: true,
     architecture_guard: true,
     incident_journal: true
   },
-  validation_passes: ['correctness', 'security'], // DEPRECATED: used only with multi_layer_validation.
   autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },
   models: {
     researcher: 'sonnet',
@@ -1001,7 +999,6 @@ const CONFIG_SECTIONS = [
       'graduated_verification: trust-based verification depth (light/standard/thorough)',
       'inline_verify: per-task verification after each commit (+10-20s per plan)',
       'integration_verification: cross-phase integration checks',
-      '(DEPRECATED) multi_layer_validation: parallel BugBot-style review passes — never integrated',
       'self_verification: executor self-checks before presenting output',
       'trust_tracking: trust scores per agent type and task category',
       '',
@@ -1109,12 +1106,10 @@ const CONFIG_SECTIONS = [
   {
     guide: '_guide_verification',
     lines: [
-      '(DEPRECATED) validation_passes: which review passes run with multi_layer_validation — never integrated',
-      '  options: correctness, security, performance, style, tests, accessibility, docs, deps',
       'verification.confidence_gate: skip verification if executor reports 100% completion + tests pass',
       'verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification'
     ],
-    keys: ['validation_passes', 'verification']
+    keys: ['verification']
   },
   {
     guide: '_guide_context_budget',

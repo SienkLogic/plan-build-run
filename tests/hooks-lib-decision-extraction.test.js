@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp } = require('./helpers');
 
-const { DECISION_PATTERNS, extractDecisions, handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/lib/decision-extraction');
+const { DECISION_PATTERNS, extractDecisions, handleDecisionExtraction } = require('../plugins/pbr/scripts/lib/decision-extraction');
 
 let tmpDir;
 let planningDir;
@@ -124,78 +124,3 @@ describe('handleDecisionExtraction', () => {
   });
 });
 
-describe('extractNegativeKnowledge', () => {
-  test('returns early when negative_knowledge feature is disabled', () => {
-    const phaseDir = path.join(planningDir, 'phases', '01-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-    // Should not throw
-    extractNegativeKnowledge(planningDir, phaseDir, { features: {} });
-  });
-
-  test('returns early when VERIFICATION.md is missing', () => {
-    const phaseDir = path.join(planningDir, 'phases', '01-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-    extractNegativeKnowledge(planningDir, phaseDir, { features: { negative_knowledge: true } });
-  });
-
-  test('returns early when config is null', () => {
-    const phaseDir = path.join(planningDir, 'phases', '01-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-    extractNegativeKnowledge(planningDir, phaseDir, null);
-  });
-
-  test('parses section-format gaps from VERIFICATION.md', () => {
-    const phaseDir = path.join(planningDir, 'phases', '01-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    const verificationContent = `---
-status: failed
-gaps:
-  - Missing tests
----
-
-### Gap: Missing unit tests
-Files: src/index.js, src/utils.js
-No test coverage for core modules
-
-## Summary
-`;
-    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), verificationContent);
-
-    // Will try to load negative-knowledge.cjs — may fail in test env, but should not throw
-    extractNegativeKnowledge(planningDir, phaseDir, { features: { negative_knowledge: true } });
-  });
-
-  test('parses table-format gaps from VERIFICATION.md', () => {
-    const phaseDir = path.join(planningDir, 'phases', '02-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    const verificationContent = `---
-status: failed
-gaps:
-  - Missing validation
----
-
-| Gap | Files | Evidence |
-| Missing input validation | src/api.js | No sanitization |
-`;
-    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), verificationContent);
-
-    extractNegativeKnowledge(planningDir, phaseDir, { features: { negative_knowledge: true } });
-  });
-
-  test('returns early when frontmatter has no gaps and status is not failed', () => {
-    const phaseDir = path.join(planningDir, 'phases', '03-test');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    const verificationContent = `---
-status: passed
----
-
-All good
-`;
-    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'), verificationContent);
-
-    extractNegativeKnowledge(planningDir, phaseDir, { features: { negative_knowledge: true } });
-  });
-});

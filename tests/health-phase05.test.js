@@ -39,7 +39,7 @@ afterEach(() => {
 });
 
 const { cmdValidateHealth } = require('../plugins/pbr/scripts/lib/verify');
-const { handleDecisionExtraction, extractNegativeKnowledge } = require('../plugins/pbr/scripts/event-handler');
+const { handleDecisionExtraction } = require('../plugins/pbr/scripts/event-handler');
 const { clearRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 const { clearRootCache: clearPluginRootCache } = require('../plugins/pbr/scripts/lib/resolve-root');
 const { getLogFilename: getHooksFilename } = require('../plugins/pbr/scripts/hook-logger');
@@ -204,29 +204,6 @@ describe('Phase 05 audit evidence', () => {
     expect(decisionEntry.action).toBe('extract');
     expect(decisionEntry.count).toBeGreaterThanOrEqual(1);
     expect(decisionEntry.ts).toBeDefined();
-  });
-
-  test('negative knowledge extraction writes audit log with feature and action fields', () => {
-    fs.mkdirSync(path.join(tmpDir, '.planning', 'negative-knowledge'), { recursive: true });
-    const phaseDir = path.join(tmpDir, '.planning', 'phases', '05-features');
-    fs.writeFileSync(path.join(phaseDir, 'VERIFICATION.md'),
-      '---\nstatus: failed\ngaps:\n  - Missing test coverage\n---\n\n### Gap: Missing test coverage\nFiles: tests/foo.test.js\nExpected tests for foo module but none found\n');
-    fs.writeFileSync(path.join(tmpDir, '.planning', 'config.json'),
-      JSON.stringify({ features: { negative_knowledge: true } }));
-
-    extractNegativeKnowledge(path.join(tmpDir, '.planning'), phaseDir,
-      { features: { negative_knowledge: true } });
-
-    const logPath = path.join(tmpDir, '.planning', 'logs', getHooksFilename());
-    expect(fs.existsSync(logPath)).toBe(true);
-    const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
-    const entries = lines.map(l => JSON.parse(l));
-    const nkEntry = entries.find(e => e.decision === 'negative-knowledge-extracted');
-    expect(nkEntry).toBeDefined();
-    expect(nkEntry.feature).toBe('negative_knowledge');
-    expect(nkEntry.action).toBe('extract');
-    expect(nkEntry.count).toBeGreaterThanOrEqual(1);
-    expect(nkEntry.ts).toBeDefined();
   });
 
   test('audit entries contain required fields: hook, feature, action, count, timestamp', () => {

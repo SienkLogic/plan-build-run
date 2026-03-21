@@ -32,7 +32,6 @@ const { checkSync } = require('./check-roadmap-sync');
 const { checkStateSync } = require('./check-state-sync');
 const { checkQuality } = require('./post-write-quality');
 const { syncContextToClaude } = require('./sync-context-to-claude');
-const { queueIntelUpdate } = require('./intel-queue');
 
 // Conditionally import validateRoadmap (may not exist yet if PLAN-01 hasn't landed)
 let validateRoadmap;
@@ -174,13 +173,6 @@ async function processEvent(data, planningDir) {
     if (ctx) results.push(ctx);
   } catch (e) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkQuality', error: e.message });
-  }
-
-  // Intel queue: track code file changes for auto-update (side-effect only)
-  try {
-    queueIntelUpdate(data, planningDir);
-  } catch (_e) {
-    // Intel queue must never break the dispatch chain
   }
 
   // LLM file intent classification — advisory enrichment for non-planning files

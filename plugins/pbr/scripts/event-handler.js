@@ -16,7 +16,7 @@ const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { incrementTracker } = require('./session-tracker');
 const { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isTrustTrackingEnabled } = require('./lib/auto-verify');
-const { handleDecisionExtraction, extractDecisions, extractNegativeKnowledge } = require('./lib/decision-extraction');
+const { handleDecisionExtraction, extractDecisions } = require('./lib/decision-extraction');
 
 function readStdin() {
   try {
@@ -195,7 +195,6 @@ module.exports = {
   handleHttp,
   extractDecisions,
   handleDecisionExtraction,
-  extractNegativeKnowledge,
   // New exports for internal use
   writeAutoVerifySignal,
   isTrustTrackingEnabled,

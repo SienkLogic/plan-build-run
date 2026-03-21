@@ -1,5 +1,7 @@
 'use strict';
 
+// STATUS: Standalone utility — tested but not auto-wired into gates. Referenced by build SKILL.md for confidence gate logic.
+
 /**
  * lib/wiring-check.js -- Verify that SUMMARY key_files are actually imported/used
  * by other files in the project. Used as a 4th confidence gate signal.
