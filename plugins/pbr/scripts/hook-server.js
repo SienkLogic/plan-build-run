@@ -226,6 +226,9 @@ function initRoutes() {
   register('SessionEnd', '*', lazyHandler('session-cleanup'));
   register('WorktreeCreate', '*', lazyHandler('worktree-create'));
   register('WorktreeRemove', '*', lazyHandler('worktree-remove'));
+  register('PostCompact', '*', lazyHandler('post-compact'));
+  register('Notification', '*', lazyHandler('log-notification'));
+  register('UserPromptSubmit', '*', lazyHandler('prompt-routing'));
 }
 
 /**
