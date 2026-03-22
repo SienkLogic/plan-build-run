@@ -144,8 +144,107 @@ function pollLockfileUntilAlive(planningDir, port, intervalMs, timeoutMs) {
 }
 
 /**
+ * Restart a crashed hook server: SIGTERM the old PID, wait briefly, then spawn fresh.
+ * @param {object} config - PBR config object
+ * @param {string} planningDir - Path to .planning directory
+ * @param {{ pid: number|null, port: number|null }} lock - Lockfile state from isServerRunning
+ */
+function tryRestartHookServer(config, planningDir, lock) {
+  // Best-effort SIGTERM to the crashed process
+  if (lock && lock.pid) {
+    try { process.kill(lock.pid, 'SIGTERM'); } catch (_e) { /* already dead or inaccessible */ }
+  }
+
+  logHook('progress-tracker', 'SessionStart', 'hook-server-restart-attempt', {
+    crashedPid: lock ? lock.pid : null,
+    port: lock ? lock.port : null
+  });
+
+  // Wait 500ms then spawn fresh via the normal launch path
+  setTimeout(() => {
+    _spawnHookServer(config, planningDir);
+  }, 500);
+}
+
+/**
+ * Core spawn logic for the hook server (extracted for reuse by tryLaunchHookServer and tryRestartHookServer).
+ */
+function _spawnHookServer(config, planningDir) {
+  const port = (config.hook_server && config.hook_server.port) || 19836;
+  const projectRoot = planningDir.replace(/[/\\]\.planning$/, '');
+  const { spawn } = require('child_process');
+
+  const serverPath = path.join(__dirname, '..', 'hook-server.js');
+  if (!fs.existsSync(serverPath)) {
+    logHook('progress-tracker', 'SessionStart', 'hook-server-missing', { serverPath });
+    return;
+  }
+
+  try {
+    let child;
+    if (process.platform === 'win32') {
+      const { execSync } = require('child_process');
+      const cmdLine = `"${process.execPath}" "${serverPath}" --port ${port} --dir "${planningDir}"`;
+      try {
+        const wmicOut = execSync(`wmic process call create "${cmdLine.replace(/"/g, '\\"')}"`, {
+          timeout: 5000, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
+          windowsHide: true
+        });
+        const pidMatch = wmicOut.match(/ProcessId\s*=\s*(\d+)/);
+        const launchedPid = pidMatch ? parseInt(pidMatch[1], 10) : null;
+        logHook('progress-tracker', 'SessionStart', 'hook-server-launched', {
+          port, pid: launchedPid, method: 'wmic'
+        });
+      } catch (wmicErr) {
+        logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', {
+          error: wmicErr.message, method: 'wmic'
+        });
+        return;
+      }
+
+      pollLockfileUntilAlive(planningDir, port).then((result) => {
+        if (result.ready) {
+          logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
+            port, pid: result.pid, startupMs: result.startupMs
+          });
+        } else {
+          logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
+            port, timeoutMs: 3000
+          });
+          writeTimeoutSentinel(planningDir);
+        }
+      });
+      return;
+    } else {
+      child = spawn(process.execPath, [serverPath, '--port', String(port), '--dir', planningDir], {
+        detached: true,
+        stdio: 'ignore',
+        cwd: projectRoot
+      });
+    }
+    child.unref();
+    logHook('progress-tracker', 'SessionStart', 'hook-server-launched', { port, pid: child.pid });
+
+    pollHealthUntilReady(port).then((result) => {
+      if (result.ready) {
+        logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
+          port, pid: child.pid, startupMs: result.startupMs
+        });
+      } else {
+        logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
+          port, timeoutMs: 3000
+        });
+        writeTimeoutSentinel(planningDir);
+      }
+    });
+  } catch (e) {
+    logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', { error: e.message });
+  }
+}
+
+/**
  * Attempt to launch the hook server in a detached background process.
- * Checks if the port is already in use before spawning.
+ * First checks lockfile health: healthy -> early return, crashed -> restart, absent -> spawn fresh.
  * After spawn, polls /health for up to 3s to confirm startup.
  */
 function tryLaunchHookServer(config, planningDir) {
@@ -153,11 +252,51 @@ function tryLaunchHookServer(config, planningDir) {
     return;
   }
 
+  const { isServerRunning } = require('./pid-lock');
   const port = (config.hook_server && config.hook_server.port) || 19836;
-  const projectRoot = planningDir.replace(/[/\\]\.planning$/, '');
 
+  // Phase 1: Check lockfile for existing server state
+  const lock = isServerRunning(planningDir);
+  if (lock.running) {
+    // PID is alive — probe /health to distinguish healthy from crashed
+    const healthPort = lock.port || port;
+    const healthReq = http.get({ hostname: '127.0.0.1', port: healthPort, path: '/health', timeout: 500 }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed && parsed.status === 'ok') {
+            // Server is healthy — multi-session attach
+            logHook('progress-tracker', 'SessionStart', 'hook-server-already-healthy', { port: healthPort, pid: lock.pid });
+            // Clear circuit breaker so clients stop bypassing the server
+            try {
+              const circuitPath = path.join(planningDir, '.hook-server-circuit.json');
+              if (fs.existsSync(circuitPath)) fs.unlinkSync(circuitPath);
+            } catch (_e) { /* best-effort */ }
+            return;
+          }
+        } catch (_e) { /* not valid JSON */ }
+        // Health check failed — server is crashed
+        logHook('progress-tracker', 'SessionStart', 'hook-server-crashed', { pid: lock.pid, port: lock.port });
+        tryRestartHookServer(config, planningDir, lock);
+      });
+    });
+    healthReq.on('error', () => {
+      // Connection refused or timeout — server is crashed
+      logHook('progress-tracker', 'SessionStart', 'hook-server-crashed', { pid: lock.pid, port: lock.port });
+      tryRestartHookServer(config, planningDir, lock);
+    });
+    healthReq.on('timeout', () => {
+      healthReq.destroy();
+      logHook('progress-tracker', 'SessionStart', 'hook-server-crashed', { pid: lock.pid, port: lock.port });
+      tryRestartHookServer(config, planningDir, lock);
+    });
+    return;
+  }
+
+  // Phase 2: No lockfile or stale lockfile — check port and spawn fresh
   const net = require('net');
-  const { spawn } = require('child_process');
 
   // Quick port probe -- if something is already listening, skip launch
   const probe = net.createConnection({ port, host: '127.0.0.1' });
@@ -167,78 +306,7 @@ function tryLaunchHookServer(config, planningDir) {
   });
   probe.on('error', () => {
     // Port is free -- launch hook server
-    const serverPath = path.join(__dirname, '..', 'hook-server.js');
-    if (!fs.existsSync(serverPath)) {
-      logHook('progress-tracker', 'SessionStart', 'hook-server-missing', { serverPath });
-      return;
-    }
-
-    try {
-      let child;
-      if (process.platform === 'win32') {
-        // On Windows, Node's detached: true doesn't escape the parent's Job Object.
-        // Claude Code uses a Job Object with KILL_ON_JOB_CLOSE, so all child
-        // processes die when the session recycles. WMIC process call create
-        // spawns a truly independent process outside any Job Object.
-        const { execSync } = require('child_process');
-        const cmdLine = `"${process.execPath}" "${serverPath}" --port ${port} --dir "${planningDir}"`;
-        try {
-          const wmicOut = execSync(`wmic process call create "${cmdLine.replace(/"/g, '\\"')}"`, {
-            timeout: 5000, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'],
-            windowsHide: true
-          });
-          const pidMatch = wmicOut.match(/ProcessId\s*=\s*(\d+)/);
-          const launchedPid = pidMatch ? parseInt(pidMatch[1], 10) : null;
-          logHook('progress-tracker', 'SessionStart', 'hook-server-launched', {
-            port, pid: launchedPid, method: 'wmic'
-          });
-        } catch (wmicErr) {
-          logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', {
-            error: wmicErr.message, method: 'wmic'
-          });
-          return;
-        }
-
-        // Windows wmic path: poll lockfile + health check (no stdout available)
-        pollLockfileUntilAlive(planningDir, port).then((result) => {
-          if (result.ready) {
-            logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
-              port, pid: result.pid, startupMs: result.startupMs
-            });
-          } else {
-            logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
-              port, timeoutMs: 3000
-            });
-            writeTimeoutSentinel(planningDir);
-          }
-        });
-        return; // wmic doesn't return a child handle -- skip unref below
-      } else {
-        child = spawn(process.execPath, [serverPath, '--port', String(port), '--dir', planningDir], {
-          detached: true,
-          stdio: 'ignore',
-          cwd: projectRoot
-        });
-      }
-      child.unref();
-      logHook('progress-tracker', 'SessionStart', 'hook-server-launched', { port, pid: child.pid });
-
-      // Poll /health for up to 3s to confirm startup
-      pollHealthUntilReady(port).then((result) => {
-        if (result.ready) {
-          logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
-            port, pid: child.pid, startupMs: result.startupMs
-          });
-        } else {
-          logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
-            port, timeoutMs: 3000
-          });
-          writeTimeoutSentinel(planningDir);
-        }
-      });
-    } catch (e) {
-      logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', { error: e.message });
-    }
+    _spawnHookServer(config, planningDir);
   });
 
   // Don't let the probe keep the process alive
@@ -291,5 +359,6 @@ async function getEnrichedContext(config, _planningDir) {
 module.exports = {
   tryLaunchDashboard,
   tryLaunchHookServer,
+  tryRestartHookServer,
   getEnrichedContext,
 };
