@@ -190,6 +190,13 @@ function register(event, matcher, handlerFn) {
  * Called once during server startup before createServer().
  */
 function initRoutes() {
+  // PreToolUse — one handler per route, consolidation inside each handler
+  register('PreToolUse', 'Bash', lazyHandler('pre-bash-dispatch'));
+  register('PreToolUse', 'Write|Edit', lazyHandler('pre-write-dispatch'));
+  register('PreToolUse', 'Task', lazyHandler('pre-task-dispatch'));
+  register('PreToolUse', 'Skill', lazyHandler('pre-skill-dispatch'));
+  register('PreToolUse', 'Read', lazyHandler('block-skill-self-read'));
+
   register('PostToolUse', 'Read', lazyHandler('track-context-budget'));
   register('PostToolUse', 'Write', lazyHandler('context-bridge'));
   register('PostToolUse', 'Write', lazyHandler('post-write-dispatch'));
