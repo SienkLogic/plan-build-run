@@ -257,7 +257,8 @@ function processEvent(data, planningDir, opts, sessionId) {
 
 /**
  * HTTP handler for hook-server.js.
- * Called directly instead of spawning a subprocess.
+ * Consolidates PostToolUse:Read dispatch: runs budget tracking (processEvent)
+ * and check-read-first in a single handler, merging their results.
  *
  * @param {Object} reqBody - Full hook request body { event, tool, data, planningDir, cache }
  * @param {Object} _cache - Server in-memory cache (unused by this handler)
@@ -271,7 +272,25 @@ function handleHttp(reqBody, _cache) {
       return null;
     }
     const sessionId = data.session_id || null;
-    return processEvent(data, planningDir, {}, sessionId);
+
+    // Run budget tracking (primary responsibility)
+    const budgetResult = processEvent(data, planningDir, {}, sessionId);
+
+    // Dispatch to check-read-first for Read events
+    let readFirstResult = null;
+    try {
+      const { handleHttp: checkReadFirst } = require('./check-read-first');
+      logHook('track-context-budget', 'PostToolUse', 'dispatched', { handler: 'check-read-first' });
+      readFirstResult = checkReadFirst(reqBody, _cache);
+    } catch (_e) {
+      // Never block budget tracking on read-first errors
+    }
+
+    // Merge results: concatenate additionalContext from both checks
+    const results = [budgetResult, readFirstResult].filter(Boolean);
+    if (results.length === 0) return null;
+    const contexts = results.map(r => r.additionalContext).filter(Boolean);
+    return contexts.length ? { additionalContext: contexts.join('\n') } : results[0];
   } catch (_e) {
     return null;
   }
