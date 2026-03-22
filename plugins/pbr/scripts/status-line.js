@@ -452,6 +452,37 @@ function getHookServerStatus(port, planningDir) {
   return 'stopped';
 }
 
+/**
+ * Read recent hook dispatch timing from .hook-events.jsonl.
+ * Returns the total cumulative duration_ms for dispatch events in the last 60 seconds.
+ * Used to detect when a single tool-call event window has high hook overhead.
+ * @param {string} planningDir
+ * @returns {number} cumulative ms, or 0 if not measurable
+ */
+function getRecentHookOverhead(planningDir) {
+  if (!planningDir) return 0;
+  try {
+    const logPath = path.join(planningDir, '.hook-events.jsonl');
+    if (!fs.existsSync(logPath)) return 0;
+    const content = fs.readFileSync(logPath, 'utf8');
+    const lines = content.split('\n').filter(l => l.trim().length > 0);
+    const cutoff = Date.now() - 60000; // last 60 seconds
+    let total = 0;
+    for (const line of lines.slice(-200)) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type === 'dispatch' && typeof entry.duration_ms === 'number') {
+          const ts = entry.ts ? new Date(entry.ts).getTime() : 0;
+          if (ts >= cutoff) total += entry.duration_ms;
+        }
+      } catch (_e) { /* skip malformed */ }
+    }
+    return total;
+  } catch (_e) {
+    return 0;
+  }
+}
+
 function main() {
   const stdinData = readStdin();
   const cwd = process.cwd();
@@ -664,16 +695,24 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
     }
   }
 
-  // Hooks section — hook server status indicator (3 states)
+  // Hooks section — hook server status indicator (3 states) + overhead display
   if (sections.includes('hooks')) {
     const hsStatus = getHookServerStatus(19836, planningDir);
+    let hookLabel = 'hooks';
+    let hookColor = c.dim;
     if (hsStatus === 'running') {
-      line2.push(`${c.green}\u25CF hooks${c.reset}`);
+      hookColor = c.green;
+      // Check for high cumulative overhead in last 60 seconds
+      const overhead = getRecentHookOverhead(planningDir);
+      if (overhead > 500) {
+        hookLabel = `hooks \u26A1${overhead}ms`;
+        hookColor = c.yellow;
+      }
     } else if (hsStatus === 'failed') {
-      line2.push(`${c.red}\u25CF hooks${c.reset}`);
-    } else {
-      line2.push(`${c.dim}\u25CB hooks${c.reset}`);
+      hookColor = c.red;
     }
+    const dot = hsStatus === 'running' ? '\u25CF' : '\u25CB';
+    line2.push(`${hookColor}${dot} ${hookLabel}${c.reset}`);
   }
 
   // Model section — current model display name from stdin
@@ -805,4 +844,4 @@ function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
 }
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
-module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, getLastCompletedMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
+module.exports = { buildStatusLine, buildContextBar, getContextPercent, getGitInfo, getMilestone, getLastCompletedMilestone, countPhaseDirs, isHookServerRunning, getHookServerStatus, getRecentHookOverhead, getVersion, countTodos, countQuickTasks, countSkills, countHookEntries, getCoverage, getLastTestResult, getCiStatus, formatDuration, formatTokens, loadStatusLineConfig, parseFrontmatter, DEFAULTS };
