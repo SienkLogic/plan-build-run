@@ -29,6 +29,17 @@ const fs = require('fs');
 const path = require('path');
 const { acquireLock, releaseLock, updateLockPort } = require('./lib/pid-lock');
 
+// MSYS path normalization — one-time at startup, not per-request
+function normalizeMsysPath(p) {
+  if (!p) return p;
+  // MSYS/Git-bash: /d/Repos/... -> D:\Repos\...
+  const msys = p.match(/^\/([a-zA-Z])(\/.*)?$/);
+  if (msys) {
+    return msys[1].toUpperCase() + ':' + (msys[2] || '').replace(/\//g, '\\');
+  }
+  return p;
+}
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -513,8 +524,8 @@ function tryNextPort(server, basePort, planningDir, maxTries) {
 function main() {
   const args = parseArgs(process.argv);
 
-  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-  const planningDir = args.dir || path.join(cwd, '.planning');
+  const cwd = normalizeMsysPath(process.env.PBR_PROJECT_ROOT) || process.cwd();
+  const planningDir = normalizeMsysPath(args.dir) || path.join(cwd, '.planning');
 
   // Load initial config
   try {
@@ -550,6 +561,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
