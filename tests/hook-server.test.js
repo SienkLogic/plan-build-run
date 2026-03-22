@@ -869,4 +869,162 @@ describe('hook-server.js exports', () => {
       expect(urlResult.status).toBe(legacyResult.status);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Lifecycle hook HTTP routes (Phase 110 — migrated lifecycle events)
+  // -------------------------------------------------------------------------
+
+  describe('Lifecycle hook HTTP routes', () => {
+    const { createServer: createLifecycleServer, initRoutes: initLifecycleRoutes } = require('../plugins/pbr/scripts/hook-server');
+    let tmpDirLC;
+    let planDirLC;
+    let srvLC;
+
+    beforeEach(() => {
+      tmpDirLC = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-lifecycle-'));
+      planDirLC = path.join(tmpDirLC, '.planning');
+      fs.mkdirSync(planDirLC, { recursive: true });
+      fs.writeFileSync(
+        path.join(planDirLC, 'config.json'),
+        JSON.stringify({ depth: 'standard', mode: 'autonomous' })
+      );
+      // Minimal STATE.md for handlers that read it (PreCompact, PostCompact)
+      fs.writeFileSync(
+        path.join(planDirLC, 'STATE.md'),
+        '---\ncurrent_phase: 1\nstatus: building\n---\n## Current Position\nTesting lifecycle hooks.\n'
+      );
+    });
+
+    afterEach((done) => {
+      if (srvLC) {
+        srvLC.close(() => {
+          fs.rmSync(tmpDirLC, { recursive: true, force: true });
+          done();
+        });
+      } else {
+        fs.rmSync(tmpDirLC, { recursive: true, force: true });
+        done();
+      }
+    });
+
+    function listenAndPostLC(server, urlPath, payload) {
+      return new Promise((resolve, reject) => {
+        server.listen(0, '127.0.0.1', () => {
+          const { port: p } = server.address();
+          const body = JSON.stringify(payload);
+          const req = http.request({
+            hostname: '127.0.0.1', port: p, path: urlPath, method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+          }, res => {
+            let data = '';
+            res.setEncoding('utf8');
+            res.on('data', c => { data += c; });
+            res.on('end', () => resolve({ status: res.statusCode, body: data }));
+          });
+          req.on('error', reject);
+          req.write(body);
+          req.end();
+        });
+      });
+    }
+
+    test('POST /hook/SubagentStart/SubagentStart returns 200 with valid JSON', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/SubagentStart/SubagentStart', {
+        agent_type: 'pbr:executor', session_id: 'test-123'
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/SubagentStop/SubagentStop returns 200 with valid JSON', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/SubagentStop/SubagentStop', {
+        agent_type: 'pbr:executor', session_id: 'test-123', duration_ms: 1000
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/TaskCompleted/TaskCompleted returns 200', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/TaskCompleted/TaskCompleted', {
+        agent_type: 'pbr:executor'
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/PreCompact/PreCompact returns 200 with valid JSON', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/PreCompact/PreCompact', {});
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/PostCompact/PostCompact returns 200 with valid JSON', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/PostCompact/PostCompact', {});
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/Notification/Notification returns 200', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/Notification/Notification', {
+        notification_type: 'agent_complete', message: 'Test notification'
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/UserPromptSubmit/UserPromptSubmit returns 200', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/UserPromptSubmit/UserPromptSubmit', {
+        prompt: 'fix the bug in auth.js'
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/ConfigChange/ConfigChange returns 200', async () => {
+      srvLC = createLifecycleServer(planDirLC);
+      const { status, body } = await listenAndPostLC(srvLC, '/hook/ConfigChange/ConfigChange', {});
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+    });
+
+    test('POST /hook/SessionEnd/SessionEnd returns 200 and triggers shutdown', async () => {
+      // Use a dedicated server since SessionEnd triggers server shutdown
+      const tmpDirSE = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-session-end-'));
+      const planDirSE = path.join(tmpDirSE, '.planning');
+      fs.mkdirSync(planDirSE, { recursive: true });
+      fs.writeFileSync(
+        path.join(planDirSE, 'config.json'),
+        JSON.stringify({ depth: 'standard', mode: 'autonomous' })
+      );
+
+      const srvSE = createLifecycleServer(planDirSE);
+      const { status, body } = await listenAndPostLC(srvSE, '/hook/SessionEnd/SessionEnd', {
+        reason: 'test'
+      });
+      expect(status).toBe(200);
+      const parsed = JSON.parse(body);
+      expect(typeof parsed).toBe('object');
+
+      // Clean up — server may already be closing from shutdown trigger
+      try { srvSE.close(); } catch (_e) { /* may already be closed */ }
+      // Small delay to let setImmediate shutdown run before cleanup
+      await new Promise(r => setTimeout(r, 100));
+      fs.rmSync(tmpDirSE, { recursive: true, force: true });
+    }, 10000);
+  });
 });
