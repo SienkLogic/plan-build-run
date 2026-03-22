@@ -129,8 +129,8 @@
         "matcher": "Read",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" block-skill-self-read.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/Read",
             "statusMessage": "◆ PBR: Guarding skill context..."
           }
         ]
@@ -139,8 +139,8 @@
         "matcher": "Bash",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" pre-bash-dispatch.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/Bash",
             "statusMessage": "◆ PBR: Checking Bash safety..."
           }
         ]
@@ -149,8 +149,8 @@
         "matcher": "Write|Edit",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" pre-write-dispatch.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/Write",
             "statusMessage": "◆ PBR: Enforcing write policies..."
           }
         ]
@@ -159,8 +159,8 @@
         "matcher": "Task",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" validate-task.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/Task",
             "statusMessage": "◆ PBR: Validating agent dispatch..."
           }
         ]
@@ -169,19 +169,9 @@
         "matcher": "Skill",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" validate-skill-args.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/Skill",
             "statusMessage": "◆ PBR: Parsing skill arguments..."
-          }
-        ]
-      },
-      {
-        "matcher": "Task|Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" enforce-context-budget.js",
-            "statusMessage": "Checking context budget..."
           }
         ]
       },
@@ -189,8 +179,8 @@
         "matcher": "EnterPlanMode",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" intercept-plan-mode.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreToolUse/EnterPlanMode",
             "statusMessage": "◆ PBR: Checking plan mode..."
           }
         ]
