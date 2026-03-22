@@ -53,36 +53,6 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" post-write-dispatch.js",
-            "statusMessage": "◆ PBR: Checking plan/state sync..."
-          }
-        ]
-      },
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js check-subagent-output",
-            "statusMessage": "◆ PBR: Validating agent deliverables..."
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" post-bash-triage.js",
-            "statusMessage": "◆ PBR: Analyzing test results..."
-          }
-        ]
-      },
-      {
         "matcher": "Read|Glob|Grep",
         "hooks": [
           {
@@ -93,12 +63,32 @@
         ]
       },
       {
-        "matcher": "Write|Edit|Bash|Task",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "http",
             "url": "http://localhost:19836/hook/PostToolUse/Write",
-            "statusMessage": "◆ PBR: Monitoring context health..."
+            "statusMessage": "◆ PBR: Checking plan/state sync..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostToolUse/Bash",
+            "statusMessage": "◆ PBR: Analyzing test results..."
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostToolUse/Task",
+            "statusMessage": "◆ PBR: Validating agent deliverables..."
           }
         ]
       },
@@ -106,8 +96,8 @@
         "matcher": "AskUserQuestion",
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" track-user-gates.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostToolUse/AskUserQuestion",
             "statusMessage": "◆ PBR: Tracking user gate..."
           }
         ]
