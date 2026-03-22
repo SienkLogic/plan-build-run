@@ -198,6 +198,8 @@ function initRoutes() {
   register('PreToolUse', 'Read', lazyHandler('block-skill-self-read'));
 
   register('PostToolUse', 'Read', lazyHandler('track-context-budget'));
+  register('PostToolUse', 'Glob', lazyHandler('track-context-budget'));
+  register('PostToolUse', 'Grep', lazyHandler('track-context-budget'));
   register('PostToolUse', 'Write', lazyHandler('context-bridge'));
   register('PostToolUse', 'Write', lazyHandler('post-write-dispatch'));
   register('PostToolUse', 'Write', lazyHandler('graph-update'));
