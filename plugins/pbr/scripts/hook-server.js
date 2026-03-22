@@ -196,6 +196,7 @@ function initRoutes() {
   register('PreToolUse', 'Task', lazyHandler('pre-task-dispatch'));
   register('PreToolUse', 'Skill', lazyHandler('pre-skill-dispatch'));
   register('PreToolUse', 'Read', lazyHandler('block-skill-self-read'));
+  register('PreToolUse', 'EnterPlanMode', lazyHandler('intercept-plan-mode'));
 
   register('PostToolUse', 'Read', lazyHandler('track-context-budget'));
   register('PostToolUse', 'Glob', lazyHandler('track-context-budget'));
