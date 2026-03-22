@@ -18,25 +18,11 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 
-function main() {
-  // Read stdin (PostToolUse data)
-  let _data = {};
-  try {
-    const input = fs.readFileSync(0, 'utf8').trim();
-    if (input) _data = JSON.parse(input);
-  } catch (_e) {
-    // empty or non-JSON stdin
-  }
-
-  // Resolve .planning/ directory
-  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-  const planningDir = path.join(cwd, '.planning');
-
-  // Not a PBR project — exit silently
-  if (!fs.existsSync(planningDir)) {
-    process.exit(0);
-  }
-
+/**
+ * Core logic: read active skill and write .user-gate-passed signal file.
+ * Shared by both the stdin-based main() and the HTTP handleHttp() paths.
+ */
+function handleGate(planningDir) {
   // Read active skill name
   let skill = 'unknown';
   try {
@@ -61,9 +47,42 @@ function main() {
   }
 
   logHook('track-user-gates', 'AskUserQuestion invoked', { skill });
+  return null;
+}
 
+function main() {
+  // Read stdin (PostToolUse data)
+  let _data = {};
+  try {
+    const input = fs.readFileSync(0, 'utf8').trim();
+    if (input) _data = JSON.parse(input);
+  } catch (_e) {
+    // empty or non-JSON stdin
+  }
+
+  // Resolve .planning/ directory
+  const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const planningDir = path.join(cwd, '.planning');
+
+  // Not a PBR project — exit silently
+  if (!fs.existsSync(planningDir)) {
+    process.exit(0);
+  }
+
+  handleGate(planningDir);
   process.exit(0);
 }
 
-module.exports = { main };
+/**
+ * HTTP handler for hook-server.js integration.
+ * Called when PostToolUse:AskUserQuestion arrives via the HTTP server.
+ */
+async function handleHttp(reqBody, _cache) {
+  const planningDir = (reqBody && reqBody.planningDir) || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  if (!fs.existsSync(planningDir)) return null;
+  handleGate(planningDir);
+  return null;
+}
+
+module.exports = { main, handleHttp, handleGate };
 if (require.main === module || process.argv[1] === __filename) { main(); }
