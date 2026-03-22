@@ -214,6 +214,7 @@ function initRoutes() {
   register('PostToolUse', 'Bash', lazyHandler('post-bash-triage'));
   register('PostToolUse', 'Task', lazyHandler('context-bridge'));
   register('PostToolUse', 'Task', lazyHandler('check-subagent-output'));
+  register('PostToolUse', 'AskUserQuestion', lazyHandler('track-user-gates'));
   register('PostToolUseFailure', '*', lazyHandler('log-tool-failure'));
   register('SubagentStart', '*', lazyHandler('log-subagent'));
   register('SubagentStop', '*', lazyHandler('log-subagent'));
