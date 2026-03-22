@@ -123,4 +123,32 @@ function isServerRunning(planningDir) {
   }
 }
 
-module.exports = { acquireLock, releaseLock, isServerRunning };
+/**
+ * Update the port recorded in an existing lockfile owned by this process.
+ * Used when the server had to bind to a different port than originally requested.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @param {number} newPort - The new port to record
+ * @returns {{ updated: boolean, reason?: string }}
+ */
+function updateLockPort(planningDir, newPort) {
+  const lockPath = path.join(planningDir, LOCKFILE_NAME);
+
+  try {
+    const content = fs.readFileSync(lockPath, 'utf8');
+    const lock = JSON.parse(content);
+
+    // Only update our own lockfile
+    if (lock.pid !== process.pid) {
+      return { updated: false, reason: 'not-owner' };
+    }
+
+    lock.port = newPort;
+    fs.writeFileSync(lockPath, JSON.stringify(lock, null, 2) + '\n', 'utf8');
+    return { updated: true };
+  } catch (_e) {
+    return { updated: false, reason: 'io-error' };
+  }
+}
+
+module.exports = { acquireLock, releaseLock, isServerRunning, updateLockPort };

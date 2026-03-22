@@ -27,7 +27,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { acquireLock, releaseLock } = require('./lib/pid-lock');
+const { acquireLock, releaseLock, updateLockPort } = require('./lib/pid-lock');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -412,6 +412,101 @@ function createServer(planningDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Port conflict resolution — try sequential ports on EADDRINUSE
+// ---------------------------------------------------------------------------
+
+/**
+ * Probe GET /health on the given port to check for a healthy PBR server.
+ * @param {number} port
+ * @param {number} [timeoutMs=500]
+ * @returns {Promise<boolean>} true if a healthy PBR hook server responded
+ */
+function probeHealth(port, timeoutMs) {
+  if (timeoutMs === undefined) timeoutMs = 500;
+  return new Promise((resolve) => {
+    const req = http.get({ hostname: '127.0.0.1', port, path: '/health', timeout: timeoutMs }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          resolve(parsed && parsed.status === 'ok');
+        } catch (_e) {
+          resolve(false);
+        }
+      });
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
+
+/**
+ * Attempt to listen on sequential ports starting from basePort.
+ * On EADDRINUSE, probes /health to detect another PBR server (multi-session attach).
+ * On success, updates the lockfile with the actual port.
+ *
+ * @param {http.Server} server - The HTTP server to listen
+ * @param {number} basePort - Starting port
+ * @param {string} planningDir - Path to .planning directory
+ * @param {number} [maxTries=10] - Maximum port attempts
+ */
+function tryNextPort(server, basePort, planningDir, maxTries) {
+  if (maxTries === undefined) maxTries = 10;
+  let attempt = 0;
+
+  function tryPort(port) {
+    attempt++;
+
+    // Remove any previous listeners to avoid stacking
+    server.removeAllListeners('error');
+    server.removeAllListeners('listening');
+
+    server.on('error', async (err) => {
+      if (err.code === 'EADDRINUSE') {
+        // Probe to see if it's a healthy PBR server
+        const healthy = await probeHealth(port);
+        if (healthy) {
+          // Another PBR server is already running — multi-session attach
+          process.stdout.write(JSON.stringify({ status: 'already-running', port, attachedTo: true }) + '\n');
+          releaseLock(planningDir);
+          process.exit(0);
+          return;
+        }
+
+        // Port taken by non-PBR process — try next port
+        if (attempt < maxTries) {
+          tryPort(port + 1);
+          return;
+        }
+
+        // All ports exhausted
+        process.stderr.write(JSON.stringify({ error: 'EADDRINUSE', exhausted: true, triedPorts: { from: basePort, to: basePort + maxTries - 1 } }) + '\n');
+        releaseLock(planningDir);
+        process.exit(1);
+      } else {
+        process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
+        releaseLock(planningDir);
+        process.exit(1);
+      }
+    });
+
+    server.on('listening', () => {
+      const actualPort = server.address().port;
+      // Update the lockfile to reflect the actual bound port
+      if (actualPort !== basePort) {
+        updateLockPort(planningDir, actualPort);
+      }
+      process.stdout.write(JSON.stringify({ status: 'ready', port: actualPort, pid: process.pid }) + '\n');
+    });
+
+    server.listen(port, '127.0.0.1');
+  }
+
+  tryPort(basePort);
+}
+
+// ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
 
@@ -438,37 +533,8 @@ function main() {
     process.exit(0);
   }
 
-  // Handle EADDRINUSE — probe /health to check if it's another hook server
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      const req = http.get({ hostname: '127.0.0.1', port: args.port, path: '/health', timeout: 1000 }, (res) => {
-        let data = '';
-        res.on('data', chunk => { data += chunk; });
-        res.on('end', () => {
-          // Another hook server is healthy — exit gracefully
-          releaseLock(planningDir);
-          process.exit(0);
-        });
-      });
-      req.on('error', () => {
-        // Port taken by non-PBR process — log error and exit
-        process.stderr.write(JSON.stringify({ error: 'EADDRINUSE', port: args.port }) + '\n');
-        releaseLock(planningDir);
-        process.exit(1);
-      });
-      req.on('timeout', () => { req.destroy(); releaseLock(planningDir); process.exit(1); });
-    } else {
-      process.stderr.write(JSON.stringify({ error: err.message }) + '\n');
-      releaseLock(planningDir);
-      process.exit(1);
-    }
-  });
-
-  server.listen(args.port, '127.0.0.1', () => {
-    // Signal readiness to parent process (use actual port for ephemeral port 0)
-    const actualPort = server.address().port;
-    process.stdout.write(JSON.stringify({ status: 'ready', port: actualPort, pid: process.pid }) + '\n');
-  });
+  // Handle EADDRINUSE — try sequential ports via tryNextPort
+  tryNextPort(server, args.port, planningDir, 10);
 
   // Graceful shutdown
   function shutdown() {
@@ -484,6 +550,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
