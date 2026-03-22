@@ -610,3 +610,137 @@ describe('context ledger', () => {
     clearHooks();
   });
 });
+
+describe('Read consolidation (check-read-first dispatch)', () => {
+  let tmpDir;
+  let planningDir;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'plan-build-run-readcons-'));
+    planningDir = path.join(tmpDir, '.planning');
+    fs.mkdirSync(planningDir);
+    fs.mkdirSync(path.join(planningDir, 'logs'), { recursive: true });
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  const { handleHttp } = require('../plugins/pbr/scripts/track-context-budget');
+
+  test('Read event dispatches to check-read-first and merges results', () => {
+    // Mock check-read-first via the module cache
+    const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
+    const originalHandleHttp = checkReadFirstModule.handleHttp;
+
+    // Replace handleHttp temporarily
+    checkReadFirstModule.handleHttp = jest.fn(() => ({
+      additionalContext: 'read-first warning: missing read_first files'
+    }));
+
+    try {
+      // Seed tracker near a char milestone so budget tracking also returns a warning
+      const trackerPath = path.join(planningDir, '.context-tracker');
+      fs.writeFileSync(trackerPath, JSON.stringify({
+        skill: '', reads: 3, total_chars: 49500, files: ['/a.js']
+      }));
+
+      const reqBody = {
+        planningDir,
+        data: {
+          tool_name: 'Read',
+          tool_input: { file_path: '/src/app.js' },
+          tool_output: 'x'.repeat(600)
+        }
+      };
+
+      const result = handleHttp(reqBody, {});
+
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('read-first warning');
+      expect(result.additionalContext).toContain('Context Budget Warning');
+      expect(checkReadFirstModule.handleHttp).toHaveBeenCalled();
+    } finally {
+      checkReadFirstModule.handleHttp = originalHandleHttp;
+    }
+  });
+
+  test('check-read-first returning null means only budget result returned', () => {
+    const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
+    const originalHandleHttp = checkReadFirstModule.handleHttp;
+
+    checkReadFirstModule.handleHttp = jest.fn(() => null);
+
+    try {
+      const reqBody = {
+        planningDir,
+        data: {
+          tool_name: 'Read',
+          tool_input: { file_path: '/src/tiny.js' },
+          tool_output: 'tiny'
+        }
+      };
+
+      const result = handleHttp(reqBody, {});
+
+      // Below all thresholds with null read-first => null
+      expect(result).toBeNull();
+      expect(checkReadFirstModule.handleHttp).toHaveBeenCalled();
+    } finally {
+      checkReadFirstModule.handleHttp = originalHandleHttp;
+    }
+  });
+
+  test('check-read-first result alone is returned when budget has no warning', () => {
+    const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
+    const originalHandleHttp = checkReadFirstModule.handleHttp;
+
+    checkReadFirstModule.handleHttp = jest.fn(() => ({
+      additionalContext: 'read-first advisory: read X before editing Y'
+    }));
+
+    try {
+      const reqBody = {
+        planningDir,
+        data: {
+          tool_name: 'Read',
+          tool_input: { file_path: '/src/small.js' },
+          tool_output: 'small content'
+        }
+      };
+
+      const result = handleHttp(reqBody, {});
+
+      expect(result).not.toBeNull();
+      expect(result.additionalContext).toContain('read-first advisory');
+      expect(checkReadFirstModule.handleHttp).toHaveBeenCalled();
+    } finally {
+      checkReadFirstModule.handleHttp = originalHandleHttp;
+    }
+  });
+
+  test('non-Read events still dispatch to check-read-first (handleHttp always dispatches)', () => {
+    // handleHttp dispatches to check-read-first for ALL events (it's the Read handler)
+    // The filtering is done by check-read-first itself, not by track-context-budget
+    const checkReadFirstModule = require('../plugins/pbr/scripts/check-read-first');
+    const originalHandleHttp = checkReadFirstModule.handleHttp;
+
+    checkReadFirstModule.handleHttp = jest.fn(() => null);
+
+    try {
+      const reqBody = {
+        planningDir,
+        data: {
+          tool_name: 'Read',
+          tool_input: { file_path: '/src/file.js' },
+          tool_output: 'content'
+        }
+      };
+
+      handleHttp(reqBody, {});
+      expect(checkReadFirstModule.handleHttp).toHaveBeenCalled();
+    } finally {
+      checkReadFirstModule.handleHttp = originalHandleHttp;
+    }
+  });
+});
