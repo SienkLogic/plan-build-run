@@ -180,8 +180,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js context-budget-check",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PreCompact/PreCompact",
             "statusMessage": "◆ PBR: Preserving state for compaction..."
           }
         ]
@@ -191,8 +191,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" post-compact.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/PostCompact/PostCompact",
             "statusMessage": "◆ PBR: Restoring context after compaction..."
           }
         ]
@@ -246,8 +246,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js check-config-change",
+            "type": "http",
+            "url": "http://localhost:19836/hook/ConfigChange/ConfigChange",
             "statusMessage": "◆ PBR: Validating config..."
           }
         ]
@@ -257,8 +257,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js session-cleanup",
+            "type": "http",
+            "url": "http://localhost:19836/hook/SessionEnd/SessionEnd",
             "statusMessage": "◆ PBR: Session cleanup..."
           }
         ]
@@ -268,8 +268,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" log-notification.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/Notification/Notification",
             "statusMessage": "◆ PBR: Logging notification..."
           }
         ]
@@ -279,8 +279,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" prompt-routing.js",
+            "type": "http",
+            "url": "http://localhost:19836/hook/UserPromptSubmit/UserPromptSubmit",
             "statusMessage": "◆ PBR: Routing prompt..."
           }
         ]
