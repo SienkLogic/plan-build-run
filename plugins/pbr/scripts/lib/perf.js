@@ -115,4 +115,76 @@ function formatPerfTable(summary) {
   return hookTable + '\n\n' + eventTable;
 }
 
-module.exports = { percentile, summarizeHookPerf, formatPerfTable };
+/**
+ * Load performance entries from hooks JSONL log files.
+ *
+ * @param {string} planningDir - Path to the .planning/ directory
+ * @param {{ last?: number }} [opts] - Options: last = max days of log files to include
+ * @returns {object[]} Flat array of matching entry objects with duration_ms and transport === 'http'
+ */
+function loadPerfEntries(planningDir, opts) {
+  const fs = require('fs');
+  const path = require('path');
+  const logsDir = path.join(planningDir, 'logs');
+  const entries = [];
+
+  // Determine cutoff date if --last N is specified
+  let cutoffDate = null;
+  if (opts && typeof opts.last === 'number' && opts.last > 0) {
+    const d = new Date();
+    d.setDate(d.getDate() - opts.last);
+    cutoffDate = d.toISOString().slice(0, 10); // YYYY-MM-DD
+  }
+
+  // Collect files to read
+  const files = [];
+
+  // Read hooks-*.jsonl from logs dir
+  try {
+    const dirEntries = fs.readdirSync(logsDir);
+    for (const fname of dirEntries) {
+      const match = fname.match(/^hooks-(\d{4}-\d{2}-\d{2})\.jsonl$/);
+      if (match) {
+        if (cutoffDate && match[1] < cutoffDate) continue;
+        files.push(path.join(logsDir, fname));
+      }
+    }
+  } catch (_e) {
+    // logsDir may not exist — skip silently
+  }
+
+  // Also read .hook-events.jsonl in planningDir if it exists
+  const eventsFile = path.join(planningDir, '.hook-events.jsonl');
+  try {
+    fs.accessSync(eventsFile, fs.constants.R_OK);
+    files.push(eventsFile);
+  } catch (_e) {
+    // File doesn't exist — skip
+  }
+
+  // Parse each file
+  for (const filePath of files) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const entry = JSON.parse(trimmed);
+          if (typeof entry.duration_ms === 'number' && entry.transport === 'http') {
+            entries.push(entry);
+          }
+        } catch (_e) {
+          // Skip malformed lines
+        }
+      }
+    } catch (_e) {
+      // Skip unreadable files silently
+    }
+  }
+
+  return entries;
+}
+
+module.exports = { percentile, summarizeHookPerf, formatPerfTable, loadPerfEntries };
