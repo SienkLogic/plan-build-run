@@ -213,8 +213,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js log-subagent-start",
+            "type": "http",
+            "url": "http://localhost:19836/hook/SubagentStart/SubagentStart",
             "statusMessage": "◆ PBR: Agent spawning..."
           }
         ]
@@ -224,18 +224,9 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js log-subagent",
+            "type": "http",
+            "url": "http://localhost:19836/hook/SubagentStop/SubagentStop",
             "statusMessage": "✓ PBR: Agent completed"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js event-handler",
-            "statusMessage": "◆ PBR: Checking auto-verify..."
           }
         ]
       }
@@ -244,8 +235,8 @@
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "node -e \"var r=process.env.CLAUDE_PLUGIN_ROOT||'',m=r.match(/^\\/([a-zA-Z])\\/(.*)/);if(m)r=m[1]+String.fromCharCode(58)+String.fromCharCode(92)+m[2];require(require('path').resolve(r,'scripts','run-hook.js'))\" hook-server-client.js task-completed",
+            "type": "http",
+            "url": "http://localhost:19836/hook/TaskCompleted/TaskCompleted",
             "statusMessage": "✓ PBR: Processing task result..."
           }
         ]
