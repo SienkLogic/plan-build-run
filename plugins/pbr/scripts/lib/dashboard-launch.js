@@ -50,8 +50,103 @@ function tryLaunchDashboard(port, _planningDir, projectDir) {
 }
 
 /**
+ * Poll GET /health on the given port until it responds ok or timeout elapses.
+ * @param {number} port
+ * @param {number} [intervalMs=200] - Poll interval in ms
+ * @param {number} [timeoutMs=3000] - Total timeout in ms
+ * @returns {Promise<{ ready: boolean, startupMs: number }>}
+ */
+function pollHealthUntilReady(port, intervalMs, timeoutMs) {
+  if (intervalMs === undefined) intervalMs = 200;
+  if (timeoutMs === undefined) timeoutMs = 3000;
+  const start = Date.now();
+  return new Promise((resolve) => {
+    function tick() {
+      const elapsed = Date.now() - start;
+      if (elapsed >= timeoutMs) {
+        return resolve({ ready: false, startupMs: elapsed });
+      }
+      const req = http.get({ hostname: '127.0.0.1', port, path: '/health', timeout: 400 }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed && parsed.status === 'ok') {
+              return resolve({ ready: true, startupMs: Date.now() - start });
+            }
+          } catch (_e) { /* not ready yet */ }
+          setTimeout(tick, intervalMs);
+        });
+      });
+      req.on('error', () => setTimeout(tick, intervalMs));
+      req.on('timeout', () => { req.destroy(); setTimeout(tick, intervalMs); });
+    }
+    tick();
+  });
+}
+
+/**
+ * Write the startup-timeout sentinel file so hook-server-client.js
+ * can skip the server route and fall through to direct fallback.
+ * @param {string} planningDir
+ */
+function writeTimeoutSentinel(planningDir) {
+  try {
+    const sentinelPath = path.join(planningDir, '.hook-server-timeout');
+    fs.writeFileSync(sentinelPath, '{}', 'utf8');
+  } catch (_e) { /* best-effort */ }
+}
+
+/**
+ * Poll the lockfile for a live PID (Windows wmic path where stdout is unavailable).
+ * @param {string} planningDir
+ * @param {number} port
+ * @param {number} [intervalMs=200]
+ * @param {number} [timeoutMs=3000]
+ * @returns {Promise<{ ready: boolean, startupMs: number, pid: number|null }>}
+ */
+function pollLockfileUntilAlive(planningDir, port, intervalMs, timeoutMs) {
+  if (intervalMs === undefined) intervalMs = 200;
+  if (timeoutMs === undefined) timeoutMs = 3000;
+  const { isServerRunning } = require('./pid-lock');
+  const start = Date.now();
+  return new Promise((resolve) => {
+    function tick() {
+      const elapsed = Date.now() - start;
+      if (elapsed >= timeoutMs) {
+        return resolve({ ready: false, startupMs: elapsed, pid: null });
+      }
+      const status = isServerRunning(planningDir);
+      if (status.running && status.pid) {
+        // PID alive — now verify with health check
+        const req = http.get({ hostname: '127.0.0.1', port: status.port || port, path: '/health', timeout: 400 }, (res) => {
+          let data = '';
+          res.on('data', chunk => { data += chunk; });
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed && parsed.status === 'ok') {
+                return resolve({ ready: true, startupMs: Date.now() - start, pid: status.pid });
+              }
+            } catch (_e) { /* not ready yet */ }
+            setTimeout(tick, intervalMs);
+          });
+        });
+        req.on('error', () => setTimeout(tick, intervalMs));
+        req.on('timeout', () => { req.destroy(); setTimeout(tick, intervalMs); });
+      } else {
+        setTimeout(tick, intervalMs);
+      }
+    }
+    tick();
+  });
+}
+
+/**
  * Attempt to launch the hook server in a detached background process.
  * Checks if the port is already in use before spawning.
+ * After spawn, polls /health for up to 3s to confirm startup.
  */
 function tryLaunchHookServer(config, planningDir) {
   if (config.hook_server && config.hook_server.enabled === false) {
@@ -93,14 +188,30 @@ function tryLaunchHookServer(config, planningDir) {
             windowsHide: true
           });
           const pidMatch = wmicOut.match(/ProcessId\s*=\s*(\d+)/);
+          const launchedPid = pidMatch ? parseInt(pidMatch[1], 10) : null;
           logHook('progress-tracker', 'SessionStart', 'hook-server-launched', {
-            port, pid: pidMatch ? parseInt(pidMatch[1], 10) : null, method: 'wmic'
+            port, pid: launchedPid, method: 'wmic'
           });
         } catch (wmicErr) {
           logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', {
             error: wmicErr.message, method: 'wmic'
           });
+          return;
         }
+
+        // Windows wmic path: poll lockfile + health check (no stdout available)
+        pollLockfileUntilAlive(planningDir, port).then((result) => {
+          if (result.ready) {
+            logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
+              port, pid: result.pid, startupMs: result.startupMs
+            });
+          } else {
+            logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
+              port, timeoutMs: 3000
+            });
+            writeTimeoutSentinel(planningDir);
+          }
+        });
         return; // wmic doesn't return a child handle -- skip unref below
       } else {
         child = spawn(process.execPath, [serverPath, '--port', String(port), '--dir', planningDir], {
@@ -111,6 +222,20 @@ function tryLaunchHookServer(config, planningDir) {
       }
       child.unref();
       logHook('progress-tracker', 'SessionStart', 'hook-server-launched', { port, pid: child.pid });
+
+      // Poll /health for up to 3s to confirm startup
+      pollHealthUntilReady(port).then((result) => {
+        if (result.ready) {
+          logHook('progress-tracker', 'SessionStart', 'hook-server-ready', {
+            port, pid: child.pid, startupMs: result.startupMs
+          });
+        } else {
+          logHook('progress-tracker', 'SessionStart', 'hook-server-startup-timeout', {
+            port, timeoutMs: 3000
+          });
+          writeTimeoutSentinel(planningDir);
+        }
+      });
     } catch (e) {
       logHook('progress-tracker', 'SessionStart', 'hook-server-launch-error', { error: e.message });
     }

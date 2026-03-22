@@ -256,6 +256,25 @@ async function main() {
   const planningExists = (() => { try { require('fs').statSync(planningDir); return true; } catch (_e) { return false; } })();
   const circuitDir = planningExists ? planningDir : null;
 
+  // Startup-timeout sentinel — if hook-server failed to start within 3s, skip server route
+  if (circuitDir) {
+    const sentinelPath = require('path').join(circuitDir, '.hook-server-timeout');
+    try {
+      const stat = require('fs').statSync(sentinelPath);
+      const ageMs = Date.now() - stat.mtimeMs;
+      if (ageMs < 60000) {
+        // Sentinel is fresh — server failed to start this session, go direct
+        const directFallback = tryDirectFallback(hookName, inputData);
+        process.stdout.write(JSON.stringify(directFallback || {}));
+        process.exit(0);
+        return;
+      } else {
+        // Stale sentinel — clean up
+        try { require('fs').unlinkSync(sentinelPath); } catch (_e) { /* best-effort */ }
+      }
+    } catch (_e) { /* no sentinel file — proceed normally */ }
+  }
+
   // Circuit breaker — skip server route if too many recent failures
   if (isCircuitOpen(circuitDir)) {
     const directFallback = tryDirectFallback(hookName, inputData);
