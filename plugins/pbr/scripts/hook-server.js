@@ -62,6 +62,8 @@ const cache = {
   activeSkill: null
 };
 
+let _server = null;
+
 // ---------------------------------------------------------------------------
 // JSONL event log
 // ---------------------------------------------------------------------------
@@ -223,7 +225,13 @@ function initRoutes() {
   register('InstructionsLoaded', '*', lazyHandler('instructions-loaded'));
   register('PreCompact', '*', lazyHandler('context-budget-check'));
   register('ConfigChange', '*', lazyHandler('check-config-change'));
-  register('SessionEnd', '*', lazyHandler('session-cleanup'));
+  register('SessionEnd', '*', async function sessionEndWithShutdown(reqBody) {
+    const cleanupFn = lazyHandler('session-cleanup');
+    const result = await cleanupFn(reqBody);
+    // Schedule shutdown after response is sent
+    setImmediate(() => triggerShutdown(reqBody.planningDir));
+    return result;
+  });
   register('WorktreeCreate', '*', lazyHandler('worktree-create'));
   register('WorktreeRemove', '*', lazyHandler('worktree-remove'));
   register('PostCompact', '*', lazyHandler('post-compact'));
@@ -266,6 +274,15 @@ function sendJSON(res, statusCode, obj) {
   res.end(body);
 }
 
+function triggerShutdown(planningDir) {
+  // Release lock and close server gracefully
+  try { releaseLock(planningDir); } catch (_e) { /* best-effort */ }
+  if (_server) {
+    _server.close(() => { process.exit(0); });
+    setTimeout(() => process.exit(0), 3000).unref();
+  }
+}
+
 function createServer(planningDir) {
   const server = http.createServer(async (req, res) => {
     // Health check
@@ -293,6 +310,13 @@ function createServer(planningDir) {
       } catch (_e) {
         return sendJSON(res, 200, {});
       }
+    }
+
+    // Graceful shutdown endpoint (called by SessionEnd HTTP handler)
+    if (req.method === 'POST' && req.url === '/shutdown') {
+      sendJSON(res, 200, { status: 'shutting-down' });
+      setImmediate(() => triggerShutdown(planningDir));
+      return;
     }
 
     // Native HTTP hook dispatch (URL-based routing: /hook/:event/:tool)
@@ -383,6 +407,7 @@ function createServer(planningDir) {
     return sendJSON(res, 404, { error: 'not found' });
   });
 
+  _server = server;
   return server;
 }
 
@@ -459,6 +484,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
