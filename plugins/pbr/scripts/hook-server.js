@@ -74,6 +74,7 @@ const cache = {
 };
 
 let _server = null;
+let _serverStartMs = null;
 
 // ---------------------------------------------------------------------------
 // JSONL event log
@@ -359,18 +360,23 @@ function createServer(planningDir) {
         cache.config = configLoad(planningDir);
       } catch (_e) { /* best-effort */ }
 
-      // Resolve and run handler (fail-open)
+      // Resolve and run handler (fail-open) — with timing
+      const dispatchStart = Date.now();
+      let dispatchResult = null;
       try {
         const handler = resolveHandler(event, tool);
         if (!handler) {
+          appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: '(no-handler)', duration_ms: Date.now() - dispatchStart, transport: 'http' });
           return sendJSON(res, 200, {});
         }
-
-        const result = await handler({ event, tool, data, planningDir, cache });
-        return sendJSON(res, 200, result || {});
+        dispatchResult = await handler({ event, tool, data, planningDir, cache });
       } catch (_e) {
+        appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: '(error)', duration_ms: Date.now() - dispatchStart, transport: 'http' });
         return sendJSON(res, 200, {});
       }
+      const duration_ms = Date.now() - dispatchStart;
+      appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms, transport: 'http' });
+      return sendJSON(res, 200, dispatchResult || {});
     }
 
     // Hook dispatch (legacy: event/tool in JSON body)
@@ -399,19 +405,23 @@ function createServer(planningDir) {
         cache.config = configLoad(planningDir);
       } catch (_e) { /* best-effort */ }
 
-      // Resolve and run handler (fail-open)
+      // Resolve and run handler (fail-open) — with timing
+      const legacyDispatchStart = Date.now();
+      let legacyDispatchResult = null;
       try {
         const handler = resolveHandler(event, tool);
         if (!handler) {
+          appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: '(no-handler)', duration_ms: Date.now() - legacyDispatchStart, transport: 'http' });
           return sendJSON(res, 200, {});
         }
-
-        const result = await handler({ event, tool, data, planningDir, cache });
-        return sendJSON(res, 200, result || {});
+        legacyDispatchResult = await handler({ event, tool, data, planningDir, cache });
       } catch (_e) {
-        // Fail-open: never crash, always 200
+        appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: '(error)', duration_ms: Date.now() - legacyDispatchStart, transport: 'http' });
         return sendJSON(res, 200, {});
       }
+      const legacyDurationMs = Date.now() - legacyDispatchStart;
+      appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms: legacyDurationMs, transport: 'http' });
+      return sendJSON(res, 200, legacyDispatchResult || {});
     }
 
     // Unknown route
@@ -509,6 +519,16 @@ function tryNextPort(server, basePort, planningDir, maxTries) {
         updateLockPort(planningDir, actualPort);
       }
       process.stdout.write(JSON.stringify({ status: 'ready', port: actualPort, pid: process.pid }) + '\n');
+      // Log cold-start timing
+      if (_serverStartMs) {
+        appendEvent(planningDir, {
+          ts: new Date().toISOString(),
+          type: 'server_start',
+          cold_start_ms: Date.now() - _serverStartMs,
+          port: actualPort,
+          pid: process.pid
+        });
+      }
     });
 
     server.listen(port, '127.0.0.1');
@@ -522,6 +542,7 @@ function tryNextPort(server, basePort, planningDir, maxTries) {
 // ---------------------------------------------------------------------------
 
 function main() {
+  _serverStartMs = Date.now();
   const args = parseArgs(process.argv);
 
   const cwd = normalizeMsysPath(process.env.PBR_PROJECT_ROOT) || process.cwd();
