@@ -376,7 +376,16 @@ function createServer(planningDir) {
       }
       const duration_ms = Date.now() - dispatchStart;
       appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms, transport: 'http' });
-      return sendJSON(res, 200, dispatchResult || {});
+      let finalResult = dispatchResult || {};
+      if (duration_ms >= 100) {
+        const alertMsg = `HOOK PERFORMANCE ALERT: ${event}:${tool} took ${duration_ms}ms (threshold: 100ms). Check handler for blocking I/O.`;
+        if (finalResult.additionalContext) {
+          finalResult = Object.assign({}, finalResult, { additionalContext: finalResult.additionalContext + '\n' + alertMsg });
+        } else {
+          finalResult = Object.assign({}, finalResult, { additionalContext: alertMsg });
+        }
+      }
+      return sendJSON(res, 200, finalResult);
     }
 
     // Hook dispatch (legacy: event/tool in JSON body)
@@ -421,7 +430,16 @@ function createServer(planningDir) {
       }
       const legacyDurationMs = Date.now() - legacyDispatchStart;
       appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms: legacyDurationMs, transport: 'http' });
-      return sendJSON(res, 200, legacyDispatchResult || {});
+      let legacyFinalResult = legacyDispatchResult || {};
+      if (legacyDurationMs >= 100) {
+        const alertMsg = `HOOK PERFORMANCE ALERT: ${event}:${tool} took ${legacyDurationMs}ms (threshold: 100ms). Check handler for blocking I/O.`;
+        if (legacyFinalResult.additionalContext) {
+          legacyFinalResult = Object.assign({}, legacyFinalResult, { additionalContext: legacyFinalResult.additionalContext + '\n' + alertMsg });
+        } else {
+          legacyFinalResult = Object.assign({}, legacyFinalResult, { additionalContext: alertMsg });
+        }
+      }
+      return sendJSON(res, 200, legacyFinalResult);
     }
 
     // Unknown route
