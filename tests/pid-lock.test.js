@@ -3,7 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { acquireLock, releaseLock, isServerRunning } = require('../plugins/pbr/scripts/lib/pid-lock');
+const { acquireLock, releaseLock, isServerRunning, updateLockPort } = require('../plugins/pbr/scripts/lib/pid-lock');
 
 describe('pid-lock', () => {
   let tmpDir;
@@ -102,6 +102,36 @@ describe('pid-lock', () => {
     it('returns running: false with pid: null when no lockfile', () => {
       const result = isServerRunning(tmpDir);
       expect(result).toEqual({ running: false, pid: null, port: null });
+    });
+  });
+
+  describe('updateLockPort', () => {
+    it('updates port in existing lockfile owned by this process', () => {
+      acquireLock(tmpDir, 19836);
+      const result = updateLockPort(tmpDir, 19837);
+      expect(result).toEqual({ updated: true });
+
+      const lockPath = path.join(tmpDir, '.hook-server.pid');
+      const content = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      expect(content.port).toBe(19837);
+      expect(content.pid).toBe(process.pid);
+    });
+
+    it('no-ops when lockfile belongs to different PID', () => {
+      const lockPath = path.join(tmpDir, '.hook-server.pid');
+      fs.writeFileSync(lockPath, JSON.stringify({ pid: 999999999, port: 19836, startedAt: new Date().toISOString() }));
+
+      const result = updateLockPort(tmpDir, 19837);
+      expect(result).toEqual({ updated: false, reason: 'not-owner' });
+
+      // Port should be unchanged
+      const content = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      expect(content.port).toBe(19836);
+    });
+
+    it('no-ops when lockfile missing', () => {
+      const result = updateLockPort(tmpDir, 19837);
+      expect(result).toEqual({ updated: false, reason: 'io-error' });
     });
   });
 });
