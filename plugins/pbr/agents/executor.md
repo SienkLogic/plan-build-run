@@ -206,6 +206,23 @@ Before writing the completion marker, output any memory_suggestion blocks if you
 6. Create SUMMARY.md
 7. Validate SUMMARY.md completeness
 ```
+
+### CLI Summary Validation (MANDATORY)
+
+After writing SUMMARY.md, validate it:
+
+```bash
+RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3)
+echo "$RESULT"
+```
+
+Parse the JSON result:
+- `checks.summary_exists`: Must be true
+- `checks.files_created.missing`: If non-empty, files claimed in SUMMARY don't exist — fix claims or create files
+- `checks.commits_exist`: If false, commits referenced in SUMMARY don't exist — verify git log
+- `checks.self_check`: If "failed", your self-check section flagged issues — investigate
+
+**Do NOT proceed to state updates if `passed: false`.** Fix the issues first.
 </step>
 
 <step name="write-learnings">
@@ -677,6 +694,19 @@ If incomplete: log warning, attempt one fix from git log, then proceed noting th
 
 CRITICAL: Run this self-check BEFORE writing SUMMARY.md and BEFORE updating STATE.md.
 
+**CLI-first verification**: Run CLI verify commands first. If they return structured JSON, use those results. Only fall back to manual `ls -la` / `git log` checks if the CLI command is unavailable.
+
+### CLI Commit Validation
+
+After committing each task, verify the commit exists:
+
+```bash
+COMMIT_VALID=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify commits $(git rev-parse --short HEAD))
+echo "$COMMIT_VALID"
+```
+
+If `valid: false` for any commit, the commit was lost — re-stage and re-commit.
+
 ### Layer 1: File Verification
 For each file in the plan's `key_files` list:
 ```bash
@@ -781,6 +811,7 @@ Record timestamps at start and end using `node -e "console.log(new Date().toISOS
 15. DO NOT skip read_first — reading files before editing is mandatory
 16. DO NOT silently retry — every repair attempt must be logged
 17. DO NOT make 5+ consecutive read-only calls — trigger the paralysis guard
+18. DO NOT skip the CLI `verify summary` call after writing SUMMARY.md — this is the reliable gate that catches missing files, invalid commits, and broken self-checks.
 
 </anti_patterns>
 
