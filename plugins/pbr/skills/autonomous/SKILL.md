@@ -317,9 +317,17 @@ If gate passes:
 
 - Check if `VERIFICATION.md` exists with `status: passed` — if yes, skip to 3e.
 - **Lightweight verification first** (avoid spawning heavyweight verifier agent):
-  1. Read ALL SUMMARY.md frontmatter from this phase. Extract `completion` percentage from each.
-  2. Compute aggregate completion (average across all plans).
-  3. Check git log for commit SHAs listed in SUMMARY files — verify they exist.
+  1. **CLI-first SUMMARY validation:** For each plan in the phase, run:
+     ```bash
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify summary ".planning/phases/{NN}-{slug}/SUMMARY-{plan_id}.md" --check-files 3
+     ```
+     Parse JSON result: `checks.files_created.missing` (claimed files that don't exist), `checks.commits_exist` (referenced SHAs valid), `checks.self_check` (executor self-check status). If ANY summary has `passed: false`, fail the confidence gate.
+  2. Compute aggregate completion from SUMMARY frontmatter `completion` percentage (average across all plans).
+  3. **CLI commit verification:** For all commit SHAs found in SUMMARY files:
+     ```bash
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify commits {space-separated-hashes}
+     ```
+     If `valid: false` for any commit, flag as missing evidence.
   4. **Test result caching:** Before running the test suite:
      a. Compute cache key: the current phase directory path (e.g., `.planning/phases/23-slug`)
      b. Check `.planning/.test-cache.json` for a fresh result (TTL: 60 seconds):
@@ -330,7 +338,12 @@ If gate passes:
         - Log: `Tests: ran fresh, result cached`
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
      Note: This test run serves as both the confidence gate signal AND the regression gate. If tests fail, this is a regression — delegate to debugger agent per the CRITICAL marker above.
-  4.5. **Wiring check:** For each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate and fall through to full verification.
+  4.5. **CLI artifact + wiring check:** For each plan in the phase, run the CLI verify commands:
+     ```bash
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+     node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md"
+     ```
+     Parse JSON results: if `all_passed: false` (artifacts) or `all_verified: false` (key-links), fail the confidence gate and fall through to full verification. As a supplementary check, for each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate.
   5. **Verification depth selection** (round-robin enforcement):
      - Increment `phases_verified_total`
      - **Determine if this phase needs full verification:**
