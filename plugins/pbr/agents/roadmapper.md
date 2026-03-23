@@ -210,6 +210,15 @@ Verify 100% requirement mapping: every v1 requirement maps to exactly one phase.
 ### Step 7: Write Files
 
 Write ROADMAP.md, STATE.md, and update REQUIREMENTS.md traceability section. Always use the Write tool — never heredocs.
+
+After writing, verify artifacts exist:
+
+```bash
+[ -f ".planning/ROADMAP.md" ] && echo "VERIFIED: ROADMAP.md ($(wc -l < .planning/ROADMAP.md) lines)" || echo "MISSING: ROADMAP.md"
+[ -f ".planning/STATE.md" ] && echo "VERIFIED: STATE.md ($(wc -l < .planning/STATE.md) lines)" || echo "MISSING: STATE.md"
+```
+
+If any artifact is MISSING, re-write it before returning.
 </step>
 
 <step name="return-summary">

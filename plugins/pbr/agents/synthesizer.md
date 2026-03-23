@@ -82,6 +82,15 @@ Resolution priority (apply in order):
 <step name="write-summary">
 ### Step 5: Write Summary
 Output to `.planning/research/SUMMARY.md` (or specified path).
+
+After writing, verify the synthesis artifact exists:
+
+```bash
+[ -f ".planning/research/SUMMARY.md" ] && echo "VERIFIED: SUMMARY.md ($(wc -l < .planning/research/SUMMARY.md) lines)" || echo "MISSING: SUMMARY.md"
+ls .planning/research/*.md 2>/dev/null | wc -l
+```
+
+If MISSING, re-write the file before returning.
 </step>
 </execution_flow>
 
