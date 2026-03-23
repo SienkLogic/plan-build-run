@@ -674,6 +674,29 @@ After the plan checker returns, display its result:
 - If missing: write it manually based on checker output (status, blocker/warning counts, timestamp)
 - If present: proceed — the build gate will read this artifact
 
+**Step 6b: Requirements Coverage Gate (structural)**
+
+After plan validation passes, verify that ALL phase requirements are covered by at least one plan's `implements` field. This is a structural check, not agent behavior — it reads actual plan files.
+
+```bash
+# 1. Get phase requirements from ROADMAP
+PHASE_REQS=$(grep -A 20 "### Phase {N}" .planning/ROADMAP.md | grep -oP 'REQ-[A-Z0-9-]+' | sort -u)
+
+# 2. Get implemented requirements from all plan files
+PLAN_REQS=$(grep -h "implements:" .planning/phases/{NN}-{slug}/PLAN-*.md | grep -oP 'REQ-[A-Z0-9-]+|GSD-[0-9]+' | sort -u)
+
+# 3. Find uncovered requirements
+UNCOVERED=$(comm -23 <(echo "$PHASE_REQS") <(echo "$PLAN_REQS"))
+```
+
+If `UNCOVERED` is non-empty:
+- Display: `⚠ Requirements coverage incomplete — {N} requirement(s) not covered by any plan: {list}`
+- If depth is `quick`: display warning but do NOT block
+- If depth is `standard` or `comprehensive`: present user with **Fix plans** / **Continue anyway** / **Abort**
+
+If `UNCOVERED` is empty or no phase requirements found in ROADMAP:
+- Display: `✓ Requirements coverage: all phase requirements mapped to plans`
+
 ---
 
 ### Step 7: Revision Loop (max 3 iterations)
