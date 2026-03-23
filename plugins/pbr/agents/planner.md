@@ -357,6 +357,24 @@ Before writing any plan file, check if a directory already exists for this phase
 4. NEVER create a second directory for the same phase number
 
 Complete YAML frontmatter (include `implements` field with REQ-IDs from REQUIREMENTS.md or ROADMAP.md for traceability; `requirement_ids` is a deprecated alias — use `implements` as the primary field), XML tasks with all 7 elements (name, read_first, files, action, acceptance_criteria, verify, done), clear action instructions, executable verify commands, observable done conditions. Append a `## Summary` section per `references/plan-format.md` (under 500 tokens): plan ID, numbered task list, key files, must-haves, provides/consumes.
+
+### CLI Structural Validation (MANDATORY)
+
+After writing each PLAN file, run structural validation:
+
+```bash
+RESULT=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify plan-structure ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+echo "$RESULT"
+```
+
+Parse the JSON result:
+- If `valid: true` — proceed
+- If `valid: false` — read `errors` array. Fix each error in the plan file. Re-run validation.
+- If `warnings` present — note them but do not block
+
+**Do NOT return `## PLANNING COMPLETE` if any plan has `valid: false`.** Fix first, validate again.
+
+This validation checks: required frontmatter fields, task element completeness (all 7: name, read_first, files, action, acceptance_criteria, verify, done), wave/dependency consistency, and checkpoint/autonomous consistency.
 </step>
 
 <step name="self-check">
@@ -494,6 +512,7 @@ At 1M, reading full SUMMARY bodies for direct deps surfaces deviations, deferred
 15. DO NOT use Bash heredoc for file creation — ALWAYS use the Write tool
 16. DO NOT leave implements: empty in PLAN frontmatter — use implements: as the primary traceability field (requirement_ids: is deprecated)
 17. DO NOT decompose feature phases into horizontal layer plans (schema, then API, then UI) — prefer vertical slices that deliver end-to-end features per plan
+18. DO NOT skip the CLI `verify plan-structure` call — prompt-only self-checks get skipped under cognitive load. The CLI check is the reliable gate.
 
 </anti_patterns>
 
@@ -603,6 +622,7 @@ You may output 0-2 suggestions per run. Prefer 0 (most runs discover nothing nov
 - [ ] Context fidelity: locked decisions from CONTEXT.md all have corresponding tasks
 - [ ] PLAN files written via Write tool (NEVER Bash heredoc)
 - [ ] PLAN files committed to git
+- [ ] Each PLAN file passes `verify plan-structure` CLI check (valid: true)
 - [ ] Post-planning CLI commands executed (state update, roadmap update-status)
 </success_criteria>
 

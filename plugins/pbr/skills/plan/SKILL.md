@@ -585,16 +585,28 @@ Wave 2: ○ Plan 03
 
 Use `○` (pending) for all plans at this stage since none have been executed yet.
 
-### Step 5b: Spot-Check Planner Output
+### Step 5b: Spot-Check Planner Output (CLI-enforced)
 
-CRITICAL (no hook): Verify planner output before proceeding.
+CRITICAL (no hook): Verify planner output using CLI before proceeding.
 
-1. **PLAN files exist**: Check `.planning/phases/{NN}-{slug}/PLAN-*.md` files exist on disk
-2. **Valid frontmatter**: Read first 20 lines of each PLAN file — verify `depends_on`, `files_modified`, `must_haves` fields present
-3. **Task structure**: Verify at least one `<task>` block exists in each plan file
-4. **Plan count matches**: Number of PLAN files matches what the planner reported
+For each PLAN file in the phase directory:
 
-If ANY spot-check fails, present the user with options: **Retry** / **Continue anyway** / **Abort**
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify plan-structure ".planning/phases/{NN}-{slug}/{plan_file}"
+```
+
+Parse JSON result per file:
+- `valid: true` — plan structure is sound
+- `valid: false` — read `errors` array. Report to user.
+- `warnings` — note but don't block
+
+Also verify overall plan count:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify spot-check plan ".planning/phases/{NN}-{slug}"
+```
+
+If ANY plan fails structural validation, present user with: **Retry** / **Continue anyway** / **Abort**
 
 ---
 
