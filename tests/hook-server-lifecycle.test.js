@@ -65,6 +65,7 @@ describe('tryNextPort', () => {
       tryNextPort(server, basePort, tmpDir, 5);
 
       // Wait for the server to start listening on the next port
+      // (3s to accommodate slower Windows CI runners)
       setTimeout(() => {
         try {
           // Verify the lockfile was updated with the new port (side-effect check)
@@ -77,9 +78,9 @@ describe('tryNextPort', () => {
           fs.rmSync(tmpDir, { recursive: true, force: true });
           done();
         }
-      }, 1500);
+      }, 3000);
     });
-  }, 10000);
+  }, 15000);
 
   it('exits process with 1 on port exhaustion', (done) => {
     const http = require('http');
