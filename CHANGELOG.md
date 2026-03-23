@@ -2,6 +2,16 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.17.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.0...plan-build-run-v2.17.1) — 2026-03-23
+
+### CI/CD
+
+* Always ensure npm latest dist-tag points to released version ([0088b223](https://github.com/SienkLogic/plan-build-run/commit/0088b223))
+
+### Skills
+
+* Move CRITICAL marker outside table in health SKILL.md (lint fix) ([e41053dd](https://github.com/SienkLogic/plan-build-run/commit/e41053dd))
+
 ## [2.17.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.16.0...plan-build-run-v2.17.0) — 2026-03-23
 
 ### Other

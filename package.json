@@ -1,6 +1,6 @@
 {
   "name": "@sienklogic/plan-build-run",
-  "version": "2.17.0",
+  "version": "2.17.1",
   "description": "Plan it, Build it, Run it -- structured development workflow for Claude Code, OpenCode, Gemini and Codex",
   "bin": {
     "plan-build-run": "bin/install.js"
