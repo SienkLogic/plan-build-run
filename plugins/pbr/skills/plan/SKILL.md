@@ -621,9 +621,12 @@ To check: use the resolved depth profile from Step 1. The profile consolidates t
 
 **Force validation:** If `--audit` flag is set, ALWAYS spawn the plan-checker agent regardless of depth profile or inline_verify setting. Display: `◆ Audit mode: spawning plan checker (--audit flag)`
 
-**Inline verify mode:** If `features.inline_verify` is `true` and `--audit` is NOT set, skip plan-checker spawn — the planner agent has already self-validated. Display: `✓ Planner self-validated (inline_verify enabled). Use --audit to force full plan-checker.`
+**Inline verify mode:** If `features.inline_verify` is `true` and `--audit` is NOT set, use the CLI plan-structure validation result from Step 5b instead of spawning the full plan-checker. Display: `✓ Using CLI structural validation (inline_verify enabled). Use --audit to force full plan-checker.`
 
-When inline_verify skips the plan-checker spawn, write `.plan-check.json` with `{ "status": "passed", "dimensions_checked": 9, "blockers": 0, "warnings": 0, "timestamp": "<ISO>" }` to the phase directory so the build gate does not block.
+When inline_verify skips the plan-checker spawn, write `.plan-check.json` based on the ACTUAL CLI validation results from Step 5b:
+- If ALL plans passed structural validation (`valid: true`): write `{ "status": "passed", "dimensions_checked": 1, "blockers": 0, "warnings": {warning_count}, "timestamp": "<ISO>", "source": "inline_verify" }`
+- If ANY plan failed structural validation (`valid: false`): write `{ "status": "failed", "dimensions_checked": 1, "blockers": {error_count}, "warnings": {warning_count}, "errors": [{error_list}], "timestamp": "<ISO>", "source": "inline_verify" }` — the build gate WILL block. Do NOT write `"status": "passed"` when validation found errors.
+- The `dimensions_checked: 1` reflects that inline_verify only checks structural validity (D2), not the full 9 dimensions. Use `--audit` for comprehensive checking.
 
 **If validation is enabled:**
 
