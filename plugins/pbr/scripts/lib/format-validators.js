@@ -792,6 +792,24 @@ function validateRoadmap(content, _filePath) {
 
   const phaseRegex = /^###\s+Phase\s+\d+:/gm;
   const phaseMatches = activeMilestoneContent.match(phaseRegex);
+
+  // Check for sequential phase numbering (advisory)
+  if (phaseMatches && phaseMatches.length > 1) {
+    const phaseNums = phaseMatches
+      .map(m => parseInt(m.match(/\d+/)[0], 10))
+      .sort((a, b) => a - b);
+    // Check first phase starts at 1
+    if (phaseNums[0] > 1) {
+      warnings.push(`Phase numbering starts at ${phaseNums[0]} instead of 1 — phases should be numbered sequentially from 1`);
+    }
+    // Check for gaps
+    for (let i = 1; i < phaseNums.length; i++) {
+      if (phaseNums[i] !== phaseNums[i - 1] + 1) {
+        warnings.push(`Gap in phase numbering: Phase ${phaseNums[i - 1]} → Phase ${phaseNums[i]} (expected ${phaseNums[i - 1] + 1})`);
+      }
+    }
+  }
+
   if (phaseMatches) {
     const phaseBlocks = activeMilestoneContent.split(/^###\s+Phase\s+\d+:/m).slice(1);
     phaseBlocks.forEach((block, idx) => {
