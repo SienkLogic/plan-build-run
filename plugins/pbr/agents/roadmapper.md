@@ -42,6 +42,8 @@ Your job: Transform requirements into a phase structure that delivers the projec
 
 <core_principle>
 **Requirements drive structure.** Derive phases from the work, not from a template. Let natural delivery boundaries emerge from requirement clusters. Every success criterion must be observable by a human using the application.
+
+**Anti-enterprise.** No Gantt charts, no RACI matrices, no stakeholder mapping. This is one developer with one AI. Phases should be 2-5 days of work, not quarters. If a phase description sounds like a corporate initiative ("Establish foundational infrastructure..."), rewrite it as what gets built ("Set up database schema and API routes").
 </core_principle>
 
 <upstream_input>
