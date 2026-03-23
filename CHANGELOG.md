@@ -2,6 +2,109 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.16.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.15.0...plan-build-run-v2.16.0) — 2026-03-22
+
+### Agents
+
+* Add D10 CLAUDE.md compliance dimension to plan-checker agent ([49e040d0](https://github.com/SienkLogic/plan-build-run/commit/49e040d0))
+* Add executor retry loop, paralysis guard, and plan-check audit trail ([65d2acc0](https://github.com/SienkLogic/plan-build-run/commit/65d2acc0))
+* Upgrade D1 requirements coverage to BLOCKER severity ([274f9d9e](https://github.com/SienkLogic/plan-build-run/commit/274f9d9e))
+
+### CLI Tools
+
+* Add 'hooks perf' subcommand with loadPerfEntries log reader ([0fcb4dfe](https://github.com/SienkLogic/plan-build-run/commit/0fcb4dfe))
+* Rename pbr-tools.cjs references to pbr-tools.js across 38 files (75 replacements) ([29cddffb](https://github.com/SienkLogic/plan-build-run/commit/29cddffb))
+
+### Configuration
+
+* Make plan-checking always-on, quick depth gets advisory verification ([32a44219](https://github.com/SienkLogic/plan-build-run/commit/32a44219))
+
+### Hooks
+
+* Resolve ESLint errors in hook-server.js and prompt-guard.js ([69882ed2](https://github.com/SienkLogic/plan-build-run/commit/69882ed2))
+* Ensure posttest always runs via test-wrapper.js ([046e2bc4](https://github.com/SienkLogic/plan-build-run/commit/046e2bc4))
+* Add hook overhead display to status line when >500ms cumulative ([17cd3d8e](https://github.com/SienkLogic/plan-build-run/commit/17cd3d8e))
+* Add 100ms performance alert for slow hook handlers ([9d6145f3](https://github.com/SienkLogic/plan-build-run/commit/9d6145f3))
+* Instrument hook-server dispatch and startup with timing metrics ([d0d514dd](https://github.com/SienkLogic/plan-build-run/commit/d0d514dd))
+* Add lib/perf.js with percentile and hook performance summary utilities ([6ec0e09c](https://github.com/SienkLogic/plan-build-run/commit/6ec0e09c))
+* Add MSYS path normalization at hook-server.js startup ([e7ebc2d3](https://github.com/SienkLogic/plan-build-run/commit/e7ebc2d3))
+* Add crash-recovery restart logic to tryLaunchHookServer ([a1ce9279](https://github.com/SienkLogic/plan-build-run/commit/a1ce9279))
+* Add 3s startup health-poll and timeout sentinel fallback ([1e4e88f2](https://github.com/SienkLogic/plan-build-run/commit/1e4e88f2))
+* Add tryNextPort EADDRINUSE recovery and updateLockPort ([6469f2d3](https://github.com/SienkLogic/plan-build-run/commit/6469f2d3))
+* Convert PreCompact, PostCompact, ConfigChange, Notification, UserPromptSubmit, SessionEnd to HTTP hooks ([91caa68d](https://github.com/SienkLogic/plan-build-run/commit/91caa68d))
+* Convert SubagentStart, SubagentStop, TaskCompleted to HTTP hooks ([9a70eebc](https://github.com/SienkLogic/plan-build-run/commit/9a70eebc))
+* Add triggerShutdown, /shutdown endpoint, and shutdown-aware SessionEnd handler ([dcb7d34e](https://github.com/SienkLogic/plan-build-run/commit/dcb7d34e))
+* Add PostCompact, Notification, UserPromptSubmit routes to initRoutes() ([b646a6a0](https://github.com/SienkLogic/plan-build-run/commit/b646a6a0))
+* Replace PostToolUseFailure command entry with HTTP entry in hooks.json ([d24cdab8](https://github.com/SienkLogic/plan-build-run/commit/d24cdab8))
+* Replace PostToolUse command entries with HTTP entries in hooks.json ([4a41254a](https://github.com/SienkLogic/plan-build-run/commit/4a41254a))
+* Register AskUserQuestion route in initRoutes and add HTTP tests ([f1a988bd](https://github.com/SienkLogic/plan-build-run/commit/f1a988bd))
+* Add handleHttp and handleGate exports to track-user-gates.js ([88619406](https://github.com/SienkLogic/plan-build-run/commit/88619406))
+* Replace all PreToolUse command entries with HTTP endpoints in hooks.json ([f7d5b35d](https://github.com/SienkLogic/plan-build-run/commit/f7d5b35d))
+* Register intercept-plan-mode for PreToolUse:EnterPlanMode in hook-server ([3131e7ef](https://github.com/SienkLogic/plan-build-run/commit/3131e7ef))
+* Add handleHttp export to intercept-plan-mode.js ([1d36cb32](https://github.com/SienkLogic/plan-build-run/commit/1d36cb32))
+* Register PostToolUse:Glob and PostToolUse:Grep routes in initRoutes ([5a84ebb6](https://github.com/SienkLogic/plan-build-run/commit/5a84ebb6))
+* Consolidate PostToolUse:Read dispatch in track-context-budget handleHttp ([81fff84e](https://github.com/SienkLogic/plan-build-run/commit/81fff84e))
+* Register PreToolUse consolidated handlers in hook-server initRoutes ([171eb8ee](https://github.com/SienkLogic/plan-build-run/commit/171eb8ee))
+* Add pre-skill-dispatch.js consolidating validate-skill-args + enforce-context-budget ([1adba136](https://github.com/SienkLogic/plan-build-run/commit/1adba136))
+* Add pre-task-dispatch.js consolidating validate-task + enforce-context-budget ([2ed37508](https://github.com/SienkLogic/plan-build-run/commit/2ed37508))
+* Consolidate suggest-compact into hook server route table ([f5fbace7](https://github.com/SienkLogic/plan-build-run/commit/f5fbace7))
+* Add dynamic route registration API with register() and initRoutes() ([3b0013d7](https://github.com/SienkLogic/plan-build-run/commit/3b0013d7))
+* Wire PID lockfile and EADDRINUSE handling into hook-server.js ([0952b877](https://github.com/SienkLogic/plan-build-run/commit/0952b877))
+* Add PID lockfile module for hook server lifecycle management ([faf5bb6e](https://github.com/SienkLogic/plan-build-run/commit/faf5bb6e))
+* Update bootstrap path from hooks/run-hook.js to scripts/run-hook.js (28 commands) ([81cebda5](https://github.com/SienkLogic/plan-build-run/commit/81cebda5))
+* Add advisory PostToolUse hook enforcing read_first file reads before edits ([c2b828fe](https://github.com/SienkLogic/plan-build-run/commit/c2b828fe))
+* Fix structured denial format and add requirements coverage gate ([1ed7273d](https://github.com/SienkLogic/plan-build-run/commit/1ed7273d))
+* Add requirements coverage check to plan-validation gate ([3b1dd516](https://github.com/SienkLogic/plan-build-run/commit/3b1dd516))
+* Wire plan-check gate into validate-task and skill prompts ([d24569d5](https://github.com/SienkLogic/plan-build-run/commit/d24569d5))
+* Add plan-validation gate module with TDD tests ([75b887b9](https://github.com/SienkLogic/plan-build-run/commit/75b887b9))
+* Remove duplicate _buildPhaseManifest declaration in canonical phase.js ([c130604a](https://github.com/SienkLogic/plan-build-run/commit/c130604a))
+* Add missing exports to canonical phase.js, create graph-cli.js, wire graph/spec in pbr-tools.js ([5ecd82b7](https://github.com/SienkLogic/plan-build-run/commit/5ecd82b7))
+* Preserve fresh claude-code context data in bridge file ([419cc508](https://github.com/SienkLogic/plan-build-run/commit/419cc508))
+* Add intel refresh signal detection to SessionStart briefing ([7d719b78](https://github.com/SienkLogic/plan-build-run/commit/7d719b78))
+* Replace intel queue discard with signal file at session end ([9ae49264](https://github.com/SienkLogic/plan-build-run/commit/9ae49264))
+* Reconcile remaining divergent modules with .cjs supersets ([37b02e8e](https://github.com/SienkLogic/plan-build-run/commit/37b02e8e))
+* Create superset config.js and core.js modules with all exports ([6f58ad6f](https://github.com/SienkLogic/plan-build-run/commit/6f58ad6f))
+* Unify plugins/pbr/scripts/ as canonical source with hooks/ content ([a3167823](https://github.com/SienkLogic/plan-build-run/commit/a3167823))
+* Migrate 39 .cjs modules to .js in plugins/pbr/scripts/lib/ ([3a06b68e](https://github.com/SienkLogic/plan-build-run/commit/3a06b68e))
+* Consolidate hooks-only files into canonical plugins/pbr/scripts/ location ([c7c2596f](https://github.com/SienkLogic/plan-build-run/commit/c7c2596f))
+* Show full milestone version and name in statusline completion display ([4c04da55](https://github.com/SienkLogic/plan-build-run/commit/4c04da55))
+* Improve statusline milestone-complete display — show version, hide stale phase/plan ([e75e0178](https://github.com/SienkLogic/plan-build-run/commit/e75e0178))
+* Sync status-line.js from plugin — remove dead local-llm import, fix config test assertions ([04e38322](https://github.com/SienkLogic/plan-build-run/commit/04e38322))
+
+### Plugin
+
+* Register list-phase-assumptions command at both paths ([2a3d9977](https://github.com/SienkLogic/plan-build-run/commit/2a3d9977))
+
+### Skills
+
+* Improve scan skill and codebase-mapper agent ([2cc570c6](https://github.com/SienkLogic/plan-build-run/commit/2cc570c6))
+* Add CLI-driven help system with structured skill metadata ([cd1550f3](https://github.com/SienkLogic/plan-build-run/commit/cd1550f3))
+* Add .active-skill lifecycle and milestone Skill() routing to autonomous mode ([8a0838da](https://github.com/SienkLogic/plan-build-run/commit/8a0838da))
+* Remove plan-checking skip-logic, update validation gate to advisory for quick depth ([113e0285](https://github.com/SienkLogic/plan-build-run/commit/113e0285))
+* Add plan-check gates to autonomous skill pipeline ([ae9f1283](https://github.com/SienkLogic/plan-build-run/commit/ae9f1283))
+* Restore PROJECT.md evolution step lost in legacy workflow migration ([822a1658](https://github.com/SienkLogic/plan-build-run/commit/822a1658))
+* Create list-phase-assumptions skill with 5-area assumption analysis ([f5050b86](https://github.com/SienkLogic/plan-build-run/commit/f5050b86))
+
+### Templates
+
+* Add VALIDATION.md.tmpl for Nyquist validation strategy ([4ae0cea2](https://github.com/SienkLogic/plan-build-run/commit/4ae0cea2))
+* Add SEED.md.tmpl for project seed/idea tracking ([a54d1a63](https://github.com/SienkLogic/plan-build-run/commit/a54d1a63))
+* Add DEBUG.md.tmpl for debug session tracking ([355c2556](https://github.com/SienkLogic/plan-build-run/commit/355c2556))
+* Add UAT.md.tmpl for user acceptance testing tracking ([711a2aa9](https://github.com/SienkLogic/plan-build-run/commit/711a2aa9))
+
+### Testing
+
+* Update 14 tests for legacy directory deletion ([14a22bed](https://github.com/SienkLogic/plan-build-run/commit/14a22bed))
+* Fix 10 test files for canonical module behavioral differences ([1ed2e42e](https://github.com/SienkLogic/plan-build-run/commit/1ed2e42e))
+* Update event-logger tests for canonical dated-filename behavior ([931207d2](https://github.com/SienkLogic/plan-build-run/commit/931207d2))
+* Increase hook-server createServer test timeout to 15s for Windows Node 18 CI ([04602d26](https://github.com/SienkLogic/plan-build-run/commit/04602d26))
+
+### Other
+
+* Add advisory prompt injection scanner for .planning/ file writes ([cebc1703](https://github.com/SienkLogic/plan-build-run/commit/cebc1703))
+* Implement compound CLI commands for atomic phase/milestone operations ([d75feff9](https://github.com/SienkLogic/plan-build-run/commit/d75feff9))
+* Register missing CLI subcommands and fix broken references across 18 files ([ed681fa9](https://github.com/SienkLogic/plan-build-run/commit/ed681fa9))
+
 ## [2.15.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.14.0...plan-build-run-v2.15.0) — 2026-03-20
 
 ### Plugin

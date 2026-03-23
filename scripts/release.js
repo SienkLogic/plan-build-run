@@ -210,8 +210,16 @@ function main() {
 
   validateTags();
 
+  // Create a lightweight tag BEFORE changelog generation so git-tag-based
+  // changelog generator can see the new version. The tag points at HEAD
+  // (pre-release commit) and gets moved to the release commit afterwards.
+  run(`git tag ${tagName}`);
+
   console.log('\nGenerating changelog...');
   generateChangelog();
+
+  // Delete the temporary tag — it will be recreated on the release commit
+  run(`git tag -d ${tagName}`);
 
   console.log('\nCommitting and tagging...');
   run('git add package.json package-lock.json CHANGELOG.md');
