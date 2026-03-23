@@ -985,6 +985,27 @@ function phaseFirstLastCommit(phaseNum, planningDir) {
   };
 }
 
+/**
+ * Get the next sequential phase number based on existing phase directories.
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} { next: number, existing: number[] }
+ */
+function phaseNextNumber(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const phasesDir = path.join(dir, 'phases');
+  if (!fs.existsSync(phasesDir)) {
+    return { next: 1, existing: [] };
+  }
+  const existing = fs.readdirSync(phasesDir)
+    .filter(d => /^\d+-/.test(d))
+    .map(d => parseInt(d.split('-')[0], 10))
+    .filter(n => !isNaN(n))
+    .sort((a, b) => a - b);
+  const next = existing.length > 0 ? Math.max(...existing) + 1 : 1;
+  return { next, existing };
+}
+
 module.exports = {
   frontmatter,
   planIndex,
@@ -996,6 +1017,7 @@ module.exports = {
   milestoneStats,
   phaseComplete,
   phaseInsert,
+  phaseNextNumber,
   // Aliases for backward compatibility with phase.cjs consumers
   phasePlanIndex: planIndex,
   phaseMustHaves: mustHavesCollect,

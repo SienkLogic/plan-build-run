@@ -184,7 +184,8 @@ const {
   phaseList: _phaseList,
   milestoneStats: _milestoneStats,
   phaseComplete: _phaseComplete,
-  phaseInsert: _phaseInsert
+  phaseInsert: _phaseInsert,
+  phaseNextNumber: _phaseNextNumber
 } = require('./lib/phase');
 
 const {
@@ -435,6 +436,10 @@ function phaseRemove(phaseNum) {
 
 function phaseList(opts) {
   return _phaseList(planningDir, opts);
+}
+
+function phaseNextNumber() {
+  return _phaseNextNumber(planningDir);
 }
 
 function phaseComplete(phaseNum) {
@@ -1359,6 +1364,8 @@ async function main() {
       if (statusIdx >= 0) listOpts.status = args[statusIdx + 1];
       if (beforeIdx >= 0) listOpts.before = args[beforeIdx + 1];
       output(phaseList(listOpts));
+    } else if (command === 'phase' && subcommand === 'next-number') {
+      output(phaseNextNumber());
     } else if (command === 'phase' && subcommand === 'complete') {
       const phaseNum = args[2];
       if (!phaseNum) { error('Usage: phase complete <phase_num>'); }
