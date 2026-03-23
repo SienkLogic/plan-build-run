@@ -264,18 +264,6 @@ function isHookServerRunning(port) {
   }
 }
 
-/**
- * Get hook server status with circuit breaker awareness.
- * Returns one of: 'running', 'failed', 'stopped'.
- *
- * - 'running': TCP probe succeeds (server is responsive)
- * - 'failed': Circuit breaker is open (5+ consecutive failures, cooldown active)
- * - 'stopped': Server not running, no circuit breaker issues (normal idle)
- *
- * @param {number} [port=19836] - Hook server port
- * @param {string} [planningDir] - Path to .planning/ directory
- * @returns {'running'|'failed'|'stopped'}
- */
 // ---------------------------------------------------------------------------
 // Dev line helpers — PBR development stats from local files
 // ---------------------------------------------------------------------------
@@ -434,6 +422,18 @@ function getCiStatus(planningDir) {
   }
 }
 
+/**
+ * Get hook server status with circuit breaker awareness.
+ * Returns one of: 'running', 'failed', 'stopped'.
+ *
+ * - 'running': TCP probe succeeds (server is responsive)
+ * - 'failed': Circuit breaker is open (5+ consecutive failures, cooldown active)
+ * - 'stopped': Server not running, no circuit breaker issues (normal idle)
+ *
+ * @param {number} [port=19836] - Hook server port
+ * @param {string} [planningDir] - Path to .planning/ directory
+ * @returns {'running'|'failed'|'stopped'}
+ */
 function getHookServerStatus(port, planningDir) {
   if (isHookServerRunning(port)) return 'running';
 
