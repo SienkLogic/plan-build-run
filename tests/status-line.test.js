@@ -1098,7 +1098,7 @@ describe('status-line.js', () => {
       spy.mockRestore();
     });
 
-    test('shows red filled circle when circuit breaker is open', () => {
+    test('shows red open circle when circuit breaker is open', () => {
       const cpMod = require('child_process');
       const fsMod = require('fs');
       const pathMod = require('path');
@@ -1118,9 +1118,10 @@ describe('status-line.js', () => {
       const cfg = { ...DEFAULTS, sections: ['phase', 'hooks'] };
       const raw = buildStatusLine(content, null, cfg, {}, tmpDir);
       const result = strip(raw);
-      expect(result).toContain('\u25CF hooks');
+      // Failed state uses open circle (filled circle is only for running)
+      expect(result).toContain('\u25CB hooks');
       // Verify it uses red color (not green or dim)
-      expect(raw).toContain('\x1b[31m\u25CF hooks');
+      expect(raw).toContain('\x1b[31m\u25CB hooks');
       spy.mockRestore();
       fsMod.rmSync(tmpDir, { recursive: true, force: true });
     });
@@ -1131,16 +1132,17 @@ describe('status-line.js', () => {
     const pathMod = require('path');
     const osMod = require('os');
 
-    test('returns running when server is listening', () => {
+    test('returns running when server is listening', (done) => {
       const netMod = require('net');
       const server = netMod.createServer();
-      server.listen(0);
-      const port = server.address().port;
-      try {
-        expect(getHookServerStatus(port)).toBe('running');
-      } finally {
-        server.close();
-      }
+      server.listen(0, '127.0.0.1', () => {
+        const port = server.address().port;
+        try {
+          expect(getHookServerStatus(port)).toBe('running');
+        } finally {
+          server.close(done);
+        }
+      });
     });
 
     test('returns stopped when server is down and no circuit file', () => {

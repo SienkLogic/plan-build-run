@@ -70,11 +70,11 @@ describe('hooks.json validation', () => {
     expect(urls.some(u => u.includes('/PostToolUse/'))).toBe(true);
   });
 
-  test('PreToolUse hooks remain as command type (not http)', () => {
+  test('PreToolUse hooks use http type (hook server migration)', () => {
     const preToolUse = hooksData.hooks.PreToolUse || [];
     for (const entry of preToolUse) {
       for (const hook of entry.hooks) {
-        expect(hook.type).toBe('command');
+        expect(hook.type).toBe('http');
       }
     }
   });

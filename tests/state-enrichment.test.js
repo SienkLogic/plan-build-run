@@ -232,7 +232,8 @@ describe('GET /context endpoint', () => {
   test('sessionCount counts server_start events', async () => {
     const { body } = await get(server.port, '/context');
     const parsed = JSON.parse(body);
-    expect(parsed.sessionCount).toBe(1);
+    // Sample events include 1 server_start + the server itself appends another on startup
+    expect(parsed.sessionCount).toBe(2);
   });
 });
 
@@ -263,14 +264,16 @@ describe('GET /context with empty event log', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test('returns 200 with empty arrays when no events exist', async () => {
+  test('returns 200 with only the server_start event when no pre-existing events', async () => {
     const { status, body } = await get(server.port, '/context');
     expect(status).toBe(200);
     const parsed = JSON.parse(body);
-    expect(parsed.recentEvents).toEqual([]);
+    // Server appends a server_start event on startup even with no pre-existing log
+    expect(parsed.recentEvents.length).toBe(1);
+    expect(parsed.recentEvents[0].type).toBe('server_start');
     expect(parsed.activeSkillHistory).toEqual([]);
     expect(parsed.advisoryMessages).toEqual([]);
-    expect(parsed.sessionCount).toBe(0);
+    expect(parsed.sessionCount).toBe(1);
   });
 });
 

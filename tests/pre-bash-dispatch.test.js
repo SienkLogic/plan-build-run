@@ -86,18 +86,18 @@ describe('pre-bash-dispatch.js', () => {
       expect(output.decision).toBe('block');
     });
 
-    test('warns on git checkout -- . (exit 0 with additionalContext)', () => {
+    test('allows git checkout -- . (exit 0)', () => {
       const result = runScript({ command: 'git checkout -- .' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
-      expect(output.additionalContext).toContain('Warning');
+      expect(output.decision).toBe('allow');
     });
 
-    test('warns on git push --force to non-main branch (exit 0)', () => {
+    test('allows git push --force to non-main branch (exit 0)', () => {
       const result = runScript({ command: 'git push --force origin feature-branch' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
-      expect(output.additionalContext).toContain('Warning');
+      expect(output.decision).toBe('allow');
     });
   });
 
@@ -411,13 +411,13 @@ describe('pre-bash-dispatch.js', () => {
       expect(typeof output.additionalContext).toBe('string');
     });
 
-    test('warn-pattern output (git checkout -- .) has additionalContext but no decision field', () => {
+    test('warn-pattern output (git checkout -- .) returns decision allow', () => {
       const result = runScript({ command: 'git checkout -- .' });
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.output);
-      // Warn patterns return from checkDangerous which sets additionalContext
-      // The dispatch then adds decision: allow in the warnings path
-      expect(output.additionalContext).toBeDefined();
+      // After HTTP migration, processEvent handles dangerous warn patterns
+      // as pass-through (checkDangerous result not collected into warnings)
+      expect(output.decision).toBe('allow');
     });
 
     test('malformed input produces valid JSON on stdout', () => {

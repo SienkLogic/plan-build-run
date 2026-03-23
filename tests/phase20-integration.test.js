@@ -116,7 +116,7 @@ describe('INTG-03: package.json publishable structure', () => {
 
   test('package.json has test script', () => {
     expect(pkg.scripts.test).toBeDefined();
-    expect(pkg.scripts.test).toContain('jest');
+    expect(pkg.scripts.test).toContain('test-wrapper');
   });
 
   test('package.json name is PBR branded', () => {

@@ -104,7 +104,7 @@ describe('hooks.json script resolution against canonical location', () => {
     );
     hooks = JSON.parse(raw);
 
-    // Extract all script names from bootstrap commands
+    // Extract all script names from bootstrap commands (command-type hooks only)
     extractedScripts = new Set();
     for (const [, groups] of Object.entries(hooks.hooks)) {
       for (const group of groups) {
@@ -119,8 +119,25 @@ describe('hooks.json script resolution against canonical location', () => {
     }
   });
 
-  test('extracts at least 10 unique scripts from hooks.json', () => {
-    expect(extractedScripts.size).toBeGreaterThanOrEqual(10);
+  test('extracts at least 3 unique scripts from command-type hooks', () => {
+    // After HTTP hook migration, only SessionStart, Stop, InstructionsLoaded,
+    // WorktreeCreate, WorktreeRemove remain as command-type hooks
+    expect(extractedScripts.size).toBeGreaterThanOrEqual(3);
+  });
+
+  test('http-type hooks reference valid hook server URLs', () => {
+    let httpCount = 0;
+    for (const [, groups] of Object.entries(hooks.hooks)) {
+      for (const group of groups) {
+        for (const hook of group.hooks || []) {
+          if (hook.type !== 'http') continue;
+          httpCount++;
+          expect(hook.url).toMatch(/^http:\/\/localhost:\d+\/hook\//);
+        }
+      }
+    }
+    // Most hooks are now HTTP-type
+    expect(httpCount).toBeGreaterThanOrEqual(10);
   });
 
   test.each([
