@@ -232,6 +232,8 @@ Parse agent return for completion marker:
 
 ### Step 5: Write VALIDATION.md (inline)
 
+**CRITICAL: Write VALIDATION.md NOW. Do not skip this step.**
+
 Write `.planning/phases/{NN}-{slug}/VALIDATION.md` with this structure:
 
 **Frontmatter:**

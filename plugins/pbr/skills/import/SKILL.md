@@ -238,6 +238,8 @@ Apply Requirement Coverage Validation: every requirement in REQUIREMENTS.md must
 Apply the Dual Format requirement: Quick-scan checklist at top + detailed phase descriptions.
 Wrap all phases in a Milestone section named after the project.
 
+**CRITICAL: Write ROADMAP.md NOW. Do not skip this step.**
+
 Write ROADMAP.md to `.planning/ROADMAP.md`.
 Output your completion marker when done: ## PLANNING COMPLETE
 "

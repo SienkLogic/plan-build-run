@@ -133,6 +133,8 @@ This mode writes to `.planning/PROJECT.md` ## Context section (project-level), N
    - Deferred Ideas: anything explicitly ruled out for this project
    - Claude's Discretion: decisions marked "Let Claude decide"
 3. If Append mode: merge new decisions with existing PROJECT.md ## Context content
+**CRITICAL: Write the discussion results to PROJECT.md NOW.**
+
 4. Write to `.planning/PROJECT.md` under the `## Context` section with subsections:
    - `### Locked Decisions`
    - `### User Constraints`

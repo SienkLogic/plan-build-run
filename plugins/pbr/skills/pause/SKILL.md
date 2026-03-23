@@ -159,6 +159,8 @@ After writing `.continue-here.md`, also create `.planning/HANDOFF.json` with str
    - `completed_tasks`: task descriptions already done in current plan
    - `uncommitted_files`: from `git status --short`
    - `context_notes`: mental context about current approach and reasoning
+**CRITICAL: Write HANDOFF.json NOW. This file is required for session resumption.**
+
 6. Write the filled JSON to `.planning/HANDOFF.json`
 
 **Purpose:** `.continue-here.md` is human-readable; `HANDOFF.json` is machine-readable. The resume skill reads HANDOFF.json first for structured data, falling back to `.continue-here.md` for backward compatibility.

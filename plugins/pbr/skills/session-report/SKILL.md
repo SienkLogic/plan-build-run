@@ -114,6 +114,8 @@ NEXT STEPS
 ## Step 5: Optional Save
 
 If `--save` flag was provided:
+**CRITICAL: Create the reports directory and write the report file NOW.**
+
 1. Create directory: `.planning/reports/` (if not exists)
 2. Write report to `.planning/reports/session-{YYYY-MM-DD-HHmm}.md`
 3. Display: "Report saved to {path}"

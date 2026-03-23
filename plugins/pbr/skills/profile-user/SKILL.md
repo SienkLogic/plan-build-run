@@ -151,6 +151,8 @@ After mapping, proceed to **Step 6**.
 
 ## Step 6 -- Generate USER-PROFILE.md
 
+**CRITICAL: Write USER-PROFILE.md NOW. Do not skip this step.**
+
 Write `.planning/USER-PROFILE.md` with the following structure:
 
 ```yaml

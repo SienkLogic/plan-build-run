@@ -773,6 +773,8 @@ Use AskUserQuestion (pattern: approve-revise-abort from `skills/shared/gate-prom
 4. Ask user: "What requirements does it address?" (show available unassigned REQ-IDs)
 5. Ask user: "What phases does it depend on?"
 6. Append phase to ROADMAP.md
+**CRITICAL: Create the phase directory NOW. Do not skip this step.**
+
 7. Create phase directory: `.planning/phases/{NN}-{slug}/`
 8. Update STATE.md if needed
 9. Suggest: `/pbr:plan-phase {N}` to plan the new phase

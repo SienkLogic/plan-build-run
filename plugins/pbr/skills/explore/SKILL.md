@@ -329,6 +329,8 @@ After creating artifacts (or if user chose "Skip"), display:
 
 ### Todo
 
+**CRITICAL: Write the todo file NOW. Do not skip this step.**
+
 Write to `.planning/todos/pending/{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan both `.planning/todos/pending/` and `.planning/todos/done/` for the highest existing number, increment by 1, and zero-pad. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{todo title}"`. Follow the format used by the existing todo skill.
 
 ### Requirement
@@ -363,6 +365,8 @@ Append to `.planning/ROADMAP.md` following the existing phase format. Assign the
 
 ### Note
 
+**CRITICAL: Write the note file NOW. Do not skip this step.**
+
 Write to `.planning/notes/{YYYY-MM-DD}-{slug}.md` where the date prefix is today's date in ISO format. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{note title}"`. Scan `.planning/notes/` to avoid filename collisions — if a file with the same date and slug exists, append `-2` (or increment).
 
 ```markdown
@@ -377,6 +381,8 @@ topic: "{topic}"
 ```
 
 ### Seed
+
+**CRITICAL: Write the seed file NOW. Do not skip this step.**
 
 Write to `.planning/seeds/SEED-{NNN}-{slug}.md` where NNN is a zero-padded 3-digit sequential number (001, 002, 003...). Scan `.planning/seeds/` for the highest existing SEED number, increment by 1, and zero-pad. Generate slug via CLI: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js slug-generate "{seed title}"`.
 

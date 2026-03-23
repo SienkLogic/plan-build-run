@@ -311,6 +311,8 @@ Prioritize as:
 
 Write to: `.planning/audits/{YYYY-MM-DD}-session-audit.md`
 
+**CRITICAL: Create the audits directory NOW. Do not skip this step.**
+
 Create `.planning/audits/` directory if it doesn't exist.
 
 The report should follow this v2 structure:

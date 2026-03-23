@@ -78,6 +78,8 @@ Present to user via AskUserQuestion:
 - If user chooses "Refresh all": proceed with full scan
 
 **If `has_maps` is false:**
+**CRITICAL: Create the codebase directory NOW. Do not skip this step.**
+
 - Create `.planning/codebase/` directory if needed:
   ```bash
   mkdir -p .planning/codebase
