@@ -37,10 +37,10 @@ function readAgent(file) {
 
 describe('Universal agent patterns', () => {
   test('agent directory contains expected agent count', () => {
-    // 17 total agents in target (14 original + intel-updater, ui-researcher, ui-checker)
-    expect(agentFiles.length).toBe(17);
-    // 11 core agents (excluding dev-sync, nyquist-auditor, roadmapper, intel-updater, ui-researcher, ui-checker)
-    expect(coreAgents.length).toBe(11);
+    // 18 total agents (14 original + intel-updater, ui-researcher, ui-checker, advisor-researcher)
+    expect(agentFiles.length).toBe(18);
+    // 12 core agents (excluding dev-sync, nyquist-auditor, roadmapper, intel-updater, ui-researcher, ui-checker)
+    expect(coreAgents.length).toBe(12);
   });
 
   test.each(coreAgents)('%s has YAML frontmatter with required fields', (file) => {

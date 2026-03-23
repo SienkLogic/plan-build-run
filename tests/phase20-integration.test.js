@@ -156,13 +156,13 @@ describe('INTG-04: install.js integrity and test-mode exports', () => {
   test('directory structure has expected agent count', () => {
     const agentsDir = path.join(ROOT, 'plugins', 'pbr', 'agents');
     const agents = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md'));
-    expect(agents.length).toBe(17);
+    expect(agents.length).toBe(18);
   });
 
   test('directory structure has expected commands count', () => {
     const commandsDir = path.join(ROOT, 'plugins', 'pbr', 'commands');
     const commands = fs.readdirSync(commandsDir).filter(f => f.endsWith('.md'));
-    expect(commands.length).toBe(69);
+    expect(commands.length).toBe(71);
   });
 
   test('directory structure has hooks', () => {
