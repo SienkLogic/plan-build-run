@@ -2,6 +2,40 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.19.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.0...plan-build-run-v2.19.0) — 2026-03-23
+
+### Agents
+
+* Add philosophy sections and permissionMode to key agents ([e557ab51](https://github.com/SienkLogic/plan-build-run/commit/e557ab51))
+* Add stub scan, auth gates, and fix STATE.md write contradiction in executor ([ebcbe665](https://github.com/SienkLogic/plan-build-run/commit/ebcbe665))
+* Add project_context, worktree isolation, and Write tool constraint to executor ([9811a565](https://github.com/SienkLogic/plan-build-run/commit/9811a565))
+* Update plan-checker D2 and agent-contracts to validate 7 task elements ([3969fed4](https://github.com/SienkLogic/plan-build-run/commit/3969fed4))
+* Add artifact existence verification to roadmapper and synthesizer agents ([351b4399](https://github.com/SienkLogic/plan-build-run/commit/351b4399))
+* Add CLI verify artifacts and key-links calls to verifier agent ([5e8e916d](https://github.com/SienkLogic/plan-build-run/commit/5e8e916d))
+* Add CLI verify summary and commits calls to executor agent ([d49176b6](https://github.com/SienkLogic/plan-build-run/commit/d49176b6))
+* Add CLI verify plan-structure calls to planner agent and plan skill ([66365c6b](https://github.com/SienkLogic/plan-build-run/commit/66365c6b))
+
+### Hooks
+
+* Wire all verify functions to CLI dispatch and fix string-format handling ([88583c5b](https://github.com/SienkLogic/plan-build-run/commit/88583c5b))
+
+### Skills
+
+* Add advisor-researcher agent, stats, and milestone-summary skills ([511ba858](https://github.com/SienkLogic/plan-build-run/commit/511ba858))
+* Add backlog, seed, and thread skills for idea management ([416522ae](https://github.com/SienkLogic/plan-build-run/commit/416522ae))
+* Add /pbr:forensics skill for post-mortem investigation ([48cc2217](https://github.com/SienkLogic/plan-build-run/commit/48cc2217))
+* Add verification debt scanning to status and milestone skills ([9fabe22c](https://github.com/SienkLogic/plan-build-run/commit/9fabe22c))
+* Add discussion audit trail and enhance assumptions with evidence citing ([fdf1cdbb](https://github.com/SienkLogic/plan-build-run/commit/fdf1cdbb))
+* Add /pbr:fast skill for inline trivial task execution ([5103a9ba](https://github.com/SienkLogic/plan-build-run/commit/5103a9ba))
+* Add early PROJECT.md write for durability in begin flow ([635d384a](https://github.com/SienkLogic/plan-build-run/commit/635d384a))
+* Add structural REQ coverage gate to plan orchestrator ([292cd069](https://github.com/SienkLogic/plan-build-run/commit/292cd069))
+* Inject deep_work_rules in planner spawn prompt and fix inline_verify false pass ([ed14fbf4](https://github.com/SienkLogic/plan-build-run/commit/ed14fbf4))
+* Add CLI verify calls to autonomous skill lightweight verification ([9ca102d6](https://github.com/SienkLogic/plan-build-run/commit/9ca102d6))
+
+### Templates
+
+* Create missing UAT, UI-SPEC, VALIDATION, and DISCUSSION-LOG templates ([53ccb3b4](https://github.com/SienkLogic/plan-build-run/commit/53ccb3b4))
+
 ## [2.18.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.1...plan-build-run-v2.18.0) — 2026-03-23
 
 ### Agents
