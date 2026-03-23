@@ -202,6 +202,14 @@ Before writing SUMMARY.md, verify your own output against the plan's must-haves:
 
 ** CRITICAL -- DO NOT SKIP THIS STEP. The SUMMARY.md artifact is REQUIRED for phase verification. Returning without it causes downstream failures. **
 
+**Pre-SUMMARY Stub Scan**: Before writing SUMMARY.md, scan all files created/modified in this plan for stub patterns:
+- Hardcoded empty values: `=[]`, `={}`, `=null`, `=""` that flow to rendering/return
+- Placeholder text: "not available", "coming soon", "placeholder", "TODO", "FIXME"
+- Empty handlers: `onClick={() => {}}`, `onSubmit={(e) => e.preventDefault()}`
+- Components with no data source wired (props always receiving empty/mock data)
+
+If stubs exist: add `## Known Stubs` section to SUMMARY.md listing each stub (file, line, reason). Do NOT set `status: complete` if stubs prevent the plan's goal from being achieved — set `status: partial` instead.
+
 **CRITICAL -- TEMPLATE READ REQUIRED: Before writing SUMMARY.md, you MUST read the appropriate template file using the Read tool:**
 - **Simple plans** (tasks <= 2, files <= 3): Read `${CLAUDE_PLUGIN_ROOT}/templates/SUMMARY-minimal.md.tmpl`
 - **Complex plans** (decisions made, files > 6, deviations): Read `${CLAUDE_PLUGIN_ROOT}/templates/SUMMARY-complex.md.tmpl`
@@ -282,31 +290,19 @@ Body sections (include only sections with content):
 
 #### Post-Completion State Update
 
-After writing SUMMARY.md (Step 6) and passing self-check (Step 9), update status to `built` and run these CLI commands in order:
+**In worktree mode** (parallel): Skip state updates — the build orchestrator handles STATE.md/ROADMAP.md after collecting results. Just write SUMMARY.md and return `## PLAN COMPLETE`.
 
-0. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status built`
-   — Set phase status to `built` indicating all tasks completed successfully.
-1. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan`
-   — **CRITICAL: Capture and parse the JSON output.** The response contains `current_plan` and `total_plans` fields needed to detect final plan completion.
-2. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress`
-3. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Plan {plan_id} complete"`
-4. `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase_num} {completed} {total}`
-5. If the plan frontmatter contains a non-empty `implements` array (REQ-IDs), mark those requirements as complete:
-   `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js requirements mark-complete {comma-separated REQ-IDs}`
-   Example: `requirements mark-complete REQ-F-001,REQ-F-002`
+**In sole-executor mode** (single plan, quick task): After SUMMARY.md + self-check, run:
+```
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update status built
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state advance-plan
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state update-progress
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js state record-activity "Plan {plan_id} complete"
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js roadmap update-plans {phase_num} {completed} {total}
+```
+If plan frontmatter has `implements` REQ-IDs: `requirements mark-complete {comma-separated IDs}`
 
-**Do NOT modify STATE.md or ROADMAP.md directly.** These CLI commands handle both frontmatter and body updates atomically.
-
-If any command fails, log the error in SUMMARY.md but do NOT retry — the build skill orchestrator will reconcile.
-
-#### Phase Complete (Final Plan Only)
-
-After running post_completion_state, check if this was the last plan in the phase using the output from step 1 above:
-- If `state advance-plan` output shows `current_plan > total_plans`: all plans done
-- Run: `node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js phase complete {phase_num}`
-- This atomically updates ROADMAP.md checkbox, progress table, and STATE.md to advance to the next phase.
-- Do NOT call this if there are remaining plans — the build skill will spawn the next executor.
-- **CRITICAL: If you are unsure whether you are the final plan, run `phase complete` anyway — it is idempotent and safe to call even when the build skill orchestrator will also call it.**
+**Do NOT modify STATE.md directly.** CLI commands handle atomic updates. On failure, log in SUMMARY.md — orchestrator will reconcile.
 </step>
 </execution_flow>
 
@@ -398,6 +394,10 @@ When you encounter an unexpected issue during task execution:
 
 CRITICAL: Rules are in priority order. Check Rule 1 first, then 2, etc.
 </deviation_rules>
+
+<authentication_gates>
+Auth errors (401, 403, "Not authenticated", "Please run X login") are **gates, not failures**. STOP → return `## CHECKPOINT REACHED` (type: `checkpoint:human-action`) with exact auth steps and verification command. Document in SUMMARY.md as normal flow, not deviations.
+</authentication_gates>
 
 <scope_boundary>
 ## Scope Boundary
