@@ -362,6 +362,36 @@ This project uses [Plan-Build-Run](https://github.com/SienkLogic/plan-build-run)
 
 **CRITICAL (hook-enforced): Write .active-skill NOW.** Write the text "begin" to `.planning/.active-skill` using the Write tool. Verify the file exists before proceeding.
 
+### Step 3e: Early PROJECT.md Write (durability checkpoint)
+
+**CRITICAL: Write a preliminary PROJECT.md NOW to preserve the user's vision on disk.**
+
+Write `.planning/PROJECT.md` with the information gathered so far:
+- Project name, description, and type (from Step 2 questioning)
+- Key constraints and technology preferences (from Step 2)
+- Workflow preferences (from Step 3: depth, model profile, ceremony level)
+- Mark it as `status: preliminary` in a comment at the top
+
+This file will be overwritten with the full version in Step 9, but if context is lost between Steps 4-8 (research, synthesis, requirements, roadmap), the user's vision is preserved on disk. Format:
+
+```markdown
+<!-- status: preliminary — will be overwritten in Step 9 with full version -->
+# {Project Name}
+
+{Project description from Step 2}
+
+## Constraints
+{Key constraints from questioning}
+
+## Technology Preferences
+{Tech choices mentioned during questioning}
+
+## Workflow Config
+Depth: {depth} | Profile: {model_profile} | Ceremony: {ceremony_level}
+```
+
+If `planning.commit_docs` is true, commit: `docs(planning): preliminary PROJECT.md from questioning`
+
 ---
 
 ### Step 4: Research Decision (inline)
