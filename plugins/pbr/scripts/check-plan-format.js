@@ -78,7 +78,9 @@ async function main() {
 
       // Determine file type
       const basename = path.basename(filePath);
-      const isPlan = /^PLAN.*\.md$/.test(basename);
+      const isPlanStandard = /^PLAN.*\.md$/.test(basename);
+      const isPlanPrefixed = /^\d+-\d+-PLAN\.md$/.test(basename);
+      const isPlan = isPlanStandard || isPlanPrefixed;
       const isSummary = basename.includes('SUMMARY') && basename.endsWith('.md');
       const isVerification = basename === 'VERIFICATION.md';
       const isRoadmap = basename === 'ROADMAP.md';
@@ -111,6 +113,11 @@ async function main() {
                   : isContext
                     ? validateContext(content, filePath)
                     : validateSummary(content, filePath);
+
+      // Warn on non-standard plan file naming (e.g., "10-02-PLAN.md" instead of "PLAN-02.md")
+      if (isPlanPrefixed && !isPlanStandard) {
+        result.warnings.push(`Plan file "${basename}" uses non-standard naming. Expected format: PLAN-{NN}.md or PLAN.md. Phase-prefixed names (e.g., "10-02-PLAN.md") bypass some validation checks.`);
+      }
 
       // LLM advisory enrichment -- advisory only, never blocks
       if ((isPlan || isSummary) && result.errors.length === 0) {
