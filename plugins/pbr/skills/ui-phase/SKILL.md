@@ -108,6 +108,7 @@ Spawn a Task with:
   - Phase number and phase goal
   - Dev server URL (if provided via `--url`, otherwise state "not provided")
   - Target output path: `.planning/phases/{NN}-{slug}/UI-SPEC.md`
+  - **Template reference:** `${CLAUDE_PLUGIN_ROOT}/templates/UI-SPEC.md.tmpl` — the agent should read this template for the standard UI-SPEC format (design system, spacing, typography, color, components)
   - Instruction to analyze the frontend codebase and generate design contracts
 
 Display before spawning:

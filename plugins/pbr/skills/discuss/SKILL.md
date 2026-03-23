@@ -246,6 +246,28 @@ If more than 3 concrete options exist for a gray area, present only the top 3 pl
 - If the user gives a preference not in the options, accept it
 - If the user says "I don't care", mark it as Claude's Discretion
 
+### Step 4b: Advisor Research (optional, for technology decisions)
+
+If any gray area involves a **technology choice** (library selection, framework decision, architecture pattern) and the user expresses uncertainty or asks "which is better?", spawn a focused research agent:
+
+```
+Task({
+  subagent_type: "pbr:advisor-researcher",
+  prompt: "<files_to_read>
+    1. .planning/PROJECT.md — project context and constraints
+    2. .planning/CONTEXT.md — existing locked decisions (if exists)
+  </files_to_read>
+  Decision area: {gray area title}
+  Context: {project constraints, existing stack}
+  Options to compare: {options from Step 4}
+  Return a structured comparison table with recommendation."
+})
+```
+
+After the advisor returns, present the comparison table to the user and let them make the final decision. The user's choice becomes the locked decision — the advisor's recommendation is advisory only.
+
+**Skip this step if:** No gray areas involve technology choices, or the user already made confident decisions in Step 4.
+
 ### Step 5: Deep-Dive Each Selected Area
 
 For each gray area where the user made a decision (not "Let Claude decide"), ask **4 follow-up questions** to fully capture their intent.

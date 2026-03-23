@@ -185,8 +185,11 @@ function parseMustHavesBlock(content, blockName) {
       if (current) items.push(current);
       current = {};
       // Check if it's a simple string item
+      // Note: strings may contain ':' as part of file path notation (e.g., "src/app.js: >50 lines")
+      // Only treat as key-value if the part before ':' is a simple word (no dots, slashes, spaces)
       const simpleMatch = line.match(/^\s{6}-\s+"?([^"]+)"?\s*$/);
-      if (simpleMatch && !line.includes(':')) {
+      const hasYamlKv = line.match(/^\s{6}-\s+(\w+):\s/);
+      if (simpleMatch && !hasYamlKv) {
         current = simpleMatch[1];
       } else {
         // Key-value on same line as dash: "- path: value"

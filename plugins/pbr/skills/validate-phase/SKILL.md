@@ -234,6 +234,8 @@ Parse agent return for completion marker:
 
 **CRITICAL: Write VALIDATION.md NOW. Do not skip this step.**
 
+**Template reference:** Read `${CLAUDE_PLUGIN_ROOT}/templates/VALIDATION.md.tmpl` for the standard validation format (test infrastructure, sampling rate, per-task verification map, Wave 0 requirements).
+
 Write `.planning/phases/{NN}-{slug}/VALIDATION.md` with this structure:
 
 **Frontmatter:**

@@ -635,6 +635,8 @@ After adding overrides, re-evaluate: if all remaining gaps are now overridden, m
 
 ## UAT Result Recording
 
+**Template reference:** Read `${CLAUDE_PLUGIN_ROOT}/templates/UAT.md.tmpl` for the persistent UAT session format. Use this template when creating standalone UAT tracking files for complex phases. For simpler phases, append UAT results directly to VERIFICATION.md as shown below.
+
 After conversational UAT, append UAT results to VERIFICATION.md:
 
 ```markdown

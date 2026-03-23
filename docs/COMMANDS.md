@@ -1,6 +1,6 @@
 # PBR Commands
 
-Complete reference for all 70 `/pbr:*` slash commands. Each command maps to a skill in `plugins/pbr/skills/`.
+Complete reference for all 71 `/pbr:*` slash commands. Each command maps to a skill in `plugins/pbr/skills/`.
 
 ---
 
@@ -84,6 +84,8 @@ Complete reference for all 70 `/pbr:*` slash commands. Each command maps to a sk
 | `/pbr:backlog` | Manage backlog items | `add <desc> \| review \| promote <N>` |
 | `/pbr:thread` | Persistent cross-session threads | `[name \| list \| resume <name>]` |
 | `/pbr:undo` | Revert PBR-generated commits | `[--last N] [--phase NN] [--plan NN-MM] [--range HASH..HASH]` |
+| `/pbr:stats` | Display project statistics | `[--json]` |
+| `/pbr:milestone-summary` | Generate milestone onboarding summary | `[version]` |
 
 ## Infrastructure
 

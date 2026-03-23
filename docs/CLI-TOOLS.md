@@ -182,6 +182,14 @@ Atomic multi-step operations that update STATE.md + ROADMAP.md together.
 | `frontmatter <filepath>` | Parse YAML frontmatter to JSON |
 | `must-haves <phase>` | Collect all must-haves from phase plans |
 | `spot-check <slug> <planId>` | Verify SUMMARY, key_files, commits exist |
+| `verify spot-check <type> <path>` | Type-based spot-check (plan, summary, verification, quick) |
+| `verify summary <path> [--check-files N]` | Validate SUMMARY.md: exists, files exist, commits valid, self-check |
+| `verify plan-structure <path>` | Validate PLAN.md: frontmatter, all 7 task elements, wave/dep consistency |
+| `verify phase-completeness <phase>` | Check phase has all expected artifacts (PLANs, SUMMARYs) |
+| `verify artifacts <plan-path>` | Check must_haves.artifacts exist and are substantive (L1-L2) |
+| `verify key-links <plan-path>` | Check must_haves.key_links are wired between components |
+| `verify commits <hash1> [hash2...]` | Verify commit SHAs exist in git history |
+| `verify references <path>` | Check @-references in a file resolve to existing files |
 | `staleness-check <slug>` | Check if plans are stale vs dependencies |
 | `summary-gate <slug> <planId>` | Verify SUMMARY.md exists and is valid |
 

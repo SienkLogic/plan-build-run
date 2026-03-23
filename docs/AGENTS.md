@@ -1,6 +1,6 @@
 # PBR Agents
 
-PBR has 17 specialized agents at `plugins/pbr/agents/`. Each runs in a fresh `Task()` context with a clean 200k token window. Skills spawn agents via `subagent_type: "pbr:{name}"`.
+PBR has 18 specialized agents at `plugins/pbr/agents/`. Each runs in a fresh `Task()` context with a clean 200k token window. Skills spawn agents via `subagent_type: "pbr:{name}"`.
 
 ---
 
@@ -29,6 +29,18 @@ Analyzes existing UI patterns and generates design recommendations. Can visually
 | Color | #E879F9 |
 | Spawned by | ui-phase skill |
 | Produces | UI pattern analysis and design recommendations |
+
+### advisor-researcher
+
+Researches a single decision area and produces a structured comparison table. Spawned during discuss-phase when a gray area needs deep research before the user can decide.
+
+| Property | Value |
+|----------|-------|
+| Model | inherit |
+| Memory | none |
+| Color | #60A5FA |
+| Spawned by | discuss skill (Step 4b) |
+| Produces | 5-column comparison table with recommendation and sources |
 
 ---
 
