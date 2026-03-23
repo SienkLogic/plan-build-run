@@ -656,6 +656,10 @@ const SKILL_CHECKS = {
   'build:pbr:executor': {
     description: 'build executor SUMMARY commits, self-check, LEARNINGS.md, and convention update',
     check: (planningDir, found, warnings) => {
+      // Warn if no SUMMARY.md was created by the executor
+      if (found.length === 0) {
+        warnings.push('Build executor completed but no SUMMARY.md was found in the phase or quick directory. The executor may have skipped artifact creation. Re-run the build skill to generate the missing artifact.');
+      }
       checkSummaryCommits(planningDir, found, warnings);
       // Check for deviations requiring user review (Rule 3/4 with action: "ask")
       checkDeviationsRequiringReview(planningDir, found, warnings);
