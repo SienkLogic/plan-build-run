@@ -91,6 +91,12 @@ Before each phase iteration:
    ```
 4. Skip phases already marked as verified/complete in ROADMAP.md
 
+**Verification tracking:** Initialize two counters at the start of the autonomous run:
+- `phases_verified_full = 0` — count of phases that received full `/pbr:review` verification
+- `phases_verified_total = 0` — count of phases that completed verification (any type)
+- Read `verification.min_full_percent` from config (default: 30)
+- Calculate `full_verify_interval`: if min_full_percent > 0, compute `Math.floor(100 / min_full_percent)` (e.g., 30% → every 3rd phase). If 0, set to Infinity (never force full).
+
 ---
 
 ## Step 3: Phase Loop
@@ -325,24 +331,34 @@ If gate passes:
      d. Use the result (cached or fresh) for the confidence gate check in sub-step 5
      Note: This test run serves as both the confidence gate signal AND the regression gate. If tests fail, this is a regression — delegate to debugger agent per the CRITICAL marker above.
   4.5. **Wiring check:** For each file in SUMMARY.md key_files (excluding tests and docs), verify at least one require()/import reference exists elsewhere in the project. Use: `grep -rl "{basename}" --include="*.js" --include="*.cjs" --include="*.ts" --include="*.md" . | grep -v node_modules | grep -v "{key_file_itself}"`. If ANY key file is orphaned, fail the confidence gate and fall through to full verification.
-  5. **If ALL FOUR signals pass** (completion >= 90%, SHAs verified, tests pass, key_files imported):
-   - Display: `Phase {N}: confidence gate passed (completion: {pct}%, SHAs: OK, tests: OK, wiring: OK) — proceeding to verification`
-   - The confidence gate result is advisory only. Always fall through to full verification below.
+  5. **Verification depth selection** (round-robin enforcement):
+     - Increment `phases_verified_total`
+     - **Determine if this phase needs full verification:**
+       - If `phases_verified_total % full_verify_interval === 0`: this phase MUST get full verification
+       - If this is the LAST phase in the milestone: MUST get full verification
+       - If ANY signal failed (completion < 90%, SHAs missing, tests fail, wiring orphan): MUST get full verification
+       - Otherwise: confidence-gate is sufficient
 
-6. **If ANY signal fails**:
-   - Display: `Phase {N}: confidence gate not met ({failed_signals}) — proceeding to verification`
+  6. **If confidence-gate is sufficient** (all signals pass AND not a forced-full phase):
+     - Display: `Phase {N}: confidence gate passed — lightweight verification (full verify on phase {next_full_phase})`
+     - Increment `phases_verified_total` but NOT `phases_verified_full`
+     - Write VERIFICATION.md with `verification_type: confidence-gate` in frontmatter
+     - Continue to 3e
+
+**CRITICAL — DO NOT SKIP FULL VERIFICATION WHEN REQUIRED. The round-robin enforcement exists because the LLM historically skips full verification under cognitive load. If this phase is marked for full verification, you MUST invoke the review skill.**
+
+  7. **If full verification required** (forced-full phase OR any signal failed):
+     - Display: `Phase {N}: FULL VERIFICATION (enforced — {reason})`
+     - Invoke: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
+     - Increment both `phases_verified_full` and `phases_verified_total`
+     - If verification finds gaps:
+       - Attempt gap closure: `Skill({ skill: "pbr:plan", args: "{N} --gaps --auto" })`
+       - Then retry build: `Skill({ skill: "pbr:build", args: "{N} --gaps-only --auto" })`
+       - Then retry verify: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
+       - If gaps persist after one retry: stop loop, display gaps, suggest manual intervention.
+     - If passes: continue to 3e
 
 **CRITICAL — DO NOT FIX FAILURES INLINE**: If test failures are detected, delegate to a debugger agent. Do NOT edit source files in orchestrator context.
-
-In both cases, fall through to full verification below. The confidence gate never skips the verifier.
-- **Full verification** (always runs):
-  - Invoke: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
-- If verification finds gaps:
-  - Attempt gap closure: `Skill({ skill: "pbr:plan", args: "{N} --gaps --auto" })`
-  - Then retry build: `Skill({ skill: "pbr:build", args: "{N} --gaps-only --auto" })`
-  - Then retry verify: `Skill({ skill: "pbr:review", args: "{N} --auto" })`
-  - If gaps persist after one retry: stop loop, display gaps, suggest manual intervention.
-- If passes: continue to next phase
 
 ### 3e. Phase Complete
 
@@ -437,6 +453,9 @@ Total time: {elapsed}
 Errors encountered: {count}
 Errors auto-fixed: {count} | Phases skipped: {count}
 Test cache hits: {count}
+Verification: {phases_verified_full}/{phases_verified_total} phases fully verified ({pct}%)
+Threshold: {min_full_percent}% required
+Status: {PASS if pct >= min_full_percent, else WARN}
 ```
 
 If all phases completed successfully:
