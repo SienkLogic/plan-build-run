@@ -2,6 +2,15 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.17.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.16.0...plan-build-run-v2.17.0) — 2026-03-23
+
+### Other
+
+* Enforce min_full_percent full verification in autonomous mode ([5aca292b](https://github.com/SienkLogic/plan-build-run/commit/5aca292b))
+* Add CRITICAL markers prohibiting gap phase numbering ([c607ae05](https://github.com/SienkLogic/plan-build-run/commit/c607ae05))
+* Add phase next-number CLI subcommand ([3deb8b12](https://github.com/SienkLogic/plan-build-run/commit/3deb8b12))
+* Add phase gap detection to validateRoadmap ([d82a8b62](https://github.com/SienkLogic/plan-build-run/commit/d82a8b62))
+
 ## [2.16.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.15.0...plan-build-run-v2.16.0) — 2026-03-22
 
 ### Agents
@@ -12,6 +21,7 @@ All notable changes to Plan-Build-Run will be documented in this file.
 
 ### CLI Tools
 
+* Generate changelog after tag creation so new version appears ([47ee1b46](https://github.com/SienkLogic/plan-build-run/commit/47ee1b46))
 * Add 'hooks perf' subcommand with loadPerfEntries log reader ([0fcb4dfe](https://github.com/SienkLogic/plan-build-run/commit/0fcb4dfe))
 * Rename pbr-tools.cjs references to pbr-tools.js across 38 files (75 replacements) ([29cddffb](https://github.com/SienkLogic/plan-build-run/commit/29cddffb))
 
