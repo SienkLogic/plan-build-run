@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global setImmediate */
 
 /**
  * hook-server.js — Persistent HTTP server for Plan-Build-Run hooks.

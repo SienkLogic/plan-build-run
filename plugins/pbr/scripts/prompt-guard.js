@@ -55,7 +55,7 @@ const PATTERN_CATEGORIES = {
     /<\/?assistant>/,
   ],
   INVISIBLE_UNICODE: [
-    /[\u200B\u200C\u200D\uFEFF]/,
+    /\u200B|\u200C|\u200D|\uFEFF/,
     /[\u202A-\u202E]/,
     /[\u2066-\u2069]/,
   ],
