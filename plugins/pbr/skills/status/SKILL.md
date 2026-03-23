@@ -137,6 +137,26 @@ Store: `criticalPhase` (number + name), `criticalPlan` (plan ID or null if phase
 - Check `.planning/quick/` for recent quick tasks
 - Note any failed or partial quick tasks
 
+#### Verification Debt Scan
+Scan ALL completed phases (not just current) for outstanding verification items:
+
+```bash
+for dir in .planning/phases/*/; do
+  VFILE=$(ls "$dir"VERIFICATION*.md 2>/dev/null | head -1)
+  if [ -n "$VFILE" ]; then
+    STATUS=$(grep -m1 "^status:" "$VFILE" | awk '{print $2}')
+    if [ "$STATUS" = "gaps_found" ] || [ "$STATUS" = "human_needed" ] || [ "$STATUS" = "partial" ]; then
+      echo "DEBT: $(basename "$dir") — $STATUS"
+    fi
+  fi
+done
+```
+
+If ANY phase has outstanding verification (gaps_found, human_needed, partial):
+- Display a `Verification Debt` section in the status dashboard
+- List each phase with outstanding items and their status
+- This is non-blocking — informational only, but surfaces items that might be forgotten
+
 ### Step 4: Display Status Dashboard
 
 Present the status in this format:

@@ -306,8 +306,18 @@ Archive a completed milestone and prepare for the next one.
    - If provided in `$ARGUMENTS`: use it (auto-prefix `v` if missing)
    - If not provided: ask via AskUserQuestion: "What version number for this milestone? (e.g., v1.0)"
 
-2. **Verify all phases are complete:**
-   - Use `blob.milestones` to find the target milestone's phase range instead of re-parsing ROADMAP.md
+2. **Check verification debt across ALL phases:**
+   - Use `blob.milestones` to find the target milestone's phase range
+   - For each phase in the range, check VERIFICATION.md status:
+     - `gaps_found` or `human_needed` or `partial` → verification debt exists
+   - If verification debt found, display warning:
+     ```
+     Verification Debt:
+       - Phase {N}: {status} ({count} outstanding items)
+     ```
+   - This is non-blocking but prominently displayed before the completion decision
+
+3. **Verify all phases are complete:**
    - For each phase in the range, check for VERIFICATION.md
    - If any phase lacks VERIFICATION.md:
 
