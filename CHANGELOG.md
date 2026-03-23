@@ -2,6 +2,20 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.18.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.1...plan-build-run-v2.18.0) — 2026-03-23
+
+### Agents
+
+* Add SUMMARY.md existence check to build executor validator ([e386b3d8](https://github.com/SienkLogic/plan-build-run/commit/e386b3d8))
+
+### Hooks
+
+* Add hook count change detection to InstructionsLoaded hook ([cd536df8](https://github.com/SienkLogic/plan-build-run/commit/cd536df8))
+
+### Other
+
+* Add plan file naming validation for phase-prefixed names ([040e5010](https://github.com/SienkLogic/plan-build-run/commit/040e5010))
+
 ## [2.17.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.17.0...plan-build-run-v2.17.1) — 2026-03-23
 
 ### CI/CD
