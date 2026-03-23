@@ -56,6 +56,40 @@ function main() {
     instructions_file: data.instructions_file || null
   });
 
+  // Track hook count changes across reloads
+  try {
+    const hookCountFile = path.join(planningDir, '.hook-count');
+    const hooksJsonPath = path.join(__dirname, '..', 'hooks', 'hooks.json');
+    const altHooksPath = path.join(__dirname, 'hooks.json');
+    const hooksPath = fs.existsSync(hooksJsonPath) ? hooksJsonPath : (fs.existsSync(altHooksPath) ? altHooksPath : null);
+    if (hooksPath) {
+      const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+      let currentCount = 0;
+      for (const event of Object.values(hooksConfig)) {
+        if (Array.isArray(event)) currentCount += event.length;
+      }
+
+      if (fs.existsSync(hookCountFile)) {
+        const previousCount = parseInt(fs.readFileSync(hookCountFile, 'utf8').trim(), 10);
+        if (!isNaN(previousCount) && currentCount < previousCount) {
+          logHook('instructions-loaded', 'InstructionsLoaded', 'hook-count-decreased', {
+            previous: previousCount,
+            current: currentCount,
+            lost: previousCount - currentCount
+          });
+          const warning = `[PBR] Hook count decreased after reload: ${previousCount} -> ${currentCount} (${previousCount - currentCount} hooks lost). Some workflow enforcement may be degraded. Run /pbr:health to check.`;
+          process.stdout.write(JSON.stringify({ additionalContext: warning }));
+          fs.writeFileSync(hookCountFile, String(currentCount));
+          process.exit(0);
+        }
+      }
+      // Save current count for future comparison
+      fs.writeFileSync(hookCountFile, String(currentCount));
+    }
+  } catch (_e) {
+    // Never crash the hook for hook-count tracking
+  }
+
   // Mid-session: note that instructions reloaded (CLAUDE.md may have changed)
   if (isMidSession) {
     process.stdout.write(JSON.stringify({
@@ -94,6 +128,38 @@ function handleHttp(reqBody) {
   logHook('instructions-loaded', 'InstructionsLoaded', isMidSession ? 'mid-session-reload' : 'initial-load', {
     instructions_file: data.instructions_file || null
   });
+
+  // Track hook count changes across reloads
+  try {
+    const hookCountFile = path.join(planningDir, '.hook-count');
+    const hooksJsonPath = path.join(__dirname, '..', 'hooks', 'hooks.json');
+    const altHooksPath = path.join(__dirname, 'hooks.json');
+    const hooksPath = fs.existsSync(hooksJsonPath) ? hooksJsonPath : (fs.existsSync(altHooksPath) ? altHooksPath : null);
+    if (hooksPath) {
+      const hooksConfig = JSON.parse(fs.readFileSync(hooksPath, 'utf8'));
+      let currentCount = 0;
+      for (const event of Object.values(hooksConfig)) {
+        if (Array.isArray(event)) currentCount += event.length;
+      }
+
+      if (fs.existsSync(hookCountFile)) {
+        const previousCount = parseInt(fs.readFileSync(hookCountFile, 'utf8').trim(), 10);
+        if (!isNaN(previousCount) && currentCount < previousCount) {
+          logHook('instructions-loaded', 'InstructionsLoaded', 'hook-count-decreased', {
+            previous: previousCount,
+            current: currentCount,
+            lost: previousCount - currentCount
+          });
+          const warning = `[PBR] Hook count decreased after reload: ${previousCount} -> ${currentCount} (${previousCount - currentCount} hooks lost). Some workflow enforcement may be degraded. Run /pbr:health to check.`;
+          fs.writeFileSync(hookCountFile, String(currentCount));
+          return { additionalContext: warning };
+        }
+      }
+      fs.writeFileSync(hookCountFile, String(currentCount));
+    }
+  } catch (_e) {
+    // Never crash the hook for hook-count tracking
+  }
 
   if (isMidSession) {
     return {
