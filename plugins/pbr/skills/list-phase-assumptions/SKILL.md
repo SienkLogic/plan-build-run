@@ -138,10 +138,13 @@ Present the assumptions in this format:
 **Rules for generating assumptions:**
 
 - Be honest about uncertainty -- do not fake confidence
-- Ground assumptions in evidence from the files you read
+- **Cite evidence**: For each assumption, reference the file path and what you found. Example: "[Confident] Use Express 5.x (per package.json:4 — already installed as ^5.0.0)"
 - If CONTEXT.md has locked decisions, your assumptions MUST respect them
 - Focus on assumptions that MATTER -- skip obvious ones
 - Aim for 3-5 assumptions per category (fewer if the phase is simple)
+- State what goes wrong if each assumption is incorrect
+
+**Confidence-based skip gate**: If ALL assumptions across all categories are marked [Confident], the skill can skip the correction step. Display: "All assumptions are high-confidence — proceeding without correction." Still give the user a chance to interrupt if needed.
 
 ---
 

@@ -355,6 +355,23 @@ Phase {N} discussion: .planning/phases/{NN}-{slug}/CONTEXT.md ({count} locked, {
 
 This creates a pointer so `/pbr:resume-work` and `progress-tracker.js` know that phase-specific decisions exist and where to find them.
 
+### Step 7.7: Write Discussion Log (audit trail)
+
+Write `.planning/phases/{NN}-{slug}/DISCUSSION-LOG.md` as an audit trail of the discussion. This file is NOT consumed by agents — it's for human audit only.
+
+Read `${CLAUDE_PLUGIN_ROOT}/templates/DISCUSSION-LOG.md.tmpl` for the format.
+
+For each decision area discussed:
+- Record all options that were presented
+- Mark which option was selected
+- Include the user's verbatim choice and any notes/rationale
+- Record items delegated to Claude's discretion
+- Record deferred ideas
+
+This log is separate from CONTEXT.md (which is the implementation artifact for agents). The discussion log preserves the alternatives considered, not just the final decisions.
+
+If `planning.commit_docs` is true, include in the next commit.
+
 ### Step 8: Confirm and Route
 
 After writing CONTEXT.md, display branded output per `@references/ui-brand.md`:
