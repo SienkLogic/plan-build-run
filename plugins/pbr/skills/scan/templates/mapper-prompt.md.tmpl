@@ -2,39 +2,11 @@
 
 You are codebase-mapper with focus="{focus_area}".
 
-<reconnaissance>
-{recon_data}
-</reconnaissance>
-
 <project>
 Working directory: {project_path}
-Scale: {scale}
 </project>
 
----
-
-## Scale-Aware Guidance
-
-### Small projects (< 50 files)
-- Be thorough — read most files
-- Output should be concise (don't pad)
-- Findings lists may be short — that's fine
-
-### Medium projects (50-200 files)
-- Sample representative files
-- Focus on entry points, configuration, and key modules
-- Use Grep patterns to find conventions rather than reading every file
-
-### Large projects (200-1000 files)
-- Be selective — read key files only
-- Use Glob and Grep extensively for pattern detection
-- Focus on architecture and module boundaries
-- Sample 3-5 files per module for conventions
-
-### Very large projects (1000+ files)
-- Limit file reads aggressively
-- Architecture focus > file-level detail
-- Sample at most 2-3 files per module
+Analyze this codebase for your focus area. Explore thoroughly. Write documents directly to `.planning/codebase/` using templates. Return confirmation only.
 
 ---
 
@@ -86,7 +58,7 @@ Analyze the codebase architecture and structure.
    - Module organization pattern
    - Entry points and their roles
    - Configuration file locations
-   - Environment-specific files
+   - **Where to add new code** — prescriptive guidance for each code type
 
 Write both files to .planning/codebase/
 
@@ -109,13 +81,14 @@ Analyze the codebase quality, conventions, and testing approach.
 
    IMPORTANT: Document what the codebase ACTUALLY does, not what it should do.
    Look at multiple files to identify the dominant pattern.
+   Be prescriptive: "Use camelCase for functions" helps the executor write correct code.
 
 2. TESTING.md — Test infrastructure and coverage
    - Test framework(s) used
    - Test file organization
    - Test types present (unit, integration, e2e)
    - Test coverage (rough estimate from test file count vs source file count)
-   - Mocking patterns
+   - Mocking patterns (include actual code examples)
    - Test data management
    - CI test configuration
    - Notable gaps in testing
@@ -173,29 +146,5 @@ Read `templates/codebase/CONCERNS.md.tmpl` for the CONCERNS.md output format.
 Fill in all placeholder fields with data from your codebase analysis.
 
 ---
-
-## Reconnaissance Detection Reference
-
-### Project Type Detection
-Look for:
-- package.json -> Node.js/JavaScript/TypeScript
-- requirements.txt / setup.py / pyproject.toml -> Python
-- CMakeLists.txt -> C/C++
-- go.mod -> Go
-- Cargo.toml -> Rust
-- pom.xml / build.gradle -> Java
-- *.sln / *.csproj -> .NET
-- Gemfile -> Ruby
-- composer.json -> PHP
-
-### Key Directory Detection
-Look for:
-- src/, lib/, app/ -> source code
-- test/, tests/, __tests__/, spec/ -> tests
-- docs/ -> documentation
-- config/, .config/ -> configuration
-- scripts/ -> build/deploy scripts
-- public/, static/, assets/ -> static assets
-- migrations/ -> database migrations
 
 Write output to: {output_path}

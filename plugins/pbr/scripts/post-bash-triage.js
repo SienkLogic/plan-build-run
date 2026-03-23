@@ -138,6 +138,8 @@ function main() {
       const result = await checkTestTriage(data);
       if (result) {
         process.stdout.write(JSON.stringify(result.output));
+      } else {
+        process.stdout.write('{}');
       }
       process.exit(0);
     } catch (_e) {

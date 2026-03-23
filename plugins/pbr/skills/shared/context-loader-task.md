@@ -86,8 +86,8 @@ Task({
 
 For `/pbr:map-codebase`, the pattern adapts to codebase analysis rather than project state:
 
-1. The orchestrator performs a quick inline scan (detect project type, scale, key directories)
-2. Writes the results to `.planning/codebase/RECON.md`
-3. Passes RECON.md content to the spawned analysis agents as baseline context
+1. The orchestrator runs `init map-codebase` to get config, model, and existing map metadata
+2. Spawns 4 parallel codebase-mapper agents — each explores the codebase independently
+3. Agents write documents directly to `.planning/codebase/` (no context transfer back)
 
-This is the same principle (build context before main work) but the source is the codebase rather than planning files.
+This is the same principle (delegate heavy work to agents) but the agents self-discover rather than receiving pre-built context.

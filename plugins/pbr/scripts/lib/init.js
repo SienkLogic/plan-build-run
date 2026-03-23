@@ -574,6 +574,58 @@ function initStatus(planningDir) {
   };
 }
 
+/**
+ * Initialize context for the map-codebase (scan) workflow.
+ * Lightweight metadata: config, model, paths, existing maps.
+ * Mapper agents do their own exploration — no upfront recon file.
+ *
+ * @param {string} [planningDir] - Path to .planning directory
+ * @returns {object} Init metadata for scan skill
+ */
+function initMapCodebase(planningDir) {
+  const dir = planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+  const config = configLoad(dir) || {};
+
+  // Resolve mapper model from config
+  const models = config.models || {};
+  const mapperModel = models.mapper || models.executor || 'sonnet';
+
+  // Check for existing codebase maps
+  const codebaseDir = path.join(dir, 'codebase');
+  let existingMaps = [];
+  try {
+    existingMaps = fs.readdirSync(codebaseDir).filter(f => f.endsWith('.md'));
+  } catch (_e) { /* */ }
+
+  // Resolve depth profile for mapper count/areas
+  let depthProfile = {};
+  try {
+    depthProfile = configResolveDepth(dir) || {};
+  } catch (_e) { /* */ }
+
+  // Check intel status
+  const intelDir = path.join(dir, 'intel');
+  let intelEnabled = true;
+  try {
+    if (config.intel && config.intel.enabled === false) intelEnabled = false;
+  } catch (_e) { /* */ }
+  const hasIntelDir = fs.existsSync(intelDir);
+
+  return {
+    mapper_model: mapperModel,
+    commit_docs: (config.planning || {}).commit_docs || false,
+    search_gitignored: (config.planning || {}).search_gitignored || false,
+    codebase_dir: '.planning/codebase',
+    existing_maps: existingMaps,
+    has_maps: existingMaps.length > 0,
+    planning_exists: fs.existsSync(dir),
+    codebase_dir_exists: fs.existsSync(codebaseDir),
+    intel_enabled: intelEnabled,
+    has_intel_dir: hasIntelDir,
+    depth_profile: depthProfile
+  };
+}
+
 module.exports = {
   detectDrift,
   initExecutePhase,
@@ -586,5 +638,6 @@ module.exports = {
   initContinue,
   initMilestone,
   initBegin,
-  initStatus
+  initStatus,
+  initMapCodebase
 };

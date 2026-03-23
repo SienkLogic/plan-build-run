@@ -46,72 +46,57 @@ Additionally for this skill:
 
 ## Flow
 
-### Step 1: Check for Existing Analysis
+### Step 1: Load Init Context
 
-Check if `.planning/codebase/` directory exists:
-
-**If it exists and has files:**
-
-First, resolve the depth profile so you know which areas are available:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
-```
-Read `profile["scan.mapper_areas"]` to determine available areas (quick: tech, arch; standard/comprehensive: tech, arch, quality, concerns).
-
-Then present to user via AskUserQuestion:
-  ```
-  A codebase analysis already exists (from {date based on file modification}).
-
-  Files found:
-  - {list of .md files in the directory}
-
-  Options:
-  1. Refresh the full analysis (overwrites existing)
-  2. Refresh a specific area ({list available areas from depth profile})
-  3. Keep existing analysis
-  ```
-- If user chooses "Keep": display a summary of existing analysis and stop
-- If user chooses "Refresh specific": present the available areas based on the already-resolved depth profile (quick mode only offers tech/arch; standard/comprehensive offers all 4). Only spawn the selected agent. Skip re-resolving depth in Step 3 since it was already resolved here.
-- If user chooses "Refresh all": proceed with full scan
-
-**If it doesn't exist:**
-- Create `.planning/codebase/` directory
-- Also create `.planning/` if it doesn't exist (scan can be run before begin)
-- Proceed with full scan
-
-### Step 2: Initial Reconnaissance
-
-Reference: `skills/shared/context-loader-task.md` (Scan Reconnaissance variation) for the underlying pattern.
-
-Run the CLI to gather baseline project data:
+Run the CLI to get scan metadata:
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js init map-codebase
 ```
 
-This detects project type, scale, key directories, entry points, and writes `.planning/codebase/RECON.md`.
+Extract from init JSON: `mapper_model`, `commit_docs`, `codebase_dir`, `existing_maps`, `has_maps`, `codebase_dir_exists`, `intel_enabled`, `has_intel_dir`, `depth_profile`.
 
-Parse the JSON output to extract `project_type`, `scale`, `key_directories`, and `entry_points` for use in Step 3 agent prompts.
+If the CLI fails, display a branded ERROR box: "Failed to load scan context. Ensure pbr-tools.js is available." and stop.
 
-If the CLI fails, display a branded ERROR box: "Failed to run codebase reconnaissance. Ensure pbr-tools.js is available." and stop — do NOT fall back to manual file scanning.
+### Step 2: Check for Existing Analysis
 
-Note: The "Reconnaissance Detection Reference" section of `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` documents the detection checklists used by the CLI internally.
+Use `has_maps` from init context.
 
-### Step 3: Spawn Analysis Agents
+**If `has_maps` is true:**
 
-**Resolve mapper configuration:** Before spawning, resolve the depth profile:
-```bash
-node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js config resolve-depth
-```
+Present to user via AskUserQuestion:
 
-Read `profile["scan.mapper_count"]` and `profile["scan.mapper_areas"]` to determine how many mappers to spawn and which focus areas to cover.
+  question: "A codebase analysis already exists. What would you like to do?"
+  header: "Scan"
+  options:
+    - label: "Refresh all"       description: "Delete existing and remap codebase"
+    - label: "Refresh specific"  description: "Re-scan only one area (tech, arch, quality, or concerns)"
+    - label: "Keep existing"     description: "Use existing codebase map as-is"
+
+- If user chooses "Keep existing": display a summary of existing analysis and stop
+- If user chooses "Refresh specific": ask which area, then spawn only that agent in Step 4
+- If user chooses "Refresh all": proceed with full scan
+
+**If `has_maps` is false:**
+- Create `.planning/codebase/` directory if needed:
+  ```bash
+  mkdir -p .planning/codebase
+  ```
+- Also create `.planning/` if it doesn't exist (scan can be run before begin)
+- Proceed with full scan
+
+### Step 3: Resolve Mapper Configuration
+
+Use `depth_profile` from init context to determine how many mappers to spawn and which focus areas.
 
 **Default mappings by depth:**
-- `quick` (budget): 2 mappers -- `tech` and `arch` only. Produces STACK.md, INTEGRATIONS.md, ARCHITECTURE.md, STRUCTURE.md. Skips quality and concerns analysis.
-- `standard` (balanced): 4 mappers -- all areas. Full analysis.
-- `comprehensive` (thorough): 4 mappers -- all areas. Full analysis.
+- `quick`: 2 mappers — `tech` and `arch` only. Produces STACK.md, INTEGRATIONS.md, ARCHITECTURE.md, STRUCTURE.md.
+- `standard`: 4 mappers — all areas. Full analysis.
+- `comprehensive`: 4 mappers — all areas. Full analysis.
 
-**Extended context override:** If `features.extended_context` is `true` in `.planning/config.json`, always spawn 4 mappers (all areas: tech, arch, quality, concerns) regardless of the depth profile's `scan.mapper_count` and `scan.mapper_areas`. The 1M context window allows the orchestrator to absorb all 4 mapper outputs without context pressure. Log: "Extended context: spawning all 4 mappers regardless of depth"
+**Extended context override:** If `features.extended_context` is `true` in `.planning/config.json`, always spawn 4 mappers regardless of depth profile.
+
+### Step 4: Spawn Analysis Agents
 
 Display to the user:
 ```
@@ -122,24 +107,14 @@ Display to the user:
   → Concerns & risks
 ```
 
-(Only list the focus areas that will actually be spawned based on the depth profile.)
+(Only list the focus areas that will actually be spawned.)
 
-Spawn `{mapper_count}` parallel `Task(subagent_type: "pbr:codebase-mapper")` agents, one for each area in `scan.mapper_areas`. All should be spawned in a single response for maximum parallelism.
+Spawn `{mapper_count}` parallel `Task(subagent_type: "pbr:codebase-mapper")` agents, one for each focus area. All should be spawned in a single response for maximum parallelism.
 
 For each agent, read `${CLAUDE_SKILL_DIR}/templates/mapper-prompt.md.tmpl` and fill in the placeholders:
 - `{focus_area}`: one of `tech`, `arch`, `quality`, `concerns`
 - `{project_path}`: the working directory
-- `{recon_data}`: contents of RECON.md
-- `{scale}`: detected scale from Step 2
 - `{output_path}`: `.planning/codebase/`
-
-**Prepend this block to each mapper prompt before sending:**
-```
-<files_to_read>
-CRITICAL: Read these files BEFORE any other action:
-1. .planning/codebase/RECON.md — baseline reconnaissance data (if exists)
-</files_to_read>
-```
 
 | Agent | Focus | Output Files | When |
 |-------|-------|-------------|------|
@@ -148,47 +123,29 @@ CRITICAL: Read these files BEFORE any other action:
 | 3 | quality | CONVENTIONS.md, TESTING.md | standard + comprehensive |
 | 4 | concerns | CONCERNS.md | standard + comprehensive |
 
-### Step 4: Wait for Agents
+### Step 5: Collect Results
 
-All agents run in parallel. As each completes, display:
-```
-✓ Technology stack analysis complete
-✓ Architecture patterns complete
-✓ Code quality assessment complete
-✓ Concerns & risks complete
-```
+As each agent completes, check the Task() output for the `## MAPPING COMPLETE` marker:
 
-(Only display lines for the focus areas that were actually spawned.)
-
-### Step 4b: Check Completion Markers
-
-After each codebase-mapper Task() completes, check the Task() output for the `## MAPPING COMPLETE` marker:
-
-- If `## MAPPING COMPLETE` is present: the mapper finished successfully, proceed normally
-- If the marker is missing: warn the user that the mapper may not have completed successfully:
+- If `## MAPPING COMPLETE` is present: display `✓ {focus_area} analysis complete`
+- If the marker is missing: warn:
   ```
   ⚠ Codebase mapper ({focus_area}) did not report MAPPING COMPLETE.
   Output may be incomplete — check .planning/codebase/ for partial results.
   ```
-  Continue to Step 5 verification regardless (the file existence checks will catch truly missing output).
 
-### Step 5: Verify Output
+### Step 6: Verify Output
 
 After all agents complete, verify the expected files exist:
 
-**Required files (always):**
-- `.planning/codebase/RECON.md` (created in Step 2)
-- `.planning/codebase/STACK.md` (tech mapper)
-- `.planning/codebase/INTEGRATIONS.md` (tech mapper)
-- `.planning/codebase/ARCHITECTURE.md` (arch mapper)
-- `.planning/codebase/STRUCTURE.md` (arch mapper)
+```bash
+ls -la .planning/codebase/
+wc -l .planning/codebase/*.md
+```
 
-**Required files (standard + comprehensive only):**
-- `.planning/codebase/CONVENTIONS.md` (quality mapper)
-- `.planning/codebase/TESTING.md` (quality mapper)
-- `.planning/codebase/CONCERNS.md` (concerns mapper)
-
-Check only the files that correspond to the mapper areas that were actually spawned.
+**Verification checklist:**
+- All expected documents exist (7 for standard/comprehensive, 4 for quick)
+- No empty documents (each should have >20 lines)
 
 For any missing files, display:
 ```
@@ -202,28 +159,53 @@ Agent that failed: {focus_area} mapper
 **To fix:** Re-run with `/pbr:map-codebase` and select "Refresh a specific area" → {focus_area}.
 ```
 
-### Step 6: Present Summary
+### Step 7: Secret Scan
 
-Read key findings from each file (frontmatter or first section) and display using the branded stage banner from `references/ui-brand.md`:
+**CRITICAL SECURITY CHECK:** Scan output files for accidentally leaked secrets before committing.
+
+```bash
+grep -E '(sk-[a-zA-Z0-9]{20,}|sk_live_[a-zA-Z0-9]+|sk_test_[a-zA-Z0-9]+|ghp_[a-zA-Z0-9]{36}|gho_[a-zA-Z0-9]{36}|glpat-[a-zA-Z0-9_-]+|AKIA[A-Z0-9]{16}|xox[baprs]-[a-zA-Z0-9-]+|-----BEGIN.*PRIVATE KEY|eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.)' .planning/codebase/*.md 2>/dev/null && SECRETS_FOUND=true || SECRETS_FOUND=false
+```
+
+**If secrets found:**
+```
+⚠ SECURITY ALERT: Potential secrets detected in codebase documents!
+
+Found patterns that look like API keys or tokens in:
+{show grep output}
+
+This would expose credentials if committed.
+
+Action required:
+1. Review the flagged content above
+2. If these are real secrets, they must be removed before committing
+3. Reply "safe to proceed" if the flagged content is not actually sensitive
+```
+
+Wait for user confirmation before continuing.
+
+**If no secrets found:** Continue to Step 8.
+
+### Step 8: Present Summary
+
+Read key findings from each file (first section or frontmatter) and display:
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║  PLAN-BUILD-RUN ► SCAN COMPLETE ✓                            ║
 ╚══════════════════════════════════════════════════════════════╝
 
-Project: {type} ({scale})
-Stack: {primary language} + {framework}
-Architecture: {style}
-
-Key Stats:
-- {file count} source files, {test count} test files
-- {dependency count} dependencies
-- {integration count} external integrations
-
-Full analysis: .planning/codebase/
+Created .planning/codebase/:
+- STACK.md ({N} lines) - Technologies and dependencies
+- INTEGRATIONS.md ({N} lines) - External services and APIs
+- ARCHITECTURE.md ({N} lines) - System design and patterns
+- STRUCTURE.md ({N} lines) - Directory layout and organization
+- CONVENTIONS.md ({N} lines) - Code style and patterns
+- TESTING.md ({N} lines) - Test structure and practices
+- CONCERNS.md ({N} lines) - Technical debt and issues
 ```
 
-**Concerns section** (only display if ALL of these conditions are true: (1) the concerns mapper was included in `scan.mapper_areas` for the resolved depth profile, (2) the concerns mapper was actually spawned, AND (3) `.planning/codebase/CONCERNS.md` exists and contains at least one concern entry). If any condition is false, skip this entire section silently — do NOT display an empty concerns block or a "no concerns" message:
+**Concerns section** (only display if concerns mapper was spawned AND CONCERNS.md exists with content):
 
 ```
 Concerns: {critical} critical, {high} high, {medium} medium
@@ -234,29 +216,63 @@ Top concerns:
 3. {third concern}
 ```
 
-### Step 6b: Intel Bridge
+### Step 9: Seed Intel System
 
-If `.planning/intel/` directory exists AND `.planning/config.json` has `intel.enabled` not explicitly `false`:
+If `intel_enabled` is true from init context:
 
 Display:
 ```
-Scan results can seed the intel system for faster agent planning.
+Seeding intel system from scan results...
 ```
 
-**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
+Spawn a `Task(subagent_type: "pbr:intel-updater")` with prompt:
+
+```
+Seed the intel system from fresh codebase scan results.
+
+Read these files and extract structured intelligence:
+- .planning/codebase/STACK.md → update .planning/intel/stack.json
+- .planning/codebase/ARCHITECTURE.md → update .planning/intel/arch.md
+- .planning/codebase/INTEGRATIONS.md → update .planning/intel/deps.json
+- .planning/codebase/STRUCTURE.md → update .planning/intel/files.json
+
+For each intel file:
+1. Read the codebase analysis document
+2. Extract structured data (dependencies, file graph, API endpoints, architecture patterns)
+3. Write/update the intel JSON/MD file
+
+Update .planning/intel/.last-refresh.json with current timestamp and source: "scan".
+```
+
+When the intel agent completes, display: `✓ Intel system seeded from scan results`
+
+If `intel_enabled` is false: skip silently.
+
+### Step 10: Git Integration
+
+Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
+
+If `commit_docs` is true from init context:
+
+```bash
+git add .planning/codebase/
+git commit -m "docs(planning): map existing codebase"
+```
+
+If no config exists yet (scan before begin):
 Use AskUserQuestion (pattern: yes-no):
-  question: "Populate intel from scan results?"
+  question: "Commit the codebase analysis to git?"
+  header: "Commit?"
   options:
-    - label: "Yes" description: "Run /pbr:intel refresh to build intel from scan data"
-    - label: "No" description: "Skip — you can run /pbr:intel later"
+    - label: "Yes"  description: "Stage and commit .planning/codebase/ files"
+    - label: "No"   description: "Skip commit — files are saved but not committed"
+- If "Yes": run `git add .planning/codebase/ && git commit -m "docs(planning): map existing codebase"`
+- If "No": skip commit
 
-- If "Yes": Display `Run /pbr:intel refresh` as the suggested next command. Do NOT spawn the intel agent inline — the user should run it in a fresh context window.
-- If "No": Continue to Step 7.
+### Step 11: Next Steps
 
-If `.planning/intel/` does NOT exist or intel is disabled: skip this substep silently.
-
-Then use the "Next Up" routing block:
 ```
+
 
 
 ╔══════════════════════════════════════════════════════════════╗
@@ -272,38 +288,14 @@ Then use the "Next Up" routing block:
 
 
 **Also available:**
-- `/pbr:intel` — build persistent codebase intelligence from scan results
+- `/pbr:intel` — query codebase intelligence
 - `/pbr:new-milestone` — create a milestone to address concerns
 - `/pbr:progress` — see project status
 
 
 ```
 
-### Step 7: Git Integration
-
-Reference: `skills/shared/commit-planning-docs.md` for the standard commit pattern.
-
-If `.planning/config.json` exists and `planning.commit_docs: true`:
-
-```bash
-git add .planning/codebase/
-git commit -m "docs(planning): map existing codebase"
-```
-
-If no config exists yet (scan before begin):
-**CRITICAL -- DO NOT SKIP**: Present the following choice to the user via AskUserQuestion before proceeding:
-Use AskUserQuestion (pattern: yes-no from `skills/shared/gate-prompts.md`):
-  question: "Commit the codebase analysis to git?"
-  header: "Commit?"
-  options:
-    - label: "Yes"  description: "Stage and commit .planning/codebase/ files"
-    - label: "No"   description: "Skip commit — files are saved but not committed"
-- If "Yes": run `git add .planning/codebase/ && git commit -m "docs(planning): map existing codebase"`
-- If "No" or "Other": skip commit
-
 ---
-
-Reference: `skills/shared/error-reporting.md` for branded error output patterns.
 
 ## Edge Cases
 
@@ -353,5 +345,5 @@ Additionally for this skill:
 6. **DO NOT** produce generic output — every finding should be specific to THIS codebase
 7. **DO NOT** scan node_modules, venv, .git, or build output directories
 8. **DO NOT** read every file in large codebases — sample and extrapolate
-9. **DO NOT** skip the RECON step — agents need baseline context
-10. **DO NOT** combine agents — the 4 agents must run in parallel with separate focuses
+9. **DO NOT** combine agents — the agents must run in parallel with separate focuses
+10. **DO NOT** skip the secret scan — leaked credentials in committed docs are a security incident

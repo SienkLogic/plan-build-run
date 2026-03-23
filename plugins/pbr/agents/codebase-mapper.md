@@ -38,23 +38,66 @@ Document quality over brevity. Every claim references actual file paths.
 <upstream_input>
 ## Upstream Input
 
-### From `/pbr:explore` Skill
+### From `/pbr:scan` or `/pbr:explore` Skill
 
-- **Spawned by:** `/pbr:explore` skill
+- **Spawned by:** `/pbr:scan` or `/pbr:explore` skill
 - **Receives:** Focus area (`tech`, `arch`, `quality`, or `concerns`)
 - **Input format:** Spawn prompt with `focus: {area}` directive
 </upstream_input>
 
+<why_this_matters>
+## Why This Matters — Downstream Consumers
+
+These documents are consumed by other PBR commands:
+
+**`/pbr:plan`** loads relevant codebase docs when creating implementation plans:
+
+| Phase Type | Documents Loaded |
+|------------|------------------|
+| UI, frontend, components | CONVENTIONS.md, STRUCTURE.md |
+| API, backend, endpoints | ARCHITECTURE.md, CONVENTIONS.md |
+| database, schema, models | ARCHITECTURE.md, STACK.md |
+| testing, tests | TESTING.md, CONVENTIONS.md |
+| integration, external API | INTEGRATIONS.md, STACK.md |
+| refactor, cleanup | CONCERNS.md, ARCHITECTURE.md |
+| setup, config | STACK.md, STRUCTURE.md |
+
+**`/pbr:build`** references codebase docs to:
+- Follow existing conventions when writing code
+- Know where to place new files (STRUCTURE.md)
+- Match testing patterns (TESTING.md)
+- Avoid introducing more technical debt (CONCERNS.md)
+
+**What this means for your output:**
+
+1. **File paths are critical** — The planner/executor needs to navigate directly to files. `src/services/user.ts` not "the user service"
+2. **Patterns matter more than lists** — Show HOW things are done (code examples) not just WHAT exists
+3. **Be prescriptive** — "Use camelCase for functions" helps the executor write correct code. "Some functions use camelCase" doesn't.
+4. **CONCERNS.md drives priorities** — Issues you identify may become future phases. Be specific about impact and fix approach.
+5. **STRUCTURE.md answers "where do I put this?"** — Include guidance for adding new code, not just describing what exists.
+</why_this_matters>
+
 ### Forbidden Files
 
-When exploring, NEVER write to or include in your output:
-- `.env` files (except `.env.example` or `.env.template`)
-- `*.key`, `*.pem`, `*.pfx`, `*.p12` — private keys and certificates
-- Files containing `credential` or `secret` in their name
-- `*.keystore`, `*.jks` — Java keystores
-- `id_rsa`, `id_ed25519` — SSH keys
+**NEVER read or quote contents from these files (even if they exist):**
 
-If encountered, note in CONCERNS.md under "Security Considerations" but do NOT include contents.
+- `.env`, `.env.*`, `*.env` — Environment variables with secrets
+- `credentials.*`, `secrets.*`, `*secret*`, `*credential*` — Credential files
+- `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks` — Certificates and private keys
+- `id_rsa*`, `id_ed25519*`, `id_dsa*` — SSH private keys
+- `.npmrc`, `.pypirc`, `.netrc` — Package manager auth tokens
+- `config/secrets/*`, `.secrets/*`, `secrets/` — Secret directories
+- `*.keystore`, `*.truststore` — Java keystores
+- `serviceAccountKey.json`, `*-credentials.json` — Cloud service credentials
+- `docker-compose*.yml` sections with passwords — May contain inline secrets
+- Any file in `.gitignore` that appears to contain secrets
+
+**If you encounter these files:**
+- Note their EXISTENCE only: "`.env` file present — contains environment configuration"
+- NEVER quote their contents, even partially
+- NEVER include values like `API_KEY=...` or `sk-...` in any output
+
+**Why this matters:** Your output gets committed to git. Leaked secrets = security incident.
 
 ## Focus Areas
 
