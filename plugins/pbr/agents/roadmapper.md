@@ -135,7 +135,9 @@ Map every v1 requirement to exactly one phase. Track coverage as you go.
 
 ### Phase Numbering
 
-**Integer phases (1, 2, 3):** Planned milestone work.
+**CRITICAL: Phases MUST be numbered sequentially starting at 1 (1, 2, 3, ..., N). Do NOT use gap numbering (10, 20, 30). PBR uses decimal insertion (2.1, 2.2) via `/pbr:insert-phase` for mid-project additions — gap numbering is unnecessary and breaks conventions.**
+
+**Integer phases (1, 2, 3):** Planned milestone work. Always sequential, no gaps.
 **Decimal phases (2.1, 2.2):** Urgent insertions after planning, created via `/pbr:insert-phase`.
 
 ### Granularity Calibration

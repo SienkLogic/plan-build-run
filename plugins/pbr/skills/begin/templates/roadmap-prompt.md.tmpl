@@ -43,6 +43,8 @@ Each phase should:
 4. Build on prior phases logically
 5. Be independently verifiable
 
+**CRITICAL: Phase numbers MUST start at 1 and increment by 1 (1, 2, 3, ...). Do NOT use gap numbering like 10, 20, 30. PBR has `/pbr:insert-phase` for mid-project additions using decimal phases (2.1, 2.2).**
+
 **Milestone structure:** Wrap all phases in a `## Milestone:` section. For comprehensive-depth projects with 8+ phases, consider splitting into multiple milestones at natural delivery boundaries. Use the milestone section format from the roadmap template (`## Milestone: {name}` with `**Goal:**` and `**Phases:** start - end`).
 
 **Milestone index:** Include a `## Milestones` index section near the top of the roadmap (after the title) listing each milestone with version, name, status, and date columns.
