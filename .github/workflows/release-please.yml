@@ -55,16 +55,18 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Verify dist-tag
-        if: steps.check-npm.outputs.already_published != 'true'
+      - name: Ensure latest dist-tag
         run: |
           VERSION=$(node -e "console.log(require('./package.json').version)")
-          echo "Verifying @sienklogic/plan-build-run@latest points to $VERSION..."
+          echo "Ensuring @sienklogic/plan-build-run@latest points to $VERSION..."
           sleep 5
           LATEST=$(npm view @sienklogic/plan-build-run dist-tags.latest 2>/dev/null || echo "unknown")
           if [ "$LATEST" = "$VERSION" ]; then
             echo "dist-tag verified: latest=$VERSION"
           else
-            echo "WARNING: latest dist-tag is $LATEST, expected $VERSION"
-            echo "Run: npm dist-tag add @sienklogic/plan-build-run@$VERSION latest"
+            echo "dist-tag mismatch: latest=$LATEST, expected $VERSION — fixing..."
+            npm dist-tag add "@sienklogic/plan-build-run@$VERSION" latest
+            echo "dist-tag updated: latest=$VERSION"
           fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
