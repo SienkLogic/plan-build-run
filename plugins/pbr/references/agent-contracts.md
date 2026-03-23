@@ -88,13 +88,15 @@ implements: []          # REQ-IDs this plan satisfies (replaces deprecated requi
 ---
 ```
 
-### Required Body: XML Tasks (each task needs all 5 elements)
+### Required Body: XML Tasks (each task needs all 7 elements)
 
 ```xml
 <task id="{plan}-T{n}" type="{type}" tdd="{bool}" complexity="{simple|medium|complex}">
 <name>{imperative verb phrase}</name>
+<read_first>{files executor must read before editing — specific paths, no globs}</read_first>
 <files>{file paths, one per line}</files>
 <action>{numbered steps}</action>
+<acceptance_criteria>{grep-verifiable conditions — shell commands returning 0/non-0}</acceptance_criteria>
 <verify>{executable shell command}</verify>
 <done>{observable outcome}</done>
 </task>

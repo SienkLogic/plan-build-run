@@ -88,7 +88,7 @@ When writing `.plan-check.json`, include a `requirements_coverage` object:
 - `coverage_percent`: Math.round(covered / total * 100)
 
 ### D2: Task Completeness
-Every task needs all 5 elements (`<name>`, `<files>`, `<action>`, `<verify>`, `<done>`), substantive. `<name>` = imperative verb. `<files>` contain path separators. `<action>` >=2 steps for non-trivial. `<verify>` = runnable commands. `<done>` = observable outcome.
+Every task needs all 7 elements (`<name>`, `<read_first>`, `<files>`, `<action>`, `<acceptance_criteria>`, `<verify>`, `<done>`), substantive. `<name>` = imperative verb. `<read_first>` = specific file paths the executor must read before editing (no globs). `<files>` contain path separators. `<action>` >=2 steps for non-trivial. `<acceptance_criteria>` = grep-verifiable conditions (shell commands returning 0/non-0). `<verify>` = runnable commands. `<done>` = observable outcome.
 
 | Condition | Severity |
 |-----------|----------|
@@ -323,7 +323,7 @@ After completing the check, write a `.plan-check.json` file to the phase directo
 ### From Planner (via orchestrator spawn)
 - **Files**: `{NN}-{MM}-PLAN.md` (read-only) -- YAML frontmatter + XML tasks
 - **Optional**: `.planning/CONTEXT.md`, `.planning/ROADMAP.md`
-- **Contract**: Plan-Checker reads plan frontmatter (`must_haves`, `depends_on`, `files_modified`, `implements`) and XML tasks (5 elements per task: `<name>`, `<files>`, `<action>`, `<verify>`, `<done>`). Does not modify plans.
+- **Contract**: Plan-Checker reads plan frontmatter (`must_haves`, `depends_on`, `files_modified`, `implements`) and XML tasks (7 elements per task: `<name>`, `<read_first>`, `<files>`, `<action>`, `<acceptance_criteria>`, `<verify>`, `<done>`). Does not modify plans.
 </upstream_input>
 
 <downstream_consumer>
