@@ -128,18 +128,22 @@ function cmdVerifyPlanStructure(cwd, filePath, raw) {
     const taskContent = taskMatch[1];
     const nameMatch = taskContent.match(/<name>([\s\S]*?)<\/name>/);
     const taskName = nameMatch ? nameMatch[1].trim() : 'unnamed';
+    const hasReadFirst = /<read_first>/.test(taskContent);
     const hasFiles = /<files>/.test(taskContent);
     const hasAction = /<action>/.test(taskContent);
+    const hasAcceptanceCriteria = /<acceptance_criteria>/.test(taskContent);
     const hasVerify = /<verify>/.test(taskContent);
     const hasDone = /<done>/.test(taskContent);
 
     if (!nameMatch) errors.push('Task missing <name> element');
     if (!hasAction) errors.push(`Task '${taskName}' missing <action>`);
-    if (!hasVerify) warnings.push(`Task '${taskName}' missing <verify>`);
-    if (!hasDone) warnings.push(`Task '${taskName}' missing <done>`);
+    if (!hasVerify) errors.push(`Task '${taskName}' missing <verify>`);
+    if (!hasDone) errors.push(`Task '${taskName}' missing <done>`);
     if (!hasFiles) warnings.push(`Task '${taskName}' missing <files>`);
+    if (!hasReadFirst) warnings.push(`Task '${taskName}' missing <read_first>`);
+    if (!hasAcceptanceCriteria) warnings.push(`Task '${taskName}' missing <acceptance_criteria>`);
 
-    tasks.push({ name: taskName, hasFiles, hasAction, hasVerify, hasDone });
+    tasks.push({ name: taskName, hasReadFirst, hasFiles, hasAction, hasAcceptanceCriteria, hasVerify, hasDone });
   }
 
   if (tasks.length === 0) warnings.push('No <task> elements found');
@@ -279,6 +283,18 @@ function cmdVerifyCommits(cwd, hashes, raw) {
   }, raw, invalid.length === 0 ? 'valid' : 'invalid');
 }
 
+/**
+ * Parse a string-format artifact into { path, min_lines } or null if descriptive text.
+ * Handles: "path/to/file.ext: >N lines", "path/to/file.ext", "descriptive text"
+ */
+function parseStringArtifact(str) {
+  const pathLineMatch = str.match(/^([^\s:]+\.\w+)(?::\s*>(\d+)\s*lines?)?/);
+  if (pathLineMatch) {
+    return { path: pathLineMatch[1], min_lines: pathLineMatch[2] ? parseInt(pathLineMatch[2]) : null };
+  }
+  return null; // Descriptive text, skip
+}
+
 function cmdVerifyArtifacts(cwd, planFilePath, raw) {
   if (!planFilePath) { error('plan file path required'); }
   const fullPath = path.isAbsolute(planFilePath) ? planFilePath : path.join(cwd, planFilePath);
@@ -293,8 +309,12 @@ function cmdVerifyArtifacts(cwd, planFilePath, raw) {
 
   const results = [];
   for (const artifact of artifacts) {
-    if (typeof artifact === 'string') continue; // skip simple string items
-    const artPath = artifact.path;
+    let artObj = artifact;
+    if (typeof artifact === 'string') {
+      artObj = parseStringArtifact(artifact);
+      if (!artObj) continue; // genuinely descriptive, skip
+    }
+    const artPath = artObj.path;
     if (!artPath) continue;
 
     const artFullPath = path.join(cwd, artPath);
@@ -305,14 +325,14 @@ function cmdVerifyArtifacts(cwd, planFilePath, raw) {
       const fileContent = safeReadFile(artFullPath) || '';
       const lineCount = fileContent.split('\n').length;
 
-      if (artifact.min_lines && lineCount < artifact.min_lines) {
-        check.issues.push(`Only ${lineCount} lines, need ${artifact.min_lines}`);
+      if (artObj.min_lines && lineCount < artObj.min_lines) {
+        check.issues.push(`Only ${lineCount} lines, need ${artObj.min_lines}`);
       }
-      if (artifact.contains && !fileContent.includes(artifact.contains)) {
-        check.issues.push(`Missing pattern: ${artifact.contains}`);
+      if (artObj.contains && !fileContent.includes(artObj.contains)) {
+        check.issues.push(`Missing pattern: ${artObj.contains}`);
       }
-      if (artifact.exports) {
-        const exports = Array.isArray(artifact.exports) ? artifact.exports : [artifact.exports];
+      if (artObj.exports) {
+        const exports = Array.isArray(artObj.exports) ? artObj.exports : [artObj.exports];
         for (const exp of exports) {
           if (!fileContent.includes(exp)) check.issues.push(`Missing export: ${exp}`);
         }
@@ -348,7 +368,27 @@ function cmdVerifyKeyLinks(cwd, planFilePath, raw) {
 
   const results = [];
   for (const link of keyLinks) {
-    if (typeof link === 'string') continue;
+    if (typeof link === 'string') {
+      // String-format key_link: attempt to extract file paths, otherwise treat as descriptive
+      const pathMatch = link.match(/([^\s]+\.\w+)/g);
+      if (pathMatch && pathMatch.length >= 1) {
+        // Try to verify the first file path mentioned exists
+        const firstPath = pathMatch[0];
+        const exists = fs.existsSync(path.join(cwd, firstPath));
+        results.push({
+          description: link,
+          verified: exists ? 'partial' : false,
+          detail: exists ? 'Referenced file exists — manual wiring check recommended' : `Referenced file not found: ${firstPath}`,
+        });
+      } else {
+        results.push({
+          description: link,
+          verified: 'manual',
+          detail: 'Descriptive key_link — requires manual verification',
+        });
+      }
+      continue;
+    }
     const check = { from: link.from, to: link.to, via: link.via || '', verified: false, detail: '' };
 
     const sourceContent = safeReadFile(path.join(cwd, link.from || ''));

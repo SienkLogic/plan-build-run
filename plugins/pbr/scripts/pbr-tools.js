@@ -236,6 +236,16 @@ const {
 } = require('./lib/spot-check');
 
 const {
+  cmdVerifySummary: _cmdVerifySummary,
+  cmdVerifyPlanStructure: _cmdVerifyPlanStructure,
+  cmdVerifyPhaseCompleteness: _cmdVerifyPhaseCompleteness,
+  cmdVerifyArtifacts: _cmdVerifyArtifacts,
+  cmdVerifyKeyLinks: _cmdVerifyKeyLinks,
+  cmdVerifyCommits: _cmdVerifyCommits,
+  cmdVerifyReferences: _cmdVerifyReferences,
+} = require('./lib/verify');
+
+const {
   learningsIngest: _learningsIngest,
   learningsQuery: _learningsQuery,
   checkDeferralThresholds: _checkDeferralThresholds,
@@ -1546,6 +1556,43 @@ async function main() {
       if (result.error) { process.stdout.write(JSON.stringify(result, null, 2) + '\n'); process.exit(1); }
       output(result);
 
+    } else if (command === 'verify' && subcommand === 'summary') {
+      const spath = args[2];
+      const cfIdx = args.indexOf('--check-files');
+      const cf = cfIdx !== -1 ? parseInt(args[cfIdx + 1], 10) : 2;
+      if (!spath) { error('Usage: verify summary <path> [--check-files N]'); }
+      _cmdVerifySummary(cwd, spath, cf, false);
+
+    } else if (command === 'verify' && subcommand === 'plan-structure') {
+      const ppath = args[2];
+      if (!ppath) { error('Usage: verify plan-structure <path>'); }
+      _cmdVerifyPlanStructure(cwd, ppath, false);
+
+    } else if (command === 'verify' && subcommand === 'phase-completeness') {
+      const phase = args[2];
+      if (!phase) { error('Usage: verify phase-completeness <phase>'); }
+      _cmdVerifyPhaseCompleteness(cwd, phase, false);
+
+    } else if (command === 'verify' && subcommand === 'artifacts') {
+      const planPath = args[2];
+      if (!planPath) { error('Usage: verify artifacts <plan-path>'); }
+      _cmdVerifyArtifacts(cwd, planPath, false);
+
+    } else if (command === 'verify' && subcommand === 'key-links') {
+      const planPath = args[2];
+      if (!planPath) { error('Usage: verify key-links <plan-path>'); }
+      _cmdVerifyKeyLinks(cwd, planPath, false);
+
+    } else if (command === 'verify' && subcommand === 'commits') {
+      const hashes = args.slice(2);
+      if (!hashes.length) { error('Usage: verify commits <hash1> [hash2] ...'); }
+      _cmdVerifyCommits(cwd, hashes, false);
+
+    } else if (command === 'verify' && subcommand === 'references') {
+      const rpath = args[2];
+      if (!rpath) { error('Usage: verify references <path>'); }
+      _cmdVerifyReferences(cwd, rpath, false);
+
     } else if (command === 'spot-check') {
       // spot-check <phaseSlug> <planId>
       // Returns JSON: { ok, summary_exists, key_files_checked, commits_present, detail }
@@ -1984,7 +2031,7 @@ async function main() {
       if (result.error) process.exit(1);
 
     } else {
-      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress|map-codebase, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, graph build|query|impact|stats, hooks perf [--last N] [--json], spec parse|diff|reverse|impact, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status, help, skill-metadata <name>`);
+      error(`Unknown command: ${args.join(' ')}\nCommands: state load|check-progress|update|patch|advance-plan|record-metric, config validate|load-defaults|save-defaults|resolve-depth, validate health, validate-project, verify summary|plan-structure|phase-completeness|artifacts|key-links|commits|references|spot-check, migrate [--dry-run] [--force], init execute-phase|plan-phase|quick|verify-work|resume|progress|map-codebase, state-bundle <phase>, plan-index, frontmatter, must-haves, phase-info, phase add|remove|list|complete, roadmap update-status|update-plans, history append|load, todo list|get|add|done, auto-cleanup --phase N|--milestone vN, event, llm health|status|classify|score-source|classify-error|summarize|metrics [--session <ISO>]|adjust-thresholds, learnings ingest|query|check-thresholds, incidents list|summary|query, nk record|list|resolve, data status|prune, graph build|query|impact|stats, hooks perf [--last N] [--json], spec parse|diff|reverse|impact, milestone-stats <version>, context-triage [--agents-done N] [--plans-total N] [--step NAME], ci-poll <run-id> [--timeout <seconds>], ci-fix [--dry-run] [--max-iterations N], rollback <manifest-path>, session get|set|clear|dump, claim acquire|release|list, skill-section <skill> <section>|--list <skill>, step-verify <skill> <step> <checklist-json>, suggest-alternatives phase-not-found|missing-prereq|config-invalid [args], tmux detect, quick init, generate-slug|slug-generate, parse-args plan|quick, status fingerprint, quick-status, help, skill-metadata <name>`);
     }
   } catch (e) {
     error(e.message);
