@@ -159,6 +159,24 @@ For each truth: determine verification method, execute it, record evidence, clas
 
 ### Step 5: Verify Artifacts (Always -- depth varies in re-verification)
 
+#### CLI Artifact Verification (L1-L2 Accelerator)
+
+For each plan file, run the CLI artifact checker first:
+
+```bash
+ARTIFACTS=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify artifacts ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+echo "$ARTIFACTS"
+```
+
+Parse JSON result:
+- `all_passed: true` — All artifacts pass L1-L2. Proceed directly to L3 (wiring) for each.
+- `all_passed: false` — For each artifact in `artifacts` array:
+  - `exists: false` — MISSING (L1 fail, stop)
+  - `issues` non-empty — STUB (L2 fail, check manually if border case)
+  - `passed: true` — Proceed to L3
+
+**This CLI check replaces manual `ls` and `wc -l` checks for L1-L2.** Only L3 (wiring) and L4 (functional) require manual grep/run verification.
+
 For EVERY artifact, perform three levels of verification:
 
 **Depth-adjusted behavior:**
@@ -205,6 +223,21 @@ Run the artifact and verify it produces correct results. This goes beyond struct
 <step name="verify-key-links">
 
 ### Step 6: Verify Key Links (Always)
+
+#### CLI Key Link Verification
+
+For each plan file, check wiring:
+
+```bash
+LINKS=$(node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js verify key-links ".planning/phases/{NN}-{slug}/{plan_id}-PLAN.md")
+echo "$LINKS"
+```
+
+Parse JSON result:
+- `all_verified: true` — All key links verified. Proceed to argument-level spot checks (6b).
+- `all_verified: false` — For each link in `links` array with failed status: investigate manually.
+
+**This CLI check replaces the initial import/grep scan.** Only argument-level spot checks (Step 6b) and data-flow tracing require manual verification.
 
 For each key_link: identify source and target components, verify the import path resolves, verify the imported symbol is actually called/used, and verify call signatures match. Watch for: wrong import paths, imported-but-never-called symbols, defined-but-never-applied middleware, registered-but-never-triggered event handlers.
 
@@ -605,6 +638,8 @@ Orchestrators pattern-match on these markers to route results. Omitting causes s
 - [ ] All truths verified with status and evidence
 - [ ] All artifacts checked at 3-4 levels (exists, substantive, wired, functional when testable)
 - [ ] All key links verified including argument values
+- [ ] CLI verify artifacts called for each plan (L1-L2 automated)
+- [ ] CLI verify key-links called for each plan (wiring pre-check)
 - [ ] Anti-patterns scanned and categorized
 - [ ] Overall status determined
 - [ ] VERIFICATION.md created with complete report
