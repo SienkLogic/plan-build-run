@@ -108,25 +108,6 @@ describe('configValidate', () => {
     expect(Array.isArray(result.errors)).toBe(true);
   });
 
-  // local_llm endpoint validation tests removed — feature deprecated in phase 53
-  // Endpoint validation no longer applies; only deprecation warning for enabled: true
-
-  test('local_llm.enabled true produces deprecation warning', () => {
-    const config = {
-      local_llm: { enabled: true, endpoint: 'http://remote-server:8080/v1' }
-    };
-    const result = configValidate(config);
-    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
-  });
-
-  test('local_llm.enabled false produces no deprecation warning', () => {
-    const config = {
-      local_llm: { enabled: false }
-    };
-    const result = configValidate(config);
-    expect(result.warnings.filter(w => w.includes('local_llm')).length).toBe(0);
-  });
-
   test('warns about autonomous mode with gates', () => {
     const config = { mode: 'autonomous', gates: { human_verify: true } };
     const result = configValidate(config);

@@ -22,8 +22,7 @@ describe('check-config-change', () => {
         features: { structured_planning: true },
         models: { researcher: 'sonnet', planner: 'sonnet' },
         gates: { confirm_plan: true },
-        parallelization: { enabled: true, max_concurrent_agents: 3 },
-        local_llm: { enabled: false }
+        parallelization: { enabled: true, max_concurrent_agents: 3 }
       });
 
       try {
@@ -145,37 +144,12 @@ describe('check-config-change', () => {
       }
     });
 
-    // local_llm sub-field validation tests removed — feature deprecated in phase 53
-
-    test('local_llm.enabled true warns deprecated', () => {
-      const { tmpDir, configPath } = createTempConfig({
-        version: 2, features: {}, models: {}, gates: {},
-        local_llm: { enabled: true }
-      });
-      try {
-        const warnings = validateConfig(configPath);
-        expect(warnings.some(w => w.includes('deprecated'))).toBe(true);
-      } finally { cleanup(tmpDir); }
-    });
-
-    test('local_llm.enabled false produces no warning', () => {
-      const { tmpDir, configPath } = createTempConfig({
-        version: 2, features: {}, models: {}, gates: {},
-        local_llm: { enabled: false }
-      });
-      try {
-        const warnings = validateConfig(configPath);
-        expect(warnings.some(w => w.includes('local_llm'))).toBe(false);
-      } finally { cleanup(tmpDir); }
-    });
-
     test('no parallelization key is fine', () => {
       const { tmpDir, configPath } = createTempConfig({
         version: 2,
         features: {},
         models: {},
-        gates: {},
-        local_llm: { enabled: false }
+        gates: {}
       });
 
       try {

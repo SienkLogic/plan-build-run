@@ -30,11 +30,6 @@ jest.mock('../plugins/pbr/scripts/lib/core', () => ({
   ensureSessionDir: jest.fn(),
   cleanStaleSessions: jest.fn(() => []),
 }));
-jest.mock('../plugins/pbr/scripts/lib/local-llm/index', () => ({
-  resolveConfig: jest.fn(() => ({ enabled: false })),
-  checkHealth: jest.fn(),
-  warmUp: jest.fn(),
-}));
 jest.mock('../plugins/pbr/scripts/lib/intel', () => ({
   intelStatus: jest.fn(() => ({ disabled: true })),
 }));

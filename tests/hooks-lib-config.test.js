@@ -330,32 +330,6 @@ describe('configValidate', () => {
     ]));
   });
 
-  // local_llm endpoint validation tests removed — feature deprecated in phase 53
-  // Endpoint validation no longer applies; only deprecation warning for enabled: true
-
-  it('local_llm.enabled=true produces deprecation warning', () => {
-    const cfg = {
-      schema_version: 3,
-      version: 2,
-      local_llm: { enabled: true },
-    };
-    const result = configValidate(cfg);
-    expect(result.warnings).toEqual(expect.arrayContaining([
-      expect.stringContaining('deprecated'),
-    ]));
-  });
-
-  it('local_llm.enabled=false produces no deprecation warning', () => {
-    const cfg = {
-      schema_version: 3,
-      version: 2,
-      local_llm: { enabled: false },
-    };
-    const result = configValidate(cfg);
-    const llmWarnings = result.warnings.filter(w => w.includes('local_llm'));
-    expect(llmWarnings).toEqual([]);
-  });
-
   it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', () => {
     const cfg = {
       schema_version: 3,

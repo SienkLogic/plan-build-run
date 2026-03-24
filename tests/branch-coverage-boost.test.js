@@ -240,14 +240,6 @@ describe('prompt-routing additional branches', () => {
 describe('config.cjs additional branches', () => {
   const { configValidate } = require('../plugins/pbr/scripts/lib/config');
 
-  // local_llm endpoint validation removed — feature deprecated in phase 53
-  test('validates config with local_llm enabled produces deprecation warning', () => {
-    const result = configValidate({
-      local_llm: { enabled: true }
-    });
-    expect(result.warnings.some(w => w.includes('deprecated'))).toBe(true);
-  });
-
   test('validates config with no gates in autonomous mode', () => {
     const result = configValidate({ mode: 'autonomous' });
     expect(result.errors.filter(e => e.includes('gates')).length).toBe(0);

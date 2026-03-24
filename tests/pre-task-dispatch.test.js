@@ -1,7 +1,5 @@
 'use strict';
 
-const path = require('path');
-
 // Mock modules BEFORE requiring the dispatch script
 jest.mock('../plugins/pbr/scripts/enforce-context-budget', () => ({
   checkBudget: jest.fn(() => null)
@@ -52,12 +50,6 @@ jest.mock('../plugins/pbr/scripts/lib/gates/user-confirmation', () => ({
 }));
 jest.mock('../plugins/pbr/scripts/enforce-pbr-workflow', () => ({
   checkNonPbrAgent: jest.fn(() => null)
-}));
-jest.mock('../plugins/pbr/scripts/lib/local-llm/health', () => ({
-  resolveConfig: jest.fn(() => ({}))
-}));
-jest.mock('../plugins/pbr/scripts/lib/local-llm/operations/validate-task', () => ({
-  validateTask: jest.fn(() => Promise.resolve(null))
 }));
 jest.mock('../plugins/pbr/scripts/lib/core', () => ({
   KNOWN_AGENTS: ['planner', 'executor', 'verifier', 'general']

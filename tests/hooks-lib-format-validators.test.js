@@ -4,11 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Mock the LLM classify-artifact module
-jest.mock('../plugins/pbr/scripts/lib/local-llm/operations/classify-artifact', () => ({
-  classifyArtifact: jest.fn().mockResolvedValue(null)
-}));
-
 const {
   validateMustHaves,
   PLAN_REQUIRED_FIELDS,

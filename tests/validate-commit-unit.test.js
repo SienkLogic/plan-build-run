@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const { checkCommit, enrichCommitLlm } = require('../plugins/pbr/scripts/validate-commit');
+const { checkCommit } = require('../plugins/pbr/scripts/validate-commit');
 
 let tmpDir;
 
@@ -327,19 +327,3 @@ describe('sensitive file blocking edge cases', () => {
   });
 });
 
-describe('enrichCommitLlm', () => {
-  test('returns null for non-commit commands', async () => {
-    const result = await enrichCommitLlm({ tool_input: { command: 'npm test' } });
-    expect(result).toBeNull();
-  });
-
-  test('returns null when no message extractable', async () => {
-    const result = await enrichCommitLlm({ tool_input: { command: 'git commit --allow-empty' } });
-    expect(result).toBeNull();
-  });
-
-  test('does not throw when LLM is not configured', async () => {
-    const result = await enrichCommitLlm({ tool_input: { command: 'git commit -m "feat(01-01): test"' } });
-    expect(typeof result === 'string' || result === null).toBe(true);
-  });
-});
