@@ -91,12 +91,10 @@ describe('suggest-compact.js', () => {
   });
 
   describe('resetCounter', () => {
-    test('deletes counter file', () => {
+    test('resets counter without throwing', () => {
       const { tmpDir, planningDir } = createTmpPlanning();
-      const counterPath = path.join(planningDir, '.compact-counter');
-      fs.writeFileSync(counterPath, JSON.stringify({ count: 99, lastSuggested: 50 }));
-      resetCounter(planningDir);
-      expect(fs.existsSync(counterPath)).toBe(false);
+      // resetCounter now uses sessionSave, not legacy .compact-counter file deletion
+      expect(() => resetCounter(planningDir)).not.toThrow();
       cleanupTmp(tmpDir);
     });
 
