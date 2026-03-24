@@ -24,6 +24,7 @@ const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
 const { resolveSessionPath } = require('./lib/core');
 const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
+const { checkPrematureCompletion } = require('./lib/premature-completion');
 
 // Import all validators from extracted module
 const validators = require('./lib/subagent-validators');
@@ -220,6 +221,12 @@ async function main() {
     }
   }
 
+  // Premature completion detection (REQ-HI-08)
+  const prematureResult = checkPrematureCompletion(agentType, data, planningDir);
+  if (prematureResult && prematureResult.warning) {
+    skillWarnings.push(`[ADVISORY] Possible premature completion: ${prematureResult.warning} (signals: ${prematureResult.signals.join(', ')})`);
+  }
+
   // Log compliance violations for tracking and session-end summary
   if (genericMissing) {
     logCompliance(planningDir, agentType, `Missing expected output: ${outputSpec.description}`, 'required');
@@ -371,6 +378,12 @@ async function handleHttp(reqBody) {
         skillWarnings.push('Executor SUMMARY.md missing ## Self-Check section. Self-verification may have been skipped.');
       }
     }
+  }
+
+  // Premature completion detection (REQ-HI-08)
+  const prematureResult = checkPrematureCompletion(agentType, data, planningDir);
+  if (prematureResult && prematureResult.warning) {
+    skillWarnings.push(`[ADVISORY] Possible premature completion: ${prematureResult.warning} (signals: ${prematureResult.signals.join(', ')})`);
   }
 
   if (genericMissing && skillWarnings.length > 0) {
