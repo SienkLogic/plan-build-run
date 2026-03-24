@@ -288,7 +288,7 @@
         },
         "reverse_spec": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable reverse spec generation from existing code."
         },
         "predictive_impact": {
@@ -330,6 +330,21 @@
           "type": "boolean",
           "default": true,
           "description": "Enable architecture consistency guard that warns on dependency violations."
+        },
+        "cross_project_patterns": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable cross-project pattern detection and reuse across repositories."
+        },
+        "spec_templates": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable spec template generation from existing code patterns."
+        },
+        "global_learnings": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable global learnings aggregation across phases into KNOWLEDGE.md."
         }
       },
       "additionalProperties": false

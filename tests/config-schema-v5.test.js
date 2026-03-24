@@ -125,10 +125,10 @@ describe('Config Schema v5 — Phase 11 spec-driven development toggles', () => 
         expect(features.spec_diffing.default).toBe(true);
       });
 
-      test('reverse_spec is boolean with default true', () => {
+      test('reverse_spec is boolean with default false', () => {
         expect(features.reverse_spec).toBeDefined();
         expect(features.reverse_spec.type).toBe('boolean');
-        expect(features.reverse_spec.default).toBe(true);
+        expect(features.reverse_spec.default).toBe(false);
       });
 
       test('predictive_impact is boolean with default true', () => {

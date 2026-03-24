@@ -290,7 +290,7 @@ function configLoadDefaults(planningDir) {
   // No config found — return hardcoded defaults
   return {
     version: 2,
-    schema_version: 1,
+    schema_version: 3,
     mode: 'interactive',
     depth: 'standard',
     features: {
@@ -300,14 +300,14 @@ function configLoadDefaults(planningDir) {
       plan_checking: true,
     },
     planning: {
-      commit_docs: true,
+      commit_docs: false,
       search_gitignored: false,
     },
     git: {
       branching: 'none',
     },
     parallelization: {
-      enabled: true,
+      enabled: false,
     },
   };
 }

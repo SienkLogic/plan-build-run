@@ -288,7 +288,7 @@
         },
         "reverse_spec": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Enable reverse spec generation from existing code."
         },
         "predictive_impact": {
@@ -311,12 +311,6 @@
           "default": true,
           "description": "Enable team onboarding guide generation from ROADMAP.md, CONTEXT.md, and project conventions."
         },
-        "multi_layer_validation": {
-          "type": "boolean",
-          "default": false,
-          "deprecated": true,
-          "description": "DEPRECATED. Parallel multi-layer review passes were never integrated. Key retained for backward compatibility."
-        },
         "regression_prevention": {
           "type": "boolean",
           "default": true,
@@ -336,19 +330,24 @@
           "type": "boolean",
           "default": true,
           "description": "Enable architecture consistency guard that warns on dependency violations."
+        },
+        "cross_project_patterns": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable cross-project pattern detection and reuse across repositories."
+        },
+        "spec_templates": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable spec template generation from existing code patterns."
+        },
+        "global_learnings": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable global learnings aggregation across phases into KNOWLEDGE.md."
         }
       },
       "additionalProperties": false
-    },
-    "validation_passes": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["correctness", "security", "performance", "style", "tests", "accessibility", "docs", "deps"]
-      },
-      "default": ["correctness", "security"],
-      "deprecated": true,
-      "description": "DEPRECATED. Used only with multi_layer_validation which was never integrated. Key retained for backward compatibility."
     },
     "autonomy": {
       "type": "object",
@@ -1297,6 +1296,13 @@
           "maximum": 1,
           "default": 1,
           "description": "Minimum completion confidence (0.5-1.0) required to skip verification. 1.0 means 100% must-haves must pass."
+        },
+        "min_full_percent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 30,
+          "description": "Minimum percentage of phases in autonomous mode that must receive full verification (not just confidence-gate). 0 = all confidence-gate, 100 = all full verification. Default 30 means at least 30% of phases get full /pbr:review verification."
         }
       },
       "additionalProperties": false
