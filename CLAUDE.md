@@ -40,7 +40,7 @@ Load the plugin locally for manual testing:
 claude --plugin-dir .
 ```
 
-CI runs on Node 18/20/22 across Windows, macOS, and Linux. All three platforms must pass.
+CI runs on Node 20/22 across Windows, macOS, and Linux. All three platforms must pass.
 
 ## Architecture
 
