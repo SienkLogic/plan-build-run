@@ -8,6 +8,7 @@ const path = require('path');
 const { parseYamlFrontmatter } = require('../lib/core');
 const { parseStateMd } = require('../lib/state');
 const { parseRoadmapMd } = require('../lib/roadmap');
+const { normalizeMsysPath } = require('../lib/msys-path');
 
 // --- CRLF normalization ---
 
@@ -77,55 +78,43 @@ describe('path construction', () => {
 // --- MSYS path regex ---
 
 describe('MSYS path regex', () => {
-  // This is the regex from run-hook.js bootstrap pattern
-  const MSYS_REGEX = /^\/([a-zA-Z])\/(.*)/;
-
-  function fixMsysPath(p) {
-    if (!p) return p;
-    const match = p.match(MSYS_REGEX);
-    if (match) {
-      return match[1].toUpperCase() + ':\\' + match[2].replace(/\//g, '\\');
-    }
-    return p;
-  }
-
   it('converts /d/Repos/foo to D:\\Repos\\foo', () => {
-    const result = fixMsysPath('/d/Repos/foo');
+    const result = normalizeMsysPath('/d/Repos/foo');
     assert.strictEqual(result, 'D:\\Repos\\foo');
   });
 
   it('converts /D/Repos/foo to D:\\Repos\\foo (case insensitive drive)', () => {
-    const result = fixMsysPath('/D/Repos/foo');
+    const result = normalizeMsysPath('/D/Repos/foo');
     assert.strictEqual(result, 'D:\\Repos\\foo');
   });
 
   it('converts /c/Users/test/project to C:\\Users\\test\\project', () => {
-    const result = fixMsysPath('/c/Users/test/project');
+    const result = normalizeMsysPath('/c/Users/test/project');
     assert.strictEqual(result, 'C:\\Users\\test\\project');
   });
 
   it('leaves Windows-native paths unchanged', () => {
-    const result = fixMsysPath('D:\\Repos\\foo');
+    const result = normalizeMsysPath('D:\\Repos\\foo');
     assert.strictEqual(result, 'D:\\Repos\\foo');
   });
 
   it('leaves relative paths unchanged', () => {
-    const result = fixMsysPath('plugins/pbr/scripts');
+    const result = normalizeMsysPath('plugins/pbr/scripts');
     assert.strictEqual(result, 'plugins/pbr/scripts');
   });
 
   it('leaves Unix absolute paths with >1 char dir unchanged', () => {
-    const result = fixMsysPath('/usr/local/bin');
+    const result = normalizeMsysPath('/usr/local/bin');
     assert.strictEqual(result, '/usr/local/bin');
   });
 
   it('handles null/empty input', () => {
-    assert.strictEqual(fixMsysPath(null), null);
-    assert.strictEqual(fixMsysPath(''), '');
+    assert.strictEqual(normalizeMsysPath(null), null);
+    assert.strictEqual(normalizeMsysPath(''), '');
   });
 
   it('handles deep nested MSYS paths', () => {
-    const result = fixMsysPath('/e/Projects/my-app/plugins/pbr/scripts/lib');
+    const result = normalizeMsysPath('/e/Projects/my-app/plugins/pbr/scripts/lib');
     assert.strictEqual(result, 'E:\\Projects\\my-app\\plugins\\pbr\\scripts\\lib');
   });
 });

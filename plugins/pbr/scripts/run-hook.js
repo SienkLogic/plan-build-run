@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { normalizeMsysPath } = require('./lib/msys-path');
 
 // Scripts that must run even without .planning/ (lifecycle hooks).
 // All per-tool-call hooks (PreToolUse, PostToolUse, etc.) are PBR-specific
@@ -38,21 +39,8 @@ const ALWAYS_RUN = new Set([
   'hook-server-client.js', // HTTP dispatcher — routes lifecycle hooks (WorktreeCreate, etc.)
 ]);
 
-/**
- * Fix MSYS-style paths on Windows.
- * Converts /d/Repos/... to D:\Repos\...
- */
-function fixMsysPath(p) {
-  if (!p) return p;
-  const match = p.match(/^\/([a-zA-Z])\/(.*)/);
-  if (match) {
-    return match[1].toUpperCase() + ':\\' + match[2].replace(/\//g, '\\');
-  }
-  return p;
-}
-
 // Fix CLAUDE_PLUGIN_ROOT in environment
-const pluginRoot = fixMsysPath(process.env.CLAUDE_PLUGIN_ROOT || '');
+const pluginRoot = normalizeMsysPath(process.env.CLAUDE_PLUGIN_ROOT || '');
 
 // When invoked via `node -e "..." scriptName`, process.argv is:
 //   [node, scriptName, ...extra]

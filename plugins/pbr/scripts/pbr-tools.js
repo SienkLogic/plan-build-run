@@ -82,14 +82,12 @@ const { handlePhase, handleCompound, handleInit, handlePhaseDirect } = require('
 const { handleVerify, handleSpotCheckDirect, handleStalenessCheck, handleSummaryGate, handleCheckpoint, handleSeeds } = require('./commands/verify');
 const { handleTodo, handleHistory, handleAutoCleanup } = require('./commands/todo');
 const { handleMisc } = require('./commands/misc');
+const { normalizeMsysPath } = require('./lib/msys-path');
 
 // --- Module-level state (for backwards compatibility) ---
 
 let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-// MSYS path bridging: Git Bash on Windows can produce /d/Repos/... paths
-// that Node.js cannot resolve. Convert to D:\Repos\... form.
-const _msysCwdMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
-if (_msysCwdMatch) cwd = _msysCwdMatch[1] + ':' + path.sep + _msysCwdMatch[2].replace(/\//g, path.sep);
+cwd = normalizeMsysPath(cwd);
 let planningDir = path.join(cwd, '.planning');
 
 // --- Wrapper functions that pass planningDir to lib modules ---
@@ -103,8 +101,7 @@ function configLoad(dir) {
 function configClearCache() {
   _configClearCache();
   cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-  const _msysResetMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
-  if (_msysResetMatch) cwd = _msysResetMatch[1] + ':' + path.sep + _msysResetMatch[2].replace(/\//g, path.sep);
+  cwd = normalizeMsysPath(cwd);
   planningDir = path.join(cwd, '.planning');
 }
 
@@ -314,21 +311,14 @@ function verifySpotCheck(type, dirPath) {
 function referenceGet(name, options) {
   // Resolve plugin root — try CLAUDE_PLUGIN_ROOT env, then walk up from __dirname
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
-  // Fix MSYS paths on Windows (same pattern as run-hook.js)
-  let root = pluginRoot;
-  const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
-  if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
+  let root = normalizeMsysPath(pluginRoot);
   return _referenceGet(name, options, root);
 }
 
 function resolvePluginRoot() {
   // Resolve plugin root — try CLAUDE_PLUGIN_ROOT env, then walk up from __dirname
   const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(__dirname, '..');
-  // Fix MSYS paths on Windows (same pattern as run-hook.js)
-  let root = pluginRoot;
-  const msysMatch = root.match(/^\/([a-zA-Z])\/(.*)/);
-  if (msysMatch) root = msysMatch[1] + ':' + path.sep + msysMatch[2];
-  return root;
+  return normalizeMsysPath(pluginRoot);
 }
 
 function skillSectionGet(skillName, sectionQuery) {

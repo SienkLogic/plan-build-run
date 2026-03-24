@@ -18,6 +18,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parseYamlFrontmatter } = require('./lib/core');
+const { normalizeMsysPath } = require('./lib/msys-path');
 
 /**
  * Parse milestone information from ROADMAP.md content.
@@ -101,8 +102,7 @@ function quickStatus(planningDir) {
   // Resolve planningDir from env if not provided
   if (!planningDir) {
     let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-    const msysMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
-    if (msysMatch) cwd = msysMatch[1] + ':' + path.sep + msysMatch[2].replace(/\//g, path.sep);
+    cwd = normalizeMsysPath(cwd);
     planningDir = path.join(cwd, '.planning');
   }
 

@@ -14,14 +14,12 @@ const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 const { logHook } = require('../hook-logger');
+const { normalizeMsysPath } = require('./msys-path');
 
 // ─── Module-level planningDir with MSYS path bridging ─────────────────────────
 
 let cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-
-// MSYS path bridging: convert /c/Users/... to C:\Users\... on Windows
-const msysMatch = cwd.match(/^\/([a-zA-Z])\/(.*)/);
-if (msysMatch) cwd = msysMatch[1] + ':' + path.sep + msysMatch[2];
+cwd = normalizeMsysPath(cwd);
 
 let planningDir = path.join(cwd, '.planning');
 
@@ -33,9 +31,7 @@ let planningDir = path.join(cwd, '.planning');
  */
 function setCwd(newCwd) {
   cwd = newCwd;
-  // Apply MSYS bridging to the new cwd as well
-  const m = cwd.match(/^\/([a-zA-Z])\/(.*)/);
-  if (m) cwd = m[1] + ':' + path.sep + m[2];
+  cwd = normalizeMsysPath(cwd);
   planningDir = path.join(cwd, '.planning');
 }
 

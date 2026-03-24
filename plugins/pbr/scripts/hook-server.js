@@ -30,17 +30,7 @@ const fs = require('fs');
 const path = require('path');
 const { acquireLock, releaseLock, updateLockPort } = require('./lib/pid-lock');
 const { initConfigCache, getConfig, stopConfigWatch } = require('./lib/config-cache');
-
-// MSYS path normalization — one-time at startup, not per-request
-function normalizeMsysPath(p) {
-  if (!p) return p;
-  // MSYS/Git-bash: /d/Repos/... -> D:\Repos\...
-  const msys = p.match(/^\/([a-zA-Z])(\/.*)?$/);
-  if (msys) {
-    return msys[1].toUpperCase() + ':' + (msys[2] || '').replace(/\//g, '\\');
-  }
-  return p;
-}
+const { normalizeMsysPath } = require('./lib/msys-path');
 
 // ---------------------------------------------------------------------------
 // Configuration
