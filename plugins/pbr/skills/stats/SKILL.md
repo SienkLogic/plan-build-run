@@ -46,6 +46,36 @@ MILESTONE=$(grep "^Active:" .planning/STATE.md 2>/dev/null | head -1)
 
 Also read ROADMAP.md for milestone history count and REQUIREMENTS.md for coverage.
 
+## Step 1b — Cost & Duration Data
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js benchmarks summary --json
+```
+
+Parse the JSON result. If `totals.count > 0`, include a "Cost & Duration" section in the output showing:
+- Total agent spawns and cumulative duration
+- Top 3 phases by total duration
+- Top 3 agent types by spawn count
+
+If no data or `totals.count === 0`, skip this section silently.
+
+Also run:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js benchmarks agents --json
+```
+
+Use the agents result for the "Top 3 agent types" breakdown.
+
+Display format (append after Timeline section):
+
+```
+Cost & Duration:
+  Total Spawns: {count} agents, {duration}
+  Top Phases:   {phase1} ({duration1}), {phase2} ({duration2}), {phase3} ({duration3})
+  Top Agents:   {type1} ({count1}x), {type2} ({count2}x), {type3} ({count3}x)
+```
+
 ## Step 2 — Display
 
 ```
