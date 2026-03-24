@@ -749,13 +749,13 @@ For each plan that completed successfully in this wave:
 
 **Skip if** `features.security_scanning` is not `true` in `.planning/config.json`.
 
-Run an OWASP-style security scan over the files changed during this wave using the patterns in `plan-build-run/bin/lib/security-scan.cjs`.
+Run an OWASP-style security scan over the files changed during this wave using the patterns in `plugins/pbr/scripts/lib/security-scan.js`.
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security scan '{space-separated changed files}'
 ```
 
-(`scanFiles()` in `plan-build-run/bin/lib/security-scan.cjs`)
+(`scanFiles()` in `plugins/pbr/scripts/lib/security-scan.js`)
 
 Display formatted findings:
 
@@ -763,7 +763,7 @@ Display formatted findings:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js security format-findings '{scan-output-json}'
 ```
 
-(`formatFindings()` in `plan-build-run/bin/lib/security-scan.cjs`)
+(`formatFindings()` in `plugins/pbr/scripts/lib/security-scan.js`)
 
 Output format:
 - If no findings: `✓ Security scan: clean`
@@ -782,13 +782,13 @@ HIGH-severity findings (hardcoded secrets, SQL injection, eval-of-user-input) re
 
 **Skip if** `features.regression_prevention` is not `true` in `.planning/config.json`.
 
-After each wave, identify which test files are relevant to the changed source files using `plan-build-run/bin/lib/test-selection.cjs`. Run only those tests instead of the full suite — this catches regressions early without the latency of a full test run.
+After each wave, identify which test files are relevant to the changed source files using `plugins/pbr/scripts/lib/test-selection.js`. Run only those tests instead of the full suite — this catches regressions early without the latency of a full test run.
 
 ```bash
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection select '{space-separated changed files}'
 ```
 
-(`selectTests()` in `plan-build-run/bin/lib/test-selection.cjs`)
+(`selectTests()` in `plugins/pbr/scripts/lib/test-selection.js`)
 
 Then format the test command:
 
@@ -796,7 +796,7 @@ Then format the test command:
 node ${CLAUDE_PLUGIN_ROOT}/scripts/pbr-tools.js test-selection format-command '{selection-output-json}'
 ```
 
-(`formatTestCommand()` in `plan-build-run/bin/lib/test-selection.cjs`)
+(`formatTestCommand()` in `plugins/pbr/scripts/lib/test-selection.js`)
 
 Run the resulting command (e.g., `npm test -- tests/foo.test.js tests/bar.test.js`) via Bash. Display:
 - `✓ Smart tests ({N} files): all passed`

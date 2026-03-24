@@ -100,7 +100,7 @@ Resume file: {path or "None"}
 
 ## Size Limit Enforcement
 
-**Hard limit: 150 lines.** After every STATE.md write, check the line count. If over 150 lines, compact:
+**Hard limit: 100 lines.** After every STATE.md write, check the line count. If over 100 lines, compact:
 
 1. **Collapse completed phase entries** to one-liners:
    ```
@@ -111,7 +111,7 @@ Resume file: {path or "None"}
 3. **Remove old session entries** -- keep only the current session's continuity data
 4. **Keep these always:** current phase detail, active blockers, core value statement, milestone info
 
-If still over 150 lines after compaction, the Accumulated Context section has grown too large. Move non-critical decisions to the phase's CONTEXT.md file.
+If still over 100 lines after compaction, the Accumulated Context section has grown too large. Move non-critical decisions to the phase's CONTEXT.md file.
 
 ---
 

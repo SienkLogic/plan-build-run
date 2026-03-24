@@ -245,7 +245,7 @@ After the executor completes:
 
 2. **Generate post-hoc SUMMARY.md** (if `features.post_hoc_artifacts` is not `false`):
    ```bash
-   node -e "const ph=require('./plan-build-run/bin/lib/post-hoc.cjs'); ph.generateSummary(process.argv[1], process.argv[2], {commitPattern: 'quick-{NNN}', description: '{description}'})" .planning ".planning/quick/{NNN}-{slug}"
+   node -e "const ph=require('./plugins/pbr/scripts/lib/post-hoc.js'); ph.generateSummary(process.argv[1], process.argv[2], {commitPattern: 'quick-{NNN}', description: '{description}'})" .planning ".planning/quick/{NNN}-{slug}"
    ```
    - If `features.post_hoc_artifacts` is `false`: skip SUMMARY.md generation
 
