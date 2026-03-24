@@ -48,7 +48,7 @@
 
 const { logHook } = require('./hook-logger');
 const { checkDangerous } = require('./check-dangerous-commands');
-const { checkCommit, enrichCommitLlm } = require('./validate-commit');
+const { checkCommit } = require('./validate-commit');
 const { checkUnmanagedCommit } = require('./enforce-pbr-workflow');
 const { checkRequirePaths, checkMirrorSync, checkLintErrors } = require('./lib/pre-commit-checks');
 // Cross-plugin sync disabled -- derivative plugins updated separately
@@ -137,12 +137,6 @@ async function processEvent(data) {
     // if (syncResult) {
     //   warnings.push(syncResult.additionalContext);
     // }
-
-    // LLM commit semantic classification -- advisory only
-    const llmAdvisory = await enrichCommitLlm(data);
-    if (llmAdvisory) {
-      warnings.push(llmAdvisory);
-    }
 
     if (warnings.length > 0) {
       logHook('pre-bash-dispatch', 'PreToolUse', 'warn', { warnings: warnings.length, cmd: command.substring(0, 80) });
