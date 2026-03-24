@@ -75,7 +75,7 @@ function checkSensitiveFilesResult(sessionId) {
   try {
     let output;
     try {
-      output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+      output = execSync('git diff --cached --name-only', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
     } catch (_e) {
       // git diff --cached fails during git tag or in --no-index contexts
       return null;

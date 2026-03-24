@@ -29,7 +29,7 @@ function checkCrossPluginSync(data) {
 
   let stagedFiles;
   try {
-    stagedFiles = execSync('git diff --cached --name-only', { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    stagedFiles = execSync('git diff --cached --name-only', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim().split('\n').filter(Boolean);
   } catch (_e) {
     return null;
   }

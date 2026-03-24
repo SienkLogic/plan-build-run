@@ -24,7 +24,7 @@ const { logHook } = require('../hook-logger');
  */
 function getStagedFiles() {
   try {
-    const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    const output = execSync('git diff --cached --name-only', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
     return output.trim().split('\n').filter(Boolean);
   } catch (_e) {
     return [];
