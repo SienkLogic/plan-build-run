@@ -59,10 +59,12 @@ function shouldTrackTrust(planningDir) {
  */
 function extractVerificationOutcome(planningDir) {
   try {
-    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+    const verFiles = findInPhaseDir(planningDir, /^VERIFICATION(-R\d+)?\.md$/i);
     if (verFiles.length === 0) return null;
 
-    const verPath = path.join(planningDir, verFiles[0]);
+    // Use the latest verification file (highest round number, or base VERIFICATION.md)
+    const sorted = verFiles.sort();
+    const verPath = path.join(planningDir, sorted[sorted.length - 1]);
     const content = fs.readFileSync(verPath, 'utf8');
     const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!fmMatch) return null;
@@ -371,8 +373,8 @@ const AGENT_OUTPUTS = {
     check: (planningDir) => findInPhaseDir(planningDir, /^PLAN.*\.md$/i)
   },
   'pbr:verifier': {
-    description: 'VERIFICATION.md in the phase directory',
-    check: (planningDir) => findInPhaseDir(planningDir, /^VERIFICATION\.md$/i)
+    description: 'VERIFICATION.md or VERIFICATION-R{N}.md in the phase directory',
+    check: (planningDir) => findInPhaseDir(planningDir, /^VERIFICATION(-R\d+)?\.md$/i)
   },
   'pbr:researcher': {
     description: 'research file in .planning/research/',
@@ -635,8 +637,9 @@ const SKILL_CHECKS = {
   'review:pbr:verifier': {
     description: 'review verifier VERIFICATION.md status, LEARNINGS.md, and trust update',
     check: (planningDir, _found, warnings) => {
-      const verFiles = findInPhaseDir(planningDir, /^VERIFICATION\.md$/i);
+      const verFiles = findInPhaseDir(planningDir, /^VERIFICATION(-R\d+)?\.md$/i);
       for (const vf of verFiles) {
+        logHook('subagent-validators', 'debug', 'Found verification file: ' + vf);
         try {
           const content = fs.readFileSync(path.join(planningDir, vf), 'utf8');
           const statusMatch = content.match(/^status:\s*(\S+)/mi);

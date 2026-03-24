@@ -15,7 +15,7 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 const { incrementTracker } = require('./session-tracker');
-const { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isTrustTrackingEnabled } = require('./lib/auto-verify');
+const { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isMultiRoundActive, isTrustTrackingEnabled } = require('./lib/auto-verify');
 const { handleDecisionExtraction, extractDecisions } = require('./lib/decision-extraction');
 
 function readStdin() {
@@ -94,6 +94,15 @@ function processExecutorCompletion(data, planningDir) {
 
   if (!shouldAutoVerify(planningDir)) {
     logHook('event-handler', 'SubagentStop', 'skip-verify', { reason: 'config/depth' });
+    return null;
+  }
+
+  // Multi-round QA: suppress inter-round auto-verify signal
+  // The build skill manages the QA loop — event handler should not
+  // trigger independent verification between rounds.
+  if (isMultiRoundActive(planningDir)) {
+    logHook('event-handler', 'SubagentStop', 'multi-round-active',
+      { message: 'Suppressing auto-verify signal — build skill manages QA rounds' });
     return null;
   }
 
@@ -197,6 +206,7 @@ module.exports = {
   handleDecisionExtraction,
   // New exports for internal use
   writeAutoVerifySignal,
+  isMultiRoundActive,
   isTrustTrackingEnabled,
 };
 if (require.main === module || process.argv[1] === __filename) { main(); }

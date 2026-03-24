@@ -73,14 +73,34 @@ function getPhaseFromState(planningDir) {
  * Write signal file for orchestrator to pick up and spawn verifier.
  * @param {string} planningDir - Path to .planning directory
  * @param {number} phaseNumber - Current phase number
+ * @param {object} [options] - Optional round metadata
+ * @param {number} [options.round=1] - Current QA round number
+ * @param {number} [options.total_rounds=1] - Total QA rounds configured
  */
-function writeAutoVerifySignal(planningDir, phaseNumber) {
+function writeAutoVerifySignal(planningDir, phaseNumber, options) {
   const signalPath = path.join(planningDir, '.auto-verify');
   const payload = {
     phase: phaseNumber,
+    round: options?.round || 1,
+    total_rounds: options?.total_rounds || 1,
     timestamp: new Date().toISOString()
   };
   fs.writeFileSync(signalPath, JSON.stringify(payload, null, 2), 'utf8');
+}
+
+/**
+ * Check if multi-round QA is currently active (mid-round, not yet at final round).
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {boolean} True if a multi-round QA session is in progress and not on the final round
+ */
+function isMultiRoundActive(planningDir) {
+  const signalPath = path.join(planningDir, '.auto-verify');
+  try {
+    const signal = JSON.parse(fs.readFileSync(signalPath, 'utf8'));
+    return signal.total_rounds > 1 && signal.round < signal.total_rounds;
+  } catch (_e) {
+    return false;
+  }
 }
 
 /**
@@ -100,4 +120,4 @@ function isTrustTrackingEnabled(planningDir) {
   }
 }
 
-module.exports = { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isTrustTrackingEnabled };
+module.exports = { shouldAutoVerify, getPhaseFromState, writeAutoVerifySignal, isMultiRoundActive, isTrustTrackingEnabled };
