@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, isPlanSpeculative } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being
@@ -39,6 +40,7 @@ function checkBuildDependencyGate(data) {
     if (!phaseMatch) return null;
     currentPhase = parseInt(phaseMatch[1], 10);
   } catch (_e) {
+    logHook('gate:build-dependency', 'debug', 'Failed to read STATE.md for phase', { error: _e.message });
     return null;
   }
 
@@ -106,6 +108,7 @@ function checkBuildDependencyGate(data) {
       }
     }
   } catch (_e) {
+    logHook('gate:build-dependency', 'warn', 'BuildDependency gate check crashed', { error: _e.message });
     return null;
   }
 

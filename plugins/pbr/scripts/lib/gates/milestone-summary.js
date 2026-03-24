@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhaseInt } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "milestone" and a general/planner agent
@@ -110,6 +111,7 @@ function checkMilestoneSummaryGate(data) {
       return null;
     }
   } catch (_e) {
+    logHook('gate:milestone-summary', 'warn', 'MilestoneSummary gate check crashed', { error: _e.message });
     return null;
   }
 

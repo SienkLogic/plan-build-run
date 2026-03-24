@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { readActiveSkill } = require('./helpers');
 const { resolveSessionPath } = require('../core');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Advisory check: when pbr:debugger is spawned and .active-skill is 'debug',
@@ -73,6 +74,7 @@ function checkCheckpointManifest(data) {
       return 'Build advisory: .checkpoint-manifest.json not found in phase directory. The build skill should write this before spawning executors. To fix: Run /pbr:health to regenerate checkpoint manifest.';
     }
   } catch (_e) {
+    logHook('gate:advisories', 'warn', 'CheckpointManifest advisory check crashed', { error: _e.message });
     return null;
   }
 
@@ -121,7 +123,9 @@ function checkActiveSkillIntegrity(data) {
       const skill = fs.readFileSync(activeSkillFile, 'utf8').trim();
       return `Active-skill integrity: .active-skill is ${ageHours}h old (skill: "${skill}"). This may be a stale lock from a crashed session. Run /pbr:health to diagnose, or delete .active-skill if stale.`;
     }
-  } catch (_e) { /* best-effort */ }
+  } catch (_e) {
+    logHook('gate:advisories', 'debug', 'Failed to check active-skill staleness', { error: _e.message });
+  }
 
   return null;
 }

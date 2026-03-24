@@ -73,7 +73,7 @@ function initExecutePhase(phaseNum, planningDir, overrideModel) {
     const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8", timeout: 5000 }).trim();
     const status = execSync("git status --porcelain", { encoding: "utf8", timeout: 5000 }).trim();
     gitState = { branch, clean: status === "" };
-  } catch (_e) { /* not a git repo */ }
+  } catch (_e) { /* intentionally silent: may not be a git repo */ }
   return {
     executor_model: overrideModel || models.executor || "sonnet",
     verifier_model: overrideModel || models.verifier || "sonnet",
@@ -187,9 +187,9 @@ function initResume(planningDir, sessionId) {
   const activeSkillPath = sessionId
     ? resolveSessionPath(dir, '.active-skill', sessionId)
     : path.join(dir, '.active-skill');
-  try { autoNext = fs.readFileSync(autoNextPath, "utf8").trim(); } catch (_e) { /* file not found */ }
-  try { continueHere = fs.readFileSync(path.join(dir, ".continue-here"), "utf8").trim(); } catch (_e) { /* file not found */ }
-  try { activeSkill = fs.readFileSync(activeSkillPath, "utf8").trim(); } catch (_e) { /* file not found */ }
+  try { autoNext = fs.readFileSync(autoNextPath, "utf8").trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
+  try { continueHere = fs.readFileSync(path.join(dir, ".continue-here"), "utf8").trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
+  try { activeSkill = fs.readFileSync(activeSkillPath, "utf8").trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
 
   // Drift detection and auto-repair
   const drift = detectDrift(dir);
@@ -325,7 +325,7 @@ function initStateBundle(phaseNum, planningDir) {
             if (fm.key_decisions !== undefined) entry.key_decisions = fm.key_decisions;
             prior_summaries.push(entry);
           }
-        } catch (_e) { /* skip unreadable */ }
+        } catch (_e) { /* intentionally silent: file may be unreadable */ }
       }
     }
   }
@@ -341,7 +341,7 @@ function initStateBundle(phaseNum, planningDir) {
     const branch = execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8', timeout: 5000 }).trim();
     const status = execSync('git status --porcelain', { encoding: 'utf8', timeout: 5000 }).trim();
     git = { branch, clean: status === '' };
-  } catch (_e) { /* not a git repo */ }
+  } catch (_e) { /* intentionally silent: may not be a git repo */ }
 
   return {
     state,
@@ -368,9 +368,9 @@ function initContinue(planningDir) {
   const config = configLoad(dir) || {};
 
   let autoNext = null, continueHere = null, activeSkill = null;
-  try { autoNext = fs.readFileSync(path.join(dir, '.auto-next'), 'utf8').trim(); } catch (_e) { /* missing */ }
-  try { continueHere = fs.readFileSync(path.join(dir, '.continue-here'), 'utf8').trim(); } catch (_e) { /* missing */ }
-  try { activeSkill = fs.readFileSync(path.join(dir, '.active-skill'), 'utf8').trim(); } catch (_e) { /* missing */ }
+  try { autoNext = fs.readFileSync(path.join(dir, '.auto-next'), 'utf8').trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
+  try { continueHere = fs.readFileSync(path.join(dir, '.continue-here'), 'utf8').trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
+  try { activeSkill = fs.readFileSync(path.join(dir, '.active-skill'), 'utf8').trim(); } catch (_e) { /* intentionally silent: file may not exist */ }
 
   const routing = suggestNext(dir);
   const drift = detectDrift(dir);
@@ -382,7 +382,7 @@ function initContinue(planningDir) {
       if (!pi.error) {
         currentPhase = { num: pi.num || state.current_phase, dir: pi.phase, name: pi.name, goal: pi.goal, status: pi.filesystem_status, plan_count: pi.plan_count, completed: pi.completed };
       }
-    } catch (_e) { /* phase not found */ }
+    } catch (_e) { /* intentionally silent: phase may not exist */ }
   }
 
   return {
@@ -409,10 +409,10 @@ function initMilestone(planningDir) {
   const config = configLoad(dir) || {};
 
   let roadmapContent = null;
-  try { roadmapContent = fs.readFileSync(path.join(dir, 'ROADMAP.md'), 'utf8'); } catch (_e) { /* missing */ }
+  try { roadmapContent = fs.readFileSync(path.join(dir, 'ROADMAP.md'), 'utf8'); } catch (_e) { /* intentionally silent: file may not exist */ }
 
   let hasProject = false;
-  try { hasProject = fs.existsSync(path.join(dir, 'PROJECT.md')); } catch (_e) { /* */ }
+  try { hasProject = fs.existsSync(path.join(dir, 'PROJECT.md')); } catch (_e) { /* intentionally silent: non-fatal */ }
 
   let existingArchives = [];
   const milestonesDir = path.join(dir, 'milestones');
@@ -422,7 +422,7 @@ function initMilestone(planningDir) {
         try { return fs.statSync(path.join(milestonesDir, d)).isDirectory(); } catch (_e) { return false; }
       });
     }
-  } catch (_e) { /* missing */ }
+  } catch (_e) { /* intentionally silent: file may not exist */ }
 
   // Extract milestone sections from ROADMAP.md
   const milestones = [];
@@ -491,7 +491,7 @@ function initBegin(planningDir) {
       if (fs.existsSync(phasesDir)) {
         existingPhases = fs.readdirSync(phasesDir, { withFileTypes: true }).filter(d => d.isDirectory()).length;
       }
-    } catch (_e) { /* */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
   }
 
   // Brownfield detection — check project root (parent of .planning)
@@ -502,7 +502,7 @@ function initBegin(planningDir) {
   });
 
   let hasGit = false;
-  try { hasGit = fs.existsSync(path.join(projectRoot, '.git')); } catch (_e) { /* */ }
+  try { hasGit = fs.existsSync(path.join(projectRoot, '.git')); } catch (_e) { /* intentionally silent: non-fatal */ }
 
   return {
     has_planning: hasPlanning,
@@ -536,7 +536,7 @@ function initStatus(planningDir) {
     if (fs.existsSync(todosDir)) {
       pendingTodos = fs.readdirSync(todosDir).filter(f => f.endsWith('.md')).length;
     }
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   // Count notes
   let notes = 0;
@@ -545,7 +545,7 @@ function initStatus(planningDir) {
     if (fs.existsSync(notesDir)) {
       notes = fs.readdirSync(notesDir).filter(f => f.endsWith('.md')).length;
     }
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   // Count active debug sessions
   let activeDebug = 0;
@@ -554,11 +554,11 @@ function initStatus(planningDir) {
     if (fs.existsSync(debugDir)) {
       activeDebug = fs.readdirSync(debugDir, { withFileTypes: true }).filter(d => d.isDirectory()).length;
     }
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   // Check for paused work
   let hasPausedWork = false;
-  try { hasPausedWork = fs.existsSync(path.join(dir, '.continue-here')); } catch (_e) { /* */ }
+  try { hasPausedWork = fs.existsSync(path.join(dir, '.continue-here')); } catch (_e) { /* intentionally silent: non-fatal */ }
 
   const st = state.state || {};
   return {
@@ -595,20 +595,20 @@ function initMapCodebase(planningDir) {
   let existingMaps = [];
   try {
     existingMaps = fs.readdirSync(codebaseDir).filter(f => f.endsWith('.md'));
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   // Resolve depth profile for mapper count/areas
   let depthProfile = {};
   try {
     depthProfile = configResolveDepth(dir) || {};
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   // Check intel status
   const intelDir = path.join(dir, 'intel');
   let intelEnabled = true;
   try {
     if (config.intel && config.intel.enabled === false) intelEnabled = false;
-  } catch (_e) { /* */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
   const hasIntelDir = fs.existsSync(intelDir);
 
   return {

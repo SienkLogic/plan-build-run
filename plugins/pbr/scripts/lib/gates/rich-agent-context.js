@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const { extractFrontmatter } = require('../frontmatter');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Build a rich context string from .planning/ sources.
@@ -38,7 +39,9 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
       const lines = content.split(/\r?\n/).slice(0, 20);
       sections.push({ priority: 1, header: '### Project Summary', body: lines.join('\n') });
     }
-  } catch (_e) { /* skip if unreadable */ }
+  } catch (_e) {
+    logHook('gate:rich-agent-context', 'debug', 'Failed to read PROJECT.md', { error: _e.message });
+  }
 
   // 2. Current state from STATE.md frontmatter
   try {
@@ -50,7 +53,9 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
         sections.push({ priority: 2, header: '### Current State', body: stateInfo });
       }
     }
-  } catch (_e) { /* skip if unreadable */ }
+  } catch (_e) {
+    logHook('gate:rich-agent-context', 'debug', 'Failed to read STATE.md', { error: _e.message });
+  }
 
   // 3. Recent decisions (up to 5 most recent)
   try {
@@ -65,7 +70,9 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
         sections.push({ priority: 3, header: '### Recent Decisions', body: titles });
       }
     }
-  } catch (_e) { /* skip if unreadable */ }
+  } catch (_e) {
+    logHook('gate:rich-agent-context', 'debug', 'Failed to read decisions dir', { error: _e.message });
+  }
 
   // 4. Active conventions
   try {
@@ -79,7 +86,9 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
         sections.push({ priority: 4, header: '### Active Conventions', body: titles });
       }
     }
-  } catch (_e) { /* skip if unreadable */ }
+  } catch (_e) {
+    logHook('gate:rich-agent-context', 'debug', 'Failed to read conventions dir', { error: _e.message });
+  }
 
   // 5. Working set from STATE.md (lowest priority)
   try {
@@ -91,7 +100,9 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
         sections.push({ priority: 5, header: '### Working Set', body: wsMatch[1].trim() });
       }
     }
-  } catch (_e) { /* skip if unreadable */ }
+  } catch (_e) {
+    logHook('gate:rich-agent-context', 'debug', 'Failed to read STATE.md working set', { error: _e.message });
+  }
 
   // Assemble with budget control — drop lowest priority sections first
   // Sort by priority (ascending = highest priority first)

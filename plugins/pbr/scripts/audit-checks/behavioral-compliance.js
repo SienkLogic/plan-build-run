@@ -46,11 +46,11 @@ function readJsonlFiles(dir, prefix) {
         try {
           entries.push(JSON.parse(line));
         } catch (_e) {
-          // Skip malformed JSON lines
+          // intentionally silent: skip malformed JSONL lines
         }
       }
     } catch (_e) {
-      // Skip unreadable files
+      // intentionally silent: file may not exist or be unreadable
     }
   }
 
@@ -766,7 +766,7 @@ function checkOrchestratorBudgetDiscipline(planningDir, config) {
       }
     }
   } catch (_e) {
-    // Budget file may not exist or be unreadable — not an error
+    // intentionally silent: budget file may not exist
   }
 
   if (evidence.length > 0) {

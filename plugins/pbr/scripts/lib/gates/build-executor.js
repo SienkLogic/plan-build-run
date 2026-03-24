@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhase, isPlanSpeculative } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being
@@ -37,7 +38,7 @@ function checkBuildExecutorGate(data) {
     if (fs.existsSync(path.join(planningDir, '.inline-active'))) {
       return null;
     }
-  } catch (_e) { /* ignore */ }
+  } catch (_e) { /* intentionally silent: .inline-active file may not exist */ }
 
   // Read STATE.md for current phase
   const currentPhase = readCurrentPhase(planningDir);
@@ -95,6 +96,7 @@ function checkBuildExecutorGate(data) {
       };
     }
   } catch (_e) {
+    logHook('gate:build-executor', 'warn', 'BuildExecutor gate check crashed', { error: _e.message });
     return null;
   }
 

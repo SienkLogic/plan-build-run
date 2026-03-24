@@ -6,6 +6,7 @@ const fs = require('fs');
 const path = require('path');
 const { safeReadFile, normalizePhaseName, execGit, findPhaseInternal, getMilestoneInfo, output, error } = require('./core');
 const { extractFrontmatter, parseMustHavesBlock } = require('./frontmatter');
+const { logHook } = require('../hook-logger');
 // writeStateMd was never exported from state.cjs — use fs.writeFileSync directly
 
 function cmdVerifySummary(cwd, summaryPath, checkFileCount, raw) {
@@ -183,7 +184,7 @@ function cmdVerifyPhaseCompleteness(cwd, phase, raw) {
 
   // List plans and summaries
   let files;
-  try { files = fs.readdirSync(phaseDir); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Cannot read phase directory ${phaseDir}: ${err.message}`); output({ error: 'Cannot read phase directory' }, raw); return; }
+  try { files = fs.readdirSync(phaseDir); } catch (err) { logHook('verify', 'debug', 'Cannot read phase directory', { dir: phaseDir, error: err.message }); output({ error: 'Cannot read phase directory' }, raw); return; }
 
   const plans = files.filter(f => f.match(/-PLAN\.md$/i));
   const summaries = files.filter(f => f.match(/-SUMMARY\.md$/i));
@@ -410,7 +411,7 @@ function cmdVerifyKeyLinks(cwd, planFilePath, raw) {
           }
         }
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Invalid regex pattern ${link.pattern}: ${err.message}`);
+        logHook('verify', 'debug', 'Invalid regex pattern', { pattern: link.pattern, error: err.message });
         check.detail = `Invalid regex pattern: ${link.pattern}`;
       }
     } else {
@@ -467,7 +468,7 @@ function cmdValidateConsistency(cwd, raw) {
       const dm = dir.match(/^(\d+[A-Z]?(?:\.\d+)*)/i);
       if (dm) diskPhases.add(dm[1]);
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to read phases directory: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to read phases directory', { error: err.message }); }
 
   // Check: phases in ROADMAP but not on disk
   for (const p of roadmapPhases) {
@@ -529,7 +530,7 @@ function cmdValidateConsistency(cwd, raw) {
         }
       }
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check plan numbering: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to check plan numbering', { error: err.message }); }
 
   // Check: frontmatter in plans has required fields
   try {
@@ -549,7 +550,7 @@ function cmdValidateConsistency(cwd, raw) {
         }
       }
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check plan frontmatter: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to check plan frontmatter', { error: err.message }); }
 
   const passed = errors.length === 0;
   output({ passed, errors, warnings, warning_count: warnings.length }, raw, passed ? 'passed' : 'failed');
@@ -679,7 +680,7 @@ function cmdValidateHealth(cwd, options, raw) {
           if (m) diskPhases.add(m[1]);
         }
       }
-    } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to read phases for state validation: ${err.message}`); }
+    } catch (err) { logHook('verify', 'debug', 'Failed to read phases for state validation', { error: err.message }); }
     // Check for invalid references
     for (const ref of phaseRefs) {
       const normalizedRef = String(parseInt(ref, 10)).padStart(2, '0');
@@ -721,7 +722,7 @@ function cmdValidateHealth(cwd, options, raw) {
         addIssue('warning', 'W008', 'config.json: workflow.nyquist_validation absent (defaults to enabled but agents may skip)', 'Run /pbr:health --repair to add key', true);
         if (!repairs.includes('addNyquistKey')) repairs.push('addNyquistKey');
       }
-    } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check nyquist key: ${err.message}`); }
+    } catch (err) { logHook('verify', 'debug', 'Failed to check nyquist key', { error: err.message }); }
   }
 
   // ─── Check 6: Phase directory naming (NN-name format) ─────────────────────
@@ -732,7 +733,7 @@ function cmdValidateHealth(cwd, options, raw) {
         addIssue('warning', 'W005', `Phase directory "${e.name}" doesn't follow NN-name format`, 'Rename to match pattern (e.g., 01-setup)');
       }
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check phase directory naming: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to check phase directory naming', { error: err.message }); }
 
   // ─── Check 7: Orphaned plans (PLAN without SUMMARY) ───────────────────────
   try {
@@ -751,7 +752,7 @@ function cmdValidateHealth(cwd, options, raw) {
         }
       }
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check orphaned plans: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to check orphaned plans', { error: err.message }); }
 
   // ─── Check 7b: Nyquist VALIDATION.md consistency ────────────────────────
   try {
@@ -769,7 +770,7 @@ function cmdValidateHealth(cwd, options, raw) {
         }
       }
     }
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check nyquist validation: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Failed to check nyquist validation', { error: err.message }); }
 
   // ─── Check 8: Run existing consistency checks ─────────────────────────────
   // Inline subset of cmdValidateConsistency
@@ -791,7 +792,7 @@ function cmdValidateHealth(cwd, options, raw) {
           if (dm) diskPhases.add(dm[1]);
         }
       }
-    } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to read phases for roadmap check: ${err.message}`); }
+    } catch (err) { logHook('verify', 'debug', 'Failed to read phases for roadmap check', { error: err.message }); }
 
     // Phases in ROADMAP but not on disk
     for (const p of roadmapPhases) {
@@ -910,20 +911,20 @@ function cmdValidateHealth(cwd, options, raw) {
       } else {
         feature_status.multi_phase_awareness = { enabled: false, status: 'disabled' };
       }
-    } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Config parse error (handled in Check 5): ${err.message}`); }
+    } catch (err) { logHook('verify', 'debug', 'Config parse error (handled in Check 5)', { error: err.message }); }
   }
 
   // ─── Check 11: Phase 05 feature status ────────────────────────────────────
   {
     let p05Config = {};
-    try { p05Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase05: ${err.message}`); }
+    try { p05Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase05', { error: err.message }); }
     var phase05_features = checkPhase05Features(planningDir, p05Config);
   }
 
   // ─── Check 12: Trust tracking health ──────────────────────────────────────
   {
     let config = {};
-    try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for trust: ${err.message}`); }
+    try { config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for trust', { error: err.message }); }
 
     if (config.features && config.features.trust_tracking === false) {
       addIssue('info', 'I-TRUST-DISABLED', 'trust_tracking is disabled in config', 'Enable features.trust_tracking in config.json if desired');
@@ -943,7 +944,7 @@ function cmdValidateHealth(cwd, options, raw) {
           }
           addIssue('info', 'I-TRUST-HEALTHY', `trust_tracking: healthy — ${agents.length} agents, ${totalOutcomes} outcomes tracked`, '');
         } catch (err) {
-          if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse agent-scores.json: ${err.message}`);
+          logHook('verify', 'warn', 'Failed to parse agent-scores.json', { error: err.message });
           addIssue('info', 'I-TRUST-DEGRADED', 'trust_tracking: degraded — agent-scores.json exists but is malformed', 'Delete .planning/trust/agent-scores.json to reset');
         }
       }
@@ -960,7 +961,7 @@ function cmdValidateHealth(cwd, options, raw) {
           JSON.parse(fs.readFileSync(trustFile, 'utf-8'));
           addIssue('info', 'I-CONFIDENCE-HEALTHY', 'confidence_calibration: healthy — trust data available for calibration', '');
         } catch (err) {
-          if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse trust data for confidence: ${err.message}`);
+          logHook('verify', 'warn', 'Failed to parse trust data for confidence', { error: err.message });
           addIssue('info', 'I-CONFIDENCE-DEGRADED', 'confidence_calibration: degraded — trust data malformed', 'Delete .planning/trust/agent-scores.json to reset');
         }
       }
@@ -974,12 +975,12 @@ function cmdValidateHealth(cwd, options, raw) {
     const guardHealth = graph.guardHealthCheck(planningDir);
     feature_status.architecture_graph = graphHealth;
     feature_status.architecture_guard = guardHealth;
-  } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Graph module not available: ${err.message}`); }
+  } catch (err) { logHook('verify', 'debug', 'Graph module not available', { error: err.message }); }
 
   // ─── Check 14: Phase 15 DX feature health ────────────────────────────────
   {
     let p15Config = {};
-    try { p15Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase15: ${err.message}`); }
+    try { p15Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase15', { error: err.message }); }
     const p15Features = (p15Config && p15Config.features) || {};
 
     const checkDxFeature = (featureName, modulePath, exportName) => {
@@ -1025,7 +1026,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 15: Phase 14 Quality & Safety feature health ───────────────────
   {
     let p14Config = {};
-    try { p14Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase14: ${err.message}`); }
+    try { p14Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase14', { error: err.message }); }
 
     const p14Features = p14Config.features || {};
 
@@ -1044,7 +1045,7 @@ function cmdValidateHealth(cwd, options, raw) {
         addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module validation failed)`, `Check ${modulePath} exports`);
         return { enabled: true, status: 'degraded' };
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Feature ${featureName} module load failed: ${err.message}`);
+        logHook('verify', 'debug', 'Feature module load failed', { feature: featureName, error: err.message });
         addIssue('warning', `W-${featureName.toUpperCase()}-DEGRADED`, `${featureName}: degraded (module load failed)`, `Ensure ${modulePath} exists and is valid`);
         return { enabled: true, status: 'degraded' };
       }
@@ -1078,7 +1079,7 @@ function cmdValidateHealth(cwd, options, raw) {
         const ssMod = require(ssModPath);
         const ruleCount = ssMod.SECURITY_RULES.length;
         addIssue('info', 'I-SS-HEALTHY', `security_scanning: healthy (${ruleCount} rules loaded)`, '');
-      } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to load security rules: ${err.message}`); }
+      } catch (err) { logHook('verify', 'debug', 'Failed to load security rules', { error: err.message }); }
     }
     feature_status.security_scanning = ssHealth;
   }
@@ -1086,7 +1087,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 16: Phase 11 Spec-Driven Development feature health ───────────
   {
     let p11Config = {};
-    try { p11Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase11: ${err.message}`); }
+    try { p11Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase11', { error: err.message }); }
     const p11Features = p11Config.features || {};
 
     const checkSpecFeatureHealth = (featureName, defaultEnabled, modulePath, exportName) => {
@@ -1101,7 +1102,7 @@ function cmdValidateHealth(cwd, options, raw) {
         }
         return { status: 'degraded', enabled: true, details: `${exportName} not a function` };
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Cannot load spec module: ${err.message}`);
+        logHook('verify', 'debug', 'Cannot load spec module', { error: err.message });
         return { status: 'degraded', enabled: true, details: `Cannot load module: ${err.message}` };
       }
     };
@@ -1123,7 +1124,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 17: Phase 16 cross-project intelligence feature health ────────
   {
     let p16Config = {};
-    try { p16Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase16: ${err.message}`); }
+    try { p16Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase16', { error: err.message }); }
     const p16Features = p16Config.features || {};
 
     // Helper: check if a feature is enabled (default true unless explicitly false)
@@ -1143,7 +1144,7 @@ function cmdValidateHealth(cwd, options, raw) {
           const patternsDir = require('path').join(require('os').homedir(), '.claude', 'patterns');
           return fs.existsSync(patternsDir) &&
             fs.readdirSync(patternsDir).some(f => f.endsWith('.json'));
-        } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check patterns dir: ${err.message}`); return false; }
+        } catch (err) { logHook('verify', 'debug', 'Failed to check patterns dir', { error: err.message }); return false; }
       }
     );
 
@@ -1160,7 +1161,7 @@ function cmdValidateHealth(cwd, options, raw) {
         try {
           const learningsPath = require('path').join(require('os').homedir(), '.claude', 'learnings.jsonl');
           return fs.existsSync(learningsPath);
-        } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to check learnings path: ${err.message}`); return false; }
+        } catch (err) { logHook('verify', 'debug', 'Failed to check learnings path', { error: err.message }); return false; }
       }
     );
   }
@@ -1168,7 +1169,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 18: Phase 3 (zero-friction) feature status ────────────────────
   {
     let p3Config = {};
-    try { p3Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase3: ${err.message}`); }
+    try { p3Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase3', { error: err.message }); }
     const p3Features = p3Config.features || {};
 
     const zfqEnabled = p3Features.zero_friction_quick !== false;
@@ -1181,7 +1182,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 19: Phase 4 (NL routing) feature status ───────────────────────
   {
     let p4Config = {};
-    try { p4Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase4: ${err.message}`); }
+    try { p4Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase4', { error: err.message }); }
     const p4Features = p4Config.features || {};
     const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
 
@@ -1194,7 +1195,7 @@ function cmdValidateHealth(cwd, options, raw) {
         require(path.join(pluginRoot, 'scripts', 'lib', 'alternatives.js'));
         feature_status.natural_language_routing = { enabled: true, status: 'healthy' };
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Failed to load alternatives.js: ${err.message}`);
+        logHook('verify', 'debug', 'Failed to load alternatives.js', { error: err.message });
         feature_status.natural_language_routing = { enabled: true, status: 'degraded' };
       }
     }
@@ -1210,7 +1211,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 20: Phase 6 (convention memory) feature status ────────────────
   {
     let p6Config = {};
-    try { p6Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase6: ${err.message}`); }
+    try { p6Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase6', { error: err.message }); }
     const p6Features = p6Config.features || {};
     const pluginRoot = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr');
 
@@ -1223,7 +1224,7 @@ function cmdValidateHealth(cwd, options, raw) {
         require(path.join(pluginRoot, 'scripts', 'lib', 'convention-detector.js'));
         feature_status.convention_memory = { enabled: true, status: 'healthy' };
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Failed to load convention-detector.js: ${err.message}`);
+        logHook('verify', 'debug', 'Failed to load convention-detector.js', { error: err.message });
         feature_status.convention_memory = { enabled: true, status: 'degraded' };
       }
     }
@@ -1237,7 +1238,7 @@ function cmdValidateHealth(cwd, options, raw) {
         require(path.join(pluginRoot, 'scripts', 'lib', 'snapshot-manager.js'));
         feature_status.mental_model_snapshots = { enabled: true, status: 'healthy' };
       } catch (err) {
-        if (process.env.PBR_DEBUG) console.error(`[verify] Failed to load snapshot-manager.js: ${err.message}`);
+        logHook('verify', 'debug', 'Failed to load snapshot-manager.js', { error: err.message });
         feature_status.mental_model_snapshots = { enabled: true, status: 'degraded' };
       }
     }
@@ -1246,7 +1247,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 21: Phase 9 (proactive intelligence) feature status ───────────
   {
     let p9Config = {};
-    try { p9Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase9: ${err.message}`); }
+    try { p9Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase9', { error: err.message }); }
     const scriptsDir = path.resolve(__dirname, '..', '..', '..', 'plugins', 'pbr', 'scripts');
     const { checkFeatureHealth: checkPhase9FeatureHealth } = require('./health');
     const phase9Features = [
@@ -1283,7 +1284,7 @@ function cmdValidateHealth(cwd, options, raw) {
         status: metricsResult.status,
       };
     } catch (err) {
-      if (process.env.PBR_DEBUG) console.error(`[verify] Failed to load health-checks.js: ${err.message}`);
+      logHook('verify', 'debug', 'Failed to load health-checks.js', { error: err.message });
       // health-checks.js not available — mark all as degraded
       feature_status.post_hoc_artifacts = { enabled: true, status: 'degraded' };
       feature_status.agent_feedback_loop = { enabled: true, status: 'degraded' };
@@ -1294,7 +1295,7 @@ function cmdValidateHealth(cwd, options, raw) {
   // ─── Check 23: Phase 13 (multi-agent) feature status ─────────────────────
   {
     let p13Config = {};
-    try { p13Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { if (process.env.PBR_DEBUG) console.error(`[verify] Failed to parse config for phase13: ${err.message}`); }
+    try { p13Config = JSON.parse(fs.readFileSync(configPath, 'utf-8')); } catch (err) { logHook('verify', 'debug', 'Failed to parse config for phase13', { error: err.message }); }
     const { checkMultiAgentHealth } = require('./health');
     const multiAgentResults = checkMultiAgentHealth(p13Config);
     for (const result of multiAgentResults) {
@@ -1417,7 +1418,7 @@ function checkFeatureModuleHealth(featureName, planningDir, pluginRoot, modulePa
       config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
   } catch (err) {
-    if (process.env.PBR_DEBUG) console.error(`[verify] Config unreadable for feature health: ${err.message}`);
+    logHook('verify', 'debug', 'Config unreadable for feature health', { error: err.message });
     // Config unreadable — treat as defaults
   }
 

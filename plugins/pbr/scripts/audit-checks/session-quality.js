@@ -84,11 +84,11 @@ function readJsonlFiles(logsDir, prefix) {
         try {
           entries.push(JSON.parse(trimmed));
         } catch (_e) {
-          // Skip unparseable lines
+          // intentionally silent: skip malformed JSONL lines
         }
       }
     } catch (_e) {
-      // Skip unreadable files
+      // intentionally silent: file may not exist or be unreadable
     }
   }
 
@@ -513,11 +513,11 @@ function checkMemoryUpdateTracking(planningDir, _config) {
             evidence.push(`Recent note: ${noteFile}`);
           }
         } catch (_e) {
-          // Skip unreadable note files
+          // intentionally silent: note file may not exist or be unreadable
         }
       }
     } catch (_e) {
-      // Skip unreadable notes directory
+      // intentionally silent: directory may not exist
     }
   }
 

@@ -44,7 +44,7 @@ function findContinueFiles(dir) {
       }
     }
   } catch (_e) {
-    // Ignore permission errors
+    // intentionally silent: permission error is non-fatal
   }
   return results;
 }
@@ -84,7 +84,7 @@ function getIntelContext(planningDir, config) {
       // Consume the signal file — one-time advisory
       fs.unlinkSync(signalPath);
     }
-  } catch (_e) { /* best-effort */ }
+  } catch (_e) { /* intentionally silent: best-effort */ }
 
   if (config.intel?.inject_on_start !== true) return refreshWarning;
 
@@ -144,7 +144,7 @@ function getHookHealthSummary(planningDir) {
           totalFailures++;
         }
       } catch (_e) {
-        // Skip malformed lines
+        // intentionally silent: skip malformed lines
       }
     }
 
@@ -211,13 +211,13 @@ function detectOtherSessions(planningDir, ownSessionId) {
       try {
         skill = fs.readFileSync(skillPath, 'utf8').trim() || null;
       } catch (_e) {
-        // No active skill
+        // intentionally silent: no active skill file
       }
 
       results.push({ sessionId: entry.name, skill, age, pid });
     }
   } catch (_e) {
-    // Best-effort
+    // intentionally silent: best-effort
   }
 
   return results;
@@ -240,7 +240,7 @@ function buildEnhancedBriefing(planningDir, config) {
     if (fs.existsSync(stateFile)) {
       stateContent = fs.readFileSync(stateFile, 'utf8');
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   if (stateContent) {
     try {
@@ -262,7 +262,7 @@ function buildEnhancedBriefing(planningDir, config) {
         const progress = fm.progress_percent || '?';
         lines.push(`Phase ${fm.current_phase}/${fm.total_phases}: ${phaseName} -- ${status}, plan ${plansComplete}/${plansTotal} (${progress}%)`);
       }
-    } catch (_e) { /* non-fatal */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
   }
 
   try {
@@ -293,7 +293,7 @@ function buildEnhancedBriefing(planningDir, config) {
         lines.push(`Pending decisions: ${pending.join('; ')}`);
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     const trackerFile = path.join(planningDir, '.context-tracker');
@@ -304,7 +304,7 @@ function buildEnhancedBriefing(planningDir, config) {
         lines.push(`Working set: ${files.join(', ')}`);
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     const { isSkipRagEligible } = require('../context-quality');
@@ -312,7 +312,7 @@ function buildEnhancedBriefing(planningDir, config) {
     if (skipRag.eligible) {
       lines.push(`Skip-RAG: eligible (${skipRag.line_count} lines). Full codebase fits in context.`);
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   if (stateContent) {
     try {
@@ -320,7 +320,7 @@ function buildEnhancedBriefing(planningDir, config) {
       if (blockersSection && !blockersSection.includes('None')) {
         lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
       }
-    } catch (_e) { /* non-fatal */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
   }
 
   let output = lines.join('\n');
@@ -386,7 +386,7 @@ function getDecisionBriefing(planningDir, config) {
         phase: getField('phase'),
       });
     } catch (_e) {
-      // Skip unparseable files
+      // intentionally silent: skip unparseable files
     }
   }
 
@@ -418,7 +418,7 @@ function getNegativeKnowledgeBriefing(planningDir, config, workingSet) {
         const ws = JSON.parse(fs.readFileSync(wsPath, 'utf8'));
         if (Array.isArray(ws.files)) workingSet = ws.files;
       }
-    } catch (_e) { /* ignore */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
 
     if (workingSet.length === 0) {
       try {
@@ -447,7 +447,7 @@ function getNegativeKnowledgeBriefing(planningDir, config, workingSet) {
             }
           }
         }
-      } catch (_e) { /* ignore */ }
+      } catch (_e) { /* intentionally silent: non-fatal */ }
     }
   }
 
@@ -482,7 +482,7 @@ function getNegativeKnowledgeBriefing(planningDir, config, workingSet) {
       const whyFailed = whyMatch ? whyMatch[1].trim() : '';
       const whySummary = whyFailed.length > 80 ? whyFailed.slice(0, 77) + '...' : whyFailed;
       matches.push({ date, title, whySummary, filesInvolved });
-    } catch (_e) { /* Skip */ }
+    } catch (_e) { /* intentionally silent: skip on error */ }
   }
 
   if (matches.length === 0) return '';
@@ -516,7 +516,7 @@ function buildContext(planningDir, stateFile) {
         parts.push(`Recent commits:\n${recentCommits}`);
       }
     } catch (_e) {
-      // Not a git repo or git not available
+      // intentionally silent: may not be a git repo
     }
   }
 
@@ -574,7 +574,7 @@ function buildContext(planningDir, stateFile) {
             logHook('progress-tracker', 'SessionStart', 'stale-status', { ageMinutes, staleStatus });
           }
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { /* intentionally silent: best-effort */ }
     }
   } else {
     parts.push('\nNo STATE.md found. Run /pbr:new-project to initialize or /pbr:progress to check.');
@@ -651,7 +651,7 @@ function buildContext(planningDir, stateFile) {
         parts.push(`\nSeeds: ${seeds.length} dormant. \`/pbr:explore\` to review triggers.`);
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     let deferredCount = 0;
@@ -681,13 +681,13 @@ function buildContext(planningDir, stateFile) {
               }
             }
           }
-        } catch (_e) { /* skip individual phase dirs */ }
+        } catch (_e) { /* intentionally silent: skip individual phase dirs */ }
       }
     }
     if (deferredCount > 0) {
       parts.push(`\nDeferred: ${deferredCount} items across phase summaries.`);
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     const auditFiles = fs.readdirSync(planningDir).filter(f => f.endsWith('-MILESTONE-AUDIT.md'));
@@ -709,7 +709,7 @@ function buildContext(planningDir, stateFile) {
         }
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     const questionsPath = path.join(planningDir, 'research', 'questions.md');
@@ -720,7 +720,7 @@ function buildContext(planningDir, stateFile) {
         parts.push(`\nResearch: ${openQuestions} open question(s) in .planning/research/questions.md`);
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   try {
     const knowledgePath = path.join(planningDir, 'KNOWLEDGE.md');
@@ -733,7 +733,7 @@ function buildContext(planningDir, stateFile) {
         parts.push(`\nKnowledge: ${rules} rules, ${patterns} patterns, ${lessons} lessons.`);
       }
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   const roadmapFile = path.join(planningDir, 'ROADMAP.md');
   if (fs.existsSync(stateFile) && fs.existsSync(roadmapFile)) {
@@ -772,7 +772,7 @@ function buildContext(planningDir, stateFile) {
         }
       }
     } catch (_e) {
-      // Ignore parse errors
+      // intentionally silent: parse error is non-fatal
     }
   }
 
@@ -798,7 +798,7 @@ function buildContext(planningDir, stateFile) {
         }
       }
     } catch (_e) {
-      // Ignore errors
+      // intentionally silent: non-fatal
     }
   }
 
@@ -813,7 +813,7 @@ function buildContext(planningDir, stateFile) {
         logHook('progress-tracker', 'SessionStart', 'stale-auto-next', { ageMinutes });
       }
     } catch (_e) {
-      // Ignore errors
+      // intentionally silent: non-fatal
     }
   }
 
@@ -848,7 +848,7 @@ function buildContext(planningDir, stateFile) {
         parts.push('\n' + snapshotBrief);
       }
     }
-  } catch (_e) { /* never crash SessionStart for optional features */ }
+  } catch (_e) { /* intentionally silent: never crash SessionStart for optional features */ }
 
   try {
     const conventionsEnabled = config && config.features && config.features.convention_memory !== false;
@@ -861,7 +861,7 @@ function buildContext(planningDir, stateFile) {
         }
       }
     }
-  } catch (_e) { /* never crash SessionStart for optional features */ }
+  } catch (_e) { /* intentionally silent: never crash SessionStart for optional features */ }
 
   try {
     const { checkPreResearch } = require('./pre-research');
@@ -869,7 +869,7 @@ function buildContext(planningDir, stateFile) {
     if (preResearchResult) {
       parts.push(`\n[Pre-Research] Phase ${preResearchResult.nextPhase} (${preResearchResult.name}) is next -- consider running ${preResearchResult.command} to pre-research.`);
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   parts.push('\n[PBR WORKFLOW REQUIRED -- Route all work through PBR commands]\n- Fix a bug or small task \u2192 /pbr:quick\n- Plan a feature \u2192 /pbr:plan-phase N\n- Build from a plan \u2192 /pbr:execute-phase N\n- Explore or research \u2192 /pbr:explore\n- Freeform request \u2192 /pbr:do\n- Do NOT write source code or spawn generic agents without an active PBR skill.\n- Use PBR agents (pbr:researcher, pbr:executor, etc.) not Explore/general-purpose.');
 

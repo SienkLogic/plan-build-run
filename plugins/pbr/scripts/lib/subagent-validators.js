@@ -35,7 +35,7 @@ function loadFeatureFlag(planningDir, flagName) {
     const configPath = path.join(planningDir, 'config.json');
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     return config.features?.[flagName];
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: config may not exist
     return undefined;
   }
 }
@@ -91,7 +91,7 @@ function extractVerificationOutcome(planningDir) {
     }
 
     return { passed, category, mustHavesPassed, mustHavesTotal };
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: verification data may not exist
     return null;
   }
 }
@@ -104,7 +104,7 @@ function isRecent(filePath, thresholdMs = 1800000) {
   try {
     const stat = fs.statSync(filePath);
     return (Date.now() - stat.mtimeMs) < thresholdMs;
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: file may not exist
     return false;
   }
 }
@@ -153,7 +153,7 @@ function findInPhaseDir(planningDir, pattern) {
         }
       }
     }
-  } catch (_e) {
+  } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to search phase directory');
     // best-effort
   }
   return matches;
@@ -186,7 +186,7 @@ function findInQuickDir(planningDir, pattern) {
         }
       }
     }
-  } catch (_e) {
+  } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to search quick directory');
     // best-effort
   }
   return matches;
@@ -212,7 +212,7 @@ function checkSummaryCommits(planningDir, foundFiles, warnings) {
       if (commitsVal === '[]' || commitsVal === '' || commitsVal === '~' || commitsVal === 'null') {
         warnings.push(`${relPath}: "commits" field is empty. Executor may have failed to commit changes.`);
       }
-    } catch (_e) { /* best-effort */ }
+    } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to check summary commits'); }
   }
 }
 
@@ -272,7 +272,7 @@ function checkDeviationsRequiringReview(planningDir, foundFiles, warnings) {
           .join('; ');
         warnings.push(`Executor flagged ${askDeviations.length} deviation(s) requiring review: ${descriptions}`);
       }
-    } catch (_e) { /* best-effort */ }
+    } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to check deviations in summary'); }
   }
 }
 
@@ -296,7 +296,7 @@ function logCompliance(planningDir, agentType, violation, severity) {
       severity
     });
     fs.appendFileSync(logFile, entry + '\n', 'utf8');
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: compliance logging must not crash hooks
     // Best-effort — never crash the hook
   }
 }
@@ -331,13 +331,13 @@ function checkTriggeredSeeds(planningDir, warnings) {
           const idMatch = seed.match(/SEED-(\d+)/);
           triggered.push({ id: idMatch ? idMatch[1] : seed, trigger: triggerMatch[1] });
         }
-      } catch (_e) { /* skip unreadable seeds */ }
+      } catch (_e) { /* intentionally silent: seed file may be unreadable */ }
     }
     if (triggered.length > 0) {
       const seedList = triggered.map(s => `SEED-${s.id} (trigger: ${s.trigger})`).join(', ');
       warnings.push(`Seed(s) triggered by phase completion: ${seedList}. Review with /pbr:explore.`);
     }
-  } catch (_e) { /* non-fatal */ }
+  } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to check triggered seeds'); }
 }
 
 /**
@@ -389,7 +389,7 @@ const AGENT_OUTPUTS = {
           allFiles._stale = true;
         }
         return allFiles;
-      } catch (_e) {
+      } catch (_e) { // intentionally silent: directory listing may fail
         return [];
       }
     }
@@ -409,7 +409,7 @@ const AGENT_OUTPUTS = {
             }
             return allFiles;
           }
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { /* intentionally silent: directory listing may fail */ }
       }
       const contextFile = path.join(planningDir, 'CONTEXT.md');
       if (fs.existsSync(contextFile)) {
@@ -422,7 +422,7 @@ const AGENT_OUTPUTS = {
             }
             return result;
           }
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { /* intentionally silent: directory listing may fail */ }
       }
       return [];
     }
@@ -445,7 +445,7 @@ const AGENT_OUTPUTS = {
         return fs.readdirSync(debugDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('debug', f));
-      } catch (_e) {
+      } catch (_e) { // intentionally silent: directory listing may fail
         return [];
       }
     }
@@ -459,7 +459,7 @@ const AGENT_OUTPUTS = {
         return fs.readdirSync(codebaseDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('codebase', f));
-      } catch (_e) {
+      } catch (_e) { // intentionally silent: directory listing may fail
         return [];
       }
     }
@@ -478,7 +478,7 @@ const AGENT_OUTPUTS = {
         return fs.readdirSync(auditsDir)
           .filter(f => f.endsWith('.md'))
           .map(f => path.join('audits', f));
-      } catch (_e) {
+      } catch (_e) { // intentionally silent: directory listing may fail
         return [];
       }
     }
@@ -497,7 +497,7 @@ const AGENT_OUTPUTS = {
         return fs.readdirSync(intelDir)
           .filter(f => f.endsWith('.md') || f.endsWith('.json'))
           .map(f => path.join('intel', f));
-      } catch (_e) {
+      } catch (_e) { // intentionally silent: directory listing may fail
         return [];
       }
     }
@@ -568,7 +568,7 @@ function checkRoadmapStaleness(planningDir) {
         }
       }
     }
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: roadmap check is best-effort
     // best-effort
   }
   return null;
@@ -616,7 +616,7 @@ const SKILL_CHECKS = {
               warnings.push(`Scan mapper: No output file containing "${area}" found in .planning/codebase/. One of the 4 mappers may have failed.`);
             }
           }
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { /* intentionally silent: directory listing may fail */ }
       }
     }
   },
@@ -631,7 +631,7 @@ const SKILL_CHECKS = {
           if (statusMatch && statusMatch[1] === 'gaps_found') {
             warnings.push('Review verifier: VERIFICATION.md has status "gaps_found" — ensure gaps are surfaced to the user.');
           }
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check failed in review:pbr:verifier'); }
       }
       checkLearningsRequired(planningDir, warnings, 'verifier');
 
@@ -648,7 +648,7 @@ const SKILL_CHECKS = {
           category: outcome.category,
           passed: outcome.passed
         });
-      } catch (_e) {
+      } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check error in review:pbr:verifier');
         // Never crash the hook for trust tracking failures
       }
     }
@@ -672,7 +672,7 @@ const SKILL_CHECKS = {
           const config = resolveConfig(planningDir);
           const selfCheckWarnings = validateSelfCheck(fullPath, config);
           warnings.push(...selfCheckWarnings);
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check failed in build:pbr:executor'); }
       }
       // Extract feedback for agent prompt enrichment
       try {
@@ -689,7 +689,7 @@ const SKILL_CHECKS = {
             }
           }
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check failed in build:pbr:executor'); }
       checkLearningsRequired(planningDir, warnings, 'executor');
       // Check for seeds triggered by this phase completion
       checkTriggeredSeeds(planningDir, warnings);
@@ -709,7 +709,7 @@ const SKILL_CHECKS = {
           taskCount: found.filter(f => /SUMMARY/i.test(f)).length,
           fileCount: 0
         });
-      } catch (_e) { /* best-effort — never crash for audit logging */ }
+      } catch (_e) { /* intentionally silent: audit logging must not crash hooks */ }
     }
   },
   'quick:pbr:executor': {
@@ -752,7 +752,7 @@ const SKILL_CHECKS = {
             timestamp: new Date().toISOString()
           });
           warnings.push(`SUMMARY.md auto-generated post-hoc for quick task ${taskSlug} (${result.commitCount} commits found)`);
-        } catch (_genErr) {
+        } catch (_genErr) { // error logged via logEvent below
           const { logEvent } = require('../event-logger');
           logEvent('post_hoc', 'post_hoc_generation_failed', {
             taskDir: taskSlug,
@@ -760,7 +760,7 @@ const SKILL_CHECKS = {
             feature: 'post_hoc_artifacts'
           });
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { logHook('subagent-validators', 'debug', 'Failed in quick executor post-hoc check'); }
     }
   },
   'begin:pbr:researcher': {
@@ -791,7 +791,7 @@ const SKILL_CHECKS = {
           if (!/sources_checked\s*:/i.test(fm)) {
             warnings.push(`${basename}: frontmatter missing "sources_checked" field.`);
           }
-        } catch (_e) { /* best-effort */ }
+        } catch (_e) { /* intentionally silent: directory listing may fail */ }
       }
     }
   },
@@ -813,7 +813,7 @@ const SKILL_CHECKS = {
         if (!hasLearnings) {
           warnings.push('[REQUIRED] No LEARNINGS.md found in .planning/debug/. The debugger agent MUST document what it learned — root causes found, debugging approaches that worked, environment quirks discovered.');
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { /* intentionally silent: directory listing may fail */ }
     }
   },
   'begin:pbr:synthesizer': {
@@ -843,7 +843,7 @@ const SKILL_CHECKS = {
             warnings.push(`SUMMARY.md missing dimension: ${dim}. All 4 research dimensions must be covered.`);
           }
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { /* intentionally silent: directory listing may fail */ }
     }
   },
   'milestone:pbr:general': {
@@ -892,7 +892,7 @@ const SKILL_CHECKS = {
         } else {
           warnings.push(`[REQUIRED] Milestone archive ${archiveDirs[0]}: missing phases/ subdirectory`);
         }
-      } catch (_e) { /* best-effort */ }
+      } catch (_e) { logHook('subagent-validators', 'debug', 'Failed in milestone archive validation'); }
     }
   }
 };
@@ -949,7 +949,7 @@ function logInlineDecision(planningDir, decision) {
       estimatedLines: decision.estimatedLines || 0
     });
     fs.appendFileSync(logFile, entry + '\n', 'utf8');
-  } catch (_e) {
+  } catch (_e) { // intentionally silent: audit logging must not crash hooks
     // Best-effort — never crash the caller
   }
 }
@@ -981,7 +981,7 @@ function validateSelfCheck(summaryPath, config) {
       const retries = retriesMatch ? retriesMatch[1] : '0';
       warnings.push(`Executor self-check reported ${failed} failed must-haves after ${retries} retries`);
     }
-  } catch (_e) { /* skip gracefully */ }
+  } catch (_e) { /* intentionally silent: self-check parse error is non-fatal */ }
   return warnings;
 }
 
@@ -1026,9 +1026,9 @@ function checkUserGateCompliance(planningDir, skillName) {
     }
 
     // Signal exists and matches — clean up
-    try { fs.unlinkSync(signalPath); } catch (_e) { /* best-effort cleanup */ }
+    try { fs.unlinkSync(signalPath); } catch (_e) { /* intentionally silent: signal file cleanup */ }
     return null;
-  } catch (_e) {
+  } catch (_e) { logHook('subagent-validators', 'debug', 'Failed to check user gate compliance');
     // If signal file exists but can't be parsed, treat as missing
     return `Skill '${skillName}' completed without any AskUserQuestion calls. This skill has gate-prompt references that should require user confirmation.`;
   }

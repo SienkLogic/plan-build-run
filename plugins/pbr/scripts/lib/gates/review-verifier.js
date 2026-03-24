@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhase } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "review" and a verifier is being
@@ -60,6 +61,7 @@ function checkReviewVerifierGate(data) {
       };
     }
   } catch (_e) {
+    logHook('gate:review-verifier', 'warn', 'ReviewVerifier gate check crashed', { error: _e.message });
     return null;
   }
 

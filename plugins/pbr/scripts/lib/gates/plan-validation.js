@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhase } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "build" and an executor is being
@@ -38,7 +39,7 @@ function checkPlanValidationGate(data) {
     if (fs.existsSync(path.join(planningDir, '.inline-active'))) {
       return null;
     }
-  } catch (_e) { /* ignore */ }
+  } catch (_e) { /* intentionally silent: .inline-active file may not exist */ }
 
   // Read STATE.md for current phase
   const currentPhase = readCurrentPhase(planningDir);
@@ -66,7 +67,7 @@ function checkPlanValidationGate(data) {
       const configPath = path.join(planningDir, 'config.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       if (config.depth) depth = config.depth;
-    } catch (_e) { /* default to standard */ }
+    } catch (_e) { /* intentionally silent: config.json may not exist, default to standard */ }
 
     // Check if .plan-check.json exists
     if (!fs.existsSync(checkFile)) {
@@ -106,7 +107,7 @@ function checkPlanValidationGate(data) {
     // status === "passed" — allow
     return null;
   } catch (_e) {
-    // Fail open on unexpected errors
+    logHook('gate:plan-validation', 'warn', 'PlanValidation gate check crashed', { error: _e.message });
     return null;
   }
 }

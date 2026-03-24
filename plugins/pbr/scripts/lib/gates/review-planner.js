@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhase } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "review" and a planner is being
@@ -52,6 +53,7 @@ function checkReviewPlannerGate(data) {
       };
     }
   } catch (_e) {
+    logHook('gate:review-planner', 'warn', 'ReviewPlanner gate check crashed', { error: _e.message });
     return null;
   }
 

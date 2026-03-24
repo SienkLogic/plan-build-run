@@ -13,6 +13,7 @@
  */
 
 const fs = require('fs');
+const { logHook } = require('../../hook-logger');
 
 const DEFAULT_MAX_TASKS = 2;
 const DEFAULT_CONTEXT_CAP_PCT = 40;
@@ -124,6 +125,7 @@ function shouldInlineExecution(planPath, config, contextPct) {
   try {
     planContent = fs.readFileSync(planPath, 'utf8');
   } catch (_e) {
+    logHook('gate:inline-execution', 'debug', 'Failed to read plan file', { error: _e.message, planPath });
     return { inline: false, reason: 'cannot read plan file' };
   }
 

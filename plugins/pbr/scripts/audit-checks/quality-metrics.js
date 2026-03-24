@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('../hook-logger');
 
 /**
  * Quality Metrics Check Module
@@ -204,6 +205,7 @@ function checkBaselineComparison(planningDir, auditResults) {
       .filter(function (f) { return f.endsWith('-session-audit.md'); })
       .sort();
   } catch (_err) {
+    logHook('audit:quality-metrics', 'debug', 'Failed to read audits directory', { error: _err.message });
     return result('QM-03', 'pass', 'Previous audit unreadable, skipping baseline comparison');
   }
 
@@ -217,6 +219,7 @@ function checkBaselineComparison(planningDir, auditResults) {
   try {
     content = fs.readFileSync(path.join(auditsDir, latestFile), 'utf8');
   } catch (_err) {
+    logHook('audit:quality-metrics', 'debug', 'Failed to read previous audit file', { error: _err.message });
     return result('QM-03', 'pass', 'Previous audit unreadable, skipping baseline comparison');
   }
 

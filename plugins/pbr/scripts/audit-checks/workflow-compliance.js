@@ -83,12 +83,12 @@ function findSessionLogs(planningDir, maxFiles) {
             .map(f => path.join(fullDir, f));
           sessionLogs.push(...paths);
         } catch (_e) {
-          // skip
+          // intentionally silent: skip on error
         }
       }
     }
   } catch (_e) {
-    // No session logs directory
+    // intentionally silent: directory may not exist
   }
 
   return sessionLogs;
@@ -110,11 +110,11 @@ function parseSessionEntries(logFiles) {
         try {
           entries.push(JSON.parse(line));
         } catch (_e) {
-          // skip malformed lines
+          // intentionally silent: skip malformed JSONL lines
         }
       }
     } catch (_e) {
-      // skip unreadable files
+      // intentionally silent: file may not exist or be unreadable
     }
   }
   return entries;
@@ -667,7 +667,7 @@ function checkPlanningArtifactCompleteness(planningDir, _config) {
   try {
     roadmapContent = fs.readFileSync(roadmapPath, 'utf8').replace(/\r\n/g, '\n');
   } catch (_e) {
-    // No roadmap — can only check by artifact presence
+    // intentionally silent: roadmap may not exist
   }
 
   const evidence = [];
@@ -923,7 +923,7 @@ function checkTestHealthBaseline(planningDir, _config) {
     });
     hasFailures = testOutput.includes('FAIL');
   } catch (_e) {
-    // Non-zero exit = test failures
+    // intentionally silent: non-zero exit indicates test failures
     hasFailures = true;
     if (_e.stdout) testOutput = _e.stdout.toString();
   }
@@ -938,7 +938,7 @@ function checkTestHealthBaseline(planningDir, _config) {
     const raw = fs.readFileSync(baselinePath, 'utf8');
     baseline = JSON.parse(raw);
   } catch (_e) {
-    // No baseline file
+    // intentionally silent: baseline file may not exist
   }
 
   if (!baseline) {

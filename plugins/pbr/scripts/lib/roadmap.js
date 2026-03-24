@@ -328,7 +328,7 @@ function roadmapUpdatePlanProgress(phaseNum, planningDir) {
         break;
       }
     }
-  } catch (_e) { /* ignore */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   if (!phaseDir) {
     return { success: false, error: `Phase ${phaseNum} directory not found` };
@@ -441,7 +441,7 @@ function roadmapAnalyze(planningDir) {
         current_phase = typeof fm.current_phase === 'number' ? fm.current_phase : parseInt(fm.current_phase, 10);
         if (isNaN(current_phase)) current_phase = null;
       }
-    } catch (_e) { /* ignore */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
   }
 
   // 6. Derive next_phase
@@ -658,7 +658,7 @@ function _crossReferenceDisk(phase, phasesDir) {
         break;
       }
     }
-  } catch (_e) { /* ignore */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   if (!phaseDir) {
     phase.disk_status = 'no_directory';
@@ -681,7 +681,7 @@ function _crossReferenceDisk(phase, phasesDir) {
       if (fm && fm.result) {
         phase.verification_result = fm.result;
       }
-    } catch (_e) { /* ignore */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
   }
 
   // Determine disk_status

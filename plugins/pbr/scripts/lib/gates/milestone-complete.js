@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill, readCurrentPhaseInt } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Parse VERIFICATION.md frontmatter to extract status field.
@@ -24,6 +25,7 @@ function getVerificationStatus(filePath) {
     const statusMatch = fmMatch[1].match(/^status:\s*(\S+)/m);
     return statusMatch ? statusMatch[1] : 'unknown';
   } catch (_e) {
+    logHook('gate:milestone-complete', 'debug', 'Failed to read VERIFICATION.md status', { error: _e.message, filePath });
     return 'unknown';
   }
 }
@@ -127,6 +129,7 @@ function checkMilestoneCompleteGate(data) {
       return null;
     }
   } catch (_e) {
+    logHook('gate:milestone-complete', 'warn', 'MilestoneComplete gate check crashed', { error: _e.message });
     return null;
   }
 

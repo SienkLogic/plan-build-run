@@ -12,6 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Map active skill + task description to a known operation name.
@@ -58,6 +59,7 @@ function checkUserConfirmationGate(data) {
   try {
     config = JSON.parse(fs.readFileSync(path.join(planningDir, 'config.json'), 'utf8'));
   } catch (_e) {
+    logHook('gate:user-confirmation', 'debug', 'Failed to read config.json', { error: _e.message });
     return null;
   }
 

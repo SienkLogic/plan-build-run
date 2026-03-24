@@ -82,7 +82,7 @@ function scanHookLogs(planningDir, filterFn, maxDays) {
     try {
       content = fs.readFileSync(filePath, 'utf8');
     } catch (_e) {
-      // File does not exist for this date — skip
+      // intentionally silent: file may not exist for this date
       continue;
     }
 
@@ -198,11 +198,11 @@ function checkSecurityScanningActivity(planningDir, config) {
         hasBuilds = true;
         break;
       } catch (_e) {
-        // No SUMMARY.md in this phase
+        // intentionally silent: file may not exist
       }
     }
   } catch (_e) {
-    // No phases dir
+    // intentionally silent: directory may not exist
   }
 
   if (!hasBuilds) {
@@ -245,7 +245,7 @@ function checkTrustTrackingActivity(planningDir, config) {
     fs.accessSync(trustScoresPath);
     hasTrustScores = true;
   } catch (_e) {
-    // File does not exist
+    // intentionally silent: file may not exist
   }
 
   const evidence = [];
@@ -298,7 +298,7 @@ function checkLearningsSystemActivity(planningDir, config) {
       fs.accessSync(learningsPath);
       learningsFiles.push(path.join(dir.name, 'LEARNINGS.md'));
     } catch (_e) {
-      // No LEARNINGS.md in this phase
+      // intentionally silent: file may not exist
     }
   }
 
@@ -332,7 +332,7 @@ function checkIntelSystemActivity(planningDir, config) {
     fs.accessSync(archPath);
     evidence.push('intel/arch.md exists');
   } catch (_e) {
-    // Not found
+    // intentionally silent: file may not exist
   }
 
   // If inject_on_start, check for progress-tracker log entries
@@ -390,7 +390,7 @@ function checkAutoContinueChain(planningDir, config) {
     fs.accessSync(autoNextPath);
     hasStaleSignal = true;
   } catch (_e) {
-    // File does not exist — good
+    // intentionally silent: file not expected to exist
   }
 
   if (hasStaleSignal) {

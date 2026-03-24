@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Load plans from the current phase and adjacent phases.
@@ -140,6 +141,7 @@ function loadPlansFromDir(phaseDir) {
       content: fs.readFileSync(path.join(phaseDir, f), 'utf8'),
     }));
   } catch (_e) {
+    logHook('gate:multi-phase-loader', 'debug', 'Failed to read plans from phase dir', { error: _e.message, phaseDir });
     return [];
   }
 }

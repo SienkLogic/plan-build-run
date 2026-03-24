@@ -765,7 +765,7 @@ function phaseComplete(phaseNum, planningDir) {
       manifestWritten = true;
     }
   } catch (_e) {
-    // Non-fatal: manifest is advisory for undo operations
+    // intentionally silent: manifest is advisory for undo operations
   }
 
   return {
@@ -952,7 +952,7 @@ function phaseCommitsFor(phaseNum, planningDir) {
     const entries = fs.readdirSync(phasesDir);
     const match = entries.find(d => d.startsWith(padded + '-'));
     if (match) phaseDir = path.join(phasesDir, match);
-  } catch (_e) { /* ignore */ }
+  } catch (_e) { /* intentionally silent: non-fatal */ }
 
   if (!phaseDir) {
     return { error: `Phase ${phaseNum} directory not found`, commits: [] };

@@ -133,7 +133,7 @@ function checkCriticalMarkerCoverage(pluginRoot) {
         }
       }
     } catch (_e) {
-      // Skip unreadable directories
+      // intentionally silent: directory may not exist
     }
     return results;
   }
@@ -248,7 +248,7 @@ function checkCrossPlatformPathSafety(pluginRoot) {
         }
       }
     } catch (_e) {
-      // Skip unreadable directories
+      // intentionally silent: directory may not exist
     }
   }
 

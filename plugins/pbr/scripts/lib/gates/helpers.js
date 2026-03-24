@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveSessionPath } = require('../core');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Read the current .active-skill value.
@@ -22,7 +23,7 @@ function readActiveSkill(planningDir, sessionId) {
     const { sessionLoad } = require('../core');
     const session = sessionLoad(planningDir, sessionId);
     if (session && session.activeSkill) return session.activeSkill;
-  } catch (_e) { /* pbr-tools unavailable */ }
+  } catch (_e) { /* intentionally silent: pbr-tools/session may not be available */ }
   // Fall back to .active-skill file (session-scoped when sessionId available)
   try {
     const skillPath = sessionId
@@ -30,6 +31,7 @@ function readActiveSkill(planningDir, sessionId) {
       : path.join(planningDir, '.active-skill');
     return fs.readFileSync(skillPath, 'utf8').trim();
   } catch (_e) {
+    // intentionally silent: .active-skill file may not exist
     return null;
   }
 }
@@ -47,6 +49,7 @@ function readCurrentPhase(planningDir) {
     if (!phaseMatch) return null;
     return phaseMatch[1].padStart(2, '0');
   } catch (_e) {
+    logHook('gate:helpers', 'debug', 'Failed to read STATE.md for phase string', { error: _e.message });
     return null;
   }
 }
@@ -67,6 +70,7 @@ function readCurrentPhaseInt(planningDir) {
     if (bodyMatch) return parseInt(bodyMatch[1], 10);
     return null;
   } catch (_e) {
+    logHook('gate:helpers', 'debug', 'Failed to read STATE.md for phase int', { error: _e.message });
     return null;
   }
 }
@@ -86,6 +90,7 @@ function isPlanSpeculative(filePath) {
     const frontmatter = content.substring(3, endIdx);
     return /^\s*speculative\s*:\s*true\s*$/m.test(frontmatter);
   } catch (_e) {
+    logHook('gate:helpers', 'debug', 'Failed to read plan file for speculative check', { error: _e.message, filePath });
     return false;
   }
 }

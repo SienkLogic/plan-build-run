@@ -43,7 +43,7 @@ function _resolveSessionId(planningDir) {
       const data = JSON.parse(fs.readFileSync(sessionPath, 'utf8'));
       return data.session_id || data.id || null;
     }
-  } catch (_e) { /* best effort */ }
+  } catch (_e) { /* intentionally silent: best-effort */ }
   return null;
 }
 

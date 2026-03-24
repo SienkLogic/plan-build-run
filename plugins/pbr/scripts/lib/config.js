@@ -105,7 +105,7 @@ function configValidate(configOrDir, planningDir) {
       const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
       validateObject(config, schema, '', errors, warnings);
     } catch (_e) {
-      // Schema file exists but couldn't be loaded — skip schema validation
+      // intentionally silent: schema file may be unloadable — skip validationalidation
       warnings.push('Could not load config-schema.json for validation');
     }
   }

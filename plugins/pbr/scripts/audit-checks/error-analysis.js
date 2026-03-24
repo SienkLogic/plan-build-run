@@ -89,11 +89,11 @@ function readJsonlFiles(logsDir, prefix) {
         try {
           entries.push(JSON.parse(trimmed));
         } catch (_e) {
-          // Skip malformed lines
+          // intentionally silent: skip malformed JSONL lines
         }
       }
     } catch (_e) {
-      // Skip unreadable files
+      // intentionally silent: file may not exist or be unreadable
     }
   }
 
@@ -621,11 +621,11 @@ function checkHookFalseNegative(planningDir, config) {
                 filesModified = files.map(f => f.replace(/"/g, ''));
               }
             }
-          } catch (_e) { /* skip unreadable */ }
+          } catch (_e) { /* intentionally silent: file may be unreadable */ }
         }
       }
     }
-  } catch (_e) { /* no plan files available */ }
+  } catch (_e) { /* intentionally silent: plan files may not exist */ }
 
   if (filesModified && filesModified.length > 0) {
     for (const wa of writeAllows) {
@@ -747,7 +747,7 @@ function checkCrossSessionInterference(planningDir, config) {
           `${sf.desc} exists (${ageMin}min old) — may be stale from crashed session`
         );
       }
-    } catch (_e) { /* best-effort */ }
+    } catch (_e) { /* intentionally silent: best-effort check */ }
   }
 
   if (evidence.length === 0) {
@@ -833,7 +833,7 @@ function checkSessionCleanupVerification(planningDir, config) {
       if (fs.existsSync(filePath)) {
         evidence.push(`${check.desc} exists — cleanup may have missed it`);
       }
-    } catch (_e) { /* best-effort */ }
+    } catch (_e) { /* intentionally silent: best-effort check */ }
   }
 
   // 3. Check for stale .checkpoint-manifest.json (>24 hours old)
@@ -855,10 +855,10 @@ function checkSessionCleanupVerification(planningDir, config) {
               );
             }
           }
-        } catch (_e) { /* skip */ }
+        } catch (_e) { /* intentionally silent: skip on error */ }
       }
     }
-  } catch (_e) { /* best-effort */ }
+  } catch (_e) { /* intentionally silent: best-effort check */ }
 
   // 4. Check hook log rotation — if hooks-*.jsonl has files older than 30 days
   const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -876,7 +876,7 @@ function checkSessionCleanupVerification(planningDir, config) {
         }
       }
     }
-  } catch (_e) { /* best-effort */ }
+  } catch (_e) { /* intentionally silent: best-effort check */ }
 
   if (evidence.length === 0) {
     const cleanupCount = cleanupEntries.length;

@@ -203,7 +203,7 @@ function checkStaleFileDetection(planningDir, config) {
         staleEvidence.push(`${file}: ${ageHours}h old (threshold: ${staleHours}h)`);
       }
     } catch (_e) {
-      // File does not exist — skip
+      // intentionally silent: file may not exist
     }
   }
 
@@ -259,12 +259,12 @@ function checkPluginCacheFreshness(planningDir, config) {
           const cacheData = JSON.parse(fs.readFileSync(cachePluginJson, 'utf8'));
           cachedVersions.push({ dir: dir.name, version: cacheData.version });
         } catch (_e2) {
-          // Skip unreadable cache entries
+          // intentionally silent: cache entry may be unreadable
         }
       }
     }
   } catch (_e) {
-    // Cache dir not found
+    // intentionally silent: directory may not exist
   }
 
   if (cachedVersions.length === 0) {
@@ -552,7 +552,7 @@ function checkDiskUsageTracking(planningDir, config) {
           total += fs.statSync(full).size;
         }
       } catch (_e) {
-        // EPERM / ENOENT — skip
+        // intentionally silent: file may not exist or lack permissions
       }
     }
     return total;

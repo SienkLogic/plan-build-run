@@ -83,7 +83,7 @@ function cmdHistoryDigest(cwd, raw) {
       for (const dir of currentDirs) {
         allPhaseDirs.push({ name: dir, fullPath: path.join(phasesDir, dir), milestone: null });
       }
-    } catch {}
+    } catch { /* intentionally silent: phases directory may not exist */ }
   }
 
   if (allPhaseDirs.length === 0) {
@@ -375,7 +375,7 @@ function cmdProgressRender(cwd, format, raw) {
 
       phases.push({ number: phaseNum, name: phaseName, plans, summaries, status });
     }
-  } catch {}
+  } catch { /* intentionally silent: phase directory may not exist or be unreadable */ }
 
   const percent = totalPlans > 0 ? Math.min(100, Math.round((totalSummaries / totalPlans) * 100)) : 0;
 

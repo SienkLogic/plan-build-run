@@ -13,6 +13,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
+const { logHook } = require('../hook-logger');
 
 // ─── Module-level planningDir with MSYS path bridging ─────────────────────────
 
@@ -204,6 +205,7 @@ function safeReadFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
   } catch {
+    // intentionally silent: file may not exist
     return null;
   }
 }
@@ -228,6 +230,7 @@ function findFiles(dir, pattern) {
   try {
     return fs.readdirSync(dir).filter(f => pattern.test(f)).sort();
   } catch (_) {
+    // intentionally silent: directory may not exist
     return [];
   }
 }
@@ -248,6 +251,7 @@ function tailLines(filePath, n) {
     if (lines.length <= n) return lines;
     return lines.slice(lines.length - n);
   } catch (_e) {
+    // intentionally silent: file may not exist
     return [];
   }
 }
@@ -274,6 +278,7 @@ function execGit(gitCwd, args) {
     });
     return { exitCode: 0, stdout: stdout.trim(), stderr: '' };
   } catch (err) {
+    // intentionally silent: git command failures are normal control flow
     return {
       exitCode: err.status ?? 1,
       stdout: (err.stdout ?? '').toString().trim(),
@@ -297,6 +302,7 @@ function isGitIgnored(gitCwd, targetPath) {
     });
     return true;
   } catch {
+    // intentionally silent: non-zero exit means not ignored
     return false;
   }
 }
@@ -468,6 +474,7 @@ function determinePhaseStatus(planCount, completedCount, summaryCount, hasVerifi
     if (/status:\s*["']?gaps_found/i.test(vContent)) return 'needs_fixes';
     return 'reviewed';
   } catch (_) {
+    // intentionally silent: VERIFICATION.md may not exist
     return 'built';
   }
 }
@@ -626,7 +633,8 @@ function searchPhaseInDir(baseDir, relBase, normalized) {
       has_context: hasContext,
       has_verification: hasVerification,
     };
-  } catch {
+  } catch (e) {
+    logHook('core', 'debug', 'Failed to search phase in directory', { error: e.message });
     return null;
   }
 }
@@ -661,7 +669,7 @@ function findPhaseInternal(phaseCwd, phase) {
         return result;
       }
     }
-  } catch { /* best effort */ }
+  } catch (e) { logHook('core', 'debug', 'Failed to search milestone archives', { error: e.message }); }
 
   return null;
 }
@@ -695,7 +703,7 @@ function getArchivedPhaseDirs(archCwd) {
         });
       }
     }
-  } catch { /* best effort */ }
+  } catch (e) { logHook('core', 'debug', 'Failed to list archived phase dirs', { error: e.message }); }
 
   return results;
 }
@@ -731,7 +739,8 @@ function getRoadmapPhaseInternal(rmCwd, phaseNum) {
       goal,
       section,
     };
-  } catch {
+  } catch (e) {
+    logHook('core', 'debug', 'Failed to read roadmap for phase lookup', { error: e.message });
     return null;
   }
 }
@@ -761,7 +770,8 @@ function getMilestoneInfo(miCwd) {
       version: versionMatch ? versionMatch[0] : 'v1.0',
       name: 'milestone',
     };
-  } catch {
+  } catch (e) {
+    logHook('core', 'debug', 'Failed to read milestone info', { error: e.message });
     return { version: 'v1.0', name: 'milestone' };
   }
 }
@@ -779,7 +789,7 @@ function getMilestonePhaseFilter(filterCwd) {
     while ((m = phasePattern.exec(roadmap)) !== null) {
       milestonePhaseNums.add(m[1]);
     }
-  } catch { /* best effort */ }
+  } catch (e) { logHook('core', 'debug', 'Failed to read roadmap for milestone filter', { error: e.message }); }
 
   if (milestonePhaseNums.size === 0) {
     const passAll = () => true;
@@ -818,23 +828,23 @@ function atomicWrite(filePath, content) {
     fs.writeFileSync(tmpPath, content, 'utf8');
 
     if (fs.existsSync(filePath)) {
-      try { fs.copyFileSync(filePath, bakPath); } catch (_e) { /* non-fatal */ }
+      try { fs.copyFileSync(filePath, bakPath); } catch (_e) { /* intentionally silent: backup is non-fatal */ }
     }
 
     fs.renameSync(tmpPath, filePath);
 
     try {
       if (fs.existsSync(bakPath)) fs.unlinkSync(bakPath);
-    } catch (_e) { /* non-fatal */ }
+    } catch (_e) { /* intentionally silent: non-fatal */ }
 
     return { success: true };
   } catch (e) {
     try {
       if (fs.existsSync(bakPath)) fs.copyFileSync(bakPath, filePath);
-    } catch (_restoreErr) { /* nothing more we can do */ }
+    } catch (_restoreErr) { /* intentionally silent: restore is last resort */ }
     try {
       if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
-    } catch (_cleanupErr) { /* best effort */ }
+    } catch (_cleanupErr) { /* intentionally silent: tmp cleanup is non-fatal */ }
 
     return { success: false, error: e.message };
   }
@@ -864,7 +874,7 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
         lockFd = fs.openSync(lockPath, 'wx');
         lockAcquired = true;
         break;
-      } catch (e) {
+      } catch (e) { // intentionally silent: lock contention is expected
         if (e.code === 'EEXIST') {
           try {
             const stats = fs.statSync(lockPath);
@@ -872,7 +882,7 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
               fs.unlinkSync(lockPath);
               continue;
             }
-          } catch (_statErr) {
+          } catch (_statErr) { // intentionally silent: lock stat failed
             continue;
           }
 
@@ -882,7 +892,7 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
             const waitMs = Math.min(baseWait + jitter, 2000);
             try {
               Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, waitMs);
-            } catch (_atomicsErr) {
+            } catch (_atomicsErr) { // intentionally silent: Atomics fallback
               const end = Date.now() + waitMs;
               while (Date.now() < end) { /* last-resort fallback */ }
             }
@@ -920,13 +930,14 @@ function lockedFileUpdate(filePath, updateFn, opts = {}) {
 
     return { success: true, content: newContent };
   } catch (e) {
+    logHook('core', 'debug', 'lockedFileUpdate failed', { error: e.message });
     return { success: false, error: e.message };
   } finally {
     try {
       if (lockFd !== null) fs.closeSync(lockFd);
-    } catch (_e) { /* ignore */ }
+    } catch (_e) { /* intentionally silent: fd close in finally */ }
     if (lockAcquired) {
-      try { fs.unlinkSync(lockPath); } catch (_e) { /* ignore */ }
+      try { fs.unlinkSync(lockPath); } catch (_e) { /* intentionally silent: lock cleanup in finally block */ }
     }
   }
 }
@@ -1055,10 +1066,12 @@ function cleanStaleSessions(pDir) {
         const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
         ageMs = Date.now() - new Date(meta.created).getTime();
       } catch (_e) {
+        // intentionally silent: meta.json may not exist or be malformed
         try {
           const stats = fs.statSync(dirPath);
           ageMs = Date.now() - stats.mtimeMs;
         } catch (_statErr) {
+          // intentionally silent: stat failure means skip this session
           continue;
         }
       }
@@ -1068,7 +1081,7 @@ function cleanStaleSessions(pDir) {
         removed.push({ sessionId: entry.name, age: ageMs });
       }
     }
-  } catch (_e) { /* best effort */ }
+  } catch (_e) { logHook('core', 'debug', 'Failed during stale session cleanup'); }
 
   return removed;
 }
@@ -1093,6 +1106,7 @@ function sessionLoad(dir, sessionId) {
     const content = fs.readFileSync(sessionPath, 'utf8');
     return JSON.parse(content);
   } catch (_e) {
+    // intentionally silent: session file may not exist
     return {};
   }
 }
@@ -1119,7 +1133,7 @@ function sessionSave(dir, data, sessionId) {
     fs.renameSync(tmpPath, sessionPath);
     return { success: true };
   } catch (e) {
-    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* cleanup */ }
+    try { if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath); } catch (_) { /* intentionally silent: tmp cleanup is non-fatal */ }
     return { success: false, error: e.message };
   }
 }
@@ -1139,6 +1153,7 @@ function sessionClear(dir, sessionId) {
     if (fs.existsSync(sessionPath)) fs.unlinkSync(sessionPath);
     return { success: true };
   } catch (e) {
+    logHook('core', 'debug', 'Failed to clear session', { error: e.message });
     return { success: false, error: e.message };
   }
 }
@@ -1196,16 +1211,16 @@ function writeActiveSkill(pDir, skillName, sessionId) {
           const existing = fs.readFileSync(skillFile, 'utf8').trim();
           warning = `.active-skill already set to "${existing}" (${Math.round(ageMs / 60000)}min ago). Overwriting.`;
         }
-      } catch (_e) { /* file disappeared */ }
+      } catch (_e) { /* intentionally silent: file may have been deleted concurrently */ }
     }
 
     fs.writeFileSync(skillFile, skillName, 'utf8');
-    try { sessionSave(pDir, { activeSkill: skillName }, sessionId); } catch (_e) { /* non-fatal */ }
-    try { fs.unlinkSync(lockFile); } catch (_e) { /* best effort */ }
+    try { sessionSave(pDir, { activeSkill: skillName }, sessionId); } catch (_e) { /* intentionally silent: session save is non-fatal */ }
+    try { fs.unlinkSync(lockFile); } catch (_e) { /* intentionally silent: lock cleanup is non-fatal */ }
 
     return { success: true, warning };
   } catch (e) {
-    try { if (lockFd !== null) fs.closeSync(lockFd); } catch (_e) { /* ignore */ }
+    try { if (lockFd !== null) fs.closeSync(lockFd); } catch (_e) { /* intentionally silent: fd close on error path */ }
 
     if (e.code === 'EEXIST') {
       try {
@@ -1216,6 +1231,7 @@ function writeActiveSkill(pDir, skillName, sessionId) {
           return writeActiveSkill(pDir, skillName, sessionId);
         }
       } catch (_statErr) {
+        // intentionally silent: lock stat failed, retry write
         return writeActiveSkill(pDir, skillName, sessionId);
       }
       return { success: false, warning: `.active-skill.lock held by another process.` };
@@ -1225,6 +1241,7 @@ function writeActiveSkill(pDir, skillName, sessionId) {
       fs.writeFileSync(skillFile, skillName, 'utf8');
       return { success: true, warning: `Lock failed (${e.code}), wrote without lock` };
     } catch (writeErr) {
+      logHook('core', 'warn', 'Failed to write .active-skill', { error: writeErr.message });
       return { success: false, warning: `Failed to write .active-skill: ${writeErr.message}` };
     }
   }
@@ -1282,7 +1299,7 @@ function acquireClaim(pDir, phaseDir, sessionId, skill) {
         }
       }
     } catch (_e) {
-      try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* best effort */ }
+      try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* intentionally silent: claim cleanup */ }
     }
   }
 
@@ -1320,7 +1337,7 @@ function releaseClaim(_pDir, phaseDir, sessionId) {
     fs.unlinkSync(claimPath);
     return { released: true };
   } catch (_e) {
-    try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* best effort */ }
+    try { fs.unlinkSync(claimPath); } catch (_unlinkErr) { /* intentionally silent: claim cleanup */ }
     return { released: true };
   }
 }
@@ -1351,9 +1368,9 @@ function listClaims(pDir) {
           ...claimData,
           stale: isClaimStale(claimData, pDir).stale
         });
-      } catch (_e) { /* skip malformed */ }
+      } catch (_e) { logHook('core', 'debug', 'Skipping malformed claim file'); }
     }
-  } catch (_e) { /* best effort */ }
+  } catch (_e) { logHook('core', 'debug', 'Failed to list claims'); }
 
   return { claims: results };
 }
@@ -1384,9 +1401,9 @@ function releaseSessionClaims(pDir, sessionId) {
           fs.unlinkSync(claimPath);
           released.push(entry.name);
         }
-      } catch (_e) { /* skip malformed */ }
+      } catch (_e) { logHook('core', 'debug', 'Skipping malformed claim'); }
     }
-  } catch (_e) { /* best effort */ }
+  } catch (_e) { logHook('core', 'debug', 'Failed to release session claims'); }
 
   return { released };
 }
@@ -1418,7 +1435,7 @@ function loadConfig(configCwd) {
       const depthToGranularity = { quick: 'coarse', standard: 'standard', comprehensive: 'fine' };
       parsed.granularity = depthToGranularity[parsed.depth] || parsed.depth;
       delete parsed.depth;
-      try { fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf8'); } catch { /* best effort */ }
+      try { fs.writeFileSync(configPath, JSON.stringify(parsed, null, 2), 'utf8'); } catch (e) { logHook('core', 'debug', 'Failed to write migrated config', { error: e.message }); }
     }
 
     const get = (key, nested) => {
@@ -1451,7 +1468,8 @@ function loadConfig(configCwd) {
       brave_search: get('brave_search') ?? defaults.brave_search,
       model_overrides: parsed.model_overrides || null,
     };
-  } catch {
+  } catch (e) {
+    logHook('core', 'debug', 'Failed to load config, using defaults', { error: e.message });
     return defaults;
   }
 }
@@ -1469,6 +1487,7 @@ function pathExistsInternal(peCwd, targetPath) {
     fs.statSync(fullPath);
     return true;
   } catch {
+    // intentionally silent: path existence check
     return false;
   }
 }

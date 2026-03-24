@@ -262,7 +262,7 @@ function intelStatus(planningDir) {
         const stat = fs.statSync(filePath);
         updatedAt = stat.mtime.toISOString();
       } catch (_e) {
-        // fall through
+        // intentionally silent: fall through on error
       }
     } else {
       // For JSON files, read _meta.updated_at

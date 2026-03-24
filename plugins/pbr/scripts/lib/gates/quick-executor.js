@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readActiveSkill } = require('./helpers');
+const { logHook } = require('../../hook-logger');
 
 /**
  * Blocking check: when the active skill is "quick" and an executor is being
@@ -64,6 +65,7 @@ function checkQuickExecutorGate(data) {
       };
     }
   } catch (_e) {
+    logHook('gate:quick-executor', 'warn', 'QuickExecutor gate check crashed', { error: _e.message });
     return {
       block: true,
       reason: 'Cannot spawn executor: failed to read .planning/quick/ directory.\n\nThe directory exists but could not be read, possibly due to a permissions issue or filesystem error.\n\nRe-run /pbr:quick to recreate the quick task directory and PLAN.md.'
