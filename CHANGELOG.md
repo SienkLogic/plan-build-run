@@ -2,6 +2,45 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.19.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.1...plan-build-run-v2.19.2) — 2026-03-24
+
+### CI/CD
+
+* Remove double blank line in config-reference.md (markdownlint MD012) ([f72d4f2f](https://github.com/SienkLogic/plan-build-run/commit/f72d4f2f))
+* Wire spot-check CLI command and fix empty block lint errors ([b4abfc2c](https://github.com/SienkLogic/plan-build-run/commit/b4abfc2c))
+
+### CLI Tools
+
+* Repair pbr-tools.test.js brace nesting from Phase 141 legacy removal ([031c0d06](https://github.com/SienkLogic/plan-build-run/commit/031c0d06))
+
+### Configuration
+
+* Add missing feature flags to schema and fix default drift ([248e5b5a](https://github.com/SienkLogic/plan-build-run/commit/248e5b5a))
+
+### Dashboard
+
+* Fix log filename, health require paths, version, and research date ([b0eadc4a](https://github.com/SienkLogic/plan-build-run/commit/b0eadc4a))
+
+### Hooks
+
+* Suppress git diff --cached stderr output with stdio pipe ([7cec470b](https://github.com/SienkLogic/plan-build-run/commit/7cec470b))
+* Restrict dashboard CORS to localhost and add hook event log rotation ([57e829dd](https://github.com/SienkLogic/plan-build-run/commit/57e829dd))
+* Remove leftover enrichCommitLlm reference from pre-bash-dispatch ([ffa1ba03](https://github.com/SienkLogic/plan-build-run/commit/ffa1ba03))
+* Add PreToolUse response translation layer in hook-server.js ([b8cbbef6](https://github.com/SienkLogic/plan-build-run/commit/b8cbbef6))
+
+### Skills
+
+* Replace stale plan-build-run/bin/lib/ paths and fix state-update line limit ([a67d6c4b](https://github.com/SienkLogic/plan-build-run/commit/a67d6c4b))
+
+### Testing
+
+* Update suggest-compact test for legacy .compact-counter removal ([f9e35aeb](https://github.com/SienkLogic/plan-build-run/commit/f9e35aeb))
+
+### Other
+
+* Remove orphaned config keys and wrap git diff --cached in try-catch ([4d863ecd](https://github.com/SienkLogic/plan-build-run/commit/4d863ecd))
+* Add PBR_DEBUG logging to empty catches and fix 9 .cjs extension mismatches in verify.js ([1931893d](https://github.com/SienkLogic/plan-build-run/commit/1931893d))
+
 ## [2.19.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.0...plan-build-run-v2.19.1) — 2026-03-23
 
 ### Skills
