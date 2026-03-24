@@ -11,6 +11,7 @@ const os = require('os');
 const { execSync } = require('child_process');
 const { logHook } = require('../hook-logger');
 const { configLoad } = require('../pbr-tools');
+const { configResolveHarness, recommendedHarnessProfile } = require('./config');
 const { intelStatus } = require('./intel');
 const { loadLatestSnapshot, formatSnapshotBriefing } = require('./snapshot-manager');
 const { loadConventions, formatConventionBriefing } = require('./convention-detector');
@@ -62,6 +63,22 @@ function countNotes(notesDir) {
   } catch (_e) {
     return 0;
   }
+}
+
+/**
+ * Check if the active harness profile matches the model-recommended profile.
+ *
+ * @param {object} config - Parsed config object
+ * @returns {string|null} Warning message if mismatch, null if aligned
+ */
+function getHarnessProfileWarning(config) {
+  if (!config) return null;
+  const { profile } = configResolveHarness(config);
+  const recommended = recommendedHarnessProfile(config);
+  if (profile !== recommended) {
+    return `Harness profile mismatch: active='${profile}', recommended='${recommended}' for current model config. Run /pbr:config set harness_profile ${recommended}`;
+  }
+  return null;
 }
 
 /**
@@ -321,6 +338,11 @@ function buildEnhancedBriefing(planningDir, config) {
         lines.push(`Blockers: ${blockersSection.split('\n').map(l => l.trim()).filter(Boolean).join('; ')}`);
       }
     } catch (_e) { /* intentionally silent: non-fatal */ }
+  }
+
+  const harnessWarning = getHarnessProfileWarning(config);
+  if (harnessWarning) {
+    lines.push(harnessWarning);
   }
 
   let output = lines.join('\n');
@@ -882,6 +904,7 @@ module.exports = {
   getHookHealthSummary,
   getDecisionBriefing,
   getNegativeKnowledgeBriefing,
+  getHarnessProfileWarning,
   getIntelContext,
   getIntelStalenessWarning,
   checkLearningsDeferrals,

@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { configLoad, configResolveHarness, recommendedHarnessProfile } = require('./lib/config');
 
 function readStdin() {
   return new Promise((resolve) => {
@@ -41,6 +42,52 @@ function findPlanningDir() {
     if (fs.existsSync(candidate)) return candidate;
     dir = path.dirname(dir);
   }
+  return null;
+}
+
+/**
+ * Check whether the active harness profile matches the model-recommended profile.
+ * Writes a snapshot of the current model config to detect future changes.
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {string|null} Advisory message if mismatch, null if aligned
+ */
+function checkModelProfileAlignment(planningDir) {
+  const config = configLoad(planningDir);
+  if (!config || !config.models) return null;
+
+  const snapshotPath = path.join(planningDir, '.harness-model-snapshot.json');
+  let snapshotChanged = false;
+
+  try {
+    const currentModels = JSON.stringify(config.models);
+    let snapshot = null;
+    if (fs.existsSync(snapshotPath)) {
+      try {
+        snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+      } catch (_e) {
+        snapshot = null;
+      }
+    }
+
+    if (!snapshot || JSON.stringify(snapshot.models) !== currentModels) {
+      snapshotChanged = true;
+      fs.writeFileSync(snapshotPath, JSON.stringify({
+        models: config.models,
+        timestamp: new Date().toISOString()
+      }, null, 2));
+    }
+  } catch (_e) {
+    // intentionally silent: snapshot write failure is non-fatal
+  }
+
+  const recommended = recommendedHarnessProfile(config);
+  const { profile: active } = configResolveHarness(config);
+
+  if (recommended !== active) {
+    return `Model config suggests harness profile '${recommended}' (currently '${active}'). Run: /pbr:config set harness_profile ${recommended}`;
+  }
+
   return null;
 }
 
@@ -88,6 +135,17 @@ function validateConfig(configPath) {
         warnings.push(`Invalid model "${model}" for ${role} — expected: ${validModels.join(', ')}`);
       }
     }
+  }
+
+  // Check harness profile alignment with model config
+  try {
+    const planningDir = path.dirname(configPath);
+    const profileAdvisory = checkModelProfileAlignment(planningDir);
+    if (profileAdvisory) {
+      warnings.push(profileAdvisory);
+    }
+  } catch (_e) {
+    // intentionally silent: profile check failure is non-fatal
   }
 
   return warnings;
@@ -152,4 +210,4 @@ function handleHttp(reqBody) {
 }
 
 if (require.main === module || process.argv[1] === __filename) main();
-module.exports = { validateConfig, findPlanningDir, handleHttp };
+module.exports = { validateConfig, findPlanningDir, handleHttp, checkModelProfileAlignment };

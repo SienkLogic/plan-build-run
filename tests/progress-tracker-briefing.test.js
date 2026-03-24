@@ -23,6 +23,11 @@ jest.mock('../plugins/pbr/scripts/event-logger', () => ({
 jest.mock('../plugins/pbr/scripts/lib/config', () => ({
   configLoad: jest.fn(() => null),
   configValidate: jest.fn(() => ({ warnings: [], errors: [] })),
+  configResolveHarness: jest.fn((config) => ({
+    profile: (config && config.harness_profile) || 'standard',
+    settings: {}
+  })),
+  recommendedHarnessProfile: jest.fn(() => 'standard'),
 }));
 jest.mock('../plugins/pbr/scripts/lib/core', () => ({
   sessionSave: jest.fn(),

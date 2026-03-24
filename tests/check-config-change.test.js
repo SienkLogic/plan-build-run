@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { validateConfig, findPlanningDir } = require('../plugins/pbr/scripts/check-config-change');
+const { validateConfig, findPlanningDir, checkModelProfileAlignment } = require('../plugins/pbr/scripts/check-config-change');
+const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 
 function createTempConfig(configObj) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-config-test-'));
@@ -158,6 +159,94 @@ describe('check-config-change', () => {
       } finally {
         cleanup(tmpDir);
       }
+    });
+  });
+
+  describe('harness profile model detection', () => {
+    let tmpDir;
+
+    afterEach(() => {
+      configClearCache();
+      if (tmpDir) {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        tmpDir = null;
+      }
+    });
+
+    function createPlanningDir(configObj) {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-harness-test-'));
+      const configPath = path.join(tmpDir, 'config.json');
+      fs.writeFileSync(configPath, JSON.stringify(configObj, null, 2));
+      return tmpDir;
+    }
+
+    test('returns null when no config exists', () => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-harness-test-'));
+      const result = checkModelProfileAlignment(tmpDir);
+      expect(result).toBeNull();
+    });
+
+    test('returns advisory when executor=opus but harness_profile=full (mismatch)', () => {
+      const dir = createPlanningDir({
+        version: 2,
+        models: { executor: 'opus' },
+        harness_profile: 'full'
+      });
+      const result = checkModelProfileAlignment(dir);
+      expect(result).not.toBeNull();
+      expect(result).toContain("suggests harness profile 'lean'");
+      expect(result).toContain("currently 'full'");
+    });
+
+    test('returns null when executor=opus and harness_profile=lean (match)', () => {
+      const dir = createPlanningDir({
+        version: 2,
+        models: { executor: 'opus' },
+        harness_profile: 'lean'
+      });
+      const result = checkModelProfileAlignment(dir);
+      expect(result).toBeNull();
+    });
+
+    test('writes .harness-model-snapshot.json on first call', () => {
+      const dir = createPlanningDir({
+        version: 2,
+        models: { executor: 'sonnet' },
+        harness_profile: 'standard'
+      });
+      const snapshotPath = path.join(dir, '.harness-model-snapshot.json');
+      expect(fs.existsSync(snapshotPath)).toBe(false);
+
+      checkModelProfileAlignment(dir);
+
+      expect(fs.existsSync(snapshotPath)).toBe(true);
+      const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+      expect(snapshot.models).toEqual({ executor: 'sonnet' });
+      expect(snapshot.timestamp).toBeDefined();
+    });
+
+    test('updates snapshot when models change', () => {
+      const dir = createPlanningDir({
+        version: 2,
+        models: { executor: 'sonnet' },
+        harness_profile: 'standard'
+      });
+      checkModelProfileAlignment(dir);
+      configClearCache();
+
+      // Change models
+      const configPath = path.join(dir, 'config.json');
+      fs.writeFileSync(configPath, JSON.stringify({
+        version: 2,
+        models: { executor: 'opus' },
+        harness_profile: 'standard'
+      }, null, 2));
+
+      checkModelProfileAlignment(dir);
+
+      const snapshotPath = path.join(dir, '.harness-model-snapshot.json');
+      const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+      expect(snapshot.models).toEqual({ executor: 'opus' });
     });
   });
 
