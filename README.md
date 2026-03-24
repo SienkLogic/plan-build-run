@@ -145,11 +145,11 @@ Plans are grouped into **waves** based on dependencies. Within each wave, plans 
 <details>
 <summary><strong>Three layers: Skills → Agents → Hooks</strong></summary>
 
-### Skills (39 slash commands)
+### Skills (46 slash commands)
 
 Markdown files with YAML frontmatter defining `/pbr:*` slash commands. Each skill is a complete prompt that reads state, interacts with the user, and spawns agents. Skills are the user-facing interface.
 
-### Agents (17 specialized subagents)
+### Agents (18 specialized subagents)
 
 Markdown files defining agent prompts that run in fresh `Task()` contexts with clean 200k token windows. Each agent type has a specific role:
 
@@ -526,7 +526,7 @@ CI runs on Node 18/20/22 across Windows, macOS, and Linux (9 platform combinatio
 
 <div align="center">
 
-**39 skills &bull; 17 agents &bull; 26 hooks &bull; 38 server routes &bull; 4 platforms**
+**46 skills &bull; 18 agents &bull; 26 hooks &bull; 38 server routes &bull; 4 platforms**
 
 **Claude Code is powerful. PBR makes it reliable.**
 
