@@ -540,6 +540,12 @@
           "type": "boolean",
           "default": false,
           "description": "When true, enables --through flag for multi-phase planning in a single planner session."
+        },
+        "plan_depth": {
+          "type": "string",
+          "enum": ["detailed", "high-level"],
+          "default": "detailed",
+          "description": "Plan specificity level. 'detailed' = file paths + implementation steps. 'high-level' = deliverables + success criteria only, executor decides implementation."
         }
       },
       "additionalProperties": false

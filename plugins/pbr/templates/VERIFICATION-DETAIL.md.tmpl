@@ -6,6 +6,11 @@ phase: "{phase_id}"
 status: "passed"           # passed | gaps_found | human_needed
 checked_at: "{ISO timestamp}"
 is_re_verification: false  # true if re-verifying after gap closure
+round: 1                  # which QA round produced this report (1 = standard single-pass)
+total_rounds: 1           # total QA rounds configured for this phase
+live_verification: "skipped"  # skipped | completed | unavailable
+live_checks_passed: 0
+live_checks_total: 0
 must_haves_checked: {n}
 must_haves_passed: {n}
 must_haves_failed: {n}

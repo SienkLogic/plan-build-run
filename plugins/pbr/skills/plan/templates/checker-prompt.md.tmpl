@@ -19,6 +19,21 @@ Read each plan file using the Read tool. Verify all 9 dimensions against each pl
 
 Run all 9 verification dimensions on these plans. Return issues in YAML format under a `## Issues` heading. Each issue must have: dimension, severity, finding, affected_field, suggested_fix.
 
+<plan_depth_check>
+Plan depth mode: {plan_depth from config}
+{If plan_depth is "high-level":}
+ADDITIONAL CHECK — Over-Specification Detection:
+For each task's &lt;action&gt; block, flag as WARNING if it contains:
+- Code keywords: const, let, function, class, interface, type, import, export
+- Fenced code blocks (triple backticks)
+- More than 8 numbered implementation steps
+- Specific library API calls (e.g., X.method(), import X from Y)
+Format: "WARNING: Over-specification in task {id}: &lt;action&gt; contains {pattern}. High-level mode expects deliverable descriptions, not implementation details."
+These are WARNINGs, not BLOCKERs — the planner may have valid reasons for specificity.
+{If plan_depth is "detailed":}
+No over-specification check in detailed mode.
+</plan_depth_check>
+
 If all dimensions pass, return `## CHECK PASSED` with no issues block.
 
 Do NOT write any files. Return your findings as your response text.

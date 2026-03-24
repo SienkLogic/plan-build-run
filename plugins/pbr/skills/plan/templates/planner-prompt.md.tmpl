@@ -19,7 +19,23 @@ Research summary available at: {absolute path to research SUMMARY.md}
 Max tasks per plan: {from config.json}
 Parallelization enabled: {from config.json}
 TDD mode: {from config.json}
+Plan depth: {plan_depth from config, default "detailed"}
 </config>
+
+<plan_depth>
+{If plan_depth is "high-level":}
+MODE: HIGH-LEVEL PLANS
+Write plans that describe WHAT to deliver, not HOW to implement.
+- &lt;action&gt; = deliverables, behavioral requirements, integration points, error handling expectations
+- &lt;action&gt; must NOT specify: internal variable names, exact function signatures, line-by-line implementation steps, specific library API calls, code snippets
+- &lt;action&gt; SHOULD specify: module responsibilities, constraints, data flow boundaries
+- &lt;files&gt; = approximate scope (key files or directories), executor determines exact files
+- &lt;verify&gt;, &lt;acceptance_criteria&gt;, &lt;done&gt; = REMAIN FULLY SPECIFIC — these steer the executor
+- must_haves = REMAIN FULLY SPECIFIED — these are the verification contract
+{If plan_depth is "detailed":}
+MODE: DETAILED PLANS (default)
+Write plans with file paths, function names, and exact implementation steps. The executor follows mechanically.
+</plan_depth>
 
 <planning_instructions>
 Create executable plans for this phase following your Standard Planning mode instructions.

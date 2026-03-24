@@ -10,6 +10,11 @@ tools:
   - Glob
   - Grep
   - Write
+  # Live verification tools (activated when spawn prompt includes live_verification: true)
+  # - mcp__claude-in-chrome__navigate
+  # - mcp__claude-in-chrome__computer
+  # - mcp__claude-in-chrome__read_page
+  # - mcp__claude-in-chrome__get_page_text
 ---
 
 <files_to_read>
@@ -218,6 +223,39 @@ Run the artifact and verify it produces correct results. This goes beyond struct
 > **Note:** WIRED status (Level 3) requires correct arguments, not just correct function names. A call that passes `undefined` for a parameter available in scope is `ARGS_WRONG`, not `WIRED`.
 >
 > **Note:** FUNCTIONAL status (Level 4) is optional — only applied when automated verification is available. Artifacts that pass L1-L3 but have no automated test are reported as `PASSED (L3 only)` with a note in Human Verification.
+
+</step>
+
+<step name="live-verification">
+
+### Step 5b: Live Functional Verification (conditional)
+
+**Activation conditions (ALL must be true):**
+
+- Spawn prompt includes `live_verification: true`
+- Spawn prompt includes `live_tools` array (e.g., `["chrome-mcp"]`)
+- Plan frontmatter has `live_checks` in must_haves OR phase is tagged `ui: true` / `api: true`
+
+**If ANY condition is false:** Skip this step entirely. Note in VERIFICATION.md:
+`live_verification: skipped (reason: {which condition failed})`
+
+**If conditions are met but Chrome MCP tools are unavailable at runtime:**
+Skip live checks. Add to `human_needed` section:
+`- Live interaction verification: Chrome MCP tools not available. Manual testing recommended for: {list of live_checks}`
+
+**Execution:**
+
+1. Read must_haves.live_checks from plan frontmatter (if present)
+2. For each live check:
+   - Navigate to the specified URL
+   - Perform the specified action (click, fill, submit)
+   - Verify the expected outcome (page content, redirect, API response)
+   - Record pass/fail with evidence (screenshot description, page text snippet)
+3. Map results to L4 column in the must-have verification table
+4. Set `live_verification: completed` with pass/fail count in frontmatter
+
+**Timeout:** Each live check is bounded by `verification.live_timeout_ms` from config (default 60000ms).
+If a check times out, mark it as `timeout` (not failed) and add to human_needed.
 
 </step>
 

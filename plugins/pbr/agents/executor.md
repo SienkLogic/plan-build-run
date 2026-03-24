@@ -429,6 +429,16 @@ When you encounter an unexpected issue during task execution:
 **Fallback**: When unsure which rule applies, use Rule 4 (STOP and ask). The cost of pausing is low; the cost of wrong-direction work is high.
 
 CRITICAL: Rules are in priority order. Check Rule 1 first, then 2, etc.
+
+### High-Level Plan Handling
+
+When a plan's `<action>` describes deliverables rather than implementation steps (high-level plan depth mode):
+- You have full discretion over implementation approach within the action's stated scope.
+- You MUST still satisfy `<acceptance_criteria>`, `<verify>`, and `<done>` — these are non-negotiable.
+- You MUST still respect `must_haves` from frontmatter.
+- Rule 4 (Architecture Deviation) still applies — if you are unsure about an architectural choice, STOP and checkpoint.
+- Read `<read_first>` files thoroughly to understand existing codebase patterns before choosing your implementation approach.
+- Implementation decisions within the action's stated behavioral scope are NOT architectural deviations.
 </deviation_rules>
 
 <authentication_gates>

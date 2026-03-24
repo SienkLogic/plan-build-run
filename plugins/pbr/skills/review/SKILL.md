@@ -206,6 +206,11 @@ Reference: `references/agent-teams.md`
 
 #### Single-Verifier Flow (default)
 
+**Pre-spawn config reading:** Before spawning the verifier, read live verification settings from config:
+- Read `features.live_verification` from config (boolean, default false)
+- Read `verification.live_tools` from config (string array, default `["chrome-mcp"]`)
+- Read `verification.live_timeout_ms` from config (integer, default 60000)
+
 Display to the user: `◆ Spawning verifier...`
 
 Spawn a verifier Task() to run three-layer checks:
@@ -214,7 +219,12 @@ Spawn a verifier Task() to run three-layer checks:
 Task({
   subagent_type: "pbr:verifier",
   // After verifier completes, check for: ## VERIFICATION COMPLETE
-  prompt: <verifier prompt>
+  prompt: <verifier prompt with:>
+    verification_depth: "thorough"  // review always uses thorough depth
+    live_verification: {true if features.live_verification is true, false otherwise}
+    live_tools: {from verification.live_tools config, only included if live_verification is true}
+    round: 1          // review is always single-pass
+    total_rounds: 1   // review does not implement multi-round QA
 })
 ```
 
@@ -241,15 +251,20 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 - `{NN}-{slug}` — the phase directory name
 - `{N}` — the phase number
 - `{date}`, `{count}`, `{phase name}` — fill from context
-- `{verification_depth}` — the depth resolved in Step 1.7 (light/standard/thorough)
+- `{verification_depth}` — "thorough" (review always uses thorough depth)
 
 **Append this block to the verifier prompt after the placeholders:**
 
 ```
-**Verification depth:** {verification_depth}
-- light: Check L1 (existence) and basic frontmatter only. Skip L2/L3/L4 and anti-pattern scan. Budget: <=400 tokens output.
-- standard: Full 3-layer verification (L1-L3). Current default behavior.
-- thorough: Full 4-layer verification (L1-L4) + cross-phase regression check (even if context_window_tokens < 500000) + full anti-pattern scan.
+**Verification depth:** thorough
+- Review skill always uses thorough verification (L1-L4) + cross-phase regression check + full anti-pattern scan.
+
+**Round metadata:** round: 1, total_rounds: 1
+- Review is always single-pass verification.
+
+**Live verification:** {live_verification}
+- If true: Execute Step 5b (Live Functional Verification) using live_tools: {live_tools}
+- If false: Skip Step 5b entirely
 ```
 
 Wait for the verifier to complete.

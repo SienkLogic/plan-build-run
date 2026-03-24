@@ -1175,6 +1175,84 @@ In both cases, proceed to the verifier spawn below. The confidence gate never sk
 
 **If verification is enabled:**
 
+**Path resolution**: Before constructing any agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
+
+#### Multi-Round QA Loop
+
+Read `verification.qa_rounds` from config (default: 1). If `qa_rounds` == 1, the existing single-pass verification behavior is unchanged -- execute a single verifier spawn as described below.
+
+If `qa_rounds` > 1, wrap the verification in a loop:
+
+**for round = 1 to qa_rounds:**
+
+**Round {round} of {qa_rounds}:**
+
+a. **If round > 1 -- fix gaps from prior round:**
+   - Read the previous round's `VERIFICATION-R{round-1}.md` from the phase directory
+   - Extract gaps (failed must-haves with evidence)
+   - Extract passing must-haves
+   - Read `${CLAUDE_SKILL_DIR}/templates/qa-round-context.md.tmpl` and render it with:
+     - `{round}` = current round number
+     - `{gaps_list}` = formatted list of failed must-haves with evidence
+     - `{evidence_list}` = detailed evidence for each gap
+     - `{passing_list}` = list of must-haves that already passed
+   - Spawn executor with the rendered QA context appended to the plan prompt:
+     - The executor prompt MUST include: "Fix ONLY the listed gaps. Do NOT re-implement passing must-haves."
+     - Executor writes `SUMMARY-R{round}-{plan_id}.md`
+
+b. **Determine verification depth for this round:**
+   - Round 1: `verification_depth` = "standard"
+   - Round 2: `verification_depth` = "thorough"
+   - Round 3+: `verification_depth` = "thorough", AND if `features.live_verification` is true in config, set `live_verification` = true
+
+c. **Spawn verifier with round metadata:**
+
+   Display to the user: `◆ Spawning verifier (round {round}/{qa_rounds})...`
+
+   ```
+   Task({
+     subagent_type: "pbr:verifier",
+     prompt: <verifier prompt with additional fields:>
+       verification_depth: "{depth for this round}"
+       live_verification: {true only if round >= 3 AND features.live_verification is true}
+       live_tools: {from verification.live_tools config, only if live_verification is true}
+       round: {current round number}
+       total_rounds: {qa_rounds}
+   })
+   ```
+
+   NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inline it.
+
+d. **Verifier writes `VERIFICATION-R{round}.md`** (NOT `VERIFICATION.md`) to the phase directory.
+
+   After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read `VERIFICATION-R{round}.md` frontmatter for status.
+
+e. **Display round results:**
+
+   `QA Round {round}/{qa_rounds}: {status} -- {passed}/{total} must-haves`
+
+f. **If round == qa_rounds (final round):**
+   - Copy `VERIFICATION-R{round}.md` to `VERIFICATION.md`
+   - Update `VERIFICATION.md` frontmatter: set `round: {round}`, `total_rounds: {qa_rounds}`
+   - If `qa_rounds` > 1, add a `## QA Round History` section summarizing each round's status:
+     ```
+     ## QA Round History
+
+     | Round | Depth | Status | Passed | Failed |
+     |-------|-------|--------|--------|--------|
+     | 1     | standard | gaps_found | 8/10 | 2 |
+     | 2     | thorough | gaps_found | 9/10 | 1 |
+     | 3     | thorough+live | passed | 10/10 | 0 |
+     ```
+
+g. **If round < qa_rounds AND all must-haves passed:**
+   - Display: `Round {round} passed. Proceeding to deeper verification (round {round+1})...`
+   - Continue loop (progressive deepening even on pass)
+
+#### Single-Pass Verification (qa_rounds == 1)
+
+When `qa_rounds` is 1 (default), execute a single verifier spawn:
+
 Display to the user: `◆ Spawning verifier...`
 
 Spawn a verifier Task():
@@ -1182,15 +1260,18 @@ Spawn a verifier Task():
 ```
 Task({
   subagent_type: "pbr:verifier",
-  prompt: <verifier prompt>
+  prompt: <verifier prompt with:>
+    verification_depth: "{depth from confidence gate}"
+    round: 1
+    total_rounds: 1
+    live_verification: {true if features.live_verification is true, false otherwise}
+    live_tools: {from verification.live_tools config, only if live_verification is true}
 })
 
 NOTE: The pbr:verifier subagent type auto-loads the agent definition. Do NOT inline it.
 
 After verifier completes, check for completion marker: `## VERIFICATION COMPLETE`. Read VERIFICATION.md frontmatter for status.
 ```
-
-**Path resolution**: Before constructing the agent prompt, resolve `${CLAUDE_PLUGIN_ROOT}` to its absolute path. Do not pass the variable literally in prompts — Task() contexts may not expand it. Use the resolved absolute path for any pbr-tools.js or template references included in the prompt.
 
 #### Verifier Prompt Template
 
@@ -1206,7 +1287,23 @@ CRITICAL (no hook): Read these files BEFORE any other action:
 </files_to_read>
 ```
 
-After the verifier returns, read the VERIFICATION.md frontmatter and display the results:
+**Append this block to the verifier prompt after the placeholders:**
+
+```
+**Verification depth:** {verification_depth}
+- standard: Full 3-layer verification (L1-L3). Default for round 1.
+- thorough: Full 4-layer verification (L1-L4) + cross-phase regression. Default for round 2+.
+
+**Round metadata:** round: {round}, total_rounds: {total_rounds}
+- If round > 1: Write output to VERIFICATION-R{round}.md (not VERIFICATION.md)
+- If total_rounds > 1: Include round number in frontmatter
+
+**Live verification:** {live_verification}
+- If true: Execute Step 5b (Live Functional Verification) using live_tools: {live_tools}
+- If false: Skip Step 5b entirely
+```
+
+After the verifier returns, read the VERIFICATION.md (or VERIFICATION-R{round}.md) frontmatter and display the results:
 
 - If status is `passed`: display `✓ Verifier: {X}/{Y} must-haves verified` (where X = `must_haves_passed` and Y = `must_haves_checked`)
 - If status is `gaps_found`: display `⚠ Verifier found {N} gap(s) — see VERIFICATION.md` (where N = `must_haves_failed`)

@@ -170,7 +170,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.architecture_guard': false,
     'scan.mapper_count': 2,
     'scan.mapper_areas': ['tech', 'arch'],
-    'debug.max_hypothesis_rounds': 3
+    'debug.max_hypothesis_rounds': 3,
+    'planning.plan_depth': 'high-level'
   },
   standard: {
     'features.research_phase': true,
@@ -193,7 +194,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.architecture_guard': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
-    'debug.max_hypothesis_rounds': 5
+    'debug.max_hypothesis_rounds': 5,
+    'planning.plan_depth': 'detailed'
   },
   comprehensive: {
     'features.research_phase': true,
@@ -216,7 +218,8 @@ const DEPTH_PROFILE_DEFAULTS = {
     'features.architecture_guard': true,
     'scan.mapper_count': 4,
     'scan.mapper_areas': ['tech', 'arch', 'quality', 'concerns'],
-    'debug.max_hypothesis_rounds': 10
+    'debug.max_hypothesis_rounds': 10,
+    'planning.plan_depth': 'detailed'
   },
   'research-heavy': {
     'features.research_phase': true,
@@ -297,6 +300,7 @@ function configLoadDefaults(planningDir) {
     planning: {
       commit_docs: false,
       search_gitignored: false,
+      plan_depth: 'detailed',
     },
     git: {
       branching: 'none',
@@ -600,6 +604,7 @@ function cmdConfigEnsureSection(cwdArg, raw) {
     planning: {
       commit_docs: false,
       search_gitignored: false,
+      plan_depth: 'detailed',
     },
     git: {
       branching: 'none',
@@ -827,7 +832,8 @@ const CONFIG_DEFAULTS = {
     commit_docs: false,
     max_tasks_per_plan: 3,
     search_gitignored: false,
-    multi_phase: false
+    multi_phase: false,
+    plan_depth: 'detailed'
   },
   git: {
     branching: 'none',
@@ -1095,6 +1101,7 @@ const CONFIG_SECTIONS = [
       'planning.commit_docs: commit SUMMARY/VERIFICATION after builds',
       'planning.max_tasks_per_plan: 1-10 — keeps plans focused and atomic',
       'planning.multi_phase: enable --through flag for multi-phase planning',
+      'planning.plan_depth: detailed|high-level — plan specificity level',
       'planning.search_gitignored: include gitignored files in codebase scanning'
     ],
     keys: ['ci', 'git', 'planning']
