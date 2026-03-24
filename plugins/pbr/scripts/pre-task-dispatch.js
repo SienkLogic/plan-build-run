@@ -31,8 +31,6 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { checkBudget } = require('./enforce-context-budget');
-const { resolveConfig } = require('./lib/local-llm/health');
-const { validateTask: llmValidateTask } = require('./lib/local-llm/operations/validate-task');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
 const { KNOWN_AGENTS } = require('./lib/core');
 
@@ -51,19 +49,6 @@ const { checkDocExistence } = require('./lib/gates/doc-existence');
 const { checkUserConfirmationGate } = require('./lib/gates/user-confirmation');
 
 const MAX_DESCRIPTION_LENGTH = 100;
-
-/**
- * Load and resolve the local_llm config block from .planning/config.json.
- */
-function loadLocalLlmConfig(cwd) {
-  try {
-    const configPath = path.join(cwd, '.planning', 'config.json');
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return resolveConfig(parsed.local_llm);
-  } catch (_e) {
-    return resolveConfig(undefined);
-  }
-}
 
 /**
  * Check a parsed hook data object for Task() validation issues.
@@ -222,19 +207,6 @@ async function processEvent(data) {
   if (activeSkillWarning) warnings.push(activeSkillWarning);
   if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
   if (planValGate && planValGate.warning) warnings.push(planValGate.warning);
-
-  // LLM task coherence check — advisory only
-  try {
-    const llmCwd = data.cwd || process.env.PBR_PROJECT_ROOT || process.cwd();
-    const llmConfig = loadLocalLlmConfig(llmCwd);
-    const llmPlanningDir = path.join(llmCwd, '.planning');
-    const llmResult = await llmValidateTask(llmConfig, llmPlanningDir, data.tool_input || {}, data.session_id);
-    if (llmResult && !llmResult.coherent) {
-      warnings.push('LLM task coherence advisory: ' + (llmResult.issue || 'Task description may not match intended operation.') + ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)');
-    }
-  } catch (_llmErr) {
-    // Never propagate LLM errors
-  }
 
   if (warnings.length > 0) {
     for (const warning of warnings) {

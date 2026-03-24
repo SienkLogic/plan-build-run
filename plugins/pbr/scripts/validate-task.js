@@ -20,8 +20,6 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveConfig } = require('./lib/local-llm/health');
-const { validateTask: llmValidateTask } = require('./lib/local-llm/operations/validate-task');
 const { checkNonPbrAgent } = require('./enforce-pbr-workflow');
 const { KNOWN_AGENTS } = require('./lib/core');
 
@@ -38,21 +36,6 @@ const { checkPlanValidationGate } = require('./lib/gates/plan-validation');
 const { checkDebuggerAdvisory, checkCheckpointManifest, checkActiveSkillIntegrity } = require('./lib/gates/advisories');
 const { checkDocExistence } = require('./lib/gates/doc-existence');
 const { checkUserConfirmationGate } = require('./lib/gates/user-confirmation');
-
-/**
- * Load and resolve the local_llm config block from .planning/config.json.
- * Returns a resolved config (always safe to use — disabled by default on error).
- * @param {string} cwd - working directory to resolve .planning/config.json from
- */
-function loadLocalLlmConfig(cwd) {
-  try {
-    const configPath = path.join(cwd, '.planning', 'config.json');
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return resolveConfig(parsed.local_llm);
-  } catch (_e) {
-    return resolveConfig(undefined);
-  }
-}
 
 const MAX_DESCRIPTION_LENGTH = 100;
 
@@ -263,19 +246,6 @@ function main() {
       if (activeSkillWarning) warnings.push(activeSkillWarning);
       if (nonPbrAgentResult) warnings.push(nonPbrAgentResult.output.additionalContext);
       if (planValGate && planValGate.warning) warnings.push(planValGate.warning);
-
-      // LLM task coherence check — advisory only
-      try {
-        const llmCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-        const llmConfig = loadLocalLlmConfig(llmCwd);
-        const planningDir = path.join(llmCwd, '.planning');
-        const llmResult = await llmValidateTask(llmConfig, planningDir, data.tool_input || {}, data.session_id);
-        if (llmResult && !llmResult.coherent) {
-          warnings.push('LLM task coherence advisory: ' + (llmResult.issue || 'Task description may not match intended operation.') + ' (confidence: ' + (llmResult.confidence * 100).toFixed(0) + '%)');
-        }
-      } catch (_llmErr) {
-        // Never propagate LLM errors
-      }
 
       if (warnings.length > 0) {
         for (const warning of warnings) {

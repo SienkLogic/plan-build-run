@@ -372,31 +372,6 @@ async function checkPlanWrite(data) {
                 ? validateContext(content, filePath)
                 : validateSummary(content, filePath);
 
-  // LLM advisory enrichment -- advisory only, never blocks
-  if ((isPlan || isSummary) && result.errors.length === 0) {
-    try {
-      const { resolveConfig } = require('../local-llm/health');
-      const { classifyArtifact } = require('../local-llm/operations/classify-artifact');
-      let llmConfig;
-      try {
-        const configPath = path.join(process.cwd(), '.planning', 'config.json');
-        const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        llmConfig = resolveConfig(parsed.local_llm);
-      } catch (_e) {
-        llmConfig = resolveConfig(undefined);
-      }
-      const planningDir = path.join(process.cwd(), '.planning');
-      const fileType = isPlan ? 'PLAN' : 'SUMMARY';
-      const llmResult = await classifyArtifact(llmConfig, planningDir, content, fileType, data.session_id);
-      if (llmResult && llmResult.classification) {
-        const llmNote = `Local LLM: ${fileType} classified as "${llmResult.classification}" (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)${llmResult.reason ? ' — ' + llmResult.reason : ''}`;
-        result.warnings.push(llmNote);
-      }
-    } catch (_llmErr) {
-      // Never propagate LLM errors
-    }
-  }
-
   const eventType = isPlan ? 'plan-validated' : isVerification ? 'verification-validated' : isRoadmap ? 'roadmap-validated' : isLearnings ? 'learnings-validated' : isConfig ? 'config-validated' : isResearch ? 'research-validated' : isContext ? 'context-validated' : 'summary-validated';
 
   if (result.errors.length > 0) {
@@ -934,7 +909,7 @@ function validateConfig(content, _filePath) {
     }
   }
 
-  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'local_llm', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
+  const knownKeys = ['version', 'schema_version', 'context_strategy', 'mode', 'depth', 'session_phase_limit', 'session_cycling', 'context_window_tokens', 'agent_checkpoint_pct', 'features', 'validation_passes', 'autonomy', 'models', 'model_profiles', 'parallelization', 'teams', 'planning', 'git', 'gates', 'safety', 'timeouts', 'hooks', 'prd', 'depth_profiles', 'debug', 'developer_profile', 'spinner_tips', 'dashboard', 'status_line', 'workflow', 'hook_server', 'intel', 'context_ledger', 'learnings', 'verification', 'context_budget', 'ui', 'worktree', 'ceremony_level', 'skip_rag_max_lines', 'orchestrator_budget_pct'];
   for (const key of Object.keys(parsed)) {
     if (!knownKeys.includes(key)) {
       warnings.push(`Unknown top-level key: "${key}" (known: ${knownKeys.join(', ')})`);

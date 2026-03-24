@@ -185,42 +185,6 @@ async function processEvent(data, planningDir) {
     logHook('post-write-dispatch', 'PostToolUse', 'error', { check: 'checkReadFirst', error: e.message });
   }
 
-  // LLM file intent classification — advisory enrichment for non-planning files
-  const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
-  const normalizedPath = filePath.replace(/\\/g, '/');
-  if (filePath && !normalizedPath.includes('.planning/') && !normalizedPath.includes('.planning\\')) {
-    try {
-      const { resolveConfig } = require('./lib/local-llm/health');
-      const { classifyFileIntent } = require('./lib/local-llm/operations/classify-file-intent');
-      const llmConfig = (() => {
-        try {
-          const configPath = path.join(planningDir, 'config.json');
-          const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-          return resolveConfig(parsed.local_llm);
-        } catch (_e) {
-          return resolveConfig(undefined);
-        }
-      })();
-
-      let contentSnippet = '';
-      try {
-        const content = data.tool_input?.content || data.tool_input?.new_string || '';
-        contentSnippet = content.slice(0, 400);
-      } catch (_e) {
-        // No content available
-      }
-
-      if (contentSnippet) {
-        const llmResult = await classifyFileIntent(llmConfig, planningDir, filePath, contentSnippet, data.session_id);
-        if (llmResult && llmResult.file_type) {
-          results.push(`[pbr] File classified: ${llmResult.file_type}/${llmResult.intent} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`);
-        }
-      }
-    } catch (_llmErr) {
-      // Never propagate LLM errors
-    }
-  }
-
   // Merge all results into a single response
   if (results.length > 0) {
     return { additionalContext: results.join('\n') };

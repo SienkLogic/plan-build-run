@@ -21,8 +21,6 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { KNOWN_AGENTS, sessionLoad } = require('./pbr-tools');
-const { resolveConfig } = require('./lib/local-llm/health');
-const { classifyError } = require('./lib/local-llm/operations/classify-error');
 const { resolveSessionPath } = require('./lib/core');
 const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
@@ -102,15 +100,6 @@ function readStdin() {
   return {};
 }
 
-function loadLocalLlmConfig(cwd) {
-  try {
-    const configPath = path.join(cwd, '.planning', 'config.json');
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return resolveConfig(parsed.local_llm);
-  } catch (_) {
-    return resolveConfig(undefined);
-  }
-}
 
 async function main() {
   const data = readStdin();
@@ -248,22 +237,8 @@ async function main() {
       agent_type: agentType,
       warnings: skillWarnings
     });
-    // LLM error classification -- advisory enrichment
-    let llmCategoryNote = '';
-    try {
-      const llmConfig = loadLocalLlmConfig(cwd);
-      const errorText = (data.tool_output || '').substring(0, 500);
-      if (errorText) {
-        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
-        if (llmResult && llmResult.category) {
-          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
-        }
-      }
-    } catch (_llmErr) {
-      // Never propagate
-    }
     const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
-      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
+      skillWarnings.map(w => `- ${w}`).join('\n');
     process.stdout.write(JSON.stringify({ additionalContext: msg }));
   } else if (genericMissing) {
     logHook('check-subagent-output', 'PostToolUse', 'warning', {
@@ -271,22 +246,8 @@ async function main() {
       expected: outputSpec.description,
       found: 'none'
     });
-    // LLM error classification -- advisory enrichment
-    let llmCategoryNote = '';
-    try {
-      const llmConfig = loadLocalLlmConfig(cwd);
-      const errorText = (data.tool_output || '').substring(0, 500);
-      if (errorText) {
-        const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
-        if (llmResult && llmResult.category) {
-          llmCategoryNote = `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
-        }
-      }
-    } catch (_llmErr) {
-      // Never propagate
-    }
     const output = {
-      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.`
     };
     process.stdout.write(JSON.stringify(output));
   } else if (skillWarnings.length > 0) {
@@ -412,32 +373,15 @@ async function handleHttp(reqBody) {
     }
   }
 
-  // LLM classification helper (advisory, never throws)
-  async function getLlmNote() {
-    try {
-      const cwd = process.env.PBR_PROJECT_ROOT || process.cwd();
-      const llmConfig = loadLocalLlmConfig(cwd);
-      const errorText = (data.tool_output || '').substring(0, 500);
-      if (!errorText) return '';
-      const llmResult = await classifyError(llmConfig, planningDir, errorText, agentType, data.session_id);
-      if (llmResult && llmResult.category) {
-        return `\nLLM error category: ${llmResult.category} (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
-      }
-    } catch (_e) { /* never propagate */ }
-    return '';
-  }
-
   if (genericMissing && skillWarnings.length > 0) {
     logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });
-    const llmCategoryNote = await getLlmNote();
     const msg = `Warning: Agent ${agentType} completed but no ${outputSpec.description} was found.\nSkill-specific warnings:\n` +
-      skillWarnings.map(w => `- ${w}`).join('\n') + llmCategoryNote;
+      skillWarnings.map(w => `- ${w}`).join('\n');
     return { additionalContext: msg };
   } else if (genericMissing) {
     logHook('check-subagent-output', 'PostToolUse', 'warning', { agent_type: agentType, expected: outputSpec.description, found: 'none' });
-    const llmCategoryNote = await getLlmNote();
     return {
-      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.` + llmCategoryNote
+      additionalContext: `[WARN] Agent ${agentType} completed but no ${outputSpec.description} was found. Likely causes: (1) agent hit an error mid-run, (2) wrong working directory. To fix: re-run the parent skill — the executor gate will block until the output is present. Check the Task() output above for error details.`
     };
   } else if (skillWarnings.length > 0) {
     logHook('check-subagent-output', 'PostToolUse', 'skill-warning', { skill: activeSkill, agent_type: agentType, warnings: skillWarnings });

@@ -24,7 +24,6 @@ const { logHook, getLogFilename: getHooksFilename, cleanOldHookLogs } = require(
 const { getLogFilename: getEventsFilename, cleanOldEventLogs } = require('./event-logger');
 const { tailLines, configLoad } = require('./pbr-tools');
 const { removeSessionDir, releaseSessionClaims } = require('./lib/core');
-const { readSessionMetrics, summarizeMetrics, formatSessionSummary } = require('./lib/local-llm/metrics');
 const { writeSnapshot } = require('./lib/snapshot-manager');
 
 function readStdin() {
@@ -492,35 +491,6 @@ function main() {
     }
   } catch (_e) { /* metrics display is best-effort */ }
 
-  // Local LLM metrics summary (SessionEnd — sync reads only, never throws)
-  let llmAdditionalContext = null;
-  try {
-    const sessionStartFile = path.join(planningDir, '.session-start');
-    if (fs.existsSync(sessionStartFile)) {
-      const sessionStartTime = fs.readFileSync(sessionStartFile, 'utf8').trim();
-      const entries = readSessionMetrics(planningDir, sessionStartTime);
-      if (entries.length > 0) {
-        const summary = summarizeMetrics(entries);
-        logHook('session-cleanup', 'SessionEnd', 'llm-metrics', {
-          total_calls: summary.total_calls,
-          fallback_count: summary.fallback_count,
-          avg_latency_ms: summary.avg_latency_ms,
-          tokens_saved: summary.tokens_saved,
-          cost_saved_usd: summary.cost_saved_usd
-        });
-        if (summary.total_calls > 0) {
-          let modelName = null;
-          try {
-            const rawConfig = configLoad(planningDir) || {};
-            modelName = (rawConfig.local_llm && rawConfig.local_llm.model) || null;
-          } catch (_e) { /* config read failure is non-fatal */ }
-          llmAdditionalContext = formatSessionSummary(summary, modelName);
-        }
-      }
-      // Clean up session-start file
-      try { fs.unlinkSync(sessionStartFile); } catch (_e) { /* non-fatal */ }
-    }
-  } catch (_e) { /* metrics never crash the hook */ }
 
   // Surface compliance violations from this session
   let complianceContext = null;
@@ -568,7 +538,7 @@ function main() {
     // Snapshot failure must never crash SessionEnd
   }
 
-  const combinedContext = [metricsContext, llmAdditionalContext, complianceContext].filter(Boolean).join('\n');
+  const combinedContext = [metricsContext, complianceContext].filter(Boolean).join('\n');
   if (combinedContext) {
     process.stdout.write(JSON.stringify({ additionalContext: combinedContext }) + '\n');
   }

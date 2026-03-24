@@ -1,12 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * PostToolUse hook for Bash: Triages test failure output using the local LLM.
- *
- * When a Bash command that looks like a test invocation exits with a non-zero
- * exit code, this hook sends the output to the local LLM for classification.
- * The triage result is returned as advisory context to help the frontier model
- * focus on the right failure category without re-parsing raw test output.
+ * PostToolUse hook for Bash: Previously triaged test failures via local LLM.
+ * Now a no-op stub — local LLM infrastructure has been removed.
  *
  * Exit codes:
  *   0 = always (PostToolUse hook, never blocks)
@@ -14,11 +10,7 @@
 
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const { logHook } = require('./hook-logger');
-const { resolveConfig } = require('./lib/local-llm/health');
-const { triageTestOutput } = require('./lib/local-llm/operations/triage-test-output');
 
 const TEST_COMMAND_PATTERNS = [
   /\bnpm\s+test\b/,
@@ -49,62 +41,12 @@ function detectTestRunner(command) {
 }
 
 /**
- * Load and resolve the local_llm config block from .planning/config.json.
- */
-function loadLocalLlmConfig(cwd) {
-  try {
-    const configPath = path.join(cwd || process.cwd(), '.planning', 'config.json');
-    const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return resolveConfig(parsed.local_llm);
-  } catch (_e) {
-    return resolveConfig(undefined);
-  }
-}
-
-/**
  * Check if Bash output contains test failure and triage it.
- * @param {object} data - parsed hook data
+ * Previously used local LLM for classification — now a no-op stub.
+ * @param {object} _data - parsed hook data
  * @returns {Promise<{output: object}|null>}
  */
-async function checkTestTriage(data) {
-  const command = data.tool_input?.command || '';
-  const toolOutput = data.tool_output || '';
-  const exitCode = data.tool_exit_code;
-
-  // Only triage test commands that failed
-  if (exitCode === 0 || exitCode === undefined) return null;
-  if (!TEST_COMMAND_PATTERNS.some(p => p.test(command))) return null;
-  if (!toolOutput || toolOutput.length < 20) return null;
-
-  const cwd = process.cwd();
-  const llmConfig = loadLocalLlmConfig(cwd);
-  const planningDir = path.join(cwd, '.planning');
-  const testRunner = detectTestRunner(command);
-
-  // Truncate to last 2000 chars — test failures are usually at the end
-  const tail = toolOutput.length > 2000 ? toolOutput.slice(-2000) : toolOutput;
-
-  try {
-    const llmResult = await triageTestOutput(llmConfig, planningDir, tail, testRunner, data.session_id);
-    if (llmResult && llmResult.category && llmResult.category !== 'unknown') {
-      logHook('post-bash-triage', 'PostToolUse', 'triage', {
-        category: llmResult.category,
-        file_hint: llmResult.file_hint,
-        runner: testRunner
-      });
-
-      let msg = `[pbr] Test failure triage: ${llmResult.category}`;
-      if (llmResult.file_hint) {
-        msg += ` (likely: ${llmResult.file_hint})`;
-      }
-      msg += ` (confidence: ${(llmResult.confidence * 100).toFixed(0)}%)`;
-
-      return { output: { additionalContext: msg } };
-    }
-  } catch (_llmErr) {
-    // Never propagate LLM errors
-  }
-
+async function checkTestTriage(_data) {
   return null;
 }
 
