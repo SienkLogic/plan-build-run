@@ -5,6 +5,25 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * Get the path to the current hook log file.
+ * Prefers today's dated file, falls back to most recent, then legacy hooks.jsonl.
+ */
+function getHookLogPath(planningDir) {
+  const today = new Date().toISOString().slice(0, 10);
+  const dated = path.join(planningDir, 'logs', `hooks-${today}.jsonl`);
+  if (fs.existsSync(dated)) return dated;
+  const logsDir = path.join(planningDir, 'logs');
+  try {
+    const files = fs.readdirSync(logsDir)
+      .filter(f => /^hooks-\d{4}-\d{2}-\d{2}\.jsonl$/.test(f))
+      .sort()
+      .reverse();
+    if (files.length > 0) return path.join(logsDir, files[0]);
+  } catch (_e) { /* no logs dir */ }
+  return path.join(planningDir, 'logs', 'hooks.jsonl');
+}
+
+/**
  * Telemetry route factory.
  * Reads hook event log and telemetry data from .planning/.
  *
@@ -21,7 +40,7 @@ function createTelemetryRouter({ planningDir }) {
    */
   router.get('/', async (_req, res) => {
     try {
-      const eventsPath = path.join(planningDir, 'logs', 'hooks.jsonl');
+      const eventsPath = getHookLogPath(planningDir);
       let events = [];
 
       try {

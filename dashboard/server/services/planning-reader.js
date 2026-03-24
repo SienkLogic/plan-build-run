@@ -331,7 +331,7 @@ class PlanningReader {
         title: titleMatch ? titleMatch[1] : r.file.replace(/\.md$/, '').replace(/-/g, ' '),
         status: r.status || 'collected',
         source: r.mode || 'research',
-        date: r.Research_date || r.file.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || null,
+        date: r.research_date || r.file.match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || null,
         relevance: r.confidence || 'medium',
         summary: r.body ? r.body.replace(/^#.+\n+/, '').slice(0, 300) : '',
         keyTakeaways: [],

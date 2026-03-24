@@ -5,6 +5,9 @@ const path = require('path');
 
 const router = express.Router();
 const startTime = Date.now();
+const pbrVersion = (() => {
+  try { return require('../../../../package.json').version; } catch (_e) { return 'unknown'; }
+})();
 
 /**
  * Resolve the planning directory from request app config.
@@ -35,7 +38,7 @@ router.get('/', (_req, res) => {
   res.json({
     status: 'ok',
     uptime: Math.floor((Date.now() - startTime) / 1000),
-    version: '4.0.0',
+    version: pbrVersion,
     timestamp: new Date().toISOString(),
   });
 });
@@ -53,17 +56,17 @@ router.get('/features', (req, res) => {
     const featureChecks = [
       {
         name: 'progress_visualization',
-        module: '../../../plan-build-run/bin/lib/progress-visualization.cjs',
+        module: '../../../plugins/pbr/scripts/lib/progress-visualization.js',
         fn: 'getProgressData',
       },
       {
         name: 'contextual_help',
-        module: '../../../plan-build-run/bin/lib/contextual-help.cjs',
+        module: '../../../plugins/pbr/scripts/lib/contextual-help.js',
         fn: 'getContextualHelp',
       },
       {
         name: 'team_onboarding',
-        module: '../../../plan-build-run/bin/lib/onboarding-generator.cjs',
+        module: '../../../plugins/pbr/scripts/lib/onboarding-generator.js',
         fn: 'generateOnboardingGuide',
       },
     ];
