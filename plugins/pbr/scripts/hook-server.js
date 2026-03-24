@@ -89,21 +89,46 @@ function readEventLogTail(logFile, maxLines) {
   if (maxLines === undefined) maxLines = 500;
   try {
     if (!fs.existsSync(logFile)) return [];
-    const content = fs.readFileSync(logFile, 'utf8');
-    const lines = content.split('\n').filter(l => l.trim().length > 0);
+    const stat = fs.statSync(logFile);
+    if (stat.size === 0) return [];
+    // Read only the last chunk instead of the entire file
+    const CHUNK_SIZE = 64 * 1024; // 64KB should hold 500+ lines
+    const start = Math.max(0, stat.size - CHUNK_SIZE);
+    const fd = fs.openSync(logFile, 'r');
+    const buffer = Buffer.alloc(Math.min(CHUNK_SIZE, stat.size));
+    fs.readSync(fd, buffer, 0, buffer.length, start);
+    fs.closeSync(fd);
+    const lines = buffer.toString('utf8').split('\n').filter(l => l.trim().length > 0);
     const tail = lines.slice(-maxLines);
     const events = [];
     for (const line of tail) {
       try {
         events.push(JSON.parse(line));
       } catch (_e) {
-        // Skip malformed lines
+        // Skip malformed lines (including partial first line from mid-file read)
       }
     }
     return events;
   } catch (_e) {
     return [];
   }
+}
+
+/**
+ * Rotate the event log if it exceeds 2MB — truncate to last 1000 lines.
+ * Called once at server startup to prevent unbounded log growth.
+ */
+function rotateEventLog(planningDir) {
+  if (!planningDir) return;
+  const logFile = path.join(planningDir, '.hook-events.jsonl');
+  try {
+    const stat = fs.statSync(logFile);
+    if (stat.size > 2 * 1024 * 1024) { // 2MB
+      const content = fs.readFileSync(logFile, 'utf8');
+      const lines = content.split('\n').filter(l => l.trim().length > 0);
+      fs.writeFileSync(logFile, lines.slice(-1000).join('\n') + '\n');
+    }
+  } catch (_e) { /* best-effort — file may not exist yet */ }
 }
 
 /** Append a JSON event object as a single line to .planning/.hook-events.jsonl */
@@ -597,6 +622,9 @@ function main() {
     cache.config = configLoad(planningDir);
   } catch (_e) { /* best-effort */ }
 
+  // Rotate event log if oversized (before any new events are appended)
+  rotateEventLog(planningDir);
+
   initRoutes();
 
   const server = createServer(planningDir);
@@ -625,6 +653,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, rotateEventLog, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }

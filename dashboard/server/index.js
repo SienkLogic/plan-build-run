@@ -44,7 +44,16 @@ function createApp(options = {}) {
   const app = express();
 
   // Core middleware
-  app.use(cors());
+  app.use(cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, curl, etc.) or localhost
+      if (!origin || /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    }
+  }));
   app.use(express.json());
 
   // Store resolved options on app for downstream middleware
