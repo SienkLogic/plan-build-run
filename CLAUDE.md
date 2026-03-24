@@ -136,16 +136,18 @@ argument-hint: "<N> [--flag]"
 ---
 name: agent-name
 description: "What this agent does"
-model: sonnet|inherit|haiku
 memory: none|user|project
 isolation: worktree        # Run agent in isolated git worktree (optional)
 color: <name|hex>          # Terminal color for agent output (optional)
+permissionMode: default    # Optional: permissions for agent (optional)
 tools:
   - Read
   - Write
   - Bash
 ---
 ```
+
+Model selection is config-driven via `config.json` `models` map, not via agent frontmatter.
 
 ## Data Flow
 

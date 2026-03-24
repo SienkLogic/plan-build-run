@@ -2,6 +2,7 @@
 name: profile-user
 description: "Analyze Claude Code session history to generate a developer behavioral profile across 8 dimensions."
 allowed-tools: Read, Write, Bash, Glob, Grep, AskUserQuestion
+argument-hint: "[--sessions N]"
 ---
 
 **STOP -- DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 0 immediately.**

@@ -2,6 +2,7 @@
 name: setup
 description: "Reconfigure an existing Plan-Build-Run project (models, features, CLAUDE.md)."
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
+argument-hint: "[--models] [--features] [--hooks]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 1 immediately.**

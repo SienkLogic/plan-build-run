@@ -2,6 +2,7 @@
 name: scan
 description: "Analyze an existing codebase. Maps structure, architecture, conventions, and concerns."
 allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
+argument-hint: "[--focus tech|arch|quality|concerns]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 1 immediately.**

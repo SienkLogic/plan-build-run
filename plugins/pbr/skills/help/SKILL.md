@@ -2,6 +2,7 @@
 name: help
 description: "Command reference and workflow guide for Plan-Build-Run."
 allowed-tools: Read, Bash
+argument-hint: "[command]"
 ---
 
 **STOP — DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes tokens. Begin executing Step 1 immediately.**

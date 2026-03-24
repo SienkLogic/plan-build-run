@@ -2,6 +2,7 @@
 name: quick
 description: "Execute an ad-hoc task with atomic commits. Skips full plan/review."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Task, AskUserQuestion
+argument-hint: "<description> [--discuss] [--full]"
 ---
 
 **STOP -- DO NOT READ THIS FILE. You are already reading it. This prompt was injected into your context by Claude Code's plugin system. Using the Read tool on this SKILL.md file wastes ~7,600 tokens. Begin executing Step 0 immediately.**

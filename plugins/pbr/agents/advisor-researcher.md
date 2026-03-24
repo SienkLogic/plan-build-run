@@ -9,6 +9,7 @@ tools:
   - WebSearch
   - WebFetch
 color: "#60A5FA"
+memory: none
 ---
 
 <files_to_read>
