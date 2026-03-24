@@ -1,7 +1,7 @@
 /**
  * Tests for hooks/lib/state.js — STATE.md operations.
  *
- * Covers all 13 exported functions: parseStateMd, updateLegacyStateField,
+ * Covers exported functions: parseStateMd,
  * updateFrontmatterField, syncBodyLine, buildProgressBar, stateLoad,
  * stateCheckProgress, stateUpdate, statePatch, stateAdvancePlan,
  * stateRecordMetric, stateRecordActivity, stateUpdateProgress.
@@ -14,7 +14,6 @@ const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers'
 const { configClearCache } = require('../plugins/pbr/scripts/lib/config');
 const {
   parseStateMd,
-  updateLegacyStateField,
   updateFrontmatterField,
   syncBodyLine,
   buildProgressBar,
@@ -65,12 +64,12 @@ Wave: 1
 
 const MINIMAL_ROADMAP = `# Roadmap
 
-## Phase Overview
+## Progress
 
-| Phase | Name | Goal | Plans | Status |
-|-------|------|------|-------|--------|
-| 1 | Setup | Initialize | 0/1 | planned |
-| 2 | Auth | Build auth | 1/2 | building |
+| Phase | Plans Complete | Status |
+|-------|---------------|--------|
+| 1. Setup | 0/1 | planned |
+| 2. Auth | 1/2 | building |
 `;
 
 // --- Helpers ---
@@ -123,14 +122,12 @@ describe('parseStateMd', () => {
     expect(result.blockers).toEqual([]);
   });
 
-  it('parses legacy v1 format', () => {
-    stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  it('returns nulls for v1 format (no longer parsed)', () => {
     const result = parseStateMd(V1_STATE);
-    expect(result.format).toBe('legacy');
-    expect(result.current_phase).toBe(2);
-    expect(result.phase_name).toBe('Authentication');
-    expect(result.status).toBe('built');
-    expect(result.progress).toBe(33);
+    expect(result.format).toBe('frontmatter');
+    expect(result.current_phase).toBeNull();
+    expect(result.status).toBeNull();
+    expect(result.progress).toBeNull();
   });
 
   it('handles CRLF content identically to LF', () => {
@@ -151,10 +148,9 @@ describe('parseStateMd', () => {
     expect(result.progress).toBeNull();
   });
 
-  it('returns nulls for minimal content without markers', () => {
-    stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  it('returns nulls for minimal content without frontmatter', () => {
     const result = parseStateMd('# Just a heading\nSome text');
-    expect(result.format).toBe('legacy');
+    expect(result.format).toBe('frontmatter');
     expect(result.current_phase).toBeNull();
     expect(result.status).toBeNull();
   });
@@ -204,66 +200,7 @@ describe('updateFrontmatterField', () => {
   });
 });
 
-// ===== updateLegacyStateField =====
-
-describe('updateLegacyStateField', () => {
-  it('updates current_phase number', () => {
-    const result = updateLegacyStateField(V1_STATE, 'current_phase', 4);
-    expect(result).toContain('Phase: 4 of 6');
-  });
-
-  it('replaces existing Status line', () => {
-    const result = updateLegacyStateField(V1_STATE, 'status', 'verified');
-    expect(result).toContain('Status: verified');
-    expect(result).not.toContain('Status: built');
-  });
-
-  it('inserts Status after Phase line when missing', () => {
-    const noStatus = '# State\nPhase: 1 of 3\nPlan: 1 of 2';
-    const result = updateLegacyStateField(noStatus, 'status', 'building');
-    const lines = result.split('\n');
-    const phaseIdx = lines.findIndex(l => l.includes('Phase:'));
-    expect(lines[phaseIdx + 1]).toBe('Status: building');
-  });
-
-  it('appends Status when no Phase line exists', () => {
-    const bare = '# State\nSome content';
-    const result = updateLegacyStateField(bare, 'status', 'building');
-    expect(result).toContain('Status: building');
-  });
-
-  it('updates plans_complete number', () => {
-    const result = updateLegacyStateField(V1_STATE, 'plans_complete', 2);
-    expect(result).toContain('Plan: 2 of 2');
-  });
-
-  it('replaces existing Last Activity line', () => {
-    const withActivity = '# State\nLast Activity: old\nDone.';
-    const result = updateLegacyStateField(withActivity, 'last_activity', 'new stuff');
-    expect(result).toContain('Last Activity: new stuff');
-    expect(result).not.toContain('Last Activity: old');
-  });
-
-  it('inserts Last Activity after Status when missing', () => {
-    const noActivity = '# State\nStatus: built\nDone.';
-    const result = updateLegacyStateField(noActivity, 'last_activity', 'today');
-    const lines = result.split('\n');
-    const statusIdx = lines.findIndex(l => l.includes('Status:'));
-    expect(lines[statusIdx + 1]).toBe('Last Activity: today');
-  });
-
-  it('appends Last Activity when no Status line exists', () => {
-    const bare = '# State';
-    const result = updateLegacyStateField(bare, 'last_activity', 'now');
-    expect(result).toContain('Last Activity: now');
-  });
-
-  it('handles CRLF input', () => {
-    const crlf = V1_STATE.replace(/\n/g, '\r\n');
-    const result = updateLegacyStateField(crlf, 'status', 'verified');
-    expect(result).toContain('Status: verified');
-  });
-});
+// updateLegacyStateField tests removed
 
 // ===== syncBodyLine =====
 
@@ -440,14 +377,13 @@ describe('stateUpdate', () => {
     expect(result.value).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
   });
 
-  it('updates legacy format fields', () => {
+  it('updates v2 format fields', () => {
     setupTmp();
-    writeStateV1();
-    stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    writeStateV2();
     const result = stateUpdate('status', 'verified', planningDir);
     expect(result.success).toBe(true);
     const content = fs.readFileSync(path.join(planningDir, 'STATE.md'), 'utf8');
-    expect(content).toContain('Status: verified');
+    expect(content).toContain('status: "verified"');
   });
 
   it('syncs body line after frontmatter update', () => {

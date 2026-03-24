@@ -1,11 +1,11 @@
 /**
- * Tests for hooks/lib/spot-check.js — spotCheck, verifySpotCheck.
+ * Tests for hooks/lib/spot-check.js — verifySpotCheck.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { createTmpPlanning, cleanupTmp, writePlanningFile } = require('./helpers');
-const { spotCheck, verifySpotCheck } = require('../plugins/pbr/scripts/lib/spot-check');
+const { verifySpotCheck } = require('../plugins/pbr/scripts/lib/spot-check');
 
 let tmpDir, planningDir;
 
@@ -14,85 +14,7 @@ afterEach(() => {
   tmpDir = null;
 });
 
-describe('spotCheck (legacy)', () => {
-  it('returns not ok when SUMMARY file does not exist', () => {
-    ({ tmpDir, planningDir } = createTmpPlanning());
-    const phaseDir = path.join(planningDir, 'phases', '01-setup');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    const result = spotCheck(planningDir, '01-setup', '01-01');
-    expect(result.ok).toBe(false);
-    expect(result.summary_exists).toBe(false);
-    expect(result.detail).toContain('not found');
-  });
-
-  it('returns ok when SUMMARY has valid commits and key_files', () => {
-    ({ tmpDir, planningDir } = createTmpPlanning());
-    const phaseDir = path.join(planningDir, 'phases', '01-setup');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    // Create a key file that exists relative to the repo root (tmpDir)
-    fs.writeFileSync(path.join(tmpDir, 'src.js'), 'module.exports = {}');
-
-    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), [
-      '---',
-      'plan: "01-01"',
-      'status: complete',
-      'commits: ["abc1234"]',
-      'key_files:',
-      '  - "src.js"',
-      'requires: []',
-      'deferred: []',
-      '---',
-      '',
-      '## Task Results'
-    ].join('\n'));
-
-    const result = spotCheck(planningDir, '01-setup', '01-01');
-    expect(result.ok).toBe(true);
-    expect(result.summary_exists).toBe(true);
-    expect(result.commits_present).toBe(true);
-  });
-
-  it('returns not ok when commits field is empty', () => {
-    ({ tmpDir, planningDir } = createTmpPlanning());
-    const phaseDir = path.join(planningDir, 'phases', '01-setup');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), [
-      '---',
-      'plan: "01-01"',
-      'commits: []',
-      'key_files: []',
-      '---',
-      ''
-    ].join('\n'));
-
-    const result = spotCheck(planningDir, '01-setup', '01-01');
-    expect(result.ok).toBe(false);
-    expect(result.commits_present).toBe(false);
-  });
-
-  it('returns not ok when key_files reference missing files', () => {
-    ({ tmpDir, planningDir } = createTmpPlanning());
-    const phaseDir = path.join(planningDir, 'phases', '01-setup');
-    fs.mkdirSync(phaseDir, { recursive: true });
-
-    fs.writeFileSync(path.join(phaseDir, 'SUMMARY-01-01.md'), [
-      '---',
-      'plan: "01-01"',
-      'commits: ["abc1234"]',
-      'key_files:',
-      '  - "nonexistent-file.js"',
-      '---',
-      ''
-    ].join('\n'));
-
-    const result = spotCheck(planningDir, '01-setup', '01-01');
-    expect(result.ok).toBe(false);
-    expect(result.detail).toContain('missing key_files');
-  });
-});
+// Legacy spotCheck tests removed
 
 describe('verifySpotCheck', () => {
   it('returns error for nonexistent directory', () => {

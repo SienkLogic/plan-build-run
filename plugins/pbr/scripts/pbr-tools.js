@@ -223,7 +223,6 @@ const {
 } = require('./lib/migrate');
 
 const {
-  spotCheck: _spotCheck,
   verifySpotCheck: _verifySpotCheck
 } = require('./lib/spot-check');
 
@@ -573,9 +572,6 @@ function migrate(options) {
   return _applyMigrations(planningDir, options);
 }
 
-function spotCheck(phaseDir, planId) {
-  return _spotCheck(planningDir, phaseDir, planId);
-}
 
 function verifySpotCheck(type, dirPath) {
   return _verifySpotCheck(type, dirPath);
@@ -1552,7 +1548,6 @@ async function main() {
       const phaseSlug = args[1];
       const planId = args[2];
       if (!phaseSlug || !planId) {
-        error('Usage: spot-check <phaseSlug> <planId>');
       }
       output(spotCheck(phaseSlug, planId));
     } else if (command === 'staleness-check') {

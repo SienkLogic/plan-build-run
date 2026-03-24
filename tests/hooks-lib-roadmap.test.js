@@ -62,15 +62,9 @@ const NEW_FORMAT_ROADMAP = [
 ].join('\n');
 
 describe('parseRoadmapMd', () => {
-  it('parses old format Phase Overview table', () => {
+  it('does not parse old format Phase Overview (legacy removed)', () => {
     const result = parseRoadmapMd(OLD_FORMAT_ROADMAP);
-    expect(result.phases).toHaveLength(3);
-    expect(result.phases[0]).toEqual({
-      number: '01', name: 'Setup', goal: 'Project scaffolding',
-      plans: '1', wave: '1', status: 'verified'
-    });
-    expect(result.phases[1].name).toBe('Auth');
-    expect(result.phases[2].status).toBe('pending');
+    expect(result.phases).toHaveLength(0);
   });
 
   it('returns empty phases for empty content', () => {
@@ -97,20 +91,10 @@ describe('parseRoadmapMd', () => {
     expect(resultCRLF.phases).toEqual(resultLF.phases);
   });
 
-  it('defaults missing columns', () => {
-    const content = [
-      '## Phase Overview',
-      '',
-      '| Phase | Name | Goal |',
-      '|-------|------|------|',
-      '| 01 | Setup | Scaffold |',
-      ''
-    ].join('\n');
+  it('does not parse Phase Overview (legacy format removed)', () => {
+    const content = '## Phase Overview';
     const result = parseRoadmapMd(content);
-    expect(result.phases).toHaveLength(1);
-    expect(result.phases[0].plans).toBe('');
-    expect(result.phases[0].wave).toBe('');
-    expect(result.phases[0].status).toBe('pending');
+    expect(result.phases).toHaveLength(0);
   });
 });
 

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { parseStateMd, updateLegacyStateField, updateFrontmatterField } = require('../plugins/pbr/scripts/lib/state');
+const { parseStateMd, updateFrontmatterField } = require('../plugins/pbr/scripts/lib/state');
 const { parseRoadmapMd, findRoadmapRow, updateTableRow } = require('../plugins/pbr/scripts/lib/roadmap');
 const { parseYamlFrontmatter, parseMustHaves, countMustHaves, atomicWrite, VALID_STATUS_TRANSITIONS, STATUS_LABELS, validateStatusTransition, sessionLoad, sessionSave } = require('../plugins/pbr/scripts/lib/core');
 const { configLoad, configClearCache, configResolveDepth: resolveDepthProfile } = require('../plugins/pbr/scripts/lib/config');
@@ -9,30 +9,13 @@ const { historyAppend, historyLoad } = require('../plugins/pbr/scripts/lib/histo
 
 describe('pbr-tools.js', () => {
   describe('parseStateMd', () => {
-    test('extracts phase number and total', () => {
-      const content = 'Phase: 3 of 10\n-- Auth System\nProgress: 45%\nStatus: building';
-      const result = parseStateMd(content);
-      expect(result.current_phase).toBe(3);
-      expect(result.total_phases).toBe(10);
-    });
+    // Legacy v1 format test removed
 
-    test('extracts phase name after --', () => {
-      const content = 'Phase: 2 of 8\n-- Database Setup\n50%';
-      const result = parseStateMd(content);
-      expect(result.phase_name).toBe('Database Setup');
-    });
+    // Legacy v1 format test removed
 
-    test('extracts progress percentage', () => {
-      const content = 'Phase: 1 of 5\nOverall: 72% complete';
-      const result = parseStateMd(content);
-      expect(result.progress).toBe(72);
-    });
+    // Legacy v1 format test removed
 
-    test('extracts status', () => {
-      const content = 'Phase: 1 of 5\nStatus: planned\n';
-      const result = parseStateMd(content);
-      expect(result.status).toBe('planned');
-    });
+    // Legacy v1 format test removed
 
     test('handles missing phase info', () => {
       const content = 'Some random content\nNo phase data here\n';
@@ -59,11 +42,7 @@ describe('pbr-tools.js', () => {
       expect(result.line_count).toBe(3);
     });
 
-    test('legacy format sets format to "legacy"', () => {
-      const content = 'Phase: 1 of 5\nStatus: building\nProgress: 20%';
-      const result = parseStateMd(content);
-      expect(result.format).toBe('legacy');
-    });
+    // Legacy v1 format test removed
 
     test('parses YAML frontmatter format (version 2)', () => {
       const content = `---
@@ -110,41 +89,11 @@ blockers:
       expect(result.blockers).toEqual(['Missing API key', 'Database migration pending']);
     });
 
-    test('backward compatible — old format without frontmatter still works', () => {
-      const content = `# Project State
-Version: 1
-
-## Current Position
-Phase: 7 of 12 (Dashboard)
-Plan: 2 of 3 in current phase
-Status: Building
-Progress: [██████████████░░░░░░] 58%`;
-      const result = parseStateMd(content);
-      expect(result.format).toBe('legacy');
-      expect(result.current_phase).toBe(7);
-      expect(result.total_phases).toBe(12);
-      expect(result.status).toBe('Building');
-      expect(result.progress).toBe(58);
-    });
+    // Legacy v1 format test removed
   });
 
   describe('parseRoadmapMd', () => {
-    test('parses Phase Overview table rows', () => {
-      const content = `## Phase Overview
-| Phase | Name | Goal | Plans | Wave | Status |
-|-------|------|------|-------|------|--------|
-| 01 | Setup | Init project | 2 | 1 | planned |
-| 02 | Auth | Add login | 3 | 1 | pending |
-`;
-      const result = parseRoadmapMd(content);
-      expect(result.phases).toHaveLength(2);
-      expect(result.phases[0].number).toBe('01');
-      expect(result.phases[0].name).toBe('Setup');
-      expect(result.phases[0].goal).toBe('Init project');
-      expect(result.phases[0].status).toBe('planned');
-      expect(result.phases[1].number).toBe('02');
-      expect(result.phases[1].name).toBe('Auth');
-    });
+    // Legacy Phase Overview table test removed
 
     test('detects progress table', () => {
       const content = `## Phase Overview
@@ -217,15 +166,7 @@ Some progress data
       expect(result.phases[0].number).toBe('01. Setup');
     });
 
-    test('defaults missing status column to pending', () => {
-      const content = `## Phase Overview
-| Phase | Name | Goal | Plans | Wave |
-|-------|------|------|-------|------|
-| 01 | Setup | Init | 2 | 1 |
-`;
-      const result = parseRoadmapMd(content);
-      expect(result.phases[0].status).toBe('pending');
-    });
+    // Legacy Phase Overview table test removed
   });
 
   describe('parseYamlFrontmatter', () => {
@@ -459,7 +400,7 @@ next_top_level: something`;
     });
   });
 
-  describe('updateLegacyStateField', () => {
+  // updateLegacyStateField tests removeddateLegacyStateField', () => {
     const legacyContent = '# Project State\n\nPhase: 2 of 6 -- Authentication\nStatus: built\nProgress: 33%\n\n## Current Work\nPlan: 1 of 2\nWave: 1\n';
 
     test('updates current_phase', () => {

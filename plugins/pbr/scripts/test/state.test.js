@@ -66,19 +66,11 @@ describe('parseStateMd', () => {
     assert.strictEqual(crlfResult.plans_complete, lfResult.plans_complete);
   });
 
-  it('parses legacy v1 format correctly', () => {
-    // Suppress the deprecation warning to stderr
-    const origWrite = process.stderr.write;
-    process.stderr.write = () => true;
-    try {
-      const result = parseStateMd(STATE_V1);
-      assert.strictEqual(result.format, 'legacy');
-      assert.strictEqual(result.current_phase, 2);
-      assert.strictEqual(result.status, 'planned');
-      assert.strictEqual(result.progress, 20);
-    } finally {
-      process.stderr.write = origWrite;
-    }
+  it('returns nulls for v1 format (no longer parsed)', () => {
+    const content = '# State\n\nPhase: 2 of 6\nStatus: built\nProgress: 33%\n';
+    const result = parseStateMd(content);
+    expect(result.format).toBe('frontmatter');
+    expect(result.current_phase).toBeNull();
   });
 
   it('returns defaults for empty content', () => {

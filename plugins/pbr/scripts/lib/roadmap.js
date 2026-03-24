@@ -28,7 +28,7 @@ function parseRoadmapMd(content) {
     .replace(/<\/?summary>/gi, '');
   const result = { phases: [], has_progress_table: false };
 
-  // Parse Progress table (primary) or Phase Overview table (legacy fallback)
+  // Parse Progress table (v9+ format: 3-column table)
   const progressMatch = stripped.match(/## Progress[\s\S]*?(?=\n##(?!\s*Progress)|\s*$)/);
   // Only use Progress table if it actually contains a markdown table with pipe rows
   const progressRows = progressMatch ? progressMatch[0].split('\n').filter(r => r.includes('|')) : [];
@@ -62,26 +62,9 @@ function parseRoadmapMd(content) {
         }
       }
     }
-  } else {
-    // Fallback: try legacy Phase Overview table
-    const overviewMatch = stripped.match(/## Phase Overview[\s\S]*?\|[\s\S]*?(?=\n##|\s*$)/);
-    if (overviewMatch) {
-      const rows = overviewMatch[0].split('\n').filter(r => r.includes('|'));
-      for (let i = 2; i < rows.length; i++) {
-        const cols = rows[i].split('|').map(c => c.trim()).filter(Boolean);
-        if (cols.length >= 3) {
-          result.phases.push({
-            number: cols[0],
-            name: cols[1],
-            goal: cols[2],
-            plans: cols[3] || '',
-            wave: cols[4] || '',
-            status: cols[5] || 'pending'
-          });
-        }
-      }
-    }
-    // Even without a parseable Progress table, note if the heading exists
+  }
+  // Even without a parseable Progress table, note if the heading exists
+  if (!result.has_progress_table) {
     result.has_progress_table = !!progressMatch;
   }
 
@@ -148,9 +131,8 @@ function findRoadmapRow(lines, phaseNum) {
     if (/^\s*\|[\s-:|]+\|\s*$/.test(lines[i])) continue;
     const parts = lines[i].split('|');
     if (parts.length < 3) continue;
-    // Search ALL columns for a phase number match (handles both old and new column layouts)
+    // Search ALL columns for a phase number match
     // Handles v9+ format: "| 21. Phase Name | X/Y | Status |" (number+name merged in 3-col table)
-    // as well as legacy formats: "| 21 | Phase Name | ... |" (separate columns)
     for (let c = 1; c < parts.length - 1; c++) {
       const col = (parts[c] || '').trim();
       // Match "01", "1", "01.", "01. Name", etc.
@@ -238,12 +220,9 @@ function roadmapUpdateStatus(phaseNum, newStatus, planningDir) {
       parts[statusColIdx] = ` ${newStatus} `;
       lines[rowIdx] = parts.join('|');
     } else {
-      // Fallback: detect column count to pick correct index
-      // 3-col table (v9+ format): Status at raw index 3; legacy 6-col: index 5
-      const colCount = parts.filter(p => p.trim()).length;
-      const fallbackIdx = colCount <= 3 ? 3 : 5;
-      oldStatus = parts[fallbackIdx] ? parts[fallbackIdx].trim() : (parts[4] ? parts[4].trim() : 'unknown');
-      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx - 1, newStatus);
+      // Fallback: assume 3-col table (v9+ format), Status at raw index 3
+      oldStatus = parts[3] ? parts[3].trim() : 'unknown';
+      lines[rowIdx] = updateTableRow(lines[rowIdx], 2, newStatus);
     }
     return lines.join(lineEnding);
   });
@@ -301,12 +280,9 @@ function roadmapUpdatePlans(phaseNum, complete, total, planningDir) {
       parts[plansColIdx] = ` ${newPlans} `;
       lines[rowIdx] = parts.join('|');
     } else {
-      // Fallback: detect column count to pick correct index
-      // 3-col table (v9+ format): Plans Complete at raw index 2; legacy 6-col: index 3
-      const colCount = parts.filter(p => p.trim()).length;
-      const fallbackIdx = colCount <= 3 ? 2 : 3;
-      oldPlans = parts[fallbackIdx + 1] ? parts[fallbackIdx + 1].trim() : (parts[2] ? parts[2].trim() : 'unknown');
-      lines[rowIdx] = updateTableRow(lines[rowIdx], fallbackIdx, newPlans);
+      // Fallback: assume 3-col table (v9+ format), Plans Complete at raw index 2
+      oldPlans = parts[2] ? parts[2].trim() : 'unknown';
+      lines[rowIdx] = updateTableRow(lines[rowIdx], 1, newPlans);
     }
     return lines.join(lineEnding);
   });
