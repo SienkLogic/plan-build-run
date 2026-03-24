@@ -504,8 +504,7 @@ async function handleMisc(args, ctx) {
       const skillPath = path.join(root, 'skills', skillName, 'SKILL.md');
       if (!fs.existsSync(skillPath)) {
         output({ error: `Skill not found: ${skillName}`, available: _listAvailableSkills(root) });
-        if (true) process.exit(1);
-        return;
+        process.exit(1);
       }
       const content = fs.readFileSync(skillPath, 'utf8');
       output({ skill: skillName, headings: listHeadings(content) });
