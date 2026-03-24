@@ -1468,6 +1468,82 @@ function checkAdaptiveCeremonyHealth(planningDir, pluginRoot) {
   );
 }
 
+/**
+ * Check assumption registry for stale or never-validated entries.
+ *
+ * Reads references/assumptions.md, parses the markdown table, and returns
+ * entries that are stale (older than thresholdDays) or never validated.
+ *
+ * @param {string} cwd - Working directory (project root or plugin root)
+ * @param {number} [thresholdDays=90] - Days after which validation is stale
+ * @returns {{ stale: string[], neverValidated: string[], total: number, fresh: number }}
+ */
+function checkAssumptionStaleness(cwd, thresholdDays) {
+  const threshold = typeof thresholdDays === 'number' ? thresholdDays : 90;
+  const empty = { stale: [], neverValidated: [], total: 0, fresh: 0 };
+
+  // Try multiple possible locations for the assumptions file
+  const candidates = [
+    path.join(cwd, 'plugins', 'pbr', 'references', 'assumptions.md'),
+    path.join(cwd, 'references', 'assumptions.md'),
+  ];
+
+  let content = null;
+  for (const candidate of candidates) {
+    const result = safeReadFile(candidate);
+    if (result) {
+      content = result;
+      break;
+    }
+  }
+
+  if (!content) return empty;
+
+  const lines = content.split('\n');
+  const dataRows = lines.filter(line => {
+    if (!line.startsWith('|')) return false;
+    if (line.includes('---')) return false;
+    if (line.includes('Component') && line.includes('Type')) return false;
+    return true;
+  });
+
+  const stale = [];
+  const neverValidated = [];
+  let freshCount = 0;
+  const now = new Date();
+
+  for (const row of dataRows) {
+    const cells = row.split('|').map(c => c.trim()).filter(Boolean);
+    if (cells.length < 6) continue;
+
+    const component = cells[0];
+    const lastValidated = cells[5];
+
+    if (!lastValidated || lastValidated === '-') {
+      neverValidated.push(component);
+    } else {
+      const validDate = new Date(lastValidated);
+      if (isNaN(validDate.getTime())) {
+        neverValidated.push(component);
+      } else {
+        const daysDiff = Math.floor((now - validDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff > threshold) {
+          stale.push(component);
+        } else {
+          freshCount++;
+        }
+      }
+    }
+  }
+
+  return {
+    stale,
+    neverValidated,
+    total: dataRows.length,
+    fresh: freshCount,
+  };
+}
+
 module.exports = {
   cmdVerifySummary,
   cmdVerifyPlanStructure,
@@ -1481,4 +1557,5 @@ module.exports = {
   checkNLRoutingHealth,
   checkAdaptiveCeremonyHealth,
   checkFeatureModuleHealth,
+  checkAssumptionStaleness,
 };
