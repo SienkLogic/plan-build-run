@@ -14,6 +14,7 @@ const { logHook } = require('../hook-logger');
 const { KNOWN_AGENTS, sessionLoad } = require('../pbr-tools');
 const { detectConventions, writeConventions } = require('./convention-detector');
 const { resolveSessionPath } = require('./core');
+const handoff = require('./handoff-validators');
 
 // Agent-type to skill mapping for .active-skill auto-creation
 const AGENT_TO_SKILL = {
@@ -598,9 +599,20 @@ const SKILL_CHECKS = {
     }
   },
   'plan:pbr:planner': {
-    description: 'plan planner LEARNINGS.md',
-    check: (planningDir, _found, warnings) => {
+    description: 'plan planner LEARNINGS.md and handoff completeness',
+    check: (planningDir, found, warnings) => {
       checkLearningsRequired(planningDir, warnings, 'planner');
+      // Handoff completeness check (REQ-HI-03)
+      const planFiles = (found || []).filter(f => /PLAN/i.test(f));
+      for (const relPath of planFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const result = handoff.validatePlanCompleteness(fullPath);
+          if (!result.adequate) {
+            warnings.push(...result.warnings.map(w => `Handoff: ${w}`));
+          }
+        } catch (_e) { /* intentionally silent: handoff check must not crash hooks */ }
+      }
     }
   },
   'scan:pbr:codebase-mapper': {
@@ -634,6 +646,16 @@ const SKILL_CHECKS = {
         } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check failed in review:pbr:verifier'); }
       }
       checkLearningsRequired(planningDir, warnings, 'verifier');
+      // Handoff completeness check (REQ-HI-03)
+      for (const vf of verFiles) {
+        try {
+          const fullPath = path.join(planningDir, vf);
+          const result = handoff.validateVerificationCompleteness(fullPath);
+          if (!result.adequate) {
+            warnings.push(...result.warnings.map(w => `Handoff: ${w}`));
+          }
+        } catch (_e) { /* intentionally silent: handoff check must not crash hooks */ }
+      }
 
       // Trust score update: record verification outcome
       try {
@@ -673,6 +695,16 @@ const SKILL_CHECKS = {
           const selfCheckWarnings = validateSelfCheck(fullPath, config);
           warnings.push(...selfCheckWarnings);
         } catch (_e) { logHook('subagent-validators', 'debug', 'Skill check failed in build:pbr:executor'); }
+      }
+      // Handoff completeness check (REQ-HI-03)
+      for (const relPath of summaryFiles) {
+        try {
+          const fullPath = path.join(planningDir, relPath);
+          const result = handoff.validateSummaryCompleteness(fullPath);
+          if (!result.adequate) {
+            warnings.push(...result.warnings.map(w => `Handoff: ${w}`));
+          }
+        } catch (_e) { /* intentionally silent: handoff check must not crash hooks */ }
       }
       // Extract feedback for agent prompt enrichment
       try {

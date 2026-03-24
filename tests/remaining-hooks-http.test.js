@@ -100,7 +100,7 @@ describe('check-subagent-output.js handleHttp', () => {
     const phaseDir = path.join(planningDir, 'phases', '03-auth');
     fs.writeFileSync(
       path.join(phaseDir, 'SUMMARY.md'),
-      '---\nplan: "03-01"\ncommits: ["abc1234"]\nself_check:\n  passed: 1\n  failed: 0\n---\n# Summary\n\n## Self-Check: PASSED\n'
+      '---\nplan: "03-01"\ncommits: ["abc1234"]\nself_check:\n  passed: 1\n  failed: 0\nrequires: []\nkey_files:\n  - "src/auth.js"\ndeferred: []\n---\n# Summary\n\n## Self-Check: PASSED\n\nImplemented the authentication module with JWT token validation and refresh token rotation. Added middleware for route protection and integrated with the existing session store. Updated the user model to track login attempts and added rate limiting for failed authentication. All existing tests continue to pass and new tests cover the token lifecycle.\n'
     );
     // Write LEARNINGS.md to suppress the learnings advisory
     fs.writeFileSync(
