@@ -154,6 +154,15 @@ From the phase goal, derive three categories of **must-haves** — observable co
 - **Key links**: Connections between artifacts (e.g., "API routes use requireAuth() middleware")
 
 Each must-have maps to one or more tasks. Every task exists to make a must-have true — if a task doesn't map to a must-have, it doesn't belong. Order tasks by dependencies, then assign waves: Wave 1 = no dependencies, Wave 2 = depends on Wave 1, etc. Same-wave plans can run in parallel.
+
+### Criterion Language Awareness
+
+Must-have wording directly steers executor behavior — criteria are implicit instructions, not just evaluation rubrics. Before finalizing must-haves, apply the guidance in `skills/shared/criterion-writing.md`:
+
+- Every truth must be verifiable by a shell command (grep, test, curl)
+- Avoid vague phrases: "should be good", "properly handles", "clean code", "responsive", "performant"
+- Include specific thresholds, counts, or observable behaviors
+- The `check-plan-format.js` hook will flag vague criteria with advisory warnings
 </goal_backward>
 
 ---

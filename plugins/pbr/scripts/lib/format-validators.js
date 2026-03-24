@@ -59,6 +59,18 @@ const PLAN_REQUIRED_FIELDS = ['phase', 'plan', 'wave', 'type', 'depends_on', 'fi
 /** Valid values for the type: field in PLAN.md frontmatter. */
 const PLAN_VALID_TYPES = ['feature', 'bugfix', 'refactor', 'infrastructure', 'docs', 'chore'];
 
+/** Vague criterion patterns that produce advisory warnings (REQ-HI-02). */
+const VAGUE_PATTERNS = [
+  { regex: /\bshould be (good|nice|clean|proper|fine)\b/i, label: 'subjective quality' },
+  { regex: /\bproperly (handle|handles|manage|manages|process|processes|implement|implements)\b/i, label: 'undefined "properly"' },
+  { regex: /\bclean code\b/i, label: 'aesthetic judgment' },
+  { regex: /\bwell[- ]?(tested|structured|organized|designed)\b/i, label: 'subjective quality' },
+  { regex: /\bresponsive\b(?!.*\d+px)/i, label: 'no viewport threshold' },
+  { regex: /\bperformant\b(?!.*\d)/i, label: 'no performance threshold' },
+  { regex: /\brobust\b(?!.*\b(retry|fallback|timeout)\b)/i, label: 'no resilience mechanism specified' },
+  { regex: /\bsecure\b(?!.*\b(sanitize|validate|encrypt|auth|CORS|CSP)\b)/i, label: 'no security mechanism specified' },
+];
+
 function validatePlan(content, _filePath) {
   const errors = [];
   const warnings = [];
@@ -91,6 +103,17 @@ function validatePlan(content, _filePath) {
       } else {
         const mhResult = validateMustHaves(frontmatter);
         warnings.push(...mhResult.warnings);
+
+        // Vague criteria detection (advisory only — REQ-HI-02)
+        const mhBlock = frontmatter.substring(frontmatter.indexOf('must_haves:'));
+        const nextKey = mhBlock.match(/\n[a-zA-Z_][a-zA-Z0-9_]*:/);
+        const mhText = nextKey ? mhBlock.substring(0, nextKey.index) : mhBlock;
+        for (const { regex, label } of VAGUE_PATTERNS) {
+          const match = mhText.match(regex);
+          if (match) {
+            warnings.push(`Vague criterion detected (${label}): "${match[0]}" — consider a specific threshold or observable behavior`);
+          }
+        }
       }
       // Blocking: implements:[] is required for REQ-ID traceability (Phase 66)
       if (!frontmatter.includes('implements:')) {
@@ -1008,6 +1031,7 @@ module.exports = {
   validateMustHaves,
   PLAN_REQUIRED_FIELDS,
   PLAN_VALID_TYPES,
+  VAGUE_PATTERNS,
   validatePlan,
   validateSummary,
   validateDeviationsField,

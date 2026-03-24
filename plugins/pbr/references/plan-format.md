@@ -69,6 +69,29 @@ closes_issues:
 | `must_haves.truths` | YES | array | Observable truths that must be true when done |
 | `must_haves.artifacts` | YES | array | Files/modules that must exist. Append `: >N lines` for size hints. |
 | `must_haves.key_links` | YES | array | Connections between components. Append `: grep command` for verification. |
+
+### Criterion Language as Steering
+
+Must-have wording directly steers executor behavior — criteria are implicit instructions, not just evaluation rubrics. The executor reads must-haves as goals to achieve, so vague criteria produce vague implementations.
+
+**Vague patterns to avoid:**
+
+| Pattern | Problem | Concrete alternative |
+|---------|---------|---------------------|
+| "should be good" | No observable threshold | "responds in <200ms for 95th percentile" |
+| "properly handles errors" | Subjective | "returns HTTP 4xx with JSON {error, code} body on invalid input" |
+| "clean code" | Aesthetic judgment | "functions <30 lines, no eslint violations" |
+| "responsive design" | Unmeasurable | "renders correctly at 375px, 768px, 1440px widths" |
+| "performant" | No baseline | "page load <2s on 3G throttle" |
+| "secure" | Too broad | "all user input sanitized via DOMPurify before render" |
+| "well-tested" | No coverage target | "unit tests cover all exported functions, >80% branch coverage" |
+
+**Good criterion characteristics:**
+
+- Contains a specific number, threshold, or observable behavior
+- Can be verified by a grep, test, or CLI command
+- Describes WHAT the user or system observes, not HOW the code looks
+
 | `provides` | NO | array | What this plan exports for other plans to consume (classes, endpoints, modules) |
 | `consumes` | NO | array | What this plan needs from prior plans. Format: `"Thing (from plan XX-YY)"` |
 | `implements` | YES (WARNING if absent) | array | REQ-IDs from REQUIREMENTS.md or ROADMAP this plan addresses. Primary traceability field. |
