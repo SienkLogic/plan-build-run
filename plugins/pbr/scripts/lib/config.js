@@ -116,11 +116,6 @@ function configValidate(configOrDir, planningDir) {
     warnings.push(`config.json schema_version (${config.schema_version}) is behind current (${CURRENT_SCHEMA_VERSION}) — run "pbr-tools migrate" to update`);
   }
 
-  // DEPRECATED: local_llm infrastructure removed in v14.0
-  if (config.local_llm && config.local_llm.enabled === true) {
-    warnings.push('local_llm feature is deprecated and has no effect. Set enabled: false to suppress this warning.');
-  }
-
   // Semantic conflict detection
   if (config.mode === 'autonomous' && config.gates) {
     const activeGates = Object.entries(config.gates || {}).filter(([, v]) => v === true).map(([k]) => k);
@@ -903,7 +898,6 @@ const CONFIG_DEFAULTS = {
     max_phases_in_context: 3
   },
   hook_server: { enabled: false, port: 19836, event_log: true },
-  local_llm: { enabled: false }, // DEPRECATED: local_llm infrastructure removed in v14.0. Key retained for backward compat.
   intel: { enabled: false, auto_update: false, inject_on_start: false },
   context_ledger: { enabled: false, stale_after_minutes: 60 },
   learnings: { enabled: false, read_depth: 3, cross_project_knowledge: false },
@@ -1153,7 +1147,6 @@ const CONFIG_SECTIONS = [
       'debug.max_hypothesis_rounds: 1-20 — max hypothesis cycles for /pbr:debug',
       'depth_profiles: override built-in quick/standard/comprehensive defaults',
       'developer_profile: behavioral profiling from session history + prompt injection',
-      '(DEPRECATED) local_llm: offload classification tasks to local Ollama instance — removed in v14.0',
       'prd.auto_extract: skip confirmation gate during PRD import',
       'spinner_tips: custom messages shown during agent execution',
       'status_line: status bar appearance (sections, branding, context bar)',
@@ -1161,7 +1154,7 @@ const CONFIG_SECTIONS = [
       'ui.enabled: enable UI design pipeline (/pbr:ui-phase, /pbr:ui-review)',
       'worktree.sparse_paths: glob patterns for sparse checkout in agent worktrees'
     ],
-    keys: ['dashboard', 'debug', 'depth_profiles', 'developer_profile', 'local_llm', 'prd', 'spinner_tips', 'status_line', 'timeouts', 'ui', 'worktree']
+    keys: ['dashboard', 'debug', 'depth_profiles', 'developer_profile', 'prd', 'spinner_tips', 'status_line', 'timeouts', 'ui', 'worktree']
   }
 ];
 

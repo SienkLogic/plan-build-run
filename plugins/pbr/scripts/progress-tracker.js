@@ -133,7 +133,7 @@ async function main() {
     tryLaunchHookServer(config, planningDir);
   }
 
-  // Write session-start timestamp for local-llm metrics correlation
+  // Write session-start timestamp for metrics correlation
   // Primary: write to .session.json (unified session state)
   // Legacy: also write .session-start file for session-cleanup.js backward compat
   const sessionStart = new Date().toISOString();

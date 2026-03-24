@@ -75,10 +75,6 @@ All claims must be attributed to a source level. Higher levels override lower le
 
 **Offline Fallback**: If web tools are unavailable (air-gapped environment, MCP not configured), rely on local sources: codebase analysis via Glob/Grep, existing documentation, and README files. Assign these S3-S4 confidence levels. Do not attempt WebFetch or WebSearch -- note in the output header that external sources were unavailable.
 
-## Local LLM Source Scoring (DEPRECATED -- no-op)
-
-The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and assign source levels manually per the hierarchy table above.
-
 ---
 
 ## Confidence Levels

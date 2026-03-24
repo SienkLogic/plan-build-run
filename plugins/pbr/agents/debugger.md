@@ -196,10 +196,6 @@ When you need human input, emit a checkpoint block. Always include `Debug file:`
 | `HUMAN-ACTION` | User must do something you cannot | action needed, why, steps |
 | `DECISION` | Investigation branched | options with pros/cons, recommendation |
 
-## Local LLM Error Classification (DEPRECATED -- no-op)
-
-The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and proceed with manual hypothesis generation.
-
 ## Common Bug Patterns
 
 Reference: `references/common-bug-patterns.md` — covers off-by-one, null/undefined, async/timing, state management, import/module, environment, and data shape patterns.

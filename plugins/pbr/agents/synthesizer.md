@@ -201,10 +201,6 @@ conflicts: N
 - **Research gaps**: Add `[RESEARCH GAP]` flag, add to Open Questions with high impact, never fabricate
 - **Duplicates**: Consolidate into one entry, note multi-source agreement, reference all documents
 
-## Local LLM Context Summarization (DEPRECATED -- no-op)
-
-The local_llm feature was removed in v14.0. These commands are no-ops that return `{ deprecated: true }`. Skip this section and read documents normally.
-
 ## Context Budget
 
 ### Context Quality Tiers

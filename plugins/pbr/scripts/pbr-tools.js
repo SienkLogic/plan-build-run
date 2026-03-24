@@ -43,7 +43,6 @@
  *   auto-cleanup --phase N | --milestone vN — Auto-close todos and archive notes matching phase/milestone deliverables
  *   state reconcile          — Detect and repair STATE.md/ROADMAP.md desync
  *   state backup             — Create timestamped backup of STATE.md and ROADMAP.md
- *   llm <subcommand>                     — DEPRECATED: local_llm removed (no-op)
  *   validate-project        — Comprehensive .planning/ integrity check
  *   phase add <slug> [--after N] [--goal "..."] [--depends-on N] — Add phase with ROADMAP.md integration
  *   phase remove <N>             — Remove an empty phase directory (with renumbering)
@@ -317,8 +316,6 @@ const {
 const {
   quickStatus: _quickStatus
 } = require('./quick-status');
-
-// --- Local LLM imports removed (feature archived in phase 53) ---
 
 const {
   dataStatus: _dataStatus,
@@ -1285,9 +1282,6 @@ async function main() {
       const { logEvent } = require('./event-logger');
       logEvent(category, event, details);
       output({ logged: true, category, event });
-    } else if (command === 'llm') {
-      // local_llm feature has been removed (phase 53). All subcommands are no-ops.
-      output({ deprecated: true, message: 'local_llm feature has been removed. This subcommand is a no-op.' });
     // --- Compound init commands ---
     } else if (command === "init" && subcommand === "execute-phase") {
       const phase = args[2];

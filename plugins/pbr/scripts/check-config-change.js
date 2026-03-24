@@ -64,8 +64,6 @@ function validateConfig(configPath) {
     }
   }
 
-  // local_llm is deprecated — no advisory for missing key
-
   // Check version
   if (config.version && config.version < 2) {
     warnings.push(`Config version ${config.version} is outdated — expected version 2+`);
@@ -90,11 +88,6 @@ function validateConfig(configPath) {
         warnings.push(`Invalid model "${model}" for ${role} — expected: ${validModels.join(', ')}`);
       }
     }
-  }
-
-  // DEPRECATED: local_llm infrastructure removed in v14.0
-  if (config.local_llm && config.local_llm.enabled === true) {
-    warnings.push('local_llm feature is deprecated and has no effect. Set enabled: false to suppress this warning.');
   }
 
   return warnings;
