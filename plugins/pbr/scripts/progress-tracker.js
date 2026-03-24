@@ -133,15 +133,9 @@ async function main() {
     tryLaunchHookServer(config, planningDir);
   }
 
-  // Write session-start timestamp for metrics correlation
-  // Primary: write to .session.json (unified session state)
-  // Legacy: also write .session-start file for session-cleanup.js backward compat
+  // Write session-start timestamp to .session.json (unified session state)
   const sessionStart = new Date().toISOString();
   try { sessionSave(planningDir, { sessionStart }, sessionId); } catch (_e) { /* non-fatal */ }
-  const sessionStartFile = path.join(planningDir, '.session-start');
-  try {
-    fs.writeFileSync(sessionStartFile, sessionStart, 'utf8');
-  } catch (_e) { /* non-fatal */ }
 
 
   // Enrich context with recent session activity from hook server (advisory, fail-open)

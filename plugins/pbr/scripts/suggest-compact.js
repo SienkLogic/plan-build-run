@@ -9,7 +9,7 @@
  * fresh (<60s old). CRITICAL tier always emits; others use REMINDER_INTERVAL debounce.
  *
  * Fallback: when bridge is absent or stale, uses call-count threshold.
- * Counter stored in .planning/.compact-counter (JSON).
+ * Counter stored in .planning/.compact-counter (JSON) and .session.json.
  * Threshold configurable via config.json hooks.compactThreshold (default: 50).
  * Counter resets on SessionStart (via progress-tracker.js).
  *
@@ -281,15 +281,7 @@ function resetCounter(planningDir, sessionId) {
     sessionSave(planningDir, { compactCounter: { count: 0, lastSuggested: 0 } }, sessionId);
   } catch (_e) { /* best-effort */ }
 
-  // Legacy: also delete .compact-counter file if present
-  const counterPath = path.join(planningDir, '.compact-counter');
-  try {
-    if (fs.existsSync(counterPath)) {
-      fs.unlinkSync(counterPath);
-    }
-  } catch (_e) {
-    // Best-effort
-  }
+  // .compact-counter cleanup removed -- legacy file no longer used
 }
 
 /**

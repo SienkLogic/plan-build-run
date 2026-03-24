@@ -64,7 +64,7 @@ class PlanningReader {
   /**
    * Read STATE.md and return session state with progress and history.
    * Returns frontmatter fields plus nested progress object and history text.
-   * Falls back to legacy HISTORY.md if STATE.md has no ## History section.
+   * Reads ## History section from STATE.md body.
    */
   async getStatus() {
     const content = await safeReadFile(path.join(this.planningDir, 'STATE.md'));
@@ -76,13 +76,6 @@ class PlanningReader {
     const historyMatch = body.match(/## History\n([\s\S]*?)(?=\n## |\s*$)/);
     if (historyMatch) {
       history = historyMatch[1].trim();
-    } else {
-      // Backwards compat: read legacy HISTORY.md if it exists
-      const legacyHistory = await safeReadFile(path.join(this.planningDir, 'HISTORY.md'));
-      if (legacyHistory) {
-        const { body: histBody } = parseFrontmatter(legacyHistory);
-        history = histBody.trim() || null;
-      }
     }
 
     // Build response with progress as nested object (parsed by frontmatter lib)
@@ -112,7 +105,7 @@ class PlanningReader {
   /**
    * Read PROJECT.md and extract the ## Context section.
    * Returns { context: string } or { context: null } if not found.
-   * Falls back to legacy CONTEXT.md if PROJECT.md has no ## Context section.
+   * Reads ## Context section from PROJECT.md body.
    */
   async getProjectContext() {
     const content = await safeReadFile(path.join(this.planningDir, 'PROJECT.md'));
@@ -122,13 +115,6 @@ class PlanningReader {
       if (contextMatch) {
         return { context: contextMatch[1].trim() };
       }
-    }
-
-    // Backwards compat: read legacy CONTEXT.md
-    const legacyContext = await safeReadFile(path.join(this.planningDir, 'CONTEXT.md'));
-    if (legacyContext) {
-      const { body: ctxBody } = parseFrontmatter(legacyContext);
-      return { context: ctxBody.trim() || null };
     }
 
     return { context: null };
