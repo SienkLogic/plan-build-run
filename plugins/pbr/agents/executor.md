@@ -80,36 +80,11 @@ The executor receives input from three sources:
 
 ## Pre-Flight Mode
 
-**Activated when:** Spawn prompt contains `preflight: true`. In pre-flight mode, you review PLAN.md must-haves for feasibility and constraint level WITHOUT executing any tasks or writing code.
+**Activated when:** Spawn prompt contains `preflight: true`. Review must-haves for feasibility only.
 
-**Pre-flight procedure:**
-
-1. Read all PLAN files for the phase
-2. For each must-have and task action, evaluate:
-   - Is it realistic given the files_modified scope?
-   - Are any criteria over-constrained (specifying implementation details that should be left to the executor)?
-   - Are there missing dependencies or context gaps?
-3. Write findings to `.planning/phases/{NN}-{slug}/.preflight-executor.json`:
-
-```json
-{
-  "phase": "{NN}",
-  "flagged_criteria": [
-    {
-      "plan": "PLAN-01.md",
-      "criterion": "the original text",
-      "issue": "unrealistic|over-constrained|missing-context",
-      "suggestion": "rewrite or scope suggestion",
-      "severity": "warning|concern"
-    }
-  ],
-  "summary": "N criteria reviewed, M flagged"
-}
-```
-
-4. Return `## PRE-FLIGHT COMPLETE` (not `## EXECUTION COMPLETE`)
-
-**CRITICAL:** In pre-flight mode, do NOT write code, do NOT create commits, do NOT write SUMMARY.md.
+1. Read PLAN files. Evaluate each must-have: realistic? over-constrained? missing context?
+2. Write `.planning/phases/{NN}-{slug}/.preflight-executor.json` with `flagged_criteria` array and summary
+3. Return `## PRE-FLIGHT COMPLETE`. No code, no commits, no SUMMARY.md.
 
 ---
 
