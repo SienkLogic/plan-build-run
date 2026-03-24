@@ -29,6 +29,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { acquireLock, releaseLock, updateLockPort } = require('./lib/pid-lock');
+const { initConfigCache, getConfig, stopConfigWatch } = require('./lib/config-cache');
 
 // MSYS path normalization — one-time at startup, not per-request
 function normalizeMsysPath(p) {
@@ -337,7 +338,8 @@ function sendJSON(res, statusCode, obj) {
 }
 
 function triggerShutdown(planningDir) {
-  // Release lock and close server gracefully
+  // Stop config file watcher and release lock
+  try { stopConfigWatch(); } catch (_e) { /* best-effort */ }
   try { releaseLock(planningDir); } catch (_e) { /* best-effort */ }
   if (_server) {
     _server.close(() => { process.exit(0); });
@@ -404,11 +406,8 @@ function createServer(planningDir) {
         ...(data && data.tool_input ? { file: data.tool_input.file_path } : {})
       });
 
-      // Refresh in-memory cache from disk
-      try {
-        const { configLoad } = require('./lib/config');
-        cache.config = configLoad(planningDir);
-      } catch (_e) { /* best-effort */ }
+      // Refresh config from cache (zero I/O — fs.watchFile handles invalidation)
+      cache.config = getConfig();
 
       // Resolve and run handler (fail-open) — with timing
       const dispatchStart = Date.now();
@@ -458,11 +457,8 @@ function createServer(planningDir) {
         ...(data && data.tool_input ? { file: data.tool_input.file_path } : {})
       });
 
-      // Refresh in-memory cache from disk
-      try {
-        const { configLoad } = require('./lib/config');
-        cache.config = configLoad(planningDir);
-      } catch (_e) { /* best-effort */ }
+      // Refresh config from cache (zero I/O — fs.watchFile handles invalidation)
+      cache.config = getConfig();
 
       // Resolve and run handler (fail-open) — with timing
       const legacyDispatchStart = Date.now();
@@ -616,10 +612,9 @@ function main() {
   const cwd = normalizeMsysPath(process.env.PBR_PROJECT_ROOT) || process.cwd();
   const planningDir = normalizeMsysPath(args.dir) || path.join(cwd, '.planning');
 
-  // Load initial config
+  // Load initial config (cached; fs.watchFile auto-refreshes on change)
   try {
-    const { configLoad } = require('./lib/config');
-    cache.config = configLoad(planningDir);
+    cache.config = initConfigCache(planningDir);
   } catch (_e) { /* best-effort */ }
 
   // Rotate event log if oversized (before any new events are appended)
@@ -641,6 +636,7 @@ function main() {
 
   // Graceful shutdown
   function shutdown() {
+    stopConfigWatch();
     releaseLock(planningDir);
     server.close(() => {
       process.exit(0);
@@ -653,6 +649,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, rotateEventLog, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, rotateEventLog, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, stopConfigWatch, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
