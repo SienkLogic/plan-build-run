@@ -73,7 +73,13 @@ function checkAiCoAuthorResult(command, sessionId) {
 
 function checkSensitiveFilesResult(sessionId) {
   try {
-    const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    let output;
+    try {
+      output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    } catch (_e) {
+      // git diff --cached fails during git tag or in --no-index contexts
+      return null;
+    }
     const files = output.trim().split('\n').filter(Boolean);
 
     const matched = files.filter((file) => {
