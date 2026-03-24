@@ -50,17 +50,17 @@ Three layers:
 
 Markdown files with YAML frontmatter defining slash commands (`/pbr:new-project`, `/pbr:plan-phase`, etc.). Each SKILL.md is a complete prompt that tells the orchestrator what to do. Skills read state, interact with the user, and spawn agents.
 
-34 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, intel, milestone, note, pause, plan, profile, quick, resume, review, scan, setup, status, statusline, test, todo, undo, and more.
+46 skills: audit, begin, build, config, continue, dashboard, debug, discuss, do, explore, health, help, import, intel, milestone, note, pause, plan, profile, quick, resume, review, scan, setup, status, statusline, test, todo, undo, and more.
 
 ### Agents (`agents/{name}.md`)
 
 Markdown files with YAML frontmatter defining specialized subagent prompts. Agents run in fresh `Task()` contexts with clean 200k token windows. Spawned via `subagent_type: "pbr:{name}"` — auto-loaded by Claude Code.
 
-17 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, intel-updater, nyquist-auditor, plan-checker, planner, researcher, roadmapper, synthesizer, ui-checker, ui-researcher, verifier.
+18 agents: audit, codebase-mapper, debugger, dev-sync, executor, general, integration-checker, intel-updater, nyquist-auditor, plan-checker, planner, researcher, roadmapper, synthesizer, ui-checker, ui-researcher, verifier.
 
-### Hook Scripts (`hooks/*.js`)
+### Hook Scripts (`plugins/pbr/scripts/*.js`)
 
-50 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
+66 Node.js hook scripts that fire on Claude Code lifecycle events. Configured in `plugins/pbr/hooks/hooks.json`. All use CommonJS, must be cross-platform (`path.join()`, not hardcoded separators), and log via `logHook()` from `hook-logger.js`.
 
 **Dispatch pattern**: Several hooks use dispatch scripts that fan out to sub-scripts based on the file being written/read:
 
@@ -68,22 +68,33 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 |------------|-------------|-------------|
 | SessionStart | progress-tracker.js | — (injects project state) |
 | PostToolUse (Write\|Edit) | post-write-dispatch.js | check-plan-format.js, check-roadmap-sync.js, check-state-sync.js |
-| PostToolUse (Write\|Edit) | post-write-quality.js | — (autoFormat, typeCheck, detectConsoleLogs) |
-| PostToolUse (Task) | check-subagent-output.js | — (validates agent output) |
+| PostToolUse (Write\|Edit) | context-bridge.js | — (context tier tracking) |
+| PostToolUse (Write\|Edit) | graph-update.js | — (architecture graph) |
+| PostToolUse (Write\|Edit) | architecture-guard.js | — (dependency violations) |
 | PostToolUse (Write\|Edit) | suggest-compact.js | — (context budget warnings) |
-| PostToolUse (Read) | track-context-budget.js | — (tracks reads for budget) |
+| PostToolUse (Read\|Glob\|Grep) | track-context-budget.js | — (tracks reads for budget) |
+| PostToolUse (Bash) | post-bash-triage.js | — (test output triage) |
+| PostToolUse (Bash) | context-bridge.js | — (context tier tracking) |
+| PostToolUse (Task) | check-subagent-output.js | — (validates agent output) |
+| PostToolUse (Task) | context-bridge.js | — (context tier tracking) |
+| PostToolUse (AskUserQuestion) | track-user-gates.js | — (gate tracking) |
 | PostToolUseFailure | log-tool-failure.js | — (logs failures) |
 | PreToolUse (Bash) | pre-bash-dispatch.js | validate-commit.js, check-dangerous-commands.js |
 | PreToolUse (Write\|Edit) | pre-write-dispatch.js | check-skill-workflow.js, check-summary-gate.js, check-doc-sprawl.js |
+| PreToolUse (Task) | pre-task-dispatch.js | — (build/plan gates) |
+| PreToolUse (Skill) | pre-skill-dispatch.js | — (context budget, args) |
+| PreToolUse (Read) | block-skill-self-read.js | — (prevents SKILL.md self-read) |
+| PreToolUse (EnterPlanMode) | intercept-plan-mode.js | — (blocks plan mode in PBR) |
 | PreCompact | context-budget-check.js | — (preserves STATE.md) |
+| PostCompact | post-compact.js | — (post-compact recovery) |
 | Stop | auto-continue.js | — (chains next command) |
-| SubagentStart/Stop | log-subagent.js | — (tracks lifecycle) |
-| SubagentStop | event-handler.js | — (auto-verification trigger) |
+| SubagentStart | log-subagent.js | — (tracks lifecycle) |
+| SubagentStop | log-subagent.js, event-handler.js | — (auto-verification trigger) |
 | TaskCompleted | task-completed.js | — (processes task completion) |
-| InstructionsLoaded | hook-server-client.js | — (detects instruction reload) |
-| ConfigChange | hook-server-client.js | — (config change detection) |
-| WorktreeCreate | hook-server-client.js | — (worktree setup) |
-| WorktreeRemove | hook-server-client.js | — (worktree cleanup) |
+| InstructionsLoaded | instructions-loaded.js | — (instruction reload detection) |
+| ConfigChange | check-config-change.js | — (config change detection) |
+| WorktreeCreate | worktree-create.js | — (worktree setup) |
+| WorktreeRemove | worktree-remove.js | — (worktree cleanup) |
 | Notification | log-notification.js | — (notification logging) |
 | UserPromptSubmit | prompt-routing.js | — (prompt routing) |
 | SessionEnd | session-cleanup.js | — (cleanup) |
@@ -99,8 +110,8 @@ Markdown files with YAML frontmatter defining specialized subagent prompts. Agen
 - **`plan-build-run/bin/`** — CLI tools (`pbr-tools.js` + `lib/` modules)
 - **`plan-build-run/references/`** — Shared reference docs loaded by skills (plan format, commit conventions, UI formatting, deviation rules)
 - **`plan-build-run/templates/`** — EJS-style `.tmpl` files for generated markdown (VERIFICATION.md, SUMMARY.md, etc.)
-- **`plugins/pbr/commands/`** — 63 command registration files (one `.md` per command mapping to its skill)
-- **`plan-build-run/skills/shared/`** — 12 shared skill fragments extracted from repeated patterns across skills
+- **`plugins/pbr/commands/`** — 71 command registration files (one `.md` per command mapping to its skill)
+- **`plan-build-run/skills/shared/`** — 15 shared skill fragments extracted from repeated patterns across skills
 - **`plugins/`** — Derivative plugins (codex-pbr, cursor-pbr, copilot-pbr)
 - **`dashboard/`** — Vite + React 18 dashboard with Express backend
 
