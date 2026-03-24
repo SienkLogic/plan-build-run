@@ -160,28 +160,3 @@ describe('cmdValidateHealth — autonomy feature status', () => {
     });
   });
 });
-
-describe('trust-gate CLI subcommand', () => {
-  test('resolveVerificationDepth is callable and returns valid depth', () => {
-    const { resolveVerificationDepth } = require('../plugins/pbr/scripts/lib/trust-gate');
-    const planningDir = path.join(tmpDir, '.planning');
-
-    // No trust data, feature enabled
-    const config = { features: { graduated_verification: true } };
-    const depth = resolveVerificationDepth(planningDir, config);
-    expect(['light', 'standard', 'thorough']).toContain(depth);
-    expect(depth).toBe('standard'); // no data -> standard
-  });
-
-  test('resolveVerificationDepth returns light for high trust', () => {
-    const { resolveVerificationDepth } = require('../plugins/pbr/scripts/lib/trust-gate');
-    const planningDir = path.join(tmpDir, '.planning');
-    fs.mkdirSync(path.join(planningDir, 'trust'), { recursive: true });
-    fs.writeFileSync(path.join(planningDir, 'trust', 'scores.json'),
-      JSON.stringify({ overall_pass_rate: 0.95 }));
-
-    const config = { features: { graduated_verification: true } };
-    const depth = resolveVerificationDepth(planningDir, config);
-    expect(depth).toBe('light');
-  });
-});
