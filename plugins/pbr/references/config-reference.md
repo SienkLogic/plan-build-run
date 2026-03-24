@@ -462,8 +462,19 @@ Controls post-build verification behavior.
 |----------|------|---------|-------------|
 | `confidence_gate` | boolean | `false` | Skip verification if executor reports 100% must-have completion and tests pass |
 | `confidence_threshold` | number | `1.0` | Minimum completion confidence (0.5-1.0) required to skip verification |
+| `qa_rounds` | integer | `1` | Number of build-QA-build iteration rounds (1-5). 1 = current behavior (single build + verify). Higher values enable progressive deepening: round 1 standard (L1-L3), round 2 thorough (L1-L4), round 3+ thorough + live verification if enabled. |
+| `live_tools` | string[] | `["chrome-mcp"]` | MCP tool providers for live interaction verification. Currently only `chrome-mcp` is supported. |
+| `live_timeout_ms` | integer | `60000` | Maximum time in milliseconds for each live interaction verification check (minimum 5000). |
 
 When `confidence_gate` is `true` and the executor SUMMARY reports all must-haves as DONE with commit SHAs, the build skill can auto-mark the phase as verified without spawning a verifier agent.
+
+### features.live_verification
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `features.live_verification` | boolean | `false` | Opt-in flag to enable live browser/API testing during verification. Requires Chrome MCP tools to be configured. |
+
+When enabled, the verifier agent gains access to `live_tools` (e.g., `chrome-mcp`) for browser automation during verification rounds. This is gated behind a feature flag because it requires external MCP tool providers and adds latency. Only effective when `verification.qa_rounds >= 3` or when explicitly requested by the plan.
 
 ---
 

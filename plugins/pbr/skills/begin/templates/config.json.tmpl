@@ -102,6 +102,7 @@
     "integration_verification: cross-phase integration checks",
     "self_verification: executor self-checks before presenting output",
     "trust_tracking: trust scores per agent type and task category",
+    "live_verification: live interaction testing for UI/API phases via browser automation",
     "",
     "--- AUTOMATION ---",
     "auto_advance: chain build, review, plan automatically (requires autonomous mode)",
@@ -203,7 +204,8 @@
     "team_onboarding": false,
     "tech_debt_surfacing": true,
     "trust_tracking": true,
-    "zero_friction_quick": true
+    "zero_friction_quick": true,
+    "live_verification": false
   },
   "_guide_models": [
     "Per-agent model: sonnet|opus|haiku|inherit",
@@ -315,11 +317,17 @@
   },
   "_guide_verification": [
     "verification.confidence_gate: skip verification if executor reports 100% completion + tests pass",
-    "verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification"
+    "verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification",
+    "verification.qa_rounds: 1-5 — build-QA-build iteration rounds (1 = default, 3 = thorough)",
+    "verification.live_tools: ['chrome-mcp'] — MCP tools for live verification",
+    "verification.live_timeout_ms: 60000 — timeout for live interaction checks"
   ],
   "verification": {
     "confidence_gate": false,
-    "confidence_threshold": 1
+    "confidence_threshold": 1,
+    "qa_rounds": 1,
+    "live_tools": ["chrome-mcp"],
+    "live_timeout_ms": 60000
   },
   "_guide_context_budget": [
     "context_budget.threshold_curve: linear|adaptive — warning threshold scaling",

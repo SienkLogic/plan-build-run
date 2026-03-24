@@ -793,7 +793,8 @@ const CONFIG_DEFAULTS = {
     security_scanning: true,
     architecture_graph: true,
     architecture_guard: true,
-    incident_journal: true
+    incident_journal: true,
+    live_verification: false
   },
   autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },
   models: {
@@ -901,7 +902,7 @@ const CONFIG_DEFAULTS = {
   intel: { enabled: false, auto_update: false, inject_on_start: false },
   context_ledger: { enabled: false, stale_after_minutes: 60 },
   learnings: { enabled: false, read_depth: 3, cross_project_knowledge: false },
-  verification: { confidence_gate: false, confidence_threshold: 1 },
+  verification: { confidence_gate: false, confidence_threshold: 1, qa_rounds: 1, live_tools: ['chrome-mcp'], live_timeout_ms: 60000 },
   context_budget: { threshold_curve: 'linear' },
   ui: { enabled: false },
   worktree: { sparse_paths: [] }
@@ -995,6 +996,7 @@ const CONFIG_SECTIONS = [
       'integration_verification: cross-phase integration checks',
       'self_verification: executor self-checks before presenting output',
       'trust_tracking: trust scores per agent type and task category',
+      'live_verification: live interaction testing for UI/API phases via browser automation',
       '',
       '--- AUTOMATION ---',
       'auto_advance: chain build, review, plan automatically (requires autonomous mode)',
@@ -1101,7 +1103,10 @@ const CONFIG_SECTIONS = [
     guide: '_guide_verification',
     lines: [
       'verification.confidence_gate: skip verification if executor reports 100% completion + tests pass',
-      'verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification'
+      'verification.confidence_threshold: 0.5-1.0 — minimum confidence to skip verification',
+      'verification.qa_rounds: 1-5 — number of build-QA-build iteration rounds (1 = current behavior)',
+      'verification.live_tools: MCP tool providers for live verification (default: chrome-mcp)',
+      'verification.live_timeout_ms: timeout for live interaction checks (default: 60000)'
     ],
     keys: ['verification']
   },

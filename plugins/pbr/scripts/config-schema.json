@@ -345,6 +345,11 @@
           "type": "boolean",
           "default": false,
           "description": "Enable global learnings aggregation across phases into KNOWLEDGE.md."
+        },
+        "live_verification": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable live interaction verification for UI/API phases via browser automation (Chrome MCP)."
         }
       },
       "additionalProperties": false
@@ -1175,6 +1180,27 @@
           "maximum": 100,
           "default": 30,
           "description": "Minimum percentage of phases in autonomous mode that must receive full verification (not just confidence-gate). 0 = all confidence-gate, 100 = all full verification. Default 30 means at least 30% of phases get full /pbr:review verification."
+        },
+        "qa_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 1,
+          "description": "Number of build-QA-build iteration rounds. 1 = current behavior. Higher values enable progressive deepening."
+        },
+        "live_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["chrome-mcp"],
+          "description": "MCP tool providers for live interaction verification. Currently supports: chrome-mcp."
+        },
+        "live_timeout_ms": {
+          "type": "integer",
+          "minimum": 5000,
+          "default": 60000,
+          "description": "Timeout in milliseconds for live interaction verification checks."
         }
       },
       "additionalProperties": false

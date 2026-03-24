@@ -379,7 +379,7 @@ Runs after Step 5a (intra-phase conflict detection).
 
 **Trigger:** Only run if `--cross-check` flag is present in `$ARGUMENTS` AND `context_window_tokens` in `.planning/config.json` is >= 500000.
 
-If either condition is false, skip this step entirely and proceed to Step 5b (checkpoint manifest).
+If either condition is false, skip this step entirely and proceed to Step 5d (sprint contract pre-flight).
 
 **Purpose:** Before spawning any executor, detect whether this phase's planned file modifications conflict with artifacts or provides from prior completed phases. A conflict means the current phase may overwrite or break something a prior phase established.
 
@@ -438,7 +438,46 @@ If either condition is false, skip this step entirely and proceed to Step 5b (ch
    ```
 
 5. If user selects "Abort": stop the build. Suggest reviewing the flagged plan files and running `/pbr:plan-phase {N}` to revise if needed.
-6. If user selects "Proceed" or no conflicts found: continue to Step 5b (checkpoint manifest).
+6. If user selects "Proceed" or no conflicts found: continue to Step 5d (sprint contract pre-flight).
+
+---
+
+### Step 5d: Sprint Contract Pre-Flight (conditional)
+
+**Gate:** Read `features.sprint_contracts` from `.planning/config.json`. If not `true`, skip to Step 5b (checkpoint manifest).
+
+If enabled:
+
+1. Display: `Sprint contract pre-flight enabled. Reviewing criteria before build...`
+
+2. **Verifier pre-flight:** Spawn verifier agent with:
+   - `subagent_type: "pbr:verifier"`
+   - Spawn prompt: Include `preflight: true`, list all PLAN files, phase directory
+   - Wait for `## PRE-FLIGHT COMPLETE`
+   - Read `.planning/phases/{NN}-{slug}/.preflight-verifier.json`
+
+3. **Executor pre-flight:** Spawn executor agent with:
+   - `subagent_type: "pbr:executor"`
+   - Spawn prompt: Include `preflight: true`, list all PLAN files, phase directory
+   - Wait for `## PRE-FLIGHT COMPLETE`
+   - Read `.planning/phases/{NN}-{slug}/.preflight-executor.json`
+
+4. **Merge and present feedback:**
+   - Combine flagged criteria from both JSON files
+   - If zero flags: display `Pre-flight passed. No criteria flagged. Proceeding to build.`
+   - If flags found: display each flagged criterion with its issue and suggestion
+   - If any flags have severity "concern": ask user via AskUserQuestion:
+     ```
+     question: "{N} criteria flagged with concerns. Proceed with build, or revise plans first?"
+     header: "Pre-Flight Concerns"
+     options:
+       - label: "Proceed"  description: "Continue building — I accept the flagged criteria"
+       - label: "Revise"   description: "Stop — I need to revise plans with /pbr:plan first"
+     ```
+     - If "Revise": display `Run /pbr:plan to revise, then /pbr:build again.` and STOP
+     - If "Proceed": log deviation and continue to Step 5b
+
+5. Clean up: delete `.preflight-verifier.json` and `.preflight-executor.json` (ephemeral artifacts)
 
 ---
 
