@@ -26,6 +26,16 @@ const { logEvent } = require('./event-logger');
 const { recordOutcome } = require('./trust-tracker');
 const { checkPrematureCompletion } = require('./lib/premature-completion');
 
+// Stress-test disablement check
+function isDisabledForStressTest(planningDir, hookName) {
+  try {
+    const configPath = require('path').join(planningDir, 'config.json');
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const disabled = config.stress_test && config.stress_test.disabled_hooks;
+    return Array.isArray(disabled) && disabled.includes(hookName);
+  } catch (_e) { return false; }
+}
+
 // Import all validators from extracted module
 const validators = require('./lib/subagent-validators');
 const {
@@ -109,6 +119,12 @@ async function main() {
 
   // Only relevant for Plan-Build-Run projects
   if (!fs.existsSync(planningDir)) {
+    process.exit(0);
+  }
+
+  // Stress-test disablement: skip validation when this hook is disabled
+  if (isDisabledForStressTest(planningDir, 'check-subagent-output')) {
+    logHook('stress-test', 'check-subagent-output', 'disabled for stress testing');
     process.exit(0);
   }
 

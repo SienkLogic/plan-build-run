@@ -27,6 +27,16 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
+// Stress-test disablement check
+function isDisabledForStressTest(planningDir, hookName) {
+  try {
+    const configPath = require('path').join(planningDir, 'config.json');
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const disabled = config.stress_test && config.stress_test.disabled_hooks;
+    return Array.isArray(disabled) && disabled.includes(hookName);
+  } catch (_e) { return false; }
+}
+
 /**
  * Path to PBR lib modules for lazy-requiring state/core functions.
  * Lazy-loaded to avoid circular dependency issues at module load time.
@@ -262,6 +272,14 @@ function calculateOverallProgress(phasesDir) {
  * @returns {null|{output: Object}} null if not applicable, result with message otherwise
  */
 async function checkStateSync(data) {
+  // Stress-test disablement: skip sync when this hook is disabled
+  const stressCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const stressPlanningDir = path.join(stressCwd, '.planning');
+  if (isDisabledForStressTest(stressPlanningDir, 'check-state-sync')) {
+    logHook('stress-test', 'check-state-sync', 'disabled for stress testing');
+    return null;
+  }
+
   const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
   const basename = path.basename(filePath);
 

@@ -10,6 +10,16 @@
 
 'use strict';
 
+// Stress-test disablement check
+function isDisabledForStressTest(planningDir, hookName) {
+  try {
+    const configPath = require('path').join(planningDir, 'config.json');
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const disabled = config.stress_test && config.stress_test.disabled_hooks;
+    return Array.isArray(disabled) && disabled.includes(hookName);
+  } catch (_e) { return false; }
+}
+
 const graphUpdate = require('./graph-update.js');
 
 /**
@@ -30,6 +40,13 @@ async function handleHttp(reqBody, _cache) {
 
   const path = require('path');
   const planningDir = reqBody.planningDir || path.join(process.env.PBR_PROJECT_ROOT || process.cwd(), '.planning');
+
+  // Stress-test disablement: skip guard when this hook is disabled
+  if (isDisabledForStressTest(planningDir, 'architecture-guard')) {
+    const { logHook } = require('./hook-logger');
+    logHook('stress-test', 'architecture-guard', 'disabled for stress testing');
+    return null;
+  }
 
   try {
     const absFilePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);

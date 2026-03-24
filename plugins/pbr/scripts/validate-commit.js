@@ -27,6 +27,16 @@ const { execSync } = require('child_process');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
+// Stress-test disablement check
+function isDisabledForStressTest(planningDir, hookName) {
+  try {
+    const configPath = require('path').join(planningDir, 'config.json');
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const disabled = config.stress_test && config.stress_test.disabled_hooks;
+    return Array.isArray(disabled) && disabled.includes(hookName);
+  } catch (_e) { return false; }
+}
+
 const VALID_TYPES = ['feat', 'fix', 'refactor', 'test', 'docs', 'chore', 'wip', 'revert', 'perf', 'ci', 'build'];
 
 const SENSITIVE_PATTERNS = [
@@ -114,6 +124,14 @@ function checkSensitiveFilesResult(sessionId) {
 function checkCommit(data) {
   const command = data.tool_input?.command || '';
   const sessionId = data.session_id || null;
+
+  // Stress-test disablement: skip validation when this hook is disabled
+  const stressCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+  const stressPlanningDir = path.join(stressCwd, '.planning');
+  if (isDisabledForStressTest(stressPlanningDir, 'validate-commit')) {
+    logHook('stress-test', 'validate-commit', 'disabled for stress testing');
+    return null;
+  }
 
   // Only validate git commit commands
   if (!isGitCommit(command)) {

@@ -84,6 +84,7 @@ const { handleTodo, handleHistory, handleAutoCleanup } = require('./commands/tod
 const { handleMisc } = require('./commands/misc');
 const { handleBenchmarks } = require('./commands/benchmarks');
 const { handleCalibrate } = require('./commands/calibrate');
+const { handleStressTest } = require('./commands/stress-test');
 const { normalizeMsysPath } = require('./lib/msys-path');
 
 // --- Module-level state (for backwards compatibility) ---
@@ -472,6 +473,10 @@ async function main() {
       handleAutoCleanup(args, ctx);
     } else if (command === 'benchmarks') {
       await handleBenchmarks(args, ctx);
+    } else if (command === 'calibrate') {
+      handleCalibrate(args, ctx);
+    } else if (command === 'stress-test') {
+      await handleStressTest(args, ctx);
     } else {
       // Delegate to misc handler for all remaining commands
       const result = await handleMisc(args, ctx);

@@ -26,6 +26,16 @@ const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
 
+// Stress-test disablement check
+function isDisabledForStressTest(planningDir, hookName) {
+  try {
+    const configPath = require('path').join(planningDir, 'config.json');
+    const config = JSON.parse(require('fs').readFileSync(configPath, 'utf8'));
+    const disabled = config.stress_test && config.stress_test.disabled_hooks;
+    return Array.isArray(disabled) && disabled.includes(hookName);
+  } catch (_e) { return false; }
+}
+
 // Import all validators from extracted module
 const {
   validateMustHaves,
@@ -56,6 +66,14 @@ async function main() {
     try {
       const data = JSON.parse(input);
       const sessionId = data.session_id || null;
+
+      // Stress-test disablement: skip validation when this hook is disabled
+      const stressCwd = process.env.PBR_PROJECT_ROOT || process.cwd();
+      const stressPlanningDir = path.join(stressCwd, '.planning');
+      if (isDisabledForStressTest(stressPlanningDir, 'check-plan-format')) {
+        logHook('stress-test', 'check-plan-format', 'disabled for stress testing');
+        process.exit(0);
+      }
 
       // Get the file path that was written/edited
       const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
