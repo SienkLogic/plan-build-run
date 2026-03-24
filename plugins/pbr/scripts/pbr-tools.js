@@ -82,6 +82,8 @@ const { handlePhase, handleCompound, handleInit, handlePhaseDirect } = require('
 const { handleVerify, handleSpotCheckDirect, handleStalenessCheck, handleSummaryGate, handleCheckpoint, handleSeeds } = require('./commands/verify');
 const { handleTodo, handleHistory, handleAutoCleanup } = require('./commands/todo');
 const { handleMisc } = require('./commands/misc');
+const { handleBenchmarks } = require('./commands/benchmarks');
+const { handleCalibrate } = require('./commands/calibrate');
 const { normalizeMsysPath } = require('./lib/msys-path');
 
 // --- Module-level state (for backwards compatibility) ---
@@ -468,6 +470,8 @@ async function main() {
       handleHistory(args, ctx);
     } else if (command === 'auto-cleanup') {
       handleAutoCleanup(args, ctx);
+    } else if (command === 'benchmarks') {
+      await handleBenchmarks(args, ctx);
     } else {
       // Delegate to misc handler for all remaining commands
       const result = await handleMisc(args, ctx);
