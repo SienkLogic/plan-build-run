@@ -2,6 +2,41 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.21.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.20.0...plan-build-run-v2.21.0) — 2026-03-24
+
+### Agents
+
+* Add thinking-models reference docs for planner and verifier pilot ([535858ce](https://github.com/SienkLogic/plan-build-run/commit/535858ce))
+* Add verifier calibration CLI command with corpus analysis ([817a9ad6](https://github.com/SienkLogic/plan-build-run/commit/817a9ad6))
+* Trim executor.md pre-flight section to stay under 8000 token limit ([0eb5c161](https://github.com/SienkLogic/plan-build-run/commit/0eb5c161))
+* Add premature completion detection for 5 agent types ([30876585](https://github.com/SienkLogic/plan-build-run/commit/30876585))
+* Wire few-shot example references into evaluative agents ([168995ed](https://github.com/SienkLogic/plan-build-run/commit/168995ed))
+* Create few-shot evaluation examples for 6 agents ([7913dcd9](https://github.com/SienkLogic/plan-build-run/commit/7913dcd9))
+
+### CI/CD
+
+* Add live verification and multi-round QA to build workflow ([5df19d8a](https://github.com/SienkLogic/plan-build-run/commit/5df19d8a))
+
+### Hooks
+
+* Add hook round-awareness and QA iteration tests ([bec15e28](https://github.com/SienkLogic/plan-build-run/commit/bec15e28))
+* Create hook few-shot documentation and validation test ([6ec67cf1](https://github.com/SienkLogic/plan-build-run/commit/6ec67cf1))
+
+### Testing
+
+* Add stress-test CLI command for harness component validation ([a4393f10](https://github.com/SienkLogic/plan-build-run/commit/a4393f10))
+
+### Other
+
+* Add model change detection and harness profile mismatch warnings ([211b9cf0](https://github.com/SienkLogic/plan-build-run/commit/211b9cf0))
+* Add configGetEffective precedence helper and wire profiles into gates ([e0bbd9fc](https://github.com/SienkLogic/plan-build-run/commit/e0bbd9fc))
+* Add benchmarks CLI command and stats integration ([98c73e7f](https://github.com/SienkLogic/plan-build-run/commit/98c73e7f))
+* Add harness profile schema, defaults, and resolution logic ([68a1d659](https://github.com/SienkLogic/plan-build-run/commit/68a1d659))
+* Enrich cost tracking and add benchmark aggregation library ([da4f6d50](https://github.com/SienkLogic/plan-build-run/commit/da4f6d50))
+* Add config schema for live verification and QA rounds ([79afca4b](https://github.com/SienkLogic/plan-build-run/commit/79afca4b))
+* Add handoff artifact completeness validators ([8727bd39](https://github.com/SienkLogic/plan-build-run/commit/8727bd39))
+* Add criterion language guidance and vague-criteria detection ([ca45d91d](https://github.com/SienkLogic/plan-build-run/commit/ca45d91d))
+
 ## [2.20.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.2...plan-build-run-v2.20.0) — 2026-03-24
 
 ### CI/CD
