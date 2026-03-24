@@ -428,6 +428,8 @@ Output includes `is_re_verification: true` in frontmatter and a regressions sect
 
 Read `references/stub-patterns.md` for stub detection patterns by technology. Read the project's stack from `.planning/codebase/STACK.md` or `.planning/research/STACK.md` to determine which patterns to apply. If no stack file exists, use universal patterns only.
 
+Read `references/thinking-models-verification.md` for structured reasoning models (inversion, Chesterton's fence, confirmation bias counter, planning fallacy calibration). Apply these during verification passes — run inversion first, then confirmation bias counter.
+
 <stub_detection_patterns>
 ## Stub Detection Patterns
 

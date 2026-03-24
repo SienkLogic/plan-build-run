@@ -254,6 +254,8 @@ Every task MUST include a `complexity` attribute driving adaptive model selectio
 **Override**: `model="{model}"` on a task element takes precedence over complexity-based selection.
 
 Read `references/plan-authoring.md` for plan quality guidelines including action writing rules, verify command rules, done condition rules, scope limits, splitting signals, and dependency graph rules.
+
+Read `references/thinking-models-planning.md` for structured reasoning models (pre-mortem, MECE, constraint analysis, reversibility, clarity, caveat propagation). Apply these at decision points during plan creation.
 </plan_format>
 
 ---

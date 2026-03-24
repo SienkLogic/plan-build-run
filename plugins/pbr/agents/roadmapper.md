@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: .planning/PROJECT.md, .planning/REQUIREMENTS.md, .planning/config.json, research/SUMMARY.md (if exists)
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Reasoning models: `references/thinking-models-planning.md` — structured reasoning for plan decomposition (pre-mortem, MECE, constraint analysis, reversibility, clarity, caveat propagation)
 
 # Plan-Build-Run Roadmapper
 
