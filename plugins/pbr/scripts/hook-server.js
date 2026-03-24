@@ -177,6 +177,30 @@ function mergeContext(...fns) {
 }
 
 // ---------------------------------------------------------------------------
+// PreToolUse response translation
+// ---------------------------------------------------------------------------
+
+/**
+ * Translate PreToolUse block responses into Claude Code's hookSpecificOutput format.
+ * Handlers return { decision: 'block', reason: '...' } but Claude Code expects
+ * { hookSpecificOutput: { hookEventName, permissionDecision, permissionDecisionReason } }.
+ */
+function translatePreToolUseResponse(event, result) {
+  if (!result || event !== 'PreToolUse') return result;
+  if (result.decision === 'block' && result.reason) {
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'deny',
+        permissionDecisionReason: result.reason
+      }
+    };
+  }
+  // Allow decisions or non-blocking results pass through unchanged
+  return result;
+}
+
+// ---------------------------------------------------------------------------
 // Handler routing table (dynamic Map populated by register/initRoutes)
 // ---------------------------------------------------------------------------
 
@@ -377,7 +401,7 @@ function createServer(planningDir) {
       }
       const duration_ms = Date.now() - dispatchStart;
       appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms, transport: 'http' });
-      let finalResult = dispatchResult || {};
+      let finalResult = translatePreToolUseResponse(event, dispatchResult) || {};
       if (duration_ms >= 100) {
         const alertMsg = `HOOK PERFORMANCE ALERT: ${event}:${tool} took ${duration_ms}ms (threshold: 100ms). Check handler for blocking I/O.`;
         if (finalResult.additionalContext) {
@@ -431,7 +455,7 @@ function createServer(planningDir) {
       }
       const legacyDurationMs = Date.now() - legacyDispatchStart;
       appendEvent(planningDir, { ts: new Date().toISOString(), type: 'dispatch', event, tool, hook: `${event}:${tool}`, duration_ms: legacyDurationMs, transport: 'http' });
-      let legacyFinalResult = legacyDispatchResult || {};
+      let legacyFinalResult = translatePreToolUseResponse(event, legacyDispatchResult) || {};
       if (legacyDurationMs >= 100) {
         const alertMsg = `HOOK PERFORMANCE ALERT: ${event}:${tool} took ${legacyDurationMs}ms (threshold: 100ms). Check handler for blocking I/O.`;
         if (legacyFinalResult.additionalContext) {
@@ -601,6 +625,6 @@ function main() {
   process.on('SIGINT', shutdown);
 }
 
-module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, DEFAULT_PORT };
+module.exports = { createServer, appendEvent, readEventLogTail, mergeContext, lazyHandler, resolveHandler, register, initRoutes, triggerShutdown, tryNextPort, normalizeMsysPath, translatePreToolUseResponse, DEFAULT_PORT };
 
 if (require.main === module || process.argv[1] === __filename) { main(); }
