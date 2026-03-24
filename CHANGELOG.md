@@ -2,6 +2,12 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.19.1](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.0...plan-build-run-v2.19.1) — 2026-03-23
+
+### Skills
+
+* Close all 5 audit gaps — wire advisor-researcher, update docs, wire templates, fix frontmatter parser, add E2E test ([9f0d7232](https://github.com/SienkLogic/plan-build-run/commit/9f0d7232))
+
 ## [2.19.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.18.0...plan-build-run-v2.19.0) — 2026-03-23
 
 ### Agents
