@@ -98,7 +98,7 @@ describe('configValidate with plan_depth', () => {
   test('valid plan_depth "high-level" passes validation', () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       planning: { plan_depth: 'high-level' }
@@ -111,7 +111,7 @@ describe('configValidate with plan_depth', () => {
   test('invalid plan_depth value fails validation', () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       planning: { plan_depth: 'invalid' }
@@ -124,7 +124,7 @@ describe('configValidate with plan_depth', () => {
   test('missing plan_depth passes validation (defaults apply)', () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       planning: {}

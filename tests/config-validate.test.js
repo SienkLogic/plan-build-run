@@ -43,7 +43,7 @@ describe('config validate', () => {
   test('valid config passes with no errors or warnings', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       context_strategy: 'aggressive',
@@ -241,7 +241,7 @@ describe('config validate', () => {
   test('no conflict warnings for compatible config', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'autonomous',
       features: { auto_continue: true },
       gates: {},
@@ -398,7 +398,7 @@ describe('new config properties validation', () => {
   test('accepts config with all new workflow properties', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       workflow: {
@@ -420,7 +420,7 @@ describe('new config properties validation', () => {
   test('accepts config with new top-level sections', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       intel: { enabled: false, auto_update: false, inject_on_start: false },
@@ -437,7 +437,7 @@ describe('new config properties validation', () => {
   test('rejects invalid enum values for new properties', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       workflow: { phase_boundary_clear: 'invalid' }
@@ -452,7 +452,7 @@ describe('new config properties validation', () => {
   test('rejects out-of-range values', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       workflow: { inline_max_tasks: 10 }
@@ -467,7 +467,7 @@ describe('new config properties validation', () => {
   test('accepts config with gates.checkpoint_auto_resolve', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard',
       gates: { checkpoint_auto_resolve: 'none' }
@@ -477,10 +477,10 @@ describe('new config properties validation', () => {
     expect(result.errors).toEqual([]);
   });
 
-  test('accepts schema_version 3', async () => {
+  test('accepts schema_version 4', async () => {
     writeConfig({
       version: 2,
-      schema_version: 3,
+      schema_version: 4,
       mode: 'interactive',
       depth: 'standard'
     });

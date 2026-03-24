@@ -14,7 +14,7 @@ const path = require('path');
 const { atomicWrite } = require('./core');
 
 /** The current schema version supported by this version of PBR. */
-const CURRENT_SCHEMA_VERSION = 3;
+const CURRENT_SCHEMA_VERSION = 4;
 
 /**
  * Migration registry. Each entry describes one schema version step.
@@ -158,6 +158,17 @@ const MIGRATIONS = [
       }
 
       config.schema_version = 3;
+    }
+  },
+  {
+    from: 3,
+    to: 4,
+    description: 'Add harness profile config and sprint_contracts feature flag',
+    migrate(config) {
+      if (config.harness_profile === undefined) config.harness_profile = 'standard';
+      if (!config.features) config.features = {};
+      if (config.features.sprint_contracts === undefined) config.features.sprint_contracts = false;
+      config.schema_version = 4;
     }
   }
 ];

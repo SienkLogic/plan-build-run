@@ -241,6 +241,108 @@ const DEPTH_PROFILE_DEFAULTS = {
   }
 };
 
+// ─── Harness profiles ─────────────────────────────────────────────────────────
+
+/**
+ * Built-in harness profile defaults. These define the effective harness
+ * settings for each profile level. User config.harness_profiles overrides these.
+ */
+const HARNESS_PROFILE_DEFAULTS = {
+  full: {
+    'features.sprint_contracts': true,
+    'features.live_verification': true,
+    'features.goal_verification': true,
+    'features.plan_checking': true,
+    'features.self_verification': true,
+    'features.graduated_verification': true,
+    'features.inline_verify': true,
+    'verification.qa_rounds': 3,
+    'planning.plan_depth': 'detailed',
+    'vague_criteria_action': 'block'
+  },
+  standard: {
+    'features.sprint_contracts': true,
+    'features.live_verification': false,
+    'features.goal_verification': true,
+    'features.plan_checking': true,
+    'features.self_verification': true,
+    'features.graduated_verification': true,
+    'features.inline_verify': false,
+    'verification.qa_rounds': 1,
+    'planning.plan_depth': 'detailed',
+    'vague_criteria_action': 'warn'
+  },
+  lean: {
+    'features.sprint_contracts': false,
+    'features.live_verification': false,
+    'features.goal_verification': 'advisory',
+    'features.plan_checking': false,
+    'features.self_verification': false,
+    'features.graduated_verification': false,
+    'features.inline_verify': false,
+    'verification.qa_rounds': 1,
+    'planning.plan_depth': 'high-level',
+    'vague_criteria_action': 'off'
+  }
+};
+
+/**
+ * Map model identifiers to recommended harness profiles.
+ * Strong models (opus) need less scaffolding; weaker models (haiku) need more.
+ */
+const MODEL_CAPABILITY_MAP = {
+  'opus': 'lean',
+  'claude-opus-4-6': 'lean',
+  'claude-opus-4-0': 'lean',
+  'sonnet': 'standard',
+  'claude-sonnet-4-5': 'standard',
+  'claude-sonnet-4-0': 'standard',
+  'haiku': 'full',
+  'claude-haiku-3-5': 'full',
+  'inherit': 'standard'
+};
+
+/**
+ * Resolve the effective harness profile for the current config.
+ * Merges built-in defaults with any user overrides from config.harness_profiles.
+ *
+ * @param {string|object} dirOrConfig - planningDir path or parsed config object
+ * @returns {{ profile: string, settings: object }}
+ */
+function configResolveHarness(dirOrConfig) {
+  let config;
+  if (typeof dirOrConfig === 'string') {
+    config = configLoad(dirOrConfig);
+  } else {
+    config = dirOrConfig;
+  }
+  const profile = (config && config.harness_profile) || 'standard';
+  const defaults = HARNESS_PROFILE_DEFAULTS[profile] || HARNESS_PROFILE_DEFAULTS.standard;
+  const userOverrides = (config && config.harness_profiles && config.harness_profiles[profile]) || {};
+  return { profile, settings: { ...defaults, ...userOverrides } };
+}
+
+/**
+ * Recommend a harness profile based on the model configuration.
+ * Uses the executor model if set, otherwise scans all models for the strongest.
+ *
+ * @param {object} config - Parsed config object
+ * @returns {string} Recommended profile name ('full', 'standard', or 'lean')
+ */
+function recommendedHarnessProfile(config) {
+  if (!config || !config.models) return 'standard';
+  const executor = config.models.executor;
+  if (executor && MODEL_CAPABILITY_MAP[executor]) return MODEL_CAPABILITY_MAP[executor];
+  const allModels = Object.values(config.models).filter(v => typeof v === 'string');
+  const priority = ['opus', 'sonnet', 'haiku'];
+  for (const p of priority) {
+    if (allModels.some(m => m === p || m.includes(p))) {
+      return MODEL_CAPABILITY_MAP[p] || 'standard';
+    }
+  }
+  return 'standard';
+}
+
 /**
  * Resolve the effective depth profile for the current config.
  * Merges built-in defaults with any user overrides from config.depth_profiles.
@@ -288,14 +390,16 @@ function configLoadDefaults(planningDir) {
   // No config found — return hardcoded defaults
   return {
     version: 2,
-    schema_version: 3,
+    schema_version: 4,
     mode: 'interactive',
     depth: 'standard',
+    harness_profile: 'standard',
     features: {
       structured_planning: true,
       goal_verification: true,
       research_phase: true,
       plan_checking: true,
+      sprint_contracts: false,
     },
     planning: {
       commit_docs: false,
@@ -592,14 +696,16 @@ function cmdConfigEnsureSection(cwdArg, raw) {
 
   const hardcoded = {
     version: 2,
-    schema_version: 3,
+    schema_version: 4,
     mode: 'interactive',
     depth: 'standard',
+    harness_profile: 'standard',
     features: {
       structured_planning: true,
       goal_verification: true,
       research_phase: true,
       plan_checking: true,
+      sprint_contracts: false,
     },
     planning: {
       commit_docs: false,
@@ -731,10 +837,11 @@ function cmdConfigGet(cwdArg, keyPath, raw) {
 
 const CONFIG_DEFAULTS = {
   version: 2,
-  schema_version: 3,
+  schema_version: 4,
   context_strategy: 'aggressive',
   mode: 'interactive',
   depth: 'standard',
+  harness_profile: 'standard',
   session_phase_limit: 3,
   session_cycling: 'compact',
   context_window_tokens: 200000,
@@ -799,7 +906,8 @@ const CONFIG_DEFAULTS = {
     architecture_graph: true,
     architecture_guard: true,
     incident_journal: true,
-    live_verification: false
+    live_verification: false,
+    sprint_contracts: false
   },
   autonomy: { level: 'supervised', max_retries: 2, error_strategy: 'retry' },
   models: {
@@ -1305,6 +1413,11 @@ module.exports = {
   CONFIG_SECTIONS,
   // Depth profiles
   DEPTH_PROFILE_DEFAULTS,
+  // Harness profiles
+  HARNESS_PROFILE_DEFAULTS,
+  MODEL_CAPABILITY_MAP,
+  configResolveHarness,
+  recommendedHarnessProfile,
   // Global defaults
   loadGlobalDefaults,
   saveGlobalDefaults,

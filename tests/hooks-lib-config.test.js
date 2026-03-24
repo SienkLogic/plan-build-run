@@ -211,8 +211,8 @@ describe('configValidate', () => {
   // The schema file is at hooks/config-schema.json — we need it to exist.
 
   it('valid config returns valid: true with no errors/warnings (using current schema_version)', async () => {
-    // Use a minimal valid config with schema_version matching CURRENT_SCHEMA_VERSION (3)
-    const cfg = { schema_version: 3, version: 2, mode: 'interactive', depth: 'standard' };
+    // Use a minimal valid config with schema_version matching CURRENT_SCHEMA_VERSION (4)
+    const cfg = { schema_version: 4, version: 2, mode: 'interactive', depth: 'standard' };
     const result = configValidate(cfg);
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
@@ -245,13 +245,13 @@ describe('configValidate', () => {
   });
 
   it('preloaded config object works (bypasses disk read for config)', async () => {
-    const result = configValidate({ schema_version: 3, version: 2 });
+    const result = configValidate({ schema_version: 4, version: 2 });
     expect(result.valid).toBe(true);
   });
 
   it('strips _guide_* and _comment_* keys before validation', async () => {
     const cfg = {
-      schema_version: 3,
+      schema_version: 4,
       version: 2,
       _guide_meta: ['some guide text'],
       features: { _comment_foo: 'bar', structured_planning: true },
@@ -288,7 +288,7 @@ describe('configValidate', () => {
 
   it('mode=autonomous with active gates produces error', async () => {
     const cfg = {
-      schema_version: 3,
+      schema_version: 4,
       version: 2,
       mode: 'autonomous',
       gates: { confirm_plan: true },
@@ -302,7 +302,7 @@ describe('configValidate', () => {
 
   it('auto_continue=true with interactive mode produces warning', async () => {
     const cfg = {
-      schema_version: 3,
+      schema_version: 4,
       version: 2,
       mode: 'interactive',
       features: { auto_continue: true },
@@ -315,7 +315,7 @@ describe('configValidate', () => {
 
   it('parallelization.enabled=false with plan_level=true produces warning', async () => {
     const cfg = {
-      schema_version: 3,
+      schema_version: 4,
       version: 2,
       parallelization: { enabled: false, plan_level: true },
     };
@@ -327,7 +327,7 @@ describe('configValidate', () => {
 
   it('parallelization.max_concurrent_agents=1 with teams.coordination produces error', async () => {
     const cfg = {
-      schema_version: 3,
+      schema_version: 4,
       version: 2,
       parallelization: { max_concurrent_agents: 1 },
       teams: { coordination: 'file-based' },
@@ -476,7 +476,7 @@ describe('saveUserDefaults', () => {
         models: { executor: 'opus' },
         // Non-portable keys that should be excluded
         version: 2,
-        schema_version: 3,
+        schema_version: 4,
         prd: { auto_extract: true },
         local_llm: { enabled: true },
       };

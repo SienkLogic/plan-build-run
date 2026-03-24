@@ -22,7 +22,8 @@
       "enum": [
         1,
         2,
-        3
+        3,
+        4
       ],
       "description": "Config schema version for migration detection. Increment when config structure changes."
     },
@@ -49,6 +50,17 @@
         "comprehensive"
       ],
       "description": "Workflow depth: quick = budget mode (fewer spawns, skip optional stages), standard = balanced mode (conditional spawns), comprehensive = thorough mode (all spawns, current default)"
+    },
+    "harness_profile": {
+      "type": "string",
+      "enum": ["full", "standard", "lean"],
+      "default": "standard",
+      "description": "Harness scaffolding profile. full = all gates + verification for weaker models. standard = balanced. lean = minimal scaffolding for strong models. Auto-suggested based on models.executor."
+    },
+    "harness_profiles": {
+      "type": "object",
+      "description": "User overrides for built-in harness profile settings. Keys are profile names (full/standard/lean), values are partial settings objects that merge over defaults.",
+      "additionalProperties": { "type": "object" }
     },
     "session_phase_limit": {
       "type": "integer",
@@ -350,6 +362,11 @@
           "type": "boolean",
           "default": false,
           "description": "Enable live interaction verification for UI/API phases via browser automation (Chrome MCP)."
+        },
+        "sprint_contracts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable sprint contract pre-flight negotiation where verifier and executor review PLAN.md must-haves before execution."
         }
       },
       "additionalProperties": false

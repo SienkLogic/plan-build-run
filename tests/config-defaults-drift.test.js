@@ -65,8 +65,8 @@ describe('Config defaults drift prevention', () => {
     }
   });
 
-  test('configInit() creates config with schema_version 3', async () => {
-    expect(initDefaults.schema_version).toBe(3);
+  test('configInit() creates config with schema_version 4', async () => {
+    expect(initDefaults.schema_version).toBe(4);
   });
 
   test('configInit() creates config with planning.commit_docs false', async () => {
