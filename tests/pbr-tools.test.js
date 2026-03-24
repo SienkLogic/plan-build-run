@@ -400,45 +400,7 @@ next_top_level: something`;
     });
   });
 
-  // updateLegacyStateField tests removeddateLegacyStateField', () => {
-    const legacyContent = '# Project State\n\nPhase: 2 of 6 -- Authentication\nStatus: built\nProgress: 33%\n\n## Current Work\nPlan: 1 of 2\nWave: 1\n';
-
-    test('updates current_phase', () => {
-      const result = updateLegacyStateField(legacyContent, 'current_phase', '3');
-      expect(result).toContain('Phase: 3 of 6');
-      expect(result).not.toContain('Phase: 2 of 6');
-    });
-
-    test('updates status', () => {
-      const result = updateLegacyStateField(legacyContent, 'status', 'building');
-      expect(result).toContain('Status: building');
-      expect(result).not.toContain('Status: built');
-    });
-
-    test('updates plans_complete', () => {
-      const result = updateLegacyStateField(legacyContent, 'plans_complete', '2');
-      expect(result).toContain('Plan: 2 of 2');
-      expect(result).not.toContain('Plan: 1 of 2');
-    });
-
-    test('adds last_activity when not present', () => {
-      const result = updateLegacyStateField(legacyContent, 'last_activity', '2026-02-10');
-      expect(result).toContain('Last Activity: 2026-02-10');
-    });
-
-    test('updates last_activity when already present', () => {
-      const content = legacyContent.replace('Status: built', 'Status: built\nLast Activity: 2026-02-09');
-      const result = updateLegacyStateField(content, 'last_activity', '2026-02-10');
-      expect(result).toContain('Last Activity: 2026-02-10');
-      expect(result).not.toContain('Last Activity: 2026-02-09');
-    });
-
-    test('adds status when not present', () => {
-      const noStatus = '# Project State\n\nPhase: 2 of 6 -- Authentication\nProgress: 33%\n';
-      const result = updateLegacyStateField(noStatus, 'status', 'building');
-      expect(result).toContain('Status: building');
-    });
-  });
+  // updateLegacyStateField tests removed (function deleted in Phase 141)
 
   describe('updateFrontmatterField', () => {
     const fmContent = '---\nversion: 2\ncurrent_phase: 3\nstatus: "building"\nplans_complete: 1\n---\n# Project State\n';
@@ -940,7 +902,6 @@ next_top_level: something`;
       expect(() => configClearCache()).not.toThrow();
     });
   });
-});
 
 
 // ─── reference module tests ────────────────────────────────────────────────
@@ -2257,4 +2218,5 @@ describe('session subcommand (pbr-tools)', () => {
     const tmpFile = path.join(planningDir, '.session.json.tmp');
     expect(fs.existsSync(tmpFile)).toBe(false);
   });
+});
 });
