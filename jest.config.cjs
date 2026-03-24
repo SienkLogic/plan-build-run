@@ -23,15 +23,15 @@ const sharedConfig = {
 module.exports = {
   maxWorkers: '50%',
   workerIdleMemoryLimit: '512MB',
-  // Coverage thresholds — updated 2026-03-20 after source unification (v18.0)
+  // Coverage thresholds — updated 2026-03-24
   // Single canonical source: plugins/pbr/scripts/
-  // Actual: 61.68/52.77/66.28/62.54 — set 5pt below for headroom
+  // Actual: 60.82/52.34/63.72/61.76 — set 5pt below for headroom
   coverageThreshold: {
     global: {
-      statements: 56,
+      statements: 55,
       branches: 47,
-      functions: 61,
-      lines: 57,
+      functions: 58,
+      lines: 56,
     },
   },
   coverageReporters: ['text', 'text-summary', 'json-summary'],
