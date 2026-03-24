@@ -34,13 +34,20 @@ describe('sprint-preflight gate', () => {
     expect(shouldRunPreflight(tmpDir)).toBe(false);
   });
 
-  test('returns false when sprint_contracts key is missing', () => {
+  test('returns true when sprint_contracts key is missing (standard harness profile default)', () => {
+    // With harness-profile-aware resolution, standard profile enables sprint_contracts
     writeConfig(tmpDir, { features: { some_other_flag: true } });
-    expect(shouldRunPreflight(tmpDir)).toBe(false);
+    expect(shouldRunPreflight(tmpDir)).toBe(true);
   });
 
-  test('returns false when features object is missing', () => {
+  test('returns true when features object is missing (standard harness profile default)', () => {
+    // With harness-profile-aware resolution, standard profile enables sprint_contracts
     writeConfig(tmpDir, { version: 2 });
+    expect(shouldRunPreflight(tmpDir)).toBe(true);
+  });
+
+  test('returns false when sprint_contracts missing and harness_profile is lean', () => {
+    writeConfig(tmpDir, { version: 2, harness_profile: 'lean' });
     expect(shouldRunPreflight(tmpDir)).toBe(false);
   });
 

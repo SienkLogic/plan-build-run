@@ -7,6 +7,7 @@ const {
   HARNESS_PROFILE_DEFAULTS,
   MODEL_CAPABILITY_MAP,
   configResolveHarness,
+  configGetEffective,
   recommendedHarnessProfile
 } = require('../plugins/pbr/scripts/lib/config');
 
@@ -136,6 +137,103 @@ describe('recommendedHarnessProfile', () => {
       }
     };
     expect(recommendedHarnessProfile(config)).toBe('standard');
+  });
+});
+
+// ─── configGetEffective ──────────────────────────────────────────────────────
+
+describe('configGetEffective', () => {
+  test('explicit config value wins over harness profile', () => {
+    const config = {
+      harness_profile: 'full',
+      features: { sprint_contracts: false }
+    };
+    expect(configGetEffective(config, 'features.sprint_contracts')).toBe(false);
+  });
+
+  test('harness profile value used when explicit not set', () => {
+    // full profile has sprint_contracts=true
+    const config = { harness_profile: 'full' };
+    expect(configGetEffective(config, 'features.sprint_contracts')).toBe(true);
+  });
+
+  test('lean profile disables sprint_contracts', () => {
+    const config = { harness_profile: 'lean' };
+    expect(configGetEffective(config, 'features.sprint_contracts')).toBe(false);
+  });
+
+  test('returns undefined for unknown paths', () => {
+    const config = { harness_profile: 'standard' };
+    expect(configGetEffective(config, 'nonexistent.path')).toBeUndefined();
+  });
+
+  test('returns undefined for null config', () => {
+    expect(configGetEffective(null, 'features.sprint_contracts')).toBeUndefined();
+  });
+});
+
+// ─── sprint-preflight gate with harness profiles ────────────────────────────
+
+describe('sprint-preflight gate with harness profiles', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { shouldRunPreflight } = require('../plugins/pbr/scripts/lib/gates/sprint-preflight');
+
+  let tmpDir;
+
+  function writeConfig(planningDir, config) {
+    fs.writeFileSync(
+      path.join(planningDir, 'config.json'),
+      JSON.stringify(config, null, 2),
+      'utf8'
+    );
+  }
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pbr-gate-test-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test('returns true for harness_profile=full without explicit sprint_contracts', () => {
+    writeConfig(tmpDir, {
+      schema_version: 4,
+      version: 2,
+      harness_profile: 'full'
+    });
+    expect(shouldRunPreflight(tmpDir)).toBe(true);
+  });
+
+  test('returns false for harness_profile=lean', () => {
+    writeConfig(tmpDir, {
+      schema_version: 4,
+      version: 2,
+      harness_profile: 'lean'
+    });
+    expect(shouldRunPreflight(tmpDir)).toBe(false);
+  });
+
+  test('explicit features.sprint_contracts=true overrides harness_profile=lean', () => {
+    writeConfig(tmpDir, {
+      schema_version: 4,
+      version: 2,
+      harness_profile: 'lean',
+      features: { sprint_contracts: true }
+    });
+    expect(shouldRunPreflight(tmpDir)).toBe(true);
+  });
+
+  test('explicit features.sprint_contracts=false overrides harness_profile=full', () => {
+    writeConfig(tmpDir, {
+      schema_version: 4,
+      version: 2,
+      harness_profile: 'full',
+      features: { sprint_contracts: false }
+    });
+    expect(shouldRunPreflight(tmpDir)).toBe(false);
   });
 });
 

@@ -344,6 +344,41 @@ function recommendedHarnessProfile(config) {
 }
 
 /**
+ * Get effective value for a config path, respecting precedence:
+ * explicit config > harness profile > depth profile > hardcoded default.
+ *
+ * @param {object} config - Parsed config object
+ * @param {string} dotPath - Dot-separated path like 'features.sprint_contracts'
+ * @returns {*} Resolved value
+ */
+function configGetEffective(config, dotPath) {
+  if (!config) return undefined;
+
+  // 1. Check explicit config value
+  const parts = dotPath.split('.');
+  let explicit = config;
+  for (const p of parts) {
+    if (explicit && typeof explicit === 'object' && p in explicit) {
+      explicit = explicit[p];
+    } else {
+      explicit = undefined;
+      break;
+    }
+  }
+  if (explicit !== undefined) return explicit;
+
+  // 2. Check harness profile
+  const { settings: harnessSettings } = configResolveHarness(config);
+  if (dotPath in harnessSettings) return harnessSettings[dotPath];
+
+  // 3. Check depth profile
+  const { profile: depthSettings } = configResolveDepth(config);
+  if (dotPath in depthSettings) return depthSettings[dotPath];
+
+  return undefined;
+}
+
+/**
  * Resolve the effective depth profile for the current config.
  * Merges built-in defaults with any user overrides from config.depth_profiles.
  *
@@ -1417,6 +1452,7 @@ module.exports = {
   HARNESS_PROFILE_DEFAULTS,
   MODEL_CAPABILITY_MAP,
   configResolveHarness,
+  configGetEffective,
   recommendedHarnessProfile,
   // Global defaults
   loadGlobalDefaults,
