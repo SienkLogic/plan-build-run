@@ -12,29 +12,22 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('./frontmatter');
 
 /**
  * Parse STATE.md frontmatter for current phase, progress, and status.
+ * Delegates to canonical extractFrontmatter and adapts return shape.
  * @param {string} content - STATE.md content
  * @returns {{ current_phase: number, progress_percent: number, status: string }}
  */
-function parseStateFrontmatter(content) {
-  const result = { current_phase: 0, progress_percent: 0, status: '' };
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fmMatch) return result;
-
-  const fm = fmMatch[1];
-  const phaseMatch = fm.match(/current_phase:\s*(\d+)/);
-  if (phaseMatch) result.current_phase = parseInt(phaseMatch[1], 10);
-
-  const progressMatch = fm.match(/progress_percent:\s*(\d+)/);
-  if (progressMatch) result.progress_percent = parseInt(progressMatch[1], 10);
-
-  const statusMatch = fm.match(/status:\s*"?(\w+)"?/);
-  if (statusMatch) result.status = statusMatch[1];
-
-  return result;
-}
+const parseStateFrontmatter = (content) => {
+  const fm = extractFrontmatter(content);
+  return {
+    current_phase: parseInt(fm.current_phase, 10) || 0,
+    progress_percent: parseInt(fm.progress_percent, 10) || 0,
+    status: fm.status || ''
+  };
+};
 
 /**
  * Find the name of a phase from ROADMAP.md checklist.

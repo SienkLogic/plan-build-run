@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { logEvent } = require('./event-logger');
+const { extractFrontmatter } = require('./lib/frontmatter');
 
 const LIFECYCLE_STATUSES = ['planned', 'built', 'partial', 'verified'];
 
@@ -197,29 +198,32 @@ function main() {
 
 /**
  * Extract current phase number and status from STATE.md.
- * Handles common formats:
- *   "**Phase**: 03 - slug-name"
- *   "Phase: 3"
- *   "Current phase: 03-slug-name"
- *   "**Status**: planned"
- *   "Phase status: built"
+ * Tries frontmatter first (v2), falls back to body regex (legacy).
+ * Delegates frontmatter parsing to canonical extractFrontmatter.
+ * Returns { phase, status } or null if unparseable.
  */
-function parseState(content) {
+const parseState = (content) => {
+  // Try frontmatter first (v2 format)
+  const fm = extractFrontmatter(content);
+  if (fm.current_phase && fm.status) {
+    return {
+      phase: normalizePhaseNum(String(fm.current_phase)),
+      status: fm.status.toLowerCase()
+    };
+  }
+  // Fallback: body regex for legacy formats
   const phaseMatch = content.match(
     /\*{0,2}(?:Current\s+)?Phase\*{0,2}:\s*(\d+(?:\.\d+)?)/i
   );
-
   const statusMatch = content.match(
     /\*{0,2}(?:Phase\s+)?Status\*{0,2}:\s*["']?(\w+)["']?/i
   );
-
   if (!phaseMatch || !statusMatch) return null;
-
   return {
     phase: normalizePhaseNum(phaseMatch[1]),
     status: statusMatch[1].toLowerCase()
   };
-}
+};
 
 /**
  * Find the status for a given phase in ROADMAP.md's Phase Overview table.

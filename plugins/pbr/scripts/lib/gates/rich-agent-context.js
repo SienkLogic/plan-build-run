@@ -10,6 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('../frontmatter');
 
 /**
  * Build a rich context string from .planning/ sources.
@@ -118,26 +119,19 @@ function buildRichAgentContext(planningDir, config, budgetChars = 5000) {
  * @param {string} content - STATE.md content
  * @returns {string|null} formatted state info or null
  */
-function parseStateFrontmatter(content) {
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fmMatch) return null;
-
-  const fm = fmMatch[1];
+/**
+ * Parse STATE.md and format as a human-readable string.
+ * Delegates to canonical parseStateMd from lib/state.js.
+ */
+const parseStateFrontmatter = (content) => {
+  const fm = extractFrontmatter(content);
+  if (!fm || (!fm.current_phase && !fm.status)) return null;
   const parts = [];
-
-  const phase = fm.match(/current_phase:\s*(.+)/);
-  if (phase) parts.push(`Phase: ${phase[1].trim()}`);
-
-  const status = fm.match(/status:\s*"?([^"\n]+)"?/);
-  if (status) parts.push(`Status: ${status[1].trim()}`);
-
-  const progress = fm.match(/progress_percent:\s*(\d+)/);
-  if (progress) parts.push(`Progress: ${progress[1]}%`);
-
-  const slug = fm.match(/phase_slug:\s*"?([^"\n]+)"?/);
-  if (slug) parts.push(`Phase: ${slug[1].trim()}`);
-
+  if (fm.current_phase) parts.push(`Phase: ${fm.current_phase}`);
+  if (fm.status) parts.push(`Status: ${fm.status}`);
+  if (fm.progress_percent) parts.push(`Progress: ${fm.progress_percent}%`);
+  if (fm.phase_slug) parts.push(`Phase: ${fm.phase_slug}`);
   return parts.length > 0 ? parts.join('\n') : null;
-}
+};
 
 module.exports = { buildRichAgentContext };

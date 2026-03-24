@@ -12,6 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('./frontmatter');
 
 // ─── Help templates ────────────────────────────────────────────────────────────
 
@@ -79,39 +80,14 @@ const HELP_TEMPLATES = {
  * @param {string} statePath - Path to STATE.md
  * @returns {{ status: string, blockers: string[] }}
  */
-function parseStateFrontmatter(statePath) {
+const parseStateFrontmatter = (statePath) => {
   const defaults = { status: 'unknown', blockers: [] };
   try {
     if (!fs.existsSync(statePath)) return defaults;
     const content = fs.readFileSync(statePath, 'utf8');
-    // Extract frontmatter between --- delimiters
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    if (!fmMatch) return defaults;
-    const fm = fmMatch[1];
-
-    // Parse status
-    const statusMatch = fm.match(/^status:\s*["']?([^"'\r\n]+)["']?/m);
-    const status = statusMatch ? statusMatch[1].trim() : 'unknown';
-
-    // Parse blockers array
-    const blockers = [];
-    const blockersMatch = fm.match(/^blockers:\s*\[(.*?)\]/ms);
-    if (blockersMatch) {
-      // Inline array format: blockers: ["item1", "item2"]
-      const items = blockersMatch[1].match(/"([^"]+)"/g) || [];
-      blockers.push(...items.map(i => i.replace(/"/g, '')));
-    } else {
-      // Multi-line array format
-      const blockersSection = fm.match(/^blockers:\s*\r?\n((?:\s+- .*\r?\n?)*)/m);
-      if (blockersSection) {
-        const lines = blockersSection[1].split(/\r?\n/);
-        for (const line of lines) {
-          const item = line.match(/^\s+- ["']?(.+?)["']?\s*$/);
-          if (item) blockers.push(item[1]);
-        }
-      }
-    }
-
+    const fm = extractFrontmatter(content);
+    const status = fm.status || 'unknown';
+    const blockers = Array.isArray(fm.blockers) ? fm.blockers : [];
     return { status, blockers };
   } catch (_e) {
     return defaults;

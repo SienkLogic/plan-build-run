@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('./frontmatter');
 
 /**
  * Parse ROADMAP.md into phase objects with dependencies and completion status.
@@ -68,29 +69,19 @@ function parseRoadmap(content) {
 
 /**
  * Parse STATE.md frontmatter for current phase info.
+ * Delegates to canonical parseStateMd and adapts return shape.
  * @param {string} content - STATE.md content
  * @returns {{ current_phase: number, status: string, plans_total: number, plans_complete: number }}
  */
-function parseState(content) {
-  const result = { current_phase: 0, status: '', plans_total: 0, plans_complete: 0 };
-  const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!fmMatch) return result;
-
-  const fm = fmMatch[1];
-  const phaseMatch = fm.match(/current_phase:\s*(\d+)/);
-  if (phaseMatch) result.current_phase = parseInt(phaseMatch[1], 10);
-
-  const statusMatch = fm.match(/status:\s*"?(\w+)"?/);
-  if (statusMatch) result.status = statusMatch[1];
-
-  const totalMatch = fm.match(/plans_total:\s*(\d+)/);
-  if (totalMatch) result.plans_total = parseInt(totalMatch[1], 10);
-
-  const completeMatch = fm.match(/plans_complete:\s*(\d+)/);
-  if (completeMatch) result.plans_complete = parseInt(completeMatch[1], 10);
-
-  return result;
-}
+const parseState = (content) => {
+  const fm = extractFrontmatter(content);
+  return {
+    current_phase: parseInt(fm.current_phase, 10) || 0,
+    status: fm.status || '',
+    plans_total: parseInt(fm.plans_total, 10) || 0,
+    plans_complete: parseInt(fm.plans_complete, 10) || 0
+  };
+};
 
 /**
  * Count transitive downstream dependents for a phase.
