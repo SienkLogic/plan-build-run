@@ -462,6 +462,38 @@ describe('trackAgentCost', () => {
     expect(entry.ms).toBe(0);
   });
 
+  test('includes phase and skill fields from STATE.md and .active-skill', async () => {
+    // Write STATE.md with current_phase
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\ncurrent_phase: 42\n---\n# State');
+    // Write .active-skill
+    fs.writeFileSync(path.join(planningDir, '.active-skill'), 'build');
+
+    trackAgentCost(planningDir, 'executor', 1500, null);
+    const trackerPath = path.join(planningDir, '.agent-cost-tracker');
+    const lines = fs.readFileSync(trackerPath, 'utf8').trim().split('\n');
+    expect(lines).toHaveLength(1);
+    const entry = JSON.parse(lines[0]);
+    expect(entry.phase).toBe('42');
+    expect(entry.skill).toBe('build');
+    expect(entry.type).toBe('executor');
+    expect(entry.ms).toBe(1500);
+  });
+
+  test('phase and skill are null when STATE.md and .active-skill are missing', async () => {
+    trackAgentCost(planningDir, 'executor', 1000, null);
+    const trackerPath = path.join(planningDir, '.agent-cost-tracker');
+    const entry = JSON.parse(fs.readFileSync(trackerPath, 'utf8').trim());
+    expect(entry.phase).toBeNull();
+    expect(entry.skill).toBeNull();
+  });
+
+  test('phase is null when STATE.md has no current_phase line', async () => {
+    fs.writeFileSync(path.join(planningDir, 'STATE.md'), '---\nstatus: building\n---\n');
+    trackAgentCost(planningDir, 'executor', 1000, null);
+    const entry = JSON.parse(fs.readFileSync(path.join(planningDir, '.agent-cost-tracker'), 'utf8').trim());
+    expect(entry.phase).toBeNull();
+  });
+
   test('handles corrupt tracker file by appending', async () => {
     fs.writeFileSync(path.join(planningDir, '.agent-cost-tracker'), 'not json\n');
     const result = trackAgentCost(planningDir, 'pbr:executor', 1000, null);

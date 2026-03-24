@@ -170,8 +170,26 @@ function trackAgentCost(planningDir, agentType, durationMs, sessionId) {
     ? resolveSessionPath(planningDir, AGENT_COST_FILE, sessionId)
     : path.join(planningDir, AGENT_COST_FILE);
 
+  // Read current_phase from STATE.md (lightweight, best-effort)
+  let phase = null;
+  try {
+    const statePath = path.join(planningDir, 'STATE.md');
+    const content = fs.readFileSync(statePath, 'utf8');
+    const match = content.match(/^current_phase:\s*(\d+)/m);
+    phase = match ? match[1] : null;
+  } catch (_e) { /* best-effort */ }
+
+  // Read active skill (session-scoped when sessionId available)
+  let skill = null;
+  try {
+    const skillPath = sessionId
+      ? resolveSessionPath(planningDir, '.active-skill', sessionId)
+      : path.join(planningDir, '.active-skill');
+    skill = fs.readFileSync(skillPath, 'utf8').trim() || null;
+  } catch (_e) { /* best-effort */ }
+
   // Append a JSONL line — no read required on the hot path
-  const entry = { ts: Date.now(), type: agentType || 'unknown', ms: durationMs || 0 };
+  const entry = { ts: Date.now(), type: agentType || 'unknown', ms: durationMs || 0, phase, skill };
   try { fs.appendFileSync(trackerPath, JSON.stringify(entry) + '\n', 'utf8'); } catch (_e) { /* best-effort */ }
 
   // Count lines to check thresholds (cheaper than JSON parse of entire structure)
