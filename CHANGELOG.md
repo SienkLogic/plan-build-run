@@ -2,6 +2,26 @@
 
 All notable changes to Plan-Build-Run will be documented in this file.
 
+## [2.20.0](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.2...plan-build-run-v2.20.0) — 2026-03-24
+
+### CI/CD
+
+* Align coverage thresholds with actual values ([1e461899](https://github.com/SienkLogic/plan-build-run/commit/1e461899))
+
+### CLI Tools
+
+* PID lock fail-closed + async lockedFileUpdate ([20fe7aa3](https://github.com/SienkLogic/plan-build-run/commit/20fe7aa3))
+
+### Hooks
+
+* Remove constant condition lint error in commands/misc.js ([3fca3624](https://github.com/SienkLogic/plan-build-run/commit/3fca3624))
+
+### Other
+
+* Add config cache with fs.watchFile invalidation ([80eafaaf](https://github.com/SienkLogic/plan-build-run/commit/80eafaaf))
+* Add error handling to silent catch blocks across 50+ scripts ([81d61873](https://github.com/SienkLogic/plan-build-run/commit/81d61873))
+* Phase 144 squash merge ([e2190574](https://github.com/SienkLogic/plan-build-run/commit/e2190574))
+
 ## [2.19.2](https://github.com/SienkLogic/plan-build-run/compare/plan-build-run-v2.19.1...plan-build-run-v2.19.2) — 2026-03-24
 
 ### CI/CD
