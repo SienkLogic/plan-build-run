@@ -10,11 +10,11 @@ const { safeReadFile, output, error } = require('./core');
 
 function extractFrontmatter(content) {
   const frontmatter = {};
-  const match = content.match(/^---\n([\s\S]+?)\n---/);
+  const match = content.match(/^---\r?\n([\s\S]+?)\r?\n---/);
   if (!match) return frontmatter;
 
   const yaml = match[1];
-  const lines = yaml.split('\n');
+  const lines = yaml.split(/\r?\n/);
 
   // Stack to track nested objects: [{obj, key, indent}]
   // obj = object to write to, key = current key collecting array items, indent = indentation level
@@ -149,7 +149,7 @@ function reconstructFrontmatter(obj) {
 
 function spliceFrontmatter(content, newObj) {
   const yamlStr = reconstructFrontmatter(newObj);
-  const match = content.match(/^---\n[\s\S]+?\n---/);
+  const match = content.match(/^---\r?\n[\s\S]+?\r?\n---/);
   if (match) {
     return `---\n${yamlStr}\n---` + content.slice(match[0].length);
   }
@@ -159,7 +159,7 @@ function spliceFrontmatter(content, newObj) {
 function parseMustHavesBlock(content, blockName) {
   // Extract a specific block from must_haves in raw frontmatter YAML
   // Handles 3-level nesting: must_haves > artifacts/key_links > [{path, provides, ...}]
-  const fmMatch = content.match(/^---\n([\s\S]+?)\n---/);
+  const fmMatch = content.match(/^---\r?\n([\s\S]+?)\r?\n---/);
   if (!fmMatch) return [];
 
   const yaml = fmMatch[1];

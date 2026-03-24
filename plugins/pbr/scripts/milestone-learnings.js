@@ -19,61 +19,11 @@ const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
 const { learningsIngest, copyToGlobal } = require('./lib/learnings');
+const { extractFrontmatter } = require('./lib/frontmatter');
 
 // --- Helpers ---
 
-/**
- * Parse YAML frontmatter from a markdown file.
- * Returns an object with string/array field values, or null if no frontmatter.
- * Only handles simple YAML: scalar strings and dash-list arrays.
- * @param {string} content
- * @returns {object|null}
- */
-function parseFrontmatter(content) {
-  // Normalize line endings
-  const normalized = content.replace(/\r\n/g, '\n');
-  const match = normalized.match(/^---\n([\s\S]*?)\n---/);
-  if (!match) return null;
-
-  const yaml = match[1];
-  const result = {};
-  const lines = yaml.split('\n');
-  let currentKey = null;
-
-  for (const line of lines) {
-    // List item (must check before key match so "  - item" doesn't match as key)
-    const listMatch = line.match(/^\s+-\s+"?([^"]+?)"?\s*$/);
-    if (listMatch) {
-      if (currentKey !== null) {
-        if (!Array.isArray(result[currentKey])) {
-          result[currentKey] = [];
-        }
-        result[currentKey].push(listMatch[1].trim());
-      }
-      continue;
-    }
-
-    // Key: value pair
-    const kvMatch = line.match(/^(\w[\w_-]*):\s*(.*)/);
-    if (kvMatch) {
-      currentKey = kvMatch[1];
-      const rawVal = kvMatch[2].trim();
-
-      if (rawVal === '' || rawVal === '[]') {
-        // Empty scalar or empty inline array — may be followed by list items
-        result[currentKey] = [];
-      } else if (rawVal.startsWith('[')) {
-        // Inline array (basic): [a, b]
-        const inner = rawVal.slice(1, rawVal.lastIndexOf(']'));
-        result[currentKey] = inner.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-      } else {
-        result[currentKey] = rawVal.replace(/^["']|["']$/g, '');
-      }
-    }
-  }
-
-  return result;
-}
+// parseFrontmatter replaced by extractFrontmatter from lib/frontmatter.js
 
 /**
  * Extract learning entries from a SUMMARY.md file's frontmatter.
@@ -82,8 +32,8 @@ function parseFrontmatter(content) {
  * @returns {object[]} array of raw learning entry objects
  */
 function extractLearningsFromSummary(summaryContent, sourceProject) {
-  const fm = parseFrontmatter(summaryContent);
-  if (!fm) return [];
+  const fm = extractFrontmatter(summaryContent);
+  if (!fm || Object.keys(fm).length === 0) return [];
 
   const entries = [];
 
@@ -476,7 +426,7 @@ async function main() {
         if (!fs.existsSync(verPath)) continue;
         try {
           const verContent = fs.readFileSync(verPath, 'utf8');
-          const fm = parseFrontmatter(verContent);
+          const fm = extractFrontmatter(verContent);
           if (!fm) continue;
           // Extract gaps from frontmatter
           const gaps = Array.isArray(fm.gaps) ? fm.gaps : [];
@@ -566,4 +516,4 @@ if (require.main === module || process.argv[1] === __filename) {
   });
 }
 
-module.exports = { extractLearningsFromSummary, findSummaryFiles, parseFrontmatter, aggregateToKnowledge, countExistingRows, itemExists, insertTableRow, KNOWLEDGE_TEMPLATE };
+module.exports = { extractLearningsFromSummary, findSummaryFiles, extractFrontmatter, aggregateToKnowledge, countExistingRows, itemExists, insertTableRow, KNOWLEDGE_TEMPLATE };

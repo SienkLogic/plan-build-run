@@ -27,24 +27,13 @@
 const fs = require('fs');
 const path = require('path');
 const { logHook } = require('./hook-logger');
+const { extractFrontmatter } = require('./lib/frontmatter');
 
 // Statuses that indicate a phase has been executed
 const ADVANCED_STATUSES = ['built', 'verified', 'complete'];
 
-/**
- * Extract YAML frontmatter values from markdown content.
- * Returns an object with parsed key-value pairs.
- */
-function parseFrontmatter(content) {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return {};
-  const result = {};
-  for (const line of match[1].split(/\r?\n/)) {
-    const kv = line.match(/^(\w[\w_]*):\s*"?([^"\r\n]*)"?$/);
-    if (kv) result[kv[1]] = kv[2].trim();
-  }
-  return result;
-}
+// Re-export extractFrontmatter as parseFrontmatter for backward compat (tests import it)
+const parseFrontmatter = extractFrontmatter;
 
 /**
  * Check if a SUMMARY file exists for the given phase directory.

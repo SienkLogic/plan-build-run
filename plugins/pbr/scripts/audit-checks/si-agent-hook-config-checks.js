@@ -9,81 +9,11 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('../lib/frontmatter');
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Parse YAML frontmatter from a markdown file.
- * Returns an object with extracted key-value pairs (simple flat parsing).
- */
-function parseFrontmatter(content) {
-  const lines = content.replace(/\r\n/g, '\n').split('\n');
-  if (lines[0] !== '---') return {};
-
-  const endIdx = lines.indexOf('---', 1);
-  if (endIdx === -1) return {};
-
-  const fmLines = lines.slice(1, endIdx);
-  const result = {};
-  let currentKey = null;
-  let inArray = false;
-
-  for (const line of fmLines) {
-    // Array item
-    if (inArray && /^\s+-\s+/.test(line)) {
-      const val = line.replace(/^\s+-\s+/, '').trim();
-      result[currentKey].push(val);
-      continue;
-    }
-
-    // Key-value pair
-    const kvMatch = line.match(/^(\w[\w-]*)\s*:\s*(.*)/);
-    if (kvMatch) {
-      const key = kvMatch[1];
-      const rawVal = kvMatch[2].trim();
-
-      if (rawVal === '' || rawVal === '[]') {
-        // Could be start of array or empty value
-        result[key] = [];
-        currentKey = key;
-        inArray = true;
-        continue;
-      }
-
-      // Inline array like [Read, Write, Edit]
-      if (rawVal.startsWith('[') && rawVal.endsWith(']')) {
-        result[key] = rawVal.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
-        currentKey = key;
-        inArray = false;
-        continue;
-      }
-
-      // Scalar value
-      result[key] = rawVal.replace(/^["']|["']$/g, '');
-      currentKey = key;
-      inArray = false;
-      continue;
-    }
-
-    // Array item under current key (indented with -)
-    if (currentKey && /^\s+-\s/.test(line)) {
-      if (!Array.isArray(result[currentKey])) {
-        result[currentKey] = [];
-      }
-      const val = line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, '');
-      result[currentKey].push(val);
-      inArray = true;
-      continue;
-    }
-
-    // Not a recognized line — end array mode
-    inArray = false;
-  }
-
-  return result;
-}
 
 /**
  * Read all agent .md files and return array of { file, frontmatter, content }.
@@ -97,7 +27,7 @@ function readAgentFiles(pluginRoot) {
     .map(f => {
       const filePath = path.join(agentsDir, f);
       const content = fs.readFileSync(filePath, 'utf8');
-      return { file: f, frontmatter: parseFrontmatter(content), content };
+      return { file: f, frontmatter: extractFrontmatter(content), content };
     });
 }
 

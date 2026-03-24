@@ -12,58 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-
-/**
- * Parse YAML frontmatter from markdown content.
- * Uses the same --- delimiter pattern as core.js:parseYamlFrontmatter.
- *
- * @param {string} content - Markdown content with optional frontmatter
- * @returns {object} Parsed frontmatter fields
- */
-function parseFrontmatter(content) {
-  const normalized = content.replace(/\r\n/g, '\n');
-  const match = normalized.match(/^---\s*\n([\s\S]*?)\n---/);
-  if (!match) return {};
-
-  const yaml = match[1];
-  const result = {};
-  let currentKey = null;
-
-  for (const line of yaml.split('\n')) {
-    // Array item
-    if (/^\s+-\s+/.test(line) && currentKey) {
-      const val = line.replace(/^\s+-\s+/, '').trim().replace(/^["']|["']$/g, '');
-      if (!result[currentKey]) result[currentKey] = [];
-      if (Array.isArray(result[currentKey])) {
-        result[currentKey].push(val);
-      }
-      continue;
-    }
-
-    // Key-value pair
-    const kvMatch = line.match(/^([\w][\w-]*)\s*:\s*(.*)/);
-    if (kvMatch) {
-      currentKey = kvMatch[1];
-      let val = kvMatch[2].trim();
-
-      if (val === '' || val === '|') continue;
-
-      // Handle arrays on same line: [a, b, c]
-      if (val.startsWith('[') && val.endsWith(']')) {
-        result[currentKey] = val.slice(1, -1).split(',')
-          .map(v => v.trim().replace(/^["']|["']$/g, ''))
-          .filter(Boolean);
-        continue;
-      }
-
-      // Clean quotes
-      val = val.replace(/^["']|["']$/g, '');
-      result[currentKey] = val;
-    }
-  }
-
-  return result;
-}
+const { extractFrontmatter } = require('./frontmatter');
 
 /**
  * List all skills with their metadata from skills/ directory.
@@ -86,7 +35,7 @@ function helpList(pluginRoot) {
     const skillMd = path.join(skillsDir, entry.name, 'SKILL.md');
     try {
       const content = fs.readFileSync(skillMd, 'utf8');
-      const fm = parseFrontmatter(content);
+      const fm = extractFrontmatter(content);
       const allowedTools = fm['allowed-tools']
         ? (Array.isArray(fm['allowed-tools'])
           ? fm['allowed-tools']
@@ -130,7 +79,7 @@ function skillMetadata(skillName, pluginRoot) {
 
   try {
     const content = fs.readFileSync(skillMd, 'utf8');
-    const fm = parseFrontmatter(content);
+    const fm = extractFrontmatter(content);
     const allowedTools = fm['allowed-tools']
       ? (Array.isArray(fm['allowed-tools'])
         ? fm['allowed-tools']

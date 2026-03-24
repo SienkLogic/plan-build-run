@@ -25,6 +25,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
+const { extractFrontmatter } = require('../lib/frontmatter');
 
 // ---------------------------------------------------------------------------
 // Result helper
@@ -45,43 +46,6 @@ function result(dimCode, status, message, evidence) {
     message,
     evidence: evidence || [],
   };
-}
-
-// ---------------------------------------------------------------------------
-// YAML frontmatter parser (lightweight, no external deps)
-// ---------------------------------------------------------------------------
-
-/**
- * Extract YAML frontmatter from markdown content as key-value pairs.
- * Handles both \n and \r\n line endings.
- * @param {string} content
- * @returns {object} Parsed frontmatter fields
- */
-function parseFrontmatter(content) {
-  const lines = content.replace(/\r\n/g, '\n').split('\n');
-  if (lines[0] !== '---') return {};
-
-  const fields = {};
-  for (let i = 1; i < lines.length; i++) {
-    if (lines[i] === '---') break;
-    const match = lines[i].match(/^(\w[\w_-]*):\s*(.*)$/);
-    if (match) {
-      let value = match[2].trim();
-      // Strip surrounding quotes
-      if ((value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      // Parse arrays (simple single-line format)
-      if (value === '[]') {
-        value = [];
-      } else if (value === 'null' || value === '') {
-        value = value === 'null' ? null : value;
-      }
-      fields[match[1]] = value;
-    }
-  }
-  return fields;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,7 +249,7 @@ function checkCompactionQuality(planningDir, _config) {
   const statePath = path.join(planningDir, 'STATE.md');
   try {
     const stateContent = fs.readFileSync(statePath, 'utf8');
-    const fm = parseFrontmatter(stateContent);
+    const fm = extractFrontmatter(stateContent);
     const criticalFields = ['current_phase', 'status', 'last_activity'];
     const missing = criticalFields.filter(f => fm[f] === undefined || fm[f] === '');
     if (missing.length > 0) {
@@ -330,7 +294,7 @@ function checkStateFileIntegrity(planningDir, _config) {
     ]);
   }
 
-  const fm = parseFrontmatter(content);
+  const fm = extractFrontmatter(content);
   const evidence = [];
 
   // Get actual phase directories
@@ -429,7 +393,7 @@ function checkStateFrontmatterIntegrity(planningDir, _config) {
     ]);
   }
 
-  const fm = parseFrontmatter(content);
+  const fm = extractFrontmatter(content);
   const evidence = [];
 
   // Required fields
@@ -799,7 +763,7 @@ function checkArtifactFormatValidation(planningDir, _config) {
     for (const sf of summaryFiles) {
       try {
         const content = fs.readFileSync(path.join(dirPath, sf), 'utf8');
-        const fm = parseFrontmatter(content);
+        const fm = extractFrontmatter(content);
         const missingFields = [];
 
         if (fm.requires === undefined) missingFields.push('requires');

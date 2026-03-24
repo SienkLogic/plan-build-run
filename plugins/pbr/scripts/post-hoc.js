@@ -12,56 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-
-/**
- * Minimal YAML frontmatter parser. Returns key-value pairs from --- blocks.
- * Handles arrays (lines starting with "  - ") and nested objects (indented keys).
- */
-function parseFrontmatter(content) {
-  if (!content) return {};
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return {};
-
-  const lines = match[1].split(/\r?\n/);
-  const result = {};
-  let currentKey = null;
-  let currentNested = null;
-
-  for (const line of lines) {
-    // Nested array item: "  - value"
-    const arrayMatch = line.match(/^(\s{2,})- "?([^"]*)"?$/);
-    if (arrayMatch && currentKey) {
-      if (currentNested) {
-        if (!result[currentKey]) result[currentKey] = {};
-        if (!result[currentKey][currentNested]) result[currentKey][currentNested] = [];
-        result[currentKey][currentNested].push(arrayMatch[2]);
-      } else {
-        if (!Array.isArray(result[currentKey])) result[currentKey] = [];
-        result[currentKey].push(arrayMatch[2]);
-      }
-      continue;
-    }
-
-    // Nested key: "  key:"
-    const nestedKeyMatch = line.match(/^\s{2,}(\w+):\s*$/);
-    if (nestedKeyMatch && currentKey) {
-      currentNested = nestedKeyMatch[1];
-      if (!result[currentKey]) result[currentKey] = {};
-      continue;
-    }
-
-    // Top-level key-value: "key: value" or "key:"
-    const kvMatch = line.match(/^(\w[\w_]*):\s*(.*)$/);
-    if (kvMatch) {
-      currentKey = kvMatch[1];
-      currentNested = null;
-      const val = kvMatch[2].replace(/^"(.*)"$/, '$1').trim();
-      result[currentKey] = val || null;
-    }
-  }
-
-  return result;
-}
+const { extractFrontmatter } = require('./lib/frontmatter');
 
 /**
  * Read all PLAN-*.md files from phaseDir and parse their frontmatter.
@@ -72,7 +23,7 @@ function readPlanFiles(phaseDir) {
     const files = fs.readdirSync(phaseDir).filter(f => /^PLAN.*\.md$/i.test(f));
     for (const file of files) {
       const content = fs.readFileSync(path.join(phaseDir, file), 'utf-8');
-      const fm = parseFrontmatter(content);
+      const fm = extractFrontmatter(content);
       plans.push(fm);
     }
   } catch (_e) {
@@ -207,7 +158,7 @@ function generateLearnings(phaseDir, _planningDir) {
 
   try {
     const verContent = fs.readFileSync(verPath, 'utf-8');
-    const fm = parseFrontmatter(verContent);
+    const fm = extractFrontmatter(verContent);
     verStatus = fm.status || '';
     if (Array.isArray(fm.gaps)) {
       gaps = fm.gaps;

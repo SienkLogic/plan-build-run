@@ -20,36 +20,19 @@
 
 const fs = require('fs');
 const path = require('path');
+const { extractFrontmatter } = require('./lib/frontmatter');
 
 /**
- * Parse YAML-ish frontmatter from markdown content.
- * Lightweight parser — no dependency on pbr-tools to avoid circular deps.
+ * Parse frontmatter and body from markdown content.
+ * Delegates YAML parsing to canonical extractFrontmatter.
  * @param {string} content - Full file content
  * @returns {{ frontmatter: object, body: string }}
  */
-function parseFrontmatter(content) {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) return { frontmatter: {}, body: content };
-
-  const fm = {};
-  const lines = match[1].split(/\r?\n/);
-  for (const line of lines) {
-    const kvMatch = line.match(/^(\w[\w_]*):\s*(.+)/);
-    if (kvMatch) {
-      const key = kvMatch[1];
-      let val = kvMatch[2].trim();
-      // Parse numbers
-      if (/^\d+$/.test(val)) val = parseInt(val, 10);
-      // Strip quotes
-      if (typeof val === 'string' && val.startsWith('"') && val.endsWith('"')) {
-        val = val.slice(1, -1);
-      }
-      fm[key] = val;
-    }
-  }
-
-  const body = content.slice(match[0].length).trim();
-  return { frontmatter: fm, body };
+function extractFrontmatterWithBody(content) {
+  const frontmatter = extractFrontmatter(content);
+  const match = content.match(/^---\r?\n[\s\S]*?\r?\n---/);
+  const body = match ? content.slice(match[0].length).trim() : content;
+  return { frontmatter, body };
 }
 
 /**
@@ -69,7 +52,7 @@ function extractFeedback(phaseDir) {
     return null;
   }
 
-  const { frontmatter, body } = parseFrontmatter(content);
+  const { frontmatter, body } = extractFrontmatterWithBody(content);
 
   const status = frontmatter.status;
   if (!status) return null;
@@ -77,9 +60,9 @@ function extractFeedback(phaseDir) {
   // No feedback needed if verification passed
   if (status === 'passed' || status === 'all_passed') return null;
 
-  const attempt = typeof frontmatter.attempt === 'number' ? frontmatter.attempt : 1;
-  const passed = typeof frontmatter.must_haves_passed === 'number' ? frontmatter.must_haves_passed : 0;
-  const total = typeof frontmatter.must_haves_total === 'number' ? frontmatter.must_haves_total : 1;
+  const attempt = frontmatter.attempt ? parseInt(frontmatter.attempt, 10) || 1 : 1;
+  const passed = frontmatter.must_haves_passed ? parseInt(frontmatter.must_haves_passed, 10) || 0 : 0;
+  const total = frontmatter.must_haves_total ? parseInt(frontmatter.must_haves_total, 10) || 1 : 1;
   const pass_rate = total > 0 ? passed / total : 0;
 
   // Parse gap sections from body

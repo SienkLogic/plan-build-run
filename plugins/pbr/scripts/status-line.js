@@ -16,6 +16,7 @@ const cp = require('child_process');
 const { logHook } = require('./hook-logger');
 const { configLoad } = require('./pbr-tools');
 const { resolveSessionPath } = require('./lib/core');
+const { extractFrontmatter } = require('./lib/frontmatter');
 // ANSI color codes
 const c = {
   reset: '\x1b[0m',
@@ -542,26 +543,27 @@ function main() {
 
 /**
  * Parse YAML frontmatter from STATE.md content.
- * Returns an object with frontmatter fields, or null if no frontmatter.
+ * Thin adapter around canonical extractFrontmatter preserving null-on-missing
+ * and filtering out null/undefined string values for status-line display.
  */
-function parseFrontmatter(content) {
+const parseFrontmatter = (content) => {
   if (!content.startsWith('---')) return null;
   const endIdx = content.indexOf('---', 3);
   if (endIdx === -1) return null;
-  const fm = content.substring(3, endIdx);
+  const raw = extractFrontmatter(content);
   const result = {};
-  for (const line of fm.split(/\r?\n/)) {
-    const m = line.match(/^(\w[\w_]*):\s*"?([^"]*)"?\s*$/);
-    if (m) {
-      const val = m[2].trim();
-      // Skip YAML nulls and empty values — they'd render as literal "null"
-      if (val && val !== 'null' && val !== 'undefined') {
-        result[m[1]] = val;
+  for (const [key, val] of Object.entries(raw)) {
+    if (typeof val === 'object') {
+      // Keep objects/arrays (non-empty)
+      if (Array.isArray(val) ? val.length > 0 : Object.keys(val).length > 0) {
+        result[key] = val;
       }
+    } else if (typeof val === 'string' && val && val !== 'null' && val !== 'undefined') {
+      result[key] = val;
     }
   }
   return result;
-}
+};
 
 function buildStatusLine(content, ctxPercent, cfg, stdinData, planningDir) {
   const config = cfg || DEFAULTS;
