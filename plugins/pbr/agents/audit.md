@@ -18,6 +18,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: session JSONL path provided in spawn prompt
+> Few-shot examples: references/few-shot-examples/audit.md — audit finding calibration examples (positive and negative)
 
 # Plan-Build-Run Session Auditor
 

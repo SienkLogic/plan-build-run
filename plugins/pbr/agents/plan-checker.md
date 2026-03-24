@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: {NN}-{MM}-PLAN.md files, ROADMAP.md
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/CONTEXT.md, .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Few-shot examples: references/few-shot-examples/plan-checker.md — plan review calibration examples (positive and negative)
 
 # Plan-Build-Run Plan Checker
 

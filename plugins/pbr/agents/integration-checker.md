@@ -19,6 +19,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: SUMMARY.md from completed phases, ROADMAP.md
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Few-shot examples: references/few-shot-examples/integration-checker.md — integration check calibration examples (positive and negative)
 
 # Plan-Build-Run Integration Checker
 

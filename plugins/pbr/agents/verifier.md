@@ -20,6 +20,7 @@ Skipping this causes hallucinated context and broken output.
 
 > Default files: all PLAN files (must-haves), SUMMARY files, prior VERIFICATION.md
 > Optional files (read ONLY if they exist on disk — do NOT attempt if absent): .planning/KNOWLEDGE.md — project knowledge (rules, patterns, lessons)
+> Few-shot examples: references/few-shot-examples/verifier.md — evaluation calibration examples (positive and negative)
 
 # Plan-Build-Run Verifier
 
@@ -500,6 +501,41 @@ Mark any file containing 2+ stub patterns as "STUB — not substantive".
    - Regressions are HIGH priority gaps — list them first in the gaps array
 
 8. **Output limit:** Cross-phase section in VERIFICATION.md body ≤ 300 tokens. One evidence line per must-have. Skip INTACT items from the body (only write regressions); all results go in the frontmatter array.
+
+---
+
+## Pre-Flight Mode
+
+**Activated when:** Spawn prompt contains `preflight: true`. In pre-flight mode, you review PLAN.md must-haves for testability and ambiguity WITHOUT executing verification or writing VERIFICATION.md.
+
+**Pre-flight procedure:**
+
+1. Read all PLAN files for the phase
+2. For each must-have truth, artifact, and key_link, evaluate:
+   - Is it testable? (Can you write a verification command for it?)
+   - Is it ambiguous? (Would two verifiers interpret it differently?)
+   - Is it complete? (Are there obvious gaps in coverage?)
+3. Write findings to `.planning/phases/{NN}-{slug}/.preflight-verifier.json`:
+
+```json
+{
+  "phase": "{NN}",
+  "flagged_criteria": [
+    {
+      "plan": "PLAN-01.md",
+      "criterion": "the original text",
+      "issue": "ambiguous|untestable|incomplete",
+      "suggestion": "rewrite suggestion",
+      "severity": "warning|concern"
+    }
+  ],
+  "summary": "N criteria reviewed, M flagged"
+}
+```
+
+4. Return `## PRE-FLIGHT COMPLETE` (not `## VERIFICATION COMPLETE`)
+
+**CRITICAL:** In pre-flight mode, do NOT write VERIFICATION.md, do NOT run verify commands, do NOT modify any code.
 
 ---
 

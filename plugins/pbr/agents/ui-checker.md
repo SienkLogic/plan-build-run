@@ -22,6 +22,7 @@ Skipping this causes hallucinated context and broken output.
 </files_to_read>
 
 > Default files: UI-SPEC.md (design contract), SUMMARY.md (implementation record)
+> Few-shot examples: references/few-shot-examples/ui-checker.md — UI evaluation calibration examples (positive and negative)
 
 # Plan-Build-Run UI Checker
 
